@@ -172,13 +172,45 @@
               "group_name",
               "id",
               "invite",
+              "is_archived",
               "is_muted",
+              "last_read_event_id",
               "message_ttl_ms",
+              "newest_event_id",
               "pending_member_ids",
               "screen_capture_blocking_enabled",
               "screen_capture_detection_enabled",
               "type",
+              "unread",
               "updated_at"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatGroupInviteFieldsParameter": {
+        "description": "A comma separated list of ChatGroupInvite fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_group_invite.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatGroupInvite object.",
+          "items": {
+            "enum": [
+              "conversation_id",
+              "expires_at",
+              "group_avatar_url",
+              "group_name",
+              "invite_url",
+              "join_state",
+              "member_count",
+              "token",
+              "welcome_message"
             ],
             "type": "string"
           },
@@ -199,6 +231,7 @@
           "items": {
             "enum": [
               "conversation_id",
+              "conversation_key_version",
               "conversation_token",
               "created_at",
               "encoded_event",
@@ -207,6 +240,102 @@
               "message_event_signature",
               "previous_id",
               "sender_id"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatMessageRequestDetailFieldsParameter": {
+        "description": "A comma separated list of ChatMessageRequestDetail fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_message_request_detail.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatMessageRequestDetail object.",
+          "items": {
+            "enum": [
+              "conversation_id",
+              "conversation_key_events",
+              "has_more_events",
+              "message_events",
+              "message_request_state",
+              "participant_id"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatMessageRequestFieldsParameter": {
+        "description": "A comma separated list of ChatMessageRequest fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_message_request.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatMessageRequest object.",
+          "items": {
+            "enum": [
+              "conversation_id",
+              "conversation_key_events",
+              "encoded_message_create_event",
+              "has_more_events",
+              "message_events",
+              "sender_id",
+              "sender_recently_modified_profile",
+              "social_proof_user_ids"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatPinnedMessageFieldsParameter": {
+        "description": "A comma separated list of ChatPinnedMessage fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_pinned_message.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatPinnedMessage object.",
+          "items": {
+            "enum": [
+              "encoded_event"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ChatSettingsFieldsParameter": {
+        "description": "A comma separated list of ChatSettings fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "chat_settings.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ChatSettings object.",
+          "items": {
+            "enum": [
+              "allow_dms_from",
+              "always_allow_dms_from_subscribers",
+              "av_settings",
+              "dm_quality_filter",
+              "dm_receipt_settings"
             ],
             "type": "string"
           },
@@ -865,6 +994,7 @@
           "description": "The fields available for a User object.",
           "items": {
             "enum": [
+              "active_follower_count",
               "confirmed_email",
               "connection_status",
               "created_at",
@@ -924,6 +1054,32 @@
       }
     },
     "schemas": {
+      "AcceptChatMessageRequestResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AcceptChatMessageRequestResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AcceptChatMessageRequestResponseData": {
+        "properties": {
+          "accepted": {
+            "description": "Whether the message request was accepted.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accepted"
+        ],
+        "type": "object"
+      },
       "ActivityEventId": {
         "description": "The unique identifier of an Activity event.",
         "example": "1146654567674912769",
@@ -1601,22 +1757,13 @@
       },
       "AddUserPublicKeyRequest": {
         "properties": {
-          "generate_version": {
-            "description": "When true, the server generates a new version.",
-            "type": "boolean"
-          },
           "public_key": {
             "$ref": "#/components/schemas/AddUserPublicKeyPublicKey",
             "description": "Public key registration payload."
-          },
-          "version": {
-            "description": "Public key version.",
-            "type": "string"
           }
         },
         "required": [
-          "public_key",
-          "version"
+          "public_key"
         ],
         "type": "object"
       },
@@ -2018,6 +2165,128 @@
         },
         "required": [
           "approved"
+        ],
+        "type": "object"
+      },
+      "ArchiveChatConversationActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/ArchiveChatConversationActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "ArchiveChatConversationActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/ArchiveChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "ArchiveChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ArchiveChatConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/ArchiveChatConversationActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ArchiveChatConversationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ArchiveChatConversationResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ArchiveChatConversationResponseData": {
+        "properties": {
+          "archived": {
+            "description": "Whether the conversation is archived for the authenticated user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived"
         ],
         "type": "object"
       },
@@ -2627,6 +2896,30 @@
         },
         "type": "object"
       },
+      "CancelScheduledCallResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CancelScheduledCallResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CancelScheduledCallResponseData": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelled": {
+            "description": "Whether the occurrences are cancelled.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "ChatConversation": {
         "properties": {
           "admin_ids": {
@@ -2662,8 +2955,16 @@
           "invite": {
             "$ref": "#/components/schemas/ChatConversationInvite"
           },
+          "is_archived": {
+            "description": "Whether the authenticated user archived this conversation.",
+            "type": "boolean"
+          },
           "is_muted": {
             "type": "boolean"
+          },
+          "last_read_event_id": {
+            "description": "The event ID you have read up to: the seen_until_sequence_id of your latest read receipt. Absent when you have no read receipt.",
+            "type": "string"
           },
           "member_ids": {
             "items": {
@@ -2673,6 +2974,10 @@
           },
           "message_ttl_ms": {
             "type": "integer"
+          },
+          "newest_event_id": {
+            "description": "The ID of the latest notifying message in the conversation.",
+            "type": "string"
           },
           "participant_ids": {
             "items": {
@@ -2691,6 +2996,10 @@
           },
           "type": {
             "type": "string"
+          },
+          "unread": {
+            "description": "Whether the conversation is unread for you: its latest notifying message was sent by someone else after last_read_event_id, or you have no read receipt. Marking the conversation unread does not set it.",
+            "type": "boolean"
           },
           "updated_at": {
             "format": "date-time",
@@ -2774,6 +3083,47 @@
           "type": "string"
         },
         "type": "array"
+      },
+      "ChatGroupInvite": {
+        "properties": {
+          "conversation_id": {
+            "description": "ID of the group conversation the link joins.",
+            "type": "string"
+          },
+          "expires_at": {
+            "description": "When the link expires (ISO 8601). Absent when the link does not expire.",
+            "type": "string"
+          },
+          "group_avatar_url": {
+            "description": "Group avatar URL shown on the invite preview, stored unencrypted. Absent when the backend flags the avatar as NSFW.",
+            "type": "string"
+          },
+          "group_name": {
+            "description": "Group name shown on the invite preview, stored unencrypted.",
+            "type": "string"
+          },
+          "invite_url": {
+            "description": "Shareable invite link.",
+            "type": "string"
+          },
+          "join_state": {
+            "description": "The authenticated user's relationship to the group: `member`, `not_member`, `removed`, or `requested`.",
+            "type": "string"
+          },
+          "member_count": {
+            "description": "Number of members in the group.",
+            "type": "integer"
+          },
+          "token": {
+            "description": "Invite token. Together with the conversation ID it identifies the link.",
+            "type": "string"
+          },
+          "welcome_message": {
+            "description": "Message shown to people who open the link.",
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "ChatMediaUploadAppendRequest": {
         "additionalProperties": false,
@@ -2954,7 +3304,12 @@
           "conversation_id": {
             "type": "string"
           },
+          "conversation_key_version": {
+            "description": "The version of the conversation key that encrypts the event's contents. Absent when the event is not encrypted, such as a message sent before the conversation was encrypted.",
+            "type": "string"
+          },
           "conversation_token": {
+            "description": "Usually present on encrypted events; unencrypted events have none.",
             "type": "string"
           },
           "created_at": {
@@ -2971,6 +3326,7 @@
             "type": "boolean"
           },
           "message_event_signature": {
+            "description": "Usually present on encrypted events; unencrypted events have none. Treat an encrypted event without one as unverified.",
             "type": "object"
           },
           "previous_id": {
@@ -2978,6 +3334,178 @@
           },
           "sender_id": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChatMessageRequest": {
+        "properties": {
+          "conversation_id": {
+            "description": "The 1:1 conversation ID: both user IDs joined by a hyphen.",
+            "type": "string"
+          },
+          "conversation_key_events": {
+            "$ref": "#/components/schemas/ChatMessageRequestConversationKeyEvents"
+          },
+          "encoded_message_create_event": {
+            "description": "The message that previews the request, as an encoded message event. Its contents are end-to-end encrypted unless the conversation is unencrypted.",
+            "type": "string"
+          },
+          "has_more_events": {
+            "description": "Whether the conversation has older message events than `message_events`.",
+            "type": "boolean"
+          },
+          "message_events": {
+            "$ref": "#/components/schemas/ChatMessageRequestMessageEvents"
+          },
+          "sender_id": {
+            "description": "The user ID of the user who sent the request.",
+            "type": "string"
+          },
+          "sender_recently_modified_profile": {
+            "description": "Whether the sender recently changed their name or avatar, a possible sign of impersonation.",
+            "type": "boolean"
+          },
+          "social_proof_user_ids": {
+            "$ref": "#/components/schemas/ChatMessageRequestSocialProofUserIds"
+          }
+        },
+        "type": "object"
+      },
+      "ChatMessageRequestConversationKeyEvents": {
+        "description": "The conversation key change events needed to decrypt `message_events`.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatMessageRequestDetail": {
+        "properties": {
+          "conversation_id": {
+            "description": "The 1:1 conversation ID: both user IDs joined by a hyphen.",
+            "type": "string"
+          },
+          "conversation_key_events": {
+            "$ref": "#/components/schemas/ChatMessageRequestDetailConversationKeyEvents"
+          },
+          "has_more_events": {
+            "description": "Whether older message events may exist. Always `true` when `message_events` isn't empty.",
+            "type": "boolean"
+          },
+          "message_events": {
+            "$ref": "#/components/schemas/ChatMessageRequestDetailMessageEvents"
+          },
+          "message_request_state": {
+            "description": "`received` while the other user's request is pending, `sent` while the authenticated user's request is pending, `none` otherwise.",
+            "type": "string"
+          },
+          "participant_id": {
+            "description": "The other user in the conversation: the sender when `message_request_state` is `received`.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChatMessageRequestDetailConversationKeyEvents": {
+        "description": "The conversation key change events needed to decrypt `message_events`.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatMessageRequestDetailMessageEvents": {
+        "description": "The newest message events, newest first, as encoded message events. Their contents are end-to-end encrypted unless the conversation is unencrypted.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatMessageRequestMessageEvents": {
+        "description": "The conversation's latest message events, newest first, as encoded message events. Their contents are end-to-end encrypted unless the conversation is unencrypted.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatMessageRequestSocialProofUserIds": {
+        "description": "IDs of users the authenticated user follows who also follow the sender.",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "ChatPinnedMessage": {
+        "properties": {
+          "encoded_event": {
+            "description": "Base64-encoded Thrift pin event with end-to-end encrypted contents.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChatSettings": {
+        "properties": {
+          "allow_dms_from": {
+            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
+            "type": "string"
+          },
+          "always_allow_dms_from_subscribers": {
+            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
+            "type": "boolean"
+          },
+          "av_settings": {
+            "$ref": "#/components/schemas/ChatSettingsAvSettings"
+          },
+          "dm_quality_filter": {
+            "description": "Low-quality message request filter: `enabled` (low-quality requests go to a separate folder) or `disabled` (all requests stay in the main inbox).",
+            "type": "string"
+          },
+          "dm_receipt_settings": {
+            "description": "Read receipts: `all_enabled` (send and receive read receipts) or `all_disabled` (neither).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChatSettingsAvSettings": {
+        "description": "Audio and video call settings.",
+        "properties": {
+          "av_call_permissions": {
+            "description": "Who may place audio or video calls to the user.",
+            "nullable": true,
+            "properties": {
+              "accept_calls_from_addressbook": {
+                "description": "Whether the user accepts calls from address-book contacts.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "accept_calls_from_everyone": {
+                "description": "Whether the user accepts calls from anyone.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "accept_calls_from_following": {
+                "description": "Whether the user accepts calls from accounts they follow.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "accept_calls_from_verified": {
+                "description": "Whether the user accepts calls from verified accounts.",
+                "nullable": true,
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "has_av_calls_enabled": {
+            "description": "Whether audio and video calls are enabled.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "has_enhanced_call_privacy_enabled": {
+            "description": "Whether enhanced call privacy is enabled.",
+            "nullable": true,
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -7588,7 +8116,7 @@
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/GetChatConversationPinnedMessagesResponseData"
+              "$ref": "#/components/schemas/ChatPinnedMessage"
             },
             "type": "array"
           },
@@ -7613,18 +8141,6 @@
             "type": "object"
           }
         },
-        "type": "object"
-      },
-      "GetChatConversationPinnedMessagesResponseData": {
-        "properties": {
-          "encoded_event": {
-            "description": "Base64-encoded Thrift pin event with end-to-end encrypted contents.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "encoded_event"
-        ],
         "type": "object"
       },
       "GetChatConversationResponse": {
@@ -7724,7 +8240,7 @@
       "GetChatGroupInviteResponse": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetChatGroupInviteResponseData"
+            "$ref": "#/components/schemas/ChatGroupInvite"
           },
           "errors": {
             "items": {
@@ -7735,49 +8251,50 @@
         },
         "type": "object"
       },
-      "GetChatGroupInviteResponseData": {
+      "GetChatMessageRequestResponse": {
         "properties": {
-          "conversation_id": {
-            "description": "ID of the group conversation the link joins.",
-            "type": "string"
+          "data": {
+            "$ref": "#/components/schemas/ChatMessageRequestDetail"
           },
-          "expires_at": {
-            "description": "When the link expires (ISO 8601). Absent when the link does not expire.",
-            "type": "string"
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetChatMessageRequestsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessageRequest"
+            },
+            "type": "array"
           },
-          "group_avatar_url": {
-            "description": "Group avatar URL shown on the invite preview, stored unencrypted. Absent when the backend flags the avatar as NSFW.",
-            "type": "string"
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
           },
-          "group_name": {
-            "description": "Group name shown on the invite preview, stored unencrypted.",
-            "type": "string"
-          },
-          "invite_url": {
-            "description": "Shareable invite link.",
-            "type": "string"
-          },
-          "join_state": {
-            "description": "The authenticated user's relationship to the group.",
-            "enum": [
-              "member",
-              "not_member",
-              "removed",
-              "requested"
-            ],
-            "type": "string"
-          },
-          "member_count": {
-            "description": "Number of members in the group.",
-            "type": "integer"
-          },
-          "token": {
-            "description": "Invite token. Together with the conversation ID it identifies the link.",
-            "type": "string"
-          },
-          "welcome_message": {
-            "description": "Message shown to people who open the link.",
-            "type": "string"
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              },
+              "total_count": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         },
         "type": "object"
@@ -7815,91 +8332,13 @@
       "GetChatSettingsResponse": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetChatSettingsResponseData"
+            "$ref": "#/components/schemas/ChatSettings"
           },
           "errors": {
             "items": {
               "$ref": "#/components/schemas/Problem"
             },
             "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "GetChatSettingsResponseData": {
-        "properties": {
-          "allow_dms_from": {
-            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
-            "enum": [
-              "all",
-              "verified",
-              "following"
-            ],
-            "type": "string"
-          },
-          "always_allow_dms_from_subscribers": {
-            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
-            "type": "boolean"
-          },
-          "av_settings": {
-            "$ref": "#/components/schemas/GetChatSettingsResponseDataAvSettings",
-            "description": "Audio and video call settings."
-          },
-          "dm_quality_filter": {
-            "description": "Low-quality message request filter: `enabled` (low-quality requests go to a separate folder) or `disabled` (all requests stay in the main inbox).",
-            "enum": [
-              "enabled",
-              "disabled"
-            ],
-            "type": "string"
-          },
-          "dm_receipt_settings": {
-            "description": "Read receipts: `all_enabled` (send and receive read receipts) or `all_disabled` (neither).",
-            "enum": [
-              "all_enabled",
-              "all_disabled"
-            ],
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "GetChatSettingsResponseDataAvSettings": {
-        "additionalProperties": false,
-        "properties": {
-          "av_call_permissions": {
-            "$ref": "#/components/schemas/GetChatSettingsResponseDataAvSettingsAvCallPermissions",
-            "description": "Who may place audio or video calls to the user."
-          },
-          "has_av_calls_enabled": {
-            "description": "Whether audio and video calls are enabled.",
-            "type": "boolean"
-          },
-          "has_enhanced_call_privacy_enabled": {
-            "description": "Whether enhanced call privacy is enabled.",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "GetChatSettingsResponseDataAvSettingsAvCallPermissions": {
-        "additionalProperties": false,
-        "properties": {
-          "accept_calls_from_addressbook": {
-            "description": "Whether the user accepts calls from address-book contacts.",
-            "type": "boolean"
-          },
-          "accept_calls_from_everyone": {
-            "description": "Whether the user accepts calls from anyone.",
-            "type": "boolean"
-          },
-          "accept_calls_from_following": {
-            "description": "Whether the user accepts calls from accounts they follow.",
-            "type": "boolean"
-          },
-          "accept_calls_from_verified": {
-            "description": "Whether the user accepts calls from verified accounts.",
-            "type": "boolean"
           }
         },
         "type": "object"
@@ -8963,6 +9402,99 @@
           },
           "title": {
             "description": "Broadcast title / status text.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "GetScheduledCallResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetScheduledCallResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetScheduledCallResponseData": {
+        "additionalProperties": false,
+        "properties": {
+          "calendar": {
+            "description": "Where the call lives: x (X Calls), or outlook for a Microsoft Outlook calendar the user linked to X, whose calls are changed there.",
+            "type": "string"
+          },
+          "call_id": {
+            "description": "The X call people join; also its join secret.",
+            "type": "string"
+          },
+          "description": {
+            "description": "What the call is about.",
+            "type": "string"
+          },
+          "end_time": {
+            "description": "End of this occurrence (RFC 3339).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the scheduled call: what PUT, DELETE and rsvp take. Calls on linked calendars have none.",
+            "type": "string"
+          },
+          "invitees": {
+            "description": "Everyone invited, except the organizer. Not set for linked calendars.",
+            "items": {
+              "$ref": "#/components/schemas/GetScheduledCallResponseDataInvitees"
+            },
+            "type": "array"
+          },
+          "join_url": {
+            "description": "Link people open to join the call on X.",
+            "type": "string"
+          },
+          "occurrence_start_time": {
+            "description": "For a recurring call, this occurrence's original start (RFC 3339): pass it as occurrence_start_time to change, cancel or answer just this occurrence.",
+            "type": "string"
+          },
+          "organizer_id": {
+            "description": "X user id of the call's organizer.",
+            "type": "string"
+          },
+          "recurrence": {
+            "description": "RFC 5545 RRULE the call repeats by, such as FREQ=WEEKLY;BYDAY=MO.",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Start of this occurrence (RFC 3339).",
+            "type": "string"
+          },
+          "status": {
+            "description": "scheduled, or cancelled for a cancelled occurrence.",
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "IANA time zone the recurrence follows.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Title of the call.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "GetScheduledCallResponseDataInvitees": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "X user id of the invitee.",
+            "type": "string"
+          },
+          "response": {
+            "description": "accepted, declined, tentative, or none for no answer yet.",
             "type": "string"
           }
         },
@@ -10635,16 +11167,110 @@
         },
         "type": "object"
       },
-      "MarkChatConversationReadRequest": {
+      "ListScheduledCallsResponse": {
         "properties": {
-          "seen_until_sequence_id": {
-            "description": "The sequence ID of the last message to mark as read up to.",
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ListScheduledCallsResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "ListScheduledCallsResponseData": {
+        "additionalProperties": false,
+        "properties": {
+          "calendar": {
+            "description": "Where the call lives: x (X Calls), or outlook for a Microsoft Outlook calendar the user linked to X, whose calls are changed there.",
+            "type": "string"
+          },
+          "call_id": {
+            "description": "The X call people join; also its join secret.",
+            "type": "string"
+          },
+          "description": {
+            "description": "What the call is about.",
+            "type": "string"
+          },
+          "end_time": {
+            "description": "End of this occurrence (RFC 3339).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the scheduled call: what PUT, DELETE and rsvp take. Calls on linked calendars have none.",
+            "type": "string"
+          },
+          "invitees": {
+            "description": "Everyone invited, except the organizer. Not set for linked calendars.",
+            "items": {
+              "$ref": "#/components/schemas/ListScheduledCallsResponseDataInvitees"
+            },
+            "type": "array"
+          },
+          "join_url": {
+            "description": "Link people open to join the call on X.",
+            "type": "string"
+          },
+          "occurrence_start_time": {
+            "description": "For a recurring call, this occurrence's original start (RFC 3339): pass it as occurrence_start_time to change, cancel or answer just this occurrence.",
+            "type": "string"
+          },
+          "organizer_id": {
+            "description": "X user id of the call's organizer.",
+            "type": "string"
+          },
+          "recurrence": {
+            "description": "RFC 5545 RRULE the call repeats by, such as FREQ=WEEKLY;BYDAY=MO.",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Start of this occurrence (RFC 3339).",
+            "type": "string"
+          },
+          "status": {
+            "description": "scheduled, or cancelled for a cancelled occurrence.",
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "IANA time zone the recurrence follows.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Title of the call.",
             "type": "string"
           }
         },
-        "required": [
-          "seen_until_sequence_id"
-        ],
+        "type": "object"
+      },
+      "ListScheduledCallsResponseDataInvitees": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "X user id of the invitee.",
+            "type": "string"
+          },
+          "response": {
+            "description": "accepted, declined, tentative, or none for no answer yet.",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "MarkChatConversationReadResponse": {
@@ -10665,6 +11291,32 @@
         "properties": {
           "success": {
             "description": "Whether the conversation was marked read.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "type": "object"
+      },
+      "MarkChatConversationUnreadResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MarkChatConversationUnreadResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "MarkChatConversationUnreadResponseData": {
+        "properties": {
+          "success": {
+            "description": "Whether the conversation was marked unread.",
             "type": "boolean"
           }
         },
@@ -14037,6 +14689,62 @@
         ],
         "type": "object"
       },
+      "RespondToScheduledCallRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "occurrence_start_time": {
+            "description": "Start of the occurrence that scope this or this_and_following refers to (RFC 3339).",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d{1,9})?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$",
+            "type": "string"
+          },
+          "response": {
+            "description": "The answer to the invitation.",
+            "enum": [
+              "accepted",
+              "declined",
+              "tentative"
+            ],
+            "type": "string"
+          },
+          "scope": {
+            "description": "Which occurrences of a recurring call: all (the default without occurrence_start_time), this (the default with it), or this_and_following.",
+            "enum": [
+              "all",
+              "this",
+              "this_and_following"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "response"
+        ],
+        "type": "object"
+      },
+      "RespondToScheduledCallResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RespondToScheduledCallResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RespondToScheduledCallResponseData": {
+        "additionalProperties": false,
+        "properties": {
+          "response": {
+            "description": "The answer now on the invitation.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "RevokeBotTokenResponse": {
         "properties": {
           "data": {
@@ -14197,6 +14905,152 @@
         "required": [
           "rule_count"
         ],
+        "type": "object"
+      },
+      "ScheduleCallRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "What the call is about.",
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "duration_minutes": {
+            "description": "How long the call lasts, in minutes. Defaults to 30; at most 31 days.",
+            "maximum": 44640,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "invitee_ids": {
+            "description": "X user ids of the people to invite.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 25,
+            "type": "array"
+          },
+          "notify_invitees": {
+            "description": "Whether invitees get an email about the call. Defaults to true.",
+            "type": "boolean"
+          },
+          "recurrence": {
+            "description": "RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO; the RRULE: prefix is optional.",
+            "maxLength": 500,
+            "type": "string"
+          },
+          "start_time": {
+            "description": "When the call starts (RFC 3339); not in the past.",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d{1,9})?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$",
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "IANA time zone the recurrence follows, such as America/Los_Angeles.",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "title": {
+            "description": "Title invitees see.",
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": [
+          "start_time"
+        ],
+        "type": "object"
+      },
+      "ScheduleCallResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ScheduleCallResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ScheduleCallResponseData": {
+        "additionalProperties": false,
+        "properties": {
+          "calendar": {
+            "description": "Where the call lives: x (X Calls), or outlook for a Microsoft Outlook calendar the user linked to X, whose calls are changed there.",
+            "type": "string"
+          },
+          "call_id": {
+            "description": "The X call people join; also its join secret.",
+            "type": "string"
+          },
+          "description": {
+            "description": "What the call is about.",
+            "type": "string"
+          },
+          "end_time": {
+            "description": "End of this occurrence (RFC 3339).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the scheduled call: what PUT, DELETE and rsvp take. Calls on linked calendars have none.",
+            "type": "string"
+          },
+          "invitees": {
+            "description": "Everyone invited, except the organizer. Not set for linked calendars.",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleCallResponseDataInvitees"
+            },
+            "type": "array"
+          },
+          "join_url": {
+            "description": "Link people open to join the call on X.",
+            "type": "string"
+          },
+          "occurrence_start_time": {
+            "description": "For a recurring call, this occurrence's original start (RFC 3339): pass it as occurrence_start_time to change, cancel or answer just this occurrence.",
+            "type": "string"
+          },
+          "organizer_id": {
+            "description": "X user id of the call's organizer.",
+            "type": "string"
+          },
+          "recurrence": {
+            "description": "RFC 5545 RRULE the call repeats by, such as FREQ=WEEKLY;BYDAY=MO.",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Start of this occurrence (RFC 3339).",
+            "type": "string"
+          },
+          "status": {
+            "description": "scheduled, or cancelled for a cancelled occurrence.",
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "IANA time zone the recurrence follows.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Title of the call.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScheduleCallResponseDataInvitees": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "X user id of the invitee.",
+            "type": "string"
+          },
+          "response": {
+            "description": "accepted, declined, tentative, or none for no answer yet.",
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "SearchCommunitiesResponse": {
@@ -15039,6 +15893,128 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "UnarchiveChatConversationActionSignatures": {
+        "properties": {
+          "encoded_message_event_detail": {
+            "description": "Base64-encoded message event detail.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "message_event_signature": {
+            "$ref": "#/components/schemas/UnarchiveChatConversationActionSignaturesMessageEventSignature",
+            "description": "Message event signature supplied with an action signature."
+          },
+          "message_id": {
+            "description": "Client-generated ID of the message being signed.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "signature_payload": {
+            "description": "Payload string the client signed; used only in server-side failure logs.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id",
+          "encoded_message_event_detail",
+          "message_event_signature"
+        ],
+        "type": "object"
+      },
+      "UnarchiveChatConversationActionSignaturesMessageEventSignature": {
+        "properties": {
+          "message_signing_key_info_list": {
+            "description": "List of signing key information for message verification.",
+            "items": {
+              "$ref": "#/components/schemas/UnarchiveChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList"
+            },
+            "type": "array"
+          },
+          "public_key_version": {
+            "description": "The version of the public key used for signing.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signature": {
+            "description": "The signature of the message event.",
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9+/=_-]+$",
+            "type": "string"
+          },
+          "signature_version": {
+            "description": "The version of the signature algorithm.",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The public key used for signing.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "public_key_version",
+          "signature_version"
+        ],
+        "type": "object"
+      },
+      "UnarchiveChatConversationActionSignaturesMessageEventSignatureMessageSigningKeyInfoList": {
+        "properties": {
+          "member_id": {
+            "description": "The member ID associated with this signing key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "The version of the public key.",
+            "type": "string"
+          },
+          "signing_public_key": {
+            "description": "The signing public key.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action_signatures": {
+            "description": "Cryptographic signatures for the action.",
+            "items": {
+              "$ref": "#/components/schemas/UnarchiveChatConversationActionSignatures"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UnarchiveChatConversationResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnarchiveChatConversationResponseData": {
+        "properties": {
+          "archived": {
+            "description": "Whether the conversation is archived for the authenticated user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived"
+        ],
         "type": "object"
       },
       "UnblockUsersDmsResponse": {
@@ -16817,6 +17793,134 @@
         },
         "type": "object"
       },
+      "UpdateScheduledCallRequest": {
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "start_time"
+            ]
+          },
+          {
+            "required": [
+              "duration_minutes"
+            ]
+          },
+          {
+            "required": [
+              "title"
+            ]
+          },
+          {
+            "required": [
+              "description"
+            ]
+          },
+          {
+            "required": [
+              "invitee_ids"
+            ]
+          },
+          {
+            "required": [
+              "recurrence"
+            ]
+          },
+          {
+            "required": [
+              "time_zone"
+            ]
+          }
+        ],
+        "description": "At least one of `start_time`, `duration_minutes`, `title`, `description`, `invitee_ids`, `recurrence`, `time_zone` is required.",
+        "properties": {
+          "description": {
+            "description": "What the call is about.",
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "duration_minutes": {
+            "description": "How long the call lasts, in minutes.",
+            "maximum": 44640,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "invitee_ids": {
+            "description": "Everyone to invite: replaces the invite list. At most 25 of them may be people not invited yet.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          },
+          "notify_invitees": {
+            "description": "Whether invitees get an email about the change. Defaults to true.",
+            "type": "boolean"
+          },
+          "occurrence_start_time": {
+            "description": "Start of the occurrence that scope this or this_and_following refers to (RFC 3339).",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d{1,9})?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$",
+            "type": "string"
+          },
+          "recurrence": {
+            "description": "RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO.",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "scope": {
+            "description": "Which occurrences of a recurring call: all (the default without occurrence_start_time), this (the default with it), or this_and_following.",
+            "enum": [
+              "all",
+              "this",
+              "this_and_following"
+            ],
+            "type": "string"
+          },
+          "start_time": {
+            "description": "When the call (or the chosen occurrence) starts now (RFC 3339).",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d{1,9})?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$",
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "IANA time zone the recurrence follows.",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "title": {
+            "description": "Title invitees see.",
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateScheduledCallResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateScheduledCallResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateScheduledCallResponseData": {
+        "additionalProperties": false,
+        "properties": {
+          "updated": {
+            "description": "Whether the scheduled call was changed.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
       "UploadComplianceJobSubmissionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -16949,6 +18053,10 @@
       },
       "User": {
         "properties": {
+          "active_follower_count": {
+            "description": "The number of followers who were active on X in the last 24 hours. Returned only for the authenticated user when account analytics is enabled. Omitted for accounts with 50 or fewer followers. An estimate for accounts with at least 20,000 followers.",
+            "type": "integer"
+          },
           "affiliation": {
             "$ref": "#/components/schemas/UserAffiliation"
           },
@@ -17877,6 +18985,8 @@
               "bookmark.write": "Create and delete your bookmarks.",
               "broadcast.read": "View your live broadcasts and their chat.",
               "broadcast.write": "Manage your live broadcasts and send chat messages on your behalf.",
+              "calls.read": "View your X calls and the calls on your calendar.",
+              "calls.write": "Start, schedule, change, and cancel X calls for you, and answer invitations.",
               "developer.read": "View your developer accounts, apps, and settings.",
               "developer.write": "Create and manage your X Developer Platform account.",
               "dm.read": "Read all your Direct Messages.",
@@ -17921,7 +19031,7 @@
     },
     "termsOfService": "https://developer.x.com/en/developer-terms/agreement-and-policy.html",
     "title": "X API v2",
-    "version": "2.169"
+    "version": "2.172"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -20282,9 +21392,436 @@
         ]
       }
     },
+    "/2/calls/scheduled": {
+      "get": {
+        "description": "Returns the X calls on the authenticated user's calendar, earliest first: events on their X Calls calendar, and events on the Microsoft Outlook calendars they linked to X whose conference is an X call. Calls still running at start_time are included. The window defaults to the next 24 hours and may span at most 7 days.\n\nWhen both are provided, `start_time` must be earlier than `end_time`.",
+        "operationId": "listScheduledCalls",
+        "parameters": [
+          {
+            "description": "Calls still running at this time or starting after it (RFC 3339). Defaults to now.",
+            "in": "query",
+            "name": "start_time",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Calls starting before this time (RFC 3339). Defaults to 24 hours after start_time.",
+            "in": "query",
+            "name": "end_time",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "The most calls to return. Defaults to 20.",
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListScheduledCallsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "calls.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "List scheduled calls",
+        "tags": [
+          "Calls"
+        ]
+      },
+      "post": {
+        "description": "Puts an X call on the authenticated user's X Calls calendar, with them as its organizer, and invites people to it. The call exists right away: share its join_url, or put an agent in it at start time with POST /2/calls/:id/join. A recurrence (an RFC 5545 RRULE) repeats it. Invitees get an email unless notify_invitees is false.",
+        "operationId": "scheduleCall",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleCallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleCallResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "calls.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Schedule a call",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/2/calls/scheduled/{id}": {
+      "delete": {
+        "description": "Cancels a scheduled call the authenticated user organizes, and takes it off invitees' calendars. For a recurring call, scope and occurrence_start_time pick the occurrences: all of them (the default), one, or one and every one after it. Cancelling what is already cancelled succeeds.",
+        "operationId": "cancelScheduledCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "Which occurrences: all (the default without occurrence_start_time), this (the default with it), or this_and_following.",
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "this",
+                "this_and_following"
+              ],
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Start of the occurrence that scope this or this_and_following refers to (RFC 3339).",
+            "in": "query",
+            "name": "occurrence_start_time",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Whether invitees get an email about it. Defaults to true.",
+            "in": "query",
+            "name": "notify_invitees",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelScheduledCallResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "calls.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Cancel a scheduled call",
+        "tags": [
+          "Calls"
+        ]
+      },
+      "get": {
+        "description": "Returns a scheduled call the authenticated user organizes or is invited to, at its occurrence running now or its next one within a year: its time, call, recurrence and who is invited and how they answered. Changes can take a few seconds to show here.",
+        "operationId": "getScheduledCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetScheduledCallResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "calls.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get a scheduled call",
+        "tags": [
+          "Calls"
+        ]
+      },
+      "put": {
+        "description": "Moves, renames or re-invites a scheduled call the authenticated user organizes. Only the fields sent change. For a recurring call, scope and occurrence_start_time pick the occurrences: all of them (the default), one, or one and every one after it.",
+        "operationId": "updateScheduledCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScheduledCallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateScheduledCallResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "calls.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update a scheduled call",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/2/calls/scheduled/{id}/rsvp": {
+      "post": {
+        "description": "Accepts, declines or tentatively accepts an invitation to a scheduled call for the authenticated user. For a recurring call, scope and occurrence_start_time pick the occurrences the answer is for: all of them (the default), one, or one and every one after it.",
+        "operationId": "respondToScheduledCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondToScheduledCallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RespondToScheduledCallResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "calls.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Respond to a scheduled call",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
     "/2/chat/conversations": {
       "get": {
-        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox.",
+        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and each conversation's latest notifying message. With unread_only=true, only conversations that are unread for you are returned; a page can then hold fewer than max_results, so keep paging while has_more is true.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -20295,9 +21832,9 @@
             "name": "max_results",
             "required": false,
             "schema": {
-              "default": 10,
+              "default": 200,
               "format": "int32",
-              "maximum": 100,
+              "maximum": 1000,
               "minimum": 1,
               "type": "integer"
             },
@@ -20309,6 +21846,17 @@
             "required": false,
             "schema": {
               "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Return only unread conversations. A page can be short; keep paging while has_more.",
+            "in": "query",
+            "name": "unread_only",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
             },
             "style": "form"
           },
@@ -20360,7 +21908,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Get Chat Conversations",
+        "summary": "Get Chat Conversations; unread state via chat_conversation.fields=unread,last_read_event_id,newest_event_id",
         "tags": [
           "Chat"
         ]
@@ -20480,7 +22028,7 @@
     },
     "/2/chat/conversations/{id}": {
       "delete": {
-        "description": "Deletes a Chat conversation for the authenticated user only; other participants keep it. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "description": "Deletes a Chat conversation for the authenticated user only; other participants keep it. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. Deleting a pending message request's conversation deletes the request, like Delete in the X app.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -20553,7 +22101,7 @@
         ]
       },
       "get": {
-        "description": "Returns metadata for a Chat conversation including type, muted status, and group details. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users.",
+        "description": "Returns metadata for a Chat conversation including type, muted status, and group details. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and the conversation's latest notifying message.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -20564,6 +22112,7 @@
             "name": "id",
             "required": true,
             "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
               "type": "string"
             },
             "style": "simple"
@@ -20617,7 +22166,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Get Chat Conversation",
+        "summary": "Get Chat Conversation; unread state via chat_conversation.fields=unread,last_read_event_id,newest_event_id",
         "tags": [
           "Chat"
         ]
@@ -21250,9 +22799,157 @@
         ]
       }
     },
+    "/2/chat/conversations/{id}/archive": {
+      "delete": {
+        "description": "Unarchives a Chat conversation for the authenticated user only. Unarchiving a conversation that is not archived changes nothing. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "unarchiveChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnarchiveChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnarchiveChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Unarchive a Chat conversation",
+        "tags": [
+          "Chat"
+        ]
+      },
+      "post": {
+        "description": "Archives a Chat conversation for the authenticated user only. Archiving an archived conversation changes nothing. Works for group and 1:1 conversations. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "archiveChatConversation",
+        "parameters": [
+          {
+            "description": "The ID of the conversation: a group ID starting with `g`, the other user's ID for a 1:1 conversation, or both user IDs of a 1:1 conversation joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArchiveChatConversationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArchiveChatConversationResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Archive a Chat conversation",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
     "/2/chat/conversations/{id}/events": {
       "get": {
-        "description": "Retrieves messages and key change events for a specific Chat conversation with pagination support. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "description": "Retrieves the events of a specific Chat conversation, newest first, with pagination support: messages, key changes, group changes, and read receipts. Events with an id above the conversation's last_read_event_id come after the point you read up to; to collect them, page until an event's id is at or below it. Only `id` and `encoded_event` are always present. Events are either end-to-end encrypted or unencrypted, such as messages sent before the conversation was encrypted. Encrypted events carry `conversation_key_version`, and usually `conversation_token` and `message_event_signature`; treat an encrypted event without `message_event_signature` as unverified. An event without `conversation_key_version` is unencrypted. Decode each `encoded_event` client-side, and decrypt it with the conversation key named by `conversation_key_version` when that is present. A page holds up to `max_results` events and can hold fewer while `has_more` is true. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -21269,6 +22966,7 @@
             "style": "simple"
           },
           {
+            "description": "The maximum number of events to return.",
             "in": "query",
             "name": "max_results",
             "required": false,
@@ -21282,6 +22980,7 @@
             "style": "form"
           },
           {
+            "description": "The next_token from a previous response, to fetch the next page.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -21333,7 +23032,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Get Chat Conversation Events",
+        "summary": "Get Chat Conversation Events, newest first; unread ones have an id above last_read_event_id",
         "tags": [
           "Chat"
         ]
@@ -21516,6 +23215,9 @@
               "type": "string"
             },
             "style": "simple"
+          },
+          {
+            "$ref": "#/components/parameters/ChatGroupInviteFieldsParameter"
           }
         ],
         "responses": {
@@ -22408,6 +24110,9 @@
               "type": "string"
             },
             "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/ChatPinnedMessageFieldsParameter"
           }
         ],
         "responses": {
@@ -22474,16 +24179,6 @@
             "style": "simple"
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MarkChatConversationReadRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "content": {
@@ -22663,6 +24358,70 @@
           }
         ],
         "summary": "Send Typing Indicator",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/conversations/{id}/unread": {
+      "post": {
+        "description": "Marks a specific Chat conversation as unread on behalf of the authenticated user. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "markChatConversationUnread",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19}|g[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkChatConversationUnreadResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Mark Conversation as Unread",
         "tags": [
           "Chat"
         ]
@@ -22946,6 +24705,236 @@
         ]
       }
     },
+    "/2/chat/message_requests": {
+      "get": {
+        "description": "Retrieves the authenticated user's pending Chat message requests from one inbox. Message contents are end-to-end encrypted unless the conversation is unencrypted. Accepting or deleting requests between pages can skip or repeat requests, and a page can be empty while `next_token` is set.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "getChatMessageRequests",
+        "parameters": [
+          {
+            "description": "Which message request inbox to list: `you_may_know` (the apps' Priority tab) or `low_quality` (the apps' Hidden tab).",
+            "in": "query",
+            "name": "inbox_type",
+            "required": false,
+            "schema": {
+              "default": "you_may_know",
+              "enum": [
+                "you_may_know",
+                "low_quality"
+              ],
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "The maximum number of message requests to return.",
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "format": "int32",
+              "maximum": 50,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          },
+          {
+            "description": "The next_token from a previous response, to fetch the next page.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "pattern": "^[0-9]{1,10}$",
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/ChatMessageRequestFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatMessageRequestsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Chat Message Requests",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/message_requests/{id}": {
+      "get": {
+        "description": "Retrieves the message request state of a 1:1 Chat conversation and its newest message events. Like opening the request in an X app, reading it marks the returned messages as delivered and updates the unread badge.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "getChatMessageRequest",
+        "parameters": [
+          {
+            "description": "The other user's ID, or both user IDs joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "$ref": "#/components/parameters/ChatMessageRequestDetailFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatMessageRequestResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Chat Message Request",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
+    "/2/chat/message_requests/{id}/accept": {
+      "post": {
+        "description": "Accepts the other user's pending message request in a 1:1 Chat conversation, which moves to the authenticated user's inbox. Without a pending request, including after a successful accept, the response is 404. Replying to a request does not accept it.",
+        "externalDocs": {
+          "url": "https://developer.x.com/"
+        },
+        "operationId": "acceptChatMessageRequest",
+        "parameters": [
+          {
+            "description": "The other user's ID, or both user IDs joined by a hyphen.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^([0-9]{1,19}|[0-9]{1,19}-[0-9]{1,19})$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptChatMessageRequestResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "dm.write",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Accept a Chat message request",
+        "tags": [
+          "Chat"
+        ]
+      }
+    },
     "/2/chat/settings": {
       "get": {
         "description": "Returns the authenticated user's Chat privacy settings: who can message them, read receipts, the message quality filter, and audio/video call permissions.",
@@ -22953,6 +24942,11 @@
           "url": "https://developer.x.com/"
         },
         "operationId": "getChatSettings",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ChatSettingsFieldsParameter"
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -36551,6 +38545,9 @@
         "url": "https://developer.x.com/"
       },
       "name": "Broadcasts"
+    },
+    {
+      "name": "Calls"
     },
     {
       "description": "Endpoints related to Chat encrypted messaging",
