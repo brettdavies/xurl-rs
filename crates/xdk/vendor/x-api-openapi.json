@@ -133,6 +133,52 @@
         },
         "style": "form"
       },
+      "CallExpansionsParameter": {
+        "description": "A comma separated list of fields to expand.",
+        "explode": false,
+        "in": "query",
+        "name": "expansions",
+        "required": false,
+        "schema": {
+          "items": {
+            "enum": [
+              "host_id"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "CallFieldsParameter": {
+        "description": "A comma separated list of Call fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "call.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a Call object.",
+          "items": {
+            "enum": [
+              "conversation_id",
+              "created_at",
+              "id",
+              "join_policy",
+              "join_url",
+              "participant_count",
+              "title",
+              "viewer_may_join"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
       "ChatConversationExpansionsParameter": {
         "description": "A comma separated list of fields to expand.",
         "explode": false,
@@ -832,6 +878,57 @@
               "cap_per_project",
               "client_app_rules_count",
               "project_rules_count"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ScheduledCallExpansionsParameter": {
+        "description": "A comma separated list of fields to expand.",
+        "explode": false,
+        "in": "query",
+        "name": "expansions",
+        "required": false,
+        "schema": {
+          "items": {
+            "enum": [
+              "invitees",
+              "organizer_id"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "ScheduledCallFieldsParameter": {
+        "description": "A comma separated list of ScheduledCall fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "scheduled_call.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a ScheduledCall object.",
+          "items": {
+            "enum": [
+              "calendar",
+              "call_id",
+              "description",
+              "end_time",
+              "id",
+              "join_url",
+              "occurrence_start_time",
+              "recurrence",
+              "start_time",
+              "status",
+              "time_zone",
+              "title"
             ],
             "type": "string"
           },
@@ -2892,6 +2989,47 @@
           },
           "text": {
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Call": {
+        "properties": {
+          "conversation_id": {
+            "description": "XChat conversation the call belongs to, if any.",
+            "type": "string"
+          },
+          "created_at": {
+            "description": "Creation time (RFC 3339).",
+            "type": "string"
+          },
+          "host_id": {
+            "description": "X user id of the call's host.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the call; also its join secret.",
+            "type": "string"
+          },
+          "join_policy": {
+            "description": "Who may join: open (anyone with the link), closed (the host admits people), or trusted (the host's Verified Organization).",
+            "type": "string"
+          },
+          "join_url": {
+            "description": "Link people open to join the call on X.",
+            "type": "string"
+          },
+          "participant_count": {
+            "description": "People in the call right now.",
+            "type": "integer"
+          },
+          "title": {
+            "description": "Title of the call.",
+            "type": "string"
+          },
+          "viewer_may_join": {
+            "description": "Whether the authenticated user may join without asking the host.",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -8072,6 +8210,23 @@
         },
         "type": "object"
       },
+      "GetCallResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Call"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "includes": {
+            "$ref": "#/components/schemas/Expansions"
+          }
+        },
+        "type": "object"
+      },
       "GetChatConversationEventsResponse": {
         "properties": {
           "data": {
@@ -9410,92 +9565,16 @@
       "GetScheduledCallResponse": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/GetScheduledCallResponseData"
+            "$ref": "#/components/schemas/ScheduledCall"
           },
           "errors": {
             "items": {
               "$ref": "#/components/schemas/Problem"
             },
             "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "GetScheduledCallResponseData": {
-        "additionalProperties": false,
-        "properties": {
-          "calendar": {
-            "description": "Where the call lives: x (X Calls), or outlook for a Microsoft Outlook calendar the user linked to X, whose calls are changed there.",
-            "type": "string"
           },
-          "call_id": {
-            "description": "The X call people join; also its join secret.",
-            "type": "string"
-          },
-          "description": {
-            "description": "What the call is about.",
-            "type": "string"
-          },
-          "end_time": {
-            "description": "End of this occurrence (RFC 3339).",
-            "type": "string"
-          },
-          "id": {
-            "description": "Unique identifier of the scheduled call: what PUT, DELETE and rsvp take. Calls on linked calendars have none.",
-            "type": "string"
-          },
-          "invitees": {
-            "description": "Everyone invited, except the organizer. Not set for linked calendars.",
-            "items": {
-              "$ref": "#/components/schemas/GetScheduledCallResponseDataInvitees"
-            },
-            "type": "array"
-          },
-          "join_url": {
-            "description": "Link people open to join the call on X.",
-            "type": "string"
-          },
-          "occurrence_start_time": {
-            "description": "For a recurring call, this occurrence's original start (RFC 3339): pass it as occurrence_start_time to change, cancel or answer just this occurrence.",
-            "type": "string"
-          },
-          "organizer_id": {
-            "description": "X user id of the call's organizer.",
-            "type": "string"
-          },
-          "recurrence": {
-            "description": "RFC 5545 RRULE the call repeats by, such as FREQ=WEEKLY;BYDAY=MO.",
-            "type": "string"
-          },
-          "start_time": {
-            "description": "Start of this occurrence (RFC 3339).",
-            "type": "string"
-          },
-          "status": {
-            "description": "scheduled, or cancelled for a cancelled occurrence.",
-            "type": "string"
-          },
-          "time_zone": {
-            "description": "IANA time zone the recurrence follows.",
-            "type": "string"
-          },
-          "title": {
-            "description": "Title of the call.",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "GetScheduledCallResponseDataInvitees": {
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "description": "X user id of the invitee.",
-            "type": "string"
-          },
-          "response": {
-            "description": "accepted, declined, tentative, or none for no answer yet.",
-            "type": "string"
+          "includes": {
+            "$ref": "#/components/schemas/Expansions"
           }
         },
         "type": "object"
@@ -11171,7 +11250,7 @@
         "properties": {
           "data": {
             "items": {
-              "$ref": "#/components/schemas/ListScheduledCallsResponseData"
+              "$ref": "#/components/schemas/ScheduledCall"
             },
             "type": "array"
           },
@@ -11180,6 +11259,9 @@
               "$ref": "#/components/schemas/Problem"
             },
             "type": "array"
+          },
+          "includes": {
+            "$ref": "#/components/schemas/Expansions"
           },
           "meta": {
             "properties": {
@@ -11190,85 +11272,6 @@
               }
             },
             "type": "object"
-          }
-        },
-        "type": "object"
-      },
-      "ListScheduledCallsResponseData": {
-        "additionalProperties": false,
-        "properties": {
-          "calendar": {
-            "description": "Where the call lives: x (X Calls), or outlook for a Microsoft Outlook calendar the user linked to X, whose calls are changed there.",
-            "type": "string"
-          },
-          "call_id": {
-            "description": "The X call people join; also its join secret.",
-            "type": "string"
-          },
-          "description": {
-            "description": "What the call is about.",
-            "type": "string"
-          },
-          "end_time": {
-            "description": "End of this occurrence (RFC 3339).",
-            "type": "string"
-          },
-          "id": {
-            "description": "Unique identifier of the scheduled call: what PUT, DELETE and rsvp take. Calls on linked calendars have none.",
-            "type": "string"
-          },
-          "invitees": {
-            "description": "Everyone invited, except the organizer. Not set for linked calendars.",
-            "items": {
-              "$ref": "#/components/schemas/ListScheduledCallsResponseDataInvitees"
-            },
-            "type": "array"
-          },
-          "join_url": {
-            "description": "Link people open to join the call on X.",
-            "type": "string"
-          },
-          "occurrence_start_time": {
-            "description": "For a recurring call, this occurrence's original start (RFC 3339): pass it as occurrence_start_time to change, cancel or answer just this occurrence.",
-            "type": "string"
-          },
-          "organizer_id": {
-            "description": "X user id of the call's organizer.",
-            "type": "string"
-          },
-          "recurrence": {
-            "description": "RFC 5545 RRULE the call repeats by, such as FREQ=WEEKLY;BYDAY=MO.",
-            "type": "string"
-          },
-          "start_time": {
-            "description": "Start of this occurrence (RFC 3339).",
-            "type": "string"
-          },
-          "status": {
-            "description": "scheduled, or cancelled for a cancelled occurrence.",
-            "type": "string"
-          },
-          "time_zone": {
-            "description": "IANA time zone the recurrence follows.",
-            "type": "string"
-          },
-          "title": {
-            "description": "Title of the call.",
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "ListScheduledCallsResponseDataInvitees": {
-        "additionalProperties": false,
-        "properties": {
-          "id": {
-            "description": "X user id of the invitee.",
-            "type": "string"
-          },
-          "response": {
-            "description": "accepted, declined, tentative, or none for no answer yet.",
-            "type": "string"
           }
         },
         "type": "object"
@@ -15052,6 +15055,88 @@
           }
         },
         "type": "object"
+      },
+      "ScheduledCall": {
+        "properties": {
+          "calendar": {
+            "description": "Where the call lives: x (X Calls), or outlook for a Microsoft Outlook calendar the user linked to X, whose calls are changed there.",
+            "type": "string"
+          },
+          "call_id": {
+            "description": "The X call people join; also its join secret.",
+            "type": "string"
+          },
+          "description": {
+            "description": "What the call is about.",
+            "type": "string"
+          },
+          "end_time": {
+            "description": "End of this occurrence (RFC 3339).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the scheduled call: what PUT, DELETE and rsvp take. Calls on linked calendars have none.",
+            "type": "string"
+          },
+          "invitees": {
+            "$ref": "#/components/schemas/ScheduledCallInvitees"
+          },
+          "join_url": {
+            "description": "Link people open to join the call on X.",
+            "type": "string"
+          },
+          "occurrence_start_time": {
+            "description": "For a recurring call, this occurrence's original start (RFC 3339): pass it as occurrence_start_time to change, cancel or answer just this occurrence.",
+            "type": "string"
+          },
+          "organizer_id": {
+            "description": "X user id of the call's organizer.",
+            "type": "string"
+          },
+          "recurrence": {
+            "description": "RFC 5545 RRULE the call repeats by, such as FREQ=WEEKLY;BYDAY=MO.",
+            "type": "string"
+          },
+          "start_time": {
+            "description": "Start of this occurrence (RFC 3339).",
+            "type": "string"
+          },
+          "status": {
+            "description": "scheduled, or cancelled for a cancelled occurrence.",
+            "type": "string"
+          },
+          "time_zone": {
+            "description": "IANA time zone the recurrence follows.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Title of the call.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ScheduledCallInvitees": {
+        "description": "Everyone invited, except the organizer. Not set for linked calendars.",
+        "items": {
+          "description": "Someone invited to a scheduled call, other than the organizer.",
+          "properties": {
+            "id": {
+              "description": "X user id of the invitee.",
+              "type": "string"
+            },
+            "response": {
+              "description": "accepted, declined, tentative, or none for no answer yet.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "response"
+          ],
+          "type": "object"
+        },
+        "type": "array"
       },
       "SearchCommunitiesResponse": {
         "properties": {
@@ -21394,7 +21479,7 @@
     },
     "/2/calls/scheduled": {
       "get": {
-        "description": "Returns the X calls on the authenticated user's calendar, earliest first: events on their X Calls calendar, and events on the Microsoft Outlook calendars they linked to X whose conference is an X call. Calls still running at start_time are included. The window defaults to the next 24 hours and may span at most 7 days.\n\nWhen both are provided, `start_time` must be earlier than `end_time`.",
+        "description": "Returns the X calls on the authenticated user's calendar, earliest first: events on their X Calls calendar, and events on the Microsoft Outlook calendars they linked to X whose conference is an X call. Calls still running at start_time are included. The window defaults to the next 24 hours and may span at most 7 days. Use scheduled_call.fields to select which fields are returned.\n\nWhen both are provided, `start_time` must be earlier than `end_time`.",
         "operationId": "listScheduledCalls",
         "parameters": [
           {
@@ -21431,6 +21516,15 @@
               "type": "integer"
             },
             "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/ScheduledCallFieldsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/ScheduledCallExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/UserFieldsParameter"
           }
         ],
         "responses": {
@@ -21626,7 +21720,7 @@
         ]
       },
       "get": {
-        "description": "Returns a scheduled call the authenticated user organizes or is invited to, at its occurrence running now or its next one within a year: its time, call, recurrence and who is invited and how they answered. Changes can take a few seconds to show here.",
+        "description": "Returns a scheduled call the authenticated user organizes or is invited to, at its occurrence running now or its next one within a year: its time, call, recurrence and who is invited and how they answered. Changes can take a few seconds to show here. Use scheduled_call.fields to select which fields are returned.",
         "operationId": "getScheduledCall",
         "parameters": [
           {
@@ -21638,6 +21732,15 @@
               "type": "string"
             },
             "style": "simple"
+          },
+          {
+            "$ref": "#/components/parameters/ScheduledCallFieldsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/ScheduledCallExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/UserFieldsParameter"
           }
         ],
         "responses": {
@@ -21814,6 +21917,74 @@
           }
         ],
         "summary": "Respond to a scheduled call",
+        "tags": [
+          "Calls"
+        ]
+      }
+    },
+    "/2/calls/{id}": {
+      "get": {
+        "description": "Returns a call's title, join policy, host and participant count, and whether the authenticated user may join it without asking the host.",
+        "operationId": "getCall",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "$ref": "#/components/parameters/CallFieldsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/CallExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/UserFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCallResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "calls.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get a call",
         "tags": [
           "Calls"
         ]
