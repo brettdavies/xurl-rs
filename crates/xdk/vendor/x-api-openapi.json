@@ -896,6 +896,7 @@
         "schema": {
           "items": {
             "enum": [
+              "call_id",
               "invitees",
               "organizer_id"
             ],
@@ -5712,6 +5713,96 @@
         },
         "type": "object"
       },
+      "CreateSourceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Label for the source.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "region": {
+            "description": "Ingest region: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1 or ap-northeast-2.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "region"
+        ],
+        "type": "object"
+      },
+      "CreateSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateSourceResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateSourceResponseData": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/CreateSourceResponseDataSource"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "type": "object"
+      },
+      "CreateSourceResponseDataSource": {
+        "additionalProperties": false,
+        "properties": {
+          "creation_time": {
+            "description": "Creation time, ms since Unix epoch.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Source id; also the RTMP stream key.",
+            "type": "string"
+          },
+          "is_stream_active": {
+            "description": "Whether the source is currently receiving video.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Label for the source.",
+            "type": "string"
+          },
+          "owner_id": {
+            "description": "Owner's numeric user id. Exceeds the exact integer range of many JSON parsers.",
+            "type": "integer"
+          },
+          "rtmp_region": {
+            "description": "Ingest region, e.g. `us-east-1`.",
+            "type": "string"
+          },
+          "rtmp_stream_key": {
+            "description": "Stream key; equal to `id`.",
+            "type": "string"
+          },
+          "rtmp_url": {
+            "description": "RTMP ingest URL.",
+            "type": "string"
+          },
+          "rtmps_url": {
+            "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "CreateUsersBookmarkFolderRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6926,6 +7017,24 @@
         ],
         "type": "object"
       },
+      "DeleteSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteSourceResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteSourceResponseData": {
+        "properties": {},
+        "type": "object"
+      },
       "DeleteUsersBookmarkResponse": {
         "properties": {
           "data": {
@@ -7675,6 +7784,12 @@
       },
       "Expansions": {
         "properties": {
+          "calls": {
+            "items": {
+              "$ref": "#/components/schemas/Call"
+            },
+            "type": "array"
+          },
           "media": {
             "items": {
               "$ref": "#/components/schemas/Media"
@@ -9579,6 +9694,76 @@
         },
         "type": "object"
       },
+      "GetSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetSourceResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetSourceResponseData": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/GetSourceResponseDataSource"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "type": "object"
+      },
+      "GetSourceResponseDataSource": {
+        "additionalProperties": false,
+        "properties": {
+          "creation_time": {
+            "description": "Creation time, ms since Unix epoch.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Source id; also the RTMP stream key.",
+            "type": "string"
+          },
+          "is_stream_active": {
+            "description": "Whether the source is currently receiving video.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Label for the source.",
+            "type": "string"
+          },
+          "owner_id": {
+            "description": "Owner's numeric user id. Exceeds the exact integer range of many JSON parsers.",
+            "type": "integer"
+          },
+          "rtmp_region": {
+            "description": "Ingest region, e.g. `us-east-1`.",
+            "type": "string"
+          },
+          "rtmp_stream_key": {
+            "description": "Stream key; equal to `id`.",
+            "type": "string"
+          },
+          "rtmp_url": {
+            "description": "RTMP ingest URL.",
+            "type": "string"
+          },
+          "rtmps_url": {
+            "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "GetSpacesBuyersResponse": {
         "properties": {
           "data": {
@@ -11274,6 +11459,79 @@
             "type": "object"
           }
         },
+        "type": "object"
+      },
+      "ListSourcesResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ListSourcesResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ListSourcesResponseData": {
+        "properties": {
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ListSourcesResponseDataSources"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sources"
+        ],
+        "type": "object"
+      },
+      "ListSourcesResponseDataSources": {
+        "additionalProperties": false,
+        "properties": {
+          "creation_time": {
+            "description": "Creation time, ms since Unix epoch.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Source id; also the RTMP stream key.",
+            "type": "string"
+          },
+          "is_stream_active": {
+            "description": "Whether the source is currently receiving video.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Label for the source.",
+            "type": "string"
+          },
+          "owner_id": {
+            "description": "Owner's numeric user id. Exceeds the exact integer range of many JSON parsers.",
+            "type": "integer"
+          },
+          "rtmp_region": {
+            "description": "Ingest region, e.g. `us-east-1`.",
+            "type": "string"
+          },
+          "rtmp_stream_key": {
+            "description": "Stream key; equal to `id`.",
+            "type": "string"
+          },
+          "rtmp_url": {
+            "description": "RTMP ingest URL.",
+            "type": "string"
+          },
+          "rtmps_url": {
+            "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
         "type": "object"
       },
       "MarkChatConversationReadResponse": {
@@ -18006,6 +18264,90 @@
         },
         "type": "object"
       },
+      "UpdateSourceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "New label for the source.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "UpdateSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateSourceResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateSourceResponseData": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/UpdateSourceResponseDataSource"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "type": "object"
+      },
+      "UpdateSourceResponseDataSource": {
+        "additionalProperties": false,
+        "properties": {
+          "creation_time": {
+            "description": "Creation time, ms since Unix epoch.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Source id; also the RTMP stream key.",
+            "type": "string"
+          },
+          "is_stream_active": {
+            "description": "Whether the source is currently receiving video.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Label for the source.",
+            "type": "string"
+          },
+          "owner_id": {
+            "description": "Owner's numeric user id. Exceeds the exact integer range of many JSON parsers.",
+            "type": "integer"
+          },
+          "rtmp_region": {
+            "description": "Ingest region, e.g. `us-east-1`.",
+            "type": "string"
+          },
+          "rtmp_stream_key": {
+            "description": "Stream key; equal to `id`.",
+            "type": "string"
+          },
+          "rtmp_url": {
+            "description": "RTMP ingest URL.",
+            "type": "string"
+          },
+          "rtmps_url": {
+            "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "UploadComplianceJobSubmissionRequest": {
         "additionalProperties": false,
         "properties": {
@@ -21524,6 +21866,9 @@
             "$ref": "#/components/parameters/ScheduledCallExpansionsParameter"
           },
           {
+            "$ref": "#/components/parameters/CallFieldsParameter"
+          },
+          {
             "$ref": "#/components/parameters/UserFieldsParameter"
           }
         ],
@@ -21738,6 +22083,9 @@
           },
           {
             "$ref": "#/components/parameters/ScheduledCallExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/CallFieldsParameter"
           },
           {
             "$ref": "#/components/parameters/UserFieldsParameter"
@@ -29426,6 +29774,294 @@
         "summary": "Get OpenAPI Spec.",
         "tags": [
           "General"
+        ]
+      }
+    },
+    "/2/sources": {
+      "get": {
+        "description": "Returns the authenticated user's RTMP/RTMPS stream sources (empty array if none). A source's `id` is also its stream key and is the `source_id` a scheduled broadcast binds to.",
+        "operationId": "listSources",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListSourcesResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "List stream sources",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "post": {
+        "description": "Creates a persistent RTMP/RTMPS ingest point for the authenticated user. Push an encoder to `rtmps_url` with the source `id` as the stream key.",
+        "operationId": "createSource",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSourceResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Create a stream source",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/sources/{id}": {
+      "delete": {
+        "description": "Deletes one of the authenticated user's stream sources. Success is an empty object.",
+        "operationId": "deleteSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteSourceResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete a stream source",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "get": {
+        "description": "Returns one of the authenticated user's stream sources. Poll it after starting an encoder and wait for `is_stream_active` before going live.",
+        "operationId": "getSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetSourceResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get a stream source",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "put": {
+        "description": "Renames one of the authenticated user's stream sources.",
+        "operationId": "updateSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateSourceResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Rename a stream source",
+        "tags": [
+          "Broadcasts"
         ]
       }
     },
