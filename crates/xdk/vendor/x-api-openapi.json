@@ -5596,7 +5596,7 @@
           },
           "recurrence": {
             "$ref": "#/components/schemas/CreateScheduledBroadcastRecurrence",
-            "description": "If set, creates a recurring series."
+            "description": "Deprecated: recurring schedules are being retired and requests that include `recurrence` will be rejected. Create each occurrence as its own scheduled broadcast."
           },
           "scheduled_end_ms": {
             "description": "Optional end time, ms since Unix epoch (decimal string). Omit for an open-ended broadcast.",
@@ -5614,7 +5614,7 @@
             "type": "string"
           },
           "telecast_id": {
-            "description": "Optional telecast id (numeric string).",
+            "description": "Deprecated: telecast associations are being retired and this field will be ignored.",
             "pattern": "^[0-9]{1,19}$",
             "type": "string"
           },
@@ -5655,7 +5655,7 @@
             "type": "boolean"
           },
           "broadcast_id": {
-            "description": "Alphanumeric UBS broadcast id (path `:id` for get/update/delete/live).",
+            "description": "Alphanumeric broadcast id (path `:id` for get/update/delete/live).",
             "type": "string"
           },
           "chat_option": {
@@ -5675,7 +5675,7 @@
             "type": "boolean"
           },
           "recurring_schedule_id": {
-            "description": "Set when this occurrence belongs to a recurrence.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "scheduled_broadcast_id": {
@@ -5695,11 +5695,11 @@
             "type": "string"
           },
           "state": {
-            "description": "Scheduler state (Created, Scheduled, Running, …).",
+            "description": "Scheduler state: `Created` or `Scheduled` before start, then `Running`, `Ended`, or `Error`.",
             "type": "string"
           },
           "telecast_id": {
-            "description": "Optional telecast association.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "thumbnail_media_id": {
@@ -9619,7 +9619,7 @@
             "type": "boolean"
           },
           "broadcast_id": {
-            "description": "Alphanumeric UBS broadcast id (path `:id` for get/update/delete/live).",
+            "description": "Alphanumeric broadcast id (path `:id` for get/update/delete/live).",
             "type": "string"
           },
           "chat_option": {
@@ -9639,7 +9639,7 @@
             "type": "boolean"
           },
           "recurring_schedule_id": {
-            "description": "Set when this occurrence belongs to a recurrence.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "scheduled_broadcast_id": {
@@ -9659,11 +9659,11 @@
             "type": "string"
           },
           "state": {
-            "description": "Scheduler state (Created, Scheduled, Running, …).",
+            "description": "Scheduler state: `Created` or `Scheduled` before start, then `Running`, `Ended`, or `Error`.",
             "type": "string"
           },
           "telecast_id": {
-            "description": "Optional telecast association.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "thumbnail_media_id": {
@@ -10884,7 +10884,7 @@
             "type": "boolean"
           },
           "broadcast_id": {
-            "description": "Alphanumeric UBS broadcast id (path `:id` for get/update/delete/live).",
+            "description": "Alphanumeric broadcast id (path `:id` for get/update/delete/live).",
             "type": "string"
           },
           "chat_option": {
@@ -10904,7 +10904,7 @@
             "type": "boolean"
           },
           "recurring_schedule_id": {
-            "description": "Set when this occurrence belongs to a recurrence.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "scheduled_broadcast_id": {
@@ -10924,11 +10924,11 @@
             "type": "string"
           },
           "state": {
-            "description": "Scheduler state (Created, Scheduled, Running, …).",
+            "description": "Scheduler state: `Created` or `Scheduled` before start, then `Running`, `Ended`, or `Error`.",
             "type": "string"
           },
           "telecast_id": {
-            "description": "Optional telecast association.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "thumbnail_media_id": {
@@ -11373,7 +11373,7 @@
             "type": "boolean"
           },
           "broadcast_id": {
-            "description": "Alphanumeric UBS broadcast id (path `:id` for get/update/delete/live).",
+            "description": "Alphanumeric broadcast id (path `:id` for get/update/delete/live).",
             "type": "string"
           },
           "chat_option": {
@@ -11393,7 +11393,7 @@
             "type": "boolean"
           },
           "recurring_schedule_id": {
-            "description": "Set when this occurrence belongs to a recurrence.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "scheduled_broadcast_id": {
@@ -11413,11 +11413,11 @@
             "type": "string"
           },
           "state": {
-            "description": "Scheduler state (Created, Scheduled, Running, …).",
+            "description": "Scheduler state: `Created` or `Scheduled` before start, then `Running`, `Ended`, or `Error`.",
             "type": "string"
           },
           "telecast_id": {
-            "description": "Optional telecast association.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "thumbnail_media_id": {
@@ -18018,7 +18018,7 @@
             "type": "boolean"
           },
           "roll_forward": {
-            "description": "When true, shift the head of a recurring series.",
+            "description": "Deprecated: recurring schedules are being retired and `true` will be rejected.",
             "type": "boolean"
           },
           "scheduled_broadcast_id": {
@@ -18078,7 +18078,7 @@
             "type": "boolean"
           },
           "broadcast_id": {
-            "description": "Alphanumeric UBS broadcast id (path `:id` for get/update/delete/live).",
+            "description": "Alphanumeric broadcast id (path `:id` for get/update/delete/live).",
             "type": "string"
           },
           "chat_option": {
@@ -18098,7 +18098,7 @@
             "type": "boolean"
           },
           "recurring_schedule_id": {
-            "description": "Set when this occurrence belongs to a recurrence.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "scheduled_broadcast_id": {
@@ -18118,11 +18118,11 @@
             "type": "string"
           },
           "state": {
-            "description": "Scheduler state (Created, Scheduled, Running, …).",
+            "description": "Scheduler state: `Created` or `Scheduled` before start, then `Running`, `Ended`, or `Error`.",
             "type": "string"
           },
           "telecast_id": {
-            "description": "Optional telecast association.",
+            "description": "Deprecated: always null for new schedules.",
             "type": "string"
           },
           "thumbnail_media_id": {
@@ -20734,7 +20734,7 @@
             "required": false,
             "schema": {
               "items": {
-                "pattern": "^[a-zA-Z0-9]{1,13}$",
+                "pattern": "^[a-zA-Z0-9]{1,24}$",
                 "type": "string"
               },
               "maxItems": 100,
@@ -21077,7 +21077,7 @@
         ]
       },
       "post": {
-        "description": "Schedules a one-off or recurring broadcast for the authenticated user. A `source_id` (ingest) is required at create time.",
+        "description": "Schedules a broadcast for the authenticated user. A `source_id` (ingest) is required at create time.",
         "operationId": "createScheduledBroadcast",
         "requestBody": {
           "content": {
@@ -21135,7 +21135,7 @@
     },
     "/2/broadcasts/scheduled/{id}": {
       "delete": {
-        "description": "Deletes a scheduled broadcast by its alphanumeric UBS broadcast id.",
+        "description": "Deletes a scheduled broadcast by its alphanumeric broadcast id.",
         "operationId": "deleteScheduledBroadcast",
         "parameters": [
           {
@@ -21143,12 +21143,13 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
           },
           {
+            "description": "Deprecated: recurring schedules are being retired and `true` will be rejected.",
             "in": "query",
             "name": "roll_forward",
             "required": false,
@@ -21202,7 +21203,7 @@
         ]
       },
       "get": {
-        "description": "Returns a single scheduled broadcast by its alphanumeric UBS broadcast id.",
+        "description": "Returns a single scheduled broadcast by its alphanumeric broadcast id.",
         "operationId": "getScheduledBroadcast",
         "parameters": [
           {
@@ -21210,7 +21211,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -21259,7 +21260,7 @@
         ]
       },
       "put": {
-        "description": "Fully replaces schedule fields for a broadcast. Path `:id` is the UBS broadcast id; the body must include `scheduled_broadcast_id` and re-send any fields that should be kept.",
+        "description": "Updates a scheduled broadcast. Path `:id` is the broadcast id; the body must include `scheduled_broadcast_id`. Re-send every field that should be kept.",
         "operationId": "updateScheduledBroadcast",
         "parameters": [
           {
@@ -21267,7 +21268,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -21337,7 +21338,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -21397,7 +21398,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -21459,7 +21460,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -21548,7 +21549,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -21618,7 +21619,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -21688,7 +21689,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -21759,7 +21760,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
