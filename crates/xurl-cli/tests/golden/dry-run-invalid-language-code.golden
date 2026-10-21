@@ -1,6 +1,6 @@
 args: ["--output", "json", "--dry-run", "media", "subtitles", "remove", "1585341984679469056", "--language", "english"]
 store: empty
-exit_code: 0
+exit_code: 1
 stdout_len: 239
 stderr_len: 0
 --- stdout ---

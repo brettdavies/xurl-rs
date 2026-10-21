@@ -161,32 +161,39 @@ impl DryRun {
         Self { ctx, invalid: None }
     }
 
-    /// Prints the answer. `would_succeed` is whether the inputs were valid
-    /// and every request the command would send finds a credential.
+    /// Prints the answer and returns the exit code.
+    ///
+    /// `would_succeed` is whether the inputs were valid and every request
+    /// the command would send finds a credential.
     ///
     /// `credentials` holds one entry per request, in the order the real run
     /// sends them. The last is the request that does the command's work,
     /// and its credential is the one the `auth` key reports. Whether X
     /// still honors that credential is left to a real request.
+    ///
+    /// Returns 0 when `would_succeed` is true, otherwise the exit code
+    /// for the failure (1 for validation errors, 77 for auth errors, etc).
+    /// The dry-run envelope is printed to stdout before returning.
     fn answer(
         self,
         out: &OutputConfig,
         stdout: &mut dyn Write,
         credentials: impl IntoIterator<Item = Credential>,
-    ) {
+    ) -> i32 {
         let Self { mut ctx, invalid } = self;
         if let Some(reason) = invalid {
             ctx["reason"] = json!(reason);
             out.print_dry_run(stdout, false, EXIT_GENERAL_ERROR, &ctx);
-            return;
+            return EXIT_GENERAL_ERROR;
         }
         let mut reported = None;
         for credential in credentials {
             match credential {
                 Ok(found) => reported = found,
                 Err(error) => {
+                    let exit_code = error.exit_code();
                     out.print_dry_run_refusal(stdout, &ctx, &error);
-                    return;
+                    return exit_code;
                 }
             }
         }
@@ -194,6 +201,7 @@ impl DryRun {
             ctx["auth"] = credential_value(&found);
         }
         out.print_dry_run(stdout, true, 0, &ctx);
+        0
     }
 }
 
@@ -243,15 +251,19 @@ async fn send_or_report<T>(
     stdout: &mut dyn Write,
     dry_run: Option<DryRun>,
     call: Call<T>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned,
 {
     if let Some(dry_run) = dry_run {
-        dry_run.answer(out, stdout, [call.auth_preflight().await]);
+        let exit_code = dry_run.answer(out, stdout, [call.auth_preflight().await]);
+        if exit_code != 0 {
+            return Err(Failure::Emitted { exit_code });
+        }
         return Ok(());
     }
-    print_typed(out, stdout, &call.send().await?)
+    print_typed(out, stdout, &call.send().await?)?;
+    Ok(())
 }
 
 /// Converts a typed response to Value and prints it.
@@ -437,7 +449,10 @@ async fn run_raw_mode(
     // read, so under `--dry-run` none is sent.
     if cli.dry_run {
         let ctx = json!({"method": options.method, "url": url});
-        DryRun::new(ctx).answer(out, stdout, [client.auth_preflight(&options).await]);
+        let exit_code = DryRun::new(ctx).answer(out, stdout, [client.auth_preflight(&options).await]);
+        if exit_code != 0 {
+            return Err(Failure::Emitted { exit_code });
+        }
         return Ok(());
     }
 
@@ -582,7 +597,7 @@ async fn list_for_user<T>(
     of: Option<&str>,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str, i32) -> Call<api::ApiResponse<T>>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned + Default,
 {
@@ -614,7 +629,10 @@ where
             flags.cursor.as_deref(),
         );
         let credentials = [owner.auth_preflight().await, list.auth_preflight().await];
-        DryRun::new(ctx).answer(out, stdout, credentials);
+        let exit_code = DryRun::new(ctx).answer(out, stdout, credentials);
+        if exit_code != 0 {
+            return Err(Failure::Emitted { exit_code });
+        }
         return Ok(());
     }
     let user_id = match of {
@@ -625,7 +643,8 @@ where
     let response = with_flags(call, common, flags.cursor.as_deref())
         .send()
         .await?;
-    print_typed(out, stdout, &response)
+    print_typed(out, stdout, &response)?;
+    Ok(())
 }
 
 /// A verb that acts on another user from the caller's account: gate on the
@@ -663,7 +682,10 @@ where
                 .await,
             with_flags(act, common, None).auth_preflight().await,
         ];
-        dry_run.answer(out, stdout, credentials);
+        let exit_code = dry_run.answer(out, stdout, credentials);
+        if exit_code != 0 {
+            return Err(Failure::Emitted { exit_code });
+        }
         return Ok(());
     }
     let my_id = resolve_my_user_id(&client, common).await?;
@@ -708,7 +730,10 @@ where
                 .await,
             with_flags(act, common, None).auth_preflight().await,
         ];
-        dry_run.answer(out, stdout, credentials);
+        let exit_code = dry_run.answer(out, stdout, credentials);
+        if exit_code != 0 {
+            return Err(Failure::Emitted { exit_code });
+        }
         return Ok(());
     }
     let target_id = resolve_user_id(&client, target_username, common).await?;
@@ -749,7 +774,10 @@ where
             my_id_call(&client, common).auth_preflight().await,
             with_flags(act, common, None).auth_preflight().await,
         ];
-        dry_run.answer(out, stdout, credentials);
+        let exit_code = dry_run.answer(out, stdout, credentials);
+        if exit_code != 0 {
+            return Err(Failure::Emitted { exit_code });
+        }
         return Ok(());
     }
     let my_id = resolve_my_user_id(&client, common).await?;

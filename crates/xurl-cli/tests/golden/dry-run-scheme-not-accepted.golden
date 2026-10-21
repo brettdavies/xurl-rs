@@ -1,6 +1,6 @@
 args: ["--output", "json", "--dry-run", "usage"]
 store: oauth2
-exit_code: 0
+exit_code: 2
 stdout_len: 469
 stderr_len: 0
 --- stdout ---
