@@ -15737,6 +15737,10 @@
           "message_id": {
             "description": "Unique identifier for this message.",
             "type": "string"
+          },
+          "xdk_version": {
+            "description": "Version of the Chat XDK that produced the payload.",
+            "type": "string"
           }
         },
         "required": [
