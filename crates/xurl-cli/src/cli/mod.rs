@@ -1426,6 +1426,15 @@ pub enum Commands {
         target: BroadcastsCommands,
     },
 
+    // ── Webhooks ─────────────────────────────────────────────────────
+    /// Webhook registration, validation, and replay
+    #[command(after_help = family_help::webhooks::root_page())]
+    Webhooks {
+        /// `webhooks` verb to dispatch.
+        #[command(subcommand)]
+        action: WebhooksCommands,
+    },
+
     // ── Auth ─────────────────────────────────────────────────────────
     /// Authentication management
     #[command(after_help = AUTH_HELP)]
@@ -1575,6 +1584,70 @@ pub enum ModeratorsCommands {
         /// Username to remove
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr webhooks` verbs.
+#[derive(Subcommand, Debug)]
+pub enum WebhooksCommands {
+    /// List the webhooks registered for the app
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::LIST))]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Register a webhook URL
+    ///
+    /// X sends its CRC check to the URL before it answers, so the request
+    /// succeeds only while a receiver is reachable there.
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::ADD))]
+    Add {
+        /// The public HTTPS URL X delivers events to (200 characters at most)
+        #[arg(value_name = "URL")]
+        url: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Ask X to send its CRC check to a webhook again
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::VALIDATE))]
+    Validate {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a webhook; its subscriptions stop delivering
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REMOVE))]
+    Remove {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Deliver a past window of events to a webhook again
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REPLAY))]
+    Replay {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Start of the window: twelve digits, `yyyymmddhhmm` in UTC
+        #[arg(long, value_name = "YYYYMMDDHHMM")]
+        from: String,
+        /// End of the window: twelve digits, `yyyymmddhhmm` in UTC
+        #[arg(long, value_name = "YYYYMMDDHHMM")]
+        to: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

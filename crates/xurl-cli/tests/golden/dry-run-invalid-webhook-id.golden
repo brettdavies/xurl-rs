@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "webhooks", "validate", "not-an-id"]
+store: empty
+exit_code: 0
+stdout_len: 167
+stderr_len: 0
+--- stdout ---
+{
+  "command": "webhooks-validate",
+  "exit_code": 1,
+  "reason": "invalid-webhook-id",
+  "status": "dry_run",
+  "webhook_id": "not-an-id",
+  "would_succeed": false
+}
+
+--- stderr ---
+

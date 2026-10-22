@@ -286,9 +286,9 @@ async fn the_next_step_names_xr_whatever_the_binary_is_called() {
 #[rstest::rstest]
 #[case::root_word(&["xr", "--output", "json", "whoam"])]
 #[case::root_word_near_nothing(&["xr", "--output", "json", "zzzzzz"])]
-#[case::help_flag(&["xr", "--output", "json", "webhooks", "--help"])]
+#[case::help_flag(&["xr", "--output", "json", "bookmarsk", "--help"])]
 #[case::help_command(&["xr", "--output", "json", "help", "whoam"])]
-#[case::version_flag(&["xr", "--output", "json", "webhooks", "--version"])]
+#[case::version_flag(&["xr", "--output", "json", "bookmarsk", "--version"])]
 #[case::verb(&["xr", "--output", "json", "auth", "statsu"])]
 #[case::nested_verb(&["xr", "--output", "json", "auth", "apps", "ad"])]
 #[tokio::test]
@@ -329,9 +329,9 @@ async fn the_help_command_asked_for_help_prints_its_own_page(#[case] args: &[&st
 /// A flag spelling where clap wanted a command is an unexpected argument:
 /// never an unknown command, and never a suggestion to run `help`.
 #[rstest::rstest]
-#[case::long_after_the_separator(&["--", "webhooks", "--help"], "--help")]
-#[case::short_after_the_separator(&["--", "webhooks", "-h"], "-h")]
-#[case::any_flag_after_the_separator(&["--", "webhooks", "--frob"], "--frob")]
+#[case::long_after_the_separator(&["--", "bookmarsk", "--help"], "--help")]
+#[case::short_after_the_separator(&["--", "bookmarsk", "-h"], "-h")]
+#[case::any_flag_after_the_separator(&["--", "bookmarsk", "--frob"], "--frob")]
 #[case::any_flag_under_help(&["help", "--frob"], "--frob")]
 #[tokio::test]
 async fn a_flag_where_a_command_goes_is_an_unexpected_argument(
@@ -424,7 +424,7 @@ async fn a_raw_only_flag_alone_still_asks_for_a_url() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 #[rstest::rstest]
-#[case::near_bookmarks("webhooks", Some("bookmarks"))]
+#[case::near_bookmarks("bookmarsk", Some("bookmarks"))]
 #[case::near_whoami("whoam", Some("whoami"))]
 #[case::near_nothing("zzzzzz", None)]
 #[tokio::test]
@@ -461,9 +461,9 @@ async fn a_help_or_version_flag_does_not_hide_a_mistyped_command(
 #[tokio::test]
 async fn a_display_flag_ahead_of_the_word_does_not_hide_it(#[case] flag: &str) {
     assert_eq!(
-        run_isolated(&["xr", flag, "webhooks"]).await,
-        run_isolated(&["xr", "webhooks"]).await,
-        "{flag} webhooks"
+        run_isolated(&["xr", flag, "bookmarsk"]).await,
+        run_isolated(&["xr", "bookmarsk"]).await,
+        "{flag} bookmarsk"
     );
 }
 
@@ -481,7 +481,7 @@ async fn a_display_flag_ahead_of_the_word_does_not_hide_it(#[case] flag: &str) {
 #[case::nested_family(&["xr", "auth", "apps", "--help"])]
 #[case::missing_subcommand(&["xr", "auth"])]
 #[case::url(&["xr", "/2/users/me", "--help"])]
-#[case::raw_only_flag(&["xr", "-X", "POST", "webhooks", "--help"])]
+#[case::raw_only_flag(&["xr", "-X", "POST", "bookmarsk", "--help"])]
 #[case::command_missing_its_argument(&["xr", "post", "--help"])]
 #[case::repeated_flag_without_a_word(&["xr", "--raw", "--help", "--raw=false"])]
 #[case::version(&["xr", "--version"])]
@@ -505,19 +505,19 @@ async fn every_other_help_or_version_display_is_claps_own(#[case] args: &[&str])
 /// than the root help at exit 0.
 #[rstest::rstest]
 #[case::repeated_flag(
-    &["xr", "--output", "json", "--raw", "webhooks", "--help", "--raw=false"],
+    &["xr", "--output", "json", "--raw", "bookmarsk", "--help", "--raw=false"],
     "cannot be used multiple times"
 )]
 #[case::repeated_flag_short_help(
-    &["xr", "--output", "json", "--raw", "webhooks", "-h", "--raw=false"],
+    &["xr", "--output", "json", "--raw", "bookmarsk", "-h", "--raw=false"],
     "cannot be used multiple times"
 )]
 #[case::repeated_flag_version(
-    &["xr", "--output", "json", "--raw", "webhooks", "--version", "--raw=false"],
+    &["xr", "--output", "json", "--raw", "bookmarsk", "--version", "--raw=false"],
     "cannot be used multiple times"
 )]
 #[case::unknown_flag(
-    &["xr", "--output", "json", "webhooks", "--help", "--bogus-flag"],
+    &["xr", "--output", "json", "bookmarsk", "--help", "--bogus-flag"],
     "unexpected argument '--bogus-flag' found"
 )]
 #[tokio::test]
@@ -549,12 +549,12 @@ const RED: &str = "\u{1b}[31mError: ";
 /// `--color` reaches a rendering clap's failure hands the runner, wherever
 /// the flag sits in argv, as it does for an error raised after the parse.
 #[rstest::rstest]
-#[case::help_flag_path(&["xr", "--color", "always", "webhooks", "--help"])]
-#[case::help_flag_path_flag_last(&["xr", "webhooks", "-h", "--color=always"])]
+#[case::help_flag_path(&["xr", "--color", "always", "bookmarsk", "--help"])]
+#[case::help_flag_path_flag_last(&["xr", "bookmarsk", "-h", "--color=always"])]
 #[case::clap_rejection(&["xr", "--color", "always", "auth", "statsu"])]
 #[case::clap_rejection_flag_after_the_word(&["xr", "auth", "statsu", "--color", "always"])]
 #[case::clap_text(&["xr", "--color", "always", "--bogus-flag"])]
-#[case::version_flag_path(&["xr", "--color", "always", "webhooks", "--version"])]
+#[case::version_flag_path(&["xr", "--color", "always", "bookmarsk", "--version"])]
 #[tokio::test]
 async fn an_explicit_color_flag_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
     let (code, _stdout, stderr) = run_isolated(args).await;
@@ -594,7 +594,7 @@ async fn no_color_outranks_an_explicit_color_flag_on_the_parse_error_path() {
 /// `XURL_COLOR` reaches the parse-error path through clap's `env` binding,
 /// which reads the process rather than the injected overrides.
 #[rstest::rstest]
-#[case::help_flag_path(&["webhooks", "--help"])]
+#[case::help_flag_path(&["bookmarsk", "--help"])]
 #[case::clap_rejection(&["auth", "statsu"])]
 fn the_color_env_var_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
     let output = common::xr()
@@ -617,7 +617,7 @@ fn the_color_env_var_reaches_the_parse_error_rendering(#[case] args: &[&str]) {
 #[rstest::rstest]
 #[case::nested_unknown_command(&["xr", "--output", "json", "--raw", "auth", "zzz"])]
 #[case::flag_after_the_word(&["xr", "auth", "zzz", "--output", "json", "--raw"])]
-#[case::help_flag_path(&["xr", "--output", "json", "--raw", "webhooks", "--help"])]
+#[case::help_flag_path(&["xr", "--output", "json", "--raw", "bookmarsk", "--help"])]
 #[case::missing_argument(&["xr", "--output", "json", "--raw", "post"])]
 #[case::unknown_flag(&["xr", "--output", "json", "--raw", "--bogus-flag"])]
 #[case::explicit_value(&["xr", "--output", "json", "--raw=yes", "auth", "zzz"])]
