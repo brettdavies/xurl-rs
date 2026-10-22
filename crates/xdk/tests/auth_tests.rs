@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 use rstest::rstest;
 use tempfile::TempDir;
 
+use xdk::api::auth_matrix::{AuthScheme, SHORTCUT_TEMPLATES, supported_auth};
 use xdk::auth::oauth1::{encode, generate_nonce, generate_timestamp};
 use xdk::auth::oauth2::{generate_code_verifier_and_challenge, get_oauth2_scopes};
 use xdk::auth::{Auth, resolve_bearer_token};
@@ -216,6 +217,59 @@ fn test_get_oauth2_scopes() {
     assert!(
         scopes.contains(&"users.read"),
         "Expected 'users.read' scope"
+    );
+}
+
+/// A sign-in requests every scope a shortcut's endpoint requires of an
+/// `OAuth2` login, so a command that accepts `OAuth2` is never refused for a
+/// scope the sign-in left out. A shortcut added for an endpoint that needs a
+/// new scope fails here until the sign-in requests it.
+#[test]
+fn the_sign_in_requests_every_scope_a_shortcut_needs() {
+    let requested = get_oauth2_scopes();
+    let mut missing = Vec::new();
+    for (method, path) in SHORTCUT_TEMPLATES {
+        let schemes = supported_auth(method, path).expect("every shortcut is in the auth matrix");
+        for scheme in schemes {
+            if let AuthScheme::OAuth2User(scopes) = scheme {
+                for scope in *scopes {
+                    if !requested.contains(scope) {
+                        missing.push(format!("{method} {path} needs {scope}"));
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "a sign-in does not request a scope a shortcut needs:\n{}\n\
+         Cause: a shortcut was added for an endpoint whose OAuth2 scopes the sign-in does not request.\n\
+         Fix: add the scope to get_oauth2_scopes in crates/xdk/src/auth/oauth2.rs, if the vendored spec's \
+         OAuth2 scheme declares it.",
+        missing.join("\n")
+    );
+}
+
+/// Every scope a sign-in requests is one X documents. The vendored spec's
+/// `OAuth2` scheme declares all but `users.email`, which X's scope list
+/// documents and the spec omits.
+#[test]
+fn every_requested_scope_is_one_x_declares() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("vendor/x-api-openapi.json");
+    let spec: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&path).expect("the vendored spec"))
+            .expect("the vendored spec is JSON");
+    let declared = spec
+        .pointer("/components/securitySchemes/OAuth2UserToken/flows/authorizationCode/scopes")
+        .and_then(serde_json::Value::as_object)
+        .expect("the spec declares OAuth2 scopes");
+    let undeclared: Vec<&str> = get_oauth2_scopes()
+        .into_iter()
+        .filter(|scope| *scope != "users.email" && !declared.contains_key(*scope))
+        .collect();
+    assert!(
+        undeclared.is_empty(),
+        "the sign-in requests scopes the spec's OAuth2 scheme does not declare: {undeclared:?}"
     );
 }
 
