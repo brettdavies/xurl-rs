@@ -730,7 +730,7 @@ Where behavior diverges on purpose,
 | ------------------------- | ---------------- | ------------------------ |
 | Language                  | Go               | Rust                     |
 | Memory safety             | GC               | Compile-time             |
-| Binary size               | ~15 MB           | ~8 MB                    |
+| Binary size               | ~15 MB           | ~10 MB                   |
 | Shell completions         | Built-in (cobra) | Built-in (clap_complete) |
 | `--output json`           | No               | Yes                      |
 | `--quiet`                 | No               | Yes                      |
