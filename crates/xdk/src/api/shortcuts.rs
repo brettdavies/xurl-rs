@@ -1065,7 +1065,10 @@ impl Client {
                 HashMap::new(),
                 vec![(
                     "user.fields".to_string(),
-                    "created_at,description,public_metrics,verified,profile_image_url".to_string(),
+                    // `active_follower_count` is returned only for the
+                    // authenticated user, so only this lookup asks for it.
+                    "created_at,description,public_metrics,verified,profile_image_url,active_follower_count"
+                        .to_string(),
                 )],
             ),
         )

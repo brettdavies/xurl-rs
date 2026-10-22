@@ -228,6 +228,11 @@ pub struct User {
     /// Engagement counts (followers, following, posts).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_metrics: Option<UserPublicMetrics>,
+    /// Followers active on X in the last 24 hours. X returns it only for the
+    /// authenticated user with account analytics enabled, omits it for an
+    /// account with 50 or fewer followers, and estimates it from 20,000 up.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_follower_count: Option<u64>,
     /// Forward-compatibility bucket — captures unknown user fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
