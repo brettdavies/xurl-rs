@@ -186,6 +186,9 @@ Every published module is one an embedder has a reason to call:
   to.
 - `store`: `TokenStore`, the on-disk credential store the CLI shares, and the reference implementation of the refresh
   hook.
+- `webhooks`: `Receiver`, which binds an address, answers X's CRC check, and yields each delivered event whose signature
+  verifies, with `sign` for the signature X computes. It opens no tunnel and prints nothing; `Client` has the shortcuts
+  that register a webhook and subscribe to it.
 
 Items marked `#[doc(hidden)]` are seams the `xr` binary reaches across the crate boundary; they stay callable but are
 not part of this surface.
