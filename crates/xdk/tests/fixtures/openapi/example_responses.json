@@ -312,5 +312,35 @@
       "job_id": "1915510368169844736",
       "created_at": "2026-01-15T12:00:00.000Z"
     }
+  },
+  "account_activity_count": {
+    "data": {
+      "account_name": "example-app",
+      "provisioned_count": "15",
+      "subscriptions_count_all": "2",
+      "subscriptions_count_direct_messages": "0"
+    }
+  },
+  "account_activity_subscriptions": {
+    "data": {
+      "application_id": "32371675",
+      "webhook_id": "1146654567674912769",
+      "webhook_url": "https://example.com/webhooks/x",
+      "subscriptions": [
+        {
+          "user_id": "2244994945"
+        }
+      ]
+    }
+  },
+  "account_activity_subscribed": {
+    "data": {
+      "subscribed": true
+    }
+  },
+  "account_activity_unsubscribed": {
+    "data": {
+      "subscribed": false
+    }
   }
 }

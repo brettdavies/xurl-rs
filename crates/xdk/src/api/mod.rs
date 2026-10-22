@@ -32,11 +32,13 @@ pub use request::{
 pub use request::{DEFAULT_USER_AGENT, RateLimit};
 #[allow(unused_imports)]
 pub use response::types::{
+    AccountActivitySubscription, AccountActivitySubscriptionCount, AccountActivitySubscriptions,
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, Includes, LikedResult, MediaMetadataResult,
     MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post,
-    PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, UsageCreditsData, UsageData,
-    User, UserPublicMetrics, Webhook, WebhookReplayJob, WebhookValidation, deserialize_response,
+    PostPublicMetrics, ReferencedPost, RepostedResult, ResponseMeta, SubscribedResult,
+    UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob,
+    WebhookValidation, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]

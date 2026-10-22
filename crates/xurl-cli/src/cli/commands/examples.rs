@@ -131,6 +131,13 @@ WEBHOOKS:
     xr webhooks replay 1146654567674912769 --from 202601150000 --to 202601151200
     xr webhooks remove 1146654567674912769 --force --no-interactive --output json
 
+  Subscribe your account's activity to a webhook, and see who is subscribed:
+    xr webhooks subscriptions add 1146654567674912769
+    xr webhooks subscriptions list 1146654567674912769 --output json
+
+  End a subscription:
+    xr webhooks subscriptions remove 1146654567674912769 2244994945 --force --no-interactive --output json
+
 MEDIA UPLOAD:
   Upload an image (returns media_id):
     xr media upload ./photo.png --media-type image/png --category tweet_image

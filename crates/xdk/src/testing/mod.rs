@@ -299,6 +299,31 @@ const ROUTES: &[Route] = &[
         fixture: "webhook_replay_job",
         status: 200,
     },
+    Route {
+        endpoint: endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT,
+        fixture: "account_activity_count",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS,
+        fixture: "account_activity_subscriptions",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CHECK_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        fixture: "account_activity_subscribed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        fixture: "account_activity_subscribed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        fixture: "account_activity_unsubscribed",
+        status: 200,
+    },
 ];
 
 /// The regex that matches the paths `path` renders to: a `{username}`

@@ -21,9 +21,10 @@ use serde_json::Value;
 use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
-    ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MediaUploadResponse, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
+    BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult,
+    FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse,
+    MutingResult, Post, RepostedResult, SubscribedResult, UsageCreditsData, UsageData, User,
     Webhook, WebhookReplayJob, WebhookValidation,
 };
 
@@ -423,6 +424,39 @@ fn spec_webhook_replay_job() {
 }
 
 #[test]
+fn spec_account_activity_count() {
+    let examples = load_examples();
+    let resp: ApiResponse<AccountActivitySubscriptionCount> =
+        serde_json::from_value(examples["account_activity_count"].clone()).unwrap();
+    assert_eq!(resp.data.subscriptions_count_all.as_deref(), Some("2"));
+}
+
+#[test]
+fn spec_account_activity_subscriptions() {
+    let examples = load_examples();
+    let resp: ApiResponse<AccountActivitySubscriptions> =
+        serde_json::from_value(examples["account_activity_subscriptions"].clone()).unwrap();
+    let subscriptions = resp.data.subscriptions.expect("subscriptions");
+    assert_eq!(subscriptions[0].user_id.as_deref(), Some("2244994945"));
+}
+
+#[test]
+fn spec_account_activity_subscribed() {
+    let examples = load_examples();
+    let resp: ApiResponse<SubscribedResult> =
+        serde_json::from_value(examples["account_activity_subscribed"].clone()).unwrap();
+    assert!(resp.data.subscribed);
+}
+
+#[test]
+fn spec_account_activity_unsubscribed() {
+    let examples = load_examples();
+    let resp: ApiResponse<SubscribedResult> =
+        serde_json::from_value(examples["account_activity_unsubscribed"].clone()).unwrap();
+    assert!(!resp.data.subscribed);
+}
+
+#[test]
 fn spec_media_metadata() {
     let examples = load_examples();
     let resp: ApiResponse<MediaMetadataResult> =
@@ -535,6 +569,26 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "webhook_replay_job",
         endpoints::CREATE_WEBHOOK_REPLAY,
+        ReplyKind::Success,
+    ),
+    (
+        "account_activity_count",
+        endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT,
+        ReplyKind::Success,
+    ),
+    (
+        "account_activity_subscriptions",
+        endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS,
+        ReplyKind::Success,
+    ),
+    (
+        "account_activity_subscribed",
+        endpoints::CREATE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        ReplyKind::Success,
+    ),
+    (
+        "account_activity_unsubscribed",
+        endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
         ReplyKind::Success,
     ),
     (

@@ -10,10 +10,11 @@ use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, Redirec
 use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
-    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookValidation,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
+    BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
+    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, RepostedResult,
+    SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookValidation,
 };
 use xdk::error::{Error, Result};
 
@@ -131,6 +132,25 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<WebhookValidation>).into(),
     },
     SchemaEntry {
+        commands: &["webhooks-subscriptions-count"],
+        type_name: "ApiResponse<AccountActivitySubscriptionCount>",
+        schema: || schema_for!(ApiResponse<AccountActivitySubscriptionCount>).into(),
+    },
+    SchemaEntry {
+        commands: &["webhooks-subscriptions-list"],
+        type_name: "ApiResponse<AccountActivitySubscriptions>",
+        schema: || schema_for!(ApiResponse<AccountActivitySubscriptions>).into(),
+    },
+    SchemaEntry {
+        commands: &[
+            "webhooks-subscriptions-add",
+            "webhooks-subscriptions-check",
+            "webhooks-subscriptions-remove",
+        ],
+        type_name: "ApiResponse<SubscribedResult>",
+        schema: || schema_for!(ApiResponse<SubscribedResult>).into(),
+    },
+    SchemaEntry {
         commands: &["webhooks-replay"],
         type_name: "ApiResponse<WebhookReplayJob>",
         schema: || schema_for!(ApiResponse<WebhookReplayJob>).into(),
@@ -201,6 +221,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "validate",
     "version",
     "webhooks",
+    "webhooks-subscriptions",
 ];
 
 /// Commands whose `xr schema` name is not their clap path joined with `-`:

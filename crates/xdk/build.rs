@@ -157,6 +157,32 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("VALIDATE_WEBHOOK", "PUT", "/2/webhooks/{webhook_id}"),
     ("DELETE_WEBHOOK", "DELETE", "/2/webhooks/{webhook_id}"),
     ("CREATE_WEBHOOK_REPLAY", "POST", "/2/webhooks/replay"),
+    // account activity subscriptions on a webhook
+    (
+        "GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT",
+        "GET",
+        "/2/account_activity/subscriptions/count",
+    ),
+    (
+        "GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS",
+        "GET",
+        "/2/account_activity/webhooks/{webhook_id}/subscriptions/all/list",
+    ),
+    (
+        "CHECK_ACCOUNT_ACTIVITY_SUBSCRIPTION",
+        "GET",
+        "/2/account_activity/webhooks/{webhook_id}/subscriptions/all",
+    ),
+    (
+        "CREATE_ACCOUNT_ACTIVITY_SUBSCRIPTION",
+        "POST",
+        "/2/account_activity/webhooks/{webhook_id}/subscriptions/all",
+    ),
+    (
+        "DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION",
+        "DELETE",
+        "/2/account_activity/webhooks/{webhook_id}/subscriptions/{user_id}/all",
+    ),
 ];
 
 #[derive(Deserialize)]

@@ -430,6 +430,71 @@ pub struct WebhookReplayJob {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// How many Account Activity subscriptions the app holds and may hold.
+///
+/// Every field is optional because the spec requires none, and each count is
+/// a string-encoded integer, as X sends it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct AccountActivitySubscriptionCount {
+    /// The account the app's subscription allowance belongs to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub account_name: Option<String>,
+    /// How many subscriptions the app may hold.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provisioned_count: Option<String>,
+    /// How many subscriptions to all of an account's activity the app holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscriptions_count_all: Option<String>,
+    /// How many subscriptions to direct messages alone the app holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscriptions_count_direct_messages: Option<String>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Whether an account's activity is subscribed to a webhook, as the
+/// subscribe, check, and unsubscribe endpoints each answer.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct SubscribedResult {
+    /// Whether the account is subscribed once the request has been served.
+    pub subscribed: bool,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The accounts whose activity a webhook receives.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct AccountActivitySubscriptions {
+    /// The app the webhook belongs to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub application_id: Option<String>,
+    /// The webhook the subscriptions deliver to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_id: Option<String>,
+    /// That webhook's URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub webhook_url: Option<String>,
+    /// One entry per subscribed account.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscriptions: Option<Vec<AccountActivitySubscription>>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// One account subscribed to a webhook.
+///
+/// The spec closes this object to further properties, so it carries no
+/// forward-compatibility bucket.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct AccountActivitySubscription {
+    /// The subscribed account's user id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+}
+
 // ── Media ───────────────────────────────────────────────────────────
 
 /// Response from media upload INIT and FINALIZE steps.
