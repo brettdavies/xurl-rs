@@ -1353,46 +1353,47 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l timeout -d 'Request timeout in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -f -a "list" -d 'List the webhooks registered for the app'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -f -a "add" -d 'Register a webhook URL'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -f -a "validate" -d 'Ask X to send its CRC check to a webhook again'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -f -a "remove" -d 'Delete a webhook; its subscriptions stop delivering'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -f -a "subscriptions" -d 'Account Activity subscriptions: whose activity a webhook receives'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -f -a "replay" -d 'Deliver a past window of events to a webhook again'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions replay help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -f -a "list" -d 'List the webhooks registered for the app'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -f -a "add" -d 'Register a webhook URL'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -f -a "validate" -d 'Ask X to send its CRC check to a webhook again'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -f -a "remove" -d 'Delete a webhook; its subscriptions stop delivering'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -f -a "subscriptions" -d 'Account Activity subscriptions: whose activity a webhook receives'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -f -a "stream-links" -d 'Filtered-stream links: deliver the posts your stream rules match to a webhook'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -f -a "replay" -d 'Deliver a past window of events to a webhook again'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links replay help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` username to act as' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
@@ -1577,6 +1578,43 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -f -a "check" -d 'Say whether your account\'s activity is subscribed to a webhook'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -f -a "remove" -d 'End an account\'s subscription to a webhook'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -f -a "list" -d 'List the webhooks the app\'s filtered stream delivers to'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -f -a "add" -d 'Deliver the app\'s filtered stream to a webhook'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -f -a "remove" -d 'Stop delivering the app\'s filtered stream to a webhook'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l from -d 'Start of the window: twelve digits, `yyyymmddhhmm` in UTC' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l to -d 'End of the window: twelve digits, `yyyymmddhhmm` in UTC' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
@@ -1620,6 +1658,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "validate" -d 'Ask X to send its CRC check to a webhook again'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "remove" -d 'Delete a webhook; its subscriptions stop delivering'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "subscriptions" -d 'Account Activity subscriptions: whose activity a webhook receives'
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "stream-links" -d 'Filtered-stream links: deliver the posts your stream rules match to a webhook'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "replay" -d 'Deliver a past window of events to a webhook again'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
@@ -2360,7 +2399,7 @@ complete -c xr -n "__fish_xr_using_subcommand examples" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand examples" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand examples" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`). Omit for auto-detection' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `follow`, `delete`, `repost`, `bookmark`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`). Omit for auto-detection' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -2443,6 +2482,7 @@ complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from webhooks" -f -a "validate" -d 'Ask X to send its CRC check to a webhook again'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from webhooks" -f -a "remove" -d 'Delete a webhook; its subscriptions stop delivering'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from webhooks" -f -a "subscriptions" -d 'Account Activity subscriptions: whose activity a webhook receives'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from webhooks" -f -a "stream-links" -d 'Filtered-stream links: deliver the posts your stream rules match to a webhook'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from webhooks" -f -a "replay" -d 'Deliver a past window of events to a webhook again'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "oauth2" -d 'Configure `OAuth2` authentication'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "oauth1" -d 'Configure `OAuth1` authentication'

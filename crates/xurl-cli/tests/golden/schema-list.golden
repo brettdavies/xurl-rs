@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 3114
+stdout_len: 3301
 stderr_len: 0
 --- stdout ---
 auth-apps-list                 Vec<AppStatusEntry>
@@ -51,6 +51,9 @@ webhooks-add                   ApiResponse<Webhook>
 webhooks-list                  ApiResponse<Vec<Webhook>>
 webhooks-remove                ApiResponse<DeletedResult>
 webhooks-replay                ApiResponse<WebhookReplayJob>
+webhooks-stream-links-add      ApiResponse<ProvisionedResult>
+webhooks-stream-links-list     ApiResponse<Vec<WebhookStreamLink>>
+webhooks-stream-links-remove   ApiResponse<DeletedResult>
 webhooks-subscriptions-add     ApiResponse<SubscribedResult>
 webhooks-subscriptions-check   ApiResponse<SubscribedResult>
 webhooks-subscriptions-count   ApiResponse<AccountActivitySubscriptionCount>

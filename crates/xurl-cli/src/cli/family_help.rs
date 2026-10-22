@@ -284,6 +284,56 @@ pub mod webhook_subscriptions {
     }
 }
 
+/// The `xr webhooks stream-links` family.
+pub mod webhook_stream_links {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "webhooks stream-links",
+    };
+
+    /// `xr webhooks stream-links list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "List the webhooks the filtered stream delivers to (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr webhooks stream-links add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "1146654567674912769",
+        text_caption: "Deliver the filtered stream to a webhook (text)",
+        json_caption: "Link (JSON envelope)",
+    };
+
+    /// `xr webhooks stream-links remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1146654567674912769 --force --no-interactive",
+        text_caption: "Stop delivering to a webhook with no prompt, as a script does (text)",
+        json_caption: "Unlink (JSON envelope)",
+    };
+
+    /// The page under `xr webhooks stream-links --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Deliver the filtered stream to a webhook (text)",
+                &[Example::text(&ADD)],
+            ),
+            (
+                "Where the filtered stream delivers, JSON envelope",
+                &[Example::json(&LIST)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr media subtitles` family.
 pub mod media_subtitles {
     use super::{Example, Family, Section, Verb};

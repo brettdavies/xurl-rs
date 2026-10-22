@@ -1643,6 +1643,13 @@ pub enum WebhooksCommands {
         #[command(subcommand)]
         action: WebhookSubscriptionsCommands,
     },
+    /// Filtered-stream links: deliver the posts your stream rules match to a webhook
+    #[command(name = "stream-links", after_help = family_help::webhook_stream_links::page())]
+    StreamLinks {
+        /// `stream-links` verb to dispatch.
+        #[command(subcommand)]
+        action: WebhookStreamLinksCommands,
+    },
     /// Deliver a past window of events to a webhook again
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REPLAY))]
     Replay {
@@ -1712,6 +1719,43 @@ pub enum WebhookSubscriptionsCommands {
         /// Numeric user ID of the subscribed account, as `subscriptions list` prints it
         #[arg(value_name = "USER_ID")]
         user_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr webhooks stream-links` verbs.
+#[derive(Subcommand, Debug)]
+pub enum WebhookStreamLinksCommands {
+    /// List the webhooks the app's filtered stream delivers to
+    #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::LIST))]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Deliver the app's filtered stream to a webhook
+    ///
+    /// X bills each post it then delivers to the webhook.
+    #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::ADD))]
+    Add {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Stop delivering the app's filtered stream to a webhook
+    #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::REMOVE))]
+    Remove {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
         /// Skip the confirmation prompt; required under `--no-interactive`
         #[arg(long)]
         force: bool,
