@@ -16,10 +16,23 @@ use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
     DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookValidation,
 };
 
 // ── Request body types ───────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct WebhookBody {
+    url: String,
+}
+
+#[derive(Serialize)]
+struct WebhookReplayBody {
+    webhook_id: String,
+    from_date: String,
+    to_date: String,
+}
 
 #[derive(Serialize)]
 struct PostBody {
@@ -1017,6 +1030,76 @@ impl Client {
                 HashMap::from([("user_id".to_string(), user_id.to_string())]),
                 Vec::new(),
             ),
+        )
+    }
+
+    // ── Webhooks ────────────────────────────────────────────────────
+
+    /// Lists the webhooks registered for the app.
+    pub fn get_webhooks(&self) -> Call<ApiResponse<Vec<Webhook>>> {
+        self.call(
+            endpoints::GET_WEBHOOKS.method,
+            template(endpoints::GET_WEBHOOKS.path, HashMap::new(), Vec::new()),
+        )
+    }
+
+    /// Registers `url` as a webhook. X sends its CRC check to the URL before
+    /// it answers, so the request succeeds only while a receiver is reachable
+    /// there.
+    pub fn create_webhook(&self, url: &str) -> Call<ApiResponse<Webhook>> {
+        self.post_json(
+            template(endpoints::CREATE_WEBHOOK.path, HashMap::new(), Vec::new()),
+            &WebhookBody {
+                url: url.to_string(),
+            },
+        )
+    }
+
+    /// Asks X to send its CRC check to a webhook again; the response says
+    /// whether the URL answered it.
+    pub fn validate_webhook(&self, webhook_id: &str) -> Call<ApiResponse<WebhookValidation>> {
+        self.call(
+            endpoints::VALIDATE_WEBHOOK.method,
+            template(
+                endpoints::VALIDATE_WEBHOOK.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Deletes a webhook. Its subscriptions stop delivering.
+    pub fn delete_webhook(&self, webhook_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_WEBHOOK.method,
+            template(
+                endpoints::DELETE_WEBHOOK.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Starts a job that delivers the events between `from_date` and
+    /// `to_date` to a webhook again. Both are twelve digits, `yyyymmddhhmm`
+    /// in UTC, which is the form the endpoint takes.
+    pub fn create_webhook_replay(
+        &self,
+        webhook_id: &str,
+        from_date: &str,
+        to_date: &str,
+    ) -> Call<ApiResponse<WebhookReplayJob>> {
+        self.post_json(
+            template(
+                endpoints::CREATE_WEBHOOK_REPLAY.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &WebhookReplayBody {
+                webhook_id: webhook_id.to_string(),
+                from_date: from_date.to_string(),
+                to_date: to_date.to_string(),
+            },
         )
     }
 

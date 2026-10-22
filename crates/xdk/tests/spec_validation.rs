@@ -24,6 +24,7 @@ use xdk::api::response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
     MediaUploadResponse, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookValidation,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -385,6 +386,43 @@ fn spec_chat_moderators() {
 }
 
 #[test]
+fn spec_webhook_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Webhook>> =
+        serde_json::from_value(examples["webhook_list"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 1);
+    assert_eq!(resp.data[0].id.as_deref(), Some("1146654567674912769"));
+    assert_eq!(resp.data[0].valid, Some(true));
+}
+
+#[test]
+fn spec_webhook_single() {
+    let examples = load_examples();
+    let resp: ApiResponse<Webhook> =
+        serde_json::from_value(examples["webhook_single"].clone()).unwrap();
+    assert_eq!(
+        resp.data.url.as_deref(),
+        Some("https://example.com/webhooks/x")
+    );
+}
+
+#[test]
+fn spec_webhook_validated() {
+    let examples = load_examples();
+    let resp: ApiResponse<WebhookValidation> =
+        serde_json::from_value(examples["webhook_validated"].clone()).unwrap();
+    assert!(resp.data.valid);
+}
+
+#[test]
+fn spec_webhook_replay_job() {
+    let examples = load_examples();
+    let resp: ApiResponse<WebhookReplayJob> =
+        serde_json::from_value(examples["webhook_replay_job"].clone()).unwrap();
+    assert_eq!(resp.data.job_id, "1915510368169844736");
+}
+
+#[test]
 fn spec_media_metadata() {
     let examples = load_examples();
     let resp: ApiResponse<MediaMetadataResult> =
@@ -481,6 +519,22 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "chat_moderators",
         endpoints::ADD_CHAT_MODERATOR,
+        ReplyKind::Success,
+    ),
+    ("webhook_list", endpoints::GET_WEBHOOKS, ReplyKind::Success),
+    (
+        "webhook_single",
+        endpoints::CREATE_WEBHOOK,
+        ReplyKind::Success,
+    ),
+    (
+        "webhook_validated",
+        endpoints::VALIDATE_WEBHOOK,
+        ReplyKind::Success,
+    ),
+    (
+        "webhook_replay_job",
+        endpoints::CREATE_WEBHOOK_REPLAY,
         ReplyKind::Success,
     ),
     (
