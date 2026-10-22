@@ -20322,9 +20322,7 @@
         },
         "security": [
           {
-            "OAuth2UserToken": [
-              "tweet.write"
-            ]
+            "OAuth2UserToken": []
           },
           {
             "UserToken": []
