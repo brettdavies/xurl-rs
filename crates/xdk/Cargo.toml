@@ -56,6 +56,11 @@ futures-core = "0.3"
 bytes = "1"
 tokio = { workspace = true, features = ["net"] }
 tokio-util.workspace = true
+# The webhook receiver's HTTP server. reqwest already brings all three into
+# every build as its client stack; the receiver adds hyper's server half.
+hyper = { version = "1", default-features = false, features = ["server", "http1"] }
+hyper-util = { version = "0.1", default-features = false, features = ["tokio"] }
+http-body-util = "0.1"
 
 # Serialization
 serde.workspace = true

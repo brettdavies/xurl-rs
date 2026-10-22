@@ -661,6 +661,28 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-webhook-url-not-https",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                "http://example.com/webhook",
+            ],
+        ),
+        case(
+            "dry-run-webhook-url-has-port",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                "https://example.com:8443/webhook",
+            ],
+        ),
+        case(
             "dry-run-invalid-webhook-id",
             &[
                 "--output",
