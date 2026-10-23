@@ -37,8 +37,10 @@ use crate::error::{Error, Result};
 
 mod signing;
 
-use signing::{LEGACY_SIGNATURE_HEADER, OAUTH2_SIGNATURE_HEADER, verified};
-pub use signing::{SigningSecrets, sign};
+use signing::verified;
+pub use signing::{
+    LEGACY_SIGNATURE_HEADER, OAUTH2_SIGNATURE_HEADER, SignedSample, SigningSecrets, sign,
+};
 
 /// The `tracing` target of every event this module emits.
 pub const WEBHOOKS_TARGET: &str = "xdk::webhooks";

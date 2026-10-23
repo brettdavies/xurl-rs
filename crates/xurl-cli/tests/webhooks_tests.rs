@@ -1016,6 +1016,186 @@ async fn listen_under_dry_run_binds_nothing_and_names_the_secret() {
     );
 }
 
+/// A stdout that hands each line to the test as `listen` writes it, so a
+/// test can act on the `listening` record while the run goes on.
+struct LineTap {
+    partial: Vec<u8>,
+    lines: tokio::sync::mpsc::UnboundedSender<String>,
+}
+
+impl std::io::Write for LineTap {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.partial.extend_from_slice(buf);
+        while let Some(end) = self.partial.iter().position(|byte| *byte == b'\n') {
+            let line: Vec<u8> = self.partial.drain(..=end).collect();
+            let _ = self
+                .lines
+                .send(String::from_utf8_lossy(&line[..end]).into_owned());
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+/// Runs `xr --output json webhooks listen` on `port` with `extra` flags while
+/// `drive` reads its stdout line by line, and returns the exit code, stderr,
+/// and what `drive` returned.
+async fn listen_tapped<T, F>(
+    store: &Path,
+    port: u16,
+    extra: &[&str],
+    drive: impl FnOnce(tokio::sync::mpsc::UnboundedReceiver<String>) -> F,
+) -> (i32, String, T)
+where
+    F: std::future::Future<Output = T>,
+{
+    let port = port.to_string();
+    let mut argv = vec![
+        "xr", "--output", "json", "webhooks", "listen", "--port", &port,
+    ];
+    argv.extend_from_slice(extra);
+    let (sender, lines) = tokio::sync::mpsc::unbounded_channel();
+    let mut stdout = LineTap {
+        partial: Vec::new(),
+        lines: sender,
+    };
+    let mut stderr: Vec<u8> = Vec::new();
+    let overrides = xdk::config::EnvOverrides {
+        api_base_url: Some("http://127.0.0.1:9".to_string()),
+        ..xdk::config::EnvOverrides::default()
+    };
+    let run =
+        xurl::cli::runner::run_with_overrides(argv, &mut stdout, &mut stderr, store, &overrides);
+    let (code, driven) = tokio::join!(run, drive(lines));
+    (code, String::from_utf8_lossy(&stderr).into_owned(), driven)
+}
+
+/// The next line `listen` printed, as JSON.
+async fn next_record(
+    lines: &mut tokio::sync::mpsc::UnboundedReceiver<String>,
+) -> serde_json::Value {
+    let line = tokio::time::timeout(std::time::Duration::from_secs(10), lines.recv())
+        .await
+        .expect("listen prints within ten seconds")
+        .expect("listen printed a line");
+    serde_json::from_str(&line).unwrap_or_else(|e| panic!("not JSON ({e}): {line}"))
+}
+
+#[tokio::test]
+async fn listen_hands_out_a_signed_test_request_that_verifies() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let port = free_port();
+
+    let (code, stderr, (listening, event)) = listen_tapped(
+        &store,
+        port,
+        &["--max-events", "1"],
+        |mut lines| async move {
+            let listening = next_record(&mut lines).await;
+            let request = &listening["test_request"];
+            assert_eq!(request["method"], "POST", "{listening}");
+            let mut post = reqwest::Client::new()
+                .post(request["url"].as_str().expect("a URL"))
+                .body(request["body"].as_str().expect("a body").to_string());
+            for (name, value) in request["headers"].as_object().expect("headers") {
+                post = post.header(name, value.as_str().expect("a header value"));
+            }
+            let status = post.send().await.expect("the listener answers").status();
+            assert_eq!(status, 200, "the sample verifies");
+            (listening, next_record(&mut lines).await)
+        },
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(listening["status"], "listening");
+    assert_eq!(event["xr_test_event"], true, "the sample is the event");
+    for record in [&listening["test_command"], &listening["test_request"]] {
+        let shown = record.to_string();
+        assert!(!shown.contains("SECRET-VALUE"), "{shown}");
+        assert!(!shown.contains("CONSUMER-SECRET"), "{shown}");
+    }
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn listen_hands_out_a_test_command_a_posix_shell_runs() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let port = free_port();
+
+    let (code, stderr, (shell, event)) = listen_tapped(
+        &store,
+        port,
+        &["--max-events", "1"],
+        |mut lines| async move {
+            let listening = next_record(&mut lines).await;
+            let command = listening["test_command"]
+                .as_str()
+                .expect("a test command")
+                .to_string();
+            let shell = tokio::task::spawn_blocking(move || {
+                std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&command)
+                    .output()
+                    .expect("sh runs")
+            })
+            .await
+            .expect("the shell finishes");
+            (shell, next_record(&mut lines).await)
+        },
+    )
+    .await;
+
+    assert!(
+        shell.status.success(),
+        "{:?}: {}",
+        shell.status,
+        String::from_utf8_lossy(&shell.stderr)
+    );
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(event["xr_test_event"], true);
+}
+
+#[tokio::test]
+async fn listen_in_text_prints_the_test_command_on_stderr() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let held = std::net::TcpListener::bind("127.0.0.1:0").expect("a free port");
+    let port = held.local_addr().expect("its address").port();
+    drop(held);
+
+    let port_arg = port.to_string();
+    let args = [
+        "webhooks",
+        "listen",
+        "--port",
+        &port_arg,
+        "--max-events",
+        "1",
+    ];
+    let ((code, stdout, stderr), ()) =
+        tokio::join!(run(&store, "http://127.0.0.1:9", &args), async {
+            crc_token_from(port).await;
+            deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await;
+        });
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(
+        stdout.lines().count(),
+        1,
+        "stdout holds the event only: {stdout}"
+    );
+    assert!(stderr.contains("curl "), "{stderr}");
+    assert!(stderr.contains("xr_test_event"), "{stderr}");
+    assert!(!stderr.contains("SECRET-VALUE"), "{stderr}");
+}
+
 #[tokio::test]
 async fn listen_on_a_held_port_names_it_and_reruns_on_a_free_port() {
     let tmp = TempDir::new().expect("tempdir");

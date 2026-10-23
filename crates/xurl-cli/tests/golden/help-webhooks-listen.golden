@@ -1,12 +1,14 @@
 args: ["webhooks", "listen", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7925
+stdout_len: 8222
 stderr_len: 0
 --- stdout ---
 Receive webhook deliveries on a local address
 
 Answers X's CRC check and prints each event X delivers, once its signature verifies, as one JSON line on stdout. X delivers only to a public HTTPS URL with no port, so expose the local address through a tunnel or reverse proxy of your own and register that URL with `xr webhooks add`. This command opens no tunnel and sends nothing to X. It runs until interrupted, or until `--max-events` events have printed.
+
+Once up, it hands out a signed sample delivery to prove the wiring before X sends anything: `test_command`, a curl invocation, and `test_request`, the same request as data, on the JSON `listening` line, or the curl invocation on stderr in text. The sample's body carries `"xr_test_event": true`.
 
 Usage: xr webhooks listen [OPTIONS]
 

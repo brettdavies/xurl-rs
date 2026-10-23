@@ -1658,6 +1658,12 @@ pub enum WebhooksCommands {
     /// tunnel or reverse proxy of your own and register that URL with
     /// `xr webhooks add`. This command opens no tunnel and sends nothing to X.
     /// It runs until interrupted, or until `--max-events` events have printed.
+    ///
+    /// Once up, it hands out a signed sample delivery to prove the wiring
+    /// before X sends anything: `test_command`, a curl invocation, and
+    /// `test_request`, the same request as data, on the JSON `listening`
+    /// line, or the curl invocation on stderr in text. The sample's body
+    /// carries `"xr_test_event": true`.
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::LISTEN))]
     Listen {
         /// Local port to listen on; 0 takes any free port

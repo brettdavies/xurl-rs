@@ -169,3 +169,33 @@ fn sigpipe_smoke() {
         "child surfaced BrokenPipe (SIGPIPE restoration likely drifted): {stderr}"
     );
 }
+
+/// The signed-sample builder `listen` prints from lives outside the library's
+/// `testing` feature, which pulls in `wiremock`; the release `xr` reaches it
+/// without that feature, which only the dev-dependency turns on.
+#[test]
+fn the_release_build_enables_no_testing_feature_of_the_library() {
+    let output = std::process::Command::new(env!("CARGO"))
+        .args([
+            "tree",
+            "--offline",
+            "--locked",
+            "-p",
+            "xurl-rs",
+            "-e",
+            "features,no-dev",
+            "-i",
+            "xdk-rs",
+        ])
+        .current_dir(common::workspace_root())
+        .output()
+        .expect("cargo tree runs");
+    let tree = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "cargo tree failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(tree.contains("xdk-rs feature \"default\""), "{tree}");
+    assert!(!tree.contains("feature \"testing\""), "{tree}");
+}
