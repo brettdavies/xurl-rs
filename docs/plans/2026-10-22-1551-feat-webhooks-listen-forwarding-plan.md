@@ -70,7 +70,7 @@ open and are settled in this plan.
 - R4. X's acknowledgment never waits for a forward to finish. An event is acknowledged once it verifies and is queued,
   as today; when a target falls far enough behind that its queue is full, deliveries slow until it catches up.
 - R5. A forward that fails is retried within a bounded budget, then reported, and `listen` keeps running. A forward
-  failure never changes `listen`'s exit status.
+  failure never changes `listen`'s exit status; a panic in `xr` is not a forward failure and exits 1 (KTD13).
 - R6. On shutdown, by signal or `--max-events`, `listen` finishes the forwards already queued before it exits, within
   one bounded drain deadline, and reports how many it could not deliver. A second signal exits at once.
 - R7. Under a structured format, stdout carries the `listening` line and then one line per event, as today. Forward
@@ -78,8 +78,9 @@ open and are settled in this plan.
 
 **Restart recovery**
 
-- R8. `listen --checkpoint <FILE>` records, to the minute, when the most recent verified event arrived, and a crash
-  mid-write leaves the previous record readable.
+- R8. `listen --checkpoint <FILE>` records, to the minute, when the oldest verified event not yet delivered or reported
+  failed at every forward target arrived, or the most recent event when none is pending, and a crash mid-write leaves
+  the previous record readable (R7, second-pass D1).
 - R9. `listen` sends no request to X under any combination of flags.
 - R10. `xr webhooks replay <WEBHOOK_ID> --from-checkpoint <FILE>` requests the window from the checkpoint's minute to
   the current minute, limited to the 24 hours X can replay, and says so when the limit cut part of the gap.
@@ -204,46 +205,58 @@ stay required together.
   `git`), the per-target queues and their output, and composing each `next_step`. Governs R16.
 - KTD2. **`Event` gains the headers a forward needs and its arrival time.** The signature headers and `Content-Type` as
   received, and a UTC arrival time. `Event` is `#[non_exhaustive]`, so the fields are additive.
-- KTD3. **Acknowledge, then queue, then forward.** The consume loop prints the event line, writes the checkpoint, then
-  puts the event on each target's bounded queue (capacity 256). A full queue blocks the loop, which fills the receiver's
-  64-slot channel and then delays X's 200. Memory stays bounded and a stalled target slows deliveries instead of
-  dropping events. Holding X's answer for the forward was rejected: one slow target would make X count every delivery
-  failed. Governs R3, R4.
+- KTD3. **Acknowledge, then queue, then forward.** The consume loop prints the event line, then puts the event on each
+  target's bounded queue (capacity 256), and the checkpoint follows delivery (KTD7). A full queue blocks the loop, which
+  fills the receiver's 64-slot channel and then delays X's 200. Memory stays bounded and a stalled target slows
+  deliveries instead of dropping events. Holding X's answer for the forward was rejected: one slow target would make X
+  count every delivery failed. Governs R3, R4.
 - KTD4. **One retry budget for both target kinds.** Up to four attempts, waiting 1, 2, then 4 seconds between them. Each
   attempt is cut off by `--forward-timeout` (default 30 seconds; a program target may run an agent). A URL attempt is
-  retried on a connection failure, a timeout, 408, 429, or 5xx, and not on another 4xx. A program attempt is retried on
-  a non-zero exit or a timeout. The budget is a library type so an embedder's own target runs under the same rule. The
-  waits add up to 7 seconds, which covers a local server restarting, the common transient failure; a target down longer
-  is reported and recovered by a replay, so a longer budget would only hold up every event queued behind it. Governs R5,
-  R6.
+  delivered on a 2xx from the forward URL itself; the client follows no redirect, so a 3xx is a final failure, not
+  retried, whose record names the status and never the `Location` (R11, second-pass D3: a followed 301 or 302 turns the
+  `POST` into a body-less `GET` that can answer 200). It is retried on a connection failure, a timeout, 408, 429, or
+  5xx, and not on another 4xx. A program attempt is retried on a non-zero exit or a timeout. The budget is a library
+  type so an embedder's own target runs under the same rule. The waits add up to 7 seconds, which covers a local server
+  restarting, the common transient failure; a target down longer is reported and recovered by a replay, so a longer
+  budget would only hold up every event queued behind it. Governs R5, R6.
 - KTD5. **The URL request carries X's bytes and X's signature.** `POST`, the body unchanged, `Content-Type` as X sent
-  it, the signature header as received, then an `X-Xr-Event-Sha256` header holding the SHA-256 of the event's exact
-  bytes (DX D9: a key a target deduplicates on, the same for a retry and for a replay of the same bytes), then the
-  caller's `-H` headers, which may not set `Host`, `Content-Length`, or `X-Xr-Event-Sha256`; a `-H` with no colon, an
-  empty name, or a name or value HTTP does not allow is refused before `listen` binds, identified by its position among
-  the `-H` flags and never by its value (R5, D7). The target verifies with the app's own secret, the same way `listen`
-  does. The response body is read up to a cap and discarded. `--forward` takes `http` or `https` and is refused offline
-  otherwise, with reason `validation`; a URL that carries a username or password is refused the same way, with a message
-  naming `-H 'Authorization: ...'`, and a failure's cause drops the URL with `reqwest`'s `without_url` so no record
-  repeats it (R4, D6). Governs R1.
+  it, the signature header as received, then `Idempotency-Key: "<hex>"`, the SHA-256 of the event's exact bytes as 64
+  lowercase hex characters, quoted as the Structured Field String the IETF httpapi draft
+  (draft-ietf-httpapi-idempotency-key-header-07) specifies (DX D9: a key a target deduplicates on, the same for a retry
+  and for a replay of the same bytes; R9, second-pass D5: idempotency middleware already keys on this name, and RFC 6648
+  advises against a new `X-` name), then the caller's `-H` headers, which may not set `Host`, `Content-Length`, or
+  `Idempotency-Key`; a `-H` with no colon, an empty name, or a name or value HTTP does not allow is refused before
+  `listen` binds, identified by its position among the `-H` flags and never by its value (R5, D7). The target verifies
+  with the app's own secret, the same way `listen` does. The response body is read up to a cap and discarded.
+  `--forward` takes `http` or `https` and is refused offline otherwise, with reason `validation`; a URL that carries a
+  username or password is refused the same way, with a message naming `-H 'Authorization: ...'`, and a failure's cause
+  drops the URL with `reqwest`'s `without_url` so no record repeats it (R4, D6). Governs R1.
 - KTD6. **The program target runs with no shell and no terminal.** Argv after `--` goes straight to the OS; stdin is
   written from its own task and then closed, and the attempt timeout covers the write and the wait together, so a
   program that never reads its stdin cannot hold an attempt open past the timeout; the child's stdout and stderr go to
   `listen`'s stderr, never its stdout (R7). An attempt past its timeout, the KTD12 drain deadline, or a second signal
   kills the program and everything it started: on Unix its own process group through `killpg` and the linked `libc`, on
   Windows its kill-on-close Job Object, which the program is assigned to while suspended (R3, D5). `listen` checks
-  before binding that the program resolves, by searching `PATH` itself (and `PATHEXT` on Windows) with no new
-  dependency, or by checking a name with a path separator directly, and refuses with reason `validation` when it does
-  not. The program's environment gains `XR_EVENT_SHA256`, the same key the URL target gets as a header (DX D9). Bytes
-  from X reach the program only on stdin, never in its arguments, its environment, or a shell, so an event cannot become
-  a command. Governs R2.
+  before binding that the program resolves, by searching `PATH` itself (and `PATHEXT` on Windows) with no new dependency
+  (both read once in `crates/xurl-cli/src/cli/env.rs`, per `AGENTS.md` rule 2, and exempt beside `HOME` from the guard
+  that every variable `xr` reads is advertised in `--help`, since they are OS search paths, not `xr` settings, C2), or
+  by checking a name with a path separator directly, and refuses with reason `validation` when it does not. The
+  program's environment gains `XR_EVENT_SHA256`, the same key the URL target gets in `Idempotency-Key`, as 64 lowercase
+  hex characters, unquoted (DX D9, R9). Bytes from X reach the program only on stdin, never in its arguments, its
+  environment, or a shell, so an event cannot become a command. Governs R2.
 - KTD7. **The checkpoint is a one-field JSON file written atomically, once a minute at most.**
-  `{"last_event_at": <Unix seconds>}` (R2, D3: a number needs no parser), written after an event's line prints when that
-  event arrived in a later minute than the time last written, through the store's `write_atomically` in
-  `crates/xdk/src/store/atomic.rs` (temp file, fsync, rename, fsync of the directory). A replay window is
-  minute-granular and its start is inclusive, so a record from earlier in the same minute recovers exactly what a
-  per-event record would, and a burst of deliveries costs one fsync a minute instead of one per event. `listen` only
-  writes it; a missing file is created on the first event. Governs R8.
+  `{"last_event_at": <Unix seconds>}` (R2, D3: a number needs no parser). The time recorded is the arrival of the oldest
+  event not yet finished at every forward target, where finished means delivered or reported `forward-failed`, and the
+  arrival of the newest event when nothing is pending, so with no target it is the newest event (R7, second-pass D1: a
+  consumer commits its position after it processes a record). Each worker reports every finished event to the consume
+  loop in queue order; the loop keeps each target's oldest pending arrival and writes the record when the minute of that
+  time differs from the minute last written, through the store's `write_atomically` in `crates/xdk/src/store/atomic.rs`
+  (temp file, fsync, rename, fsync of the directory). A replay window is minute-granular and its start is inclusive, so
+  a record from earlier in the same minute recovers exactly what a per-event record would, and a burst of deliveries
+  costs one fsync a minute instead of one per event. `listen` only writes it; a missing file is created on the first
+  event. A hard stop with a backlog (a kill, an OOM kill, an abort) leaves the record at the oldest undelivered minute,
+  so `replay --from-checkpoint` covers the backlog and the faster target sees repeats. The field keeps its approved name
+  (R2): it names the newest event only when nothing is pending. Governs R8.
 - KTD8. **The replay window is computed in the library from the checkpoint and the clock,** through the one UTC date
   formatter the workspace has, moved from `crates/xurl-cli/src/cli/output/rfc3339.rs` into `xdk` and shared with
   `retry_at` (R2, D3). `from` is the checkpoint's minute, inclusive, so events from that minute come again; `to` is the
@@ -260,38 +273,47 @@ stay required together.
   did, since a header often carries a credential and its value is never echoed. Governs R12, R13.
 - KTD10. **A forward outcome is a stderr record.** A failed forward writes one stderr line: prose in text output, and
   under a structured format a JSON object with `status: "forward-failed"`, the target kind, the attempt count, the
-  cause, the event's arrival time, its `event_sha256` (DX D9), `side_effects: "printed, not delivered"`, and a
-  `next_step` of `{action: "run-command", template: "xr webhooks replay <WEBHOOK_ID> --from <minute> --to <minute>"}`
-  with both minutes set to the event's arrival minute, so the agent fills in only the webhook id (DX D10). Shutdown with
-  undelivered events writes one `status: "forward-incomplete"` record with the count. A successful forward writes one
-  `forwarded` record the same way, with the target kind, the attempts, the HTTP status or exit code, the time taken, and
-  the event's arrival time (DX D7), so an agent can count deliveries. Stderr, because stdout's contract is one line per
-  event (R7) and `xr` already writes its structured error envelopes there; a consumer reading events from stdout never
-  has to tell a status record from an event. Governs R5, R6, R7.
+  cause, the event's arrival time, its `event_sha256` (DX D9; lowercase hex, R9),
+  `side_effects: "printed, not delivered"`, and a `next_step` of
+  `{action: "run-command", template: "xr webhooks replay <WEBHOOK_ID> --from <minute> --to <minute>"}` with `--from` set
+  to the event's arrival minute and `--to` to the minute after it, so the agent fills in only the webhook id (DX D10;
+  R13, second-pass D7: a two-minute window does not depend on X accepting equal bounds, at the cost of replaying one
+  more minute of events, which X may bill). Shutdown with undelivered events writes one `status: "forward-incomplete"`
+  record with the count. A successful forward writes one `forwarded` record the same way, with the target kind, the
+  attempts, the HTTP status or exit code, the time taken, and the event's arrival time (DX D7), so an agent can count
+  deliveries. Stderr, because stdout's contract is one line per event (R7) and `xr` already writes its structured error
+  envelopes there; a consumer reading events from stdout never has to tell a status record from an event. Governs R5,
+  R6, R7.
 - KTD11. **Dry runs show the plan of action and nothing else.** `listen --dry-run` adds the forward URL, the header
   names (never values), the program and its arguments, the timeout, and the checkpoint path to its context.
   `replay --dry-run --from-checkpoint` adds `from`, `to`, and `clamped`. Governs R11, R14.
-- KTD13. **A worker that stops unexpectedly stops listen loudly.** `listen` watches its target workers; one that ends
-  for any reason but shutdown, a panic included, makes `listen` stop taking events, drain the other target under the
-  KTD12 deadline, and exit 1 with reason `internal`, the panic message as context, the `report-issue` step, and the
-  backtrace under `RUST_BACKTRACE`. Restarting the worker was rejected: a bug that panics on every event would loop,
-  reporting each one and delivering nothing (DX D11). Governs R5, R6.
+- KTD12. **Shutdown drains under one deadline, not one budget per event.** From the stop signal, the workers have one
+  attempt timeout plus the budget's 7 seconds of waits to deliver what is queued; whatever is undelivered then is
+  counted in the `forward-incomplete` record, and the checkpoint stays at the first undelivered event's minute (R7). A
+  second signal exits at once. Each queue is closed and drained to its end; at the deadline the workers are aborted and
+  the events still queued or in flight are counted. A per-event budget at drain time was rejected: with a target that
+  never answers, 256 queued events at four 30-second attempts each would hold `listen` for hours after it was asked to
+  stop. Governs R6.
+- KTD13. **A panic anywhere in `xr` answers `internal` and exits 1.** The release profile aborts on a panic
+  (`Cargo.toml:45`), so no join handle ever reports one. `run_argv`, the binary's entry, installs one panic hook before
+  it calls `run`, and the runner publishes the resolved output format to a process-wide cell the hook reads, so
+  in-process callers of `run_with_store_path` never install it (T2): it writes the `internal` error (reason `internal`,
+  `exit_code` 1, the `report-issue` step, the panic message and location, and a `backtrace` field when `RUST_BACKTRACE`
+  asks) in the active format to stderr, flushes stdout, and exits 1 before the abort runs; a panic before the format is
+  resolved is written as text. A `listen` that panics drains nothing, and the checkpoint (KTD7, R7) keeps every
+  undelivered event replayable. Restarting a worker was rejected (DX D11): a bug that panics on every event would loop.
+  Watching join handles under `panic = "unwind"` was rejected (R8, second-pass D2): it grows the release binary 13.7%
+  and leaves every other command's panic at exit 101 in plain text. Governs R5, R6.
 - KTD14. **One signed-sample builder, in the library, outside the testing feature.** `xdk::webhooks` builds a signed
   sample event (the marked body, the signature header name and value) from the app's signing secrets, and exports the
   two signature header names; `xdk::testing` adds a sender that posts that sample to a `Receiver` for embedders' tests;
   `listen`'s `test_command` (U9) is composed from the same builder (DX D12). The builder stays outside `testing` because
   that feature pulls in `wiremock` (`crates/xdk/Cargo.toml`), which the release `xr` must not link; `xr` enables
   `testing` only as a dev-dependency (`crates/xurl-cli/Cargo.toml:72`).
-- KTD12. **Shutdown drains under one deadline, not one budget per event.** From the stop signal, the workers have one
-  attempt timeout plus the budget's 7 seconds of waits to deliver what is queued; whatever is undelivered then is
-  counted in the `forward-incomplete` record. A second signal exits at once. Each queue is closed and drained to its
-  end; at the deadline the workers are aborted and the events still queued or in flight are counted. A per-event budget
-  at drain time was rejected: with a target that never answers, 256 queued events at four 30-second attempts each would
-  hold `listen` for hours after it was asked to stop. Governs R6.
 
 ### High-Level Technical Design
 
-Event flow through a running `listen` (KTD3, KTD4, KTD10):
+Event flow through a running `listen` (KTD3, KTD4, KTD5, KTD7, KTD10):
 
 ```mermaid
 flowchart TB
@@ -300,15 +322,17 @@ flowchart TB
   R -->|queued: 200| C[(64-slot channel)]
   C --> L[Consume loop]
   L --> O[stdout: one JSON line]
-  L --> K[Checkpoint: write when the minute changes]
   L --> QU[(URL queue, 256)]
   L --> QP[(Program queue, 256)]
-  QU --> WU[URL worker: retry budget]
+  QU --> WU[URL worker: retry budget, no redirects]
   QP --> WP[Program worker: retry budget]
-  WU -->|POST body + signature + -H| T1[Caller's endpoint]
-  WP -->|spawn, body on stdin| T2[Caller's program]
-  WU -->|failed| E[stderr record]
-  WP -->|failed| E
+  WU -->|POST body + signature + Idempotency-Key + -H| T1[Caller's endpoint]
+  WP -->|spawn, body on stdin, XR_EVENT_SHA256| T2[Caller's program]
+  WU -->|forwarded or forward-failed| E[stderr record]
+  WP -->|forwarded or forward-failed| E
+  WU -->|finished| L
+  WP -->|finished| L
+  L --> K[Checkpoint: oldest unfinished arrival, when its minute moves]
 ```
 
 Shutdown, on SIGINT or the last of `--max-events` (R6):
@@ -325,7 +349,9 @@ sequenceDiagram
   W->>W: deliver what is queued until the KTD12 deadline
   W->>E: forward-incomplete record, when any were undelivered
   W->>L: done
+  Note over L: the checkpoint stays at the first undelivered minute (KTD7)
   L->>S: exit 0
+  Note over L,E: a panic anywhere instead writes the internal record and exits 1 (KTD13)
 ```
 
 Restart recovery, run by the caller (KTD7, KTD8):
@@ -337,7 +363,7 @@ sequenceDiagram
   participant F as Checkpoint file
   participant P as xr webhooks replay
   participant X as X
-  L->>F: last_event_at when an event opens a new minute
+  L->>F: last_event_at: oldest undelivered arrival, when its minute moves
   Note over L: listen stops
   A->>L: start again with --checkpoint
   A->>P: --from-checkpoint FILE
@@ -371,12 +397,15 @@ What each flag combination does:
 - **Binary size.** The forward reuses the `reqwest` already linked; `tokio`'s process feature is the one likely
   addition, under the 12,000,000-byte ceiling. `windows-sys` is compiled for Windows targets only, so the Unix binaries
   gain nothing from it.
+- **Every command's panic.** A panic in any `xr` command answers the `internal` error in the active format and exits 1,
+  where it exited 134 with Rust's message (KTD13, R8).
 - **The skill bundle** documents the released binary and follows the release (Deferred to Follow-Up Work).
 
 ### Risks & Dependencies
 
 - **X's replay behavior is taken from its spec and docs, not observed.** Whether minute bounds are inclusive as
-  documented, and what a replay bills, are unverified, by R15.
+  documented, and what a replay bills, are unverified, by R15. A `forward-failed` template run within a minute of the
+  event names a `--to` minute that has not ended (R13); whether X accepts that is as unverified as the bounds.
 - **GitHub's Windows runners may refuse a nested Job Object.** process-wrap's tracker reports `AssignProcessToJobObject`
   returning `ERROR_ACCESS_DENIED` on GitHub-hosted Windows runners, where the job's own process already sits in a job.
   U8's Windows job (R6, D8) is where that shows first; check it before writing the Windows kill module, and if the
@@ -400,8 +429,8 @@ What each flag combination does:
   - A signed POST yields an event whose headers hold the OAuth2 signature header and `Content-Type` exactly as sent.
   - A legacy-signed POST yields an event holding the legacy header and not the OAuth2 one.
   - An event's arrival time lies between the times taken just before and just after the POST.
-- **Doc example:** a rustdoc example on `Receiver` that binds, answers, and loops `next_event()`, compiled as a doctest
-  (DX D8).
+- **Doc example:** a rustdoc example on `Receiver` that binds, answers, and loops `next_event()`, compiled as a `no_run`
+  doctest, since it binds a listener and loops (DX D8, T4).
 - **Verification:** The receiver tests pass, and `cargo-semver-checks` reports the additions as minor.
 
 ### U2. Library and CLI: the taken-port error and its step
@@ -463,24 +492,33 @@ What each flag combination does:
      export the two header-name constants (KTD14).
   2. `xdk::testing`: a sender that posts the sample to a bound `Receiver`'s address and path.
   3. CLI: after binding, compose a `curl` from the builder's output that POSTs to the bound URL; text output adds it to
-     the stderr notice, and a structured format adds it as `test_command` on the `listening` record, an additive key.
+     the stderr notice, and a structured format adds it as `test_command` on the `listening` record, an additive key,
+     quoted for a POSIX shell like every command string xr prints. Beside it, a structured format adds `test_request`
+     (`method`, `url`, `headers`, `body`), the same request for a caller with no POSIX shell, Windows included (R10,
+     second-pass D4).
   4. The signature covers that exact body only, so a replay of the logged command delivers only the marked sample; the
      README says to ignore events carrying `xr_test_event`.
 - **Patterns to follow:** `testing::MockX` for a helper behind the `testing` feature; the `listening` record in
-  `webhooks_listen.rs`; `NextStep::confirm`'s `shell_word` for quoting the command.
+  `webhooks_listen.rs`; `shell_word` (`crates/xurl-cli/src/cli/hints.rs:552`) for quoting the command; it is private to
+  that module, so the command is composed in `hints.rs` beside the step builders, or `shell_word` becomes `pub(crate)`
+  (S2).
 - **Test scenarios:**
   - The builder's sample verifies against a bound `Receiver` on the OAuth2 path and, with only a consumer secret, on the
     legacy path.
   - The `testing` sender's POST is yielded by the `Receiver` as a verified event holding `xr_test_event`.
-  - Under `--output json` the `listening` record carries `test_command`, and running it against the listener yields a
-    verified event.
-  - With `--forward <mock>`, running the printed command delivers the sample to the mock with the signature header.
-  - The command contains no secret: neither the client secret nor the consumer secret appears in it.
-  - The release `xr` build does not enable `xdk`'s `testing` feature (`cargo tree -p xurl-rs -e features` shows no
-    `testing` outside dev-dependencies).
-- **Doc example:** a rustdoc example on the builder and on the `testing` sender (DX D8, DX D12).
-- **Verification:** The sample verifies on every signing path from both the library and the printed command, and the
-  listen help golden moves only for the mention.
+  - Under `--output json` the `listening` record carries `test_request`, and posting it with `reqwest` yields a verified
+    event; the test runs on every OS, the U8 Windows job included (R10).
+  - Unix only (`cfg(unix)`): running the record's `test_command` through `sh` against the listener yields a verified
+    event.
+  - Neither form contains a secret: the client secret and the consumer secret appear in neither `test_command` nor
+    `test_request`.
+  - The release `xr` build does not enable `xdk`'s `testing` feature
+    (`cargo tree -p xurl-rs -e features,no-dev -i xdk-rs` lists no `testing` feature; `-e features` alone includes dev
+    edges, S3).
+- **Doc example:** a running doctest on the builder, and one on the `testing` sender that binds a `Receiver` on port 0
+  in process and runs under `--features testing` (DX D8, DX D12, T4).
+- **Verification:** The sample verifies on every signing path from the library, `test_request`, and the printed command,
+  and the listen help golden moves only for the mention.
 
 ### U3. Library: forwarding to a URL under the retry budget
 
@@ -492,8 +530,9 @@ What each flag combination does:
 - **Approach:**
   1. A retry-budget type holding the attempt count, the waits, and the per-attempt timeout, with a runner that takes any
      async attempt and returns the outcome and the attempts made, so the binary's program target reuses it.
-  2. A URL target built once from the URL and headers: it validates the scheme, refuses `Host` and `Content-Length`
-     among the headers, and owns an HTTP client built like the one at `crates/xdk/src/api/request/mod.rs:311`.
+  2. A URL target built once from the URL and headers: it validates the scheme, refuses `Host`, `Content-Length`, and
+     `Idempotency-Key` among the headers, and owns an HTTP client built like the one at
+     `crates/xdk/src/api/request/mod.rs:311` but with redirects off (`reqwest::redirect::Policy::none()`, R11).
   3. Sending one event: the KTD5 request, the response read up to a cap, the status classified as retryable or final per
      KTD4.
   4. A forward emits `tracing` events on `xdk::webhooks` and prints nothing.
@@ -503,10 +542,15 @@ What each flag combination does:
 - **Test scenarios:**
   - A forward to a mock answering 200 sends one POST whose body equals the event bytes, with the signature header,
     `Content-Type`, and two caller headers.
-  - The POST's `X-Xr-Event-Sha256` equals the SHA-256 of the body, and a retried attempt sends the same value (DX D9).
-  - A `-H 'X-Xr-Event-Sha256: x'` is refused when the target is built (DX D9).
+  - The POST's `Idempotency-Key` is the body's SHA-256 as quoted lowercase hex, and a retried attempt sends the same
+    value (DX D9, R9).
+  - A `-H 'Idempotency-Key: x'` is refused when the target is built (DX D9, R9).
   - A mock answering 503 twice and then 200 gets three attempts, and the outcome is delivered after three.
   - A mock answering 400 gets one attempt, and the outcome is a final failure naming 400.
+  - A mock answering 302, 307, or 308 with a `Location` pointing at a second mock gets one attempt; the outcome is a
+    final failure naming the status, its cause does not contain the `Location`, and the second mock receives nothing
+    (R11).
+  - A mock answering 204 counts as delivered (R11).
   - A mock that never answers gets four attempts each cut at the timeout, and the outcome names the timeout.
   - A closed port gets four attempts and a connection-failure outcome.
   - A `ftp://` URL, a URL with `user:pass@`, and a header set naming `Host` are each refused when the target is built,
@@ -515,7 +559,8 @@ What each flag combination does:
   - Headers `X-Token abc`, `: v`, and a name holding a space are each refused when the target is built, and the message
     names the header's position, not `abc`.
   - A response body larger than the cap is not read past the cap.
-- **Doc example:** rustdoc examples on the URL target and the retry budget, compiled as doctests (DX D8).
+- **Doc example:** a `no_run` doctest on the URL target, since it sends a request, and a running doctest on the retry
+  budget (DX D8, T4).
 - **Verification:** The forward tests pass with paused tokio time where waits are involved, and no test exceeds a few
   seconds of real time.
 
@@ -523,13 +568,16 @@ What each flag combination does:
 
 - **Goal:** `listen` delivers every verified event to the caller's endpoint, in order, and says when one did not arrive.
 - **Requirements:** R1, R3 through R7, R14; KTD3, KTD4, KTD10, KTD11, KTD12; the Key Decision on acknowledging first.
-- **Dependencies:** U3.
+- **Dependencies:** U3, U9 (its sample is one forward scenario's input, S1).
 - **Files:** `crates/xurl-cli/src/cli/mod.rs` (`Listen` arguments), `crates/xurl-cli/src/cli/family_help.rs` (the listen
   page), `crates/xurl-cli/src/cli/commands/webhooks.rs` (argument mapping),
-  `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`, `crates/xurl-cli/src/cli/commands/webhooks_forward.rs` (new: a
-  target worker over a bounded queue, the stderr records, and the shutdown drain), `crates/xurl-cli/tests/common/mod.rs`
-  (the `listen_while` helper moves here from `webhooks_tests.rs`), `crates/xurl-cli/tests/webhooks_forward_tests.rs`
-  (new), `crates/xurl-cli/tests/dry_run_guard.rs` if its synthesized arguments need an override,
+  `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`, `crates/xurl-cli/src/cli/runner.rs` and a
+  `crates/xurl-cli/src/cli/panic_hook.rs` (new: the KTD13 hook), `crates/xurl-cli/tests/panic_hook_tests.rs` (new) with
+  its panicking test program, `crates/xurl-cli/tests/binary_contract_tests.rs` (`sigpipe_smoke`, R12),
+  `crates/xurl-cli/src/cli/commands/webhooks_forward.rs` (new: a target worker over a bounded queue, the stderr records,
+  and the shutdown drain), `crates/xurl-cli/tests/common/mod.rs` (the `listen_while` helper moves here from
+  `webhooks_tests.rs`), `crates/xurl-cli/tests/webhooks_forward_tests.rs` (new),
+  `crates/xurl-cli/tests/dry_run_guard.rs` if its synthesized arguments need an override,
   `crates/xurl-cli/tests/golden/help-webhooks-listen.golden`, the `completions/` files.
 - **Approach:**
   1. Clap: `--forward`, repeatable `-H/--header`, and `--forward-timeout`, the last two requiring a target.
@@ -538,8 +586,10 @@ What each flag combination does:
      attempt, so U8 adds a second target without a second worker.
   4. On cancel or `--max-events`, close the queues, wait for the workers, and write the KTD10 records.
   5. The dry-run context gains the URL, the header names, and the timeout (KTD11).
-  6. Supervise the workers per KTD13: watch each worker's join handle beside the event loop, and on an unexpected end
-     stop taking events, drain the rest under the KTD12 deadline, and return the `internal` error.
+  6. Install the KTD13 panic hook in `run_argv` (`crates/xurl-cli/src/cli/runner.rs:63`) alone, before it calls `run`,
+     through a function the doc-hidden `xurl` library target exposes so a test program installs the same hook; `run`
+     publishes the resolved output format to a process-wide cell the hook reads, and a panic before that is written as
+     text. In-process tests, which call `run_with_store_path`, never install the hook (R8, T2).
 - **Execution note:** Implement test-first, starting from the success criterion's URL half.
 - **Patterns to follow:** the `listening` line in `webhooks_listen.rs` for structured output; the cancel token from
   `crates/xurl-cli/src/cli/shutdown.rs`.
@@ -547,6 +597,8 @@ What each flag combination does:
   - `--max-events 1 --forward <mock>` with one signed event: the mock holds the body byte for byte with the signature
     header, and `listen` exits 0.
   - Three events reach the mock in the order they were posted.
+  - With `--forward <mock>`, running U9's printed `test_command` delivers the sample to the mock with the signature
+    header (S1).
   - Each delivered event yields one `forwarded` record on stderr with the mock's 200, one attempt, and the time taken;
     stdout is unchanged (DX D7).
   - With the mock answering 500 to every attempt, X's POST is still answered 200, a `forward-failed` JSON line with 4
@@ -554,14 +606,21 @@ What each flag combination does:
   - Under `--allow-unsigned`, an unsigned event is forwarded with no signature header and `Content-Type` as sent (KTD5).
   - Under `--output jsonl`, stdout holds exactly the `listening` line and one line per event while forwards fail.
   - A `forward-failed` record carries `event_sha256`, `side_effects`, and a `next_step` template whose `--from` and
-    `--to` equal the event's arrival minute (DX D10).
-  - A target whose attempt panics ends `listen` with exit 1, reason `internal`, and the `report-issue` step, after the
-    other target's queue drains (KTD13, DX D11).
+    `--to` are the event's arrival minute and the minute after it, across an hour and a day boundary too (DX D10, R13).
+  - A program the suite builds installs the shipped panic hook under `--output json` and panics: it exits 1, stderr
+    holds one JSON line with reason `internal`, `exit_code` 1, and the `report-issue` step, and stdout lines written
+    before the panic survive; its message keeps Rust's `panicked at <file>:<line>:<col>` wording; under text output the
+    message names the issue tracker (KTD13, R8). The test runs in the test profile and proves the release behavior,
+    since the hook exits before the abort.
   - SIGINT with two events queued behind a slow mock delivers both before exit; with the mock down, the
     `forward-incomplete` record counts them.
   - With `--forward-timeout 1`, a mock that never answers, and three events queued, SIGINT ends `listen` within the
     KTD12 deadline of 8 seconds and the record counts 3; a second SIGINT during the drain exits at once.
   - `-H 'X: y'` without `--forward` is a clap usage error, exit 2.
+  - CRITICAL regression: `sigpipe_smoke` also asserts the child exited 0 or was killed by signal 13
+    (`ExitStatusExt::signal`) and keeps its two text checks, so a SIGPIPE drift fails it whatever the hook prints (R12).
+  - In process, a panic raised after `run_with_store_path` returns still unwinds to `catch_unwind`: no path but
+    `run_argv` installs the hook (T2).
   - `--forward ftp://x` and `--forward https://user:pass@127.0.0.1:9/x` are each refused with reason `validation` before
     anything binds, and the second's message names `-H` and does not contain `pass`.
   - A `forward-failed` record holds no part of the forward URL.
@@ -581,9 +640,11 @@ What each flag combination does:
 - **Dependencies:** U4.
 - **Files:** `crates/xurl-cli/src/cli/mod.rs` (the trailing argv on `Listen`), `crates/xurl-cli/src/cli/family_help.rs`,
   `crates/xurl-cli/src/cli/commands/webhooks_forward.rs` (the program attempt beside the URL attempt),
-  `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`, a kill module with `#[cfg(unix)]` and `#[cfg(windows)]` halves
-  behind one function, `crates/xurl-cli/Cargo.toml` (`windows-sys` 0.61 in a `[target.'cfg(windows)'.dependencies]`
-  table with the job and thread features, beside the `cfg(unix)` table that holds `libc`), `Cargo.lock`,
+  `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`, `crates/xurl-cli/src/cli/env.rs` (the `PATH` and `PATHEXT`
+  reads), `crates/xurl-cli/tests/agentic_tests.rs` (both exempt beside `HOME`, with the reason), `AGENTS.md` (rule 2's
+  list), a kill module with `#[cfg(unix)]` and `#[cfg(windows)]` halves behind one function,
+  `crates/xurl-cli/Cargo.toml` (`windows-sys` 0.61 in a `[target.'cfg(windows)'.dependencies]` table with the job and
+  thread features, beside the `cfg(unix)` table that holds `libc`), `Cargo.lock`,
   `crates/xurl-cli/tests/webhooks_forward_tests.rs`, test programs the suite builds instead of `sh` scripts (so the same
   tests run on Windows), `.github/workflows/ci.yml` (a `windows-latest` job running them),
   `crates/xurl-cli/tests/golden/help-webhooks-listen.golden`, the `completions/` files.
@@ -599,16 +660,16 @@ What each flag combination does:
      one that never reads stdin) are small Rust programs the test suite builds, not `sh` scripts, so every
      program-target test runs on Linux, macOS, and Windows alike.
   6. A `windows-latest` job in `.github/workflows/ci.yml`, gated like the other Rust jobs by the `scope` job, runs the
-     program-target tests, including a Windows twin of the group-kill test that proves the Job Object takes a grandchild
-     with it (R6, D8). Whether the job joins the required checks in `.github/rulesets/protect-dev.json` is decided in
-     that PR, since Brett applies rulesets.
+     program-target tests and U9's `test_request` test (R10), including a Windows twin of the group-kill test that
+     proves the Job Object takes a grandchild with it (R6, D8). Whether the job joins the required checks in
+     `.github/rulesets/protect-dev.json` is decided in that PR, since Brett applies rulesets.
 - **Execution note:** Implement test-first, starting from the success criterion's program half.
 - **Patterns to follow:** `crates/xurl-cli/src/cli/skill_install/git.rs` (a pure command builder separate from the
   spawn, with a typed reduction of spawn failures);
   `docs/solutions/conventions/non-interactive-orchestrator-detach-stdin-and-re-gate.md`.
 - **Test scenarios:**
-  - `--max-events 1 --forward <mock> -- sh -c 'cat > "$1"' sh <file>` with one signed event: the mock and the file each
-    hold the body byte for byte, and `listen` exits 0.
+  - `--max-events 1 --forward <mock> -- <the suite's echo-to-file program> <file>` with one signed event: the mock and
+    the file each hold the body byte for byte, and `listen` exits 0.
   - Three events reach the file in the order they were posted, one process each.
   - The program sees `XR_EVENT_SHA256` equal to the SHA-256 of what it read on stdin (DX D9).
   - Each program run that exits 0 yields one `forwarded` record naming the program target and exit code 0 (DX D7).
@@ -616,8 +677,8 @@ What each flag combination does:
     its own stdout; the program's output appears on stderr.
   - A program that exits 3 is reported as failed after four attempts, and the next event still runs.
   - A program that outlives `--forward-timeout 1` is killed, and no child is left running afterwards.
-  - Unix: a program that backgrounds a long `sleep` of its own and then hangs is killed with its group at the timeout,
-    and no process from that group survives.
+  - Unix: the suite's program that starts a long-running child of its own and then hangs is killed with its group at the
+    timeout, and no process from that group survives.
   - Windows (the `windows-latest` job): a program that starts a long-running child of its own and then hangs is
     terminated with its Job Object at the timeout, and the child is gone.
   - A program that never reads its stdin, sent a body larger than a pipe buffer (200 KB) under `--forward-timeout 1`, is
@@ -642,8 +703,9 @@ What each flag combination does:
 - **Approach:**
   0. Move the UTC formatter from `crates/xurl-cli/src/cli/output/rfc3339.rs` into `xdk` with its table test, add the
      `yyyymmddhhmm` form beside it, and point `retry_times` in `crates/xurl-cli/src/cli/output/mod.rs` at it (R2).
-  1. Write: a checkpoint writer that takes each event's arrival time, writes the KTD7 record through `write_atomically`
-     when the minute differs from the last one written, and skips the write otherwise.
+  1. Write: a checkpoint writer that takes the time to record (the binary passes the oldest undelivered arrival, KTD7),
+     writes the KTD7 record through `write_atomically` when the minute differs from the last one written, and skips the
+     write otherwise.
   2. Read: parse the record, refusing a missing file, an unparseable one, or a time later than the clock passed in.
   3. Window: take the checkpoint time and the current time as arguments, so tests pass both, and return `from`, `to` as
      `yyyymmddhhmm`, whether it was clamped, and the first unrecoverable minute when it was.
@@ -667,16 +729,20 @@ What each flag combination does:
 ### U6. CLI: `listen --checkpoint` and `replay --from-checkpoint`
 
 - **Goal:** A restarted `listen` plus one replay command recovers the gap, and the dry run shows the window first.
-- **Requirements:** R8 through R11, R14; KTD7, KTD8, KTD11; the Key Decision on replay as its own invocation.
+- **Requirements:** R8 through R11, R14; KTD7, KTD8, KTD11, KTD12; R7 in the second-pass ledger; the Key Decision on
+  replay as its own invocation.
 - **Dependencies:** U4, U5.
 - **Files:** `crates/xurl-cli/src/cli/mod.rs` (`Listen` and `Replay` arguments),
   `crates/xurl-cli/src/cli/family_help.rs`, `crates/xurl-cli/src/cli/commands/webhooks.rs` (`replay`),
-  `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`, `crates/xurl-cli/tests/webhooks_tests.rs`,
+  `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`, `crates/xurl-cli/src/cli/commands/webhooks_forward.rs` (the
+  completion report), `crates/xurl-cli/tests/webhooks_tests.rs`, `crates/xurl-cli/tests/webhooks_forward_tests.rs`,
   `crates/xurl-cli/tests/dry_run_guard.rs`, `crates/xurl-cli/tests/golden/help-webhooks-replay.golden`,
   `crates/xurl-cli/tests/golden/help-webhooks-listen.golden`, the `completions/` files.
 - **Approach:**
-  1. `listen --checkpoint` hands each printed event's arrival time to the U5 writer (KTD7). A write failure is reported
-     on stderr like a forward failure and does not stop `listen`.
+  1. Each target worker reports every finished event (delivered, or reported `forward-failed`) to the consume loop in
+     queue order. `listen --checkpoint` keeps each target's oldest pending arrival and hands the oldest of those, or the
+     newest arrival when nothing is pending, to the U5 writer (KTD7, R7). A write failure is reported on stderr like a
+     forward failure and does not stop `listen`.
   2. `replay`: `--from-checkpoint` in a clap group against `--from` with `--to`. The window comes from U5 with the
      current time, and goes through the existing `create_webhook_replay` call, so the request, the bearer requirement,
      and `send_or_report` stay as they are.
@@ -685,7 +751,16 @@ What each flag combination does:
 - **Patterns to follow:** the existing `replay` dispatch and its `validate_replay_time` checks; the `dry_run_guard.rs`
   override rows for `webhooks replay`.
 - **Test scenarios:**
-  - `listen --checkpoint <file> --max-events 2` with two events leaves a checkpoint naming the second event's minute.
+  - `listen --checkpoint <file> --max-events 2` with two events and no forward target leaves a checkpoint naming the
+    second event's minute.
+  - With `--forward` to a mock that holds its answers, events arriving in three successive minutes and `listen` then
+    killed leave a checkpoint naming the first minute (R7).
+  - With the mock down at the KTD12 drain deadline and two events undelivered, the checkpoint names the first one's
+    minute and `forward-incomplete` counts 2 (R7).
+  - An event reported `forward-failed` stops holding the checkpoint back: the next delivered event's minute is written
+    (R7).
+  - With a URL target delivering and a program target stalled, the checkpoint follows the stalled target's oldest
+    pending event (R7).
   - `replay <id> --from-checkpoint <file>` against the mock posts `webhook_id`, a `from_date` equal to the checkpoint's
     minute, and a `to_date` equal to the current minute, under the bearer.
   - `--dry-run` on the same prints `from`, `to`, and `clamped: false`, and the mock receives nothing.
@@ -708,17 +783,20 @@ What each flag combination does:
   `crates/xurl-cli/tests/golden/examples.golden`, `KNOWN_DIFFERENCES.md`, `crates/xdk/README.md` (the `webhooks` module
   line, for forwarding and the checkpoint, pointing to the example), `crates/xdk/examples/webhook_forward.rs` (new).
 - **Approach:**
-  1. README: forwarding, the program target and its stdin contract, the failure records, repeats after a replay, and the
-     restart recipe with the dry run first and the billing note.
+  1. README: forwarding, the program target and its stdin contract, the failure records, that a redirect answer is a
+     failed forward so `--forward` names the final URL (R11), repeats after a replay, and the restart recipe with the
+     dry run first and the billing note; the checkpoint covers events still queued when `listen` stopped, so a target
+     sees repeats (R7).
   2. Examples page: one forwarding line and the restart pair.
   3. `KNOWN_DIFFERENCES.md`: Go `xurl` neither forwards nor replays from a checkpoint.
   4. `crates/xdk/examples/webhook_forward.rs`: binds a `Receiver`, forwards each event under the retry budget, keeps a
      checkpoint, and prints the replay window it would request at start; pre-push's `cargo build --examples -p xdk-rs`
      builds it (DX D8).
-  5. README and examples page open with the signed `test_command` from U9 before the tunnel and X setup (DX D5).
-  6. README: the `X-Xr-Event-Sha256` key and `XR_EVENT_SHA256` (repeats share it, DX D9), the `forwarded` and
-     `forward-failed` records with the replay template (DX D7, DX D10), and that a stopped worker ends `listen` with
-     `internal` (KTD13); the README's step table documents `run-command`'s template form.
+  5. README and examples page open with the signed `test_command` from U9, and `test_request` for a caller with no POSIX
+     shell, before the tunnel and X setup (DX D5, R10).
+  6. README: the `Idempotency-Key` header and `XR_EVENT_SHA256` (repeats share the key, DX D9, R9), the `forwarded` and
+     `forward-failed` records with the replay template (DX D7, DX D10), and that a panic in any `xr` command answers
+     `internal` with exit 1 (KTD13); the README's step table documents `run-command`'s template form.
 - **Test expectation:** none beyond the examples golden; `agentic_tests.rs` already requires the family on the examples
   page.
 - **Verification:** markdownlint passes, and every flag the docs name appears in `xr webhooks listen --help` or
@@ -755,10 +833,10 @@ No gate sends a request to X (R15).
 | Unit | Done when                                                                                                                                              |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | U1   | An event exposes its headers and arrival time.                                                                                                         |
-| U9   | The startup line's `test_command` posts a signed sample that verifies and forwards.                                                                    |
+| U9   | The startup line's `test_command` posts a signed sample that verifies.                                                                                 |
 | U2   | A held port binds to `AddressInUse`, and the envelope golden shows `address-in-use` with a `--port 0` command, and a template when headers were given. |
 | U3   | A forward's request shape, retries, and refusals pass against local mocks.                                                                             |
-| U4   | One signed event reaches a URL byte for byte, and failures and shutdown produce their stderr records.                                                  |
+| U4   | One signed event and U9's sample reach a URL byte for byte, and failures and shutdown produce their stderr records.                                    |
 | U8   | One signed event reaches a program's stdin byte for byte, and a failing or hung program is reported and reaped.                                        |
 | U5   | Window, clamp, and refusals pass at fixed times; a write survives as the last record.                                                                  |
 | U6   | `replay --from-checkpoint` sends the computed window, and its dry run shows the window and sends nothing.                                              |
@@ -1516,7 +1594,7 @@ T+0:10  Runs test_command. The app gets a signed sample; stderr shows a forwarde
 T+0:40  Wonders whether the sample is a real event. The body carries xr_test_event and the README says to ignore it. [addressed: U9, U7]
 T+1:30  Exposes the port, runs webhooks add and subscriptions add; real events flow. [outside the clock: no tunnel by settled scope]
 T+5:00  Its app was down for a minute: a forward-failed record carries a replay template for that minute. [addressed: D10]
-T+6:00  After a restart, runs xr --dry-run webhooks replay <ID> --from-checkpoint FILE, then the real one; repeats share X-Xr-Event-Sha256. [addressed: D9, U6]
+T+6:00  After a restart, runs xr --dry-run webhooks replay <ID> --from-checkpoint FILE, then the real one; repeats share Idempotency-Key. [addressed: D9, U6]
 T+7:00  Forgot --checkpoint the first time: replay refuses with reason io and names --from/--to and --checkpoint. [addressed: Pass 3 routine fix]
 Final state: succeeded, with no relay written and no lost event.
 ```
@@ -1564,8 +1642,8 @@ Synthesized from this review's findings. Each task derives from a specific findi
 - [ ] **T3 (P2, human: ~1 h / CC: ~10 min)** — records — Add the replay template to `forward-failed`
   - Surfaced by: Pass 3 — CAP6:forward-failed:fix,recovery, DX D10
   - Files: `crates/xurl-cli/src/cli/commands/webhooks_forward.rs`, `crates/xurl-cli/README.md`
-  - Verify: the template's minutes equal the event's arrival minute
-- [ ] **T4 (P2, human: ~1 h / CC: ~10 min)** — forward — Send `X-Xr-Event-Sha256` and `XR_EVENT_SHA256`, and record
+  - Verify: the template's `--from` is the event's arrival minute and its `--to` the minute after (R13)
+- [ ] **T4 (P2, human: ~1 h / CC: ~10 min)** — forward — Send `Idempotency-Key` and `XR_EVENT_SHA256`, and record
   `event_sha256`
   - Surfaced by: Pass 2 — DX D9
   - Files: `crates/xdk/src/webhooks/forward.rs`, `crates/xurl-cli/src/cli/commands/webhooks_forward.rs`
@@ -1647,19 +1725,776 @@ DX IMPLEMENTATION CHECKLIST
 
 Unresolved decisions in this DX review: none.
 
+## Eng Review: second pass
+
+Target: this plan at `03e9ac3`, reviewed again with `/plan-eng-review` on 2026-10-22 after the DX review added KTD13,
+KTD14, U9, the content-hash key, the `forwarded` record, the replay template, and the doc examples. Reviewer: Claude,
+in-host. Prior learning applied: md-wrap-reflows-ledger-fields (confidence 9/10, 2026-10-22).
+
+### Second-pass scope record
+
+- feature answers: none asked; the DX answers (DX D1 to DX D12) set the added scope.
+- structure: Original arrangement (eng D1, first pass), with U9 added as its own unit by DX D5 and DX D12; no new
+  structure question, since both answers cover the arrangement exactly.
+- accepted scope: as the plan stands at `03e9ac3`, plus the corrections below.
+- pending remedies: R7, R8, R9, R10 (Sections 1 and 2).
+- Scope Challenge result: scope accepted as-is.
+
+### Second-pass Scope Challenge findings
+
+1. S1 [P2] (confidence: 9/10) plan U9 — `Dependencies: none`, but its scenario "With `--forward <mock>`, running the
+   printed command delivers the sample to the mock" and its Definition of Done row ("verifies and forwards") need U4's
+   forward, and U9 lands before U3 and U4 in the stack. Correction applied: the scenario and the "forwards" clause move
+   to U4, which gains U9 as a dependency.
+2. S2 [P3] (confidence: 9/10) plan U9 Patterns — "`NextStep::confirm`'s `shell_word`" names a function that is private
+   to `crates/xurl-cli/src/cli/hints.rs:552` (`fn shell_word(arg: &str) -> String {`), and U9 composes its command in
+   `webhooks_listen.rs`. Correction applied: U9 builds the command in `hints.rs` beside the other step builders, or
+   makes `shell_word` `pub(crate)`.
+3. S3 [P3] (confidence: 10/10) plan U9 test scenario — `cargo tree -p xurl-rs -e features` includes dev-dependency
+   edges, so it shows `xdk-rs feature "testing"` today (probe, `03e9ac3`);
+   `cargo tree -p xurl-rs -e features,no-dev -i xdk-rs` shows only `default` and `rustls`. Correction applied: the
+   scenario names the second command.
+4. No issue: SHA-256 for the content-hash key needs no new dependency; `sha2 = "0.11"` is already in
+   `crates/xdk/Cargo.toml:73`, and hex is a format loop.
+5. No issue: `crates/xdk/examples/webhook_forward.rs` is built, never run, by pre-push (`scripts/hooks/pre-push:221`,
+   `cargo build --examples -p xdk-rs`); the one example run is `offline_search` (`:226`), so a looping example cannot
+   hang the hook.
+
+TODOS cross-reference: `TODO.md` lines 118 and 123 are this plan's two items; line 120 (Account Activity deprecation)
+stays deferred, per Scope Boundaries; line 108 (the webhooks stack "in review") is stale, since #333 to #339 merged on
+2026-10-22.
+
+Search check: RFC 6648 §3 ("SHOULD NOT prefix their parameter names with "X-""), RFC 9530 (`Content-Digest`), and
+draft-ietf-httpapi-idempotency-key-header-07 (expired 2026-04-18, used by Stripe and Adyen) bear on the content-hash
+header (R9). Panic supervision under `panic = "abort"` is Layer 1: an aborting process runs no `JoinError::Panic` arm.
+
+```text
+REALITY: premise-table finding unverified=1 (X accepting from_date equal to to_date; spec allows it, live is paid) plan:264
+REALITY: already-done pass no forwarding, checkpoint, or address-in-use code on origin/dev since 2026-10-22; newest is the plan commit 03e9ac3
+REALITY: surface-check pass listen port/bind/path/secret/allow-unsigned/max-events and replay from/to exist crates/xurl-cli/src/cli/mod.rs:1662
+REALITY: binding-decisions pass eng D1-D8 and DX D1-D12 honored; R9 reopens DX D9's header name on RFC 6648 plan:219
+REALITY: numbers pass 256-slot queues plan:208; 7 s of waits plan:216; 8 s drain at --forward-timeout 1 plan:567 [estimated from KTD4]; 9,753,712-byte binary .github/workflows/ci.yml:447 [measured: first pass, re-measure before gate]
+REALITY: deferred-asks pass both TODO items planned; Account Activity replay endpoint deferred with reason TODO.md:118
+REALITY: pr-count pass nine PRs stacked on dev, one per unit, landed by one gh stack merge so no restack reruns plan:27
+```
+
+Premise table:
+
+| Premise | Claim | Receipt | Verdict |
+| --- | --- | --- | --- |
+| Release panics | the release binary aborts on a panic | `Cargo.toml:45` `panic = "abort"` | true |
+| testing feature | `xr` enables `testing` only as a dev-dependency | `crates/xurl-cli/Cargo.toml:38`, `:72` | true |
+| cargo tree | `-e features` alone hides dev edges | probe at `03e9ac3` | false |
+| Hash dependency | SHA-256 is already linked in `xdk` | `crates/xdk/Cargo.toml:73` | true |
+| Replay bounds | both bounds inclusive, no ordering rule | vendored `CreateWebhookReplayJobRequest`; X docs | true |
+| Equal bounds | X accepts `from_date` equal to `to_date` | none (a live call is billed) | unverified |
+| shell_word | reachable as `NextStep::confirm`'s | `crates/xurl-cli/src/cli/hints.rs:552` (private) | false |
+| Example run | pre-push runs only `offline_search` | `scripts/hooks/pre-push:226` | true |
+| Env guard | a `var_os("PATH")` read in shipped source fails the help guard | `crates/xurl-cli/tests/agentic_tests.rs:412`, `:451` | true |
+| Checkpoint | the record follows receipt, not delivery | plan KTD7 | true |
+
+### Second-pass Section 1 findings: Architecture
+
+1. A1 [P1] (confidence: 10/10) `Cargo.toml:45` `panic = "abort"` — KTD13 and U4's supervision step watch each worker's
+   join handle for an unexpected end, a panic included, then drain and exit 1 with reason `internal`. In the release
+   profile a panic aborts the process before any handle reports it: exit 134 from SIGABRT, the default hook's plain-text
+   message on stderr, no drain, no record. The U4 panic test runs under the test profile, which unwinds, so it passes
+   while the shipped binary does something else. Decision R8.
+2. A2 [P2] (confidence: 8/10) plan KTD7 ("written after an event's line prints when that event arrived in a later
+   minute") with KTD3 ("prints the event line, writes the checkpoint, then puts the event on each target's bounded queue
+   (capacity 256)") — the checkpoint follows receipt, not delivery. A hard stop with a backlog (a kill, an OOM kill, or
+   the A1 abort) leaves up to 256 acknowledged and undelivered events per target before the checkpoint's minute, where
+   `replay --from-checkpoint` never reaches them; at a graceful drain deadline, `forward-incomplete` counts them and
+   names no window. Decision R7.
+3. A3 [P2] (confidence: 8/10) plan U9 Approach 3 — `test_command` is a `curl` line quoted by `shell_word`
+   (`crates/xurl-cli/src/cli/hints.rs:561`, `format!("'{}'", arg.replace('\'', r"'\''"))`), POSIX single quotes around a
+   JSON body. `cmd.exe` has no single-quote quoting, and Windows PowerShell 5.1 maps `curl` to `Invoke-WebRequest`, so
+   the printed line does not run on Windows, the platform U8's CI job adds. Decision R10.
+4. A4 [P3] (confidence: 9/10) plan High-Level Technical Design — the event-flow chart shows only a `failed` edge to
+   stderr and no content-hash header; the shutdown sequence ends in `exit 0` only. The `forwarded` record (KTD10), the
+   hash header (KTD5), and KTD13's exit are missing. Correction applied after R8 and R9: the event-flow chart gains the
+   success record, the `Idempotency-Key` and `XR_EVENT_SHA256` keys, the no-redirect worker, and the completion edges
+   that move the checkpoint; the shutdown sequence gains the checkpoint note and KTD13's exit.
+
+5. A5 [P1] (confidence: 9/10) plan U3 Approach 2 ("owns an HTTP client built like the one at
+   `crates/xdk/src/api/request/mod.rs:311`") — that client is `reqwest::Client::builder().build()`, which follows up to
+   10 redirects, and on a 301 or 302 tower-http turns the `POST` into a `GET` with an empty body
+   (`tower-http-0.6.11/src/follow_redirect/mod.rs:274-281`). A target behind an http-to-https or trailing-slash redirect
+   answers the empty `GET` with 200, and the forward counts as delivered; with R7 the checkpoint then moves past it.
+   Raised by Brett's question "are we listening for an ack from the forwarded location or just broadcasting?". Decision
+   R11.
+
+### Second-pass decision ledger
+
+### R7: What the checkpoint records while targets lag (A2)
+
+- **Finding:** A2, P2, confidence 8/10, plan KTD7 and KTD3, plan-eng-review
+- **Plan baseline:** original proposal: R8 records "when the most recent verified event arrived"; KTD7 writes it after
+  the event's line prints. Eng R2 (D3) approved only the file's form, Unix seconds.
+- **Runtime evidence:** unknown; the code is proposed. Layer 1 practice is a consumer committing its offset after it
+  processes a record, not when the record arrives (Kafka consumer offsets).
+- **Comparison grid:**
+
+| Choice | Current | A | B |
+| --- | --- | --- | --- |
+| R7 what the checkpoint records | arrival of the newest verified event (KTD7) | arrival of the oldest event not yet finished (delivered, or reported `forward-failed`) at every target; the newest arrival when nothing is pending | arrival of the newest verified event |
+| R7 hard stop with a backlog | queued events unrecoverable by `--from-checkpoint` | `--from-checkpoint` covers them; the faster target sees repeats | unrecoverable; the README says recovery covers only events that arrived while `listen` was down |
+| R7 drain deadline reached | `forward-incomplete` count, no window | count, and the checkpoint still covers them | count, no window |
+| R7 no forward target | newest arrival | newest arrival (unchanged) | newest arrival |
+| R7 write rate | at most one a minute | at most one a minute | at most one a minute |
+| R2 checkpoint form (approved, D3) | Unix seconds | Unix seconds | Unix seconds |
+| R8 panic mechanism | pending | pending | pending |
+| R9 content-hash header | pending | pending | pending |
+| R10 Windows test request | pending | pending | pending |
+
+```text
+Question D1:
+D1 — What should the checkpoint record while a forward target lags?
+Project/branch/task: dev, listen forwarding plan, second eng pass, KTD7 with U5 and U6.
+ELI10: The checkpoint marks where a later replay starts. As planned it marks the newest event listen received, even while that event and up to 255 more wait in a slow target's queue. If listen dies then (kill -9, an OOM kill, or a panic, which aborts in the release build), those events were acknowledged to X, never delivered, and sit before the checkpoint, so replay --from-checkpoint skips them.
+Stakes if we pick wrong: an agent that runs the documented recovery exactly still loses up to 256 events per target, silently.
+Recommendation: A because a consumer commits its position after it processes a record, not when it arrives, and that costs one completion signal per event here.
+Completeness: A=10/10, B=6/10
+Pros / cons:
+A) Oldest undelivered (recommended)
+  ✅ A crash, an OOM kill, or the drain deadline leaves --from-checkpoint covering every undelivered event
+  ✅ With no forward target it records exactly what the plan records today, so stdout-only use is unchanged
+  ❌ Each worker reports every finished event to the loop, and the faster target sees repeats after a replay
+B) Newest received, as planned
+  ✅ No completion signal between the workers and the loop; KTD7, U5, and U6 stay as written
+  ❌ A hard stop with a backlog loses those events for good, and the README must call recovery partial
+Net: one completion signal per event buys a recovery recipe that is complete instead of best effort.
+Header: Checkpoint
+Options:
+A) Oldest undelivered (Recommended)
+The checkpoint records the arrival minute of the oldest event not yet delivered or reported forward-failed at every target, and the newest arrival when none is pending; with no target it is unchanged. Workers report each finished event to the loop; still at most one write a minute. Tests: a kill with a backlog and a drain deadline each leave the checkpoint at the oldest undelivered minute. (human: ~3 h / CC: ~20 min)
+B) Newest received, as planned
+KTD7 as written: the checkpoint records the newest verified event's arrival. A hard stop with a backlog loses the queued events; the README says recovery covers only events that arrived while listen was down. (human: ~15 min / CC: ~2 min)
+```
+
+- **State:** approved
+- **Actual answer:** A) Oldest undelivered (second-pass D1, 2026-10-22)
+- **Accepted scope:** the checkpoint records the arrival minute of the oldest event not yet delivered or reported
+  `forward-failed` at every target, and the newest arrival when none is pending; with no target it is unchanged. Each
+  worker reports every finished event to the loop; still at most one write a minute. Tests: a kill with a backlog and a
+  drain deadline each leave the checkpoint at the oldest undelivered minute (U6), plus a failed event releasing it, a
+  stalled second target holding it, and no target following the newest event. Applied to R8, KTD3, KTD7, KTD12, the
+  restart diagram, U5, U6, and U7; the field keeps its R2 name, `last_event_at`.
+- **History:** none
+
+### R8: What a panic does in the release binary (A1)
+
+- **Finding:** A1, P1, confidence 10/10, `Cargo.toml:45`, plan-eng-review
+- **Plan baseline:** approved, DX D11 ("fail loudly and exit"), built as KTD13 and U4 Approach 6: watch each worker's
+  join handle, and on an unexpected end, a panic included, stop taking events, drain the other target under the KTD12
+  deadline, and exit 1 with reason `internal` and the `report-issue` step. This reopens only the mechanism: the evidence
+  below contradicts the assumption that a panic reaches a join handle in the shipped binary.
+- **Runtime evidence:** `Cargo.toml:41-45` sets `panic = "abort"` for `[profile.release]`; `cargo test` builds with
+  unwinding, so the planned U4 panic test passes while the release binary aborts with SIGABRT (exit 134) and Rust's
+  plain-text panic message. `crates/xurl-cli/src/main.rs:1-9` runs a `current_thread` runtime and has no panic hook.
+  `Error::Internal` exits 1 (`crates/xdk/src/error.rs:662-663`). Release size at `03e9ac3`, built with
+  `cargo build --release -p xurl-rs --locked`: 9,520,336 bytes with `abort`, and 10,826,304 bytes with
+  `CARGO_PROFILE_RELEASE_PANIC=unwind`, 1,305,968 more (13.7%) [measured: local x86_64 Linux builds in scratch target
+  directories].
+- **Comparison grid:**
+
+| Choice | Current | A | B |
+| --- | --- | --- | --- |
+| R8 release panic strategy | `abort` | `abort` | `unwind` |
+| R8 a panic in a `listen` worker | planned: drain, then `internal` and exit 1; shipped: exit 134, plain text, no record | `internal` record in the active format, exit 1; no drain, and the checkpoint (R7) keeps the backlog replayable | drain the other target under KTD12, then `internal` and exit 1 (KTD13 as written) |
+| R8 a panic in any other command | exit 134, plain text | `internal` record, exit 1 | exit 101, plain text |
+| R8 how the test proves it | test profile only, which unwinds | a program the suite builds installs the shipped hook and panics; the test reads its exit code and record | test profile, which then matches release |
+| R8 release size | 9,520,336 bytes | about the same | 10,826,304 bytes (+13.7%, 1,173,696 under the ceiling) |
+| R7 checkpoint (approved, D1) | oldest undelivered | oldest undelivered | oldest undelivered |
+| R9 content-hash header | pending | pending | pending |
+| R10 Windows test request | pending | pending | pending |
+| R11 forward redirects | pending | pending | pending |
+
+```text
+Question D2:
+D2 — How should xr handle a panic when the release binary aborts on panics?
+Project/branch/task: dev, listen forwarding plan, second eng pass, KTD13 and U4.
+ELI10: The DX review decided that a forward worker that crashes should stop listen with a structured internal error. The plan does that by watching each worker for a crash. But the release build is set to abort on any panic (Cargo.toml:45), so the process dies before anything can watch it: exit 134, a plain-text message, no record. Tests run with unwinding, so the planned test passes while the shipped binary does something else.
+Stakes if we pick wrong: agents get an unparseable exit 134 instead of the internal record DX D11 promised, and a green test hides it.
+Recommendation: A because one panic hook gives every xr command the structured internal error at release-identical behavior, and the checkpoint from D1 already keeps a crashed backlog replayable.
+Completeness: A=9/10, B=8/10
+Pros / cons:
+A) Panic hook, keep abort (recommended)
+  ✅ Every xr command, not only listen, answers a panic with the internal record and exit 1
+  ✅ The test runs the shipped hook in a real process, so green means the release does the same
+  ❌ The other target's queue is not drained before exit; those events need a replay, which may be billed
+B) Unwind in release, as KTD13 plans
+  ✅ A crashed worker's sibling target still drains its queue before listen exits
+  ❌ Other commands' panics become exit 101 plain text, and the binary grows by 1.3 MB (13.7%)
+Net: one hook for structured crashes everywhere against a drain that the checkpoint already makes unnecessary.
+Header: Release panics
+Options:
+A) Panic hook, keep abort (Recommended)
+The release profile keeps panic = "abort". xr installs one panic hook once its output format is known: it writes the internal error (reason internal, exit_code 1, the report-issue step, the panic message and location, and a backtrace field when RUST_BACKTRACE asks) in the active format to stderr and exits 1 before the abort. KTD13's join-handle supervision and drain-on-panic are dropped. Test: a suite-built program installs the shipped hook and panics; exit 1 and one internal record. (human: ~2 h / CC: ~15 min)
+B) Unwind in release, as KTD13 plans
+The release profile sets panic = "unwind". KTD13 stays as written: a panicking worker makes listen stop taking events, drain the other target under the KTD12 deadline, and exit 1 with reason internal. Panics elsewhere in xr exit 101 with Rust's message. The binary grows by 1.3 MB (13.7%) against the 12,000,000-byte ceiling. (human: ~2 h / CC: ~15 min)
+```
+
+- **State:** approved
+- **Actual answer:** A) Panic hook, keep abort (second-pass D2, 2026-10-22)
+- **Accepted scope:** the release profile keeps `panic = "abort"`; `xr` installs one panic hook once its output format
+  is known, which writes the `internal` error (reason `internal`, `exit_code` 1, the `report-issue` step, the panic
+  message and location, and a `backtrace` field when `RUST_BACKTRACE` asks) in the active format to stderr and exits 1
+  before the abort; KTD13's join-handle supervision and drain-on-panic are dropped. Test: a suite-built program installs
+  the shipped hook and panics, exiting 1 with one `internal` record. Applied to KTD13, R5, U4 (Files, Approach 6, the
+  panic scenario), U7, and System-Wide Impact; the hook also flushes stdout before it exits.
+- **History:** DX D11 (approved): A) fail loudly and exit; reopened here on the release profile's `panic = "abort"`.
+
+### R11: What a forward does with a redirect (A5)
+
+- **Finding:** A5, P1, confidence 9/10, plan U3 Approach 2 ("owns an HTTP client built like the one at
+  `crates/xdk/src/api/request/mod.rs:311`"), raised by Brett's question on 2026-10-22 ("are we listening for an ack from
+  the forwarded location or just broadcasting?"), plan-eng-review
+- **Plan baseline:** original proposal: KTD4 retries a URL attempt on a connection failure, a timeout, 408, 429, or 5xx,
+  and not on another 4xx; it names no success set and no redirect rule. U3 copies the API client's construction.
+- **Runtime evidence:** `crates/xdk/src/api/request/mod.rs:311` builds `reqwest::Client::builder().build()`, whose
+  default policy is `Policy::limited(10)` (`reqwest-0.13.5/src/redirect.rs:161-163`). reqwest follows redirects through
+  tower-http (`async_impl/client.rs:1035`), which on a 301 or 302 to a `POST` sets the method to `GET`, empties the
+  body, and drops the payload headers (`tower-http-0.6.11/src/follow_redirect/mod.rs:274-281`), and on a 303 switches to
+  `GET` (`:283-287`). Stripe's webhook docs: "We consider redirect responses to webhook requests as failures"
+  (`docs.stripe.com/events/manage-webhook-endpoints`); PostHog fails webhook steps on any 3xx (PostHog/posthog#91378).
+- **Comparison grid:**
+
+| Choice | Current | A | B | C |
+| --- | --- | --- | --- | --- |
+| R11 forward client's redirect policy | reqwest default, up to 10 | none | 307 and 308 only | reqwest default, up to 10 |
+| R11 what counts as delivered | unstated (U3 tests a 200) | a 2xx answer from the forward URL itself | a 2xx after at most the 307 or 308 hops | any 2xx after redirects |
+| R11 a 301, 302, or 303 answer | followed as a `GET` with no body; a 200 there counts as delivered | final failure, not retried; the record names the status, never the `Location` | final failure, not retried | followed as a `GET` with no body |
+| R11 a 307 or 308 answer | followed with body, signature, and `-H` headers, to any host | final failure, not retried | followed with the body, signature, and `-H` headers, to any host | followed, to any host |
+| R7 checkpoint (approved, D1) | oldest undelivered | oldest undelivered | oldest undelivered | oldest undelivered |
+| R8 release panics (approved, D2) | hook, keep abort | hook, keep abort | hook, keep abort | hook, keep abort |
+| R9 content-hash header | pending | pending | pending | pending |
+| R10 Windows test request | pending | pending | pending | pending |
+
+```text
+Question D3:
+D3 — What should a forward do when the target answers with a redirect?
+Project/branch/task: dev, listen forwarding plan, second eng pass, KTD4 and U3.
+ELI10: listen waits for each forward's answer and counts a 2xx as delivered. The plan builds its HTTP client like xr's API client, which follows up to 10 redirects. On a 301 or 302 the library turns the POST into a GET and throws the body away, so an app behind an http-to-https or trailing-slash redirect gets an empty GET, answers 200, and xr records the event as delivered. With D1, the checkpoint then moves past it too.
+Stakes if we pick wrong: an event is lost while every record says it was delivered, the one failure nothing can recover.
+Recommendation: A because a webhook sender that follows redirects can mistake a login page or an empty GET for delivery; Stripe counts every redirect answer as a failure, and the fix is one client setting.
+Completeness: A=10/10, B=7/10, C=3/10
+Pros / cons:
+A) No redirects, 3xx fails (recommended)
+  ✅ Delivered means the forward URL itself answered 2xx; nothing is ever counted delivered by a body-less GET
+  ✅ Event bytes, signature, and -H headers never travel to a host the caller did not name
+  ❌ A target behind a redirect fails until the caller points --forward at the final URL
+B) Follow 307 and 308 only
+  ✅ A trailing-slash or https redirect that keeps the method and body still delivers
+  ❌ A 307 to another host carries the event, its signature, and every -H value there
+C) Follow every redirect, as planned
+  ✅ No extra client setting; any URL that eventually answers 2xx counts
+  ❌ A 301 or 302 turns the forward into an empty GET that can be counted delivered
+Net: one client setting against delivery records that can be wrong without anyone noticing.
+Header: Redirects
+Options:
+A) No redirects, 3xx fails (Recommended)
+The forward client is built with redirects off, and only a 2xx from the forward URL counts as delivered. A 3xx is a final failure, not retried, and its forward-failed record names the status, never the Location header. KTD4 names the success set. Tests: a 302, a 307, and a 308 each give one attempt and a forward-failed naming the status while the redirect target receives nothing; a 204 counts as delivered. (human: ~30 min / CC: ~5 min)
+B) Follow 307 and 308 only
+The client follows only 307 and 308, which keep the method, body, and headers, up to the default 10 hops to any host; a 301, 302, or 303 is a final failure. Tests: a 307 to a second mock delivers the body there; a 302 fails. (human: ~1 h / CC: ~10 min)
+C) Follow every redirect, as planned
+The client keeps reqwest's default policy; a 301 or 302 becomes a GET with no body, and its 2xx counts as delivered. (human: none / CC: none)
+```
+
+- **State:** approved
+- **Actual answer:** A) No redirects, 3xx fails (second-pass D3, 2026-10-22)
+- **Accepted scope:** the forward client is built with redirects off, and only a 2xx from the forward URL counts as
+  delivered; a 3xx is a final failure, not retried, whose `forward-failed` record names the status, never the `Location`
+  header; KTD4 names the success set. Tests: a 302, a 307, and a 308 each give one attempt and a final failure naming
+  the status while the redirect target receives nothing; a 204 counts as delivered. Applied to KTD4, U3 (Approach 2 and
+  two scenarios), and U7's README list.
+- **History:** none
+
+### R10: How a Windows caller runs the signed test request (A3)
+
+- **Finding:** A3, P2, confidence 8/10, plan U9 Approach 3 and `crates/xurl-cli/src/cli/hints.rs:561`, plan-eng-review
+- **Plan baseline:** approved, DX D5: `listen`'s startup line hands the agent a signed test command, built in U9 as a
+  `curl` line on the `listening` record (`test_command`) and in the text notice.
+- **Runtime evidence:** every `command` and `template` xr prints is quoted by `shell_word`, POSIX single quotes on every
+  platform (`hints.rs:561`, `format!("'{}'", arg.replace('\'', r"'\''"))`). The test body is JSON, so the line always
+  carries quoted text. `cmd.exe` treats single quotes as literal characters, and Windows PowerShell 5.1 aliases `curl`
+  to `Invoke-WebRequest`, whose flags differ; neither runs the line as printed [in-distribution knowledge; no Windows
+  probe run]. U8 adds a `windows-latest` CI job, so the plan treats Windows as a target.
+- **Comparison grid:**
+
+| Choice | Current | A | B | C |
+| --- | --- | --- | --- | --- |
+| R10 `test_command` | POSIX `curl` line | POSIX `curl` line, unchanged | POSIX line on Unix; `curl.exe` with `cmd.exe` double-quote escaping on Windows | POSIX `curl` line, unchanged |
+| R10 structured request on the `listening` record | none | `test_request`: `method`, `url`, `headers`, `body` | none | none |
+| R10 what a Windows agent runs | nothing that works | sends `test_request` with any HTTP client, no shell | the `cmd.exe` line (PowerShell still differs) | nothing; the README says a POSIX shell is needed |
+| R10 how tests prove it | the string run through `sh`, which the Windows job lacks | `test_request` posted with `reqwest` on every OS; the string run through `sh` under `cfg(unix)` | each OS runs its own string | `cfg(unix)` only |
+| R7 checkpoint (approved, D1) | oldest undelivered | oldest undelivered | oldest undelivered | oldest undelivered |
+| R8 release panics (approved, D2) | hook, keep abort | hook, keep abort | hook, keep abort | hook, keep abort |
+| R11 redirects (approved, D3) | none, 3xx fails | none, 3xx fails | none, 3xx fails | none, 3xx fails |
+| R9 content-hash header | pending | pending | pending | pending |
+
+```text
+Question D4:
+D4 — How should a Windows caller run listen's signed test request?
+Project/branch/task: dev, listen forwarding plan, second eng pass, U9.
+ELI10: The DX review added a ready-to-run curl line to listen's startup record so an agent can prove its wiring. xr quotes every command it prints with Unix shell single quotes, and this one always carries a JSON body. On Windows, cmd.exe does not understand single quotes, and PowerShell 5.1 treats curl as a different tool, so the line fails there. U8 adds a Windows CI job, so Windows is a platform the plan supports.
+Stakes if we pick wrong: the first-success step DX D5 designed fails for every Windows agent, and its test cannot run on the Windows job.
+Recommendation: A because a structured request is the agent-facing form xr already favors (text for humans, JSON for agents), runs on any OS without a shell, and leaves the curl line as it is.
+Completeness: A=10/10, B=6/10, C=4/10
+Pros / cons:
+A) Add a structured test_request (recommended)
+  ✅ Any agent on any OS sends method, url, headers, and body with its own HTTP client, no quoting at all
+  ✅ The test posts it on the Windows job too, so the cross-platform claim is proven, not assumed
+  ❌ Two forms of one request on the listening record, which the README has to explain
+B) Render per platform
+  ✅ A Windows human gets a line to paste into cmd.exe without reading JSON
+  ❌ cmd.exe escaping of a JSON body is fragile, and PowerShell still needs its own form
+C) POSIX only, as planned
+  ✅ No extra field or rendering code; matches every other command string xr prints
+  ❌ Windows agents get a first-success step that fails, and the README has to say so
+Net: one additive key buys a first success that works everywhere.
+Header: Windows test
+Options:
+A) Add a structured test_request (Recommended)
+Under a structured format, the listening record adds test_request: {method, url, headers, body} beside test_command, which stays the POSIX curl line, as every xr command string is. Tests: posting test_request with reqwest yields a verified event on every OS, the Windows job included; running test_command through sh is cfg(unix). README names both. (human: ~30 min / CC: ~5 min)
+B) Render per platform
+test_command is the POSIX curl line on Unix and a curl.exe line with cmd.exe double-quote escaping on Windows. PowerShell gets no working form. Tests: each OS runs its own line. (human: ~2 h / CC: ~15 min)
+C) POSIX only, as planned
+test_command stays the POSIX curl line on every OS; its test runs under cfg(unix) only, and the README says the command needs a POSIX shell. (human: ~10 min / CC: ~2 min)
+```
+
+- **State:** approved
+- **Actual answer:** A) Add a structured test_request (second-pass D4, 2026-10-22)
+- **Accepted scope:** under a structured format the `listening` record adds `test_request` (`method`, `url`, `headers`,
+  `body`) beside `test_command`, which stays the POSIX `curl` line; tests: posting `test_request` with `reqwest` yields
+  a verified event on every OS, the Windows job included, and running `test_command` through `sh` is `cfg(unix)`; the
+  README names both. Applied to U9 (Approach 3, scenarios, Verification), U8 Approach 6 (the Windows job runs the
+  `test_request` test), and U7.
+- **History:** none
+
+### Second-pass Section 2 findings: Code quality
+
+1. C1 [P2] (confidence: 8/10) plan KTD5 ("an `X-Xr-Event-Sha256` header holding the SHA-256 of the event's exact bytes")
+   — RFC 6648 §3: creators of new parameters "SHOULD NOT prefix their parameter names with "X-" or similar constructs".
+   Two existing names fit the job: `Idempotency-Key` (draft-ietf-httpapi-idempotency-key-header-07, expired 2026-04-18,
+   used by Stripe and Adyen and keyed on by idempotency middleware) and `Content-Digest` (RFC 9530). The value's
+   encoding is unstated. Decision R9.
+2. C2 [P2] (confidence: 9/10) plan KTD6 ("searching `PATH` itself (and `PATHEXT` on Windows)") — a `var_os("PATH")` or
+   `var_os("PATHEXT")` read in shipped source matches the guard's pattern at
+   `crates/xurl-cli/tests/agentic_tests.rs:412` (`env::var(?:_os)?\("([A-Z_]+)"\)`), and only `HOME` is exempt (`:451`),
+   so `test_help_advertises_every_env_var_the_source_reads` fails; `AGENTS.md` rule 2 also puts every environment read
+   in `crates/xurl-cli/src/cli/env.rs`. Correction applied: U8 reads both through `env.rs`, exempts them beside `HOME`
+   with the reason (OS search paths, not `xr` settings), and adds them to rule 2's list.
+3. C3 [P3] (confidence: 9/10) plan Key Technical Decisions — KTD13 and KTD14 sit between KTD11 and KTD12. Correction
+   applied: KTD12 moves back after KTD11.
+4. C4 [P3] (confidence: 6/10) plan KTD6 — `XR_EVENT_SHA256` breaks the `XURL_` prefix of xr's variables. Kept: `XURL_`
+   names the variables `xr` reads, each advertised in `--help` by the guard above; this one `xr` sets for its child, and
+   `XR_` matches the binary's name. No change.
+
+### R9: The content-hash header's name and value (C1)
+
+- **Finding:** C1, P2, confidence 8/10, plan KTD5, plan-eng-review
+- **Plan baseline:** approved, DX D9: "a content-hash key on every forward", written into KTD5 as `X-Xr-Event-Sha256`,
+  with `event_sha256` on `forward-failed` and `XR_EVENT_SHA256` for the program; the encoding is unstated. This reopens
+  the header's name and value only: RFC 6648 contradicts the name, and the record and environment need one stated
+  encoding.
+- **Runtime evidence:** `xr` sends no header of its own today; the `X-` names in the code are X's (`x-rate-limit-*` at
+  `crates/xdk/src/api/request/mod.rs:204-206`, `x-twitter-webhooks-signature` at
+  `crates/xdk/src/webhooks/signing.rs:16`). Go `xurl` does not forward (`KNOWN_DIFFERENCES.md`, U7). The idempotency
+  draft makes the value a Structured Field String, quoted; Stripe sends its keys unquoted. RFC 9530 makes
+  `Content-Digest` a dictionary whose `sha-256` member is a base64 byte sequence between colons.
+- **Comparison grid:**
+
+| Choice | Current | A | B | C |
+| --- | --- | --- | --- | --- |
+| R9 header name | `X-Xr-Event-Sha256` (DX D9) | `Idempotency-Key` | `Content-Digest` | `X-Xr-Event-Sha256` |
+| R9 header value | SHA-256, encoding unstated | the body's SHA-256 as quoted lowercase hex, `"9f86d0…"` | `sha-256=:<base64 of the SHA-256>:` | the body's SHA-256 as lowercase hex |
+| R9 standard behind the name | none; RFC 6648 §3 advises against `X-` | IETF httpapi draft-07 (expired), common practice through Stripe and Adyen | RFC 9530 | none |
+| R9 `-H` may set that header | no | no | no | no |
+| R9 `event_sha256` and `XR_EVENT_SHA256` | SHA-256, encoding unstated | lowercase hex, 64 characters (new, shared) | lowercase hex, 64 characters (new, shared) | lowercase hex, 64 characters (new, shared) |
+| R7 checkpoint (approved, D1) | oldest undelivered | oldest undelivered | oldest undelivered | oldest undelivered |
+| R8 release panics (approved, D2) | hook, keep abort | hook, keep abort | hook, keep abort | hook, keep abort |
+| R10 Windows test (approved, D4) | `test_request` added | `test_request` added | `test_request` added | `test_request` added |
+| R11 redirects (approved, D3) | none, 3xx fails | none, 3xx fails | none, 3xx fails | none, 3xx fails |
+
+```text
+Question D5:
+D5 — What header should carry the forward's content-hash key?
+Project/branch/task: dev, listen forwarding plan, second eng pass, KTD5 and U3.
+ELI10: The DX review added a hash of each event's bytes to every forward so the app can drop repeats after a retry or a replay. The plan names the header X-Xr-Event-Sha256, but the HTTP standards body asks new headers not to start with X- (RFC 6648). Two existing headers already do this job: Idempotency-Key, which many web frameworks' middleware already drops repeats on, and Content-Digest, the standard header for a body's hash. In every option the record and the program's variable carry the same hash as 64 lowercase hex characters.
+Stakes if we pick wrong: apps write their dedupe code against a name xr would have to keep, or rename, forever.
+Recommendation: A because Idempotency-Key names the job the key does, existing middleware dedupes on it with no app code, and it avoids the X- prefix RFC 6648 advises against; its draft has expired, so this rests on common practice, not an RFC.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Idempotency-Key, quoted hex (recommended)
+  ✅ Idempotency middleware in common frameworks drops a repeat with no app code, the job DX D9 wanted
+  ✅ The value is the same 64 hex characters the record and XR_EVENT_SHA256 carry, quoted per the draft
+  ❌ The draft expired in April 2026 without becoming an RFC, so details such as quoting could still move
+B) Content-Digest, RFC 9530
+  ✅ A published RFC, and integrity middleware can check the body against it
+  ❌ It names integrity, not dedupe, and its base64 value differs from the hex in the record and environment
+C) Keep X-Xr-Event-Sha256
+  ✅ Matches the DX review's wording, and the record, header, and variable share one obvious name
+  ❌ RFC 6648 advises against new X- names, and no middleware knows this header
+Net: a header that existing tools already dedupe on, resting on common practice, against a strict RFC or xr's own name.
+Header: Hash header
+Options:
+A) Idempotency-Key, quoted hex (Recommended)
+Each URL forward sends Idempotency-Key: "<SHA-256 of the body as 64 lowercase hex characters>", quoted as the IETF draft's Structured Field String. -H may not set Idempotency-Key. event_sha256 and XR_EVENT_SHA256 carry the same hex, unquoted. Tests: the header equals the body's hash, quoted, on the first attempt and a retry; -H 'Idempotency-Key: x' is refused. (human: ~30 min / CC: ~5 min)
+B) Content-Digest, RFC 9530
+Each URL forward sends Content-Digest: sha-256=:<base64 of the SHA-256>:. -H may not set Content-Digest. event_sha256 and XR_EVENT_SHA256 carry the hash as lowercase hex. Tests: the header parses as RFC 9530 and matches the body on a retry; -H 'Content-Digest: x' is refused. (human: ~30 min / CC: ~5 min)
+C) Keep X-Xr-Event-Sha256
+Each URL forward sends X-Xr-Event-Sha256: <SHA-256 as lowercase hex>, as DX D9 wrote it. -H may not set it. event_sha256 and XR_EVENT_SHA256 carry the same hex. Tests as planned in U3. (human: ~10 min / CC: ~2 min)
+```
+
+- **State:** approved
+- **Actual answer:** A) Idempotency-Key, quoted hex (second-pass D5, 2026-10-22)
+- **Accepted scope:** each URL forward sends `Idempotency-Key: "<SHA-256 of the body as 64 lowercase hex characters>"`,
+  quoted as the IETF draft's Structured Field String; `-H` may not set `Idempotency-Key`; `event_sha256` and
+  `XR_EVENT_SHA256` carry the same hex, unquoted. Tests: the header equals the body's hash, quoted, on the first attempt
+  and a retry; `-H 'Idempotency-Key: x'` is refused. Applied to KTD5, KTD6, KTD10, U3 (Approach 2 and two scenarios),
+  U7, the DX confusion report, and DX task T4.
+- **History:** DX D9 (approved): A) a content-hash key on every forward, named `X-Xr-Event-Sha256` in KTD5; reopened
+  here on RFC 6648.
+
+### Second-pass Section 3 findings: Tests
+
+Test framework: `cargo test`, per `AGENTS.md` § Testing; integration tests drive `xr` through `common::xr()` or in
+process through `run_with_store_path`.
+
+1. T1 [P1] (confidence: 9/10) `crates/xurl-cli/tests/binary_contract_tests.rs:164` (`!stderr.contains("panicked at")`) —
+   CRITICAL regression: `sigpipe_smoke` catches drift in `main`'s SIGPIPE restoration only by Rust's panic wording on
+   stderr. Under R8 the hook replaces that output with the `internal` record and exit 1, so the guard can go quiet.
+   Decision R12.
+2. T2 [P2] (confidence: 9/10) plan U4 Approach 6 ("once `run_argv` has resolved the output format") — `run_argv`
+   (`crates/xurl-cli/src/cli/runner.rs:63-71`) resolves nothing; `run` and `run_with_overrides` resolve the format, and
+   in-process tests call `run_with_store_path` (`crates/xurl-cli/tests/cli_run_tests.rs`). A hook installed where the
+   format resolves would turn any later assertion failure in such a test binary into `exit(1)`, killing the whole
+   binary. Correction applied: `run_argv` alone installs the hook, before it calls `run`; the runner publishes the
+   resolved format to a process-wide cell the hook reads; a new in-process test shows a panic after
+   `run_with_store_path` still unwinds to `catch_unwind`.
+3. T3 [P2] (confidence: 9/10) plan U8 test scenarios — the success scenario runs `-- sh -c 'cat > "$1"' sh <file>`, and
+   the group-kill scenario "backgrounds a long `sleep`", while U8 Approach 5 builds Rust test programs "so every
+   program-target test runs on Linux, macOS, and Windows alike". Correction applied: both scenarios name the suite's
+   echo-to-file and child-starting programs.
+4. T4 [P3] (confidence: 9/10) plan U1, U3, and U9 doc examples ("compiled as a doctest") — `cargo test --doc` runs a
+   doctest unless it is marked `no_run`, and the U1 example loops on `next_event()` while the U3 examples send requests.
+   Correction applied: examples that bind a listener or send a request are `no_run`; the U5 checkpoint examples and the
+   U9 builder example run.
+
+### R12: How `sigpipe_smoke` keeps catching a SIGPIPE drift (T1)
+
+- **Finding:** T1, P1, confidence 9/10, `crates/xurl-cli/tests/binary_contract_tests.rs:164`, plan-eng-review
+- **Plan baseline:** none: the approved hook (R8, D2) does not name this guard.
+- **Runtime evidence:** `sigpipe_smoke` (`binary_contract_tests.rs:131-170`, `#[cfg(unix)]`) runs `xr --help`, closes
+  the pipe, and asserts stderr holds neither `panicked at` nor `BrokenPipe`; it does not read the exit status. Its doc
+  comment names the drift it guards against: a Rust panic, "signal-killed via SIGABRT". After R8 the same drift exits 1
+  and prints the `internal` record.
+- **Comparison grid:**
+
+| Choice | Current | A | B |
+| --- | --- | --- | --- |
+| R12 what `sigpipe_smoke` asserts | stderr lacks `panicked at` and `BrokenPipe` | those two, plus the child exited 0 or died by signal 13 | those two only |
+| R12 the hook's wording | no hook | text and JSON `message` keep Rust's `panicked at <file>:<line>:<col>` | text and JSON `message` must keep `panicked at` |
+| R12 a SIGPIPE drift after R8 | not applicable | fails on the exit status and on the text | fails on the text only |
+| R8 release panics (approved, D2) | hook, keep abort | hook, keep abort | hook, keep abort |
+| R7, R9, R10, R11 (approved) | as recorded | as recorded | as recorded |
+
+```text
+Question D6:
+D6 — How should the SIGPIPE guard keep catching its regression once panics answer with a record?
+Project/branch/task: dev, listen forwarding plan, second eng pass, the D2 panic hook and binary_contract_tests.rs.
+ELI10: A test makes sure that piping xr --help into a reader that closes early ends quietly. It notices a regression only by spotting Rust's "panicked at" text on stderr. The D2 hook replaces that text with xr's own internal record and exit 1, so the test could keep passing while the bug it guards comes back.
+Stakes if we pick wrong: a pipe like xr ... | head breaks for every agent and the suite stays green.
+Recommendation: A because the exit status is the invariant the guard means (exit 0 or death by SIGPIPE), it holds whatever the hook prints, and the text checks stay as a second net.
+Completeness: A=10/10, B=6/10
+Pros / cons:
+A) Assert the exit status too (recommended)
+  ✅ The guard fails on exit 1, SIGABRT, or anything but exit 0 or signal 13, whatever stderr says
+  ✅ The hook keeps Rust's "panicked at" wording, so the old text checks still fire as well
+  ❌ One more assertion and an ExitStatusExt import in a Unix-only test
+B) Keep the text check only
+  ✅ No change to the test; the hook's wording carries the whole contract
+  ❌ A later edit to the hook's message silences the guard with nothing failing
+Net: one status assertion makes the guard independent of what the hook prints.
+Header: SIGPIPE guard
+Options:
+A) Assert the exit status too (Recommended)
+Preserve: a SIGPIPE drift fails sigpipe_smoke. Intentional change: such a drift now exits 1 with the internal record instead of SIGABRT. sigpipe_smoke also asserts the child exited 0 or was killed by signal 13 (ExitStatusExt::signal), keeps its two text checks, and the hook's text and JSON message keep Rust's "panicked at <file>:<line>:<col>". (human: ~15 min / CC: ~3 min)
+B) Keep the text check only
+Preserve: a drift fails sigpipe_smoke only while the hook's text and JSON message contain "panicked at"; the test is unchanged. (human: ~5 min / CC: ~1 min)
+```
+
+- **State:** approved
+- **Actual answer:** A) Assert the exit status too (second-pass D6, 2026-10-22)
+- **Accepted scope:** preserve: a SIGPIPE drift fails `sigpipe_smoke`; intentional change: such a drift exits 1 with the
+  `internal` record instead of SIGABRT. `sigpipe_smoke` also asserts the child exited 0 or was killed by signal 13
+  (`ExitStatusExt::signal`), keeps its two text checks, and the hook's text and JSON `message` keep Rust's
+  `panicked at <file>:<line>:<col>`. Applied to U4 (Files and a CRITICAL regression scenario).
+- **History:** none
+
+### Second-pass coverage diagram
+
+Every path below is proposed; `PLANNED` names the test the plan now requires, not code that exists.
+
+```text
+CODE PATHS (second pass)                                        USER FLOWS
+[+] xdk::webhooks sample builder and testing sender (U9)        [+] Agent proves its wiring before X (U9, R10)
+  ├── [★★★ PLANNED] OAuth2 and legacy signing both verify          ├── [★★★ PLANNED] test_request posted, every OS
+  └── [★★  PLANNED] testing sender → Receiver yields the event     ├── [★★  PLANNED] test_command through sh, cfg(unix)
+[+] xdk forward URL target (U3)                                  └── [★★★ PLANNED] neither form holds a secret
+  ├── [★★★ PLANNED] Idempotency-Key quoted hex, same on a retry  [+] Target drops repeats (R9)
+  ├── [★★★ PLANNED] -H Idempotency-Key refused                     └── [★★  PLANNED] retry and replay share the key
+  ├── [★★★ PLANNED] 302, 307, 308: one attempt, final failure    [+] Target behind a redirect (R11)
+  └── [★★  PLANNED] 204 counts as delivered                        └── [★★★ PLANNED] record names status, no Location
+[+] xr workers and records (U4, U6)                              [+] Crash with a backlog (R7)
+  ├── [★★  PLANNED] forwarded record per delivery                  ├── [★★★ PLANNED] kill → checkpoint at oldest undelivered
+  ├── [★★★ PLANNED] forward-failed: hash, side_effects, template   ├── [★★★ PLANNED] drain deadline → same, count 2
+  └── [★★★ PLANNED] completion report moves the checkpoint         ├── [★★  PLANNED] failed event releases it
+[+] xr panic hook (U4, KTD13)                                      └── [★★  PLANNED] stalled second target holds it
+  ├── [★★★ PLANNED] suite program: exit 1, one internal record   [+] A panic in any command (R8)
+  ├── [★★★ PLANNED] in process: no hook, panic still unwinds (T2)  ├── [★★★ PLANNED] text names the issue tracker
+  └── [★★★ PLANNED] CRITICAL sigpipe_smoke on exit status (R12)    └── [★★★ PLANNED] stdout lines before it survive
+[+] program target PATH lookup (U8, C2)
+  └── [★★  EXISTING] agentic_tests.rs env guard, PATH and PATHEXT exempt with the reason
+[+] doc examples (T4): bind or send → no_run; checkpoint, budget, builder, sender run
+
+COVERAGE (second-pass paths): 24/24 with a planned or existing test | GAPS: 0 after the corrections
+QUALITY: ★★★ 16, ★★ 8, ★ 0
+```
+
+Test Plan artifact: `~/.gstack/projects/brettdavies-xurl-rs/brett-dev-eng-review-test-plan-20261022-190522.md`.
+
+### Second-pass Section 4: Performance
+
+No issues found. Each event adds one SHA-256 of a body of a few KB (`sha2`, microseconds [estimated]), one completion
+message per target, and one `forwarded` line per target on stderr; the pending arrival times per target are bounded by
+the 256-slot queue; the panic hook costs nothing until a panic. Scale of X's delivery rate: unknown.
+
+### Second-pass Outside voice
+
+codex, plan-review phase: disabled by config (`codex_reviews`); no outside process and no native replacement ran.
+Recorded as a skipped `codex-plan-review` entry.
+
+### R13: A one-minute replay window, unverified with X (TODO)
+
+- **Finding:** premise row "Equal bounds", unverified, plan KTD10 (`next_step` template with both minutes set to the
+  event's arrival minute), plan-eng-review
+- **Plan baseline:** approved, DX D10: the `forward-failed` record carries a replay template for the event's arrival
+  minute.
+- **Runtime evidence:** the vendored `CreateWebhookReplayJobRequest` and X's docs make both bounds inclusive and state
+  no ordering or minimum window; whether X accepts `from_date` equal to `to_date` is unverified, since a live call is
+  billed (R15 and the pay-per-use rule).
+- **Comparison grid:**
+
+| Choice | Current | A | B | C |
+| --- | --- | --- | --- | --- |
+| R13 TODO for the equal-bounds check | none | a `TODO.md` entry: confirm on the first real replay; if X refuses, widen the template's `--to` by one minute | none | none, and the template's `--to` is the arrival minute plus one now |
+| R13 template window | one minute (from equal to to) | one minute | one minute | two minutes, possibly billing one more minute of events |
+| R7 to R12 (approved) | as recorded | as recorded | as recorded | as recorded |
+
+```text
+Question D7:
+D7 — Track the unverified one-minute replay window as a TODO?
+Project/branch/task: dev, listen forwarding plan, second eng pass, KTD10's replay template.
+ELI10: When a forward fails, its record hands the agent a replay command for the minute the event arrived, so from and to are the same minute. X's docs say both ends are inclusive and set no minimum, so this should work, but nobody has checked it with X, because a replay is a paid call.
+Stakes if we pick wrong: if X refuses an equal from and to, every forward-failed record hands the agent a command that fails.
+Recommendation: A because the first real recovery checks it for free, and the fallback is a one-line change to the template.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Add to TODO.md (recommended)
+  ✅ The first paid replay doubles as the check, with no extra spend
+  ✅ The fallback, one more minute on --to, is written down before anyone needs it
+  ❌ Until that first replay, the template rests on X's docs alone
+B) Skip
+  ✅ No entry; the docs say inclusive bounds and set no minimum
+  ❌ If X refuses, the first agent to recover finds out through an invalid-request error
+C) Widen the window now
+  ✅ Works whether or not X accepts equal bounds
+  ❌ Every recovery replays one more minute of events, which X may bill
+Net: a free check on first use against paying for an extra minute on every recovery.
+Header: Replay TODO
+Options:
+A) Add to TODO.md (Recommended)
+A TODO.md entry: on the first real replay from a forward-failed template, confirm X accepts from_date equal to to_date; if it refuses, widen the template's --to by one minute in KTD10 and its test. Context, depends on: the forwarding release. (human: ~5 min / CC: ~1 min)
+B) Skip
+No entry; the template keeps the one-minute window on the strength of X's docs. (human: none / CC: none)
+C) Widen the window now
+The template's --to becomes the arrival minute plus one; U4's template test changes to match. (human: ~10 min / CC: ~2 min)
+```
+
+- **State:** approved
+- **Actual answer:** C) Widen the window now (second-pass D7, 2026-10-22)
+- **Accepted scope:** the template's `--to` becomes the arrival minute plus one; U4's template test changes to match. No
+  `TODO.md` entry. Applied to KTD10, the U4 template scenario (with hour and day boundaries), DX task T3, and Risks,
+  which notes that a template run within a minute of the event names a `--to` minute that has not ended.
+- **History:** none
+
+Approval readiness: PASS. Checked: R7 (second-pass D1, A), R8 (D2, A), R11 (D3, A), R10 (D4, A), R9 (D5, A), R12 (D6,
+A), R13 (D7, C). S1 to S3, A4, C2, C3, and T2 to T4 are corrections of fact or work an approved contract requires (KTD6,
+KTD13, DX D5, DX D8), applied without a question; C4 changed nothing.
+
+### Second-pass NOT in scope
+
+- Restarting a worker after a panic: rejected by DX D11, since a bug that panics on every event would loop.
+- Following 307 and 308 redirects (R11 B): a cross-host 307 would carry the event, its signature, and every `-H` value
+  to a host the caller did not name.
+- Sending `Content-Digest` beside `Idempotency-Key` (R9 B): no target asked for an integrity header, and the signature
+  already proves the bytes.
+- A per-platform `test_command` (R10 B): `test_request` serves every OS without a second quoting scheme.
+- An `xr webhooks test` verb that sends the sample itself: a new family member with every surface the recipe names;
+  `test_request` gives the same first success.
+- A live check that X accepts the template's window, including an unfinished `--to` minute: every replay is billed, so
+  it stays a Risk.
+- Renaming `last_event_at`: the name is approved in R2, and KTD7 now states what it holds.
+
+### Second-pass What already exists
+
+- `sha2 = "0.11"` (`crates/xdk/Cargo.toml:73`) computes the key; hex is a format loop, so no new dependency.
+- `reqwest::redirect::Policy::none()` turns redirects off on the forward client; the API client at
+  `crates/xdk/src/api/request/mod.rs:311` keeps its default.
+- `std::panic::set_hook` and `std::process::exit` are the whole hook; no crate.
+- `shell_word` (`crates/xurl-cli/src/cli/hints.rs:552`) quotes `test_command`, as it quotes every `command` and
+  `template`.
+- `sigpipe_smoke` (`crates/xurl-cli/tests/binary_contract_tests.rs:131`) is extended, not replaced.
+- The help-advertising guard (`crates/xurl-cli/tests/agentic_tests.rs:408`) and its `HOME` exemption take `PATH` and
+  `PATHEXT` beside it.
+- `write_atomically` (`crates/xdk/src/store/atomic.rs`) still writes the checkpoint; only the time handed to it changes.
+
+### Second-pass diagrams
+
+The event-flow chart, the shutdown sequence, and the restart sequence in the High-Level Technical Design carry the
+second-pass changes (A4). The checkpoint's pending-arrival state:
+
+```text
+event arrives   ──► push its arrival onto every target's pending FIFO (each at most 256)
+target finishes ──► pop that target's head (delivered, or reported forward-failed)
+checkpoint time  =  oldest head across non-empty FIFOs, else the newest arrival
+write            ──► when that time's minute differs from the minute last written
+```
+
+No inline code diagram is needed; the tracking sits in `crates/xurl-cli/src/cli/commands/webhooks_forward.rs` beside the
+workers.
+
+### Second-pass failure modes
+
+| Path | Realistic failure | Test or handling | What the caller sees |
+| --- | --- | --- | --- |
+| `test_request` | the sample is signed for the other secret mode | U9 scenarios on the OAuth2 and legacy paths | a verified event, or a 401 from the listener |
+| `Idempotency-Key` | a caller `-H` overwrites the key | U3 refusal test | `validation` before binding |
+| Forward redirect | the target answers 302 to `https` | U3 redirect tests | `forward-failed` naming 302 |
+| Checkpoint | `listen` is killed with a backlog | U6 kill test | `--from-checkpoint` covers the backlog |
+| Checkpoint | one event fails forever and would pin the window | U6 test: a failed event releases it | `forward-failed` with its template |
+| Panic hook | a panic before the output format resolves | text path in the hook | the `internal` error in text, exit 1 |
+| Panic hook | an in-process test binary dies on its first assertion | T2 in-process test | not reachable: the hook stays on `run_argv` |
+| SIGPIPE | restoration drifts after the hook | `sigpipe_smoke` exit-status check (R12) | the suite fails |
+| Replay template | X refuses a `--to` minute that has not ended | none: a paid call (Risks) | `invalid-request` from X, visible, not silent |
+
+Critical gaps: 0. The one untested path fails visibly.
+
+### Second-pass parallelization
+
+Sequential implementation, no parallelization opportunity: one stack of nine PRs on `dev`, worked inline in one session,
+with no subagents or worktrees in this repository.
+
+### Second-pass Implementation Tasks
+
+Synthesized from this pass's findings. Each task derives from a specific finding above. Effort ratios assumed: features
+~30x, bug fix with regression ~20x, tests ~50x human to CC.
+
+- [ ] **T11 (P1, human: ~2 h / CC: ~15 min)** — U4 xr runner — Install the panic hook on the `run_argv` path only
+  - Surfaced by: Section 1 A1 and Section 3 T2 — R8 (D2)
+  - Files: `crates/xurl-cli/src/cli/runner.rs`, `crates/xurl-cli/src/cli/panic_hook.rs`,
+    `crates/xurl-cli/tests/panic_hook_tests.rs`
+  - Verify: the suite-built panicking program exits 1 with one `internal` record; the in-process `catch_unwind` test
+    passes
+- [ ] **T12 (P1, human: ~15 min / CC: ~3 min)** — U4 tests — Assert the exit status in `sigpipe_smoke`
+  - Surfaced by: Section 3 T1 — R12 (D6)
+  - Files: `crates/xurl-cli/tests/binary_contract_tests.rs`
+  - Verify: `cargo test -p xurl-rs --test binary_contract_tests sigpipe_smoke`, observed failing against a hook that
+    prints no `panicked at`
+- [ ] **T13 (P1, human: ~30 min / CC: ~5 min)** — U3 xdk forward — Turn redirects off and name 2xx as delivered
+  - Surfaced by: Section 1 A5 — R11 (D3)
+  - Files: `crates/xdk/src/webhooks/forward.rs`, `crates/xdk/tests/webhook_forward_tests.rs`
+  - Verify: the 302, 307, 308, and 204 scenarios in U3
+- [ ] **T14 (P2, human: ~3 h / CC: ~20 min)** — U6 xr listen — Record the oldest undelivered arrival in the checkpoint
+  - Surfaced by: Section 1 A2 — R7 (D1)
+  - Files: `crates/xurl-cli/src/cli/commands/webhooks_forward.rs`,
+    `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`, `crates/xurl-cli/tests/webhooks_forward_tests.rs`
+  - Verify: the kill, drain-deadline, failed-event, and stalled-target scenarios in U6
+- [ ] **T15 (P2, human: ~30 min / CC: ~5 min)** — U3 xdk forward — Send `Idempotency-Key` as quoted hex and refuse it in
+  `-H`
+  - Surfaced by: Section 2 C1 — R9 (D5)
+  - Files: `crates/xdk/src/webhooks/forward.rs`, `crates/xdk/tests/webhook_forward_tests.rs`
+  - Verify: the U3 key and refusal scenarios
+- [ ] **T16 (P2, human: ~30 min / CC: ~5 min)** — U9 xr listen — Add `test_request` to the `listening` record
+  - Surfaced by: Section 1 A3 — R10 (D4)
+  - Files: `crates/xurl-cli/src/cli/commands/webhooks_listen.rs`, `crates/xurl-cli/tests/webhooks_tests.rs`
+  - Verify: `test_request` posted with `reqwest` verifies, on the U8 Windows job too
+- [ ] **T17 (P2, human: ~30 min / CC: ~5 min)** — U8 xr env — Read `PATH` and `PATHEXT` through `env.rs` and exempt them
+  in the help guard
+  - Surfaced by: Section 2 C2
+  - Files: `crates/xurl-cli/src/cli/env.rs`, `crates/xurl-cli/tests/agentic_tests.rs`, `AGENTS.md`
+  - Verify: `cargo test -p xurl-rs --test agentic_tests test_help_advertises_every_env_var_the_source_reads`
+- [ ] **T18 (P2, human: ~20 min / CC: ~3 min)** — U4 records — Set the template's `--to` to the minute after arrival
+  - Surfaced by: R13 (D7)
+  - Files: `crates/xurl-cli/src/cli/commands/webhooks_forward.rs`, `crates/xurl-cli/tests/webhooks_forward_tests.rs`
+  - Verify: the U4 template scenario across an hour and a day boundary
+- [ ] **T19 (P3, human: ~15 min / CC: ~3 min)** — U1, U3, U9 docs — Mark binding or sending doctests `no_run`
+  - Surfaced by: Section 3 T4
+  - Files: `crates/xdk/src/webhooks/`
+  - Verify: `cargo test --doc -p xdk-rs --features testing` finishes without binding a fixed port or sending
+- [ ] **T20 (P3, human: ~15 min / CC: ~3 min)** — U8 tests — Use the suite's programs in the success and group-kill
+  scenarios
+  - Surfaced by: Section 3 T3
+  - Files: `crates/xurl-cli/tests/webhooks_forward_tests.rs`
+  - Verify: the U8 scenarios pass on the `windows-latest` job
+
+*No new tasks from Section 4 (Performance).*
+
+### Second-pass unresolved decisions
+
+None.
+
+### Second-pass suppressed findings
+
+None below confidence 5.
+
+### Second-pass completion summary
+
+- Step 0: Scope Challenge — scope accepted as-is
+- Reality rows: 7/7 emitted (`PLAN_REALITY: phase=eng rows=7/7 verdict=complete`), 1 unverified premise (equal replay
+  bounds, now hedged by R13)
+- Architecture Review: 5 issues found (A1 to A5)
+- Code Quality Review: 3 issues found (C1 to C3), 1 finding kept (C4)
+- Test Review: diagram produced, 4 gaps identified (T1 to T4)
+- Performance Review: 0 issues found
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 1 item proposed to user (R13), answered "build it now"
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: codex, disabled (`codex_reviews`)
+- Parallelization: 1 lane, 0 parallel / 9 sequential
+- Lake Score: 4/5 (D1, D3, D4, D6 picked a 10/10 option; D2 picked 9/10; D5 and D7 differ in kind)
+- Scope Challenge findings, reported apart: S1 to S3, all corrected
+- Test Plan artifact: `~/.gstack/projects/brettdavies-xurl-rs/brett-dev-eng-review-test-plan-20261022-190522.md`
+- Task artifact: `~/.gstack/projects/brettdavies-xurl-rs/tasks-eng-review-20261022-190919.jsonl`
+
 ## GSTACK REVIEW REPORT
 
 | Review         | Trigger                                                          | Why                             | Runs | Status      | Findings                                                   |
 | -------------- | ---------------------------------------------------------------- | ------------------------------- | ---- | ----------- | ---------------------------------------------------------- |
 | CEO Review     | `/plan-ceo-review`                                               | Scope & strategy                | 0    | —           | —                                                          |
-| Outside Review | codex, `/plan-eng-review` and `/plan-devex-review` outside voice | Independent 2nd opinion         | 17   | disabled    | none (`codex_reviews` disabled)                            |
-| Eng Review     | `/plan-eng-review`                                               | Architecture & tests (required) | 12   | ISSUES OPEN | 7 issues, 0 critical gaps                                  |
+| Outside Review | codex, `/plan-eng-review` and `/plan-devex-review` outside voice | Independent 2nd opinion         | 18   | disabled    | none (`codex_reviews` disabled)                            |
+| Eng Review     | `/plan-eng-review`                                               | Architecture & tests (required) | 13   | ISSUES OPEN | 12 issues, 0 critical gaps                                 |
 | Design Review  | `/plan-design-review`                                            | UI/UX gaps                      | 0    | —           | —                                                          |
 | DX Review      | `/plan-devex-review`                                             | Developer experience gaps       | 6    | CLEAR       | score: 6.5/10 → 8.3/10, TTHW: 10+ min (estimated) → <2 min |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase of both the eng and the DX review, disabled by config; no outside or
-  native reviewer ran.
-- **VERDICT:** DX CLEARED. Eng Review ran with 7 issues found, every one resolved into the plan (status issues_open
-  because findings were counted); eng review required.
+- **OUTSIDE COVERAGE:** codex, plan-review phase of the eng first pass, the DX review, and the eng second pass, disabled
+  by config; no outside or native reviewer ran.
+- **VERDICT:** DX CLEARED. Eng Review's second pass found 12 issues and resolved every one into the plan, revising the
+  mechanism of DX D11 (a panic hook) and the shapes of DX D9 (`Idempotency-Key`) and DX D10 (a two-minute window);
+  status issues_open because findings were counted; eng review required.
 
 NO UNRESOLVED DECISIONS
