@@ -253,6 +253,43 @@ impl MockApi {
                         })),
                 ),
         );
+        // The seeded OAuth2 login is `alice`, so `whoami` answers as her.
+        self.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .insert_header("date", "Thu, 01 Jan 2026 00:00:00 GMT")
+                        .set_body_json(serde_json::json!({
+                            "data": {
+                                "id": "2244994945",
+                                "name": "Alice",
+                                "username": "alice",
+                                "public_metrics": {
+                                    "followers_count": 10,
+                                    "following_count": 20,
+                                    "post_count": 30,
+                                    "listed_count": 1
+                                }
+                            }
+                        })),
+                ),
+        );
+        self.mount(
+            Mock::given(method("POST"))
+                .and(path("/2/tweets"))
+                .respond_with(
+                    ResponseTemplate::new(201)
+                        .insert_header("date", "Thu, 01 Jan 2026 00:00:00 GMT")
+                        .set_body_json(serde_json::json!({
+                            "data": {
+                                "id": "1346889436626259968",
+                                "text": "Hello from golden test",
+                                "edit_history_tweet_ids": ["1346889436626259968"]
+                            }
+                        })),
+                ),
+        );
     }
 }
 
@@ -1005,6 +1042,22 @@ fn help_cases(bin: &str) -> Vec<Case> {
     cases
 }
 
+/// What a shortcut prints when X answers it: the typed response, as a
+/// caller parsing `--output json` reads it.
+fn success_cases() -> Vec<Case> {
+    let signed_in = |c: Case| Case {
+        store: Store::OAuth2,
+        ..c
+    };
+    vec![
+        signed_in(case("success-whoami", &["--output", "json", "whoami"])),
+        signed_in(case(
+            "success-post",
+            &["--output", "json", "post", "Hello from golden test"],
+        )),
+    ]
+}
+
 fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
     let mut cases = help_cases(bin);
     cases.extend(static_cases());
@@ -1012,6 +1065,7 @@ fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
     cases.extend(reason_cases(scratch));
     cases.extend(dry_run_cases());
     cases.extend(text_cases());
+    cases.extend(success_cases());
     let mut seen = BTreeSet::new();
     for c in &cases {
         assert!(
