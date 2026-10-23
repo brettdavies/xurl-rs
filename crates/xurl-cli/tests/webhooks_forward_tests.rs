@@ -560,3 +560,226 @@ mod shutdown {
         assert_eq!(incomplete(&stderr)["undelivered"], 3);
     }
 }
+
+// ── the checkpoint ───────────────────────────────────────────────────
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("after the epoch")
+        .as_secs()
+}
+
+/// The minute a checkpoint file records.
+fn checkpoint_minute(path: &std::path::Path) -> u64 {
+    let record: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(path).expect("the checkpoint")).expect("JSON");
+    record["last_event_at"].as_u64().expect("Unix seconds") / 60
+}
+
+#[tokio::test]
+async fn with_no_target_the_checkpoint_names_the_newest_events_minute() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let port = free_port();
+    let checkpoint = tmp.path().join("checkpoint.json");
+    let path = checkpoint.to_str().expect("utf-8 path");
+    let flags = [
+        "--allow-unsigned",
+        "--max-events",
+        "2",
+        "--checkpoint",
+        path,
+    ];
+
+    let ((code, _stdout, stderr), (before, after)) = listen_while(&store, port, &flags, async {
+        crc_token_from(port).await;
+        assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+        let before = now_secs();
+        assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+        (before, now_secs())
+    })
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let minute = checkpoint_minute(&checkpoint);
+    assert!(
+        before / 60 <= minute && minute <= after / 60,
+        "the second event's minute"
+    );
+}
+
+#[tokio::test]
+async fn at_the_drain_deadline_the_checkpoint_names_the_first_undelivered_minute() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(60)))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let port = free_port();
+    let checkpoint = tmp.path().join("checkpoint.json");
+    let url = hook(&server);
+    let flags = [
+        "--allow-unsigned",
+        "--max-events",
+        "2",
+        "--forward",
+        &url,
+        "--forward-timeout",
+        "1",
+        "--checkpoint",
+        checkpoint.to_str().expect("utf-8 path"),
+    ];
+
+    let ((code, _stdout, stderr), (before, after)) = listen_while(&store, port, &flags, async {
+        crc_token_from(port).await;
+        let before = now_secs();
+        assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+        let after = now_secs();
+        assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+        (before, after)
+    })
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let incomplete = stderr_records(&stderr)
+        .into_iter()
+        .find(|record| record["status"] == "forward-incomplete")
+        .unwrap_or_else(|| panic!("no forward-incomplete record: {stderr}"));
+    assert_eq!(incomplete["undelivered"], 2);
+    let minute = checkpoint_minute(&checkpoint);
+    assert!(
+        before / 60 <= minute && minute <= after / 60,
+        "the first event's minute"
+    );
+}
+
+#[tokio::test]
+async fn a_dry_run_names_the_checkpoint_and_writes_nothing() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let port = free_port();
+    let checkpoint = tmp.path().join("checkpoint.json");
+
+    let (code, stdout, stderr) = run(
+        &store,
+        "http://127.0.0.1:9",
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "webhooks",
+            "listen",
+            "--port",
+            &port.to_string(),
+            "--checkpoint",
+            checkpoint.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON");
+    assert_eq!(body["checkpoint"], checkpoint.to_str().expect("utf-8 path"));
+    assert!(!checkpoint.exists(), "a dry run writes nothing");
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_checkpoint_that_cannot_be_written_is_reported_and_listen_goes_on() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let server = answering(200).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let port = free_port();
+    let locked = tmp.path().join("locked");
+    std::fs::create_dir(&locked).expect("mkdir");
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).expect("chmod");
+    let checkpoint = locked.join("checkpoint.json");
+    let url = hook(&server);
+    let flags = [
+        "--allow-unsigned",
+        "--max-events",
+        "2",
+        "--forward",
+        &url,
+        "--checkpoint",
+        checkpoint.to_str().expect("utf-8 path"),
+    ];
+
+    let ((code, stdout, stderr), ()) = listen_while(&store, port, &flags, async {
+        crc_token_from(port).await;
+        assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+        assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+    })
+    .await;
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(stdout.lines().count(), 3, "events still print: {stdout}");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 2);
+    let failed: Vec<serde_json::Value> = stderr_records(&stderr)
+        .into_iter()
+        .filter(|record| record["status"] == "checkpoint-failed")
+        .collect();
+    assert!(!failed.is_empty(), "{stderr}");
+    assert!(
+        failed[0]["cause"]
+            .as_str()
+            .is_some_and(|cause| cause.contains("checkpoint.json")),
+        "{}",
+        failed[0]
+    );
+}
+
+/// An event that waits on a stalled target holds the checkpoint at its
+/// minute, so a hard stop with a backlog leaves the backlog replayable. The
+/// second event arrives in a later minute, so this waits for a minute to
+/// turn, at most a minute.
+#[cfg(unix)]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_hard_stop_leaves_the_checkpoint_at_the_oldest_undelivered_minute() {
+    use common::listen::ListenProcess;
+
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(120)))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let port = free_port();
+    let checkpoint = tmp.path().join("checkpoint.json");
+    let url = hook(&server);
+    let flags = [
+        "--allow-unsigned",
+        "--forward",
+        &url,
+        "--forward-timeout",
+        "120",
+        "--checkpoint",
+        checkpoint.to_str().expect("utf-8 path"),
+    ];
+    let listen = ListenProcess::start(&store, port, &flags);
+
+    let before = now_secs();
+    assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+    let after = now_secs();
+    listen.next_line();
+    while now_secs() / 60 == after / 60 {
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    }
+    assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+    listen.next_line();
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+    let stderr = listen.kill();
+
+    let minute = checkpoint_minute(&checkpoint);
+    assert!(
+        before / 60 <= minute && minute <= after / 60,
+        "the first, undelivered event's minute, not the second's: {stderr}"
+    );
+}

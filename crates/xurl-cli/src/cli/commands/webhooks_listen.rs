@@ -3,6 +3,7 @@
 
 use std::io::Write;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,6 +15,7 @@ use xdk::webhooks::{
 };
 
 use super::Run;
+use super::webhooks_checkpoint::Progress;
 use super::webhooks_forward::{Finished, Forwarding, Target};
 use super::webhooks_program::ProgramTarget;
 use crate::cli::SigningSecret;
@@ -31,6 +33,7 @@ pub(super) struct Listener {
     pub(super) headers: Vec<String>,
     pub(super) forward_timeout: Option<u64>,
     pub(super) program: Vec<String>,
+    pub(super) checkpoint: Option<PathBuf>,
 }
 
 pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()> {
@@ -80,6 +83,9 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
             "headers": headers,
             "timeout_secs": budget.attempt_timeout().as_secs(),
         });
+    }
+    if let Some(checkpoint) = &listener.checkpoint {
+        ctx["checkpoint"] = json!(checkpoint.display().to_string());
     }
     if !listener.program.is_empty() {
         ctx["program"] = json!(listener.program);
@@ -145,6 +151,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     let _ = stdout.flush();
 
     let mut forwarding = (!targets.is_empty()).then(|| Forwarding::start(targets, budget));
+    let mut progress = Progress::new(listener.checkpoint.as_deref());
     let mut printed: u64 = 0;
     loop {
         tokio::select! {
@@ -152,6 +159,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
             Some(finished) = next_finished(&mut forwarding, stderr) => {
                 if let Some(forwarding) = forwarding.as_mut() {
                     forwarding.record(out, stderr, &finished);
+                    progress.advance(forwarding.oldest_pending(), out, stderr);
                 }
             }
             event = receiver.next_event() => {
@@ -161,9 +169,12 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
                 let line = event_line(&event.body);
                 out.print_stream_line(stdout, &line);
                 let _ = stdout.flush();
+                progress.arrived(event.received_at);
                 if let Some(forwarding) = forwarding.as_mut() {
                     forwarding.queue(&Arc::new(event)).await;
                 }
+                let oldest = forwarding.as_ref().and_then(Forwarding::oldest_pending);
+                progress.advance(oldest, out, stderr);
                 printed += 1;
                 if listener.max_events.is_some_and(|max| printed >= max) {
                     break;
@@ -173,7 +184,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     }
     drop(receiver);
     if let Some(forwarding) = forwarding {
-        forwarding.drain(out, stderr).await;
+        forwarding.drain(out, stderr, &mut progress).await;
     }
     Ok(())
 }

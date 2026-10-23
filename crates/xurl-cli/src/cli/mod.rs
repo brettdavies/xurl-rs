@@ -1720,6 +1720,12 @@ pub enum WebhooksCommands {
         /// it started
         #[arg(last = true, value_name = "PROGRAM")]
         program: Vec<String>,
+        /// Record, at most once a minute, when the oldest event not yet
+        /// delivered to every target arrived (the newest event when none is
+        /// waiting), so `xr webhooks replay --from-checkpoint` can request
+        /// what a stop missed
+        #[arg(long, value_name = "FILE")]
+        checkpoint: Option<std::path::PathBuf>,
     },
     /// Deliver a past window of events to a webhook again
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REPLAY))]
@@ -1728,11 +1734,27 @@ pub enum WebhooksCommands {
         #[arg(value_name = "WEBHOOK_ID")]
         webhook_id: String,
         /// Start of the window: twelve digits, `yyyymmddhhmm` in UTC
-        #[arg(long, value_name = "YYYYMMDDHHMM")]
-        from: String,
+        #[arg(
+            long,
+            value_name = "YYYYMMDDHHMM",
+            requires = "to",
+            required_unless_present = "from_checkpoint"
+        )]
+        from: Option<String>,
         /// End of the window: twelve digits, `yyyymmddhhmm` in UTC
-        #[arg(long, value_name = "YYYYMMDDHHMM")]
-        to: String,
+        #[arg(
+            long,
+            value_name = "YYYYMMDDHHMM",
+            requires = "from",
+            required_unless_present = "from_checkpoint"
+        )]
+        to: Option<String>,
+        /// Request the window from the minute `xr webhooks listen
+        /// --checkpoint` recorded to the current minute, at most the 24 hours
+        /// X replays. Replayed events reach the targets again, repeats
+        /// included
+        #[arg(long, value_name = "FILE", conflicts_with_all = ["from", "to"])]
+        from_checkpoint: Option<std::path::PathBuf>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

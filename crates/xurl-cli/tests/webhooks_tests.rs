@@ -1162,3 +1162,221 @@ async fn add_refuses_a_url_x_would_refuse(#[case] url: &str, #[case] reason: &st
     );
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
+
+// ── replay from a checkpoint ─────────────────────────────────────────
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("after the epoch")
+        .as_secs()
+}
+
+/// A checkpoint file recording `secs`, as `listen --checkpoint` writes one.
+fn checkpoint_at(dir: &Path, secs: u64) -> PathBuf {
+    let path = dir.join("checkpoint.json");
+    std::fs::write(&path, format!(r#"{{"last_event_at": {secs}}}"#)).expect("write");
+    path
+}
+
+async fn replay_server() -> MockServer {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/webhooks/replay"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"job_id": "1915510368169844736", "created_at": "2026-01-15T12:00:00.000Z"}
+        })))
+        .mount(&server)
+        .await;
+    server
+}
+
+#[tokio::test]
+async fn replay_from_a_checkpoint_posts_its_minute_to_the_current_one() {
+    let server = replay_server().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+    let checkpoint_secs = now_secs() - 600;
+    let checkpoint = checkpoint_at(tmp.path(), checkpoint_secs);
+
+    let before = now_secs();
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "replay",
+            WEBHOOK_ID,
+            "--from-checkpoint",
+            checkpoint.to_str().expect("utf-8 path"),
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    let after = now_secs();
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let seen = server.received_requests().await.expect("recorded");
+    assert_eq!(seen.len(), 1);
+    assert!(
+        seen[0].headers["authorization"]
+            .to_str()
+            .is_ok_and(|value| value.starts_with("Bearer ")),
+        "the replay goes out under the bearer"
+    );
+    let body: serde_json::Value = serde_json::from_slice(&seen[0].body).expect("JSON");
+    assert_eq!(body["webhook_id"], WEBHOOK_ID);
+    assert_eq!(body["from_date"], xdk::time::utc_minute(checkpoint_secs));
+    let to = body["to_date"].as_str().expect("a to_date");
+    assert!(
+        to == xdk::time::utc_minute(before) || to == xdk::time::utc_minute(after),
+        "to is the current minute: {to}"
+    );
+    let printed: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON");
+    assert_eq!(printed["data"]["job_id"], "1915510368169844736");
+    assert_eq!(printed["clamped"], false);
+    assert!(printed.get("lost_from").is_none(), "{printed}");
+}
+
+#[tokio::test]
+async fn replay_from_a_checkpoint_under_dry_run_shows_the_window_and_sends_nothing() {
+    let server = replay_server().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+    let checkpoint_secs = now_secs() - 600;
+    let checkpoint = checkpoint_at(tmp.path(), checkpoint_secs);
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "webhooks",
+            "replay",
+            WEBHOOK_ID,
+            "--from-checkpoint",
+            checkpoint.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON");
+    assert_eq!(body["status"], "dry_run");
+    assert_eq!(body["would_succeed"], true);
+    assert_eq!(body["from"], xdk::time::utc_minute(checkpoint_secs));
+    assert!(body["to"].is_string(), "{body}");
+    assert_eq!(body["clamped"], false);
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn a_checkpoint_older_than_a_day_is_clamped_in_the_dry_run() {
+    let server = replay_server().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+    let checkpoint_secs = now_secs() - 30 * 3600;
+    let checkpoint = checkpoint_at(tmp.path(), checkpoint_secs);
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "webhooks",
+            "replay",
+            WEBHOOK_ID,
+            "--from-checkpoint",
+            checkpoint.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON");
+    assert_eq!(body["clamped"], true, "{body}");
+    assert_eq!(body["lost_from"], xdk::time::utc_minute(checkpoint_secs));
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[rstest::rstest]
+#[case::checkpoint_and_from(&["--from-checkpoint", "cp.json", "--from", "202601150000"])]
+#[case::from_alone(&["--from", "202601150000"])]
+#[tokio::test]
+async fn the_window_is_a_checkpoint_or_both_bounds(#[case] window: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+    let mut args = vec!["--output", "json", "webhooks", "replay", WEBHOOK_ID];
+    args.extend_from_slice(window);
+
+    let (code, _stdout, stderr) = run(&store, "http://127.0.0.1:9", &args).await;
+
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_eq!(error_envelope(&stderr)["reason"], "invalid-args");
+}
+
+#[tokio::test]
+async fn a_missing_checkpoint_is_refused_as_io_and_names_both_fixes() {
+    let server = replay_server().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+    let missing = tmp.path().join("no-checkpoint.json");
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--output",
+            "json",
+            "webhooks",
+            "replay",
+            WEBHOOK_ID,
+            "--from-checkpoint",
+            missing.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 5, "stderr: {stderr}");
+    let envelope = error_envelope(&stderr);
+    assert_eq!(envelope["reason"], "io", "{envelope}");
+    assert_eq!(envelope["next_step"]["action"], "fix-input");
+    let message = envelope["message"].as_str().expect("a message");
+    assert!(
+        message.contains("--from") && message.contains("--to") && message.contains("--checkpoint"),
+        "the message names both fixes: {message}"
+    );
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn replay_from_a_checkpoint_without_a_bearer_is_an_auth_mismatch() {
+    let server = replay_server().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let checkpoint = checkpoint_at(tmp.path(), now_secs() - 600);
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--output",
+            "json",
+            "webhooks",
+            "replay",
+            WEBHOOK_ID,
+            "--from-checkpoint",
+            checkpoint.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_ne!(code, 0, "stderr: {stderr}");
+    assert_eq!(error_envelope(&stderr)["reason"], "auth-method-mismatch");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
