@@ -239,15 +239,25 @@ xr webhooks subscriptions add 1146654567674912769  # Deliver your account's acti
 xr webhooks subscriptions list 1146654567674912769 # Whose activity it receives
 xr webhooks stream-links add 1146654567674912769   # Deliver your filtered stream there
 xr webhooks listen --port 8080                     # Receive: answer X's check, print events
+xr webhooks listen --forward http://127.0.0.1:3000/events --checkpoint listen.json
+xr webhooks listen -- ./handle-event               # Run a program per event, body on stdin
+xr webhooks replay 1146654567674912769 --from-checkpoint listen.json
 ```
 
-A webhook is a public URL X delivers events to, in place of a poll or an open stream. Three things have to be in place,
-in this order:
+A webhook is a public URL X delivers events to, in place of a poll or an open stream. Before X is involved, prove the
+wiring: once `listen` is up it hands out a signed sample delivery. Under `--output json` the first line carries
+`test_command`, a `curl` invocation quoted for a POSIX shell, and `test_request`, the same request as method, URL,
+headers, and body for a caller with no POSIX shell; in text the `curl` invocation goes to stderr. The sample is signed
+with the app's own secret, so it passes `listen`'s check and anything you forward to, and its body carries
+`"xr_test_event": true`: ignore events that carry it. Run the command against the public URL too, once it is exposed.
+
+Three things have to be in place, in this order:
 
 1. **A receiver X can reach.** `xr webhooks listen` binds `127.0.0.1:8080`, answers X's Challenge-Response Check on
    `/webhook`, and prints each event as one JSON line on stdout. X delivers only to a public HTTPS URL with no port, so
    expose that local address through a tunnel or reverse proxy of your own, such as `cloudflared`, the `ngrok` CLI, or
-   Tailscale Funnel. `xr` opens no tunnel.
+   Tailscale Funnel. `xr` opens no tunnel. A port another process holds answers with reason `address-in-use` and the
+   same invocation on `--port 0`.
 2. **The URL registered.** `xr webhooks add <URL>` registers it and prints the webhook's id. X sends its check to the
    URL before it answers, so the listener has to be up and exposed first. A URL that is not HTTPS, or that names a port,
    is refused before any request.
@@ -262,6 +272,62 @@ one, and `--secret oauth1` names the consumer secret instead. An event whose sig
 401 and not printed; `--allow-unsigned` also prints a POST that carries no signature, for a local test with `curl`. It
 runs until interrupted, or exits 0 once `--max-events <N>` events have printed, and under `--output json` its first line
 is `{"status":"listening","url":...}`.
+
+#### Forward events to your app
+
+`--forward <URL>` POSTs each verified event to an `http` or `https` URL of yours, and everything after `--` is a program
+`listen` runs once per event. Give either or both: each target receives every event, in the order X delivered them, and
+X's answer does not wait for a forward. A target that falls far behind fills its queue of 256 events, and from then on
+X's deliveries wait for room rather than being dropped.
+
+- **The URL** receives the event's body exactly as X sent it, with X's `Content-Type` and signature header, so it can
+  verify the event with the app's secret the way `listen` does. Each `-H 'Name: Value'` is added, except that `Host`,
+  `Content-Length`, and `Idempotency-Key` are `listen`'s own and a `-H` naming one is refused. A 2xx from that URL
+  delivers. No redirect is followed, so a 3xx is a failed forward: name the final URL. A URL that carries a username or
+  password is refused; pass the credential with `-H 'Authorization: ...'`. A malformed `-H` is refused by its position
+  before anything binds, and no header value is ever printed.
+- **The program** gets the body on stdin and runs with no shell, so an event cannot become a command. Its stdout and
+  stderr go to `listen`'s stderr a whole line at a time, with a newline added to output it leaves unfinished, so a
+  record never shares a line with them and stdout keeps one line per event. Exit 0 delivers.
+- **Repeats share a key.** The URL gets `Idempotency-Key`, the SHA-256 of the event's bytes as quoted lowercase hex, and
+  the program gets the same hex in `XR_EVENT_SHA256`. A retry and a replay of the same event carry the same key, so a
+  target can drop what it has seen.
+- **Retries.** A failed forward is tried four times in all, 1, 2, then 4 seconds apart, each attempt cut off at
+  `--forward-timeout` (30 seconds unless set). A connection failure, a timeout, 408, 429, and 5xx are retried; another
+  status is final. A program is retried on a non-zero exit or a timeout, and a run past the timeout is stopped with
+  every process it started.
+- **Records on stderr.** Each delivery writes one record, never on stdout and never changing `listen`'s exit status:
+
+  ```json
+  {"status":"forwarded","target":"url","attempts":1,"http_status":200,"elapsed_ms":4,"received_at":"2026-10-22T15:04:10Z","event_sha256":"3f9a…"}
+  {"status":"forward-failed","target":"program","attempts":4,"cause":"the program exited with 3","received_at":"2026-10-22T15:04:10Z","event_sha256":"3f9a…","side_effects":"printed, not delivered","next_step":{"action":"run-command","template":"xr webhooks replay <WEBHOOK_ID> --from 202610221504 --to 202610221505"}}
+  ```
+
+  A program's record carries `exit_status` where a URL's carries `http_status`. A failed record's step is the replay of
+  the event's minute and the next, with the webhook's id to fill in. Text output prints the same as prose.
+- **Shutdown.** On Ctrl+C, SIGTERM, or `--max-events`, `listen` stops taking events, releases the port, and gives the
+  targets one attempt timeout plus 7 seconds to deliver what is queued. A second Ctrl+C ends that at once. Whatever is
+  left is counted in a `{"status":"forward-incomplete","target":...,"undelivered":N}` record.
+
+#### Recover what a restart missed
+
+X documents no redelivery: an event that arrives while `listen` is down is lost unless you ask X to replay it. Start
+`listen` with `--checkpoint <FILE>`, and it records, at most once a minute, when the oldest event not yet delivered to
+every target arrived, or the newest event when nothing is waiting. After a restart, look at the window first, then
+request it:
+
+```bash
+xr --dry-run webhooks replay 1146654567674912769 --from-checkpoint listen.json   # from, to, clamped; sends nothing
+xr webhooks replay 1146654567674912769 --from-checkpoint listen.json
+```
+
+The window runs from the checkpoint's minute to the current one. X replays at most the last 24 hours: an older
+checkpoint is moved up to the earliest minute X can replay, and the answer says `clamped: true` with `lost_from`, the
+first minute that cannot be recovered. X bills the events it delivers again, so the dry run is the place to check the
+window. Replayed events reach your targets like any other, and the checkpoint covers events still queued when `listen`
+stopped, so a target sees repeats; drop them by `Idempotency-Key` or `XR_EVENT_SHA256`. A checkpoint that cannot be read
+is refused with reason `io`, and `--from` with `--to` names a window by hand. A checkpoint `listen` cannot write is
+reported on stderr as `checkpoint-failed`, and `listen` goes on.
 
 `list`, `add`, `validate`, and `remove` take any stored credential. `replay`, `stream-links`, and `subscriptions count`,
 `list`, and `remove` take a bearer token. `subscriptions add` and `check` act for the signed-in account and take a user
@@ -496,15 +562,19 @@ answers as it always does. Text output prints the context without `status`, `wou
 
 ### Structured Exit Codes
 
-| Code | Meaning                                                     | Agent Action                                                  |
-| ---- | ----------------------------------------------------------- | ------------------------------------------------------------- |
-| 0    | Success                                                     | Continue                                                      |
-| 1    | General error                                               | Log and handle                                                |
-| 2    | Invalid arguments, unknown command, or auth-method mismatch | Fix the flag, read `suggestion`, or pick an accepted `--auth` |
-| 3    | Rate limited                                                | Wait `retry_after_secs`, or until `retry_at`, then retry      |
-| 4    | Not found                                                   | Resource doesn't exist                                        |
-| 5    | Network error, or a local file that could not be read       | Check connectivity, or the path; `reason` says which          |
-| 77   | Auth required                                               | See Authentication; agents: read `next_step`                  |
+| Code | Meaning                                                     | Agent Action                                                   |
+| ---- | ----------------------------------------------------------- | -------------------------------------------------------------- |
+| 0    | Success                                                     | Continue                                                       |
+| 1    | General error                                               | Log and handle                                                 |
+| 2    | Invalid arguments, unknown command, or auth-method mismatch | Fix the flag, read `suggestion`, or pick an accepted `--auth`  |
+| 3    | Rate limited                                                | Wait `retry_after_secs`, or until `retry_at`, then retry       |
+| 4    | Not found                                                   | Resource doesn't exist                                         |
+| 5    | Network error, an unreadable local file, or a taken port    | Check connectivity, the path, or the port; `reason` says which |
+| 77   | Auth required                                               | See Authentication; agents: read `next_step`                   |
+
+A panic in any `xr` command writes the `internal` error in the active output format and exits 1: the `report-issue` step
+names the issue tracker, the message keeps Rust's `panicked at <file>:<line>:<col>`, and a `backtrace` field appears
+when `RUST_BACKTRACE` asks for one.
 
 ### Rate Limits
 
@@ -622,7 +692,8 @@ Every reason has a row. The five actions that are not about credentials or help 
 - `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
   the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by
   accident.
-- `run-command`: one other command repairs this, and `command` is that invocation.
+- `run-command`: one other command repairs this, and `command` is that invocation. A `forward-failed` record from
+  `xr webhooks listen` carries it as a `template`: the replay of the event's minute, with `<WEBHOOK_ID>` to fill in.
 
 ### NO_COLOR Support
 

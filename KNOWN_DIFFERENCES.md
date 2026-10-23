@@ -23,6 +23,10 @@ The management commands have no Go counterpart: `xr webhooks list`, `add`, `vali
 `xr webhooks subscriptions` for Account Activity, and `xr webhooks stream-links` for filtered-stream delivery. With Go,
 those endpoints are reached through raw requests.
 
+Go neither forwards events nor recovers from a restart. `xr webhooks listen --forward` POSTs each verified event to a
+URL of the caller's, a program after `--` runs once per event, and `--checkpoint` records how far `listen` got, which
+`xr webhooks replay --from-checkpoint` turns into the window X can replay.
+
 ## Exit code mapping for HTTP errors (intentional improvement)
 
 The Go version maps HTTP errors to exit codes by string-matching the error message body (e.g., checking if the body

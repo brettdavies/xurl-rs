@@ -142,9 +142,17 @@ WEBHOOKS:
     xr webhooks stream-links add 1146654567674912769
     xr webhooks stream-links remove 1146654567674912769 --force --no-interactive --output json
 
-  Receive events: listen locally, expose that port at a public HTTPS URL, register the URL:
+  Receive events: listen locally, expose that port at a public HTTPS URL, register the URL
+  (the listening line carries a signed test_command to prove the wiring before X sends anything):
     xr webhooks listen --port 8080 --output json
     xr webhooks add https://example.com/webhook
+
+  Forward each event to your app, and keep a checkpoint for restarts:
+    xr webhooks listen --forward http://127.0.0.1:3000/events --checkpoint listen.json
+
+  After a restart, see the window X would replay, then request it:
+    xr --dry-run webhooks replay 1146654567674912769 --from-checkpoint listen.json
+    xr webhooks replay 1146654567674912769 --from-checkpoint listen.json
 
 MEDIA UPLOAD:
   Upload an image (returns media_id):
