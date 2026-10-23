@@ -302,6 +302,11 @@ pub struct ErrorBody {
     /// Whether a dry-run skill verb would have succeeded.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub would_succeed: Option<bool>,
+
+    /// The stack at a panic, as Rust prints it; present on the `internal`
+    /// error a panic answers with when `RUST_BACKTRACE` asks for one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backtrace: Option<String>,
 }
 
 /// Reads a key that is present as `Some`, `null` included. Serde's own

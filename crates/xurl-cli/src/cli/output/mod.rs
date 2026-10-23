@@ -15,7 +15,7 @@ mod delimited;
 mod diagnostics;
 mod format;
 mod message;
-mod rfc3339;
+pub(crate) mod rfc3339;
 
 pub(crate) use diagnostics::Diagnostics;
 
@@ -277,6 +277,35 @@ impl OutputConfig {
         }
         for line in &hint.text_lines {
             let _ = writeln!(err, "{line}");
+        }
+    }
+
+    /// Prints the `internal` error a panic answers with: the issue tracker
+    /// as its step, and the backtrace when `RUST_BACKTRACE` asked for one.
+    pub(crate) fn print_panic(
+        &self,
+        err: &mut dyn Write,
+        error: &Error,
+        backtrace: Option<String>,
+    ) {
+        let hint = crate::cli::hints::general_hint(error, "");
+        if self.format.is_structured() {
+            let body = ErrorBody {
+                next_step: hint.map(|hint| hint.next_step),
+                backtrace,
+                ..error_body(error, xdk::error::EXIT_GENERAL_ERROR)
+            };
+            self.emit_error_envelope(err, body);
+            return;
+        }
+        match &hint {
+            Some(hint) => {
+                self.print_error_with_hint(err, error, xdk::error::EXIT_GENERAL_ERROR, hint);
+            }
+            None => self.print_error(err, error, xdk::error::EXIT_GENERAL_ERROR),
+        }
+        if let Some(backtrace) = backtrace {
+            let _ = writeln!(err, "{backtrace}");
         }
     }
 

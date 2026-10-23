@@ -12,6 +12,11 @@ use tempfile::TempDir;
 use wiremock::matchers::{body_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
+use common::listen::{
+    CRC_UNDER_CLIENT_SECRET, CRC_UNDER_CONSUMER_SECRET, EVENT, EVENT_UNDER_CLIENT_SECRET,
+    EVENT_UNDER_CONSUMER_SECRET, LEGACY_HEADER, OAUTH2_HEADER, crc_token_from, deliver, free_port,
+    listen_tapped, listen_while, next_record,
+};
 use common::{oauth1_store, run_in_process as run};
 
 const WEBHOOK_ID: &str = "1146654567674912769";
@@ -786,73 +791,6 @@ async fn stream_links_need_a_bearer() {
 // computed outside this crate (Python's `hmac.new(key, message, sha256)`,
 // base64-encoded) for those keys.
 
-const CRC_TOKEN: &str = "challenge_string";
-const CRC_UNDER_CLIENT_SECRET: &str = "sha256=xT/YyTRZde5T1HbCK7K2bpcELYOIMkZVbgYjsESw+AM=";
-const CRC_UNDER_CONSUMER_SECRET: &str = "sha256=9CnCWcBcOApA1LHdqkjWbF2DBNdBrnAJPmL5qTUUANQ=";
-const EVENT: &str = r#"{"for_user_id":"2244994945","follow_events":[]}"#;
-const EVENT_UNDER_CLIENT_SECRET: &str = "sha256=jlSMkj72sqpIWJdl8rdKiEf1zPMRJkvY1VWxVhuPD4c=";
-const EVENT_UNDER_CONSUMER_SECRET: &str = "sha256=IdtPMVhr8Hql9OtN7YTX/+gknTMNOui0D4ixytI8bD0=";
-
-fn free_port() -> u16 {
-    std::net::TcpListener::bind("127.0.0.1:0")
-        .expect("a loopback port")
-        .local_addr()
-        .expect("its address")
-        .port()
-}
-
-/// Runs `xr webhooks listen` on `port` with `extra` flags while `drive` talks
-/// to it, and returns both results. The run ends once `--max-events` events
-/// have printed, so `drive` has to deliver that many. Both futures share
-/// this task: the run holds a `&mut dyn Write` and cannot be spawned.
-async fn listen_while<T>(
-    store: &Path,
-    port: u16,
-    extra: &[&str],
-    drive: impl std::future::Future<Output = T>,
-) -> ((i32, String, String), T) {
-    let port = port.to_string();
-    let mut args = vec!["--output", "json", "webhooks", "listen", "--port", &port];
-    args.extend_from_slice(extra);
-    tokio::join!(run(store, "http://127.0.0.1:9", &args), drive)
-}
-
-/// The CRC response token the listener on `port` gives, once it is up.
-async fn crc_token_from(port: u16) -> String {
-    let url = format!("http://127.0.0.1:{port}/webhook?crc_token={CRC_TOKEN}");
-    for _ in 0..100 {
-        if let Ok(response) = reqwest::get(&url).await {
-            let body: serde_json::Value = response.json().await.expect("a JSON body");
-            return body["response_token"]
-                .as_str()
-                .expect("a response token")
-                .to_string();
-        }
-        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
-    }
-    panic!("the listener never came up on port {port}");
-}
-
-/// Posts [`EVENT`] to the listener on `port` under `header`, when one is
-/// given, and returns the status it answers with.
-async fn deliver(port: u16, header: Option<(&str, &str)>) -> u16 {
-    let mut request = reqwest::Client::new()
-        .post(format!("http://127.0.0.1:{port}/webhook"))
-        .body(EVENT);
-    if let Some((name, value)) = header {
-        request = request.header(name, value);
-    }
-    request
-        .send()
-        .await
-        .expect("the listener answers")
-        .status()
-        .as_u16()
-}
-
-const OAUTH2_HEADER: &str = "X-Twitter-Webhooks-Signature-OAuth2";
-const LEGACY_HEADER: &str = "X-Twitter-Webhooks-Signature";
-
 #[tokio::test]
 async fn listen_answers_the_crc_check_and_prints_a_signed_event() {
     let tmp = TempDir::new().expect("tempdir");
@@ -1014,74 +952,6 @@ async fn listen_under_dry_run_binds_nothing_and_names_the_secret() {
         std::net::TcpStream::connect(("127.0.0.1", port)).is_err(),
         "a dry run must not bind the port"
     );
-}
-
-/// A stdout that hands each line to the test as `listen` writes it, so a
-/// test can act on the `listening` record while the run goes on.
-struct LineTap {
-    partial: Vec<u8>,
-    lines: tokio::sync::mpsc::UnboundedSender<String>,
-}
-
-impl std::io::Write for LineTap {
-    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.partial.extend_from_slice(buf);
-        while let Some(end) = self.partial.iter().position(|byte| *byte == b'\n') {
-            let line: Vec<u8> = self.partial.drain(..=end).collect();
-            let _ = self
-                .lines
-                .send(String::from_utf8_lossy(&line[..end]).into_owned());
-        }
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-}
-
-/// Runs `xr --output json webhooks listen` on `port` with `extra` flags while
-/// `drive` reads its stdout line by line, and returns the exit code, stderr,
-/// and what `drive` returned.
-async fn listen_tapped<T, F>(
-    store: &Path,
-    port: u16,
-    extra: &[&str],
-    drive: impl FnOnce(tokio::sync::mpsc::UnboundedReceiver<String>) -> F,
-) -> (i32, String, T)
-where
-    F: std::future::Future<Output = T>,
-{
-    let port = port.to_string();
-    let mut argv = vec![
-        "xr", "--output", "json", "webhooks", "listen", "--port", &port,
-    ];
-    argv.extend_from_slice(extra);
-    let (sender, lines) = tokio::sync::mpsc::unbounded_channel();
-    let mut stdout = LineTap {
-        partial: Vec::new(),
-        lines: sender,
-    };
-    let mut stderr: Vec<u8> = Vec::new();
-    let overrides = xdk::config::EnvOverrides {
-        api_base_url: Some("http://127.0.0.1:9".to_string()),
-        ..xdk::config::EnvOverrides::default()
-    };
-    let run =
-        xurl::cli::runner::run_with_overrides(argv, &mut stdout, &mut stderr, store, &overrides);
-    let (code, driven) = tokio::join!(run, drive(lines));
-    (code, String::from_utf8_lossy(&stderr).into_owned(), driven)
-}
-
-/// The next line `listen` printed, as JSON.
-async fn next_record(
-    lines: &mut tokio::sync::mpsc::UnboundedReceiver<String>,
-) -> serde_json::Value {
-    let line = tokio::time::timeout(std::time::Duration::from_secs(10), lines.recv())
-        .await
-        .expect("listen prints within ten seconds")
-        .expect("listen printed a line");
-    serde_json::from_str(&line).unwrap_or_else(|e| panic!("not JSON ({e}): {line}"))
 }
 
 #[tokio::test]

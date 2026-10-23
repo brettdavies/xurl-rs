@@ -183,6 +183,13 @@
             "null"
           ]
         },
+        "backtrace": {
+          "description": "The stack at a panic, as Rust prints it; present on the `internal`\nerror a panic answers with when `RUST_BACKTRACE` asks for one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "bearer": {
           "description": "Whether `auth clear` targeted the bearer token.",
           "type": [

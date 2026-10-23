@@ -1622,6 +1622,9 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l secret -d 'Which of the app\'s secrets X signs with. Unset, the OAuth2 client secret when the app has one, else the OAuth1 consumer secret' -r -f -a "oauth2\t'The app\'s `OAuth2` client secret'
 oauth1\t'The app\'s `OAuth1` consumer secret (API Secret Key)'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l max-events -d 'Exit 0 once this many events have printed' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l forward -d 'Also POST each verified event to this http or https URL, after X has its answer: the body and signature header as X sent them, an Idempotency-Key, and each -H. Each delivery is reported on stderr' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -s H -l header -d 'A header for each forward, as \'Name: Value\'; repeat for more. Its value is never printed' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l forward-timeout -d 'Seconds one forward attempt may take before it is tried again (four attempts, 1, 2, then 4 seconds apart). Unset, 30' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l app -d 'Use a specific registered app (overrides default)' -r

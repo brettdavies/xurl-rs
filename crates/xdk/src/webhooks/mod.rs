@@ -40,7 +40,7 @@ mod forward;
 mod signing;
 
 pub use budget::{Attempt, AttemptTimedOut, Outcome, RetryBudget};
-pub use forward::{ForwardFailure, UrlTarget};
+pub use forward::{ForwardFailure, UrlTarget, validate_forward_url};
 use signing::verified;
 pub use signing::{
     LEGACY_SIGNATURE_HEADER, OAUTH2_SIGNATURE_HEADER, SignedSample, SigningSecrets, sign,

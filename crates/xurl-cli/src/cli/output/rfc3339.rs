@@ -1,7 +1,20 @@
-//! UTC timestamps in RFC 3339 form, for the one place `xr` prints a time:
-//! the `retry_at` an agent schedules a rate-limited retry against.
+//! UTC timestamps, in RFC 3339 form for a moment `xr` reports (the
+//! `retry_at` an agent schedules a rate-limited retry against, the arrival
+//! of a webhook event), and in X's twelve-digit replay form for a minute.
 
 const SECS_PER_DAY: u64 = 86_400;
+
+/// The minute that holds `epoch_secs`, as `yyyymmddhhmm` in UTC: the form a
+/// webhook replay window takes.
+pub(crate) fn utc_minute(epoch_secs: u64) -> String {
+    let (year, month, day) = civil_from_days(epoch_secs / SECS_PER_DAY);
+    let secs = epoch_secs % SECS_PER_DAY;
+    format!(
+        "{year:04}{month:02}{day:02}{:02}{:02}",
+        secs / 3_600,
+        secs % 3_600 / 60
+    )
+}
 
 /// Seconds since the Unix epoch as `YYYY-MM-DDTHH:MM:SSZ`.
 pub(crate) fn utc_rfc3339(epoch_secs: u64) -> String {
@@ -42,7 +55,19 @@ fn civil_from_days(days: u64) -> (u64, u64, u64) {
 
 #[cfg(test)]
 mod tests {
-    use super::utc_rfc3339;
+    use super::{utc_minute, utc_rfc3339};
+
+    #[test]
+    fn epoch_seconds_format_as_their_utc_minute() {
+        for (epoch_secs, minute) in [
+            (0, "197001010000"),
+            (951_782_459, "200002290000"),
+            (1_761_145_499, "202510221504"),
+            (1_767_225_599, "202512312359"),
+        ] {
+            assert_eq!(utc_minute(epoch_secs), minute, "epoch {epoch_secs}");
+        }
+    }
 
     #[test]
     fn epoch_seconds_format_as_utc_timestamps() {

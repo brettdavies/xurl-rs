@@ -12,6 +12,7 @@ pub use xdk::error::NextAction;
 use xdk::store::snapshot::StoreSnapshot;
 
 use crate::cli::classify::ROOT_COMMAND;
+use crate::cli::output::rfc3339::utc_minute;
 
 /// The `next_step` object carried by an error envelope.
 ///
@@ -274,6 +275,25 @@ impl NextStep {
             action: NextAction::FixInput,
             command: (!hid_a_value).then(|| rerun.clone()),
             template: hid_a_value.then_some(rerun),
+            docs: None,
+        }
+    }
+
+    /// The replay that delivers again an event that arrived at
+    /// `received_at` (Unix seconds): from its minute to the minute after it.
+    /// It is a template, since only the caller knows the webhook's id. Two
+    /// minutes do not depend on X accepting equal bounds, at the cost of
+    /// replaying one more minute of events.
+    #[must_use]
+    pub fn replay_window(received_at: u64) -> Self {
+        let from = utc_minute(received_at);
+        let to = utc_minute(received_at - received_at % 60 + 60);
+        Self {
+            action: NextAction::RunCommand,
+            command: None,
+            template: Some(format!(
+                "xr webhooks replay <WEBHOOK_ID> --from {from} --to {to}"
+            )),
             docs: None,
         }
     }
@@ -968,6 +988,27 @@ mod tests {
         );
         for secret in ["abc", "blue", "zz9"] {
             assert!(!template.contains(secret), "{template}");
+        }
+    }
+
+    /// The window is the arrival minute and the minute after it, across an
+    /// hour, a day, a month, and a year.
+    #[test]
+    fn a_replay_window_spans_the_arrival_minute_and_the_next() {
+        for (received_at, from, to) in [
+            (1_792_681_470, "202610221504", "202610221505"),
+            (1_792_684_770, "202610221559", "202610221600"),
+            (1_793_491_199, "202610312359", "202611010000"),
+            (1_798_761_540, "202612312359", "202701010000"),
+        ] {
+            let step = NextStep::replay_window(received_at);
+            assert_eq!(step.action, NextAction::RunCommand);
+            assert!(step.command.is_none(), "only the caller knows the id");
+            assert_eq!(
+                step.template.as_deref(),
+                Some(format!("xr webhooks replay <WEBHOOK_ID> --from {from} --to {to}").as_str()),
+                "received at {received_at}"
+            );
         }
     }
 

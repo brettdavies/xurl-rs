@@ -57,16 +57,18 @@ const CLAP_HELP_FOOTER: &str = "For more information, try '--help'.";
 
 /// Runs the `xr` CLI using `std::env::args_os()` and real stdio.
 ///
-/// The binary's `main` calls this. Library consumers wanting capture should
-/// call [`run`] or [`run_with_store_path`] directly.
+/// The binary's `main` calls this, and it alone installs the panic hook, so
+/// a panic anywhere answers the `internal` error and exits 1. Library
+/// consumers wanting capture should call [`run`] or [`run_with_store_path`]
+/// directly; they keep Rust's own panic behavior.
+///
+/// Stdout and stderr are locked per write rather than for the whole run, so
+/// the hook can write from whichever thread panicked.
 #[must_use]
 pub async fn run_argv() -> i32 {
+    crate::cli::panic_hook::install();
     let args: Vec<OsString> = std::env::args_os().collect();
-    let stdout = std::io::stdout();
-    let stderr = std::io::stderr();
-    let mut stdout_lock = stdout.lock();
-    let mut stderr_lock = stderr.lock();
-    run(args, &mut stdout_lock, &mut stderr_lock).await
+    run(args, &mut std::io::stdout(), &mut std::io::stderr()).await
 }
 
 /// Runs the `xr` CLI with caller-supplied args + writers.
@@ -188,6 +190,7 @@ where
         overrides.no_color,
     )
     .with_no_interactive(cli.no_interactive);
+    crate::cli::panic_hook::publish(&out);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
     if let Some(ref cmd) = cli.command {

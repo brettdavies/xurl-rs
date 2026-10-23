@@ -122,21 +122,21 @@ impl UrlTarget {
     /// value, and no message repeats the URL. An `http` error when the HTTP
     /// client cannot be built.
     pub fn new(url: &str, headers: &[impl AsRef<str>]) -> Result<Self> {
-        let url = reqwest::Url::parse(url).map_err(|_| {
-            Error::validation("the forward URL is not an absolute http or https URL")
+        validate_forward_url(url).map_err(|reason| {
+            Error::validation(match reason {
+                "forward-url-not-http" => {
+                    "forward-url-not-http: a forward takes an http or https URL"
+                }
+                "forward-url-has-credentials" => {
+                    "forward-url-has-credentials: the forward URL carries a username or \
+                     password; send a credential in a header such as Authorization instead"
+                }
+                _ => "forward-url-invalid: the forward URL is not an absolute URL",
+            })
         })?;
-        if !matches!(url.scheme(), "http" | "https") {
-            return Err(Error::validation(format!(
-                "the forward URL's scheme is {}; a forward takes http or https",
-                url.scheme()
-            )));
-        }
-        if !url.username().is_empty() || url.password().is_some() {
-            return Err(Error::validation(
-                "the forward URL carries a username or password; send a credential in a header \
-                 such as Authorization instead",
-            ));
-        }
+        let url = reqwest::Url::parse(url).map_err(|_| {
+            Error::validation("forward-url-invalid: the forward URL does not parse")
+        })?;
         let headers = headers
             .iter()
             .enumerate()
@@ -216,6 +216,25 @@ impl UrlTarget {
             _ => Attempt::Final(ForwardFailure::Status(status)),
         }
     }
+}
+
+/// Checks a forward URL offline: an absolute `http` or `https` URL that
+/// carries no username or password, which every record of a failed forward
+/// would otherwise repeat.
+///
+/// # Errors
+///
+/// Returns the kebab-case reason: `forward-url-invalid`,
+/// `forward-url-not-http`, `forward-url-has-credentials`.
+pub fn validate_forward_url(url: &str) -> std::result::Result<(), &'static str> {
+    let url = reqwest::Url::parse(url).map_err(|_| "forward-url-invalid")?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err("forward-url-not-http");
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err("forward-url-has-credentials");
+    }
+    Ok(())
 }
 
 /// One caller header, from its `Name: Value` line at `position` (from 1).
