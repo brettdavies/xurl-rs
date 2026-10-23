@@ -178,17 +178,25 @@ impl Receiver {
     /// # Errors
     ///
     /// Returns a `validation` error when `config.secrets` holds no secret,
-    /// since the CRC check cannot be answered without one, and an `io` error
-    /// when the address cannot be bound.
+    /// since the CRC check cannot be answered without one,
+    /// [`Error::AddressInUse`] when another socket holds the address, and an
+    /// `io` error when it cannot be bound for any other reason.
     pub async fn bind(config: ReceiverConfig, cancel: CancellationToken) -> Result<Self> {
         if config.secrets.is_empty() {
             return Err(Error::validation(
                 "a webhook receiver needs the app's OAuth2 client secret or OAuth1 consumer secret",
             ));
         }
-        let listener = TcpListener::bind(config.bind)
-            .await
-            .map_err(|e| Error::io(format!("could not bind {}: {e}", config.bind)))?;
+        let listener = TcpListener::bind(config.bind).await.map_err(|e| {
+            if e.kind() == std::io::ErrorKind::AddrInUse {
+                Error::AddressInUse {
+                    address: config.bind,
+                    source: e,
+                }
+            } else {
+                Error::io(format!("could not bind {}: {e}", config.bind))
+            }
+        })?;
         let local_addr = listener
             .local_addr()
             .map_err(|e| Error::io(format!("could not read the bound address: {e}")))?;

@@ -25,7 +25,8 @@ use crate::cli::classify::ROOT_COMMAND;
 /// [`NextAction::WaitAndRetry`], [`NextAction::Retry`],
 /// [`NextAction::FixInput`], [`NextAction::ReportIssue`], and
 /// [`NextAction::InspectStore`] when the command that failed is the one
-/// that reports on the store.
+/// that reports on the store. The one [`NextAction::FixInput`] that carries
+/// an invocation is [`Self::listen_on_free_port`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -221,6 +222,62 @@ impl NextStep {
         }
     }
 
+    /// `listen` again on a port the system picks: `invocation` with every
+    /// `--port` and `-p` value dropped and `--port 0` added before any `--`,
+    /// so a program's own arguments are never read as `listen`'s. Each `-H`
+    /// header keeps its name and has its value replaced by `<value>`, which
+    /// makes the step a template: a header often carries a credential, and a
+    /// step never echoes one.
+    #[must_use]
+    pub fn listen_on_free_port(invocation: &[String]) -> Self {
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        let mut program = Vec::new();
+        let mut hid_a_value = false;
+        let mut rest = invocation.iter().skip(1);
+        while let Some(arg) = rest.next() {
+            let header = if arg == "--" {
+                program.push(shell_word(arg));
+                program.extend(rest.by_ref().map(|arg| shell_word(arg)));
+                None
+            } else if arg == "--port" || arg == "-p" {
+                rest.next();
+                None
+            } else if arg.starts_with("--port=") || arg.starts_with("-p") {
+                None
+            } else if arg == "-H" || arg == "--header" {
+                Some(rest.next().map_or("", String::as_str))
+            } else if let Some(given) = arg
+                .strip_prefix("--header=")
+                .or_else(|| arg.strip_prefix("-H"))
+            {
+                Some(given.strip_prefix('=').unwrap_or(given))
+            } else {
+                words.push(shell_word(arg));
+                None
+            };
+            if let Some(header) = header {
+                let name = header.split_once(':').map_or("", |(name, _)| name.trim());
+                let hidden = if name.is_empty() {
+                    "<value>".to_string()
+                } else {
+                    format!("{name}: <value>")
+                };
+                words.push("-H".to_string());
+                words.push(shell_word(&hidden));
+                hid_a_value = true;
+            }
+        }
+        words.extend(["--port".to_string(), "0".to_string()]);
+        words.extend(program);
+        let rerun = words.join(" ");
+        Self {
+            action: NextAction::FixInput,
+            command: (!hid_a_value).then(|| rerun.clone()),
+            template: hid_a_value.then_some(rerun),
+            docs: None,
+        }
+    }
+
     /// Run the one other command that repairs this.
     #[must_use]
     pub fn run_command(command: String) -> Self {
@@ -401,6 +458,23 @@ pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
     Some(Hint {
         text_lines: vec![format!(
             "The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: {command}"
+        )],
+        next_step,
+    })
+}
+
+/// Builds the hint for a webhook receiver whose address another socket
+/// holds: the same `listen` on a port the system picks.
+#[must_use]
+pub fn address_in_use_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
+    let Error::AddressInUse { .. } = error else {
+        return None;
+    };
+    let next_step = NextStep::listen_on_free_port(invocation);
+    let rerun = next_step.display_invocation().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!(
+            "Stop the process that holds it, or listen on a free port. Run: {rerun}"
         )],
         next_step,
     })
@@ -823,6 +897,78 @@ mod tests {
             rerun(&["xr", "post", "--", "--app", "is text"]),
             "xr --app personal post -- --app 'is text'"
         );
+    }
+
+    fn words(args: &[&str]) -> Vec<String> {
+        args.iter().map(|arg| (*arg).to_string()).collect()
+    }
+
+    /// Every spelling of the port the caller gave is dropped and `--port 0`
+    /// takes its place, before a `--` when there is one, so a program's own
+    /// arguments are never read as `listen`'s.
+    #[test]
+    fn a_taken_port_reruns_listen_on_port_zero() {
+        let rerun = |args: &[&str]| NextStep::listen_on_free_port(&words(args));
+        for given in [
+            &["--port", "8080"][..],
+            &["--port=8080"],
+            &["-p", "8080"],
+            &["-p8080"],
+            &["-p=8080"],
+        ] {
+            let mut args = vec!["/usr/local/bin/xr", "webhooks", "listen"];
+            args.extend_from_slice(given);
+            let step = rerun(&args);
+            assert_eq!(step.action, NextAction::FixInput, "{given:?}");
+            assert_eq!(
+                step.command.as_deref(),
+                Some("xr webhooks listen --port 0"),
+                "{given:?}"
+            );
+            assert!(step.template.is_none(), "{given:?}");
+        }
+        assert_eq!(
+            rerun(&[
+                "xr",
+                "webhooks",
+                "listen",
+                "--port",
+                "8080",
+                "--",
+                "./handle.sh",
+                "--port",
+                "9"
+            ])
+            .command
+            .as_deref(),
+            Some("xr webhooks listen --port 0 -- ./handle.sh --port 9")
+        );
+    }
+
+    /// A header often carries a credential, so with any `-H` the rerun is a
+    /// template that names each header and hides its value.
+    #[test]
+    fn a_taken_port_with_headers_reruns_as_a_template_that_hides_each_value() {
+        let step = NextStep::listen_on_free_port(&words(&[
+            "xr",
+            "webhooks",
+            "listen",
+            "-H",
+            "Authorization: Bearer abc",
+            "--header=X-Team: blue",
+            "-HX-Trace:zz9",
+        ]));
+        assert_eq!(step.action, NextAction::FixInput);
+        assert!(step.command.is_none(), "{step:?}");
+        let template = step.template.as_deref().expect("a template");
+        assert_eq!(
+            template,
+            "xr webhooks listen -H 'Authorization: <value>' -H 'X-Team: <value>' \
+             -H 'X-Trace: <value>' --port 0"
+        );
+        for secret in ["abc", "blue", "zz9"] {
+            assert!(!template.contains(secret), "{template}");
+        }
     }
 
     #[test]

@@ -1016,6 +1016,72 @@ async fn listen_under_dry_run_binds_nothing_and_names_the_secret() {
     );
 }
 
+#[tokio::test]
+async fn listen_on_a_held_port_names_it_and_reruns_on_a_free_port() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let held = std::net::TcpListener::bind("127.0.0.1:0").expect("a port to hold");
+    let port = held.local_addr().expect("its address").port().to_string();
+
+    let (code, stdout, stderr) = run(
+        &store,
+        "http://127.0.0.1:9",
+        &[
+            "--output",
+            "json",
+            "webhooks",
+            "listen",
+            "--port",
+            &port,
+            "--max-events",
+            "1",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 5, "stderr: {stderr}");
+    assert_eq!(stdout, "");
+    let envelope = error_envelope(&stderr);
+    assert_eq!(envelope["reason"], "address-in-use", "{envelope}");
+    assert_eq!(envelope["exit_code"], 5);
+    assert_eq!(
+        envelope["next_step"],
+        serde_json::json!({
+            "action": "fix-input",
+            "command": "xr --output json webhooks listen --max-events 1 --port 0"
+        })
+    );
+    assert!(
+        envelope["message"]
+            .as_str()
+            .is_some_and(|m| m.contains(&format!("127.0.0.1:{port}"))),
+        "the message names the address: {envelope}"
+    );
+}
+
+#[tokio::test]
+async fn listen_on_a_held_port_in_text_suggests_a_free_port_or_stopping_the_holder() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let held = std::net::TcpListener::bind("127.0.0.1:0").expect("a port to hold");
+    let port = held.local_addr().expect("its address").port().to_string();
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        "http://127.0.0.1:9",
+        &["webhooks", "listen", "--port", &port],
+    )
+    .await;
+
+    assert_eq!(code, 5, "stderr: {stderr}");
+    assert!(stderr.contains(&format!("127.0.0.1:{port}")), "{stderr}");
+    assert!(stderr.contains("Stop"), "{stderr}");
+    assert!(
+        stderr.contains("xr webhooks listen --port 0"),
+        "the rerun on a free port: {stderr}"
+    );
+}
+
 // ── the URL rules X documents ────────────────────────────────────────
 
 #[rstest::rstest]

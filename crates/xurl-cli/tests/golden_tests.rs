@@ -42,6 +42,9 @@ const SKILL_HOME_PLACEHOLDER: &str = "{{SKILL_HOME}}";
 /// Stands in for the run's scratch directory inside an `env:` value.
 const SCRATCH_PLACEHOLDER: &str = "{{SCRATCH}}";
 const VERSION_PLACEHOLDER: &str = "{{CRATE_VERSION}}";
+/// Stands in for the loopback port [`Scratch`] holds, in an argument and in
+/// the output.
+const HELD_PORT_PLACEHOLDER: &str = "{{HELD_PORT}}";
 const BEARER: &str = "GOLDEN-BEARER-TOKEN";
 const FIXTURE_EXT: &str = "golden";
 
@@ -256,13 +259,25 @@ impl MockApi {
 /// Everything a case may need that exists only for the duration of a run.
 struct Scratch {
     dir: TempDir,
+    /// A loopback port held for the whole run, so a case can ask `xr` to
+    /// bind a port another listener holds.
+    held: std::net::TcpListener,
 }
 
 impl Scratch {
     fn new() -> Self {
         Self {
             dir: TempDir::new().expect("tempdir"),
+            held: std::net::TcpListener::bind("127.0.0.1:0").expect("a port to hold"),
         }
+    }
+
+    fn held_port(&self) -> String {
+        self.held
+            .local_addr()
+            .expect("the held address")
+            .port()
+            .to_string()
     }
 
     /// The seeded store, written on the first call and shared by every case
@@ -476,6 +491,20 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
                 "/nonexistent/xr-golden.json",
             ],
         ),
+        Case {
+            env: vec![("CLIENT_SECRET", "GOLDEN-CLIENT-SECRET".to_string())],
+            ..reason_case(
+                "address-in-use",
+                &[
+                    "--output",
+                    "json",
+                    "webhooks",
+                    "listen",
+                    "--port",
+                    HELD_PORT_PLACEHOLDER,
+                ],
+            )
+        },
         reason_case(
             "token-store",
             &[
@@ -907,7 +936,12 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     if let Some(cwd) = &case.cwd {
         cmd.current_dir(cwd);
     }
-    cmd.args(&case.args);
+    let held_port = scratch.held_port();
+    cmd.args(
+        case.args
+            .iter()
+            .map(|arg| arg.replace(HELD_PORT_PLACEHOLDER, &held_port)),
+    );
     cmd.stdin(if case.stdin.is_some() {
         Stdio::piped()
     } else {
@@ -926,6 +960,10 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     let substitute = |bytes: Vec<u8>| {
         let mut text = String::from_utf8(bytes).expect("xr output is utf-8");
         text = text.replace(&api.uri, BASE_URL_PLACEHOLDER);
+        text = text.replace(
+            &format!("127.0.0.1:{held_port}"),
+            &format!("127.0.0.1:{HELD_PORT_PLACEHOLDER}"),
+        );
         if let Some(skill_home) = &case.skill_home {
             text = text.replace(
                 skill_home.to_str().expect("utf-8 path"),

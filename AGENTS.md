@@ -92,11 +92,12 @@ does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
 (`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
-invocation fails again until its input or the state it read changes. `report-issue` (`internal`, `serialization`,
-`api-error`) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
-invocation with `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a
-deletion by accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or
-`not-installed`.
+invocation fails again until its input or the state it read changes. Under `address-in-use`, a port another process
+holds, it carries `listen` again on `--port 0`: a `command`, or a `template` that hides each `-H` value. `report-issue`
+(`internal`, `serialization`, `api-error`) names the issue tracker in `docs`. `confirm` rides on `confirmation-required`
+and carries a `template`, the invocation with `--force`: it is never a `command`, so an agent that runs every command it
+is handed cannot confirm a deletion by accident. `run-command` names the sibling skill verb that repairs
+`destination-not-empty` or `not-installed`.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -361,9 +362,9 @@ See [`KNOWN_DIFFERENCES.md`](KNOWN_DIFFERENCES.md) for intentional deviations fr
 ## Documented solutions
 
 On `dev`, `docs/solutions/` is a symlink to `~/dev/solutions-docs/`, a shared, searchable archive of past solutions and
-best practices organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Search with `qmd query
-"<topic>" --collection solutions` before implementing or debugging in a documented area; the corpus crosses repos and
-already captures known pitfalls.
+best practices organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Search with
+`qmd query "<topic>" --collection solutions` before implementing or debugging in a documented area; the corpus crosses
+repos and already captures known pitfalls.
 
 `CONCEPTS.md`, on `dev` alongside the engineering docs, holds the shared domain vocabulary (entities, named processes,
 and status concepts with project-specific meaning), relevant when orienting to the codebase or discussing domain
