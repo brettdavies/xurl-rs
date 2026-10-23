@@ -105,9 +105,9 @@ jobs:
 
   # Docs build with warnings denied; a broken intra-doc link or bad code
   # fence fails here instead of surfacing after publish. Two builds: the
-  # pinned toolchain is what `cargo doc` gives a consumer, and nightly with `--cfg docsrs` is
-  # what docs.rs runs, the only toolchain that accepts the `doc_cfg` feature
-  # the library enables under that cfg to render feature badges.
+  # workspace with default features is what `cargo doc` gives a consumer,
+  # and xdk-rs with every feature is what docs.rs documents, the only
+  # build that reaches the `testing` module.
   docs:
     name: Doc build
     needs: scope
@@ -118,10 +118,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-      - name: Install nightly Rust for the docs.rs build
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-        with:
-          toolchain: nightly
       - name: Cache dependencies
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: cargo doc
@@ -132,10 +128,10 @@ jobs:
       # gate that fails when the landing example stops compiling.
       - name: README doctests
         run: cargo test --doc -p xdk-rs --locked
-      - name: cargo doc as docs.rs builds it
+      - name: cargo doc with every feature, as docs.rs documents it
         env:
-          RUSTDOCFLAGS: --cfg docsrs -D warnings
-        run: cargo +nightly doc -p xdk-rs --no-deps --all-features --locked
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc -p xdk-rs --no-deps --all-features --locked
 
   # A textual diff of the library sources cannot answer whether the public API
   # broke: it misses pub fields, consts, type aliases, and traits. This reads

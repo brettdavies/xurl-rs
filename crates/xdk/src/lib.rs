@@ -5,9 +5,6 @@
 // embedder compiles and leaves the test build alone.
 #![cfg_attr(not(test), forbid(unsafe_code))]
 #![warn(missing_debug_implementations)]
-// docs.rs passes `--cfg docsrs` on nightly, where `doc_cfg` renders a feature
-// badge on every gated item; stable never sees the feature gate.
-#![cfg_attr(docsrs, feature(doc_cfg))]
 
 // reqwest compiles without a TLS backend and only fails at the first https
 // request, with an error that never mentions TLS; failing the build names
@@ -24,7 +21,6 @@ pub mod config;
 pub mod error;
 pub mod store;
 #[cfg(feature = "testing")]
-#[cfg_attr(docsrs, doc(cfg(feature = "testing")))]
 pub mod testing;
 // One UTC formatter for the workspace: a replay window's minutes here, and
 // `xr`'s `retry_at`, an event's arrival, and a replay template in

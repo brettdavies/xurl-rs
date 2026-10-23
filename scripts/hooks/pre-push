@@ -238,16 +238,11 @@ if code_touched; then
         fi
         pass "tls features (native-tls alone; no backend refused)"
 
-        # 9. The docs.rs build: nightly with --cfg docsrs and every feature, which
-        # is the only build that exercises the doc_cfg feature gate. Skips with a
-        # hint when no nightly toolchain is installed; CI always runs it.
-        if rustup toolchain list 2>/dev/null | grep -q "^nightly"; then
-            RUSTDOCFLAGS="--cfg docsrs -D warnings" cargo +nightly doc -p xdk-rs --no-deps --all-features --quiet 2>&1 \
-                || fail "cargo +nightly doc -p xdk-rs --no-deps --all-features (RUSTDOCFLAGS=--cfg docsrs -D warnings)"
-            pass "docs.rs build (nightly)"
-        else
-            echo "  - docs.rs build (skipped: install via \`rustup toolchain install nightly\` to enable)"
-        fi
+        # 9. The docs.rs feature set: xdk-rs documented with every feature, as
+        # docs.rs builds it, the only doc build that reaches the `testing` module.
+        RUSTDOCFLAGS="-D warnings" cargo doc -p xdk-rs --no-deps --all-features --quiet 2>&1 \
+            || fail "cargo doc -p xdk-rs --no-deps --all-features (RUSTDOCFLAGS=-D warnings)"
+        pass "docs.rs feature set"
 
         # 10. Every feature subset that carries a backend, as CI's powerset job
         # runs it. Skips with a hint when cargo-hack is not installed.

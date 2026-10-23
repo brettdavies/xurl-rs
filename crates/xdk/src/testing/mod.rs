@@ -1,4 +1,5 @@
-//! An in-process X API for tests that must not spend credits.
+//! An in-process X API for tests that must not spend credits, built only
+//! with the `testing` feature.
 //!
 //! [`MockX::start`] binds a local server that answers every endpoint the
 //! shortcut layer declares with the fixture responses the response types are
