@@ -14,12 +14,12 @@ use std::time::{Duration, UNIX_EPOCH};
 use serde_json::json;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
+use xdk::time::utc_rfc3339;
 use xdk::webhooks::{Event, RetryBudget, UrlTarget};
 
 use super::webhooks_program::ProgramTarget;
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
-use crate::cli::output::rfc3339::utc_rfc3339;
 
 /// Events one target holds before `listen` takes no more. A full queue
 /// holds X's answer back rather than drop an event.

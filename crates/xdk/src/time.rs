@@ -1,12 +1,12 @@
-//! UTC timestamps, in RFC 3339 form for a moment `xr` reports (the
-//! `retry_at` an agent schedules a rate-limited retry against, the arrival
-//! of a webhook event), and in X's twelve-digit replay form for a minute.
+//! UTC timestamps without a time library: RFC 3339 for a moment, and X's
+//! twelve-digit replay form for a minute.
 
 const SECS_PER_DAY: u64 = 86_400;
 
 /// The minute that holds `epoch_secs`, as `yyyymmddhhmm` in UTC: the form a
 /// webhook replay window takes.
-pub(crate) fn utc_minute(epoch_secs: u64) -> String {
+#[must_use]
+pub fn utc_minute(epoch_secs: u64) -> String {
     let (year, month, day) = civil_from_days(epoch_secs / SECS_PER_DAY);
     let secs = epoch_secs % SECS_PER_DAY;
     format!(
@@ -17,7 +17,8 @@ pub(crate) fn utc_minute(epoch_secs: u64) -> String {
 }
 
 /// Seconds since the Unix epoch as `YYYY-MM-DDTHH:MM:SSZ`.
-pub(crate) fn utc_rfc3339(epoch_secs: u64) -> String {
+#[must_use]
+pub fn utc_rfc3339(epoch_secs: u64) -> String {
     let (year, month, day) = civil_from_days(epoch_secs / SECS_PER_DAY);
     let secs = epoch_secs % SECS_PER_DAY;
     format!(
