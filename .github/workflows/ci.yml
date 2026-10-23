@@ -201,6 +201,28 @@ jobs:
       - name: Verify completions match the CLI definition
         run: ./scripts/generate-completions.sh --check
 
+  # `webhooks listen` stops a forward program with everything it started: a
+  # process group on Unix, a kill-on-close Job Object on Windows. Only a
+  # Windows runner executes the Windows half, so this job runs the
+  # program-target tests there, and the signed test request a caller with no
+  # POSIX shell posts.
+  windows:
+    name: Windows program target
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Program-target tests
+        run: cargo test --locked -p xurl-rs --test webhooks_program_tests
+      - name: The signed test request
+        run: cargo test --locked -p xurl-rs --test webhooks_tests listen_hands_out_a_signed_test_request
+
   # A package-scoped test run proves nothing about an out-of-package consumer,
   # so an embedder-shaped crate compiles and runs a read against the
   # documented surface; hiding or removing something it relies on fails here

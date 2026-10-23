@@ -94,6 +94,9 @@
             "context": "Surface growth needs a minor section"
           },
           {
+            "context": "Windows program target"
+          },
+          {
             "context": "ci / Fmt, clippy, test"
           },
           {
