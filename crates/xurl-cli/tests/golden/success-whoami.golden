@@ -1,0 +1,22 @@
+args: ["--output", "json", "whoami"]
+store: oauth2
+exit_code: 0
+stdout_len: 226
+stderr_len: 0
+--- stdout ---
+{
+  "data": {
+    "id": "2244994945",
+    "name": "Alice",
+    "public_metrics": {
+      "followers_count": 10,
+      "following_count": 20,
+      "listed_count": 1,
+      "post_count": 30
+    },
+    "username": "alice"
+  }
+}
+
+--- stderr ---
+
