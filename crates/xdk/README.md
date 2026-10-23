@@ -187,8 +187,11 @@ Every published module is one an embedder has a reason to call:
 - `store`: `TokenStore`, the on-disk credential store the CLI shares, and the reference implementation of the refresh
   hook.
 - `webhooks`: `Receiver`, which binds an address, answers X's CRC check, and yields each delivered event whose signature
-  verifies, with `sign` for the signature X computes. It opens no tunnel and prints nothing; `Client` has the shortcuts
-  that register a webhook and subscribe to it.
+  verifies, with `sign` for the signature X computes and `SignedSample` for a test delivery. `UrlTarget` forwards an
+  event to an endpoint of the caller's under `RetryBudget`, the retry rule `xr` uses. `CheckpointWriter`,
+  `read_checkpoint`, and `replay_window` record how far a receiver got and turn that into the window X can replay. It
+  opens no tunnel and prints nothing; `Client` has the shortcuts that register a webhook and subscribe to it. The
+  `webhook_forward` example runs a receiver, a forward, and a checkpoint together.
 
 Items marked `#[doc(hidden)]` are seams the `xr` binary reaches across the crate boundary; they stay callable but are
 not part of this surface.
