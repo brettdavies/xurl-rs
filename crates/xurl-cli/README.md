@@ -227,6 +227,49 @@ media id for 24 hours, so the envelope carries the id and the command that resum
 }
 ```
 
+### Broadcasts
+
+```bash
+xr broadcasts moderators list                      # Who moderates your broadcast chats
+xr broadcasts moderators add @helper               # Add a chat moderator
+xr broadcasts sources list                         # Your RTMP and RTMPS ingest points
+xr broadcasts sources add "Studio A" --region us-east-1
+xr broadcasts sources get 1x2y3z4w5v6u             # Whether the source is receiving video
+xr broadcasts sources rename 1x2y3z4w5v6u "Studio B"
+xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force skips)
+```
+
+A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `id` as the
+stream key, then poll `get` until `is_stream_active` is true. The `id` is the stream key itself, so whoever holds it can
+stream to the source; keep it out of logs you share. `--region` takes an ingest region, and
+`xr broadcasts sources add --help` lists them. The API lists the regions in prose, so `xr` passes the value through
+rather than refusing one it does not know.
+
+### Calls
+
+```bash
+xr calls scheduled list                            # Calls on your calendar in the next 24 hours
+xr calls scheduled list --from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z
+xr calls scheduled get 1849302018273645            # One call, with its invitees and their answers
+xr calls scheduled add --start 2026-11-02T16:00:00Z --title Standup --duration 15 --invite 2244994945
+xr calls scheduled update 1849302018273645 --start 2026-11-02T17:00:00Z
+xr calls scheduled cancel 1849302018273645         # Cancel; asks first (--force skips)
+xr calls scheduled rsvp 1849302018273645 accepted  # Or declined, tentative
+xr calls get 8a6f1c2e                              # Who is in a call, and whether you may join
+```
+
+Times are RFC 3339 with a zone, such as `2026-11-02T16:00:00Z`, and one that is not is refused before any request.
+`--invite` takes a numeric user ID (`xr user @handle` prints one) and repeats for each person, at most 25 on a new
+call; on `update` it replaces the whole invite list. Invitees get an email about a new, changed, or cancelled call
+unless `--no-notify` is given. A recurring call takes `--recurrence` (an RFC 5545 RRULE such as `FREQ=WEEKLY;BYDAY=MO`)
+and `--time-zone`. To change, cancel, or answer some occurrences of it, name one with `--occurrence`, its
+`occurrence_start_time` as `list` prints it, and `--scope this` or `--scope this-and-following`; with neither flag, the
+request applies to every occurrence. `update` with no field to change is refused with `no-call-changes`.
+
+The calls endpoints take a user login with the `calls.read` and `calls.write` scopes, which every `xr auth oauth2`
+sign-in requests. A login made before `xr` requested them lacks them, and X refuses the request until you sign in again
+with `xr auth oauth2`. A call's `id` and a scheduled call's `call_id` are also the call's join secret.
+
 ### Webhooks
 
 ```bash

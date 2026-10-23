@@ -189,7 +189,8 @@ never the tests.
   engagement, the social graph, DMs, or the family's own), and the variant on that group's line in `run_subcommand` in
   that file. A verb that resolves a handle or acts on a post from the caller's account goes through
   `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and a paged list that belongs to one user through
-  `list_for_user`. A verb that sends one request hands its call to `send_or_report`. Each of those answers `--dry-run`
+  `list_for_user`. A verb that sends one request hands its call to `send_or_report`, through `send_validated` when its
+  inputs are checked first, or `send_confirmed` when it destroys something. Each of those answers `--dry-run`
   with the credential its requests would go out under. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's
   arms and its routing line disagree, `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command that sends a request
   or changes stored state under `--dry-run`, or whose dry run and real run disagree on the credential, and the dry-run
@@ -237,7 +238,7 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   Bearer token. PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
 - `crates/xurl-cli/src/cli/`: clap-based CLI. `commands/mod.rs` routes each command to its group and holds what the
   groups share; the files beside it hold one group each (posts, reads, engagement, the social graph, DMs, usage,
-  broadcasts, webhooks, media), the tooling commands (schema, skill, validate, examples), streaming, and
+  broadcasts, calls, webhooks, media), the tooling commands (schema, skill, validate, examples), streaming, and
   `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while
   `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
 - `crates/xdk/src/webhooks/`: the webhook receiver. It binds an address, answers X's CRC check, and yields each event
