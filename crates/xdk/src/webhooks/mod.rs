@@ -35,8 +35,12 @@ use tokio_util::sync::CancellationToken;
 
 use crate::error::{Error, Result};
 
+mod budget;
+mod forward;
 mod signing;
 
+pub use budget::{Attempt, AttemptTimedOut, Outcome, RetryBudget};
+pub use forward::{ForwardFailure, UrlTarget};
 use signing::verified;
 pub use signing::{
     LEGACY_SIGNATURE_HEADER, OAUTH2_SIGNATURE_HEADER, SignedSample, SigningSecrets, sign,
@@ -133,6 +137,22 @@ pub struct Event {
     pub headers: Vec<(String, String)>,
     /// When the request arrived.
     pub received_at: SystemTime,
+}
+
+impl Event {
+    /// The SHA-256 of [`Event::body`] as 64 lowercase hex characters: a key
+    /// a target deduplicates on, the same for every delivery of the same
+    /// bytes, a replay included.
+    #[must_use]
+    pub fn sha256(&self) -> String {
+        use sha2::Digest as _;
+        use std::fmt::Write as _;
+        let mut hex = String::with_capacity(64);
+        for byte in sha2::Sha256::digest(&self.body) {
+            let _ = write!(hex, "{byte:02x}");
+        }
+        hex
+    }
 }
 
 /// A bound webhook receiver.
