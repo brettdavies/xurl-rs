@@ -229,9 +229,23 @@ impl ListenProcess {
             lines,
             stderr,
         };
-        let listening = process.next_line();
-        assert!(listening.contains("\"listening\""), "{listening}");
-        process
+        match process
+            .lines
+            .recv_timeout(std::time::Duration::from_secs(10))
+        {
+            Ok(listening) if listening.contains("\"listening\"") => process,
+            Ok(other) => process.fail(&format!("its first stdout line was {other}")),
+            Err(error) => process.fail(&format!("it printed no listening line ({error})")),
+        }
+    }
+
+    /// Ends the process and fails the test with `why`, its exit, and its
+    /// stderr, the only place a refusal before binding shows.
+    fn fail(mut self, why: &str) -> ! {
+        let _ = self.child.kill();
+        let status = self.child.wait();
+        let stderr = self.stderr.join().unwrap_or_default();
+        panic!("listen did not start: {why}; exit {status:?}; stderr: {stderr}");
     }
 
     /// The next stdout line, within ten seconds.
