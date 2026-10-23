@@ -1643,6 +1643,294 @@ esac
     ;;
 esac
 ;;
+(sources)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__broadcasts__subcmd__sources_commands" \
+"*::: :->sources" \
+&& ret=0
+
+    case $state in
+    (sources)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-sources-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':source_id -- Source ID, as `xr broadcasts sources list` prints it; it is also the stream key:_default' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'--region=[Ingest region\: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2]:REGION:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':name -- A label for the source:_default' \
+&& ret=0
+;;
+(rename)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':source_id -- Source ID, as `xr broadcasts sources list` prints it:_default' \
+':name -- The new label:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':source_id -- Source ID, as `xr broadcasts sources list` prints it:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__sources__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-sources-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rename)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
 (help)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__broadcasts__subcmd__help_commands" \
@@ -1676,6 +1964,557 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(sources)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__help__subcmd__sources_commands" \
+"*::: :->sources" \
+&& ret=0
+
+    case $state in
+    (sources)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-help-sources-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rename)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(calls)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__calls_commands" \
+"*::: :->calls" \
+&& ret=0
+
+    case $state in
+    (calls)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-calls-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':call_id -- Call ID, as a scheduled call'\''s `call_id` gives it; it is also the call'\''s join secret:_default' \
+&& ret=0
+;;
+(scheduled)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__calls__subcmd__scheduled_commands" \
+"*::: :->scheduled" \
+&& ret=0
+
+    case $state in
+    (scheduled)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-calls-scheduled-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'--from=[Calls still running at this time or starting after it (RFC 3339); X assumes now]:TIME:_default' \
+'--to=[Calls starting before this time (RFC 3339); X assumes 24 hours after \`--from\`]:TIME:_default' \
+'-n+[Number of calls (1-100)]:MAX_RESULTS:_default' \
+'--max-results=[Number of calls (1-100)]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':scheduled_call_id -- Scheduled call ID, as `xr calls scheduled list` prints it:_default' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'--start=[When the call starts (RFC 3339 with a zone, such as 2026-11-02T16\:00\:00Z); not in the past]:TIME:_default' \
+'--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
+'--description=[What the call is about (1000 characters at most)]:TEXT:_default' \
+'--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
+'*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
+'--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
+'--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--no-notify[Send invitees no email about it]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+'--start=[When the call, or the named occurrence, now starts (RFC 3339)]:TIME:_default' \
+'--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
+'--description=[What the call is about (1000 characters at most)]:TEXT:_default' \
+'--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
+'*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
+'--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
+'--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
+'--scope=[Which occurrences, counted from \`--occurrence\`\: X assumes \`all\` without it and \`this\` with it]:SCOPE:((all\:"Every occurrence"
+this\:"The named occurrence alone"
+this-and-following\:"The named occurrence and every one after it"))' \
+'--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--no-notify[Send invitees no email about it]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':scheduled_call_id -- Scheduled call ID, as `xr calls scheduled list` prints it:_default' \
+&& ret=0
+;;
+(cancel)
+_arguments "${_arguments_options[@]}" : \
+'--scope=[Which occurrences, counted from \`--occurrence\`\: X assumes \`all\` without it and \`this\` with it]:SCOPE:((all\:"Every occurrence"
+this\:"The named occurrence alone"
+this-and-following\:"The named occurrence and every one after it"))' \
+'--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--no-notify[Send invitees no email about the cancellation]' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':scheduled_call_id -- Scheduled call ID, as `xr calls scheduled list` prints it:_default' \
+&& ret=0
+;;
+(rsvp)
+_arguments "${_arguments_options[@]}" : \
+'--scope=[Which occurrences, counted from \`--occurrence\`\: X assumes \`all\` without it and \`this\` with it]:SCOPE:((all\:"Every occurrence"
+this\:"The named occurrence alone"
+this-and-following\:"The named occurrence and every one after it"))' \
+'--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` username to act as]:USERNAME:_default' \
+'--username=[\`OAuth2\` username to act as]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':scheduled_call_id -- Scheduled call ID, as `xr calls scheduled list` prints it:_default' \
+':answer -- Your answer:((accepted\:"You will attend"
+declined\:"You will not attend"
+tentative\:"You might attend"))' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__calls__subcmd__scheduled__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-calls-scheduled-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(cancel)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rsvp)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__calls__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-calls-help-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(scheduled)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__calls__subcmd__help__subcmd__scheduled_commands" \
+"*::: :->scheduled" \
+&& ret=0
+
+    case $state in
+    (scheduled)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-calls-help-scheduled-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(cancel)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rsvp)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -4036,7 +4875,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`). Omit for auto-detection]:NAME:_default' \
+'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-deleted\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -4255,6 +5094,102 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(sources)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__broadcasts__subcmd__sources_commands" \
+"*::: :->sources" \
+&& ret=0
+
+    case $state in
+    (sources)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-broadcasts-sources-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rename)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(calls)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__calls_commands" \
+"*::: :->calls" \
+&& ret=0
+
+    case $state in
+    (calls)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-calls-command-$line[1]:"
+        case $line[1] in
+            (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(scheduled)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__calls__subcmd__scheduled_commands" \
+"*::: :->scheduled" \
+&& ret=0
+
+    case $state in
+    (scheduled)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-calls-scheduled-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(cancel)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rsvp)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -4609,7 +5544,8 @@ _xr_commands() {
 'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
-'broadcasts:Broadcast chat moderation' \
+'broadcasts:Broadcast chat moderators and stream sources' \
+'calls:X calls, and the calls on your calendar' \
 'webhooks:Webhook registration, validation, and replay' \
 'auth:Authentication management' \
 'media:Media upload, alt text, and subtitles' \
@@ -4919,6 +5855,7 @@ _xr__subcmd__bookmarks_commands() {
 _xr__subcmd__broadcasts_commands() {
     local commands; commands=(
 'moderators:Manage who moderates your broadcast chats' \
+'sources:Manage the RTMP and RTMPS ingest points you stream to' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr broadcasts commands' commands "$@"
@@ -4927,6 +5864,7 @@ _xr__subcmd__broadcasts_commands() {
 _xr__subcmd__broadcasts__subcmd__help_commands() {
     local commands; commands=(
 'moderators:Manage who moderates your broadcast chats' \
+'sources:Manage the RTMP and RTMPS ingest points you stream to' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr broadcasts help commands' commands "$@"
@@ -4959,6 +5897,42 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__list_commands
 _xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help moderators remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources_commands() {
+    local commands; commands=(
+'list:List your stream sources' \
+'get:Show one stream source, and whether it is receiving video' \
+'add:Create a stream source' \
+'rename:Rename a stream source' \
+'remove:Delete a stream source; an encoder sending to it is no longer received' \
+    )
+    _describe -t commands 'xr broadcasts help sources commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help sources add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__get_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help sources get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help sources list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help sources remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__rename_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__rename_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help sources rename commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__moderators_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__moderators_commands() {
@@ -5014,6 +5988,251 @@ _xr__subcmd__broadcasts__subcmd__moderators__subcmd__list_commands() {
 _xr__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts moderators remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources_commands() {
+    local commands; commands=(
+'list:List your stream sources' \
+'get:Show one stream source, and whether it is receiving video' \
+'add:Create a stream source' \
+'rename:Rename a stream source' \
+'remove:Delete a stream source; an encoder sending to it is no longer received' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts sources commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__get_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help_commands() {
+    local commands; commands=(
+'list:List your stream sources' \
+'get:Show one stream source, and whether it is receiving video' \
+'add:Create a stream source' \
+'rename:Rename a stream source' \
+'remove:Delete a stream source; an encoder sending to it is no longer received' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts sources help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__get_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources help get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources help list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources help remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__rename_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__rename_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources help rename commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources rename commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls_commands] )) ||
+_xr__subcmd__calls_commands() {
+    local commands; commands=(
+'get:Show an X call\: its title, join policy, host, and who is in it' \
+'scheduled:The calls on your calendar\: schedule, change, cancel, and answer them' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr calls commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__get_commands] )) ||
+_xr__subcmd__calls__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help_commands] )) ||
+_xr__subcmd__calls__subcmd__help_commands() {
+    local commands; commands=(
+'get:Show an X call\: its title, join policy, host, and who is in it' \
+'scheduled:The calls on your calendar\: schedule, change, cancel, and answer them' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr calls help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__get_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls help get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__scheduled_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__scheduled_commands() {
+    local commands; commands=(
+'list:List the calls on your calendar, earliest first' \
+'get:Show a scheduled call, with its invitees and their answers' \
+'add:Schedule a call on your X Calls calendar and invite people to it' \
+'update:Move, rename, or re-invite a call you organize' \
+'cancel:Cancel a call you organize and take it off invitees'\'' calendars' \
+'rsvp:Answer an invitation to a scheduled call' \
+    )
+    _describe -t commands 'xr calls help scheduled commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__add_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls help scheduled add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__cancel_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__cancel_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls help scheduled cancel commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__get_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls help scheduled get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__list_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls help scheduled list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__rsvp_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__rsvp_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls help scheduled rsvp commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__update_commands] )) ||
+_xr__subcmd__calls__subcmd__help__subcmd__scheduled__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls help scheduled update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled_commands() {
+    local commands; commands=(
+'list:List the calls on your calendar, earliest first' \
+'get:Show a scheduled call, with its invitees and their answers' \
+'add:Schedule a call on your X Calls calendar and invite people to it' \
+'update:Move, rename, or re-invite a call you organize' \
+'cancel:Cancel a call you organize and take it off invitees'\'' calendars' \
+'rsvp:Answer an invitation to a scheduled call' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr calls scheduled commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__add_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__cancel_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__cancel_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled cancel commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__get_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__help_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__help_commands() {
+    local commands; commands=(
+'list:List the calls on your calendar, earliest first' \
+'get:Show a scheduled call, with its invitees and their answers' \
+'add:Schedule a call on your X Calls calendar and invite people to it' \
+'update:Move, rename, or re-invite a call you organize' \
+'cancel:Cancel a call you organize and take it off invitees'\'' calendars' \
+'rsvp:Answer an invitation to a scheduled call' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr calls scheduled help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__cancel_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__cancel_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled help cancel commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__get_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled help get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__list_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled help list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__rsvp_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__rsvp_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled help rsvp commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__help__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled help update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__list_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__rsvp_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__rsvp_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled rsvp commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__calls__subcmd__scheduled__subcmd__update_commands] )) ||
+_xr__subcmd__calls__subcmd__scheduled__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr calls scheduled update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__completions_commands] )) ||
 _xr__subcmd__completions_commands() {
@@ -5089,7 +6308,8 @@ _xr__subcmd__help_commands() {
 'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
-'broadcasts:Broadcast chat moderation' \
+'broadcasts:Broadcast chat moderators and stream sources' \
+'calls:X calls, and the calls on your calendar' \
 'webhooks:Webhook registration, validation, and replay' \
 'auth:Authentication management' \
 'media:Media upload, alt text, and subtitles' \
@@ -5219,6 +6439,7 @@ _xr__subcmd__help__subcmd__bookmarks_commands() {
 _xr__subcmd__help__subcmd__broadcasts_commands() {
     local commands; commands=(
 'moderators:Manage who moderates your broadcast chats' \
+'sources:Manage the RTMP and RTMPS ingest points you stream to' \
     )
     _describe -t commands 'xr help broadcasts commands' commands "$@"
 }
@@ -5245,6 +6466,97 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__list_commands
 _xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr help broadcasts moderators remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources_commands() {
+    local commands; commands=(
+'list:List your stream sources' \
+'get:Show one stream source, and whether it is receiving video' \
+'add:Create a stream source' \
+'rename:Rename a stream source' \
+'remove:Delete a stream source; an encoder sending to it is no longer received' \
+    )
+    _describe -t commands 'xr help broadcasts sources commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts sources add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__get_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts sources get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__list_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts sources list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts sources remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts sources rename commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls_commands] )) ||
+_xr__subcmd__help__subcmd__calls_commands() {
+    local commands; commands=(
+'get:Show an X call\: its title, join policy, host, and who is in it' \
+'scheduled:The calls on your calendar\: schedule, change, cancel, and answer them' \
+    )
+    _describe -t commands 'xr help calls commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls__subcmd__get_commands] )) ||
+_xr__subcmd__help__subcmd__calls__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help calls get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls__subcmd__scheduled_commands] )) ||
+_xr__subcmd__help__subcmd__calls__subcmd__scheduled_commands() {
+    local commands; commands=(
+'list:List the calls on your calendar, earliest first' \
+'get:Show a scheduled call, with its invitees and their answers' \
+'add:Schedule a call on your X Calls calendar and invite people to it' \
+'update:Move, rename, or re-invite a call you organize' \
+'cancel:Cancel a call you organize and take it off invitees'\'' calendars' \
+'rsvp:Answer an invitation to a scheduled call' \
+    )
+    _describe -t commands 'xr help calls scheduled commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help calls scheduled add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__cancel_commands] )) ||
+_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__cancel_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help calls scheduled cancel commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__get_commands] )) ||
+_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help calls scheduled get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__list_commands] )) ||
+_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help calls scheduled list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__rsvp_commands] )) ||
+_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__rsvp_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help calls scheduled rsvp commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__calls__subcmd__scheduled__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help calls scheduled update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__completions_commands] )) ||
 _xr__subcmd__help__subcmd__completions_commands() {

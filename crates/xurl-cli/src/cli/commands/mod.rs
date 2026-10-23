@@ -2,6 +2,7 @@
 
 mod auth;
 mod broadcasts;
+mod calls;
 mod dms;
 mod engagement;
 pub mod examples;
@@ -261,6 +262,75 @@ where
     print_typed(out, stdout, &call.send().await?)
 }
 
+/// Sends the one request `build` makes once `validator` passes its inputs,
+/// and prints the typed response; under `--dry-run` it answers with `ctx`
+/// and sends nothing.
+async fn send_validated<T>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    common: &CommonFlags,
+    build: impl FnOnce(&Client) -> Call<T>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
+    let client = make_client(cfg, auth)?;
+    let call = with_flags(build(&client), common, None);
+    send_or_report(out, stdout, dry_run, call).await?;
+    Ok(())
+}
+
+/// [`send_validated`] for a request that destroys something: it asks
+/// `prompt` first unless `force`, and refuses under `--no-interactive`
+/// without it. A dry run says whether the real run would ask.
+async fn send_confirmed<T>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    prompt: &str,
+    force: bool,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    common: &CommonFlags,
+    build: impl FnOnce(&Client) -> Call<T>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let client = make_client(cfg, auth)?;
+    let call = with_flags(build(&client), common, None);
+    if flags.dry_run {
+        let ctx = destructive_dry_run_context(ctx, force);
+        let dry_run = dry_run_or_validate(true, ctx, validator)?;
+        send_or_report(out, stdout, dry_run, call).await?;
+        return Ok(());
+    }
+    match gate_destructive(force, flags.no_interactive, flags.quiet, prompt)? {
+        Gate::Proceed => {}
+        Gate::Declined => return Ok(()),
+        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
+    }
+    let dry_run = dry_run_or_validate(false, ctx, validator)?;
+    send_or_report(out, stdout, dry_run, call).await?;
+    Ok(())
+}
+
 /// Converts a typed response to Value and prints it.
 fn print_typed<T: Serialize>(
     out: &OutputConfig,
@@ -510,6 +580,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Dm { .. } | Commands::Dms { .. } => dms::run(cmd, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,
         Commands::Broadcasts { target } => broadcasts::run(target, run).await,
+        Commands::Calls { target } => calls::run(target, run).await,
         Commands::Webhooks { action } => webhooks::run(action, run).await,
         Commands::Auth { command } => auth::run(command, run).await,
         Commands::Media { command } => media::run(command, run).await,

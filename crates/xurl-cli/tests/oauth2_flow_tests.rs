@@ -666,7 +666,7 @@ async fn step1_requests_every_scope_without_the_flag() {
 
     let url = step1_url(&store, &[]).await;
 
-    assert_eq!(query_param(&url, "scope").split(' ').count(), 24);
+    assert_eq!(query_param(&url, "scope").split(' ').count(), 26);
 }
 
 #[tokio::test]

@@ -233,6 +233,117 @@
       ]
     }
   },
+  "stream_sources": {
+    "data": {
+      "sources": [
+        {
+          "id": "1x2y3z4w5v6u",
+          "name": "Studio A",
+          "rtmp_region": "us-east-1",
+          "rtmp_url": "rtmp://va.pscp.tv:80/x",
+          "rtmps_url": "rtmps://va.pscp.tv:443/x",
+          "rtmp_stream_key": "1x2y3z4w5v6u",
+          "is_stream_active": false,
+          "creation_time": 1761148800000,
+          "owner_id": 1234567890123456789
+        }
+      ]
+    }
+  },
+  "stream_source": {
+    "data": {
+      "source": {
+        "id": "1x2y3z4w5v6u",
+        "name": "Studio A",
+        "rtmp_region": "us-east-1",
+        "rtmp_url": "rtmp://va.pscp.tv:80/x",
+        "rtmps_url": "rtmps://va.pscp.tv:443/x",
+        "rtmp_stream_key": "1x2y3z4w5v6u",
+        "is_stream_active": false,
+        "creation_time": 1761148800000,
+        "owner_id": 1234567890123456789
+      }
+    }
+  },
+  "stream_source_deleted": {
+    "data": {}
+  },
+  "call": {
+    "data": {
+      "id": "8a6f1c2e-call",
+      "title": "Standup",
+      "join_policy": "open",
+      "join_url": "https://x.com/i/calls/8a6f1c2e-call",
+      "host_id": "2244994945",
+      "created_at": "2026-10-23T14:58:00Z",
+      "participant_count": 3,
+      "viewer_may_join": true
+    },
+    "includes": {
+      "users": [
+        {
+          "id": "2244994945",
+          "name": "Host",
+          "username": "host"
+        }
+      ]
+    }
+  },
+  "scheduled_calls": {
+    "data": [
+      {
+        "id": "1849302018273645",
+        "call_id": "8a6f1c2e-call",
+        "title": "Standup",
+        "start_time": "2026-10-23T15:00:00Z",
+        "end_time": "2026-10-23T15:30:00Z",
+        "status": "scheduled",
+        "calendar": "x",
+        "join_url": "https://x.com/i/calls/8a6f1c2e-call",
+        "organizer_id": "2244994945",
+        "invitees": [
+          {
+            "id": "783214",
+            "response": "accepted"
+          }
+        ]
+      }
+    ]
+  },
+  "scheduled_call": {
+    "data": {
+      "id": "1849302018273645",
+      "call_id": "8a6f1c2e-call",
+      "title": "Standup",
+      "start_time": "2026-10-23T15:00:00Z",
+      "end_time": "2026-10-23T15:30:00Z",
+      "status": "scheduled",
+      "calendar": "x",
+      "join_url": "https://x.com/i/calls/8a6f1c2e-call",
+      "organizer_id": "2244994945",
+      "invitees": [
+        {
+          "id": "783214",
+          "response": "accepted"
+        }
+      ]
+    }
+  },
+  "scheduled_call_updated": {
+    "data": {
+      "updated": true
+    }
+  },
+  "scheduled_call_cancelled": {
+    "data": {
+      "cancelled": true
+    }
+  },
+  "scheduled_call_rsvp": {
+    "data": {
+      "response": "accepted"
+    }
+  },
   "media_metadata": {
     "data": {
       "id": "1880028106020515840",

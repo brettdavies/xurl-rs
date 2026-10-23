@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02 16:00"]
+store: empty
+exit_code: 0
+stdout_len: 175
+stderr_len: 0
+--- stdout ---
+{
+  "command": "calls-scheduled-add",
+  "exit_code": 1,
+  "reason": "invalid-call-time",
+  "start_time": "2026-11-02 16:00",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

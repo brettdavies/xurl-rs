@@ -27,8 +27,10 @@ use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, DmEvent, MediaMetadataResult,
-    MediaSubtitlesResult, Post, ProvisionedResult, SubscribedResult, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation,
+    MediaSubtitlesResult, Post, ProvisionedResult, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources,
+    SubscribedResult, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -184,6 +186,50 @@ fn typed_responses_match_vendored_spec() {
         (
             "CreateMediaSubtitlesResponseData",
             serde_json::to_value(schemars::schema_for!(MediaSubtitlesResult)).unwrap(),
+        ),
+        (
+            "ListSourcesResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSources)).unwrap(),
+        ),
+        (
+            "ListSourcesResponseDataSources",
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
+        ),
+        (
+            "GetSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+        ),
+        (
+            "CreateSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+        ),
+        (
+            "UpdateSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+        ),
+        (
+            "Call",
+            serde_json::to_value(schemars::schema_for!(XCall)).unwrap(),
+        ),
+        (
+            "ScheduledCall",
+            serde_json::to_value(schemars::schema_for!(ScheduledCall)).unwrap(),
+        ),
+        (
+            "ScheduleCallResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledCall)).unwrap(),
+        ),
+        (
+            "UpdateScheduledCallResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledCallUpdated)).unwrap(),
+        ),
+        (
+            "CancelScheduledCallResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledCallCancelled)).unwrap(),
+        ),
+        (
+            "RespondToScheduledCallResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledCallRsvp)).unwrap(),
         ),
         (
             "WebhookConfig",

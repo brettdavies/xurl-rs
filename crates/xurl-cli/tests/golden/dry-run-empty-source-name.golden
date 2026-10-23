@@ -1,0 +1,18 @@
+args: ["--output", "json", "--dry-run", "broadcasts", "sources", "add", "", "--region", "us-east-1"]
+store: empty
+exit_code: 0
+stdout_len: 181
+stderr_len: 0
+--- stdout ---
+{
+  "command": "broadcasts-sources-add",
+  "exit_code": 1,
+  "name": "",
+  "reason": "empty-source-name",
+  "region": "us-east-1",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

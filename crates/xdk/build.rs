@@ -151,6 +151,24 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/broadcasts/chat/moderators/{user_id}",
     ),
+    // broadcast stream sources
+    ("GET_STREAM_SOURCES", "GET", "/2/sources"),
+    ("CREATE_STREAM_SOURCE", "POST", "/2/sources"),
+    ("GET_STREAM_SOURCE", "GET", "/2/sources/{id}"),
+    ("RENAME_STREAM_SOURCE", "PUT", "/2/sources/{id}"),
+    ("DELETE_STREAM_SOURCE", "DELETE", "/2/sources/{id}"),
+    // calls
+    ("GET_CALL", "GET", "/2/calls/{id}"),
+    ("GET_SCHEDULED_CALLS", "GET", "/2/calls/scheduled"),
+    ("SCHEDULE_CALL", "POST", "/2/calls/scheduled"),
+    ("GET_SCHEDULED_CALL", "GET", "/2/calls/scheduled/{id}"),
+    ("UPDATE_SCHEDULED_CALL", "PUT", "/2/calls/scheduled/{id}"),
+    ("CANCEL_SCHEDULED_CALL", "DELETE", "/2/calls/scheduled/{id}"),
+    (
+        "RESPOND_TO_SCHEDULED_CALL",
+        "POST",
+        "/2/calls/scheduled/{id}/rsvp",
+    ),
     // webhooks
     ("GET_WEBHOOKS", "GET", "/2/webhooks"),
     ("CREATE_WEBHOOK", "POST", "/2/webhooks"),

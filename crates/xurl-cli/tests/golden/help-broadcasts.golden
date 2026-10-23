@@ -1,15 +1,16 @@
 args: ["broadcasts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6811
+stdout_len: 7074
 stderr_len: 0
 --- stdout ---
-Broadcast chat moderation
+Broadcast chat moderators and stream sources
 
 Usage: xr broadcasts [OPTIONS] <COMMAND>
 
 Commands:
   moderators  Manage who moderates your broadcast chats
+  sources     Manage the RTMP and RTMPS ingest points you stream to
   help        Print this message or the help of the given subcommand(s)
 
 Options:
@@ -154,6 +155,10 @@ Examples:
   Add and remove a moderator, JSON envelope:
     xr broadcasts moderators add @helper --output json
     xr broadcasts moderators remove @helper --output json
+  The ingest points you stream to (text):
+    xr broadcasts sources list
+  Create one, JSON envelope:
+    xr broadcasts sources add "Studio A" --region us-east-1 --output json
 
 --- stderr ---
 

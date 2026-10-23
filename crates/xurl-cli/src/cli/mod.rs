@@ -1419,12 +1419,21 @@ pub enum Commands {
     },
 
     // ── Broadcasts ───────────────────────────────────────────────────
-    /// Broadcast chat moderation
+    /// Broadcast chat moderators and stream sources
     #[command(after_help = family_help::broadcasts::root_page())]
     Broadcasts {
         /// `broadcasts` family subcommand.
         #[command(subcommand)]
         target: BroadcastsCommands,
+    },
+
+    // ── Calls ────────────────────────────────────────────────────────
+    /// X calls, and the calls on your calendar
+    #[command(after_help = family_help::calls::root_page())]
+    Calls {
+        /// `calls` family subcommand.
+        #[command(subcommand)]
+        target: CallsCommands,
     },
 
     // ── Webhooks ─────────────────────────────────────────────────────
@@ -1557,6 +1566,80 @@ pub enum BroadcastsCommands {
         #[command(subcommand)]
         action: ModeratorsCommands,
     },
+    /// Manage the RTMP and RTMPS ingest points you stream to
+    #[command(after_help = family_help::broadcast_sources::page())]
+    Sources {
+        /// `sources` verb to dispatch.
+        #[command(subcommand)]
+        action: SourcesCommands,
+    },
+}
+
+/// `xr broadcasts sources` verbs.
+#[derive(Subcommand, Debug)]
+pub enum SourcesCommands {
+    /// List your stream sources
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::LIST))]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Show one stream source, and whether it is receiving video
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::GET))]
+    Get {
+        /// Source ID, as `xr broadcasts sources list` prints it; it is also
+        /// the stream key
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Create a stream source
+    ///
+    /// Point an encoder at its `rtmps_url` with its `id` as the stream key.
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::ADD))]
+    Add {
+        /// A label for the source
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Ingest region: us-east-1, us-east-2, us-west-1, us-west-2,
+        /// ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1,
+        /// ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or
+        /// ap-northeast-2
+        #[arg(long, value_name = "REGION")]
+        region: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Rename a stream source
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::RENAME))]
+    Rename {
+        /// Source ID, as `xr broadcasts sources list` prints it
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// The new label
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a stream source; an encoder sending to it is no longer received
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::REMOVE))]
+    Remove {
+        /// Source ID, as `xr broadcasts sources list` prints it
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
 }
 
 /// `xr broadcasts moderators` verbs.
@@ -1589,6 +1672,201 @@ pub enum ModeratorsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+}
+
+/// `xr calls` family subcommands.
+#[derive(Subcommand, Debug)]
+pub enum CallsCommands {
+    /// Show an X call: its title, join policy, host, and who is in it
+    #[command(after_help = family_help::calls::FAMILY.verb_page(&family_help::calls::GET))]
+    Get {
+        /// Call ID, as a scheduled call's `call_id` gives it; it is also the
+        /// call's join secret
+        #[arg(value_name = "CALL_ID")]
+        call_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// The calls on your calendar: schedule, change, cancel, and answer them
+    #[command(after_help = family_help::scheduled_calls::page())]
+    Scheduled {
+        /// `scheduled` verb to dispatch.
+        #[command(subcommand)]
+        action: ScheduledCallsCommands,
+    },
+}
+
+/// `xr calls scheduled` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ScheduledCallsCommands {
+    /// List the calls on your calendar, earliest first
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::LIST))]
+    List {
+        /// Calls still running at this time or starting after it (RFC 3339);
+        /// X assumes now
+        #[arg(long, value_name = "TIME")]
+        from: Option<String>,
+        /// Calls starting before this time (RFC 3339); X assumes 24 hours
+        /// after `--from`
+        #[arg(long, value_name = "TIME")]
+        to: Option<String>,
+        /// Number of calls (1-100)
+        #[arg(short = 'n', long = "max-results", default_value_t = 20)]
+        max_results: i32,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Show a scheduled call, with its invitees and their answers
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::GET))]
+    Get {
+        /// Scheduled call ID, as `xr calls scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_CALL_ID")]
+        scheduled_call_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Schedule a call on your X Calls calendar and invite people to it
+    ///
+    /// The call exists at once: its `join_url` works from now. Invitees get
+    /// an email unless `--no-notify` is given.
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::ADD))]
+    Add {
+        /// When the call starts (RFC 3339 with a zone, such as
+        /// 2026-11-02T16:00:00Z); not in the past
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// What the call is, and who is invited
+        #[command(flatten)]
+        details: CallDetailsArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Move, rename, or re-invite a call you organize
+    ///
+    /// Only what the flags name changes; `--invite` replaces the invite
+    /// list.
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::UPDATE))]
+    Update {
+        /// Scheduled call ID, as `xr calls scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_CALL_ID")]
+        scheduled_call_id: String,
+        /// When the call, or the named occurrence, now starts (RFC 3339)
+        #[arg(long, value_name = "TIME")]
+        start: Option<String>,
+        /// What the call is, and who is invited
+        #[command(flatten)]
+        details: CallDetailsArgs,
+        /// Which occurrences of a recurring call change
+        #[command(flatten)]
+        occurrences: OccurrenceArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Cancel a call you organize and take it off invitees' calendars
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::CANCEL))]
+    Cancel {
+        /// Scheduled call ID, as `xr calls scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_CALL_ID")]
+        scheduled_call_id: String,
+        /// Which occurrences of a recurring call to cancel
+        #[command(flatten)]
+        occurrences: OccurrenceArgs,
+        /// Send invitees no email about the cancellation
+        #[arg(long)]
+        no_notify: bool,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Answer an invitation to a scheduled call
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::RSVP))]
+    Rsvp {
+        /// Scheduled call ID, as `xr calls scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_CALL_ID")]
+        scheduled_call_id: String,
+        /// Your answer
+        #[arg(value_name = "ANSWER", value_enum)]
+        answer: CallAnswer,
+        /// Which occurrences of a recurring call the answer is for
+        #[command(flatten)]
+        occurrences: OccurrenceArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// What a scheduled call is and who it invites, as scheduling and
+/// changing one both take them.
+#[derive(clap::Args, Debug)]
+pub struct CallDetailsArgs {
+    /// The title invitees see (100 characters at most)
+    #[arg(long, value_name = "TITLE")]
+    pub title: Option<String>,
+    /// What the call is about (1000 characters at most)
+    #[arg(long, value_name = "TEXT")]
+    pub description: Option<String>,
+    /// How long the call lasts, in minutes (at most 44640, 31 days); X
+    /// assumes 30
+    #[arg(long, value_name = "MINUTES")]
+    pub duration: Option<u32>,
+    /// Numeric user ID of someone to invite; repeat for each person
+    #[arg(long = "invite", value_name = "USER_ID")]
+    pub invite: Vec<String>,
+    /// The RFC 5545 RRULE to repeat the call by, such as
+    /// FREQ=WEEKLY;BYDAY=MO
+    #[arg(long, value_name = "RRULE")]
+    pub recurrence: Option<String>,
+    /// The IANA time zone the recurrence follows, such as America/Chicago
+    #[arg(long, value_name = "ZONE")]
+    pub time_zone: Option<String>,
+    /// Send invitees no email about it
+    #[arg(long)]
+    pub no_notify: bool,
+}
+
+/// The occurrences of a recurring scheduled call a request names; with
+/// neither flag, every occurrence.
+#[derive(clap::Args, Debug)]
+pub struct OccurrenceArgs {
+    /// Which occurrences, counted from `--occurrence`: X assumes `all`
+    /// without it and `this` with it
+    #[arg(long, value_enum, value_name = "SCOPE")]
+    pub scope: Option<CallScope>,
+    /// The occurrence's original start (RFC 3339), as a listed call's
+    /// `occurrence_start_time` gives it
+    #[arg(long, value_name = "TIME")]
+    pub occurrence: Option<String>,
+}
+
+/// Which occurrences of a recurring call a request applies to.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CallScope {
+    /// Every occurrence
+    All,
+    /// The named occurrence alone
+    This,
+    /// The named occurrence and every one after it
+    ThisAndFollowing,
+}
+
+/// An answer to a scheduled-call invitation.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CallAnswer {
+    /// You will attend
+    Accepted,
+    /// You will not attend
+    Declined,
+    /// You might attend
+    Tentative,
 }
 
 /// `xr webhooks` verbs.

@@ -15,7 +15,10 @@ use crate::cli::output::OutputFormat;
 use crate::cli::{Cli, ColorChoice};
 
 /// Jaro score a candidate must beat to be offered as the nearest command.
-const SUGGESTION_THRESHOLD: f64 = 0.7;
+/// Above clap's 0.7: at 0.7 a short command word such as `calls` matches
+/// unrelated words (`localhost` scores 0.785, `false` 0.733), while a one- or
+/// two-character typo of a command scores 0.9 or more.
+const SUGGESTION_THRESHOLD: f64 = 0.8;
 
 /// The name every hint gives the binary, however it was invoked.
 pub(crate) const ROOT_COMMAND: &str = "xr";

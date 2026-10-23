@@ -617,6 +617,36 @@ fn dry_run_cases() -> Vec<Case> {
     let long_body = "x".repeat(281);
     let long_alt_text = "x".repeat(1001);
     let long_webhook_url = format!("https://example.com/{}", "a".repeat(181));
+    let call_with = |extra: &[&str]| -> Vec<String> {
+        [
+            "--output",
+            "json",
+            "--dry-run",
+            "calls",
+            "scheduled",
+            "add",
+            "--start",
+            "2026-11-02T16:00:00Z",
+        ]
+        .iter()
+        .chain(extra)
+        .map(|a| (*a).to_string())
+        .collect()
+    };
+    let call_case = |name: &str, extra: &[&str]| Case {
+        name: name.to_string(),
+        args: call_with(extra),
+        ..Case::default()
+    };
+    let long_title = "x".repeat(101);
+    let long_description = "x".repeat(1001);
+    let long_recurrence = "x".repeat(501);
+    let long_time_zone = "x".repeat(65);
+    let invitees: Vec<String> = (1..=26).map(|n| n.to_string()).collect();
+    let mut many_invites: Vec<&str> = Vec::new();
+    for id in &invitees {
+        many_invites.extend(["--invite", id.as_str()]);
+    }
     let mut too_many: Vec<String> = ["--output", "json", "--dry-run", "post", "hi"]
         .iter()
         .map(|a| (*a).to_string())
@@ -798,6 +828,90 @@ fn dry_run_cases() -> Vec<Case> {
                 "1585341984679469056",
                 "--language",
                 "english",
+            ],
+        ),
+        case(
+            "dry-run-empty-source-name",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "sources",
+                "add",
+                "",
+                "--region",
+                "us-east-1",
+            ],
+        ),
+        case(
+            "dry-run-empty-source-region",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "sources",
+                "add",
+                "Studio A",
+                "--region",
+                "",
+            ],
+        ),
+        case(
+            "dry-run-invalid-call-time",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "calls",
+                "scheduled",
+                "add",
+                "--start",
+                "2026-11-02 16:00",
+            ],
+        ),
+        call_case("dry-run-call-title-too-long", &["--title", &long_title]),
+        call_case(
+            "dry-run-call-description-too-long",
+            &["--description", &long_description],
+        ),
+        call_case(
+            "dry-run-call-recurrence-too-long",
+            &["--recurrence", &long_recurrence],
+        ),
+        call_case(
+            "dry-run-call-time-zone-too-long",
+            &["--time-zone", &long_time_zone],
+        ),
+        call_case("dry-run-invalid-call-duration", &["--duration", "0"]),
+        call_case("dry-run-too-many-invitees", &many_invites),
+        case(
+            "dry-run-no-call-changes",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "calls",
+                "scheduled",
+                "update",
+                "1849302018273645",
+                "--scope",
+                "this",
+            ],
+        ),
+        case(
+            "dry-run-empty-call-recurrence",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "calls",
+                "scheduled",
+                "update",
+                "1849302018273645",
+                "--recurrence",
+                "",
             ],
         ),
     ]

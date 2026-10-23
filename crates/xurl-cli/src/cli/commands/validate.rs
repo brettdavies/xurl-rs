@@ -19,8 +19,9 @@ use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
     LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
-    RepostedResult, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation,
+    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -114,6 +115,15 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<SubscribedResult>("subscribed"),
     typed_alias::<Vec<WebhookStreamLink>>("stream-links"),
     typed_alias::<ProvisionedResult>("stream-link"),
+    typed_alias::<StreamSources>("stream-sources"),
+    typed_alias::<StreamSourceResult>("stream-source"),
+    typed_alias::<StreamSourceDeleted>("stream-source-deleted"),
+    typed_alias::<XCall>("call"),
+    typed_alias::<Vec<ScheduledCall>>("scheduled-calls"),
+    typed_alias::<ScheduledCall>("scheduled-call"),
+    typed_alias::<ScheduledCallUpdated>("scheduled-call-updated"),
+    typed_alias::<ScheduledCallCancelled>("scheduled-call-cancelled"),
+    typed_alias::<ScheduledCallRsvp>("rsvp"),
 ];
 
 /// Every name `--schema` accepts, in declaration order.
