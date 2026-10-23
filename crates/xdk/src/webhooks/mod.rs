@@ -20,7 +20,7 @@
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full, Limited};
@@ -125,11 +125,41 @@ pub struct Event {
     pub body: Vec<u8>,
     /// How the event's origin was established.
     pub signature: Signature,
+    /// The headers a forward repeats, as they arrived: `Content-Type`, and
+    /// the signature header that established [`Event::signature`]. Names are
+    /// lowercase; a header whose value is not visible ASCII is left out.
+    pub headers: Vec<(String, String)>,
+    /// When the request arrived.
+    pub received_at: SystemTime,
 }
 
 /// A bound webhook receiver.
 ///
 /// Dropping it stops the listener and releases the port.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use tokio_util::sync::CancellationToken;
+/// use xdk::webhooks::{Receiver, ReceiverConfig, SigningSecrets};
+///
+/// #[tokio::main]
+/// async fn main() -> xdk::Result<()> {
+///     let secrets = SigningSecrets {
+///         oauth2_client_secret: Some("the app's client secret".to_string()),
+///         oauth1_consumer_secret: None,
+///     };
+///     let bind = "127.0.0.1:8080".parse().expect("an address");
+///     let config = ReceiverConfig::new(bind, secrets);
+///     // Binding starts answering X's CRC check.
+///     let mut receiver = Receiver::bind(config, CancellationToken::new()).await?;
+///     println!("answering on {}", receiver.local_addr());
+///     while let Some(event) = receiver.next_event().await {
+///         println!("{} bytes at {:?}", event.body.len(), event.received_at);
+///     }
+///     Ok(())
+/// }
+/// ```
 #[derive(Debug)]
 pub struct Receiver {
     local_addr: SocketAddr,
@@ -293,6 +323,7 @@ fn answer_crc(shared: &Shared, request: &Request<Incoming>) -> Response<Full<Byt
 }
 
 async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<Full<Bytes>> {
+    let received_at = SystemTime::now();
     let header = |name: &str| {
         request
             .headers()
@@ -302,6 +333,7 @@ async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<
     };
     let oauth2_signature = header(OAUTH2_SIGNATURE_HEADER);
     let legacy_signature = header(LEGACY_SIGNATURE_HEADER);
+    let content_type = header(CONTENT_TYPE.as_str());
 
     let limited = Limited::new(request.into_body(), shared.config.max_body_bytes);
     let body = match tokio::time::timeout(REQUEST_TIMEOUT, limited.collect()).await {
@@ -316,11 +348,10 @@ async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<
     let secrets = &shared.config.secrets;
     // The OAuth2 header decides whenever it is present, as X's documentation
     // says; the legacy header is read only in its absence.
-    let signature = if let Some(given) = oauth2_signature {
-        verified(secrets.oauth2_client_secret.as_deref(), &body, &given)
-            .then_some(Signature::OAuth2)
-    } else if let Some(given) = legacy_signature {
-        verified(secrets.oauth1_consumer_secret.as_deref(), &body, &given)
+    let signature = if let Some(given) = &oauth2_signature {
+        verified(secrets.oauth2_client_secret.as_deref(), &body, given).then_some(Signature::OAuth2)
+    } else if let Some(given) = &legacy_signature {
+        verified(secrets.oauth1_consumer_secret.as_deref(), &body, given)
             .then_some(Signature::OAuth1)
     } else if shared.config.allow_unsigned {
         Some(Signature::Unsigned)
@@ -333,9 +364,22 @@ async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<
         return plain(StatusCode::UNAUTHORIZED, "Invalid signature");
     };
 
+    let signature_header = match signature {
+        Signature::OAuth2 => oauth2_signature.map(|value| (OAUTH2_SIGNATURE_HEADER, value)),
+        Signature::OAuth1 => legacy_signature.map(|value| (LEGACY_SIGNATURE_HEADER, value)),
+        Signature::Unsigned => None,
+    };
+    let headers = content_type
+        .map(|value| (CONTENT_TYPE.as_str(), value))
+        .into_iter()
+        .chain(signature_header)
+        .map(|(name, value)| (name.to_string(), value))
+        .collect();
     let event = Event {
         body: body.to_vec(),
         signature,
+        headers,
+        received_at,
     };
     if shared.sender.send(event).await.is_err() {
         return plain(StatusCode::SERVICE_UNAVAILABLE, "Service Unavailable");
