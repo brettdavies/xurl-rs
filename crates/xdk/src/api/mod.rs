@@ -37,8 +37,9 @@ pub use response::types::{
     DmEvent, DmSentResult, FollowingResult, Includes, LikedResult, MediaMetadataResult,
     MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post,
     PostPublicMetrics, ProvisionedResult, ReferencedPost, RepostedResult, ResponseMeta,
-    SubscribedResult, UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, deserialize_response,
+    StreamSource, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]

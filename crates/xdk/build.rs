@@ -151,6 +151,12 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/broadcasts/chat/moderators/{user_id}",
     ),
+    // broadcast stream sources
+    ("GET_STREAM_SOURCES", "GET", "/2/sources"),
+    ("CREATE_STREAM_SOURCE", "POST", "/2/sources"),
+    ("GET_STREAM_SOURCE", "GET", "/2/sources/{id}"),
+    ("RENAME_STREAM_SOURCE", "PUT", "/2/sources/{id}"),
+    ("DELETE_STREAM_SOURCE", "DELETE", "/2/sources/{id}"),
     // webhooks
     ("GET_WEBHOOKS", "GET", "/2/webhooks"),
     ("CREATE_WEBHOOK", "POST", "/2/webhooks"),

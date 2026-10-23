@@ -17,8 +17,9 @@ use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
     LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
-    RepostedResult, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation,
+    RepostedResult, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -60,6 +61,17 @@ struct PostMedia {
 #[derive(Serialize)]
 struct ChatModeratorBody {
     user_id: String,
+}
+
+#[derive(Serialize)]
+struct StreamSourceBody {
+    name: String,
+    region: String,
+}
+
+#[derive(Serialize)]
+struct StreamSourceNameBody {
+    name: String,
 }
 
 #[derive(Serialize)]
@@ -325,6 +337,31 @@ pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> 
 pub fn validate_replay_time(input: &str) -> std::result::Result<(), &'static str> {
     if input.len() != 12 || !input.bytes().all(|b| b.is_ascii_digit()) {
         return Err("invalid-replay-time");
+    }
+    Ok(())
+}
+
+/// Validates a stream source's name: at least one character that is not
+/// whitespace, the spec's `minLength`.
+///
+/// # Errors
+/// Returns `empty-source-name` for an empty or blank name.
+pub fn validate_source_name(name: &str) -> std::result::Result<(), &'static str> {
+    if name.trim().is_empty() {
+        return Err("empty-source-name");
+    }
+    Ok(())
+}
+
+/// Validates a stream source's ingest region: not empty, the spec's
+/// `minLength`. The spec lists the regions in prose rather than as an enum,
+/// so a region X adds later is not refused here.
+///
+/// # Errors
+/// Returns `empty-source-region` for an empty or blank region.
+pub fn validate_source_region(region: &str) -> std::result::Result<(), &'static str> {
+    if region.trim().is_empty() {
+        return Err("empty-source-region");
     }
     Ok(())
 }
@@ -1101,6 +1138,84 @@ impl Client {
             template(
                 endpoints::REMOVE_CHAT_MODERATOR.path,
                 HashMap::from([("user_id".to_string(), user_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Lists the authenticated user's RTMP and RTMPS stream sources.
+    pub fn get_stream_sources(&self) -> Call<ApiResponse<StreamSources>> {
+        self.call(
+            endpoints::GET_STREAM_SOURCES.method,
+            template(
+                endpoints::GET_STREAM_SOURCES.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Creates a stream source named `name` that ingests in `region`, such
+    /// as `us-east-1`. An encoder streams to its `rtmps_url` with its `id`
+    /// as the stream key.
+    pub fn create_stream_source(
+        &self,
+        name: &str,
+        region: &str,
+    ) -> Call<ApiResponse<StreamSourceResult>> {
+        self.post_json(
+            template(
+                endpoints::CREATE_STREAM_SOURCE.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &StreamSourceBody {
+                name: name.to_string(),
+                region: region.to_string(),
+            },
+        )
+    }
+
+    /// Reads one of the authenticated user's stream sources, including
+    /// whether it is receiving video.
+    pub fn get_stream_source(&self, source_id: &str) -> Call<ApiResponse<StreamSourceResult>> {
+        self.call(
+            endpoints::GET_STREAM_SOURCE.method,
+            template(
+                endpoints::GET_STREAM_SOURCE.path,
+                id_param(source_id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Renames one of the authenticated user's stream sources.
+    pub fn rename_stream_source(
+        &self,
+        source_id: &str,
+        name: &str,
+    ) -> Call<ApiResponse<StreamSourceResult>> {
+        self.json_call(
+            endpoints::RENAME_STREAM_SOURCE.method,
+            template(
+                endpoints::RENAME_STREAM_SOURCE.path,
+                id_param(source_id),
+                Vec::new(),
+            ),
+            &StreamSourceNameBody {
+                name: name.to_string(),
+            },
+        )
+    }
+
+    /// Deletes one of the authenticated user's stream sources; an encoder
+    /// sending to it is no longer received.
+    pub fn delete_stream_source(&self, source_id: &str) -> Call<ApiResponse<StreamSourceDeleted>> {
+        self.call(
+            endpoints::DELETE_STREAM_SOURCE.method,
+            template(
+                endpoints::DELETE_STREAM_SOURCE.path,
+                id_param(source_id),
                 Vec::new(),
             ),
         )

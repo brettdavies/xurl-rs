@@ -383,6 +383,72 @@ pub struct ChatModeratorsResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+// ── Broadcast stream sources ────────────────────────────────────────
+
+/// A persistent RTMP and RTMPS ingest point for the account's broadcasts.
+///
+/// The spec closes this object to further properties, so it carries no
+/// forward-compatibility bucket.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamSource {
+    /// Source identifier. It is also the stream key an encoder sends, so
+    /// whoever holds it can stream to the source.
+    pub id: String,
+    /// The label the account gave the source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Ingest region, such as `us-east-1`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rtmp_region: Option<String>,
+    /// RTMP ingest URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rtmp_url: Option<String>,
+    /// RTMPS ingest URL, on port 443.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rtmps_url: Option<String>,
+    /// The stream key, equal to `id`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rtmp_stream_key: Option<String>,
+    /// Whether the source is receiving video now.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_stream_active: Option<bool>,
+    /// When the source was created, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub creation_time: Option<u64>,
+    /// The owner's numeric user id. X sends it as a JSON number past the
+    /// range a 64-bit float holds exactly; this field keeps every digit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_id: Option<u64>,
+}
+
+/// The account's stream sources.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamSources {
+    /// Every source the account has, or none.
+    pub sources: Vec<StreamSource>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// One stream source, as reading, creating, and renaming a source answer.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamSourceResult {
+    /// The source.
+    pub source: StreamSource,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// What X answers a deleted stream source with: an empty object.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamSourceDeleted {
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Webhooks ────────────────────────────────────────────────────────
 
 /// A webhook registered with X.

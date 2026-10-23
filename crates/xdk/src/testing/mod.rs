@@ -280,6 +280,31 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_STREAM_SOURCES,
+        fixture: "stream_sources",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_STREAM_SOURCE,
+        fixture: "stream_source",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_STREAM_SOURCE,
+        fixture: "stream_source",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::RENAME_STREAM_SOURCE,
+        fixture: "stream_source",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_STREAM_SOURCE,
+        fixture: "stream_source_deleted",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_WEBHOOKS,
         fixture: "webhook_list",
         status: 200,

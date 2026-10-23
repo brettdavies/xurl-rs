@@ -27,8 +27,9 @@ use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, DmEvent, MediaMetadataResult,
-    MediaSubtitlesResult, Post, ProvisionedResult, SubscribedResult, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation,
+    MediaSubtitlesResult, Post, ProvisionedResult, StreamSource, StreamSourceResult, StreamSources,
+    SubscribedResult, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -184,6 +185,26 @@ fn typed_responses_match_vendored_spec() {
         (
             "CreateMediaSubtitlesResponseData",
             serde_json::to_value(schemars::schema_for!(MediaSubtitlesResult)).unwrap(),
+        ),
+        (
+            "ListSourcesResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSources)).unwrap(),
+        ),
+        (
+            "ListSourcesResponseDataSources",
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
+        ),
+        (
+            "GetSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+        ),
+        (
+            "CreateSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+        ),
+        (
+            "UpdateSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
         ),
         (
             "WebhookConfig",

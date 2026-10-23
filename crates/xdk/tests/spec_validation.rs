@@ -24,8 +24,9 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult,
     FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse,
-    MutingResult, Post, ProvisionedResult, RepostedResult, SubscribedResult, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation,
+    MutingResult, Post, ProvisionedResult, RepostedResult, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -387,6 +388,34 @@ fn spec_chat_moderators() {
 }
 
 #[test]
+fn spec_stream_sources() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSources> =
+        serde_json::from_value(examples["stream_sources"].clone()).unwrap();
+    assert_eq!(resp.data.sources[0].id, "1x2y3z4w5v6u");
+    assert_eq!(
+        resp.data.sources[0].owner_id,
+        Some(1_234_567_890_123_456_789)
+    );
+}
+
+#[test]
+fn spec_stream_source() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSourceResult> =
+        serde_json::from_value(examples["stream_source"].clone()).unwrap();
+    assert_eq!(resp.data.source.rtmp_region.as_deref(), Some("us-east-1"));
+}
+
+#[test]
+fn spec_stream_source_deleted() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSourceDeleted> =
+        serde_json::from_value(examples["stream_source_deleted"].clone()).unwrap();
+    assert!(resp.data.extra.is_empty());
+}
+
+#[test]
 fn spec_webhook_list() {
     let examples = load_examples();
     let resp: ApiResponse<Vec<Webhook>> =
@@ -572,6 +601,21 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "chat_moderators",
         endpoints::ADD_CHAT_MODERATOR,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_sources",
+        endpoints::GET_STREAM_SOURCES,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_source",
+        endpoints::GET_STREAM_SOURCE,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_source_deleted",
+        endpoints::DELETE_STREAM_SOURCE,
         ReplyKind::Success,
     ),
     ("webhook_list", endpoints::GET_WEBHOOKS, ReplyKind::Success),
