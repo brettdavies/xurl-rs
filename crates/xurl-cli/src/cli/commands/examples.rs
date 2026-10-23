@@ -123,6 +123,18 @@ BROADCASTS:
     xr broadcasts sources add \"Studio A\" --region us-east-1 --output json
     xr broadcasts sources get 1x2y3z4w5v6u --output json
 
+CALLS:
+  The calls on your calendar in a week, then one with its invitees' answers:
+    xr calls scheduled list --from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z --output json
+    xr calls scheduled get 1849302018273645 --output json
+
+  Schedule a call, invite someone, and answer an invitation:
+    xr calls scheduled add --start 2026-11-02T16:00:00Z --title Standup --invite 2244994945 --output json
+    xr calls scheduled rsvp 1849302018273645 accepted
+
+  Who is in a call, and whether you may join:
+    xr calls get 8a6f1c2e --output json
+
 WEBHOOKS:
   Which webhooks the app has registered:
     xr webhooks list --output json

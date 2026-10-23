@@ -55,6 +55,8 @@ const OVERRIDES: &[(&str, &[&str])] = &[
         "webhooks replay",
         &[SAMPLE, "--from", "202601150000", "--to", "202601151200"],
     ),
+    ("calls scheduled add", &["--start", "2026-11-02T16:00:00Z"]),
+    ("calls scheduled update", &[SAMPLE, "--title", "Retro"]),
 ];
 
 /// Arguments that let the command at `path` parse and reach the point where

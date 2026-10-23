@@ -1,0 +1,18 @@
+args: ["--output", "json", "--dry-run", "calls", "scheduled", "update", "1849302018273645", "--recurrence", ""]
+store: empty
+exit_code: 0
+stdout_len: 209
+stderr_len: 0
+--- stdout ---
+{
+  "command": "calls-scheduled-update",
+  "exit_code": 1,
+  "reason": "empty-call-recurrence",
+  "recurrence": "",
+  "scheduled_call_id": "1849302018273645",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 3612
+stdout_len: 4035
 stderr_len: 0
 --- stdout ---
 auth-apps-list                 Vec<AppStatusEntry>
@@ -18,6 +18,13 @@ broadcasts-sources-get         ApiResponse<StreamSourceResult>
 broadcasts-sources-list        ApiResponse<StreamSources>
 broadcasts-sources-remove      ApiResponse<StreamSourceDeleted>
 broadcasts-sources-rename      ApiResponse<StreamSourceResult>
+calls-get                      ApiResponse<XCall>
+calls-scheduled-add            ApiResponse<ScheduledCall>
+calls-scheduled-cancel         ApiResponse<ScheduledCallCancelled>
+calls-scheduled-get            ApiResponse<ScheduledCall>
+calls-scheduled-list           ApiResponse<Vec<ScheduledCall>>
+calls-scheduled-rsvp           ApiResponse<ScheduledCallRsvp>
+calls-scheduled-update         ApiResponse<ScheduledCallUpdated>
 delete                         ApiResponse<DeletedResult>
 dm                             ApiResponse<DmSentResult>
 dms                            ApiResponse<Vec<DmEvent>>

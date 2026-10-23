@@ -236,6 +236,114 @@ pub mod broadcast_sources {
     }
 }
 
+/// The `xr calls` family.
+pub mod calls {
+    use super::{Example, Family, Section, Verb, page_of, scheduled_calls};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "calls" };
+
+    /// `xr calls get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "8a6f1c2e",
+        text_caption: "Who hosts a call, who is in it, and whether you may join (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr calls --help`.
+    #[must_use]
+    pub fn root_page() -> String {
+        const CALLS: &[Section<'static>] = &[("Look up a call (text)", &[Example::text(&GET)])];
+        const SCHEDULED: &[Section<'static>] = &[
+            (
+                "The calls on your calendar this week (text)",
+                &[Example::text(&scheduled_calls::LIST)],
+            ),
+            (
+                "Schedule one, JSON envelope",
+                &[Example::json(&scheduled_calls::ADD)],
+            ),
+        ];
+        page_of(&[(&FAMILY, CALLS), (&scheduled_calls::FAMILY, SCHEDULED)])
+    }
+}
+
+/// The `xr calls scheduled` family.
+pub mod scheduled_calls {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "calls scheduled",
+    };
+
+    /// `xr calls scheduled list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "--from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z",
+        text_caption: "The calls on your calendar in a week (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr calls scheduled get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "1849302018273645",
+        text_caption: "A call with its invitees and their answers (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr calls scheduled add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "--start 2026-11-02T16:00:00Z --title Standup --duration 15 --invite 2244994945",
+        text_caption: "Schedule a 15-minute call and invite someone (text)",
+        json_caption: "Schedule (JSON envelope)",
+    };
+
+    /// `xr calls scheduled update`.
+    pub const UPDATE: Verb = Verb {
+        name: "update",
+        example_args: "1849302018273645 --start 2026-11-02T17:00:00Z",
+        text_caption: "Move a call an hour later (text)",
+        json_caption: "Move (JSON envelope)",
+    };
+
+    /// `xr calls scheduled cancel`.
+    pub const CANCEL: Verb = Verb {
+        name: "cancel",
+        example_args: "1849302018273645 --force --no-interactive",
+        text_caption: "Cancel a call with no prompt, as a script does (text)",
+        json_caption: "Cancel (JSON envelope)",
+    };
+
+    /// `xr calls scheduled rsvp`.
+    pub const RSVP: Verb = Verb {
+        name: "rsvp",
+        example_args: "1849302018273645 accepted",
+        text_caption: "Accept an invitation (text)",
+        json_caption: "Accept (JSON envelope)",
+    };
+
+    /// The page under `xr calls scheduled --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "The calls on your calendar in a week (text)",
+                &[Example::text(&LIST)],
+            ),
+            (
+                "Schedule a call, then move it, JSON envelope",
+                &[Example::json(&ADD), Example::json(&UPDATE)],
+            ),
+            ("Answer an invitation (text)", &[Example::text(&RSVP)]),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr webhooks` family.
 pub mod webhooks {
     use super::{Example, Family, Section, Verb};
