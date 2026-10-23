@@ -168,6 +168,18 @@ fn sigpipe_smoke() {
         !stderr.contains("BrokenPipe"),
         "child surfaced BrokenPipe (SIGPIPE restoration likely drifted): {stderr}"
     );
+    // The exit status holds whatever a panic prints: the panic hook answers
+    // with the `internal` record and exit 1, which these text checks alone
+    // would pass over if its wording changed.
+    use std::os::unix::process::ExitStatusExt;
+    #[cfg(unix)]
+    let sigpipe = libc::SIGPIPE;
+    assert!(
+        output.status.code() == Some(0) || output.status.signal() == Some(sigpipe),
+        "child neither exited 0 nor died by SIGPIPE (restoration likely drifted): {:?}; \
+         stderr: {stderr}",
+        output.status
+    );
 }
 
 /// The signed-sample builder `listen` prints from lives outside the library's
