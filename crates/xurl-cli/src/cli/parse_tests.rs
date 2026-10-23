@@ -151,12 +151,13 @@ fn broadcasts_moderators_add_binds_the_handle() {
     let Some(Commands::Broadcasts { target }) = parsed.command else {
         panic!("expected Broadcasts subcommand");
     };
-    let BroadcastsCommands::Moderators { action } = target;
-    match action {
-        ModeratorsCommands::Add {
-            target_username, ..
+    match target {
+        BroadcastsCommands::Moderators {
+            action: ModeratorsCommands::Add {
+                target_username, ..
+            },
         } => assert_eq!(target_username, "@alice"),
-        other => panic!("expected the add verb, got {other:?}"),
+        other => panic!("expected the moderators add verb, got {other:?}"),
     }
 }
 

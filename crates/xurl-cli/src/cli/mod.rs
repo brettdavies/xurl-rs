@@ -1419,7 +1419,7 @@ pub enum Commands {
     },
 
     // ── Broadcasts ───────────────────────────────────────────────────
-    /// Broadcast chat moderation
+    /// Broadcast chat moderators and stream sources
     #[command(after_help = family_help::broadcasts::root_page())]
     Broadcasts {
         /// `broadcasts` family subcommand.
@@ -1556,6 +1556,80 @@ pub enum BroadcastsCommands {
         /// `moderators` verb to dispatch.
         #[command(subcommand)]
         action: ModeratorsCommands,
+    },
+    /// Manage the RTMP and RTMPS ingest points you stream to
+    #[command(after_help = family_help::broadcast_sources::page())]
+    Sources {
+        /// `sources` verb to dispatch.
+        #[command(subcommand)]
+        action: SourcesCommands,
+    },
+}
+
+/// `xr broadcasts sources` verbs.
+#[derive(Subcommand, Debug)]
+pub enum SourcesCommands {
+    /// List your stream sources
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::LIST))]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Show one stream source, and whether it is receiving video
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::GET))]
+    Get {
+        /// Source ID, as `xr broadcasts sources list` prints it; it is also
+        /// the stream key
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Create a stream source
+    ///
+    /// Point an encoder at its `rtmps_url` with its `id` as the stream key.
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::ADD))]
+    Add {
+        /// A label for the source
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Ingest region: us-east-1, us-east-2, us-west-1, us-west-2,
+        /// ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1,
+        /// ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or
+        /// ap-northeast-2
+        #[arg(long, value_name = "REGION")]
+        region: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Rename a stream source
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::RENAME))]
+    Rename {
+        /// Source ID, as `xr broadcasts sources list` prints it
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// The new label
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a stream source; an encoder sending to it is no longer received
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::REMOVE))]
+    Remove {
+        /// Source ID, as `xr broadcasts sources list` prints it
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
     },
 }
 

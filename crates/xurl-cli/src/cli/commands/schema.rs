@@ -13,8 +13,9 @@ use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
     LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
-    RepostedResult, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation,
+    RepostedResult, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation,
 };
 use xdk::error::{Error, Result};
 
@@ -122,6 +123,25 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<ChatModeratorsResult>).into(),
     },
     SchemaEntry {
+        commands: &["broadcasts-sources-list"],
+        type_name: "ApiResponse<StreamSources>",
+        schema: || schema_for!(ApiResponse<StreamSources>).into(),
+    },
+    SchemaEntry {
+        commands: &[
+            "broadcasts-sources-get",
+            "broadcasts-sources-add",
+            "broadcasts-sources-rename",
+        ],
+        type_name: "ApiResponse<StreamSourceResult>",
+        schema: || schema_for!(ApiResponse<StreamSourceResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["broadcasts-sources-remove"],
+        type_name: "ApiResponse<StreamSourceDeleted>",
+        schema: || schema_for!(ApiResponse<StreamSourceDeleted>).into(),
+    },
+    SchemaEntry {
         commands: &["webhooks-list"],
         type_name: "ApiResponse<Vec<Webhook>>",
         schema: || schema_for!(ApiResponse<Vec<Webhook>>).into(),
@@ -224,6 +244,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "auth-oauth2",
     "broadcasts",
     "broadcasts-moderators",
+    "broadcasts-sources",
     "completions",
     "examples",
     "media",

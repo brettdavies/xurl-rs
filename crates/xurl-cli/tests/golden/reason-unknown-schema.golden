@@ -3,7 +3,7 @@ store: empty
 stdin: "{}"
 exit_code: 1
 stdout_len: 0
-stderr_len: 1038
+stderr_len: 1164
 --- stdout ---
 
 --- stderr ---
@@ -38,9 +38,12 @@ stderr_len: 1038
     "subscriptions",
     "subscribed",
     "stream-links",
-    "stream-link"
+    "stream-link",
+    "stream-sources",
+    "stream-source",
+    "stream-source-deleted"
   ],
-  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators, alt-text, subtitles, webhook, webhooks, webhook-validation, webhook-replay, subscription-count, subscriptions, subscribed, stream-links, stream-link or omit --schema for auto-detection",
+  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators, alt-text, subtitles, webhook, webhooks, webhook-validation, webhook-replay, subscription-count, subscriptions, subscribed, stream-links, stream-link, stream-sources, stream-source, stream-source-deleted or omit --schema for auto-detection",
   "next_step": {
     "action": "show-help",
     "command": "xr validate --help"

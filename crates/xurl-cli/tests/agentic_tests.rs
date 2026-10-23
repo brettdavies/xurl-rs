@@ -826,24 +826,30 @@ const CONFIRMED_COMMANDS: &[&str] = &[
     "webhooks remove",
     "webhooks subscriptions remove",
     "webhooks stream-links remove",
+    "broadcasts sources remove",
 ];
 
 /// Each command that confirms a destructive op is on the list above, so a new
-/// one cannot escape the example check below.
+/// one cannot escape the example check below. A command confirms either by
+/// calling `gate_destructive` itself or by handing its request to
+/// `send_confirmed`, whose own gate call is not a command.
 #[test]
 fn every_confirmed_command_is_listed() {
     let call_sites: usize = common::workspace_sources()
         .iter()
         .map(|file| {
             let source = std::fs::read_to_string(file).unwrap();
-            source.matches("gate_destructive(").count()
+            let gated = source.matches("gate_destructive(").count()
                 - source.matches("fn gate_destructive(").count()
+                - source.matches("fn send_confirmed").count();
+            gated + source.matches("send_confirmed(").count()
+                - source.matches("fn send_confirmed(").count()
         })
         .sum();
     assert_eq!(
         call_sites,
         CONFIRMED_COMMANDS.len(),
-        "the number of commands calling gate_destructive changed; update CONFIRMED_COMMANDS"
+        "the number of commands that confirm a destructive op changed; update CONFIRMED_COMMANDS"
     );
 }
 

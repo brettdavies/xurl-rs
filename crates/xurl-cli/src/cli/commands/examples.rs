@@ -119,6 +119,10 @@ BROADCASTS:
     xr broadcasts moderators add @helper
     xr broadcasts moderators remove @helper --output json
 
+  Create a stream source, stream to its rtmps_url with its id as the key, and check it is live:
+    xr broadcasts sources add \"Studio A\" --region us-east-1 --output json
+    xr broadcasts sources get 1x2y3z4w5v6u --output json
+
 WEBHOOKS:
   Which webhooks the app has registered:
     xr webhooks list --output json

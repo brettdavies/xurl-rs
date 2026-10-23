@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 6815
+stdout_len: 7043
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -103,6 +103,10 @@ BROADCASTS:
   Add / remove a chat moderator:
     xr broadcasts moderators add @helper
     xr broadcasts moderators remove @helper --output json
+
+  Create a stream source, stream to its rtmps_url with its id as the key, and check it is live:
+    xr broadcasts sources add "Studio A" --region us-east-1 --output json
+    xr broadcasts sources get 1x2y3z4w5v6u --output json
 
 WEBHOOKS:
   Which webhooks the app has registered:

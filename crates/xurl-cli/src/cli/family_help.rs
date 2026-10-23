@@ -59,10 +59,7 @@ impl Family {
         parts.join(" ")
     }
 
-    /// Renders captioned sections as an `Examples:` block.
-    #[must_use]
-    pub fn page(&self, sections: &[Section<'_>]) -> String {
-        let mut out = String::from("Examples:\n");
+    fn push_sections(&self, out: &mut String, sections: &[Section<'_>]) {
         for (caption, examples) in sections {
             out.push_str("  ");
             out.push_str(caption);
@@ -73,7 +70,12 @@ impl Family {
                 out.push('\n');
             }
         }
-        out
+    }
+
+    /// Renders captioned sections as an `Examples:` block.
+    #[must_use]
+    pub fn page(&self, sections: &[Section<'_>]) -> String {
+        page_of(&[(self, sections)])
     }
 
     /// A verb's own page: its plain-text example, then the same command
@@ -87,9 +89,20 @@ impl Family {
     }
 }
 
+/// Renders sections drawn from several families as one `Examples:` block,
+/// for a page above more than one family.
+#[must_use]
+pub fn page_of(families: &[(&Family, &[Section<'_>])]) -> String {
+    let mut out = String::from("Examples:\n");
+    for (family, sections) in families {
+        family.push_sections(&mut out, sections);
+    }
+    out
+}
+
 /// The `xr broadcasts` family.
 pub mod broadcasts {
-    use super::{Example, Family, Section, Verb};
+    use super::{Example, Family, Section, Verb, broadcast_sources, page_of};
 
     /// The family every page below belongs to.
     pub const FAMILY: Family = Family {
@@ -123,7 +136,7 @@ pub mod broadcasts {
     /// The page under `xr broadcasts --help`.
     #[must_use]
     pub fn root_page() -> String {
-        const SECTIONS: &[Section<'static>] = &[
+        const MODERATORS: &[Section<'static>] = &[
             (
                 "Who moderates your broadcast chats (text)",
                 &[Example::text(&LIST)],
@@ -133,7 +146,17 @@ pub mod broadcasts {
                 &[Example::json(&ADD), Example::json(&REMOVE)],
             ),
         ];
-        FAMILY.page(SECTIONS)
+        const SOURCES: &[Section<'static>] = &[
+            (
+                "The ingest points you stream to (text)",
+                &[Example::text(&broadcast_sources::LIST)],
+            ),
+            (
+                "Create one, JSON envelope",
+                &[Example::json(&broadcast_sources::ADD)],
+            ),
+        ];
+        page_of(&[(&FAMILY, MODERATORS), (&broadcast_sources::FAMILY, SOURCES)])
     }
 
     /// The page under `xr broadcasts moderators --help`.
@@ -145,6 +168,69 @@ pub mod broadcasts {
                 &[Example::text(&LIST)],
             ),
             ("Add a moderator (JSON envelope)", &[Example::json(&ADD)]),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
+/// The `xr broadcasts sources` family.
+pub mod broadcast_sources {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "broadcasts sources",
+    };
+
+    /// `xr broadcasts sources list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "List your stream sources (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr broadcasts sources get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "1x2y3z4w5v6u",
+        text_caption: "Show a source and whether it is receiving video (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr broadcasts sources add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "\"Studio A\" --region us-east-1",
+        text_caption: "Create a source; stream to its rtmps_url with its id as the key (text)",
+        json_caption: "Create (JSON envelope)",
+    };
+
+    /// `xr broadcasts sources rename`.
+    pub const RENAME: Verb = Verb {
+        name: "rename",
+        example_args: "1x2y3z4w5v6u \"Studio B\"",
+        text_caption: "Rename a source (text)",
+        json_caption: "Rename (JSON envelope)",
+    };
+
+    /// `xr broadcasts sources remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1x2y3z4w5v6u --force --no-interactive",
+        text_caption: "Delete a source with no prompt, as a script does (text)",
+        json_caption: "Delete (JSON envelope)",
+    };
+
+    /// The page under `xr broadcasts sources --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("Your stream sources (text)", &[Example::text(&LIST)]),
+            (
+                "Create one, then check it is receiving video, JSON envelope",
+                &[Example::json(&ADD), Example::json(&GET)],
+            ),
         ];
         FAMILY.page(SECTIONS)
     }

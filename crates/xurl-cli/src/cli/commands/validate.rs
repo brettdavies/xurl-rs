@@ -19,8 +19,9 @@ use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
     LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
-    RepostedResult, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation,
+    RepostedResult, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -114,6 +115,9 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<SubscribedResult>("subscribed"),
     typed_alias::<Vec<WebhookStreamLink>>("stream-links"),
     typed_alias::<ProvisionedResult>("stream-link"),
+    typed_alias::<StreamSources>("stream-sources"),
+    typed_alias::<StreamSourceResult>("stream-source"),
+    typed_alias::<StreamSourceDeleted>("stream-source-deleted"),
 ];
 
 /// Every name `--schema` accepts, in declaration order.
