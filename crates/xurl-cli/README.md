@@ -566,8 +566,9 @@ a value you do not recognize as your default branch. A step carries a `command`,
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
 fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
 carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
-and `inspect-store` when a store command is what failed. Text mode prints the same advice as prose instead; the two need
-not match word for word.
+and `inspect-store` when a store command is what failed. The one `fix-input` that carries an invocation answers
+`address-in-use`: `listen` again on a free port. Text mode prints the same advice as prose instead; the two need not
+match word for word.
 
 ### Which Errors Carry a Step
 
@@ -599,6 +600,7 @@ not match word for word.
 | `invalid-request`            | `fix-input`                                                                                              |
 | `validation-failed`          | `fix-input`                                                                                              |
 | `io`                         | `fix-input`                                                                                              |
+| `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                |
 | `home-not-set`               | `fix-input`                                                                                              |
 | `destination-is-file`        | `fix-input`                                                                                              |
 | `remove-failed`              | `fix-input`                                                                                              |
@@ -613,7 +615,9 @@ Every reason has a row. The five actions that are not about credentials or help 
 
 - `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
 - `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
-  `xr` command repairs it. `docs` names X's page on response codes for a 400, a 404, or a 422.
+  `xr` command repairs it, except a port another process holds: the step is then `listen` again with `--port 0`, a
+  `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did. `docs` names
+  X's page on response codes for a 400, a 404, or a 422.
 - `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
 - `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
   the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by

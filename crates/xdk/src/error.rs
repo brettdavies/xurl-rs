@@ -233,6 +233,17 @@ pub enum Error {
         waited: std::time::Duration,
     },
 
+    /// A webhook receiver could not bind its address because another socket
+    /// holds it. Any other bind failure is [`Self::Io`].
+    #[error("could not bind {address}: the address is already in use")]
+    AddressInUse {
+        /// The address the receiver was asked to bind.
+        address: std::net::SocketAddr,
+        /// The error the operating system returned.
+        #[source]
+        source: std::io::Error,
+    },
+
     /// Auth method mismatch: the caller asked for, or auto-detect resolved,
     /// a scheme the endpoint's matrix entry does not accept. The payload is
     /// boxed so the error stays small on every `Result` an embedder returns;
@@ -517,6 +528,7 @@ impl Error {
                 ..
             }
             | Self::Io { .. }
+            | Self::AddressInUse { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
             | Self::InvalidUrl { .. }
@@ -566,7 +578,8 @@ impl Error {
             | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::TokenStore { .. }
-            | Self::ProcessingTimeout { .. } => None,
+            | Self::ProcessingTimeout { .. }
+            | Self::AddressInUse { .. } => None,
             Self::Api { .. } | Self::Internal(_) | Self::Json { .. } => Some(ISSUE_TRACKER),
         }
     }
@@ -609,6 +622,7 @@ impl Error {
     /// | `Internal`             | `internal`       |
     /// | `AuthMethodMismatch`   | `auth-method-mismatch` |
     /// | `ProcessingTimeout`    | `processing-timeout` |
+    /// | `AddressInUse`         | `address-in-use` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -635,6 +649,7 @@ impl Error {
             Self::InvalidPathParam { .. } => "invalid-path-param",
             Self::Internal(_) => "internal",
             Self::ProcessingTimeout { .. } => "processing-timeout",
+            Self::AddressInUse { .. } => "address-in-use",
         }
     }
 
@@ -653,7 +668,7 @@ impl Error {
             Self::Api { status: 429, .. } => EXIT_RATE_LIMITED,
             Self::Api { status: 404, .. } => EXIT_NOT_FOUND,
             Self::Api { .. } => EXIT_GENERAL_ERROR,
-            Self::Http { .. } | Self::Io { .. } => EXIT_NETWORK_ERROR,
+            Self::Http { .. } | Self::Io { .. } | Self::AddressInUse { .. } => EXIT_NETWORK_ERROR,
             Self::Json { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
@@ -767,9 +782,9 @@ pub const EXIT_RATE_LIMITED: i32 = 3;
 /// Resource not found (HTTP 404).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
-/// A transport or filesystem failure: [`Error::Http`] and [`Error::Io`]. An
-/// API response whose status has no code of its own exits
-/// [`EXIT_GENERAL_ERROR`].
+/// A transport or filesystem failure: [`Error::Http`], [`Error::Io`], and an
+/// address another socket holds, [`Error::AddressInUse`]. An API response
+/// whose status has no code of its own exits [`EXIT_GENERAL_ERROR`].
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 

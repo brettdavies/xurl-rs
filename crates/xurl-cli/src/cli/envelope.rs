@@ -97,6 +97,8 @@ pub enum Reason {
     Serialization,
     /// A file or stream could not be read or written.
     Io,
+    /// Another process holds the port `webhooks listen` was asked to bind.
+    AddressInUse,
     /// The token store could not be read or written.
     TokenStore,
     /// An invariant inside `xr` or the library did not hold.
@@ -167,7 +169,7 @@ pub struct ErrorBody {
     /// `invalid-request`, `server-error`, `api-error`, `network-error`,
     /// `invalid-args`, `unknown-command`, `invalid-method`,
     /// `invalid-url`, `invalid-path-param`, `validation`, `serialization`,
-    /// `io`, `token-store`, `internal`, `processing-timeout`,
+    /// `io`, `address-in-use`, `token-store`, `internal`, `processing-timeout`,
     /// `confirmation-required`, `no-tty`, `unsupported-pagination`, and the
     /// verb-local `invalid-json`, `unknown-schema`, `validation-failed`,
     /// `missing-host`, `home-not-set`, `destination-not-empty`,
@@ -200,7 +202,8 @@ pub struct ErrorBody {
     /// recovery is not an `xr` invocation carries neither, and `docs` when
     /// a page covers it: `enroll-app`, `wait-and-retry`, `retry`,
     /// `fix-input`, `report-issue`, and `inspect-store` when a store
-    /// command is what failed.
+    /// command is what failed. The one `fix-input` that carries an
+    /// invocation answers `address-in-use`: `listen` again on a free port.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.

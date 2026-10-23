@@ -72,7 +72,7 @@
     },
     "NextStep": {
       "additionalProperties": false,
-      "description": "The `next_step` object carried by an error envelope.\n\nAt most one of [`Self::command`] and [`Self::template`] is present: a\ncommand is a verbatim invocation safe for a non-TTY caller, while a\ntemplate is one the caller finishes or decides on before running it. It\ncarries angle-bracket placeholders to fill in, or, under\n[`NextAction::Confirm`], the invocation that destroys once it runs. A\nstep with neither names an action that is not an `xr` invocation, with\n`docs` when a page covers it: [`NextAction::EnrollApp`],\n[`NextAction::WaitAndRetry`], [`NextAction::Retry`],\n[`NextAction::FixInput`], [`NextAction::ReportIssue`], and\n[`NextAction::InspectStore`] when the command that failed is the one\nthat reports on the store.",
+      "description": "The `next_step` object carried by an error envelope.\n\nAt most one of [`Self::command`] and [`Self::template`] is present: a\ncommand is a verbatim invocation safe for a non-TTY caller, while a\ntemplate is one the caller finishes or decides on before running it. It\ncarries angle-bracket placeholders to fill in, or, under\n[`NextAction::Confirm`], the invocation that destroys once it runs. A\nstep with neither names an action that is not an `xr` invocation, with\n`docs` when a page covers it: [`NextAction::EnrollApp`],\n[`NextAction::WaitAndRetry`], [`NextAction::Retry`],\n[`NextAction::FixInput`], [`NextAction::ReportIssue`], and\n[`NextAction::InspectStore`] when the command that failed is the one\nthat reports on the store. The one [`NextAction::FixInput`] that carries\nan invocation is [`Self::listen_on_free_port`].",
       "properties": {
         "action": {
           "$ref": "#/$defs/NextAction",

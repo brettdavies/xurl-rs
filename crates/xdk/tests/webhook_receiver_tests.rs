@@ -10,6 +10,7 @@ use std::net::SocketAddr;
 use std::time::{Duration, SystemTime};
 
 use tokio_util::sync::CancellationToken;
+use xdk::error::{Error, NextAction};
 use xdk::webhooks::{Event, Receiver, ReceiverConfig, Signature, SigningSecrets};
 
 const CLIENT_SECRET: &str = "client-secret";
@@ -342,6 +343,45 @@ async fn a_receiver_with_no_secret_does_not_bind() {
     .expect_err("the CRC check cannot be answered without a secret");
 
     assert_eq!(err.kind(), "validation", "{err}");
+}
+
+#[tokio::test]
+async fn binding_a_port_another_listener_holds_is_address_in_use() {
+    let held = std::net::TcpListener::bind(loopback()).expect("a port to hold");
+    let address = held.local_addr().expect("its address");
+
+    let err = Receiver::bind(
+        ReceiverConfig::new(address, both_secrets()),
+        CancellationToken::new(),
+    )
+    .await
+    .expect_err("the port is taken");
+
+    assert_eq!(err.kind(), "address-in-use", "{err:?}");
+    assert!(
+        matches!(&err, Error::AddressInUse { address: named, .. } if *named == address),
+        "the error names the held address: {err:?}"
+    );
+    assert_eq!(err.exit_code(), 5);
+    assert_eq!(err.next_action(), Some(NextAction::FixInput));
+    assert_eq!(err.docs_url(), None);
+    let os = std::error::Error::source(&err)
+        .and_then(|source| source.downcast_ref::<std::io::Error>())
+        .expect("the OS error is the source");
+    assert_eq!(os.kind(), std::io::ErrorKind::AddrInUse);
+}
+
+#[tokio::test]
+async fn binding_an_address_the_host_does_not_have_stays_an_io_error() {
+    // 192.0.2.0/24 is TEST-NET-1 (RFC 5737), assigned to no host.
+    let err = Receiver::bind(
+        ReceiverConfig::new("192.0.2.1:0".parse().expect("an address"), both_secrets()),
+        CancellationToken::new(),
+    )
+    .await
+    .expect_err("no interface holds that address");
+
+    assert_eq!(err.kind(), "io", "{err:?}");
 }
 
 #[tokio::test]

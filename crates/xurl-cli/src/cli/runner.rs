@@ -369,6 +369,7 @@ where
                 crate::cli::hints::unloadable_store_hint(&snapshot, &e)
                     .or_else(|| crate::cli::hints::enrollment_hint(&e))
                     .or_else(|| crate::cli::hints::resume_wait_hint(&e))
+                    .or_else(|| crate::cli::hints::address_in_use_hint(&e, &invocation()))
                     .or_else(|| crate::cli::hints::wait_and_retry_hint(&e))
                     .or_else(|| {
                         crate::cli::hints::mismatch_hint(&snapshot, &e, &invocation(), structured)
