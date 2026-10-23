@@ -7,10 +7,10 @@
 //! hold the receiver to the algorithm and not to its own implementation.
 
 use std::net::SocketAddr;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use tokio_util::sync::CancellationToken;
-use xdk::webhooks::{Receiver, ReceiverConfig, Signature, SigningSecrets};
+use xdk::webhooks::{Event, Receiver, ReceiverConfig, Signature, SigningSecrets};
 
 const CLIENT_SECRET: &str = "client-secret";
 const CONSUMER_SECRET: &str = "consumer-secret";
@@ -51,6 +51,14 @@ async fn nothing_was_yielded(receiver: &mut Receiver) -> bool {
     tokio::time::timeout(Duration::from_millis(100), receiver.next_event())
         .await
         .is_err()
+}
+
+fn header<'a>(event: &'a Event, name: &str) -> Option<&'a str> {
+    event
+        .headers
+        .iter()
+        .find(|(held, _)| held.eq_ignore_ascii_case(name))
+        .map(|(_, value)| value.as_str())
 }
 
 #[tokio::test]
@@ -127,6 +135,73 @@ async fn an_event_signed_with_the_consumer_secret_is_yielded() {
     let event = receiver.next_event().await.expect("an event");
     assert_eq!(event.body, BODY.as_bytes());
     assert_eq!(event.signature, Signature::OAuth1);
+}
+
+#[tokio::test]
+async fn an_event_holds_its_signature_header_and_content_type_as_sent() {
+    let mut receiver = receiver(both_secrets()).await;
+
+    reqwest::Client::new()
+        .post(url(&receiver, "/webhook"))
+        .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
+        .header("Content-Type", "application/json; charset=utf-8")
+        .body(BODY)
+        .send()
+        .await
+        .expect("the receiver answers");
+
+    let event = receiver.next_event().await.expect("an event");
+    assert_eq!(
+        header(&event, OAUTH2_HEADER),
+        Some(BODY_UNDER_CLIENT_SECRET)
+    );
+    assert_eq!(
+        header(&event, "Content-Type"),
+        Some("application/json; charset=utf-8")
+    );
+    assert_eq!(header(&event, LEGACY_HEADER), None);
+}
+
+#[tokio::test]
+async fn a_legacy_signed_event_holds_the_legacy_header_only() {
+    let mut receiver = receiver(both_secrets()).await;
+
+    reqwest::Client::new()
+        .post(url(&receiver, "/webhook"))
+        .header(LEGACY_HEADER, BODY_UNDER_CONSUMER_SECRET)
+        .body(BODY)
+        .send()
+        .await
+        .expect("the receiver answers");
+
+    let event = receiver.next_event().await.expect("an event");
+    assert_eq!(
+        header(&event, LEGACY_HEADER),
+        Some(BODY_UNDER_CONSUMER_SECRET)
+    );
+    assert_eq!(header(&event, OAUTH2_HEADER), None);
+}
+
+#[tokio::test]
+async fn an_event_records_when_it_arrived() {
+    let mut receiver = receiver(both_secrets()).await;
+
+    let before = SystemTime::now();
+    reqwest::Client::new()
+        .post(url(&receiver, "/webhook"))
+        .header(OAUTH2_HEADER, BODY_UNDER_CLIENT_SECRET)
+        .body(BODY)
+        .send()
+        .await
+        .expect("the receiver answers");
+    let after = SystemTime::now();
+
+    let event = receiver.next_event().await.expect("an event");
+    assert!(
+        before <= event.received_at && event.received_at <= after,
+        "{:?} lies outside {before:?}..={after:?}",
+        event.received_at
+    );
 }
 
 #[tokio::test]
