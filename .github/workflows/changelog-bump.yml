@@ -22,9 +22,6 @@ concurrency:
   group: changelog-bump-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   surface:
     name: Surface growth needs a minor section
