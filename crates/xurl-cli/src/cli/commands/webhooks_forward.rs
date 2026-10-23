@@ -7,9 +7,10 @@
 //! writes both: stderr belongs to the run, and stdout keeps one line per
 //! event.
 
+use std::collections::VecDeque;
 use std::io::Write;
 use std::sync::Arc;
-use std::time::{Duration, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde_json::json;
 use tokio::sync::mpsc;
@@ -17,6 +18,7 @@ use tokio::task::JoinHandle;
 use xdk::time::utc_rfc3339;
 use xdk::webhooks::{Event, RetryBudget, UrlTarget};
 
+use super::webhooks_checkpoint::Progress;
 use super::webhooks_program::ProgramTarget;
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
@@ -113,16 +115,51 @@ pub(super) enum Report {
     Output(Vec<u8>),
 }
 
-/// One target's queue and its count of events not yet finished.
+/// One target's name and queue.
 struct Lane {
     kind: &'static str,
     queue: Option<mpsc::Sender<Arc<Event>>>,
-    pending: u64,
+}
+
+/// The arrivals of the events each target has not finished, oldest first.
+/// A worker finishes its events in queue order, so a finish always takes
+/// the front.
+pub(super) struct Pending {
+    lanes: Vec<VecDeque<SystemTime>>,
+}
+
+impl Pending {
+    pub(super) fn new(targets: usize) -> Self {
+        Self {
+            lanes: vec![VecDeque::new(); targets],
+        }
+    }
+
+    pub(super) fn queued(&mut self, target: usize, arrival: SystemTime) {
+        self.lanes[target].push_back(arrival);
+    }
+
+    pub(super) fn finished(&mut self, target: usize) {
+        self.lanes[target].pop_front();
+    }
+
+    pub(super) fn undelivered(&self, target: usize) -> usize {
+        self.lanes[target].len()
+    }
+
+    /// The arrival of the oldest event some target has not finished.
+    pub(super) fn oldest(&self) -> Option<SystemTime> {
+        self.lanes
+            .iter()
+            .filter_map(|lane| lane.front().copied())
+            .min()
+    }
 }
 
 /// The running forward targets of one `listen`.
 pub(super) struct Forwarding {
     lanes: Vec<Lane>,
+    pending: Pending,
     workers: Vec<JoinHandle<()>>,
     reports: mpsc::UnboundedReceiver<Report>,
     budget: RetryBudget,
@@ -139,7 +176,6 @@ impl Forwarding {
             lanes.push(Lane {
                 kind: target.kind(),
                 queue: Some(queue),
-                pending: 0,
             });
             let report = report.clone();
             workers.push(tokio::spawn(async move {
@@ -157,6 +193,7 @@ impl Forwarding {
             }));
         }
         Self {
+            pending: Pending::new(lanes.len()),
             lanes,
             workers,
             reports,
@@ -166,14 +203,19 @@ impl Forwarding {
 
     /// Puts `event` on every target's queue, waiting while a queue is full.
     pub(super) async fn queue(&mut self, event: &Arc<Event>) {
-        for lane in &mut self.lanes {
+        for (index, lane) in self.lanes.iter().enumerate() {
             let Some(queue) = &lane.queue else {
                 continue;
             };
             if queue.send(Arc::clone(event)).await.is_ok() {
-                lane.pending += 1;
+                self.pending.queued(index, event.received_at);
             }
         }
+    }
+
+    /// The arrival of the oldest event some target has not finished.
+    pub(super) fn oldest_pending(&self) -> Option<SystemTime> {
+        self.pending.oldest()
     }
 
     /// The next delivery a worker finished. A program's output that comes
@@ -194,16 +236,21 @@ impl Forwarding {
         stderr: &mut dyn Write,
         finished: &Finished,
     ) {
-        let lane = &mut self.lanes[finished.target];
-        lane.pending = lane.pending.saturating_sub(1);
-        write_record(out, stderr, lane.kind, finished);
+        self.pending.finished(finished.target);
+        write_record(out, stderr, self.lanes[finished.target].kind, finished);
     }
 
     /// Closes the queues and gives the workers until the deadline, one
     /// attempt timeout plus the budget's waits, to deliver what is queued;
-    /// another signal ends the wait at once. Whatever is still undelivered
-    /// then is counted in one record per target.
-    pub(super) async fn drain(mut self, out: &OutputConfig, stderr: &mut dyn Write) {
+    /// another signal ends the wait at once. Each finish moves `progress`
+    /// on; whatever is still undelivered at the end is counted in one record
+    /// per target, and holds the checkpoint at its minute.
+    pub(super) async fn drain(
+        mut self,
+        out: &OutputConfig,
+        stderr: &mut dyn Write,
+        progress: &mut Progress,
+    ) {
         for lane in &mut self.lanes {
             lane.queue = None;
         }
@@ -215,7 +262,10 @@ impl Forwarding {
             tokio::select! {
                 biased;
                 finished = self.next_finished(stderr) => match finished {
-                    Some(finished) => self.record(out, stderr, &finished),
+                    Some(finished) => {
+                        self.record(out, stderr, &finished);
+                        progress.advance(self.oldest_pending(), out, stderr);
+                    }
                     None => break,
                 },
                 () = &mut deadline => break,
@@ -235,9 +285,10 @@ impl Forwarding {
                 write_output(stderr, &lines);
             }
         }
-        for lane in &self.lanes {
-            if lane.pending > 0 {
-                write_incomplete(out, stderr, lane.kind, lane.pending);
+        for (index, lane) in self.lanes.iter().enumerate() {
+            let undelivered = self.pending.undelivered(index);
+            if undelivered > 0 {
+                write_incomplete(out, stderr, lane.kind, undelivered as u64);
             }
         }
         let _ = stderr.flush();
@@ -364,5 +415,67 @@ fn write_incomplete(
                  of the minutes they arrived in delivers them again."
             ),
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+    use super::Pending;
+
+    /// 15:04, 15:05, and 15:06 on 2026-10-22, UTC.
+    fn minute(n: u64) -> SystemTime {
+        UNIX_EPOCH + Duration::from_secs(1_792_681_440 + 60 * n)
+    }
+
+    const URL: usize = 0;
+    const PROGRAM: usize = 1;
+
+    fn three_events_on_two_targets() -> Pending {
+        let mut pending = Pending::new(2);
+        for n in 0..3 {
+            pending.queued(URL, minute(n));
+            pending.queued(PROGRAM, minute(n));
+        }
+        pending
+    }
+
+    #[test]
+    fn events_waiting_on_a_stalled_target_hold_the_checkpoint_at_the_oldest() {
+        let mut pending = three_events_on_two_targets();
+        for _ in 0..3 {
+            pending.finished(URL);
+        }
+
+        assert_eq!(
+            pending.oldest(),
+            Some(minute(0)),
+            "the program target, stalled, still holds the first event"
+        );
+        assert_eq!(pending.undelivered(PROGRAM), 3);
+        assert_eq!(pending.undelivered(URL), 0);
+    }
+
+    #[test]
+    fn a_finished_event_failed_or_delivered_stops_holding_the_checkpoint() {
+        let mut pending = three_events_on_two_targets();
+        for _ in 0..3 {
+            pending.finished(URL);
+        }
+        pending.finished(PROGRAM);
+
+        assert_eq!(pending.oldest(), Some(minute(1)));
+    }
+
+    #[test]
+    fn with_nothing_pending_there_is_no_oldest() {
+        let mut pending = three_events_on_two_targets();
+        for _ in 0..3 {
+            pending.finished(URL);
+            pending.finished(PROGRAM);
+        }
+
+        assert_eq!(pending.oldest(), None);
     }
 }

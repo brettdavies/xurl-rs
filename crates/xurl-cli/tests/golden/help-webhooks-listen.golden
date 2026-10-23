@@ -1,7 +1,7 @@
 args: ["webhooks", "listen", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 9064
+stdout_len: 9310
 stderr_len: 0
 --- stdout ---
 Receive webhook deliveries on a local address
@@ -65,6 +65,9 @@ Options:
           Use a specific registered app (overrides default)
           
           [env: XURL_APP=]
+
+      --checkpoint <FILE>
+          Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed
 
       --output <OUTPUT>
           Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`

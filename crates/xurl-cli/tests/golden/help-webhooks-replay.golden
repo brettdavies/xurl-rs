@@ -1,12 +1,12 @@
 args: ["webhooks", "replay", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7233
+stdout_len: 7424
 stderr_len: 0
 --- stdout ---
 Deliver a past window of events to a webhook again
 
-Usage: xr webhooks replay [OPTIONS] --from <YYYYMMDDHHMM> --to <YYYYMMDDHHMM> <WEBHOOK_ID>
+Usage: xr webhooks replay [OPTIONS] <WEBHOOK_ID>
 
 Arguments:
   <WEBHOOK_ID>
@@ -18,6 +18,9 @@ Options:
 
       --to <YYYYMMDDHHMM>
           End of the window: twelve digits, `yyyymmddhhmm` in UTC
+
+      --from-checkpoint <FILE>
+          Request the window from the minute `xr webhooks listen --checkpoint` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included
 
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)

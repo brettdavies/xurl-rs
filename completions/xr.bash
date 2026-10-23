@@ -9594,7 +9594,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__webhooks__subcmd__listen)
-            opts="-p -H -v -q -h --port --bind --path --secret --allow-unsigned --max-events --forward --header --forward-timeout --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help"
+            opts="-p -H -v -q -h --port --bind --path --secret --allow-unsigned --max-events --forward --header --forward-timeout --checkpoint --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -9637,6 +9637,10 @@ _xr() {
                     return 0
                     ;;
                 --forward-timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --checkpoint)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -9810,7 +9814,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__webhooks__subcmd__replay)
-            opts="-u -t -v -q -h --from --to --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help"
+            opts="-u -t -v -q -h --from --to --from-checkpoint --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -9821,6 +9825,10 @@ _xr() {
                     return 0
                     ;;
                 --to)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --from-checkpoint)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

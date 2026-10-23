@@ -17,6 +17,7 @@ mod streaming;
 mod usage;
 pub mod validate;
 mod webhooks;
+mod webhooks_checkpoint;
 mod webhooks_forward;
 mod webhooks_listen;
 mod webhooks_program;

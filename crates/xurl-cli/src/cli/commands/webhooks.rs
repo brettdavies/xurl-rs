@@ -14,8 +14,12 @@ use crate::cli::{
     CommonFlags, WebhookStreamLinksCommands, WebhookSubscriptionsCommands, WebhooksCommands,
 };
 use std::net::SocketAddr;
+use std::path::Path;
+use std::time::SystemTime;
 
 use xdk::api::shortcuts;
+use xdk::error::Error;
+use xdk::webhooks::{read_checkpoint, replay_window};
 
 pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult<()> {
     match action {
@@ -42,6 +46,7 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
             header,
             forward_timeout,
             program,
+            checkpoint,
         } => {
             let listener = Listener {
                 bind: SocketAddr::new(bind, port),
@@ -53,6 +58,7 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
                 headers: header,
                 forward_timeout,
                 program,
+                checkpoint,
             };
             listen(run, listener).await
         }
@@ -60,8 +66,18 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
             webhook_id,
             from,
             to,
+            from_checkpoint,
             common,
-        } => replay(run, &webhook_id, &from, &to, &common).await,
+        } => match from_checkpoint {
+            Some(checkpoint) => {
+                replay_from_checkpoint(run, &webhook_id, &checkpoint, &common).await
+            }
+            // clap requires both bounds when no checkpoint is given.
+            None => {
+                let (from, to) = (from.unwrap_or_default(), to.unwrap_or_default());
+                replay(run, &webhook_id, &from, &to, &common).await
+            }
+        },
     }
 }
 
@@ -341,6 +357,80 @@ async fn replay(
     );
     send_or_report(out, stdout, dry_run, call).await?;
     Ok(())
+}
+
+/// `replay --from-checkpoint`: the window from the minute `listen
+/// --checkpoint` recorded to the current one, sent as `--from` and `--to`
+/// are. The window rides beside X's answer, so a caller sees what a clamp
+/// left out.
+async fn replay_from_checkpoint(
+    run: Run<'_>,
+    webhook_id: &str,
+    checkpoint: &Path,
+    common: &CommonFlags,
+) -> CommandResult<()> {
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let mut ctx = json!({
+        "command": "webhooks-replay",
+        "webhook_id": webhook_id,
+        "checkpoint": checkpoint.display().to_string(),
+    });
+    let now = SystemTime::now();
+    let window = match read_checkpoint(checkpoint, now).and_then(|at| replay_window(at, now)) {
+        Ok(window) => window,
+        Err(error) if flags.dry_run => {
+            out.print_dry_run_refusal(stdout, &ctx, &with_both_fixes(error));
+            return Ok(());
+        }
+        Err(error) => return Err(with_both_fixes(error).into()),
+    };
+    ctx["from"] = json!(window.from);
+    ctx["to"] = json!(window.to);
+    ctx["clamped"] = json!(window.clamped);
+    if let Some(lost_from) = &window.lost_from {
+        ctx["lost_from"] = json!(lost_from);
+    }
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+        shortcuts::validate_webhook_id(webhook_id)
+    })?;
+    let client = make_client(cfg, auth)?;
+    let call = with_flags(
+        client.create_webhook_replay(webhook_id, &window.from, &window.to),
+        common,
+        None,
+    );
+    if dry_run.is_some() {
+        send_or_report(out, stdout, dry_run, call).await?;
+        return Ok(());
+    }
+    let mut answer = serde_json::to_value(call.send().await?).map_err(Error::from)?;
+    answer["clamped"] = json!(window.clamped);
+    if let Some(lost_from) = window.lost_from {
+        answer["lost_from"] = json!(lost_from);
+    }
+    out.print_response(stdout, &answer);
+    Ok(())
+}
+
+/// A checkpoint that could not be read, with both ways forward named.
+fn with_both_fixes(error: Error) -> Error {
+    match error {
+        Error::Io { message, source } => Error::Io {
+            message: format!(
+                "{message}. Give --from and --to instead, or start `xr webhooks listen \
+                 --checkpoint <FILE>` so the next restart has one"
+            ),
+            source,
+        },
+        other => other,
+    }
 }
 
 async fn stream_links(action: WebhookStreamLinksCommands, run: Run<'_>) -> CommandResult<()> {

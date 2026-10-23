@@ -265,6 +265,14 @@ impl ListenProcess {
         assert!(status.success(), "kill -INT failed");
     }
 
+    /// Kills the process outright, as an out-of-memory kill or a crash
+    /// would end it, and returns its stderr.
+    pub fn kill(mut self) -> String {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        self.stderr.join().unwrap_or_default()
+    }
+
     /// Waits for the exit, at most `within`, and returns the status and all
     /// of stderr. Past `within` the process is killed and the test fails.
     pub fn wait(self, within: std::time::Duration) -> (std::process::ExitStatus, String) {
