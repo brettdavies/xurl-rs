@@ -15,6 +15,7 @@ use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use xdk::webhooks::{Event, RetryBudget, UrlTarget};
 
+use super::webhooks_program::ProgramTarget;
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use crate::cli::output::rfc3339::utc_rfc3339;
@@ -30,6 +31,8 @@ const FAILED_SIDE_EFFECTS: &str = "printed, not delivered";
 pub(super) enum Target {
     /// The caller's HTTP endpoint.
     Url(UrlTarget),
+    /// The program after `--`, run once per event.
+    Program(ProgramTarget),
 }
 
 impl Target {
@@ -37,6 +40,7 @@ impl Target {
     fn kind(&self) -> &'static str {
         match self {
             Self::Url(_) => "url",
+            Self::Program(_) => "program",
         }
     }
 
@@ -54,6 +58,17 @@ impl Target {
                         .map_err(|failure| failure.to_string()),
                 }
             }
+            Self::Program(target) => {
+                let outcome = budget.run(|| target.attempt(event)).await;
+                Delivery {
+                    attempts: outcome.attempts,
+                    elapsed: outcome.elapsed,
+                    result: outcome
+                        .result
+                        .map(Answer::ExitStatus)
+                        .map_err(|failure| failure.to_string()),
+                }
+            }
         }
     }
 }
@@ -61,6 +76,7 @@ impl Target {
 /// What a target answered with when it took an event.
 enum Answer {
     HttpStatus(u16),
+    ExitStatus(i32),
 }
 
 /// What delivering one event came to.
@@ -180,8 +196,13 @@ impl Forwarding {
                 () = &mut another_signal => break,
             }
         }
+        // Awaiting each aborted worker drops the attempt it was in, which
+        // stops a program and everything it started before `listen` exits.
         for worker in &self.workers {
             worker.abort();
+        }
+        for worker in self.workers.drain(..) {
+            let _ = worker.await;
         }
         for lane in &self.lanes {
             if lane.pending > 0 {
@@ -222,24 +243,34 @@ fn write_record(
     let attempts = plural(u64::from(delivery.attempts), "attempt", "attempts");
     let elapsed_ms = u64::try_from(delivery.elapsed.as_millis()).unwrap_or(u64::MAX);
     match &delivery.result {
-        Ok(Answer::HttpStatus(status)) => {
+        Ok(answer) => {
+            let (key, value, said) = match answer {
+                Answer::HttpStatus(status) => (
+                    "http_status",
+                    i64::from(*status),
+                    format!("it answered {status}"),
+                ),
+                Answer::ExitStatus(code) => {
+                    ("exit_status", i64::from(*code), format!("it exited {code}"))
+                }
+            };
             if out.format.is_structured() {
-                let record = json!({
+                let mut record = json!({
                     "status": "forwarded",
                     "target": kind,
                     "attempts": delivery.attempts,
-                    "http_status": status,
                     "elapsed_ms": elapsed_ms,
                     "received_at": received_at,
                     "event_sha256": event.sha256(),
                 });
+                record[key] = json!(value);
                 let _ = writeln!(stderr, "{record}");
             } else {
                 out.info(
                     stderr,
                     &format!(
                         "Forwarded the event received at {received_at} to the {kind} target: \
-                         {status} after {attempts}, in {elapsed_ms} ms."
+                         {said} after {attempts}, in {elapsed_ms} ms."
                     ),
                 );
             }

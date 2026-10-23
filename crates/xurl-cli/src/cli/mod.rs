@@ -1665,7 +1665,10 @@ pub enum WebhooksCommands {
     /// `test_request`, the same request as data, on the JSON `listening`
     /// line, or the curl invocation on stderr in text. The sample's body
     /// carries `"xr_test_event": true`.
-    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::LISTEN))]
+    #[command(
+        after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::LISTEN),
+        group = clap::ArgGroup::new("target").args(["forward", "program"]).multiple(true)
+    )]
     Listen {
         /// Local port to listen on; 0 takes any free port
         #[arg(long, short = 'p', default_value_t = 8080)]
@@ -1706,10 +1709,17 @@ pub enum WebhooksCommands {
         #[arg(
             long,
             value_name = "SECS",
-            requires = "forward",
+            requires = "target",
             value_parser = clap::value_parser!(u64).range(1..)
         )]
         forward_timeout: Option<u64>,
+        /// A program to run once per verified event, after `--`, with the
+        /// event's body on its stdin and XR_EVENT_SHA256 set to the key a
+        /// --forward target gets. No shell runs it; its stdout and stderr go
+        /// to stderr. A run past --forward-timeout is stopped with everything
+        /// it started
+        #[arg(last = true, value_name = "PROGRAM")]
+        program: Vec<String>,
     },
     /// Deliver a past window of events to a webhook again
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REPLAY))]

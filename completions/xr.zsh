@@ -2426,6 +2426,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
+'*::program -- A program to run once per verified event, after `--`, with the event'\''s body on its stdin and XR_EVENT_SHA256 set to the key a --forward target gets. No shell runs it; its stdout and stderr go to stderr. A run past --forward-timeout is stopped with everything it started:_default' \
 && ret=0
 ;;
 (replay)

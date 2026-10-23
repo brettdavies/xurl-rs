@@ -1,7 +1,7 @@
 args: ["webhooks", "listen", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8739
+stdout_len: 9064
 stderr_len: 0
 --- stdout ---
 Receive webhook deliveries on a local address
@@ -10,7 +10,11 @@ Answers X's CRC check and prints each event X delivers, once its signature verif
 
 Once up, it hands out a signed sample delivery to prove the wiring before X sends anything: `test_command`, a curl invocation, and `test_request`, the same request as data, on the JSON `listening` line, or the curl invocation on stderr in text. The sample's body carries `"xr_test_event": true`.
 
-Usage: xr webhooks listen [OPTIONS]
+Usage: xr webhooks listen [OPTIONS] [-- <PROGRAM>...]
+
+Arguments:
+  [PROGRAM]...
+          A program to run once per verified event, after `--`, with the event's body on its stdin and XR_EVENT_SHA256 set to the key a --forward target gets. No shell runs it; its stdout and stderr go to stderr. A run past --forward-timeout is stopped with everything it started
 
 Options:
   -p, --port <PORT>

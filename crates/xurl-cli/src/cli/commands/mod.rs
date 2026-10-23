@@ -8,6 +8,7 @@ pub mod examples;
 mod graph;
 mod media;
 mod posts;
+mod process_tree;
 mod reads;
 pub mod schema;
 pub mod skill;
@@ -17,6 +18,7 @@ pub mod validate;
 mod webhooks;
 mod webhooks_forward;
 mod webhooks_listen;
+mod webhooks_program;
 
 use std::io::{IsTerminal, Write};
 
