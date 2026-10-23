@@ -1687,6 +1687,29 @@ pub enum WebhooksCommands {
         /// Exit 0 once this many events have printed
         #[arg(long, value_name = "N", value_parser = clap::value_parser!(u64).range(1..))]
         max_events: Option<u64>,
+        /// Also POST each verified event to this http or https URL, after X
+        /// has its answer: the body and signature header as X sent them, an
+        /// Idempotency-Key, and each -H. Each delivery is reported on stderr
+        #[arg(long, value_name = "URL")]
+        forward: Option<String>,
+        /// A header for each forward, as 'Name: Value'; repeat for more. Its
+        /// value is never printed
+        #[arg(
+            short = 'H',
+            long = "header",
+            value_name = "NAME: VALUE",
+            requires = "forward"
+        )]
+        header: Vec<String>,
+        /// Seconds one forward attempt may take before it is tried again
+        /// (four attempts, 1, 2, then 4 seconds apart). Unset, 30
+        #[arg(
+            long,
+            value_name = "SECS",
+            requires = "forward",
+            value_parser = clap::value_parser!(u64).range(1..)
+        )]
+        forward_timeout: Option<u64>,
     },
     /// Deliver a past window of events to a webhook again
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REPLAY))]

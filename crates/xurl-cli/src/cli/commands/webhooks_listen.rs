@@ -2,14 +2,20 @@
 //! prints each delivered event as one JSON line.
 
 use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::Duration;
 
 use serde_json::json;
 use xdk::error::{EXIT_AUTH_REQUIRED, Error};
-use xdk::webhooks::{Receiver, ReceiverConfig, SignedSample, SigningSecrets};
+use xdk::webhooks::{
+    Receiver, ReceiverConfig, RetryBudget, SignedSample, SigningSecrets, UrlTarget,
+    validate_forward_url,
+};
 
 use super::Run;
+use super::webhooks_forward::{Finished, Forwarding, Target};
 use crate::cli::SigningSecret;
-use crate::cli::failure::CommandResult;
+use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::shell_word;
 
 /// What `xr webhooks listen` was asked for.
@@ -19,6 +25,9 @@ pub(super) struct Listener {
     pub(super) secret: Option<SigningSecret>,
     pub(super) allow_unsigned: bool,
     pub(super) max_events: Option<u64>,
+    pub(super) forward: Option<String>,
+    pub(super) headers: Vec<String>,
+    pub(super) forward_timeout: Option<u64>,
 }
 
 pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()> {
@@ -43,14 +52,36 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     } else {
         None
     };
+    let budget = listener
+        .forward_timeout
+        .map_or_else(RetryBudget::default, |secs| {
+            RetryBudget::new(Duration::from_secs(secs))
+        });
+    let targets = forward_targets(&listener);
     let mut ctx = json!({
         "command": "webhooks-listen",
         "bind": listener.bind.to_string(),
         "path": listener.path,
         "secret": signs_with,
     });
+    if let Some(url) = &listener.forward {
+        // A refused header may hold its value where its name belongs, so the
+        // names are shown only once every header parsed.
+        let headers = if targets.is_ok() {
+            header_names(&listener.headers)
+        } else {
+            Vec::new()
+        };
+        ctx["forward"] = json!({
+            "url": url,
+            "headers": headers,
+            "timeout_secs": budget.attempt_timeout().as_secs(),
+        });
+    }
     if flags.dry_run {
-        if signs_with.is_some() {
+        if let Err(error) = &targets {
+            out.print_dry_run_refusal(stdout, &ctx, error);
+        } else if signs_with.is_some() {
             out.print_dry_run(stdout, true, 0, &ctx);
         } else {
             ctx["reason"] = json!("no-signing-secret");
@@ -58,6 +89,13 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
         }
         return Ok(());
     }
+    let targets = targets.map_err(|error| {
+        if error.is_validation() {
+            Failure::refused(error)
+        } else {
+            Failure::from(error)
+        }
+    })?;
     let Some(signs_with) = signs_with else {
         return Err(Error::auth(
             "No signing secret: X signs webhook requests with the app's OAuth2 client secret or \
@@ -99,17 +137,83 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     }
     let _ = stdout.flush();
 
+    let mut forwarding = (!targets.is_empty()).then(|| Forwarding::start(targets, budget));
     let mut printed: u64 = 0;
-    while let Some(event) = receiver.next_event().await {
-        let line = event_line(&event.body);
-        out.print_stream_line(stdout, &line);
-        let _ = stdout.flush();
-        printed += 1;
-        if listener.max_events.is_some_and(|max| printed >= max) {
-            break;
+    loop {
+        tokio::select! {
+            biased;
+            Some(finished) = next_finished(&mut forwarding) => {
+                if let Some(forwarding) = forwarding.as_mut() {
+                    forwarding.record(out, stderr, &finished);
+                }
+            }
+            event = receiver.next_event() => {
+                let Some(event) = event else {
+                    break;
+                };
+                let line = event_line(&event.body);
+                out.print_stream_line(stdout, &line);
+                let _ = stdout.flush();
+                if let Some(forwarding) = forwarding.as_mut() {
+                    forwarding.queue(&Arc::new(event)).await;
+                }
+                printed += 1;
+                if listener.max_events.is_some_and(|max| printed >= max) {
+                    break;
+                }
+            }
         }
     }
+    drop(receiver);
+    if let Some(forwarding) = forwarding {
+        forwarding.drain(out, stderr).await;
+    }
     Ok(())
+}
+
+/// The next delivery a forward target finished; never, with no target.
+async fn next_finished(forwarding: &mut Option<Forwarding>) -> Option<Finished> {
+    match forwarding {
+        Some(forwarding) => forwarding.next_finished().await,
+        None => std::future::pending().await,
+    }
+}
+
+/// The targets `--forward` names, validated before anything binds and
+/// refused in `xr`'s own words. A header is named by its position among the
+/// `-H` flags, never by its value.
+fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
+    let Some(url) = &listener.forward else {
+        return Ok(Vec::new());
+    };
+    validate_forward_url(url).map_err(|reason| {
+        Error::validation(match reason {
+            "forward-url-has-credentials" => {
+                "--forward takes a URL with no username or password, which every record of a \
+                 failed forward would repeat; pass the credential with -H 'Authorization: ...' \
+                 instead"
+            }
+            "forward-url-not-http" => "--forward takes an http or https URL",
+            _ => "--forward takes an absolute http or https URL",
+        })
+    })?;
+    let target = UrlTarget::new(url, &listener.headers).map_err(|error| match error {
+        Error::Validation(message) => Error::validation(format!("-H: {message}")),
+        other => other,
+    })?;
+    Ok(vec![Target::Url(target)])
+}
+
+/// The name of each `-H` header, for a dry run: never a value.
+fn header_names(headers: &[String]) -> Vec<&str> {
+    headers
+        .iter()
+        .map(|line| {
+            line.split_once(':')
+                .map_or(line.as_str(), |(name, _)| name)
+                .trim()
+        })
+        .collect()
 }
 
 /// A `curl` invocation, quoted for a POSIX shell, that delivers `sample` to

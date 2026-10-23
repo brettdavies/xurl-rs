@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 use assert_cmd::Command;
 use clap::CommandFactory;
 
+pub mod listen;
+
 /// Store path for spawns that never touch credentials. Its parent directory
 /// does not exist, so a read loads an empty store and a write fails loudly
 /// instead of landing in a file another test could see.

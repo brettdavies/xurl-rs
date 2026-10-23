@@ -1,7 +1,7 @@
 args: ["webhooks", "listen", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8222
+stdout_len: 8739
 stderr_len: 0
 --- stdout ---
 Receive webhook deliveries on a local address
@@ -47,6 +47,15 @@ Options:
           [env: XURL_VERBOSE=]
           [default: false]
           [possible values: true, false]
+
+      --forward <URL>
+          Also POST each verified event to this http or https URL, after X has its answer: the body and signature header as X sent them, an Idempotency-Key, and each -H. Each delivery is reported on stderr
+
+  -H, --header <NAME: VALUE>
+          A header for each forward, as 'Name: Value'; repeat for more. Its value is never printed
+
+      --forward-timeout <SECS>
+          Seconds one forward attempt may take before it is tried again (four attempts, 1, 2, then 4 seconds apart). Unset, 30
 
       --app <APP>
           Use a specific registered app (overrides default)

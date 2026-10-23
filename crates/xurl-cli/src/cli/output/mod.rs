@@ -15,7 +15,7 @@ mod delimited;
 mod diagnostics;
 mod format;
 mod message;
-mod rfc3339;
+pub(crate) mod rfc3339;
 
 pub(crate) use diagnostics::Diagnostics;
 

@@ -2391,6 +2391,10 @@ _arguments "${_arguments_options[@]}" : \
 '--secret=[Which of the app'\''s secrets X signs with. Unset, the OAuth2 client secret when the app has one, else the OAuth1 consumer secret]:SECRET:((oauth2\:"The app'\''s \`OAuth2\` client secret"
 oauth1\:"The app'\''s \`OAuth1\` consumer secret (API Secret Key)"))' \
 '--max-events=[Exit 0 once this many events have printed]:N:_default' \
+'--forward=[Also POST each verified event to this http or https URL, after X has its answer\: the body and signature header as X sent them, an Idempotency-Key, and each -H. Each delivery is reported on stderr]:URL:_default' \
+'*-H+[A header for each forward, as '\''Name\: Value'\''; repeat for more. Its value is never printed]:NAME: VALUE:_default' \
+'*--header=[A header for each forward, as '\''Name\: Value'\''; repeat for more. Its value is never printed]:NAME: VALUE:_default' \
+'--forward-timeout=[Seconds one forward attempt may take before it is tried again (four attempts, 1, 2, then 4 seconds apart). Unset, 30]:SECS:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
