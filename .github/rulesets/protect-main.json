@@ -94,6 +94,9 @@
             "context": "Public API semver"
           },
           {
+            "context": "Windows program target"
+          },
+          {
             "context": "ci / Changelog",
             "integration_id": 15368
           },

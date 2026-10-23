@@ -446,9 +446,12 @@ fn test_help_advertises_every_env_var_the_source_reads() {
             names.insert(var.to_string());
         }
     }
-    // `HOME` is the one core system variable xr reads, only to expand a
-    // `~`-prefixed skill destination; it is not an xr setting.
+    // `HOME` expands a `~`-prefixed skill destination, and `PATH` and
+    // `PATHEXT` find the program `webhooks listen` forwards to. They are the
+    // OS's own variables, read as the OS reads them, not xr settings.
     names.remove("HOME");
+    names.remove("PATH");
+    names.remove("PATHEXT");
 
     let stdout = help(&[]);
     let missing: Vec<&String> = names

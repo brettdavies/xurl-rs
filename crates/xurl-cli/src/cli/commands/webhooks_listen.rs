@@ -1,6 +1,7 @@
 //! `xr webhooks listen`: a local receiver that answers X's CRC check and
 //! prints each delivered event as one JSON line.
 
+use std::io::Write;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -14,6 +15,7 @@ use xdk::webhooks::{
 
 use super::Run;
 use super::webhooks_forward::{Finished, Forwarding, Target};
+use super::webhooks_program::ProgramTarget;
 use crate::cli::SigningSecret;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::shell_word;
@@ -28,6 +30,7 @@ pub(super) struct Listener {
     pub(super) forward: Option<String>,
     pub(super) headers: Vec<String>,
     pub(super) forward_timeout: Option<u64>,
+    pub(super) program: Vec<String>,
 }
 
 pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()> {
@@ -77,6 +80,10 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
             "headers": headers,
             "timeout_secs": budget.attempt_timeout().as_secs(),
         });
+    }
+    if !listener.program.is_empty() {
+        ctx["program"] = json!(listener.program);
+        ctx["timeout_secs"] = json!(budget.attempt_timeout().as_secs());
     }
     if flags.dry_run {
         if let Err(error) = &targets {
@@ -142,7 +149,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     loop {
         tokio::select! {
             biased;
-            Some(finished) = next_finished(&mut forwarding) => {
+            Some(finished) = next_finished(&mut forwarding, stderr) => {
                 if let Some(forwarding) = forwarding.as_mut() {
                     forwarding.record(out, stderr, &finished);
                 }
@@ -171,21 +178,38 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     Ok(())
 }
 
-/// The next delivery a forward target finished; never, with no target.
-async fn next_finished(forwarding: &mut Option<Forwarding>) -> Option<Finished> {
+/// The next delivery a forward target finished, writing a program's output
+/// to `stderr` as it comes; never, with no target.
+async fn next_finished(
+    forwarding: &mut Option<Forwarding>,
+    stderr: &mut dyn Write,
+) -> Option<Finished> {
     match forwarding {
-        Some(forwarding) => forwarding.next_finished().await,
+        Some(forwarding) => forwarding.next_finished(stderr).await,
         None => std::future::pending().await,
     }
 }
 
-/// The targets `--forward` names, validated before anything binds and
-/// refused in `xr`'s own words. A header is named by its position among the
-/// `-H` flags, never by its value.
+/// The targets `--forward` and the program after `--` name, validated
+/// before anything binds and refused in `xr`'s own words. A header is named
+/// by its position among the `-H` flags, never by its value.
 fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
-    let Some(url) = &listener.forward else {
-        return Ok(Vec::new());
-    };
+    let mut targets = Vec::new();
+    if let Some(url) = &listener.forward {
+        targets.push(Target::Url(url_target(url, &listener.headers)?));
+    }
+    if !listener.program.is_empty() {
+        let search = crate::cli::env::program_search();
+        targets.push(Target::Program(ProgramTarget::resolve(
+            &listener.program,
+            &search,
+        )?));
+    }
+    Ok(targets)
+}
+
+/// `--forward` with its `-H` headers.
+fn url_target(url: &str, headers: &[String]) -> Result<UrlTarget, Error> {
     validate_forward_url(url).map_err(|reason| {
         Error::validation(match reason {
             "forward-url-has-credentials" => {
@@ -197,11 +221,10 @@ fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
             _ => "--forward takes an absolute http or https URL",
         })
     })?;
-    let target = UrlTarget::new(url, &listener.headers).map_err(|error| match error {
+    UrlTarget::new(url, headers).map_err(|error| match error {
         Error::Validation(message) => Error::validation(format!("-H: {message}")),
         other => other,
-    })?;
-    Ok(vec![Target::Url(target)])
+    })
 }
 
 /// The name of each `-H` header, for a dry run: never a value.

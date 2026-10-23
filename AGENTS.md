@@ -263,10 +263,11 @@ The line between the crates holds on four rules; a change that crosses one belon
    `xdk::auth`, `xdk::store`, `xdk::config`, `xdk::webhooks`); it never writes to stdout or stderr and never opens a
    browser. It reads the process environment in one place, `EnvOverrides::from_env`, which takes the client variables
    (`CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`,
-   `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, and the skill hosts'
-   config- and base-directory variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`) are read once, in
-   `crates/xurl-cli/src/cli/env.rs`. Binding the loopback OAuth2 callback listener, binding the webhook receiver, and
-   reading or writing `~/.xurl/auth.yml` are network and file I/O, and belong to the library.
+   `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, the skill hosts'
+   config- and base-directory variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`), and the `PATH`
+   and `PATHEXT` that find a `webhooks listen` program are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the
+   loopback OAuth2 callback listener, binding the webhook receiver, and reading or writing `~/.xurl/auth.yml` are
+   network and file I/O, and belong to the library.
 3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, `webhooks`,
    and `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming
    the `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests
@@ -337,10 +338,11 @@ format, workflow, and markdown checks over the staged files only, and `pre-push`
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
-Five CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
-semver gate, the agent-native audit with the release binary's size ceiling, and `Go parity`, the differential suite
-against Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary. Run them
-yourself when a change touches the CLI surface, the library API, or the release profile.
+Six CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
+semver gate, the agent-native audit with the release binary's size ceiling, `Go parity`, the differential suite against
+Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary, and
+`Windows program target`, the `webhooks listen` program-target tests on a Windows runner. Run the first five yourself
+when a change touches the CLI surface, the library API, or the release profile; the sixth needs a Windows machine.
 
 ## Releasing
 

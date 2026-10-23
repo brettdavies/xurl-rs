@@ -183,15 +183,13 @@ pub fn stderr_records(stderr: &str) -> Vec<serde_json::Value> {
 }
 
 /// `xr --output json webhooks listen` as a child process, for what only a
-/// real process shows: a signal and its exit.
-#[cfg(unix)]
+/// real process shows: its exit, its own stderr, and a signal.
 pub struct ListenProcess {
     child: std::process::Child,
     lines: std::sync::mpsc::Receiver<String>,
     stderr: std::thread::JoinHandle<String>,
 }
 
-#[cfg(unix)]
 impl ListenProcess {
     /// Starts `listen` on `port` with `extra` flags against `store`, and
     /// waits for its `listening` line.
@@ -231,9 +229,23 @@ impl ListenProcess {
             lines,
             stderr,
         };
-        let listening = process.next_line();
-        assert!(listening.contains("\"listening\""), "{listening}");
-        process
+        match process
+            .lines
+            .recv_timeout(std::time::Duration::from_secs(10))
+        {
+            Ok(listening) if listening.contains("\"listening\"") => process,
+            Ok(other) => process.fail(&format!("its first stdout line was {other}")),
+            Err(error) => process.fail(&format!("it printed no listening line ({error})")),
+        }
+    }
+
+    /// Ends the process and fails the test with `why`, its exit, and its
+    /// stderr, the only place a refusal before binding shows.
+    fn fail(mut self, why: &str) -> ! {
+        let _ = self.child.kill();
+        let status = self.child.wait();
+        let stderr = self.stderr.join().unwrap_or_default();
+        panic!("listen did not start: {why}; exit {status:?}; stderr: {stderr}");
     }
 
     /// The next stdout line, within ten seconds.
@@ -244,6 +256,7 @@ impl ListenProcess {
     }
 
     /// Sends SIGINT, as Ctrl+C does.
+    #[cfg(unix)]
     pub fn interrupt(&self) {
         let status = std::process::Command::new("kill")
             .args(["-INT", &self.child.id().to_string()])
@@ -254,7 +267,16 @@ impl ListenProcess {
 
     /// Waits for the exit, at most `within`, and returns the status and all
     /// of stderr. Past `within` the process is killed and the test fails.
-    pub fn wait(mut self, within: std::time::Duration) -> (std::process::ExitStatus, String) {
+    pub fn wait(self, within: std::time::Duration) -> (std::process::ExitStatus, String) {
+        let (status, _rest, stderr) = self.wait_for_all(within);
+        (status, stderr)
+    }
+
+    /// [`Self::wait`], also returning the stdout lines not yet read.
+    pub fn wait_for_all(
+        mut self,
+        within: std::time::Duration,
+    ) -> (std::process::ExitStatus, Vec<String>, String) {
         let deadline = std::time::Instant::now() + within;
         let status = loop {
             if let Some(status) = self.child.try_wait().expect("try_wait") {
@@ -268,6 +290,7 @@ impl ListenProcess {
             std::thread::sleep(std::time::Duration::from_millis(20));
         };
         let stderr = self.stderr.join().expect("the stderr reader");
-        (status, stderr)
+        let rest = self.lines.iter().collect();
+        (status, rest, stderr)
     }
 }

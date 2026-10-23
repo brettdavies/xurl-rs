@@ -41,6 +41,7 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
             forward,
             header,
             forward_timeout,
+            program,
         } => {
             let listener = Listener {
                 bind: SocketAddr::new(bind, port),
@@ -51,6 +52,7 @@ pub(super) async fn run(action: WebhooksCommands, run: Run<'_>) -> CommandResult
                 forward,
                 headers: header,
                 forward_timeout,
+                program,
             };
             listen(run, listener).await
         }
