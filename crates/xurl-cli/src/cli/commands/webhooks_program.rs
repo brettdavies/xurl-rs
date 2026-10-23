@@ -14,6 +14,7 @@ use xdk::error::Error;
 use xdk::webhooks::{Attempt, AttemptTimedOut, Event};
 
 use super::process_tree::ProcessTree;
+use super::program_output;
 use crate::cli::env::ProgramSearch;
 
 /// The variable that carries the event's SHA-256, the key a URL target gets
@@ -81,21 +82,29 @@ impl ProgramTarget {
 
     /// One run of the program on `event`, with no timeout of its own: the
     /// budget's cut drops the run, and the drop ends the program's tree.
-    pub(super) async fn attempt(&self, event: &Event) -> Attempt<i32, ProgramFailure> {
+    /// The program's stdout and stderr reach `output` a line at a time.
+    pub(super) async fn attempt<F>(&self, event: &Event, output: F) -> Attempt<i32, ProgramFailure>
+    where
+        F: Fn(Vec<u8>) + Clone + Send + 'static,
+    {
         let mut command = Command::new(&self.program);
         command
             .args(&self.args)
             .env(EVENT_SHA256_VAR, event.sha256())
             .stdin(Stdio::piped())
-            .stdout(std::io::stderr())
-            .stderr(Stdio::inherit());
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
         let mut tree = match ProcessTree::spawn(command) {
             Ok(tree) => tree,
             Err(error) => return Attempt::Final(ProgramFailure::Start(error.to_string())),
         };
+        let relays = [
+            program_output::relay(tree.child.stdout.take(), output.clone()),
+            program_output::relay(tree.child.stderr.take(), output),
+        ];
         let write = write_stdin(tree.child.stdin.take(), event.body.clone());
         let ((), waited) = tokio::join!(write, tree.child.wait());
-        match waited {
+        let answer = match waited {
             Ok(status) => {
                 tree.release();
                 match status.code() {
@@ -104,7 +113,9 @@ impl ProgramTarget {
                 }
             }
             Err(error) => Attempt::Retryable(ProgramFailure::Start(error.to_string())),
-        }
+        };
+        program_output::settle(relays).await;
+        answer
     }
 }
 

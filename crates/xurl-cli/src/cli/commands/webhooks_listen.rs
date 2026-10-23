@@ -1,6 +1,7 @@
 //! `xr webhooks listen`: a local receiver that answers X's CRC check and
 //! prints each delivered event as one JSON line.
 
+use std::io::Write;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -148,7 +149,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     loop {
         tokio::select! {
             biased;
-            Some(finished) = next_finished(&mut forwarding) => {
+            Some(finished) = next_finished(&mut forwarding, stderr) => {
                 if let Some(forwarding) = forwarding.as_mut() {
                     forwarding.record(out, stderr, &finished);
                 }
@@ -177,10 +178,14 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     Ok(())
 }
 
-/// The next delivery a forward target finished; never, with no target.
-async fn next_finished(forwarding: &mut Option<Forwarding>) -> Option<Finished> {
+/// The next delivery a forward target finished, writing a program's output
+/// to `stderr` as it comes; never, with no target.
+async fn next_finished(
+    forwarding: &mut Option<Forwarding>,
+    stderr: &mut dyn Write,
+) -> Option<Finished> {
     match forwarding {
-        Some(forwarding) => forwarding.next_finished().await,
+        Some(forwarding) => forwarding.next_finished(stderr).await,
         None => std::future::pending().await,
     }
 }

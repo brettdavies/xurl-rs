@@ -142,6 +142,20 @@ fn probe_exit_unread() {
     }
 }
 
+/// Writes output with no closing newline to its stdout and its stderr, after
+/// ending the line the test harness started, and exits 0.
+#[test]
+fn probe_unfinished_output() {
+    if probe_args().is_some() {
+        let _ = read_stdin();
+        println!();
+        print!("out-unfinished");
+        eprint!("err-unfinished");
+        let _ = std::io::stdout().flush();
+        std::process::exit(0);
+    }
+}
+
 /// Appends its pid to the file it names and never reads its stdin.
 #[test]
 fn probe_never_read() {
@@ -324,6 +338,34 @@ async fn the_programs_output_goes_to_stderr_and_stdout_keeps_one_line_per_event(
         stderr.contains("probe stdout: one event read"),
         "the program's stdout reaches stderr: {stderr}"
     );
+}
+
+/// A program's output and `listen`'s records share stderr, one line each:
+/// output a program leaves without a newline is ended by `listen`, so the
+/// record after it still reads as a line of its own.
+#[tokio::test]
+async fn a_programs_unfinished_output_never_shares_a_line_with_a_record() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let port = free_port();
+    let program = probe("unfinished_output", &[]);
+    let args = listen_args(&["--allow-unsigned", "--max-events", "1"], &program);
+    let listen = ListenProcess::start(&store, port, &args);
+
+    assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+    let (status, _rest, stderr) = listen.wait_for_all(Duration::from_secs(20));
+
+    assert_eq!(status.code(), Some(0), "stderr: {stderr}");
+    let lines: Vec<&str> = stderr.lines().collect();
+    assert!(
+        lines.contains(&"out-unfinished") && lines.contains(&"err-unfinished"),
+        "each unfinished output ends its own line: {stderr}"
+    );
+    let record = stderr_records(&stderr)
+        .into_iter()
+        .find(|record| record["target"] == "program")
+        .unwrap_or_else(|| panic!("no program record on a line of its own: {stderr}"));
+    assert_eq!(record["status"], "forwarded", "{stderr}");
 }
 
 #[tokio::test]

@@ -9,6 +9,7 @@ mod graph;
 mod media;
 mod posts;
 mod process_tree;
+mod program_output;
 mod reads;
 pub mod schema;
 pub mod skill;

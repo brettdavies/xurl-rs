@@ -3,8 +3,9 @@
 //! drain at shutdown.
 //!
 //! Workers report every finished delivery to the consume loop, in queue
-//! order, and the loop writes the records: stderr belongs to the run, and
-//! stdout keeps one line per event.
+//! order, along with a program's output a line at a time, and the loop
+//! writes both: stderr belongs to the run, and stdout keeps one line per
+//! event.
 
 use std::io::Write;
 use std::sync::Arc;
@@ -44,8 +45,13 @@ impl Target {
         }
     }
 
-    /// Delivers `event` under `budget`.
-    async fn deliver(&self, event: &Event, budget: &RetryBudget) -> Delivery {
+    /// Delivers `event` under `budget`; a program's output goes to `report`.
+    async fn deliver(
+        &self,
+        event: &Event,
+        budget: &RetryBudget,
+        report: &mpsc::UnboundedSender<Report>,
+    ) -> Delivery {
         match self {
             Self::Url(target) => {
                 let outcome = target.forward(event, budget).await;
@@ -59,7 +65,13 @@ impl Target {
                 }
             }
             Self::Program(target) => {
-                let outcome = budget.run(|| target.attempt(event)).await;
+                let output = {
+                    let report = report.clone();
+                    move |lines| {
+                        let _ = report.send(Report::Output(lines));
+                    }
+                };
+                let outcome = budget.run(|| target.attempt(event, output.clone())).await;
                 Delivery {
                     attempts: outcome.attempts,
                     elapsed: outcome.elapsed,
@@ -93,6 +105,14 @@ pub(super) struct Finished {
     delivery: Delivery,
 }
 
+/// What a worker sends the consume loop.
+pub(super) enum Report {
+    /// A delivery it finished, delivered or failed.
+    Finished(Finished),
+    /// Whole lines a program wrote, newlines included.
+    Output(Vec<u8>),
+}
+
 /// One target's queue and its count of events not yet finished.
 struct Lane {
     kind: &'static str,
@@ -104,14 +124,14 @@ struct Lane {
 pub(super) struct Forwarding {
     lanes: Vec<Lane>,
     workers: Vec<JoinHandle<()>>,
-    finished: mpsc::UnboundedReceiver<Finished>,
+    reports: mpsc::UnboundedReceiver<Report>,
     budget: RetryBudget,
 }
 
 impl Forwarding {
     /// Starts one worker per target, each draining its own queue in order.
     pub(super) fn start(targets: Vec<Target>, budget: RetryBudget) -> Self {
-        let (report, finished) = mpsc::unbounded_channel();
+        let (report, reports) = mpsc::unbounded_channel();
         let mut lanes = Vec::with_capacity(targets.len());
         let mut workers = Vec::with_capacity(targets.len());
         for (index, target) in targets.into_iter().enumerate() {
@@ -124,13 +144,13 @@ impl Forwarding {
             let report = report.clone();
             workers.push(tokio::spawn(async move {
                 while let Some(event) = events.recv().await {
-                    let delivery = target.deliver(&event, &budget).await;
+                    let delivery = target.deliver(&event, &budget, &report).await;
                     let finished = Finished {
                         target: index,
                         event,
                         delivery,
                     };
-                    if report.send(finished).is_err() {
+                    if report.send(Report::Finished(finished)).is_err() {
                         return;
                     }
                 }
@@ -139,7 +159,7 @@ impl Forwarding {
         Self {
             lanes,
             workers,
-            finished,
+            reports,
             budget,
         }
     }
@@ -156,9 +176,15 @@ impl Forwarding {
         }
     }
 
-    /// The next delivery a worker finished.
-    pub(super) async fn next_finished(&mut self) -> Option<Finished> {
-        self.finished.recv().await
+    /// The next delivery a worker finished. A program's output that comes
+    /// first is written to `stderr` as it arrives.
+    pub(super) async fn next_finished(&mut self, stderr: &mut dyn Write) -> Option<Finished> {
+        loop {
+            match self.reports.recv().await? {
+                Report::Finished(finished) => return Some(finished),
+                Report::Output(lines) => write_output(stderr, &lines),
+            }
+        }
     }
 
     /// Writes the record of `finished` and counts it done.
@@ -188,7 +214,7 @@ impl Forwarding {
         loop {
             tokio::select! {
                 biased;
-                finished = self.finished.recv() => match finished {
+                finished = self.next_finished(stderr) => match finished {
                     Some(finished) => self.record(out, stderr, &finished),
                     None => break,
                 },
@@ -204,6 +230,11 @@ impl Forwarding {
         for worker in self.workers.drain(..) {
             let _ = worker.await;
         }
+        while let Ok(report) = self.reports.try_recv() {
+            if let Report::Output(lines) = report {
+                write_output(stderr, &lines);
+            }
+        }
         for lane in &self.lanes {
             if lane.pending > 0 {
                 write_incomplete(out, stderr, lane.kind, lane.pending);
@@ -211,6 +242,12 @@ impl Forwarding {
         }
         let _ = stderr.flush();
     }
+}
+
+/// Whole lines a program wrote, passed on as written.
+fn write_output(stderr: &mut dyn Write, lines: &[u8]) {
+    let _ = stderr.write_all(lines);
+    let _ = stderr.flush();
 }
 
 /// The Unix second an event arrived.
