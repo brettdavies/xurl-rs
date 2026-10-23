@@ -338,10 +338,11 @@ format, workflow, and markdown checks over the staged files only, and `pre-push`
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
-Five CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
-semver gate, the agent-native audit with the release binary's size ceiling, and `Go parity`, the differential suite
-against Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary. Run them
-yourself when a change touches the CLI surface, the library API, or the release profile.
+Six CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
+semver gate, the agent-native audit with the release binary's size ceiling, `Go parity`, the differential suite against
+Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary, and
+`Windows program target`, the `webhooks listen` program-target tests on a Windows runner. Run the first five yourself
+when a change touches the CLI surface, the library API, or the release profile; the sixth needs a Windows machine.
 
 ## Releasing
 
