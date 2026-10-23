@@ -355,12 +355,12 @@ Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/re
 
 The tap's formula installs this release's archives. Its `update-formula` workflow downloads the four it names (the two
 `apple-darwin` and the two `linux-musl` archives), verifies each against the attestation `attest` made, and pins its
-checksum; an archive with no attestation stops the bump, so `attest: true` in `release.yml` is what lets a release
-reach Homebrew. The tap then builds bottles from those archives, signs them in its own `publish.yml`, and uploads them
-to this repo's release assets.
+checksum; an archive with no attestation stops the bump, so `attest: true` in `release.yml` is what lets a release reach
+Homebrew. The tap then installs and tests the formula from those archives on four platforms and lands the bump on its
+`main`. It builds no bottle: the binaries are compiled once, by `release.yml`, and `brew install` downloads the archive.
 
-After the homebrew-tap workflow uploads bottles to this repo's release assets, it dispatches `finalize-release` back to
-this repo, which idempotently flips `make_latest: true`.
+After the homebrew-tap workflow lands the formula bump, it dispatches `finalize-release` back to this repo, which
+idempotently flips `make_latest: true`.
 
 → Rationale (`make_latest` flow, target matrix, annotated-tag gotcha):
 [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
@@ -483,10 +483,11 @@ cargo yank --version "${BAD#v}" xurl-rs
 # GitHub Release: re-point /releases/latest (and cargo-binstall) at the last-good tag.
 gh release edit "$PREV" --latest
 
-# Homebrew: revert the tap's two commits for the bad release (`chore(xurl-rs): bump to
-# vX.Y.Z`, then `xurl-rs: add X.Y.Z bottle.`) so `brew install` resolves the previous
-# bottle, whose assets are still attached to the previous GitHub Release.
-git -C ~/dev/homebrew-tap revert <bottle-sha> <bump-sha>
+# Homebrew: revert the tap's commit for the bad release (`chore(xurl-rs): bump to
+# vX.Y.Z`) so `brew install` resolves the previous version, whose assets are still
+# attached to the previous GitHub Release. A release the tap published with a bottle
+# (4.3.0 and earlier) has a second commit, `xurl-rs: add X.Y.Z bottle.`; revert it first.
+git -C ~/dev/homebrew-tap revert <bump-sha>
 ```
 
 `cargo yank --undo --version <version> xurl-rs` reverses a wrong yank. A yanked version cannot be published again, so
