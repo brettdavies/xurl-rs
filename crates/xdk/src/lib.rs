@@ -26,6 +26,12 @@ pub mod store;
 #[cfg(feature = "testing")]
 #[cfg_attr(docsrs, doc(cfg(feature = "testing")))]
 pub mod testing;
+// One UTC formatter for the workspace: a replay window's minutes here, and
+// `xr`'s `retry_at`, an event's arrival, and a replay template in
+// `cli/output/mod.rs`, `cli/commands/webhooks_forward.rs`, and
+// `cli/hints.rs`. It is not embedder API.
+#[doc(hidden)]
+pub mod time;
 pub mod webhooks;
 // The token store, the pending-auth file, and `xr`'s `--output yaml` share one
 // YAML encoding; `xr` calls it from `cli/output/mod.rs` and

@@ -10,9 +10,9 @@ use serde::{Deserialize, Serialize};
 use xdk::error::Error;
 pub use xdk::error::NextAction;
 use xdk::store::snapshot::StoreSnapshot;
+use xdk::time::utc_minute;
 
 use crate::cli::classify::ROOT_COMMAND;
-use crate::cli::output::rfc3339::utc_minute;
 
 /// The `next_step` object carried by an error envelope.
 ///

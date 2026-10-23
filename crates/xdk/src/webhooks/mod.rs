@@ -36,10 +36,12 @@ use tokio_util::sync::CancellationToken;
 use crate::error::{Error, Result};
 
 mod budget;
+mod checkpoint;
 mod forward;
 mod signing;
 
 pub use budget::{Attempt, AttemptTimedOut, Outcome, RetryBudget};
+pub use checkpoint::{CheckpointWriter, ReplayWindow, read_checkpoint, replay_window};
 pub use forward::{ForwardFailure, UrlTarget, validate_forward_url};
 use signing::verified;
 pub use signing::{

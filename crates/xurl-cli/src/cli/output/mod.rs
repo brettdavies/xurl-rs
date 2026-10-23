@@ -15,7 +15,6 @@ mod delimited;
 mod diagnostics;
 mod format;
 mod message;
-pub(crate) mod rfc3339;
 
 pub(crate) use diagnostics::Diagnostics;
 
@@ -757,7 +756,10 @@ pub(crate) fn retry_times(reset_at: u64) -> (u64, String) {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-    (reset_at.saturating_sub(now), rfc3339::utc_rfc3339(reset_at))
+    (
+        reset_at.saturating_sub(now),
+        xdk::time::utc_rfc3339(reset_at),
+    )
 }
 
 impl Default for OutputConfig {
