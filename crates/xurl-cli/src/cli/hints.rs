@@ -623,7 +623,7 @@ fn rerun_with_app(invocation: &[String], app: &str) -> String {
 }
 
 /// Quotes one argument of a rebuilt invocation when a shell would split it.
-fn shell_word(arg: &str) -> String {
+pub(crate) fn shell_word(arg: &str) -> String {
     if !arg.is_empty()
         && arg.chars().all(|c| {
             c.is_ascii_alphanumeric()

@@ -12,9 +12,17 @@ use crate::error::{Error, Result};
 
 type HmacSha256 = Hmac<Sha256>;
 
-pub(super) const OAUTH2_SIGNATURE_HEADER: &str = "x-twitter-webhooks-signature-oauth2";
-pub(super) const LEGACY_SIGNATURE_HEADER: &str = "x-twitter-webhooks-signature";
+/// The header X signs an event in when the app has an `OAuth2` client
+/// secret.
+pub const OAUTH2_SIGNATURE_HEADER: &str = "x-twitter-webhooks-signature-oauth2";
+/// The header X signs an event in, under the `OAuth1` consumer secret, when
+/// the app has no `OAuth2` client secret.
+pub const LEGACY_SIGNATURE_HEADER: &str = "x-twitter-webhooks-signature";
 const SIGNATURE_PREFIX: &str = "sha256=";
+
+/// The body every [`SignedSample`] carries. It marks itself as a test, so a
+/// target can tell it from a delivery X made.
+const SAMPLE_BODY: &str = r#"{"xr_test_event":true,"detail":"A signed sample for testing a webhook receiver. X did not send it."}"#;
 
 /// The secrets X signs with for one app.
 ///
@@ -102,6 +110,82 @@ pub(super) fn verified(secret: Option<&str>, body: &[u8], given: &str) -> bool {
     };
     mac.update(body);
     mac.verify_slice(&digest).is_ok()
+}
+
+/// A sample event signed the way X signs a delivery, for proving that a
+/// receiver and whatever stands in front of it pass a signed event through
+/// before X sends one.
+///
+/// The signature covers the sample's own body only, so whoever holds it can
+/// deliver that body and no other. `Debug` prints the signature, which
+/// reveals nothing about the secret behind it.
+///
+/// # Example
+///
+/// ```
+/// use xdk::webhooks::{OAUTH2_SIGNATURE_HEADER, SignedSample, SigningSecrets};
+///
+/// let secrets = SigningSecrets {
+///     oauth2_client_secret: Some("the app's client secret".to_string()),
+///     oauth1_consumer_secret: None,
+/// };
+/// let sample = SignedSample::new(&secrets)?;
+/// assert_eq!(sample.signature_header, OAUTH2_SIGNATURE_HEADER);
+/// assert!(sample.signature.starts_with("sha256="));
+/// for (name, value) in sample.headers() {
+///     println!("{name}: {value}");
+/// }
+/// # Ok::<(), xdk::Error>(())
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct SignedSample {
+    /// The event body: a JSON object whose `xr_test_event` is `true`.
+    pub body: &'static str,
+    /// The header the signature travels in: [`OAUTH2_SIGNATURE_HEADER`]
+    /// under a client secret, [`LEGACY_SIGNATURE_HEADER`] under a consumer
+    /// secret alone.
+    pub signature_header: &'static str,
+    /// `sha256=` and the base64 HMAC-SHA256 of the body.
+    pub signature: String,
+}
+
+impl SignedSample {
+    /// Signs the sample with the secret a [`Receiver`](super::Receiver)
+    /// built from `secrets` verifies with: the client secret when there is
+    /// one, the consumer secret otherwise.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `validation` error when `secrets` holds no secret.
+    pub fn new(secrets: &SigningSecrets) -> Result<Self> {
+        let (secret, signature_header) = if let Some(secret) =
+            present(secrets.oauth2_client_secret.as_deref())
+        {
+            (secret, OAUTH2_SIGNATURE_HEADER)
+        } else if let Some(secret) = present(secrets.oauth1_consumer_secret.as_deref()) {
+            (secret, LEGACY_SIGNATURE_HEADER)
+        } else {
+            return Err(Error::validation(
+                "a signed sample needs the app's OAuth2 client secret or OAuth1 consumer secret",
+            ));
+        };
+        Ok(Self {
+            body: SAMPLE_BODY,
+            signature_header,
+            signature: sign(secret, SAMPLE_BODY.as_bytes())?,
+        })
+    }
+
+    /// The headers a delivery of the sample carries: `content-type` and the
+    /// signature.
+    #[must_use]
+    pub fn headers(&self) -> [(&'static str, &str); 2] {
+        [
+            ("content-type", "application/json"),
+            (self.signature_header, &self.signature),
+        ]
+    }
 }
 
 /// The signature X computes over `message` under `secret`:

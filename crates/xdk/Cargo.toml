@@ -46,8 +46,9 @@ default = ["rustls"]
 rustls = ["reqwest/rustls"]
 native-tls = ["reqwest/native-tls"]
 # The in-process mock server and fixtures embedders test against; off by
-# default so an ordinary build pulls no test-only crate.
-testing = ["dep:wiremock"]
+# default so an ordinary build pulls no test-only crate. hyper's client half
+# posts a signed sample to a webhook receiver under test.
+testing = ["dep:wiremock", "hyper/client"]
 
 [dependencies]
 # HTTP

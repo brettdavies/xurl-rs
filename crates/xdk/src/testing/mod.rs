@@ -5,7 +5,8 @@
 //! validated against, so a `read_post` or `search_posts` against it
 //! deserializes into the same `Post` a live call would. Every response
 //! carries a rate-limit window, so [`Client::last_rate_limit`] reads
-//! something too.
+//! something too. [`deliver_signed_sample`] posts a signed sample event to a
+//! [`webhooks::Receiver`](crate::webhooks::Receiver) under test.
 //!
 //! Enable the feature in a test profile only, so a release build pulls none
 //! of the mock's dependencies:
@@ -47,6 +48,10 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 use crate::api::auth_matrix::{Endpoint, endpoints};
 use crate::api::{Client, ClientBuilder};
 use crate::auth::OAuth2Credential;
+
+mod webhooks;
+
+pub use webhooks::deliver_signed_sample;
 
 /// The bearer token [`MockX::app_client`] sends; the mock accepts anything.
 pub const MOCK_BEARER_TOKEN: &str = "mock-bearer-token";

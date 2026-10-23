@@ -11,7 +11,10 @@ use std::time::{Duration, SystemTime};
 
 use tokio_util::sync::CancellationToken;
 use xdk::error::{Error, NextAction};
-use xdk::webhooks::{Event, Receiver, ReceiverConfig, Signature, SigningSecrets};
+use xdk::webhooks::{
+    Event, LEGACY_SIGNATURE_HEADER, OAUTH2_SIGNATURE_HEADER, Receiver, ReceiverConfig, Signature,
+    SignedSample, SigningSecrets,
+};
 
 const CLIENT_SECRET: &str = "client-secret";
 const CONSUMER_SECRET: &str = "consumer-secret";
@@ -382,6 +385,82 @@ async fn binding_an_address_the_host_does_not_have_stays_an_io_error() {
     .expect_err("no interface holds that address");
 
     assert_eq!(err.kind(), "io", "{err:?}");
+}
+
+/// Posts `sample` to `receiver` the way X delivers an event.
+async fn deliver_sample(receiver: &Receiver, sample: &SignedSample) -> u16 {
+    let mut request = reqwest::Client::new()
+        .post(url(receiver, "/webhook"))
+        .body(sample.body);
+    for (name, value) in sample.headers() {
+        request = request.header(name, value);
+    }
+    request
+        .send()
+        .await
+        .expect("the receiver answers")
+        .status()
+        .as_u16()
+}
+
+#[tokio::test]
+async fn a_signed_sample_verifies_under_the_client_secret() {
+    let sample = SignedSample::new(&both_secrets()).expect("a sample");
+    let mut receiver = receiver(both_secrets()).await;
+
+    assert_eq!(sample.signature_header, OAUTH2_SIGNATURE_HEADER);
+    assert_eq!(deliver_sample(&receiver, &sample).await, 200);
+    let event = receiver.next_event().await.expect("the sample");
+    assert_eq!(event.signature, Signature::OAuth2);
+    assert_eq!(event.body, sample.body.as_bytes());
+    let body: serde_json::Value = serde_json::from_slice(&event.body).expect("a JSON body");
+    assert_eq!(body["xr_test_event"], true, "the sample marks itself");
+}
+
+#[tokio::test]
+async fn a_signed_sample_verifies_under_the_consumer_secret_alone() {
+    let consumer_only = SigningSecrets {
+        oauth2_client_secret: None,
+        oauth1_consumer_secret: Some(CONSUMER_SECRET.to_string()),
+    };
+    let sample = SignedSample::new(&consumer_only).expect("a sample");
+    let mut receiver = receiver(consumer_only).await;
+
+    assert_eq!(sample.signature_header, LEGACY_SIGNATURE_HEADER);
+    assert_eq!(deliver_sample(&receiver, &sample).await, 200);
+    let event = receiver.next_event().await.expect("the sample");
+    assert_eq!(event.signature, Signature::OAuth1);
+}
+
+#[test]
+fn a_sample_needs_a_secret_and_never_carries_one() {
+    let err = SignedSample::new(&SigningSecrets::default()).expect_err("nothing to sign with");
+    assert_eq!(err.kind(), "validation", "{err}");
+
+    let sample = SignedSample::new(&both_secrets()).expect("a sample");
+    let shown = format!("{sample:?}");
+    assert!(!shown.contains(CLIENT_SECRET), "{shown}");
+    assert!(!shown.contains(CONSUMER_SECRET), "{shown}");
+}
+
+#[cfg(feature = "testing")]
+#[tokio::test]
+async fn the_testing_sender_delivers_a_sample_the_receiver_verifies() {
+    let mut receiver = receiver(both_secrets()).await;
+
+    let status = xdk::testing::deliver_signed_sample(
+        receiver.local_addr(),
+        xdk::webhooks::DEFAULT_PATH,
+        &both_secrets(),
+    )
+    .await
+    .expect("the receiver answers");
+
+    assert_eq!(status, 200);
+    let event = receiver.next_event().await.expect("the sample");
+    assert_eq!(event.signature, Signature::OAuth2);
+    let body: serde_json::Value = serde_json::from_slice(&event.body).expect("a JSON body");
+    assert_eq!(body["xr_test_event"], true);
 }
 
 #[tokio::test]
