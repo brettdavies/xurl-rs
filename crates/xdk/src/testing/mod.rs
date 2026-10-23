@@ -305,6 +305,41 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_CALL,
+        fixture: "call",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_SCHEDULED_CALLS,
+        fixture: "scheduled_calls",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SCHEDULE_CALL,
+        fixture: "scheduled_call",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_SCHEDULED_CALL,
+        fixture: "scheduled_call",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_SCHEDULED_CALL,
+        fixture: "scheduled_call_updated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CANCEL_SCHEDULED_CALL,
+        fixture: "scheduled_call_cancelled",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::RESPOND_TO_SCHEDULED_CALL,
+        fixture: "scheduled_call_rsvp",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_WEBHOOKS,
         fixture: "webhook_list",
         status: 200,

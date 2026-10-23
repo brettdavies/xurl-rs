@@ -38,6 +38,7 @@ pub fn get_oauth2_scopes() -> Vec<&'static str> {
         "users.email",
         "dm.read",
         "broadcast.read",
+        "calls.read",
         // Write scopes
         "tweet.write",
         "tweet.moderate.write",
@@ -50,6 +51,7 @@ pub fn get_oauth2_scopes() -> Vec<&'static str> {
         "media.write",
         "dm.write",
         "broadcast.write",
+        "calls.write",
         // Other scopes
         "offline.access",
         "space.read",

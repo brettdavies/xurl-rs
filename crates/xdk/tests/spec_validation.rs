@@ -24,9 +24,10 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult,
     FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse,
-    MutingResult, Post, ProvisionedResult, RepostedResult, StreamSourceDeleted, StreamSourceResult,
+    MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
     StreamSources, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation,
+    WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -416,6 +417,55 @@ fn spec_stream_source_deleted() {
 }
 
 #[test]
+fn spec_call() {
+    let examples = load_examples();
+    let resp: ApiResponse<XCall> = serde_json::from_value(examples["call"].clone()).unwrap();
+    assert_eq!(resp.data.join_policy.as_deref(), Some("open"));
+    assert_eq!(resp.data.participant_count, Some(3));
+}
+
+#[test]
+fn spec_scheduled_calls() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<ScheduledCall>> =
+        serde_json::from_value(examples["scheduled_calls"].clone()).unwrap();
+    assert_eq!(resp.data[0].id.as_deref(), Some("1849302018273645"));
+}
+
+#[test]
+fn spec_scheduled_call() {
+    let examples = load_examples();
+    let resp: ApiResponse<ScheduledCall> =
+        serde_json::from_value(examples["scheduled_call"].clone()).unwrap();
+    let invitees = resp.data.invitees.expect("invitees");
+    assert_eq!(invitees[0].response, "accepted");
+}
+
+#[test]
+fn spec_scheduled_call_updated() {
+    let examples = load_examples();
+    let resp: ApiResponse<ScheduledCallUpdated> =
+        serde_json::from_value(examples["scheduled_call_updated"].clone()).unwrap();
+    assert!(resp.data.updated);
+}
+
+#[test]
+fn spec_scheduled_call_cancelled() {
+    let examples = load_examples();
+    let resp: ApiResponse<ScheduledCallCancelled> =
+        serde_json::from_value(examples["scheduled_call_cancelled"].clone()).unwrap();
+    assert!(resp.data.cancelled);
+}
+
+#[test]
+fn spec_scheduled_call_rsvp() {
+    let examples = load_examples();
+    let resp: ApiResponse<ScheduledCallRsvp> =
+        serde_json::from_value(examples["scheduled_call_rsvp"].clone()).unwrap();
+    assert_eq!(resp.data.response, "accepted");
+}
+
+#[test]
 fn spec_webhook_list() {
     let examples = load_examples();
     let resp: ApiResponse<Vec<Webhook>> =
@@ -616,6 +666,32 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "stream_source_deleted",
         endpoints::DELETE_STREAM_SOURCE,
+        ReplyKind::Success,
+    ),
+    ("call", endpoints::GET_CALL, ReplyKind::Success),
+    (
+        "scheduled_calls",
+        endpoints::GET_SCHEDULED_CALLS,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_call",
+        endpoints::GET_SCHEDULED_CALL,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_call_updated",
+        endpoints::UPDATE_SCHEDULED_CALL,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_call_cancelled",
+        endpoints::CANCEL_SCHEDULED_CALL,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_call_rsvp",
+        endpoints::RESPOND_TO_SCHEDULED_CALL,
         ReplyKind::Success,
     ),
     ("webhook_list", endpoints::GET_WEBHOOKS, ReplyKind::Success),

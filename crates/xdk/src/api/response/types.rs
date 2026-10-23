@@ -449,6 +449,146 @@ pub struct StreamSourceDeleted {
     pub extra: BTreeMap<String, Value>,
 }
 
+// ── Calls ───────────────────────────────────────────────────────────
+
+/// An X call: a voice or video call people join by its link.
+///
+/// Every field is optional because the spec requires none of them.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct XCall {
+    /// Call identifier. It is also the call's join secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Title of the call.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Who may join: `open` (anyone with the link), `closed` (the host
+    /// admits people), or `trusted`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub join_policy: Option<String>,
+    /// The link people open to join the call on X.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub join_url: Option<String>,
+    /// User id of the call's host.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host_id: Option<String>,
+    /// The XChat conversation the call belongs to, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub conversation_id: Option<String>,
+    /// When the call was created, RFC 3339.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// How many people are in the call now.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub participant_count: Option<u64>,
+    /// Whether the authenticated user may join without asking the host.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub viewer_may_join: Option<bool>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A call on the authenticated user's calendar, at one of its occurrences.
+///
+/// Every field is optional because the spec requires none of them. A call on
+/// a linked Outlook calendar has no `id`.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ScheduledCall {
+    /// Scheduled-call identifier: what updating, cancelling, and answering
+    /// take.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The X call people join. It is also the call's join secret.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub call_id: Option<String>,
+    /// Title of the call.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// What the call is about.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Start of this occurrence, RFC 3339.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<String>,
+    /// End of this occurrence, RFC 3339.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_time: Option<String>,
+    /// For a recurring call, this occurrence's original start, RFC 3339: the
+    /// value that names this occurrence to an update, a cancellation, or an
+    /// answer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub occurrence_start_time: Option<String>,
+    /// The RFC 5545 RRULE the call repeats by, such as
+    /// `FREQ=WEEKLY;BYDAY=MO`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub recurrence: Option<String>,
+    /// The IANA time zone the recurrence follows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time_zone: Option<String>,
+    /// `scheduled`, or `cancelled` for a cancelled occurrence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// Where the call lives: `x` for X Calls, or `outlook` for a linked
+    /// Microsoft Outlook calendar.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calendar: Option<String>,
+    /// The link people open to join the call on X.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub join_url: Option<String>,
+    /// User id of the call's organizer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub organizer_id: Option<String>,
+    /// Everyone invited other than the organizer, with each answer.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub invitees: Option<Vec<ScheduledCallInvitee>>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Someone invited to a scheduled call, other than its organizer.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ScheduledCallInvitee {
+    /// The invitee's user id.
+    pub id: String,
+    /// `accepted`, `declined`, `tentative`, or `none` for no answer yet.
+    pub response: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Whether an update changed a scheduled call.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ScheduledCallUpdated {
+    /// Whether the scheduled call was changed.
+    pub updated: bool,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Whether the named occurrences of a scheduled call are cancelled.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ScheduledCallCancelled {
+    /// Whether the occurrences are cancelled.
+    pub cancelled: bool,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The answer now on a scheduled-call invitation.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ScheduledCallRsvp {
+    /// `accepted`, `declined`, or `tentative`.
+    pub response: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Webhooks ────────────────────────────────────────────────────────
 
 /// A webhook registered with X.

@@ -17,9 +17,9 @@ use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
     LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
-    RepostedResult, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation,
+    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -110,6 +110,171 @@ struct RemoveSubtitlesBody {
     id: String,
     media_category: &'static str,
     language_code: String,
+}
+
+#[derive(Serialize)]
+struct RsvpBody<'a> {
+    response: RsvpAnswer,
+    #[serde(flatten)]
+    occurrences: &'a Occurrences,
+}
+
+/// Which occurrences of a recurring scheduled call a change, cancellation,
+/// or answer applies to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OccurrenceScope {
+    /// Every occurrence: what X assumes when no occurrence is named.
+    All,
+    /// The named occurrence alone: what X assumes when one is named.
+    This,
+    /// The named occurrence and every one after it.
+    ThisAndFollowing,
+}
+
+impl OccurrenceScope {
+    /// Every scope, in the order help text lists them.
+    pub const ALL: [Self; 3] = [Self::All, Self::This, Self::ThisAndFollowing];
+
+    /// The scope as the API spells it, such as `this_and_following`.
+    #[must_use]
+    pub const fn wire_name(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::This => "this",
+            Self::ThisAndFollowing => "this_and_following",
+        }
+    }
+}
+
+/// The occurrences of a recurring scheduled call a request names. Left
+/// empty, it names every occurrence.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct Occurrences {
+    /// Which occurrences, counted from `occurrence_start_time`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<OccurrenceScope>,
+    /// The original start of the occurrence `scope` counts from, RFC 3339,
+    /// as a listed call's `occurrence_start_time` gives it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub occurrence_start_time: Option<String>,
+}
+
+impl Occurrences {
+    fn query(&self) -> Vec<(String, String)> {
+        let mut query = Vec::new();
+        if let Some(scope) = self.scope {
+            query.push(("scope".to_string(), scope.wire_name().to_string()));
+        }
+        if let Some(start) = &self.occurrence_start_time {
+            query.push(("occurrence_start_time".to_string(), start.clone()));
+        }
+        query
+    }
+}
+
+/// An answer to a scheduled-call invitation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RsvpAnswer {
+    /// The invitee will attend.
+    Accepted,
+    /// The invitee will not attend.
+    Declined,
+    /// The invitee might attend.
+    Tentative,
+}
+
+impl RsvpAnswer {
+    /// The answer as the API spells it, such as `tentative`.
+    #[must_use]
+    pub const fn wire_name(self) -> &'static str {
+        match self {
+            Self::Accepted => "accepted",
+            Self::Declined => "declined",
+            Self::Tentative => "tentative",
+        }
+    }
+}
+
+/// A call to put on the authenticated user's X Calls calendar, with them as
+/// its organizer. A field left unset takes X's default.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct NewScheduledCall {
+    /// When the call starts, RFC 3339 with a zone; not in the past.
+    pub start_time: String,
+    /// The title invitees see.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// What the call is about.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// How long the call lasts, in minutes; X assumes 30.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_minutes: Option<u32>,
+    /// User ids of the people to invite.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub invitee_ids: Vec<String>,
+    /// The RFC 5545 RRULE to repeat the call by, such as
+    /// `FREQ=WEEKLY;BYDAY=MO`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recurrence: Option<String>,
+    /// The IANA time zone the recurrence follows, such as
+    /// `America/Los_Angeles`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_zone: Option<String>,
+    /// Whether invitees get an email about the call; X assumes they do.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify_invitees: Option<bool>,
+}
+
+/// What to change on a scheduled call. A field left unset keeps its value;
+/// `invitee_ids`, when set, replaces the whole invite list.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct ScheduledCallChanges {
+    /// When the call, or the named occurrence, now starts, RFC 3339.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<String>,
+    /// The title invitees see.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// What the call is about.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// How long the call lasts, in minutes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_minutes: Option<u32>,
+    /// Everyone to invite, replacing the invite list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invitee_ids: Option<Vec<String>>,
+    /// The RFC 5545 RRULE to repeat the call by.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recurrence: Option<String>,
+    /// The IANA time zone the recurrence follows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_zone: Option<String>,
+    /// Whether invitees get an email about the change; X assumes they do.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify_invitees: Option<bool>,
+    /// Which occurrences of a recurring call the change applies to.
+    #[serde(flatten)]
+    pub occurrences: Occurrences,
+}
+
+impl ScheduledCallChanges {
+    /// Whether the change set leaves the call as it is: no field it would
+    /// change is set. Naming occurrences or the email setting changes
+    /// nothing on its own.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.start_time.is_none()
+            && self.title.is_none()
+            && self.description.is_none()
+            && self.duration_minutes.is_none()
+            && self.invitee_ids.is_none()
+            && self.recurrence.is_none()
+            && self.time_zone.is_none()
+    }
 }
 
 /// The upload category of a video that carries subtitles.
@@ -366,6 +531,186 @@ pub fn validate_source_region(region: &str) -> std::result::Result<(), &'static 
     Ok(())
 }
 
+/// Longest scheduled-call title X accepts, the spec's `maxLength`.
+pub const CALL_TITLE_MAX_CHARS: usize = 100;
+
+/// Longest scheduled-call description X accepts, the spec's `maxLength`.
+pub const CALL_DESCRIPTION_MAX_CHARS: usize = 1000;
+
+/// Longest recurrence rule X accepts, the spec's `maxLength`.
+pub const CALL_RECURRENCE_MAX_CHARS: usize = 500;
+
+/// Longest time zone name X accepts, the spec's `maxLength`.
+pub const CALL_TIME_ZONE_MAX_CHARS: usize = 64;
+
+/// Longest a scheduled call may last, in minutes: 31 days, the spec's
+/// `maximum`.
+pub const CALL_DURATION_MAX_MINUTES: u32 = 44_640;
+
+/// Most people a new scheduled call may invite, the spec's `maxItems`.
+pub const NEW_CALL_INVITEES_MAX: usize = 25;
+
+/// Most people an updated invite list may hold, the spec's `maxItems`.
+pub const CHANGED_CALL_INVITEES_MAX: usize = 100;
+
+/// Validates a call time against the spec's pattern: RFC 3339 with seconds,
+/// up to nine fractional digits, and a `Z` or `±hh:mm` zone.
+///
+/// # Errors
+/// Returns `invalid-call-time` for anything else.
+pub fn validate_call_time(input: &str) -> std::result::Result<(), &'static str> {
+    if is_call_time(input.as_bytes()) {
+        Ok(())
+    } else {
+        Err("invalid-call-time")
+    }
+}
+
+fn two_digits(bytes: &[u8], at: usize) -> Option<u8> {
+    match bytes.get(at..at + 2)? {
+        [tens, units] if tens.is_ascii_digit() && units.is_ascii_digit() => {
+            Some((tens - b'0') * 10 + (units - b'0'))
+        }
+        _ => None,
+    }
+}
+
+fn is_call_time(bytes: &[u8]) -> bool {
+    let year = bytes
+        .get(..4)
+        .is_some_and(|y| y.iter().all(u8::is_ascii_digit));
+    let separators = [(4, b'-'), (7, b'-'), (10, b'T'), (13, b':'), (16, b':')]
+        .iter()
+        .all(|&(at, byte)| bytes.get(at) == Some(&byte));
+    let fields = [
+        (5, 1, 12),
+        (8, 1, 31),
+        (11, 0, 23),
+        (14, 0, 59),
+        (17, 0, 59),
+    ]
+    .iter()
+    .all(|&(at, low, high)| two_digits(bytes, at).is_some_and(|n| (low..=high).contains(&n)));
+    if !(year && separators && fields) {
+        return false;
+    }
+    let mut zone = &bytes[19..];
+    if let Some(fraction) = zone.strip_prefix(b".") {
+        let digits = fraction.iter().take_while(|b| b.is_ascii_digit()).count();
+        if !(1..=9).contains(&digits) {
+            return false;
+        }
+        zone = &fraction[digits..];
+    }
+    match zone {
+        b"Z" => true,
+        [b'+' | b'-', ..] => {
+            zone.len() == 6
+                && zone[3] == b':'
+                && two_digits(zone, 1).is_some_and(|hours| hours <= 23)
+                && two_digits(zone, 4).is_some_and(|minutes| minutes <= 59)
+        }
+        _ => false,
+    }
+}
+
+/// Holds the spec's bounds on what a new call and a change both carry.
+fn check_call_details(
+    title: Option<&str>,
+    description: Option<&str>,
+    recurrence: Option<&str>,
+    time_zone: Option<&str>,
+    duration_minutes: Option<u32>,
+) -> std::result::Result<(), &'static str> {
+    let longer = |text: Option<&str>, max: usize| text.is_some_and(|t| t.chars().count() > max);
+    if longer(title, CALL_TITLE_MAX_CHARS) {
+        return Err("call-title-too-long");
+    }
+    if longer(description, CALL_DESCRIPTION_MAX_CHARS) {
+        return Err("call-description-too-long");
+    }
+    if longer(recurrence, CALL_RECURRENCE_MAX_CHARS) {
+        return Err("call-recurrence-too-long");
+    }
+    if longer(time_zone, CALL_TIME_ZONE_MAX_CHARS) {
+        return Err("call-time-zone-too-long");
+    }
+    if duration_minutes.is_some_and(|m| !(1..=CALL_DURATION_MAX_MINUTES).contains(&m)) {
+        return Err("invalid-call-duration");
+    }
+    Ok(())
+}
+
+fn check_invitees(invitee_ids: &[String], max: usize) -> std::result::Result<(), &'static str> {
+    if invitee_ids.len() > max {
+        return Err("too-many-invitees");
+    }
+    invitee_ids.iter().try_for_each(|id| validate_user_id(id))
+}
+
+/// Validates a call to schedule against the spec's bounds.
+///
+/// # Errors
+/// Returns the kebab-case reason: `invalid-call-time`, `call-title-too-long`,
+/// `call-description-too-long`, `call-recurrence-too-long`,
+/// `call-time-zone-too-long`, `invalid-call-duration`, `too-many-invitees`,
+/// `invalid-user-id`.
+pub fn validate_new_scheduled_call(
+    call: &NewScheduledCall,
+) -> std::result::Result<(), &'static str> {
+    validate_call_time(&call.start_time)?;
+    check_call_details(
+        call.title.as_deref(),
+        call.description.as_deref(),
+        call.recurrence.as_deref(),
+        call.time_zone.as_deref(),
+        call.duration_minutes,
+    )?;
+    check_invitees(&call.invitee_ids, NEW_CALL_INVITEES_MAX)
+}
+
+/// Validates a change to a scheduled call against the spec's bounds.
+///
+/// # Errors
+/// Returns the kebab-case reason: `no-call-changes` when nothing would
+/// change, `empty-call-recurrence`, and any reason
+/// [`validate_new_scheduled_call`] gives.
+pub fn validate_scheduled_call_changes(
+    changes: &ScheduledCallChanges,
+) -> std::result::Result<(), &'static str> {
+    if changes.is_empty() {
+        return Err("no-call-changes");
+    }
+    if let Some(start) = &changes.start_time {
+        validate_call_time(start)?;
+    }
+    if changes.recurrence.as_deref() == Some("") {
+        return Err("empty-call-recurrence");
+    }
+    check_call_details(
+        changes.title.as_deref(),
+        changes.description.as_deref(),
+        changes.recurrence.as_deref(),
+        changes.time_zone.as_deref(),
+        changes.duration_minutes,
+    )?;
+    if let Some(ids) = &changes.invitee_ids {
+        check_invitees(ids, CHANGED_CALL_INVITEES_MAX)?;
+    }
+    validate_occurrences(&changes.occurrences)
+}
+
+/// Validates the occurrence a request names.
+///
+/// # Errors
+/// Returns `invalid-call-time` when `occurrence_start_time` is not RFC 3339.
+pub fn validate_occurrences(occurrences: &Occurrences) -> std::result::Result<(), &'static str> {
+    match &occurrences.occurrence_start_time {
+        Some(start) => validate_call_time(start),
+        None => Ok(()),
+    }
+}
+
 /// Validates the alt text for a media id.
 ///
 /// # Errors
@@ -413,6 +758,35 @@ fn request(method: &str, target: RequestTarget, data: String) -> RequestOptions 
         data,
         ..Default::default()
     }
+}
+
+/// Every field the spec gives an X call.
+const CALL_FIELDS: &str =
+    "conversation_id,created_at,id,join_policy,join_url,participant_count,title,viewer_may_join";
+
+/// Every field the spec gives a scheduled call.
+const SCHEDULED_CALL_FIELDS: &str = "calendar,call_id,description,end_time,id,join_url,\
+                                     occurrence_start_time,recurrence,start_time,status,\
+                                     time_zone,title";
+
+/// The user fields a call's host, organizer, and invitees are expanded with.
+const CALL_USER_FIELDS: &str = "username,name";
+
+/// Every field and expansion a scheduled call is read with: its invitees,
+/// its call, and its organizer.
+fn scheduled_call_query() -> Vec<(String, String)> {
+    vec![
+        (
+            "scheduled_call.fields".to_string(),
+            SCHEDULED_CALL_FIELDS.to_string(),
+        ),
+        (
+            "expansions".to_string(),
+            "call_id,invitees,organizer_id".to_string(),
+        ),
+        ("call.fields".to_string(), CALL_FIELDS.to_string()),
+        ("user.fields".to_string(), CALL_USER_FIELDS.to_string()),
+    ]
 }
 
 fn id_param(user_id: &str) -> HashMap<String, String> {
@@ -1218,6 +1592,137 @@ impl Client {
                 id_param(source_id),
                 Vec::new(),
             ),
+        )
+    }
+
+    // ── Calls ───────────────────────────────────────────────────────
+
+    /// Reads an X call: its title, join policy, host, and participant
+    /// count, with the host expanded.
+    pub fn get_call(&self, call_id: &str) -> Call<ApiResponse<XCall>> {
+        self.call(
+            endpoints::GET_CALL.method,
+            template(
+                endpoints::GET_CALL.path,
+                id_param(call_id),
+                vec![
+                    ("call.fields".to_string(), CALL_FIELDS.to_string()),
+                    ("expansions".to_string(), "host_id".to_string()),
+                    ("user.fields".to_string(), CALL_USER_FIELDS.to_string()),
+                ],
+            ),
+        )
+    }
+
+    /// Lists the calls on the authenticated user's calendar, earliest first.
+    /// X assumes a window from now to 24 hours later for a bound left
+    /// `None`; both are RFC 3339. X accepts 1 to 100 results;
+    /// `max_results` is brought into that range.
+    pub fn get_scheduled_calls(
+        &self,
+        start_time: Option<&str>,
+        end_time: Option<&str>,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<ScheduledCall>>> {
+        let mut query = Vec::new();
+        if let Some(start) = start_time {
+            query.push(("start_time".to_string(), start.to_string()));
+        }
+        if let Some(end) = end_time {
+            query.push(("end_time".to_string(), end.to_string()));
+        }
+        query.push((
+            "max_results".to_string(),
+            max_results.clamp(1, 100).to_string(),
+        ));
+        query.extend(scheduled_call_query());
+        self.call(
+            endpoints::GET_SCHEDULED_CALLS.method,
+            template(endpoints::GET_SCHEDULED_CALLS.path, HashMap::new(), query),
+        )
+    }
+
+    /// Puts a call on the authenticated user's X Calls calendar and invites
+    /// people to it. The call exists at once: its `join_url` works from now.
+    pub fn schedule_call(&self, call: &NewScheduledCall) -> Call<ApiResponse<ScheduledCall>> {
+        self.post_json(
+            template(endpoints::SCHEDULE_CALL.path, HashMap::new(), Vec::new()),
+            call,
+        )
+    }
+
+    /// Reads a scheduled call the authenticated user organizes or is invited
+    /// to, at its occurrence running now or its next one.
+    pub fn get_scheduled_call(&self, scheduled_call_id: &str) -> Call<ApiResponse<ScheduledCall>> {
+        self.call(
+            endpoints::GET_SCHEDULED_CALL.method,
+            template(
+                endpoints::GET_SCHEDULED_CALL.path,
+                id_param(scheduled_call_id),
+                scheduled_call_query(),
+            ),
+        )
+    }
+
+    /// Moves, renames, or re-invites a scheduled call the authenticated user
+    /// organizes. Only the fields `changes` sets are sent.
+    pub fn update_scheduled_call(
+        &self,
+        scheduled_call_id: &str,
+        changes: &ScheduledCallChanges,
+    ) -> Call<ApiResponse<ScheduledCallUpdated>> {
+        self.json_call(
+            endpoints::UPDATE_SCHEDULED_CALL.method,
+            template(
+                endpoints::UPDATE_SCHEDULED_CALL.path,
+                id_param(scheduled_call_id),
+                Vec::new(),
+            ),
+            changes,
+        )
+    }
+
+    /// Cancels the named occurrences of a scheduled call the authenticated
+    /// user organizes and takes them off invitees' calendars. Cancelling what
+    /// is already cancelled succeeds.
+    pub fn cancel_scheduled_call(
+        &self,
+        scheduled_call_id: &str,
+        occurrences: &Occurrences,
+        notify_invitees: Option<bool>,
+    ) -> Call<ApiResponse<ScheduledCallCancelled>> {
+        let mut query = occurrences.query();
+        if let Some(notify) = notify_invitees {
+            query.push(("notify_invitees".to_string(), notify.to_string()));
+        }
+        self.call(
+            endpoints::CANCEL_SCHEDULED_CALL.method,
+            template(
+                endpoints::CANCEL_SCHEDULED_CALL.path,
+                id_param(scheduled_call_id),
+                query,
+            ),
+        )
+    }
+
+    /// Answers an invitation to a scheduled call for the authenticated user,
+    /// for the named occurrences.
+    pub fn respond_to_scheduled_call(
+        &self,
+        scheduled_call_id: &str,
+        answer: RsvpAnswer,
+        occurrences: &Occurrences,
+    ) -> Call<ApiResponse<ScheduledCallRsvp>> {
+        self.post_json(
+            template(
+                endpoints::RESPOND_TO_SCHEDULED_CALL.path,
+                id_param(scheduled_call_id),
+                Vec::new(),
+            ),
+            &RsvpBody {
+                response: answer,
+                occurrences,
+            },
         )
     }
 
