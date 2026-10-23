@@ -314,8 +314,8 @@ distribution manifest; the pin is effectively a SHA pin. Toolchain bumps land vi
 cargo test                    # unit + integration
 cargo test -- --ignored       # slower / network-dependent tests
 scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, msrv, doc, examples, the offline example
-                              # run, TLS feature cells, deny, shellcheck, Windows cross-clippy, markdownlint,
-                              # actionlint; docs.rs nightly build and cargo-hack powerset when installed)
+                              # run, TLS feature cells, the docs.rs feature set, deny, shellcheck, Windows
+                              # cross-clippy, markdownlint, actionlint; cargo-hack powerset when installed)
 ```
 
 A development build run by hand moves a single-file `~/.xurl` into the directory layout like any other `xr`, and a

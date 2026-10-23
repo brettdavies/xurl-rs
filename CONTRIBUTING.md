@@ -23,10 +23,9 @@ on.
 
 `pre-push` mirrors CI over the repo: `cargo fmt`, `cargo clippy` with warnings denied, `cargo test --workspace`, the
 MSRV check, the doc build, the examples build, the credential-free example run against the `testing` mock, the TLS
-feature cells (`native-tls` alone compiles; no backend fails on the guard), `cargo deny check`, `shellcheck`, a Windows
-compatibility scan, `markdownlint-cli2`, and `actionlint`. Two more steps run only when their tool is installed and say
-so otherwise: the docs.rs build (`cargo +nightly doc` with `--cfg docsrs` and every feature) and the feature powerset
-(`cargo hack`).
+feature cells (`native-tls` alone compiles; no backend fails on the guard), the docs.rs feature set (`xdk-rs`
+documented with every feature), `cargo deny check`, `shellcheck`, a Windows compatibility scan, `markdownlint-cli2`, and
+`actionlint`. The feature powerset (`cargo hack`) runs only when the tool is installed and says so otherwise.
 
 `pre-push` scopes each step to what the push actually changes, so a docs-only push skips the Rust battery entirely and
 finishes in seconds. A document counts as docs only when it is markdown outside `crates/` that no Rust source names:
