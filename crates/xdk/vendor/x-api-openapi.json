@@ -10543,6 +10543,82 @@
         },
         "type": "object"
       },
+      "GetUsersMeFollowersResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "includes": {
+            "$ref": "#/components/schemas/Expansions"
+          },
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "previous_token": {
+                "description": "Pagination token for the previous page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetUsersMeFollowingResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/User"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "includes": {
+            "$ref": "#/components/schemas/Expansions"
+          },
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "previous_token": {
+                "description": "Pagination token for the previous page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "GetUsersMeResponse": {
         "properties": {
           "data": {
@@ -36088,6 +36164,172 @@
           }
         ],
         "summary": "Get Users Me",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/2/users/me/followers": {
+      "get": {
+        "description": "Same results as `GET /2/users/{id}/followers` with the authenticated user's ID.",
+        "operationId": "getUsersMeFollowers",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          },
+          {
+            "description": "A base32hex-encoded pagination token.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "minLength": 16,
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/UserFieldsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/UserExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/PostFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUsersMeFollowersResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "follows.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get the authenticated user's followers",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/2/users/me/following": {
+      "get": {
+        "description": "Same results as `GET /2/users/{id}/following` with the authenticated user's ID.",
+        "operationId": "getUsersMeFollowing",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          },
+          {
+            "description": "A base32hex-encoded pagination token.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "minLength": 16,
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/UserFieldsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/UserExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/PostFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUsersMeFollowingResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "follows.read",
+              "tweet.read",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get the users the authenticated user follows",
         "tags": [
           "Users"
         ]
