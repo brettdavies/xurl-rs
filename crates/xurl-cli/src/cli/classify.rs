@@ -56,16 +56,9 @@ pub(crate) fn classify(cli: &Cli) -> Classified {
     if cli.command.is_some() {
         return Classified::Raw;
     }
-    // Every flag that only raw mode reads. Their presence says the caller
-    // means a request, so the positional stays a URL.
-    let raw_only_flag = cli.method.is_some()
-        || !cli.headers.is_empty()
-        || cli.data.is_some()
-        || cli.auth_type.is_some()
-        || cli.username.is_some()
-        || cli.file.is_some()
-        || cli.trace
-        || cli.stream;
+    // Their presence says the caller means a request, so the positional
+    // stays a URL.
+    let raw_only_flag = raw_only_flag_given(cli);
 
     let Some(word) = cli.url.as_deref() else {
         return if raw_only_flag {
@@ -84,6 +77,38 @@ pub(crate) fn classify(cli: &Cli) -> Classified {
         return Classified::UnknownCommand(word.to_string());
     }
     Classified::Raw
+}
+
+/// Whether the root carries a flag that only raw mode reads. clap parses
+/// root flags only ahead of a command word, so beside a command, one of
+/// these reached the root and no command reads it.
+pub(crate) fn raw_only_flag_given(cli: &Cli) -> bool {
+    cli.method.is_some()
+        || !cli.headers.is_empty()
+        || cli.data.is_some()
+        || cli.auth_type.is_some()
+        || cli.username.is_some()
+        || cli.file.is_some()
+        || cli.trace
+        || cli.stream
+}
+
+/// The login `-u` names, on the command the invocation runs or on a raw
+/// request; `None` when the invocation does not parse or names none.
+pub(crate) fn requested_login<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<String> {
+    let matches = Cli::command()
+        .try_get_matches_from(args.iter().map(AsRef::as_ref))
+        .ok()?;
+    let mut current = &matches;
+    while let Some((_, sub)) = current.subcommand() {
+        current = sub;
+    }
+    current
+        .try_get_one::<String>("username")
+        .ok()
+        .flatten()
+        .filter(|login| !login.is_empty())
+        .cloned()
 }
 
 /// Whether the whole token reads as a command name: a letter, then letters,

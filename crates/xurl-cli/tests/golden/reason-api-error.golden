@@ -1,4 +1,4 @@
-args: ["--output", "json", "--auth", "app", "search", "q409"]
+args: ["--output", "json", "search", "--auth", "app", "q409"]
 store: bearer-env
 exit_code: 1
 stdout_len: 0

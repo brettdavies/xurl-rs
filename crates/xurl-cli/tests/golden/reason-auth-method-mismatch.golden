@@ -1,4 +1,4 @@
-args: ["--output", "json", "--auth", "app", "whoami"]
+args: ["--output", "json", "whoami"]
 store: bearer-env
 exit_code: 2
 stdout_len: 0

@@ -92,9 +92,10 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
         ctx["timeout_secs"] = json!(budget.attempt_timeout().as_secs());
     }
     if flags.dry_run {
-        if let Err(error) = &targets {
-            out.print_dry_run_refusal(stdout, &ctx, error);
-        } else if signs_with.is_some() {
+        if let Err(error) = targets {
+            return Err(Failure::DryRunRefusal { ctx, error });
+        }
+        if signs_with.is_some() {
             out.print_dry_run(stdout, true, 0, &ctx);
         } else {
             ctx["reason"] = json!("no-signing-secret");

@@ -3,8 +3,9 @@
 //! The CLI needs to choose a recovery hint at the point an error is about to
 //! print, which is after the `Auth` value has moved into the command
 //! handlers. This snapshot carries the few facts that choice needs, and no
-//! secret: presence flags per app, the default and active app names, whether
-//! the environment supplied a client id, and how the file loaded.
+//! secret: presence flags and login names per app, the default and active
+//! app names, whether the environment supplied a client id, and how the file
+//! loaded.
 //!
 //! ```text
 //! file missing        -> Fresh       apps empty; saves allowed; hint: register
@@ -41,6 +42,9 @@ pub struct StoreSnapshot {
     pub load_state: LoadState,
     /// Path of the backing file, so a hint can name it.
     pub store_path: String,
+    /// The named `OAuth2` logins each app holds, the names `-u` selects, in
+    /// stable order.
+    pub oauth2_logins: BTreeMap<String, Vec<String>>,
 }
 
 impl StoreSnapshot {
@@ -68,6 +72,11 @@ impl StoreSnapshot {
             env_client_id_present,
             load_state: store.load_state,
             store_path: store.file_path.display().to_string(),
+            oauth2_logins: store
+                .apps
+                .iter()
+                .map(|(name, app)| (name.clone(), app.oauth2_tokens.keys().cloned().collect()))
+                .collect(),
         }
     }
 
@@ -97,6 +106,17 @@ impl StoreSnapshot {
         self.apps
             .iter()
             .filter(|(_, facts)| facts.has_tokens)
+            .map(|(name, _)| name.clone())
+            .collect()
+    }
+
+    /// Names of apps holding the named `OAuth2` login `login`, in stable
+    /// order.
+    #[must_use]
+    pub fn apps_holding_login(&self, login: &str) -> Vec<String> {
+        self.oauth2_logins
+            .iter()
+            .filter(|(_, logins)| logins.iter().any(|held| held == login))
             .map(|(name, _)| name.clone())
             .collect()
     }

@@ -7,6 +7,7 @@ mod classify;
 pub mod commands;
 mod failure;
 pub mod hints;
+mod misplaced_flags;
 pub mod runner;
 pub(crate) mod shutdown;
 

@@ -72,6 +72,24 @@ A positional that starts with `http://`, `https://`, or `/` is still a raw reque
 raw-only flag (`-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, `-s`), which no command reads. A raw request has no help
 page of its own, so `xr /2/users/me --help` prints the root help.
 
+## A raw-only flag before a command word is refused (intentional difference)
+
+Go `xurl` defines `-X`, `-H`, `-d`, `--auth`, `-u`, `-t`, `-s`, and `-F` on its root command (`cli/root.go`), and every
+shortcut command defines its own `--auth`, `-u`, and `-t` (`addCommonFlags` in `cli/shortcuts.go`).
+
+In the Rust version clap reads root flags only before the command word, and each command reads its own copy, so the
+root's copy of a flag given there would go unread: `xr -u work whoami` would answer as the default login. Such an
+invocation is a usage error at exit `2` with reason `invalid-args`. When each misplaced flag is `-u`, `--auth`, or `-t`
+and the command takes it, `next_step` is `fix-input` carrying the invocation with the flags after the command word;
+otherwise it is `show-help` with the command's help:
+
+| Invocation          | Rust behavior                                    |
+| ------------------- | ------------------------------------------------ |
+| `xr -u work whoami` | Exit 2, `invalid-args`, step `xr whoami -u work` |
+| `xr -X POST whoami` | Exit 2, `invalid-args`, step `xr whoami --help`  |
+
+A raw request keeps every one of these flags: `xr -u work /2/users/me` is unchanged.
+
 ## Every stream the spec declares is streamed (intentional improvement)
 
 Go `xurl` streams a raw request without `-s` only when its path is on a fixed list of eight: the filtered search stream,

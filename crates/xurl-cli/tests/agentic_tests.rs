@@ -197,7 +197,7 @@ async fn test_output_line_formats_print_an_api_document_on_one_line(#[case] form
     let (code, stdout, stderr) = run_against(
         &server,
         &[],
-        &["--output", format, "--auth", "app", "search", "hi"],
+        &["--output", format, "search", "--auth", "app", "hi"],
     );
 
     assert_eq!(code, 0, "stderr: {stderr}");
@@ -715,7 +715,7 @@ async fn test_after_sends_the_pagination_token() {
     let (code, _stdout, stderr) = run_against(
         &server,
         &[],
-        &["--after", "AFTER-TOKEN", "--auth", "app", "search", "hi"],
+        &["--after", "AFTER-TOKEN", "search", "--auth", "app", "hi"],
     );
 
     assert_eq!(

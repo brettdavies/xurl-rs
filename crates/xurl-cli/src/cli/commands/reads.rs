@@ -75,8 +75,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             let client = make_client(cfg, auth)?;
             let call = with_flags(client.get_me(), &common, None);
             if let Some(dry_run) = dry_run {
-                dry_run.answer(out, stdout, [call.auth_preflight().await]);
-                return Ok(());
+                return dry_run.answer(out, stdout, [call.auth_preflight().await]);
             }
             if cached
                 && let Ok(Some(found)) = call.auth_preflight().await

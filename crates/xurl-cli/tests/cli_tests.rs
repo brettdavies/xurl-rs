@@ -6350,10 +6350,10 @@ mod rate_limit_and_body_handling {
                 "--output",
                 "json",
                 "--wait-on-rate-limit",
-                "--auth",
-                "oauth1",
                 "like",
                 "1234567890",
+                "--auth",
+                "oauth1",
             ],
         )
         .await;

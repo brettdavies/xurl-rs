@@ -482,8 +482,15 @@ impl OutputConfig {
 
     /// Emits the dry-run envelope of a command the credentials at hand
     /// cannot serve: `would_succeed: false`, the exit code the real run
-    /// would end on, and the keys its error envelope would carry.
-    pub(crate) fn print_dry_run_refusal(&self, out: &mut dyn Write, ctx: &Value, error: &Error) {
+    /// would end on, and the keys its error envelope would carry, its
+    /// `next_step` among them.
+    pub(crate) fn print_dry_run_refusal(
+        &self,
+        out: &mut dyn Write,
+        ctx: &Value,
+        error: &Error,
+        next_step: Option<&crate::cli::hints::NextStep>,
+    ) {
         // A dry run looks no id up, so a path it rendered would carry a
         // stand-in. Without one the message names the endpoint's template.
         let templated;
@@ -499,7 +506,11 @@ impl OutputConfig {
         };
         let exit_code = error.exit_code();
         let mut merged = ctx.as_object().cloned().unwrap_or_default();
-        if let Value::Object(body) = error_body(error, exit_code).into_value() {
+        let body = ErrorBody {
+            next_step: next_step.cloned(),
+            ..error_body(error, exit_code)
+        };
+        if let Value::Object(body) = body.into_value() {
             merged.extend(
                 body.into_iter()
                     .filter(|(key, _)| key != "status" && key != "exit_code"),

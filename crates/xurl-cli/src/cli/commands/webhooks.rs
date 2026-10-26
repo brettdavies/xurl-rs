@@ -386,8 +386,10 @@ async fn replay_from_checkpoint(
     let window = match read_checkpoint(checkpoint, now).and_then(|at| replay_window(at, now)) {
         Ok(window) => window,
         Err(error) if flags.dry_run => {
-            out.print_dry_run_refusal(stdout, &ctx, &with_both_fixes(error));
-            return Ok(());
+            return Err(Failure::DryRunRefusal {
+                ctx,
+                error: with_both_fixes(error),
+            });
         }
         Err(error) => return Err(with_both_fixes(error).into()),
     };

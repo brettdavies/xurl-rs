@@ -302,6 +302,9 @@ where
         }
         Classified::Raw => {}
     }
+    if let Some(misplaced) = crate::cli::misplaced_flags::misplaced(&cli, &args_vec) {
+        return render_misplaced_flags(&misplaced, &args_vec, &out, stderr);
+    }
 
     // ── Tier 3: Everything else (needs config + auth) ──────────────────
     let mut cfg = Config::from_overrides(overrides);
@@ -360,32 +363,49 @@ where
             out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR, next_step);
             EXIT_GENERAL_ERROR
         }
+        Err(Failure::DryRunRefusal { ctx, error }) => {
+            let hint = recovery_hint(&error, &snapshot, &args_vec, structured);
+            out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref().map(|h| &h.next_step));
+            EXIT_SUCCESS
+        }
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
-            let hint = if carries_no_auth_method(&e) {
-                Some(crate::cli::hints::choose_hint(
-                    &snapshot,
-                    &invocation(),
-                    structured,
-                ))
-            } else {
-                crate::cli::hints::unloadable_store_hint(&snapshot, &e)
-                    .or_else(|| crate::cli::hints::enrollment_hint(&e))
-                    .or_else(|| crate::cli::hints::resume_wait_hint(&e))
-                    .or_else(|| crate::cli::hints::address_in_use_hint(&e, &invocation()))
-                    .or_else(|| crate::cli::hints::wait_and_retry_hint(&e))
-                    .or_else(|| {
-                        crate::cli::hints::mismatch_hint(&snapshot, &e, &invocation(), structured)
-                    })
-                    .or_else(|| crate::cli::hints::general_hint(&e, &invoked_help(&args_vec)))
-            };
-            match hint {
+            match recovery_hint(&e, &snapshot, &args_vec, structured) {
                 Some(hint) => out.print_error_with_hint(stderr, &e, code, &hint),
                 None => out.print_error(stderr, &e, code),
             }
             code
         }
     }
+}
+
+/// The recovery hint for a library error, chosen from the store as this
+/// run loaded it and the invocation as given. A dry run's refusal takes the
+/// same hint its real run would.
+fn recovery_hint(
+    error: &xdk::error::Error,
+    snapshot: &xdk::store::snapshot::StoreSnapshot,
+    args: &[OsString],
+    structured: bool,
+) -> Option<crate::cli::hints::Hint> {
+    let invocation: Vec<String> = args
+        .iter()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
+    if carries_no_auth_method(error) {
+        return Some(crate::cli::hints::choose_hint(
+            snapshot,
+            &invocation,
+            structured,
+        ));
+    }
+    crate::cli::hints::unloadable_store_hint(snapshot, error)
+        .or_else(|| crate::cli::hints::enrollment_hint(error))
+        .or_else(|| crate::cli::hints::resume_wait_hint(error))
+        .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
+        .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
+        .or_else(|| crate::cli::hints::mismatch_hint(snapshot, error, &invocation, structured))
+        .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
 }
 
 /// Whether this error is a missing-credential failure a recovery hint answers.
@@ -555,6 +575,56 @@ fn help_command_page(args: &[OsString]) -> String {
 /// The pointer names a help page rather than the corrected invocation: the
 /// suggestion is a guess, and the corrected invocation of a write command
 /// would act on it.
+/// Renders raw-only flags given ahead of a command word: `invalid-args`,
+/// with the invocation that moves them after the word as its step when one
+/// exists, and the command's help otherwise. The message and the step name
+/// the same invocation.
+fn render_misplaced_flags(
+    misplaced: &crate::cli::misplaced_flags::Misplaced,
+    args: &[OsString],
+    out: &OutputConfig,
+    stderr: &mut dyn Write,
+) -> i32 {
+    let quoted: Vec<String> = misplaced
+        .flags
+        .iter()
+        .map(|flag| format!("'{flag}'"))
+        .collect();
+    let (named, verb, pronoun) = match quoted.as_slice() {
+        [one] => (one.clone(), "comes", "it"),
+        [first, second] => (format!("{first} and {second}"), "come", "them"),
+        [rest @ .., last] => (format!("{}, and {last}", rest.join(", ")), "come", "them"),
+        [] => (String::new(), "comes", "it"),
+    };
+    let problem = format!(
+        "{named} {verb} before the command word, where only a raw request reads {pronoun}."
+    );
+    let (message, next_step) = match &misplaced.moved {
+        Some(moved) => (
+            format!("{problem} Run: {moved}"),
+            NextStep::fix_input_with(moved.clone()),
+        ),
+        None => {
+            let help = invoked_help(args);
+            (
+                format!("{problem} Try '{help}'."),
+                NextStep::show_help(help),
+            )
+        }
+    };
+    out.emit_error_envelope(
+        stderr,
+        ErrorBody {
+            reason: Reason::InvalidArgs,
+            exit_code: EXIT_USAGE_ERROR,
+            message: Some(message),
+            next_step: Some(next_step),
+            ..ErrorBody::default()
+        },
+    );
+    EXIT_USAGE_ERROR
+}
+
 fn render_unknown_command(
     word: &str,
     suggestion: Option<&str>,
