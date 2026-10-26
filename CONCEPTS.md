@@ -49,6 +49,13 @@ declarations at build time. It exists to reject a request client-side when the c
 fails the build loudly when a shortcut's endpoint disappears from the spec — the earliest tripwire that a spec revision
 broke the command surface.
 
+### Endpoint decision
+
+An entry in `endpoint-decisions.json` recording what was decided for spec operations that have no shortcut command:
+`planned` (a command family to build, retired when it ships), `raw-only`, or `not-supported` (no command until the
+entry's `revisit_when` trigger fires). Each carries a reason, who decided, and when. Every spec operation has a shortcut
+or a decision, and only a person changes one.
+
 ### Spec↔types validation gate
 
 The test-suite gate that compares each typed response's declared fields against the corresponding schema in the vendored
@@ -105,6 +112,13 @@ The curl-style path `xr [OPTIONS] <URL>`: the root command's positional is an ab
 `/`-prefixed path that is prefixed with the API base URL. Raw mode bypasses the auth-method matrix and sends the request
 as given. Any other bare positional is either a mistyped shortcut, reported as an unknown command, or a URL validation
 error.
+
+### Command family
+
+A noun that owns several operations and groups them as subcommands, such as `xr bookmark-folders`, `xr calls`, or
+`xr broadcasts`: a tooling noun, or an API namespace with sibling endpoints. A standalone read or action in the core
+domain gets a top-level word instead. Adding one touches the surfaces AGENTS.md § "Adding a command family" lists, each
+guarded by a walk.
 
 ### Error envelope
 
