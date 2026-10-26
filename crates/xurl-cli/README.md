@@ -126,6 +126,13 @@ xr timeline                                    # Home timeline
 xr mentions                                    # Your mentions
 ```
 
+### Communities
+
+```bash
+xr communities search rust                     # Communities about a topic
+xr communities get 1146654567674912769         # One community, by id
+```
+
 ### News
 
 ```bash

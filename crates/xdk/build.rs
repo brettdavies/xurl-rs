@@ -76,6 +76,9 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // news
     ("SEARCH_NEWS", "GET", "/2/news/search"),
     ("GET_NEWS", "GET", "/2/news/{id}"),
+    // communities
+    ("SEARCH_COMMUNITIES", "GET", "/2/communities/search"),
+    ("GET_COMMUNITY", "GET", "/2/communities/{id}"),
     // users (reads)
     ("GET_ME", "GET", "/2/users/me"),
     ("LOOKUP_USER", "GET", "/2/users/by/username/{username}"),

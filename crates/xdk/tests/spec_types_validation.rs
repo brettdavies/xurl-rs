@@ -26,9 +26,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, BookmarkFolder, DmEvent,
-    HiddenResult, MediaMetadataResult, MediaSubtitlesResult, NewsStory, PersonalizedTrend, Post,
-    PostAnalytics, PostCount, ProvisionedResult, ScheduledCall, ScheduledCallCancelled,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, BookmarkFolder, Community,
+    DmEvent, HiddenResult, MediaMetadataResult, MediaSubtitlesResult, NewsStory, PersonalizedTrend,
+    Post, PostAnalytics, PostCount, ProvisionedResult, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources,
     SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
     WebhookValidation, XCall,
@@ -271,6 +271,10 @@ fn typed_responses_match_vendored_spec() {
         (
             "CreateWebhooksStreamLinkResponseData",
             serde_json::to_value(schemars::schema_for!(ProvisionedResult)).unwrap(),
+        ),
+        (
+            "Community",
+            serde_json::to_value(schemars::schema_for!(Community)).unwrap(),
         ),
         (
             "News",

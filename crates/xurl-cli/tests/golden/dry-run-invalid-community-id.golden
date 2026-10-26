@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "communities", "get", "rustaceans"]
+store: empty
+exit_code: 0
+stdout_len: 170
+stderr_len: 0
+--- stdout ---
+{
+  "command": "communities-get",
+  "community_id": "rustaceans",
+  "exit_code": 1,
+  "reason": "invalid-community-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+
