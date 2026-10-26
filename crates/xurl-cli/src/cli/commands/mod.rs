@@ -671,6 +671,40 @@ where
     list_owned_by(run, ctx, || Ok(()), max_results, of, common, shortcut).await
 }
 
+/// A paged read of the caller's own list from a path that names no user,
+/// such as `/2/users/me/followers` or `/2/dm_events`: one request, with no
+/// id to look up first.
+async fn list_mine<T>(
+    run: Run<'_>,
+    command: &str,
+    max_results: Option<i32>,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, i32) -> Call<api::ApiResponse<T>>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let dry_run = flags.dry_run.then(|| {
+        let mut ctx = json!({"command": command});
+        if let Some(n) = max_results {
+            ctx["max_results"] = json!(n);
+        }
+        DryRun::new(ctx)
+    });
+    let n = effective_limit(max_results, flags.global_limit);
+    let client = make_client(cfg, auth)?;
+    let call = with_flags(shortcut(&client, n), common, flags.cursor.as_deref());
+    send_or_report(out, stdout, dry_run, call).await
+}
+
 /// [`list_for_user`] for a list the command's own inputs pick out, such as
 /// one folder: `ctx` names them in a dry run's answer, and `validator`
 /// checks them before any request.

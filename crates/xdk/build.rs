@@ -69,6 +69,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ),
     ("GET_MENTIONS", "GET", "/2/users/{id}/mentions"),
     ("GET_FOLLOWERS", "GET", "/2/users/{id}/followers"),
+    ("GET_MY_FOLLOWERS", "GET", "/2/users/me/followers"),
     ("GET_LIKED_POSTS", "GET", "/2/users/{id}/liked_tweets"),
     // likes
     ("LIKE_POST", "POST", "/2/users/{id}/likes"),
@@ -101,6 +102,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ),
     // following
     ("GET_FOLLOWING", "GET", "/2/users/{id}/following"),
+    ("GET_MY_FOLLOWING", "GET", "/2/users/me/following"),
     ("FOLLOW_USER", "POST", "/2/users/{id}/following"),
     (
         "UNFOLLOW_USER",

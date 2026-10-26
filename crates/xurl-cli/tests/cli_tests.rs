@@ -3611,12 +3611,76 @@ const PAGING_COMMANDS: &[(&[&str], &str)] = &[
     (&["mentions"], "/2/users/2244994945/mentions"),
     (&["bookmarks"], "/2/users/2244994945/bookmarks"),
     (&["likes"], "/2/users/2244994945/liked_tweets"),
-    (&["following"], "/2/users/2244994945/following"),
-    (&["followers"], "/2/users/2244994945/followers"),
+    (&["following"], "/2/users/me/following"),
+    (&["followers"], "/2/users/me/followers"),
     (&["muted"], "/2/users/2244994945/muting"),
     (&["blocked"], "/2/users/2244994945/blocking"),
     (&["dms"], "/2/dm_events"),
 ];
+
+/// Without `--of`, `followers` and `following` read the caller's own list
+/// from `/2/users/me/*` and send no id lookup first; with `--of`, the handle
+/// resolves and the request goes to that user's list.
+#[tokio::test]
+async fn followers_and_following_read_the_callers_own_list_without_an_id_lookup() {
+    for (args, own_path, of_path) in [
+        (
+            "followers",
+            "/2/users/me/followers",
+            "/2/users/783214/followers",
+        ),
+        (
+            "following",
+            "/2/users/me/following",
+            "/2/users/783214/following",
+        ),
+    ] {
+        let ts = CliMockServer::new().await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth1_store(&store);
+        let empty_page = serde_json::json!({"data": [], "meta": {"result_count": 0}});
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(ResponseTemplate::new(500))
+                .expect(0),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(own_path))
+                .respond_with(ResponseTemplate::new(200).set_body_json(empty_page.clone()))
+                .expect(1),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/by/username/jack"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "data": {"id": "783214", "name": "jack", "username": "jack"}
+                })))
+                .expect(1),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(of_path))
+                .respond_with(ResponseTemplate::new(200).set_body_json(empty_page))
+                .expect(1),
+        )
+        .await;
+
+        let own = ["xr", "--output", "json", args, "--auth", "oauth1"];
+        let (code, _stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &own).await;
+        assert_eq!(code, 0, "xr {args}: {stderr}");
+        let of = [
+            "xr", "--output", "json", args, "--of", "@jack", "--auth", "oauth1",
+        ];
+        let (code, _stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &of).await;
+        assert_eq!(code, 0, "xr {args} --of @jack: {stderr}");
+    }
+}
 
 /// `--limit` and `--cursor` reach the wire as `max_results` and
 /// `pagination_token` on every command that pages.

@@ -1324,6 +1324,24 @@ impl Client {
         self.get_user_list(endpoints::GET_FOLLOWERS.path, user_id, max_results)
     }
 
+    /// Fetches the authenticated user's followers, with no id to look up.
+    pub fn get_my_followers(&self, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
+        self.user_list(
+            endpoints::GET_MY_FOLLOWERS.path,
+            HashMap::new(),
+            max_results,
+        )
+    }
+
+    /// Fetches the users the authenticated user follows, with no id to look up.
+    pub fn get_my_following(&self, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
+        self.user_list(
+            endpoints::GET_MY_FOLLOWING.path,
+            HashMap::new(),
+            max_results,
+        )
+    }
+
     /// Sends a direct message; the response names the conversation and the
     /// event the message created.
     pub fn send_dm(&self, participant_id: &str, text: &str) -> Call<ApiResponse<DmSentResult>> {
@@ -2014,11 +2032,20 @@ impl Client {
         user_id: &str,
         max_results: i32,
     ) -> Call<ApiResponse<Vec<User>>> {
+        self.user_list(path, id_param(user_id), max_results)
+    }
+
+    fn user_list(
+        &self,
+        path: &str,
+        path_params: HashMap<String, String>,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<User>>> {
         self.call(
             "GET",
             template(
                 path,
-                id_param(user_id),
+                path_params,
                 vec![
                     ("max_results".to_string(), max_results.to_string()),
                     (
