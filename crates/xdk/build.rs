@@ -245,6 +245,47 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "/2/broadcasts/chat/moderators/{user_id}",
     ),
     // broadcast stream sources
+    ("LIST_BROADCASTS", "GET", "/2/broadcasts"),
+    ("GET_BROADCAST", "GET", "/2/broadcasts/{id}"),
+    (
+        "LIST_SCHEDULED_BROADCASTS",
+        "GET",
+        "/2/broadcasts/scheduled",
+    ),
+    (
+        "CREATE_SCHEDULED_BROADCAST",
+        "POST",
+        "/2/broadcasts/scheduled",
+    ),
+    (
+        "GET_SCHEDULED_BROADCAST",
+        "GET",
+        "/2/broadcasts/scheduled/{id}",
+    ),
+    (
+        "UPDATE_SCHEDULED_BROADCAST",
+        "PUT",
+        "/2/broadcasts/scheduled/{id}",
+    ),
+    (
+        "DELETE_SCHEDULED_BROADCAST",
+        "DELETE",
+        "/2/broadcasts/scheduled/{id}",
+    ),
+    ("GO_LIVE", "POST", "/2/broadcasts/scheduled/{id}/live"),
+    ("GET_BROADCAST_CHAT", "GET", "/2/broadcasts/{id}/chat"),
+    ("SEND_BROADCAST_CHAT", "POST", "/2/broadcasts/{id}/chat"),
+    ("MUTE_CHAT_USER", "POST", "/2/broadcasts/{id}/chat/mutes"),
+    (
+        "UNMUTE_CHAT_USER",
+        "DELETE",
+        "/2/broadcasts/{id}/chat/mutes/{user_id}",
+    ),
+    (
+        "DELETE_CHAT_MESSAGE",
+        "DELETE",
+        "/2/broadcasts/{id}/chat/{message_id}",
+    ),
     ("GET_STREAM_SOURCES", "GET", "/2/sources"),
     ("CREATE_STREAM_SOURCE", "POST", "/2/sources"),
     ("GET_STREAM_SOURCE", "GET", "/2/sources/{id}"),

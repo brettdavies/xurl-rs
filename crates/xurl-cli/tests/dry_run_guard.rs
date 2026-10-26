@@ -73,6 +73,20 @@ const OVERRIDES: &[(&str, &[&str])] = &[
     ("conversations send", &["123-456", SAMPLE]),
     ("conversations history", &["123-456"]),
     ("lists update", &[SAMPLE, "--name", "Rust"]),
+    (
+        "broadcasts scheduled add",
+        &["--source", SAMPLE, "--start", "2026-11-02T16:00:00Z"],
+    ),
+    (
+        "broadcasts scheduled update",
+        &[
+            SAMPLE,
+            "--start",
+            "2026-11-02T16:00:00Z",
+            "--end",
+            "2026-11-02T17:00:00Z",
+        ],
+    ),
     ("calls scheduled update", &[SAMPLE, "--title", "Retro"]),
 ];
 

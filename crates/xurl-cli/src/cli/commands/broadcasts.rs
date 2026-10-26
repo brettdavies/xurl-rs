@@ -1,11 +1,12 @@
-//! The `broadcasts` family: the caller's broadcast chat moderators, and the
-//! RTMP and RTMPS stream sources the caller broadcasts from.
+//! The `broadcasts` family: the caller's broadcasts, their chat moderators,
+//! and the RTMP and RTMPS stream sources the caller broadcasts from. The
+//! scheduled broadcasts and a broadcast's chat have modules of their own.
 
 use serde_json::json;
 
 use super::{
-    DryRun, Run, act_on_user, make_client, send_confirmed, send_or_report, send_validated,
-    with_flags,
+    DryRun, Run, act_on_user, broadcast_chat, broadcast_scheduled, list_paged, make_client,
+    send_confirmed, send_or_report, send_validated, with_flags,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::{BroadcastsCommands, ModeratorsCommands, SourcesCommands};
@@ -59,6 +60,34 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
             }
         },
         BroadcastsCommands::Sources { action } => sources(action, run).await?,
+        BroadcastsCommands::List {
+            max_results,
+            common,
+        } => {
+            let ctx = json!({"command": "broadcasts-list"});
+            list_paged(
+                run,
+                ctx,
+                || Ok(()),
+                max_results,
+                &common,
+                Client::list_broadcasts,
+            )
+            .await?;
+        }
+        BroadcastsCommands::Get {
+            broadcast_id,
+            common,
+        } => {
+            let ctx = json!({"command": "broadcasts-get", "broadcast_id": broadcast_id});
+            let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
+            send_validated(run, ctx, validate, &common, |client: &Client| {
+                client.get_broadcast(&broadcast_id)
+            })
+            .await?;
+        }
+        BroadcastsCommands::Scheduled { action } => broadcast_scheduled::run(action, run).await?,
+        BroadcastsCommands::Chat { action } => broadcast_chat::run(action, run).await?,
     }
     Ok(())
 }

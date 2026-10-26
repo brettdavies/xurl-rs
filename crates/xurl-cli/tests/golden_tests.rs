@@ -816,6 +816,59 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-broadcast-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "get",
+                "not-an-id!",
+            ],
+        ),
+        case(
+            "dry-run-invalid-scheduled-broadcast-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "scheduled",
+                "get",
+                "1YqKDqWqdPLGV",
+            ],
+        ),
+        case(
+            "dry-run-invalid-chat-message-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "chat",
+                "remove",
+                "1YqKDqWqdPLGV",
+                "msg-1",
+            ],
+        ),
+        Case {
+            name: "dry-run-chat-message-too-long".to_string(),
+            args: [
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "chat",
+                "send",
+                "1YqKDqWqdPLGV",
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .chain(["x".repeat(141)])
+            .collect(),
+            ..Case::default()
+        },
+        case(
             "dry-run-invalid-list-id",
             &[
                 "--output",

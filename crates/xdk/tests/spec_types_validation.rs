@@ -26,10 +26,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, BookmarkFolder, Community,
-    DmBlockResult, DmEvent, HiddenResult, List, ListMemberResult, ListUpdatedResult,
-    MediaMetadataResult, MediaSubtitlesResult, NewsStory, PersonalizedTrend, PinnedResult, Post,
-    PostAnalytics, PostCount, ProvisionedResult, ScheduledCall, ScheduledCallCancelled,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, BookmarkFolder, Broadcast,
+    BroadcastChatMessage, ChatMutedResult, ChatSentResult, Community, DmBlockResult, DmEvent,
+    HiddenResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
+    MediaSubtitlesResult, NewsStory, PersonalizedTrend, PinnedResult, Post, PostAnalytics,
+    PostCount, ProvisionedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources,
     SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
     WebhookValidation, XCall,
@@ -276,6 +277,26 @@ fn typed_responses_match_vendored_spec() {
         (
             "BlockUsersDmsResponseData",
             serde_json::to_value(schemars::schema_for!(DmBlockResult)).unwrap(),
+        ),
+        (
+            "Broadcast",
+            serde_json::to_value(schemars::schema_for!(Broadcast)).unwrap(),
+        ),
+        (
+            "ListScheduledBroadcastsResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledBroadcast)).unwrap(),
+        ),
+        (
+            "BroadcastChatMessage",
+            serde_json::to_value(schemars::schema_for!(BroadcastChatMessage)).unwrap(),
+        ),
+        (
+            "SendBroadcastChatResponseData",
+            serde_json::to_value(schemars::schema_for!(ChatSentResult)).unwrap(),
+        ),
+        (
+            "MuteBroadcastChatUserResponseData",
+            serde_json::to_value(schemars::schema_for!(ChatMutedResult)).unwrap(),
         ),
         (
             "List",

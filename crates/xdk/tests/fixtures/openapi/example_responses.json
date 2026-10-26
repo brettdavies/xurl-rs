@@ -264,6 +264,96 @@
       "pinned": true
     }
   },
+  "broadcasts": {
+    "data": [
+      {
+        "id": "1YqKDqWqdPLGV",
+        "title": "Launch day",
+        "state": "ENDED",
+        "source_id": "abc123",
+        "start_ms": "1793635200000",
+        "end_ms": "1793638800000",
+        "share_url": "https://x.com/i/broadcasts/1YqKDqWqdPLGV",
+        "total_watched": "1200",
+        "tweet_id": "1585341984679469056",
+        "twitter_user_id": "2244994945",
+        "available_for_replay": true,
+        "chat_option": 2
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "broadcast": {
+    "data": {
+      "id": "1YqKDqWqdPLGV",
+      "title": "Launch day",
+      "state": "ENDED",
+      "source_id": "abc123",
+      "start_ms": "1793635200000",
+      "end_ms": "1793638800000",
+      "share_url": "https://x.com/i/broadcasts/1YqKDqWqdPLGV",
+      "total_watched": "1200",
+      "tweet_id": "1585341984679469056",
+      "twitter_user_id": "2244994945",
+      "available_for_replay": true,
+      "chat_option": 2
+    }
+  },
+  "scheduled_broadcasts": {
+    "data": [
+      {
+        "scheduled_broadcast_id": "1850000000000000001",
+        "title": "Launch day",
+        "source_id": "abc123",
+        "scheduled_start_ms": "1793635200000",
+        "scheduled_end_ms": "1793638800000",
+        "state": "Scheduled",
+        "available_for_replay": true,
+        "manual_publish": false
+      }
+    ]
+  },
+  "scheduled_broadcast": {
+    "data": {
+      "scheduled_broadcast_id": "1850000000000000001",
+      "title": "Launch day",
+      "source_id": "abc123",
+      "scheduled_start_ms": "1793635200000",
+      "scheduled_end_ms": "1793638800000",
+      "state": "Scheduled",
+      "available_for_replay": true,
+      "manual_publish": false
+    }
+  },
+  "broadcast_chat": {
+    "data": [
+      {
+        "id": "1700000000001",
+        "text": "Welcome!",
+        "author_id": "2244994945",
+        "author_username": "XDevelopers",
+        "author_name": "Developers",
+        "broadcast_id": "1YqKDqWqdPLGV",
+        "created_at_ms": "1700000000001"
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "broadcast_chat_sent": {
+    "data": {
+      "success": true,
+      "timestamp": "1700000000002"
+    }
+  },
+  "broadcast_chat_muted": {
+    "data": {
+      "muted": true
+    }
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

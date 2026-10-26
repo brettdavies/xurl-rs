@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "broadcasts", "scheduled", "get", "1YqKDqWqdPLGV"]
+store: empty
+exit_code: 0
+stdout_len: 192
+stderr_len: 0
+--- stdout ---
+{
+  "command": "broadcasts-scheduled-get",
+  "exit_code": 1,
+  "reason": "invalid-scheduled-broadcast-id",
+  "scheduled_id": "1YqKDqWqdPLGV",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

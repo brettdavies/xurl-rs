@@ -15,14 +15,15 @@ use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
-    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, PinnedResult, Post,
-    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast, BroadcastChatMessage,
+    ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult,
+    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -236,6 +237,49 @@ pub struct NewScheduledCall {
     pub notify_invitees: Option<bool>,
 }
 
+/// A broadcast to schedule. The times are RFC 3339; the request carries
+/// them as the millisecond strings X takes.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NewScheduledBroadcast {
+    /// The stream source to take video from, as `xr broadcasts sources list`
+    /// names it.
+    pub source_id: String,
+    /// When the broadcast starts.
+    pub start_time: String,
+    /// When the broadcast ends; unset for an open-ended broadcast.
+    pub end_time: Option<String>,
+    /// The broadcast's title.
+    pub title: Option<String>,
+    /// What the broadcast is about.
+    pub description: Option<String>,
+    /// Whether the broadcast can be watched after it ends.
+    pub available_for_replay: Option<bool>,
+    /// Whether the broadcast waits for `go live` rather than starting on
+    /// time.
+    pub manual_publish: Option<bool>,
+}
+
+/// What to change on a scheduled broadcast. X takes both times on every
+/// change; any other field left unset keeps its value.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ScheduledBroadcastChanges {
+    /// When the broadcast starts, RFC 3339.
+    pub start_time: String,
+    /// When the broadcast ends, RFC 3339.
+    pub end_time: String,
+    /// The stream source to take video from.
+    pub source_id: Option<String>,
+    /// The broadcast's title.
+    pub title: Option<String>,
+    /// What the broadcast is about.
+    pub description: Option<String>,
+    /// Whether the broadcast can be watched after it ends.
+    pub available_for_replay: Option<bool>,
+    /// Whether the broadcast waits for `go live` rather than starting on
+    /// time.
+    pub manual_publish: Option<bool>,
+}
+
 /// A list's name, description, and privacy: what a new list carries, or
 /// what a change to one sets. A field left unset is not sent.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -392,6 +436,9 @@ pub const DM_GROUP_PARTICIPANTS_MIN: usize = 2;
 /// the spec's `maxItems` on `participant_ids`.
 pub const DM_GROUP_PARTICIPANTS_MAX: usize = 49;
 
+/// Longest broadcast chat message X accepts, the spec's `maxLength`.
+pub const BROADCAST_CHAT_MAX_CHARS: usize = 140;
+
 /// Longest list name X accepts, the spec's `maxLength`.
 pub const LIST_NAME_MAX_CHARS: usize = 25;
 
@@ -516,6 +563,57 @@ pub fn validate_conversation_id(id: &str) -> std::result::Result<(), &'static st
 pub fn validate_dm_event_id(id: &str) -> std::result::Result<(), &'static str> {
     if !is_numeric_id(id) {
         return Err("invalid-dm-event-id");
+    }
+    Ok(())
+}
+
+/// Validates a broadcast id against the spec's pattern: 1 to 24 letters
+/// and digits.
+///
+/// # Errors
+/// Returns `invalid-broadcast-id` for anything else.
+pub fn validate_broadcast_id(id: &str) -> std::result::Result<(), &'static str> {
+    if id.is_empty() || id.len() > 24 || !id.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return Err("invalid-broadcast-id");
+    }
+    Ok(())
+}
+
+/// Validates a scheduled broadcast id against the spec's pattern for
+/// `scheduled_broadcast_id`: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-scheduled-broadcast-id` for anything else.
+pub fn validate_scheduled_broadcast_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-scheduled-broadcast-id");
+    }
+    Ok(())
+}
+
+/// Validates a broadcast chat message id, which X also uses as the message's
+/// timestamp, against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-chat-message-id` for anything else.
+pub fn validate_chat_message_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-chat-message-id");
+    }
+    Ok(())
+}
+
+/// Validates a broadcast chat message: 1 to [`BROADCAST_CHAT_MAX_CHARS`]
+/// characters.
+///
+/// # Errors
+/// Returns `empty-body` or `chat-message-too-long`.
+pub fn validate_chat_message(text: &str) -> std::result::Result<(), &'static str> {
+    if text.is_empty() {
+        return Err("empty-body");
+    }
+    if text.chars().count() > BROADCAST_CHAT_MAX_CHARS {
+        return Err("chat-message-too-long");
     }
     Ok(())
 }
@@ -871,6 +969,14 @@ fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
     era * 146_097 + day_of_era - 719_468
 }
 
+/// An RFC 3339 time as the decimal string of milliseconds since the Unix
+/// epoch that the broadcast endpoints take; `None` outside the form
+/// [`validate_time_window`] takes.
+fn epoch_millis(time: &str) -> Option<String> {
+    let (seconds, nanos) = rfc3339_instant(time.as_bytes())?;
+    Some((seconds * 1000 + i64::from(nanos / 1_000_000)).to_string())
+}
+
 /// Whether `id` matches `^[0-9]{1,19}$`, the pattern the spec gives every
 /// numeric id: one to nineteen ASCII digits.
 fn is_numeric_id(id: &str) -> bool {
@@ -1123,6 +1229,80 @@ const POST_ANALYTICS_FIELDS: &str = "app_install_attempts,app_opens,bookmarks,de
 email_tweet,engagements,follows,hashtag_clicks,id,impressions,likes,media_views,permalink_clicks,\
 quote_tweets,replies,retweets,shares,timestamp,timestamped_metrics,unfollows,unlikes,url_clicks,\
 user_profile_clicks";
+
+/// The body that schedules `broadcast`; `None` when a time is not RFC 3339.
+fn new_broadcast_body(
+    broadcast: &NewScheduledBroadcast,
+) -> Option<serde_json::Map<String, serde_json::Value>> {
+    let mut body = serde_json::Map::new();
+    body.insert("source_id".into(), broadcast.source_id.clone().into());
+    body.insert(
+        "scheduled_start_ms".into(),
+        epoch_millis(&broadcast.start_time)?.into(),
+    );
+    if let Some(end) = &broadcast.end_time {
+        body.insert("scheduled_end_ms".into(), epoch_millis(end)?.into());
+    }
+    insert_broadcast_details(
+        &mut body,
+        broadcast.title.as_deref(),
+        broadcast.description.as_deref(),
+        broadcast.available_for_replay,
+        broadcast.manual_publish,
+    );
+    Some(body)
+}
+
+/// The body that changes scheduled broadcast `id`; `None` when a time is not
+/// RFC 3339.
+fn broadcast_changes_body(
+    id: &str,
+    changes: &ScheduledBroadcastChanges,
+) -> Option<serde_json::Map<String, serde_json::Value>> {
+    let mut body = serde_json::Map::new();
+    body.insert("scheduled_broadcast_id".into(), id.into());
+    body.insert(
+        "scheduled_start_ms".into(),
+        epoch_millis(&changes.start_time)?.into(),
+    );
+    body.insert(
+        "scheduled_end_ms".into(),
+        epoch_millis(&changes.end_time)?.into(),
+    );
+    if let Some(source) = &changes.source_id {
+        body.insert("source_id".into(), source.clone().into());
+    }
+    insert_broadcast_details(
+        &mut body,
+        changes.title.as_deref(),
+        changes.description.as_deref(),
+        changes.available_for_replay,
+        changes.manual_publish,
+    );
+    Some(body)
+}
+
+/// Adds the optional fields a new broadcast and a change share.
+fn insert_broadcast_details(
+    body: &mut serde_json::Map<String, serde_json::Value>,
+    title: Option<&str>,
+    description: Option<&str>,
+    available_for_replay: Option<bool>,
+    manual_publish: Option<bool>,
+) {
+    if let Some(title) = title {
+        body.insert("title".into(), title.into());
+    }
+    if let Some(description) = description {
+        body.insert("description".into(), description.into());
+    }
+    if let Some(replay) = available_for_replay {
+        body.insert("available_for_replay".into(), replay.into());
+    }
+    if let Some(manual) = manual_publish {
+        body.insert("manual_publish".into(), manual.into());
+    }
+}
 
 /// Every field the spec's `list.fields` lists.
 fn list_fields() -> Vec<(String, String)> {
@@ -1677,6 +1857,215 @@ impl Client {
         } else {
             call
         }
+    }
+
+    /// Fetches the caller's broadcasts.
+    pub fn list_broadcasts(&self, max_results: i32) -> Call<ApiResponse<Vec<Broadcast>>> {
+        self.call(
+            endpoints::LIST_BROADCASTS.method,
+            template(
+                endpoints::LIST_BROADCASTS.path,
+                HashMap::new(),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Reads one broadcast, by id.
+    pub fn get_broadcast(&self, id: &str) -> Call<ApiResponse<Broadcast>> {
+        self.call(
+            endpoints::GET_BROADCAST.method,
+            template(endpoints::GET_BROADCAST.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Fetches the caller's scheduled broadcasts.
+    pub fn list_scheduled_broadcasts(
+        &self,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<ScheduledBroadcast>>> {
+        self.call(
+            endpoints::LIST_SCHEDULED_BROADCASTS.method,
+            template(
+                endpoints::LIST_SCHEDULED_BROADCASTS.path,
+                HashMap::new(),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Reads one scheduled broadcast, by id.
+    pub fn get_scheduled_broadcast(&self, id: &str) -> Call<ApiResponse<ScheduledBroadcast>> {
+        self.call(
+            endpoints::GET_SCHEDULED_BROADCAST.method,
+            template(
+                endpoints::GET_SCHEDULED_BROADCAST.path,
+                id_param(id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Schedules a broadcast. A time outside RFC 3339 fails the call with
+    /// `invalid-time-window` before anything is sent.
+    pub fn create_scheduled_broadcast(
+        &self,
+        broadcast: &NewScheduledBroadcast,
+    ) -> Call<ApiResponse<ScheduledBroadcast>> {
+        let target = template(
+            endpoints::CREATE_SCHEDULED_BROADCAST.path,
+            HashMap::new(),
+            Vec::new(),
+        );
+        match new_broadcast_body(broadcast) {
+            Some(body) => self.post_json(target, &body),
+            None => Call::failed(self, crate::error::Error::validation("invalid-time-window")),
+        }
+    }
+
+    /// Changes a scheduled broadcast. A time outside RFC 3339 fails the call
+    /// with `invalid-time-window` before anything is sent.
+    pub fn update_scheduled_broadcast(
+        &self,
+        id: &str,
+        changes: &ScheduledBroadcastChanges,
+    ) -> Call<ApiResponse<ScheduledBroadcast>> {
+        let target = template(
+            endpoints::UPDATE_SCHEDULED_BROADCAST.path,
+            id_param(id),
+            Vec::new(),
+        );
+        match broadcast_changes_body(id, changes) {
+            Some(body) => {
+                self.json_call(endpoints::UPDATE_SCHEDULED_BROADCAST.method, target, &body)
+            }
+            None => Call::failed(self, crate::error::Error::validation("invalid-time-window")),
+        }
+    }
+
+    /// Cancels a scheduled broadcast.
+    pub fn delete_scheduled_broadcast(&self, id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_SCHEDULED_BROADCAST.method,
+            template(
+                endpoints::DELETE_SCHEDULED_BROADCAST.path,
+                id_param(id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Starts a scheduled broadcast now.
+    pub fn go_live(&self, id: &str) -> Call<ApiResponse<ScheduledBroadcast>> {
+        self.call(
+            endpoints::GO_LIVE.method,
+            template(endpoints::GO_LIVE.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Fetches a broadcast's chat.
+    ///
+    /// X accepts 1 to 200 results for this endpoint.
+    pub fn get_broadcast_chat(
+        &self,
+        id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<BroadcastChatMessage>>> {
+        self.call(
+            endpoints::GET_BROADCAST_CHAT.method,
+            template(
+                endpoints::GET_BROADCAST_CHAT.path,
+                id_param(id),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Sends a message into a broadcast's chat, as a reply to `reply_to`
+    /// when given.
+    pub fn send_broadcast_chat(
+        &self,
+        id: &str,
+        text: &str,
+        reply_to: Option<&str>,
+    ) -> Call<ApiResponse<ChatSentResult>> {
+        let mut body = serde_json::Map::new();
+        body.insert("text".into(), text.into());
+        if let Some(reply_to) = reply_to {
+            body.insert("reply_to".into(), reply_to.into());
+        }
+        self.post_json(
+            template(
+                endpoints::SEND_BROADCAST_CHAT.path,
+                id_param(id),
+                Vec::new(),
+            ),
+            &body,
+        )
+    }
+
+    /// Mutes a user, by id, in a broadcast's chat, until `until` (RFC 3339)
+    /// or for good, removing `message_id` from the chat when given. A time
+    /// outside RFC 3339 fails the call with `invalid-time-window` before
+    /// anything is sent.
+    pub fn mute_chat_user(
+        &self,
+        id: &str,
+        user_id: &str,
+        until: Option<&str>,
+        message_id: Option<&str>,
+    ) -> Call<ApiResponse<ChatMutedResult>> {
+        let mut body = serde_json::Map::new();
+        body.insert("user_id".into(), user_id.into());
+        if let Some(until) = until {
+            match epoch_millis(until) {
+                Some(ms) => body.insert("end_at_ms".into(), ms.into()),
+                None => {
+                    return Call::failed(
+                        self,
+                        crate::error::Error::validation("invalid-time-window"),
+                    );
+                }
+            };
+        }
+        if let Some(message_id) = message_id {
+            body.insert("message_id".into(), message_id.into());
+        }
+        self.post_json(
+            template(endpoints::MUTE_CHAT_USER.path, id_param(id), Vec::new()),
+            &body,
+        )
+    }
+
+    /// Unmutes a user, by id, in a broadcast's chat.
+    pub fn unmute_chat_user(&self, id: &str, user_id: &str) -> Call<ApiResponse<ChatMutedResult>> {
+        self.call(
+            endpoints::UNMUTE_CHAT_USER.method,
+            template(
+                endpoints::UNMUTE_CHAT_USER.path,
+                id_and(id, "user_id", user_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Removes a message from a broadcast's chat.
+    pub fn delete_chat_message(
+        &self,
+        id: &str,
+        message_id: &str,
+    ) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_CHAT_MESSAGE.method,
+            template(
+                endpoints::DELETE_CHAT_MESSAGE.path,
+                id_and(id, "message_id", message_id.to_string()),
+                Vec::new(),
+            ),
+        )
     }
 
     /// Searches X's communities.

@@ -17,14 +17,15 @@ use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
-    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, PinnedResult, Post,
-    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast, BroadcastChatMessage,
+    ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult,
+    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -104,6 +105,13 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<HiddenResult>("hide"),
     typed_alias::<Vec<PostCount>>("post-counts"),
     typed_alias::<Vec<PostAnalytics>>("analytics"),
+    typed_alias::<Broadcast>("broadcast"),
+    typed_alias::<Vec<Broadcast>>("broadcasts"),
+    typed_alias::<ScheduledBroadcast>("scheduled-broadcast"),
+    typed_alias::<Vec<ScheduledBroadcast>>("scheduled-broadcasts"),
+    typed_alias::<Vec<BroadcastChatMessage>>("chat-messages"),
+    typed_alias::<ChatSentResult>("chat-sent"),
+    typed_alias::<ChatMutedResult>("chat-muted"),
     typed_alias::<List>("list"),
     typed_alias::<Vec<List>>("lists"),
     typed_alias::<ListUpdatedResult>("list-updated"),

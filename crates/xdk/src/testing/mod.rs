@@ -506,6 +506,71 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::LIST_BROADCASTS,
+        fixture: "broadcasts",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_BROADCAST,
+        fixture: "broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::LIST_SCHEDULED_BROADCASTS,
+        fixture: "scheduled_broadcasts",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_SCHEDULED_BROADCAST,
+        fixture: "scheduled_broadcast",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_SCHEDULED_BROADCAST,
+        fixture: "scheduled_broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_SCHEDULED_BROADCAST,
+        fixture: "scheduled_broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_SCHEDULED_BROADCAST,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GO_LIVE,
+        fixture: "scheduled_broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_BROADCAST_CHAT,
+        fixture: "broadcast_chat",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SEND_BROADCAST_CHAT,
+        fixture: "broadcast_chat_sent",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::MUTE_CHAT_USER,
+        fixture: "broadcast_chat_muted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNMUTE_CHAT_USER,
+        fixture: "broadcast_chat_muted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_CHAT_MESSAGE,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_STREAM_SOURCES,
         fixture: "stream_sources",
         status: 200,

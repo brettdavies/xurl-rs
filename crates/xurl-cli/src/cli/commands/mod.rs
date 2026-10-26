@@ -2,6 +2,8 @@
 
 mod auth;
 mod bookmark_folders;
+mod broadcast_chat;
+mod broadcast_scheduled;
 mod broadcasts;
 mod calls;
 mod communities;

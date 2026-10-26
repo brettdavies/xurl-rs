@@ -11,14 +11,15 @@ use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
-    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, PinnedResult, Post,
-    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast, BroadcastChatMessage,
+    ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult,
+    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -111,6 +112,46 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<PinnedResult>).into(),
     },
     SchemaEntry {
+        commands: &["broadcasts-list"],
+        type_name: "ApiResponse<Vec<Broadcast>>",
+        schema: || schema_for!(ApiResponse<Vec<Broadcast>>).into(),
+    },
+    SchemaEntry {
+        commands: &["broadcasts-get"],
+        type_name: "ApiResponse<Broadcast>",
+        schema: || schema_for!(ApiResponse<Broadcast>).into(),
+    },
+    SchemaEntry {
+        commands: &["broadcasts-scheduled-list"],
+        type_name: "ApiResponse<Vec<ScheduledBroadcast>>",
+        schema: || schema_for!(ApiResponse<Vec<ScheduledBroadcast>>).into(),
+    },
+    SchemaEntry {
+        commands: &[
+            "broadcasts-scheduled-get",
+            "broadcasts-scheduled-add",
+            "broadcasts-scheduled-update",
+            "broadcasts-scheduled-live",
+        ],
+        type_name: "ApiResponse<ScheduledBroadcast>",
+        schema: || schema_for!(ApiResponse<ScheduledBroadcast>).into(),
+    },
+    SchemaEntry {
+        commands: &["broadcasts-chat-history"],
+        type_name: "ApiResponse<Vec<BroadcastChatMessage>>",
+        schema: || schema_for!(ApiResponse<Vec<BroadcastChatMessage>>).into(),
+    },
+    SchemaEntry {
+        commands: &["broadcasts-chat-send"],
+        type_name: "ApiResponse<ChatSentResult>",
+        schema: || schema_for!(ApiResponse<ChatSentResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["broadcasts-chat-mute", "broadcasts-chat-unmute"],
+        type_name: "ApiResponse<ChatMutedResult>",
+        schema: || schema_for!(ApiResponse<ChatMutedResult>).into(),
+    },
+    SchemaEntry {
         commands: &["communities-search"],
         type_name: "ApiResponse<Vec<Community>>",
         schema: || schema_for!(ApiResponse<Vec<Community>>).into(),
@@ -165,6 +206,8 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "delete",
             "dm-events-remove",
             "lists-remove",
+            "broadcasts-scheduled-remove",
+            "broadcasts-chat-remove",
             "media-subtitles-remove",
             "webhooks-remove",
             "webhooks-stream-links-remove",
@@ -399,7 +442,9 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "auth-oauth2",
     "bookmark-folders",
     "broadcasts",
+    "broadcasts-chat",
     "broadcasts-moderators",
+    "broadcasts-scheduled",
     "broadcasts-sources",
     "calls",
     "calls-scheduled",
