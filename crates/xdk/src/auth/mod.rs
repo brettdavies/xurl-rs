@@ -21,7 +21,7 @@ pub use credentials::{BoxError, OAuth1Credential, OAuth2Credential, OnTokenRefre
 
 use crate::config::Config;
 use crate::error::{Error, Result};
-use crate::store::TokenStore;
+use crate::store::{OAuth2Token, TokenStore};
 
 /// Manages authentication for X API requests.
 ///
@@ -74,6 +74,21 @@ pub(crate) struct Identity {
     pub(crate) username: String,
     /// Absent when the answer carried no id.
     pub(crate) user_id: Option<String>,
+    /// The display name, when the answer carried one.
+    pub(crate) name: Option<String>,
+}
+
+impl Identity {
+    /// Records the account on `token` when the answer named its id: the
+    /// username and display name are stored only beside the id they came
+    /// with.
+    pub(crate) fn record_on(&self, token: &mut OAuth2Token) {
+        if let Some(user_id) = &self.user_id {
+            token.user_id = Some(user_id.clone());
+            token.account_username = Some(self.username.clone());
+            token.display_name.clone_from(&self.name);
+        }
+    }
 }
 
 impl std::fmt::Debug for Auth {
@@ -500,6 +515,7 @@ impl Auth {
         Ok(Identity {
             username,
             user_id: field("id"),
+            name: field("name"),
         })
     }
 

@@ -8,7 +8,7 @@ use crate::api::auth_matrix::WireScheme;
 use crate::error::{AuthMismatch, Error, Result};
 
 use super::render_template_template;
-use super::source::{CredentialSource, SchemeFacts};
+use super::source::{CredentialSource, SchemeFacts, StoredAccount};
 use super::transport::attaches_credential;
 use super::{Client, RequestOptions, RequestTarget};
 
@@ -46,6 +46,12 @@ pub struct AuthPreflight {
     /// it at sign-in, at a refresh, or since. `None` for an app-only bearer,
     /// which is no user's.
     pub user_id: Option<String>,
+    /// The account's username as the store holds it beside the user
+    /// credential, from the same `/2/users/me` answer as `user_id`. A
+    /// username can change, so it is the one the account had then.
+    pub account_username: Option<String>,
+    /// The account's display name, from the same answer as `user_id`.
+    pub display_name: Option<String>,
 }
 
 impl Client {
@@ -82,16 +88,21 @@ impl Client {
         }
         let credentials = self.credentials().await;
         let preflight = match self.select_scheme(&credentials, options)? {
-            Selection::Header { scheme, .. } => AuthPreflight {
-                scheme,
-                app: credentials.credential_app(scheme),
-                username: None,
-                token_expired: false,
-                user_id: match scheme {
-                    WireScheme::OAuth1 => credentials.oauth1_user_id(),
-                    WireScheme::OAuth2 | WireScheme::App => None,
-                },
-            },
+            Selection::Header { scheme, .. } => {
+                let account = match scheme {
+                    WireScheme::OAuth1 => credentials.oauth1_account(),
+                    WireScheme::OAuth2 | WireScheme::App => StoredAccount::default(),
+                };
+                AuthPreflight {
+                    scheme,
+                    app: credentials.credential_app(scheme),
+                    username: None,
+                    token_expired: false,
+                    user_id: account.user_id,
+                    account_username: account.account_username,
+                    display_name: account.display_name,
+                }
+            }
             Selection::OAuth2 { username } => {
                 let state = credentials
                     .oauth2_state(&username)
@@ -101,7 +112,9 @@ impl Client {
                     app: credentials.credential_app(WireScheme::OAuth2),
                     username: state.username,
                     token_expired: state.expired,
-                    user_id: state.user_id,
+                    user_id: state.account.user_id,
+                    account_username: state.account.account_username,
+                    display_name: state.account.display_name,
                 }
             }
         };

@@ -134,6 +134,8 @@ impl TokenStore {
                                     .clone()
                                     .unwrap_or_default(),
                                 user_id: None,
+                                account_username: None,
+                                display_name: None,
                             }),
                         });
                     }

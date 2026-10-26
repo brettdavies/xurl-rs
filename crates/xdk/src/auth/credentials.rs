@@ -146,6 +146,8 @@ impl DirectCredentials {
             consumer_key: credential.consumer_key.clone(),
             consumer_secret: credential.consumer_secret.clone(),
             user_id: None,
+            account_username: None,
+            display_name: None,
         };
         oauth1::build_oauth1_header(method, url, &token, None)
     }

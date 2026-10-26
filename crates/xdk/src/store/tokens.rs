@@ -68,6 +68,8 @@ impl TokenStore {
             refresh_token: refresh_token.to_string(),
             expiration_time,
             user_id: None,
+            account_username: None,
+            display_name: None,
         };
         self.put_oauth2_token(app_name, Some(username), token, false)
     }
@@ -105,7 +107,8 @@ impl TokenStore {
 
     /// Records `user_id` as the account the `OAuth2` token stored under
     /// `username` belongs to, returning whether the store changed. An empty
-    /// `username` is the unnamed slot.
+    /// `username` is the unnamed slot. A new id drops the account's stored
+    /// username and display name; the same id keeps them.
     ///
     /// The id is a fact about the token beside it, so the caller passes one
     /// only when `/2/users/me` answered under that token.
@@ -118,6 +121,30 @@ impl TokenStore {
         app_name: &str,
         username: &str,
         user_id: &str,
+    ) -> Result<bool> {
+        self.set_oauth2_account_for_app(app_name, username, user_id, None, None)
+    }
+
+    /// Records the account the `OAuth2` token stored under `username`
+    /// belongs to, as one `/2/users/me` answer under that token named it:
+    /// its id, and its username and display name when the answer carried
+    /// them. Returns whether the store changed. An empty `username` is the
+    /// unnamed slot.
+    ///
+    /// A name passed replaces the stored one. A name left `None` keeps the
+    /// stored one while the id is unchanged, and a new id drops it, so a
+    /// stored name never belongs to another account.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
+    pub fn set_oauth2_account_for_app(
+        &mut self,
+        app_name: &str,
+        username: &str,
+        user_id: &str,
+        account_username: Option<&str>,
+        display_name: Option<&str>,
     ) -> Result<bool> {
         fn slot<'a>(
             store: &'a mut TokenStore,
@@ -132,26 +159,34 @@ impl TokenStore {
             };
             token.and_then(|token| token.oauth2.as_mut())
         }
+        if user_id.is_empty() {
+            return Ok(false);
+        }
+        let recorded = |token: &OAuth2Token| {
+            let stored = StoredAccount::of_oauth2(token);
+            let next = stored.recorded(user_id, account_username, display_name);
+            (next != stored).then_some(next)
+        };
         let current = if username.is_empty() {
             self.get_oauth2_token_unnamed_for_app(app_name)
         } else {
             self.get_oauth2_token_for_app(app_name, username)
         }
         .and_then(|token| token.oauth2.as_ref());
-        match current {
-            None => return Ok(false),
-            Some(token) if token.user_id.as_deref() == Some(user_id) => return Ok(false),
-            Some(_) => {}
-        }
-        if user_id.is_empty() {
+        if current.and_then(recorded).is_none() {
             return Ok(false);
         }
-        self.update(|store| match slot(store, app_name, username) {
-            Some(token) => {
-                token.user_id = Some(user_id.to_string());
-                Ok(true)
+        self.update(|store| {
+            let Some(token) = slot(store, app_name, username) else {
+                return Ok(false);
+            };
+            match recorded(token) {
+                Some(next) => {
+                    next.write_oauth2(token);
+                    Ok(true)
+                }
+                None => Ok(false),
             }
-            None => Ok(false),
         })
     }
 
@@ -176,6 +211,8 @@ impl TokenStore {
             refresh_token: refresh_token.to_string(),
             expiration_time,
             user_id: None,
+            account_username: None,
+            display_name: None,
         };
         self.put_oauth2_token(app_name, None, token, false)
     }
@@ -260,6 +297,8 @@ impl TokenStore {
                     consumer_key: consumer_key.to_string(),
                     consumer_secret: consumer_secret.to_string(),
                     user_id: None,
+                    account_username: None,
+                    display_name: None,
                 }),
             });
             Ok(())
@@ -269,21 +308,41 @@ impl TokenStore {
     /// Records `user_id` as the account the named app's `OAuth1` access pair
     /// belongs to, returning whether the store changed. As with
     /// [`Self::set_oauth2_user_id_for_app`], the caller passes an id only
-    /// when `/2/users/me` answered under that pair.
+    /// when `/2/users/me` answered under that pair, and a new id drops the
+    /// stored username and display name.
     ///
     /// # Errors
     ///
     /// Returns an error if the store cannot be saved to disk.
     pub fn set_oauth1_user_id_for_app(&mut self, app_name: &str, user_id: &str) -> Result<bool> {
+        self.set_oauth1_account_for_app(app_name, user_id, None, None)
+    }
+
+    /// Records the account the named app's `OAuth1` access pair belongs to,
+    /// as [`Self::set_oauth2_account_for_app`] does for an `OAuth2` login.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store cannot be saved to disk.
+    pub fn set_oauth1_account_for_app(
+        &mut self,
+        app_name: &str,
+        user_id: &str,
+        account_username: Option<&str>,
+        display_name: Option<&str>,
+    ) -> Result<bool> {
+        if user_id.is_empty() {
+            return Ok(false);
+        }
+        let recorded = |token: &OAuth1Token| {
+            let stored = StoredAccount::of_oauth1(token);
+            let next = stored.recorded(user_id, account_username, display_name);
+            (next != stored).then_some(next)
+        };
         let current = self
             .get_oauth1_tokens_for_app(app_name)
             .and_then(|token| token.oauth1.as_ref());
-        match current {
-            None => return Ok(false),
-            Some(token) if token.user_id.as_deref() == Some(user_id) => return Ok(false),
-            Some(_) => {}
-        }
-        if user_id.is_empty() {
+        if current.and_then(recorded).is_none() {
             return Ok(false);
         }
         self.update(|store| {
@@ -292,9 +351,12 @@ impl TokenStore {
                 .oauth1_token
                 .as_mut()
                 .and_then(|token| token.oauth1.as_mut());
-            match token {
-                Some(token) => {
-                    token.user_id = Some(user_id.to_string());
+            let Some(token) = token else {
+                return Ok(false);
+            };
+            match recorded(token) {
+                Some(next) => {
+                    next.write_oauth1(token);
                     Ok(true)
                 }
                 None => Ok(false),
@@ -544,5 +606,65 @@ impl TokenStore {
     pub fn has_bearer_token(&self) -> bool {
         self.active_app()
             .is_some_and(|app| app.bearer_token.is_some())
+    }
+}
+
+/// The account fields a stored user credential carries.
+#[derive(PartialEq)]
+struct StoredAccount {
+    user_id: Option<String>,
+    account_username: Option<String>,
+    display_name: Option<String>,
+}
+
+impl StoredAccount {
+    fn of_oauth2(token: &OAuth2Token) -> Self {
+        Self {
+            user_id: token.user_id.clone(),
+            account_username: token.account_username.clone(),
+            display_name: token.display_name.clone(),
+        }
+    }
+
+    fn of_oauth1(token: &OAuth1Token) -> Self {
+        Self {
+            user_id: token.user_id.clone(),
+            account_username: token.account_username.clone(),
+            display_name: token.display_name.clone(),
+        }
+    }
+
+    /// The fields after recording an answer: a name given replaces the
+    /// stored one, a name left out stays while the id is the same, and a
+    /// new id drops both.
+    fn recorded(
+        &self,
+        user_id: &str,
+        account_username: Option<&str>,
+        display_name: Option<&str>,
+    ) -> Self {
+        let same_account = self.user_id.as_deref() == Some(user_id);
+        let name = |given: Option<&str>, stored: &Option<String>| match given {
+            Some(given) => Some(given.to_string()),
+            None if same_account => stored.clone(),
+            None => None,
+        };
+        Self {
+            user_id: Some(user_id.to_string()),
+            account_username: name(account_username, &self.account_username),
+            display_name: name(display_name, &self.display_name),
+        }
+    }
+
+    fn write_oauth2(self, token: &mut OAuth2Token) {
+        token.user_id = self.user_id;
+        token.account_username = self.account_username;
+        token.display_name = self.display_name;
+    }
+
+    fn write_oauth1(self, token: &mut OAuth1Token) {
+        token.user_id = self.user_id;
+        token.account_username = self.account_username;
+        token.display_name = self.display_name;
     }
 }

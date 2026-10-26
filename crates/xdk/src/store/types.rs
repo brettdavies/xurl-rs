@@ -60,6 +60,15 @@ pub struct OAuth1Token {
     /// stored. Storing a new access pair starts again without one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
+    /// The account's username as `/2/users/me` last answered under this
+    /// credential. It is written and dropped with `user_id`; a username can
+    /// change, so it is the one the account had then.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub account_username: Option<String>,
+    /// The account's display name, from the same answer as
+    /// `account_username`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
 }
 
 /// `OAuth2` PKCE access + refresh token pair with expiration.
@@ -80,6 +89,15 @@ pub struct OAuth2Token {
     /// answer has been stored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
+    /// The account's username as `/2/users/me` last answered under this
+    /// credential. It is written and dropped with `user_id`; a username can
+    /// change, so it is the one the account had then.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub account_username: Option<String>,
+    /// The account's display name, from the same answer as
+    /// `account_username`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
 }
 
 /// Token-type discriminator carried alongside [`Token`].
@@ -174,6 +192,8 @@ impl std::fmt::Debug for OAuth1Token {
             .field("consumer_key", &self.consumer_key)
             .field("consumer_secret", &REDACTED)
             .field("user_id", &self.user_id)
+            .field("account_username", &self.account_username)
+            .field("display_name", &self.display_name)
             .finish()
     }
 }
@@ -185,6 +205,8 @@ impl std::fmt::Debug for OAuth2Token {
             .field("refresh_token", &REDACTED)
             .field("expiration_time", &self.expiration_time)
             .field("user_id", &self.user_id)
+            .field("account_username", &self.account_username)
+            .field("display_name", &self.display_name)
             .finish()
     }
 }

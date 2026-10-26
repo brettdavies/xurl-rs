@@ -19,8 +19,17 @@ pub(crate) struct OAuth2State {
     pub(crate) username: Option<String>,
     /// Whether the access token has passed its expiry.
     pub(crate) expired: bool,
-    /// The account id stored with the token, when one is.
+    /// The account stored with the token.
+    pub(crate) account: StoredAccount,
+}
+
+/// What the store holds about the account a user credential belongs to:
+/// each field `None` until `/2/users/me` answered under that credential.
+#[derive(Default)]
+pub(crate) struct StoredAccount {
     pub(crate) user_id: Option<String>,
+    pub(crate) account_username: Option<String>,
+    pub(crate) display_name: Option<String>,
 }
 
 /// What scheme selection reads off the credentials at hand.
@@ -144,16 +153,20 @@ impl CredentialSource {
         }
     }
 
-    /// The account id stored with the active app's `OAuth1` access pair,
-    /// when one is.
-    pub(crate) fn oauth1_user_id(&self) -> Option<String> {
+    /// The account stored with the active app's `OAuth1` access pair.
+    pub(crate) fn oauth1_account(&self) -> StoredAccount {
         match self {
             Self::Store(auth) => auth
                 .token_store
                 .get_oauth1_tokens_for_app(auth.app_name())
                 .and_then(|token| token.oauth1.as_ref())
-                .and_then(|token| token.user_id.clone()),
-            Self::Direct(_) => None,
+                .map(|token| StoredAccount {
+                    user_id: token.user_id.clone(),
+                    account_username: token.account_username.clone(),
+                    display_name: token.display_name.clone(),
+                })
+                .unwrap_or_default(),
+            Self::Direct(_) => StoredAccount::default(),
         }
     }
 
@@ -165,13 +178,17 @@ impl CredentialSource {
                 oauth2::stored_oauth2_user(auth, username).map(|(username, token)| OAuth2State {
                     username,
                     expired: oauth2::is_expired(&token),
-                    user_id: token.user_id,
+                    account: StoredAccount {
+                        user_id: token.user_id,
+                        account_username: token.account_username,
+                        display_name: token.display_name,
+                    },
                 })
             }
             Self::Direct(direct) => direct.oauth2_expired().map(|expired| OAuth2State {
                 username: None,
                 expired,
-                user_id: None,
+                account: StoredAccount::default(),
             }),
         }
     }

@@ -201,11 +201,13 @@ pub(crate) async fn exchange_code_for_token(
         refresh_token,
         expiration_time,
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
     if username.is_empty() {
         match auth.fetch_identity(http, &access_token).await {
             Ok(identity) => {
-                token.user_id = identity.user_id;
+                identity.record_on(&mut token);
                 auth.token_store.put_oauth2_token(
                     &app_name,
                     Some(&identity.username),
@@ -630,6 +632,8 @@ pub async fn refresh_oauth2_token(
         refresh_token: new_refresh_token,
         expiration_time,
         user_id: oauth2.user_id.clone(),
+        account_username: oauth2.account_username.clone(),
+        display_name: oauth2.display_name.clone(),
     };
     // The lookup is for what the store does not hold of the account: its
     // id, or a name for a login stored without one. A login that has both
@@ -642,9 +646,7 @@ pub async fn refresh_oauth2_token(
     } else if username.is_empty() {
         match auth.fetch_identity(http, &new_access_token).await {
             Ok(identity) => {
-                if identity.user_id.is_some() {
-                    token.user_id = identity.user_id;
-                }
+                identity.record_on(&mut token);
                 let name = stored_as.as_deref().unwrap_or(&identity.username);
                 auth.token_store.put_oauth2_token(
                     &app_name,
