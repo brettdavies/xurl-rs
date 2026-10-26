@@ -17,8 +17,8 @@ use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, Post, PostCount, ProvisionedResult, RepostedResult,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    MediaSubtitlesResult, MutingResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
     StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
     UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
@@ -960,6 +960,12 @@ fn source_and_target(source_user_id: &str, target_user_id: &str) -> HashMap<Stri
     ])
 }
 
+/// Every field the spec's `analytics.fields` lists for a post.
+const POST_ANALYTICS_FIELDS: &str = "app_install_attempts,app_opens,bookmarks,detail_expands,\
+email_tweet,engagements,follows,hashtag_clicks,id,impressions,likes,media_views,permalink_clicks,\
+quote_tweets,replies,retweets,shares,timestamp,timestamped_metrics,unfollows,unlikes,url_clicks,\
+user_profile_clicks";
+
 /// The fields and expansions a read of whole posts asks for.
 fn post_read_fields() -> Vec<(String, String)> {
     vec![
@@ -1176,6 +1182,40 @@ impl Client {
             template(endpoints::GET_POST_COUNTS.path, HashMap::new(), params),
         )
         .paginated()
+    }
+
+    /// Reads impressions and engagement for up to [`LOOKUP_IDS_MAX`] of the
+    /// caller's posts, each an id or a post URL, between `start_time` and
+    /// `end_time`, per `granularity` bucket (`hourly`, `daily`, `weekly`, or
+    /// `total`, X's default). Every metric the spec names is requested.
+    pub fn post_analytics<S: AsRef<str>>(
+        &self,
+        post_ids: &[S],
+        start_time: &str,
+        end_time: &str,
+        granularity: Option<&str>,
+    ) -> Call<ApiResponse<Vec<PostAnalytics>>> {
+        let ids = post_ids
+            .iter()
+            .map(|id| resolve_post_id(id.as_ref()))
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut query = vec![
+            ("ids".to_string(), ids),
+            ("start_time".to_string(), start_time.to_string()),
+            ("end_time".to_string(), end_time.to_string()),
+            (
+                "analytics.fields".to_string(),
+                POST_ANALYTICS_FIELDS.to_string(),
+            ),
+        ];
+        if let Some(granularity) = granularity {
+            query.push(("granularity".to_string(), granularity.to_string()));
+        }
+        self.call(
+            endpoints::GET_POST_ANALYTICS.method,
+            template(endpoints::GET_POST_ANALYTICS.path, HashMap::new(), query),
+        )
     }
 
     /// Fetches the users who liked a post.

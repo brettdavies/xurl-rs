@@ -1,7 +1,7 @@
 //! The commands that read posts and profiles: `read`, `read-posts`,
 //! `user-posts`, `search`, `search-users`, `search-counts`, `whoami`, `user`,
-//! `timeline`, `mentions`, and who engaged with a post: `likers`,
-//! `reposters`, and `quotes`.
+//! `timeline`, `mentions`, who engaged with a post (`likers`, `reposters`,
+//! and `quotes`), and how the caller's posts did (`analytics`).
 
 use serde_json::json;
 
@@ -130,6 +130,32 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             );
             let call = with_flags(call, &common, flags.cursor.as_deref());
             send_or_report(out, stdout, dry_run, call).await?;
+        }
+        Commands::Analytics {
+            post_ids,
+            start,
+            end,
+            granularity,
+            common,
+        } => {
+            let ctx = json!({
+                "command": "analytics",
+                "post_ids": post_ids,
+                "start": start,
+                "end": end,
+                "granularity": granularity,
+            });
+            let validator = || {
+                shortcuts::validate_lookup_ids(&post_ids)?;
+                post_ids
+                    .iter()
+                    .try_for_each(|id| shortcuts::validate_post_id(id))?;
+                shortcuts::validate_time_window(Some(&start), Some(&end))
+            };
+            send_validated(run, ctx, validator, &common, |client: &Client| {
+                client.post_analytics(&post_ids, &start, &end, granularity.as_deref())
+            })
+            .await?;
         }
         Commands::Whoami { cached, common } => {
             let Run {

@@ -69,6 +69,9 @@ POST AND READ:
   How many recent posts match a query, per day, before searching:
     xr search-counts rustlang --granularity day --output json | jaq '.meta.total_post_count'
 
+  Impressions and engagement for your posts, per day over a week:
+    xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-08T00:00:00Z --granularity daily --output json
+
   Search recent posts:
     xr search \"rustlang\" -n 25
     XURL_OUTPUT=json xr search \"rustlang\" -n 25

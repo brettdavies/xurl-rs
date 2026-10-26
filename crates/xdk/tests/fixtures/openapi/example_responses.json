@@ -99,6 +99,37 @@
       "total_post_count": 15
     }
   },
+  "post_analytics": {
+    "data": [
+      {
+        "id": "1346889436626259968",
+        "impressions": 1520,
+        "engagements": 64,
+        "likes": 31,
+        "replies": 4,
+        "retweets": 9,
+        "quote_tweets": 2,
+        "bookmarks": 7,
+        "url_clicks": 11,
+        "timestamped_metrics": [
+          {
+            "timestamp": "2026-10-01T00:00:00.000Z",
+            "metrics": {
+              "impressions": 1100,
+              "likes": 25
+            }
+          },
+          {
+            "timestamp": "2026-10-02T00:00:00.000Z",
+            "metrics": {
+              "impressions": 420,
+              "likes": 6
+            }
+          }
+        ]
+      }
+    ]
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

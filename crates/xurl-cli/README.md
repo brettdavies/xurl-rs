@@ -114,6 +114,7 @@ xr read-posts 20 1585341984679469056           # Up to 100 posts in one request
 xr search "golang" -n 20                       # Search (10-100 results)
 xr search-users "rust lang"                    # Find accounts by keyword
 xr search-counts rustlang --granularity day    # Matching posts per day
+xr analytics 20 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z  # Impressions and engagement for your post
 xr likers 1585341984679469056                  # Who liked a post
 xr reposters 1585341984679469056               # Who reposted a post
 xr quotes 1585341984679469056                  # Posts that quote a post

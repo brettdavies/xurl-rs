@@ -13,8 +13,8 @@ use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, Post, PostCount, ProvisionedResult, RepostedResult,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    MediaSubtitlesResult, MutingResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
     StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
     UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
@@ -74,6 +74,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["like", "unlike"],
         type_name: "ApiResponse<LikedResult>",
         schema: || schema_for!(ApiResponse<LikedResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["analytics"],
+        type_name: "ApiResponse<Vec<PostAnalytics>>",
+        schema: || schema_for!(ApiResponse<Vec<PostAnalytics>>).into(),
     },
     SchemaEntry {
         commands: &["search-counts"],

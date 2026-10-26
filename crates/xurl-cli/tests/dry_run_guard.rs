@@ -55,6 +55,16 @@ const OVERRIDES: &[(&str, &[&str])] = &[
         "webhooks replay",
         &[SAMPLE, "--from", "202601150000", "--to", "202601151200"],
     ),
+    (
+        "analytics",
+        &[
+            SAMPLE,
+            "--start",
+            "2026-10-01T00:00:00Z",
+            "--end",
+            "2026-10-02T00:00:00Z",
+        ],
+    ),
     ("calls scheduled add", &["--start", "2026-11-02T16:00:00Z"]),
     ("calls scheduled update", &[SAMPLE, "--title", "Retro"]),
 ];

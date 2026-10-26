@@ -167,16 +167,6 @@
       }
     },
     {
-      "id": "post-analytics",
-      "operations": [
-        "GET /2/tweets/analytics"
-      ],
-      "status": "planned",
-      "reason": "Impressions and engagement for your posts.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "lists",
       "operations": [
         "* /2/lists/**",

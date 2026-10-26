@@ -65,6 +65,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('quote', 'quote', [CompletionResultType]::ParameterValue, 'Quote a post')
             [CompletionResult]::new('delete', 'delete', [CompletionResultType]::ParameterValue, 'Delete a post')
             [CompletionResult]::new('read', 'read', [CompletionResultType]::ParameterValue, 'Read a post')
+            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Impressions and engagement for your posts over a time window')
             [CompletionResult]::new('search-counts', 'search-counts', [CompletionResultType]::ParameterValue, 'Count the recent posts that match a query, per time bucket')
             [CompletionResult]::new('search-users', 'search-users', [CompletionResultType]::ParameterValue, 'Find accounts by keyword')
             [CompletionResult]::new('user-posts', 'user-posts', [CompletionResultType]::ParameterValue, 'List the posts a user wrote')
@@ -239,6 +240,39 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;read' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;analytics' {
+            [CompletionResult]::new('--start', '--start', [CompletionResultType]::ParameterName, 'Start of the window (RFC 3339 with a zone, such as 2026-10-01T00:00:00Z)')
+            [CompletionResult]::new('--end', '--end', [CompletionResultType]::ParameterName, 'End of the window (RFC 3339 with a zone); after the start')
+            [CompletionResult]::new('--granularity', '--granularity', [CompletionResultType]::ParameterName, 'Bucket size (X''s default is total, one bucket for the window)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -3973,7 +4007,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;validate' {
-            [CompletionResult]::new('--schema', '--schema', [CompletionResultType]::ParameterName, 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection')
+            [CompletionResult]::new('--schema', '--schema', [CompletionResultType]::ParameterName, 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -4004,6 +4038,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('quote', 'quote', [CompletionResultType]::ParameterValue, 'Quote a post')
             [CompletionResult]::new('delete', 'delete', [CompletionResultType]::ParameterValue, 'Delete a post')
             [CompletionResult]::new('read', 'read', [CompletionResultType]::ParameterValue, 'Read a post')
+            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Impressions and engagement for your posts over a time window')
             [CompletionResult]::new('search-counts', 'search-counts', [CompletionResultType]::ParameterValue, 'Count the recent posts that match a query, per time bucket')
             [CompletionResult]::new('search-users', 'search-users', [CompletionResultType]::ParameterValue, 'Find accounts by keyword')
             [CompletionResult]::new('user-posts', 'user-posts', [CompletionResultType]::ParameterValue, 'List the posts a user wrote')
@@ -4067,6 +4102,9 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;help;read' {
+            break
+        }
+        'xr;help;analytics' {
             break
         }
         'xr;help;search-counts' {
