@@ -204,6 +204,139 @@ fn the_page_inspect_store_names_is_in_the_readme() {
     assert!(found, "{file} has no heading that anchors to #{anchor}");
 }
 
+// ── A step leads somewhere ─────────────────────────────────────────────
+
+/// Two signed-in apps: `personal`, the default, holding `alice`, and `work`
+/// holding `bob`. Neither token expires, so a dry run finds each offline.
+fn two_signed_in_apps(tmp: &TempDir) -> std::path::PathBuf {
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    for (app, login) in [("personal", "alice"), ("work", "bob")] {
+        ts.add_app(app, "abcdefgh", "shh").expect("add app");
+        ts.save_oauth2_token_for_app(app, login, "AT", "RT", u64::MAX)
+            .expect("save token");
+    }
+    ts.set_default_app("personal").expect("default");
+    store
+}
+
+/// Runs a step's `command` as a dry run, which sends nothing, and returns
+/// the envelope it prints.
+async fn dry_run_of(store: &Path, command: &str) -> serde_json::Value {
+    let mut words: Vec<&str> = command.split_whitespace().collect();
+    assert_eq!(words.first(), Some(&"xr"), "{command}");
+    words.insert(1, "--dry-run");
+    let (code, stdout, stderr) = run_at(store, &words).await;
+    assert_eq!(code, 0, "{command}: {stderr}");
+    serde_json::from_str(stdout.trim())
+        .unwrap_or_else(|e| panic!("{command} printed no envelope ({e}): {stdout}"))
+}
+
+/// Every credential step a refusal hands out is one that serves the
+/// invocation: a rerun against another app finds the login there, and a
+/// sign-in stores the login under the name the invocation asked for. A
+/// step that pointed at an app holding only other logins would refuse the
+/// same way, and that app's step would point back.
+#[rstest::rstest]
+#[case::login_no_app_holds(&["whoami", "-u", "nobody"])]
+#[case::login_no_app_holds_from_the_other_app(&["--app", "work", "whoami", "-u", "nobody"])]
+#[case::login_the_default_lacks(&["whoami", "-u", "bob"])]
+#[case::login_the_named_app_lacks(&["--app", "work", "whoami", "-u", "alice"])]
+#[tokio::test]
+async fn a_credential_step_serves_the_invocation_it_answers(#[case] args: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = two_signed_in_apps(&tmp);
+    let login = args[args.len() - 1];
+    let argv: Vec<&str> = ["xr", "--output", "json"]
+        .into_iter()
+        .chain(args.iter().copied())
+        .collect();
+    let (code, _stdout, stderr) = run_at(&store, &argv).await;
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let step = envelope(&stderr)["next_step"].clone();
+    let command = step["command"].as_str().expect("a runnable step");
+    match step["action"].as_str() {
+        Some("select-app") => {
+            let answer = dry_run_of(&store, command).await;
+            assert_eq!(answer["would_succeed"], true, "{command}: {answer}");
+            assert_eq!(answer["auth"]["username"], login, "{command}: {answer}");
+        }
+        Some("sign-in") => assert!(
+            command.starts_with(&format!("xr auth oauth2 {login} ")),
+            "the sign-in stores the login under another name: {command}"
+        ),
+        other => panic!("{argv:?}: unexpected step {other:?}: {step}"),
+    }
+}
+
+/// A dry run that no stored credential serves carries the step its real
+/// run's error carries. A rerun keeps `--dry-run`, so following a dry
+/// run's step sends nothing either.
+#[rstest::rstest]
+#[case::nothing_registered(false, &["whoami"])]
+#[case::login_no_app_holds(true, &["whoami", "-u", "nobody"])]
+#[case::login_another_app_holds(true, &["whoami", "-u", "bob"])]
+#[tokio::test]
+async fn a_dry_run_refusal_carries_the_step_of_its_real_run(
+    #[case] signed_in: bool,
+    #[case] args: &[&str],
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = if signed_in {
+        two_signed_in_apps(&tmp)
+    } else {
+        tmp.path().join(".xurl")
+    };
+    let real: Vec<&str> = ["xr", "--output", "json"]
+        .into_iter()
+        .chain(args.iter().copied())
+        .collect();
+    let (_, _, stderr) = run_at(&store, &real).await;
+    let expected = envelope(&stderr)["next_step"].clone();
+    assert!(
+        expected.is_object(),
+        "the real run carries a step: {stderr}"
+    );
+
+    let dry: Vec<&str> = ["xr", "--output", "json", "--dry-run"]
+        .into_iter()
+        .chain(args.iter().copied())
+        .collect();
+    let (code, stdout, stderr) = run_at(&store, &dry).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("an envelope");
+    assert_eq!(answer["would_succeed"], false, "{answer}");
+    let mut step = answer["next_step"].clone();
+    if let Some(command) = step["command"].as_str() {
+        step["command"] = command.replacen(" --dry-run", "", 1).into();
+    }
+    assert_eq!(step, expected, "{answer}");
+}
+
+/// A login flag ahead of the command word is refused with the invocation
+/// that moves it after the word, and that invocation reaches the command.
+#[tokio::test]
+async fn a_misplaced_login_flag_moves_to_where_the_command_reads_it() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = two_signed_in_apps(&tmp);
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr", "--output", "json", "--app", "work", "-u", "bob", "whoami",
+        ],
+    )
+    .await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let v = envelope(&stderr);
+    assert_eq!(v["reason"], "invalid-args", "{v}");
+    assert_eq!(v["next_step"]["action"], "fix-input", "{v}");
+    let command = v["next_step"]["command"].as_str().expect("a runnable step");
+    assert_eq!(command, "xr --output json --app work whoami -u bob");
+    let answer = dry_run_of(&store, command).await;
+    assert_eq!(answer["would_succeed"], true, "{answer}");
+    assert_eq!(answer["auth"]["username"], "bob", "{answer}");
+}
+
 // ── The README places every reason ─────────────────────────────────────
 
 /// The rows of the README's "Which Errors Carry a Step" table: each reason

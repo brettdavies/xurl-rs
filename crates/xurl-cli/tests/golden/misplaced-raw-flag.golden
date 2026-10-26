@@ -1,0 +1,19 @@
+args: ["--output", "json", "-X", "POST", "whoami"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 264
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 2,
+  "message": "'-X' comes before the command word, where only a raw request reads it. Try 'xr whoami --help'.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr whoami --help"
+  },
+  "reason": "invalid-args",
+  "status": "error"
+}
+

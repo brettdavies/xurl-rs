@@ -177,32 +177,34 @@ impl DryRun {
     /// sends them. The last is the request that does the command's work,
     /// and its credential is the one the `auth` key reports. Whether X
     /// still honors that credential is left to a real request.
+    ///
+    /// A credential refusal goes back to the runner as
+    /// [`Failure::DryRunRefusal`], which prints it with the step the real
+    /// run would carry.
     fn answer(
         self,
         out: &OutputConfig,
         stdout: &mut dyn Write,
         credentials: impl IntoIterator<Item = Credential>,
-    ) {
+    ) -> CommandResult<()> {
         let Self { mut ctx, invalid } = self;
         if let Some(reason) = invalid {
             ctx["reason"] = json!(reason);
             out.print_dry_run(stdout, false, EXIT_GENERAL_ERROR, &ctx);
-            return;
+            return Ok(());
         }
         let mut reported = None;
         for credential in credentials {
             match credential {
                 Ok(found) => reported = found,
-                Err(error) => {
-                    out.print_dry_run_refusal(stdout, &ctx, &error);
-                    return;
-                }
+                Err(error) => return Err(Failure::DryRunRefusal { ctx, error }),
             }
         }
         if let Some(found) = reported {
             ctx["auth"] = credential_value(&found);
         }
         out.print_dry_run(stdout, true, 0, &ctx);
+        Ok(())
     }
 }
 
@@ -252,15 +254,14 @@ async fn send_or_report<T>(
     stdout: &mut dyn Write,
     dry_run: Option<DryRun>,
     call: Call<T>,
-) -> Result<()>
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned,
 {
     if let Some(dry_run) = dry_run {
-        dry_run.answer(out, stdout, [call.auth_preflight().await]);
-        return Ok(());
+        return dry_run.answer(out, stdout, [call.auth_preflight().await]);
     }
-    print_typed(out, stdout, &call.send().await?)
+    Ok(print_typed(out, stdout, &call.send().await?)?)
 }
 
 /// Sends the one request `build` makes once `validator` passes its inputs,
@@ -515,8 +516,7 @@ async fn run_raw_mode(
     // read, so under `--dry-run` none is sent.
     if cli.dry_run {
         let ctx = json!({"method": options.method, "url": url});
-        DryRun::new(ctx).answer(out, stdout, [client.auth_preflight(&options).await]);
-        return Ok(());
+        return DryRun::new(ctx).answer(out, stdout, [client.auth_preflight(&options).await]);
     }
 
     // Check for media append request
@@ -714,8 +714,7 @@ where
             flags.cursor.as_deref(),
         );
         let credentials = [owner.auth_preflight().await, list.auth_preflight().await];
-        dry_run.answer(out, stdout, credentials);
-        return Ok(());
+        return dry_run.answer(out, stdout, credentials);
     }
     let user_id = match of {
         Some(target) => resolve_user_id(&client, target, common).await?,
@@ -764,8 +763,7 @@ where
                 .await,
             with_flags(act, common, None).auth_preflight().await,
         ];
-        dry_run.answer(out, stdout, credentials);
-        return Ok(());
+        return dry_run.answer(out, stdout, credentials);
     }
     let my_id = resolve_my_user_id(&client, common).await?;
     let target_id = resolve_user_id(&client, target_username, common).await?;
@@ -809,8 +807,7 @@ where
                 .await,
             with_flags(act, common, None).auth_preflight().await,
         ];
-        dry_run.answer(out, stdout, credentials);
-        return Ok(());
+        return dry_run.answer(out, stdout, credentials);
     }
     let target_id = resolve_user_id(&client, target_username, common).await?;
     let response = with_flags(shortcut(&client, &target_id), common, None)
@@ -870,8 +867,7 @@ where
             my_id_call(&client, common).auth_preflight().await,
             with_flags(act, common, None).auth_preflight().await,
         ];
-        dry_run.answer(out, stdout, credentials);
-        return Ok(());
+        return dry_run.answer(out, stdout, credentials);
     }
     let my_id = resolve_my_user_id(&client, common).await?;
     let response = with_flags(shortcut(&client, &my_id), common, None)

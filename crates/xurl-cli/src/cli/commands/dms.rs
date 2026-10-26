@@ -43,8 +43,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                         .await,
                     with_flags(send, &common, None).auth_preflight().await,
                 ];
-                dry_run.answer(out, stdout, credentials);
-                return Ok(());
+                return dry_run.answer(out, stdout, credentials);
             }
             let target_id = resolve_user_id(&client, &target_username, &common).await?;
             let response = with_flags(client.send_dm(&target_id, &text), &common, None)

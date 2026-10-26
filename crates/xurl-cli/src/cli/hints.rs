@@ -12,7 +12,7 @@ pub use xdk::error::NextAction;
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
 
-use crate::cli::classify::ROOT_COMMAND;
+use crate::cli::classify::{ROOT_COMMAND, requested_login};
 
 /// The `next_step` object carried by an error envelope.
 ///
@@ -26,8 +26,8 @@ use crate::cli::classify::ROOT_COMMAND;
 /// [`NextAction::WaitAndRetry`], [`NextAction::Retry`],
 /// [`NextAction::FixInput`], [`NextAction::ReportIssue`], and
 /// [`NextAction::InspectStore`] when the command that failed is the one
-/// that reports on the store. The one [`NextAction::FixInput`] that carries
-/// an invocation is [`Self::listen_on_free_port`].
+/// that reports on the store. Two [`NextAction::FixInput`] steps carry an
+/// invocation: [`Self::listen_on_free_port`] and [`Self::fix_input_with`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -84,11 +84,21 @@ impl NextStep {
     /// caller is by definition not watching a browser window.
     #[must_use]
     pub fn sign_in(app: Option<&str>, headless: bool) -> Self {
-        let mut command = if headless {
-            "xr auth oauth2 --no-browser --step 1".to_string()
-        } else {
-            "xr auth oauth2".to_string()
-        };
+        Self::sign_in_as(None, app, headless)
+    }
+
+    /// Sign-in for `app` that stores the login under `login`, the name `-u`
+    /// selects it by, when one is given.
+    #[must_use]
+    pub fn sign_in_as(login: Option<&str>, app: Option<&str>, headless: bool) -> Self {
+        let mut command = "xr auth oauth2".to_string();
+        if let Some(login) = login {
+            command.push(' ');
+            command.push_str(&shell_word(login));
+        }
+        if headless {
+            command.push_str(" --no-browser --step 1");
+        }
         if let Some(name) = app {
             command.push_str(" --app ");
             command.push_str(&quote_app_name(name));
@@ -191,6 +201,18 @@ impl NextStep {
             command: None,
             template: None,
             docs,
+        }
+    }
+
+    /// Run `command`, the invocation with its input corrected: a raw-only
+    /// flag moved after the command word that reads it.
+    #[must_use]
+    pub fn fix_input_with(command: String) -> Self {
+        Self {
+            action: NextAction::FixInput,
+            command: Some(command),
+            template: None,
+            docs: None,
         }
     }
 
@@ -342,12 +364,17 @@ pub struct Hint {
 /// Chooses the recovery hint for a no-credentials failure.
 ///
 /// ```text
-/// load failed               -> inspect-store, naming the path
-/// another app holds tokens  -> select-app, rerunning this invocation
-/// target can sign in        -> sign-in
-/// another app has a client  -> select-app, signing in against it
-/// nothing anywhere          -> register-app, with a template
+/// load failed                    -> inspect-store, naming the path
+/// another app holds the login    -> select-app, rerunning this invocation
+/// target can sign in             -> sign-in on the target, under the login's name
+/// another app has a client       -> select-app, signing in against it
+/// nothing anywhere               -> register-app, with a template
 /// ```
+///
+/// The login is the one `-u` names in `invocation`, or any login when it
+/// names none. An app that holds only other logins is passed over, since
+/// the rerun would refuse there the same way. A sign-in on the target names
+/// it unless it is the default, so the login lands where the rerun looks.
 ///
 /// The snapshot is taken before dispatch, so the choice sees the store the
 /// run actually loaded, including an app named by `--app` and a client id
@@ -368,26 +395,37 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
         };
     }
 
-    let tokens_elsewhere: Vec<String> = snapshot
-        .apps_with_tokens()
-        .into_iter()
-        .filter(|name| name != target)
-        .collect();
-    if let Some(app) = tokens_elsewhere.first() {
+    let login = requested_login(invocation);
+    let login = login.as_deref();
+    let holders = match login {
+        Some(login) => snapshot.apps_holding_login(login),
+        None => snapshot.apps_with_tokens(),
+    };
+    if let Some(app) = holders.iter().find(|name| *name != target) {
         let command = rerun_with_app(invocation, app);
+        let line = match login {
+            Some(login) => format!("App {app:?} holds the login {login:?}. Run: {command}"),
+            None => format!("App {app:?} is already signed in. Run: {command}"),
+        };
         return Hint {
-            text_lines: vec![format!("App {app:?} is already signed in. Run: {command}")],
+            text_lines: vec![line],
             next_step: NextStep::select_app(command),
         };
     }
+    let mut text_lines: Vec<String> = login
+        .map(|login| no_such_login(snapshot, target, login))
+        .into_iter()
+        .collect();
 
     let target_has_client_id =
         snapshot.env_client_id_present || target_facts.is_some_and(|f| f.has_client_id);
     if target_has_client_id {
-        let next_step = NextStep::sign_in(None, headless);
+        let app = (target != snapshot.default_app).then_some(target);
+        let next_step = NextStep::sign_in_as(login, app, headless);
         let command = next_step.command.clone().unwrap_or_default();
+        text_lines.push(format!("Sign in first. Run: {command}"));
         return Hint {
-            text_lines: vec![format!("Sign in first. Run: {command}")],
+            text_lines,
             next_step,
         };
     }
@@ -398,21 +436,39 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
         .filter(|name| name != target)
         .collect();
     if let Some(app) = ready.first() {
-        let next_step = NextStep::sign_in(Some(app), headless);
+        let next_step = NextStep::sign_in_as(login, Some(app), headless);
         let command = next_step.command.clone().unwrap_or_default();
+        text_lines.push(format!(
+            "App {app:?} has client credentials. Run: {command}"
+        ));
         return Hint {
-            text_lines: vec![format!(
-                "App {app:?} has client credentials. Run: {command}"
-            )],
+            text_lines,
             next_step: NextStep::select_app(command),
         };
     }
 
     let next_step = NextStep::register_app();
     let template = next_step.template.clone().unwrap_or_default();
+    text_lines.push(format!("Register an app first. Run: {template}"));
     Hint {
-        text_lines: vec![format!("Register an app first. Run: {template}")],
+        text_lines,
         next_step,
+    }
+}
+
+/// The line that says `login` is in no app, with the logins the target
+/// does hold, so a mistyped name shows beside the right one.
+fn no_such_login(snapshot: &StoreSnapshot, target: &str, login: &str) -> String {
+    let held = snapshot
+        .oauth2_logins
+        .get(target)
+        .filter(|logins| !logins.is_empty());
+    match held {
+        Some(logins) => format!(
+            "No app holds the login {login:?}. App {target:?} holds: {}.",
+            logins.join(", ")
+        ),
+        None => format!("No app holds the login {login:?}."),
     }
 }
 
@@ -870,6 +926,72 @@ mod tests {
         let no_login = mismatch(&["oauth2", "oauth1"], None, &["app"], None);
         let step = mismatch_hint(&snapshot, &no_login, &invocation, true).expect("a step");
         assert_eq!(step.next_step, NextStep::sign_in(None, true));
+    }
+
+    /// Two signed-in apps, `personal` (the default, holding `alice`) and
+    /// `work` (holding `bob`), each with a client id.
+    fn two_signed_in_apps(tmp: &tempfile::TempDir) -> xdk::store::TokenStore {
+        let mut store =
+            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
+        for (app, login) in [("personal", "alice"), ("work", "bob")] {
+            store.add_app(app, "CLIENT-ID", "SECRET").expect("add app");
+            store
+                .save_oauth2_token_for_app(app, login, "AT", "RT", u64::MAX)
+                .expect("save token");
+        }
+        store.set_default_app("personal").expect("default");
+        store
+    }
+
+    #[test]
+    fn a_login_another_app_holds_reruns_there() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let store = two_signed_in_apps(&tmp);
+        let hint = choose_hint(
+            &snapshot_of(&store),
+            &words(&["xr", "--app", "work", "whoami", "-u", "alice"]),
+            true,
+        );
+        assert_eq!(
+            hint.next_step,
+            NextStep::select_app("xr --app personal whoami -u alice".to_string())
+        );
+    }
+
+    /// The step never names an app that holds only other logins: rerunning
+    /// there refuses the same way, and the next step points back.
+    #[test]
+    fn a_login_no_app_holds_signs_in_under_that_name_where_the_rerun_looks() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let store = two_signed_in_apps(&tmp);
+        let hint = choose_hint(
+            &snapshot_of(&store),
+            &words(&["xr", "--app", "work", "whoami", "-u", "nobody"]),
+            true,
+        );
+        assert_eq!(
+            hint.next_step,
+            NextStep::sign_in_as(Some("nobody"), Some("work"), true)
+        );
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr auth oauth2 nobody --no-browser --step 1 --app work")
+        );
+        assert_eq!(
+            hint.text_lines[0],
+            r#"No app holds the login "nobody". App "work" holds: bob."#
+        );
+
+        let on_default = StoreSnapshot::new(&store, "personal", false);
+        let hint = choose_hint(
+            &on_default,
+            &words(&["xr", "whoami", "-u", "nobody"]),
+            false,
+        );
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr auth oauth2 nobody")
+        );
     }
 
     #[test]

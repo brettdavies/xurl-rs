@@ -422,7 +422,7 @@ fn verbose_cases() -> Vec<Case> {
     vec![
         bearer(case(
             "verbose-plain",
-            &["--verbose", "--auth", "app", "search", "hi"],
+            &["--verbose", "search", "--auth", "app", "hi"],
         )),
         bearer(case(
             "verbose-color",
@@ -430,9 +430,9 @@ fn verbose_cases() -> Vec<Case> {
                 "--verbose",
                 "--color",
                 "always",
+                "search",
                 "--auth",
                 "app",
-                "search",
                 "hi",
             ],
         )),
@@ -452,7 +452,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
         reason_case("auth-required", &["--output", "json", "/2/users/me"]),
         bearer(reason_case(
             "auth-method-mismatch",
-            &["--output", "json", "--auth", "app", "whoami"],
+            &["--output", "json", "whoami"],
         )),
         reason_case(
             "client-credentials-missing",
@@ -460,31 +460,31 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
         ),
         bearer(reason_case(
             "rate-limited",
-            &["--output", "json", "--auth", "app", "search", "q429"],
+            &["--output", "json", "search", "--auth", "app", "q429"],
         )),
         bearer(case(
             "rate-limited-with-reset",
-            &["--output", "json", "--auth", "app", "search", "q429reset"],
+            &["--output", "json", "search", "--auth", "app", "q429reset"],
         )),
         bearer(reason_case(
             "not-found",
-            &["--output", "json", "--auth", "app", "search", "q404"],
+            &["--output", "json", "search", "--auth", "app", "q404"],
         )),
         bearer(reason_case(
             "server-error",
-            &["--output", "json", "--auth", "app", "search", "q500"],
+            &["--output", "json", "search", "--auth", "app", "q500"],
         )),
         bearer(reason_case(
             "forbidden",
-            &["--output", "json", "--auth", "app", "search", "q403"],
+            &["--output", "json", "search", "--auth", "app", "q403"],
         )),
         bearer(reason_case(
             "invalid-request",
-            &["--output", "json", "--auth", "app", "search", "q400"],
+            &["--output", "json", "search", "--auth", "app", "q400"],
         )),
         bearer(reason_case(
             "api-error",
-            &["--output", "json", "--auth", "app", "search", "q409"],
+            &["--output", "json", "search", "--auth", "app", "q409"],
         )),
         bearer(reason_case(
             "invalid-method",
@@ -701,6 +701,15 @@ fn dry_run_cases() -> Vec<Case> {
         case(
             "dry-run-no-credential",
             &["--output", "json", "--dry-run", "post", "hi"],
+        ),
+        case(
+            "misplaced-login-flag",
+            &["--output", "json", "-u", "work", "whoami"],
+        ),
+        case("misplaced-login-flag-text", &["-u", "work", "whoami"]),
+        case(
+            "misplaced-raw-flag",
+            &["--output", "json", "-X", "POST", "whoami"],
         ),
         signed_in(case(
             "dry-run-scheme-not-accepted",
@@ -997,18 +1006,15 @@ fn text_cases() -> Vec<Case> {
     };
     vec![
         case("text-auth-required", &["/2/users/me"]),
-        bearer(case(
-            "text-auth-method-mismatch",
-            &["--auth", "app", "whoami"],
-        )),
+        bearer(case("text-auth-method-mismatch", &["whoami"])),
         case("text-client-credentials-missing", &["auth", "oauth2"]),
         bearer(case(
             "text-rate-limited",
-            &["--auth", "app", "search", "q429"],
+            &["search", "--auth", "app", "q429"],
         )),
         bearer(case(
             "text-rate-limited-with-reset",
-            &["--auth", "app", "search", "q429reset"],
+            &["search", "--auth", "app", "q429reset"],
         )),
         Case {
             store: Store::OAuth2,

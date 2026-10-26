@@ -48,7 +48,10 @@ xr auth status                   # list configured apps and token freshness
 
 Bare `xr` (no arguments) prints the root help on stdout at exit 0. A word that names no command exits 2 with reason
 `unknown-command`, echoing the word in `command` and naming the nearest real command in `suggestion` when one is close
-enough. Read those rather than parsing the message.
+enough. Read those rather than parsing the message. A flag only a raw request reads (`-X`, `-H`, `-d`, `--auth`, `-u`,
+`-t`, `-s`, `-F`), given before a command word, exits 2 with reason `invalid-args`, since the command reads only its own
+copy: for `-u`, `--auth`, or `-t` on a command that takes it, `next_step` is `fix-input` carrying the invocation with
+the flag after the word.
 
 ## Auth paths
 
@@ -93,11 +96,12 @@ does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60
 `retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
 (`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
 invocation fails again until its input or the state it read changes. Under `address-in-use`, a port another process
-holds, it carries `listen` again on `--port 0`: a `command`, or a `template` that hides each `-H` value. `report-issue`
-(`internal`, `serialization`, `api-error`) names the issue tracker in `docs`. `confirm` rides on `confirmation-required`
-and carries a `template`, the invocation with `--force`: it is never a `command`, so an agent that runs every command it
-is handed cannot confirm a deletion by accident. `run-command` names the sibling skill verb that repairs
-`destination-not-empty` or `not-installed`.
+holds, it carries `listen` again on `--port 0`: a `command`, or a `template` that hides each `-H` value. Under
+`invalid-args`, for `-u`, `--auth`, or `-t` given before a command word that takes it, it carries the invocation with
+the flag after the word. `report-issue` (`internal`, `serialization`, `api-error`) names the issue tracker in `docs`.
+`confirm` rides on `confirmation-required` and carries a `template`, the invocation with `--force`: it is never a
+`command`, so an agent that runs every command it is handed cannot confirm a deletion by accident. `run-command` names
+the sibling skill verb that repairs `destination-not-empty` or `not-installed`.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -149,11 +153,11 @@ additive envelope changes: add keys rather than renaming or retyping existing on
 `--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
 invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
-would end on, and a credential refusal carries the keys of its error envelope. `auth` names the credential the request
-would go out under (the `app` it is stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read
-offline: an expired token is reported and not refreshed, and whether X still accepts the credential is not checked. The
-flag outranks `--force` and the confirmation prompt; `confirmation_required: true` marks a destructive command that
-would stop to ask.
+would end on, and a credential refusal carries the keys of its error envelope, `next_step` among them; a step that
+reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
+stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
+and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
+confirmation prompt; `confirmation_required: true` marks a destructive command that would stop to ask.
 
 ## Shortcut commands
 

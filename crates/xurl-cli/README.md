@@ -196,6 +196,11 @@ xr --auth oauth1 /2/users/me                   # Explicit auth type
 xr -s /2/tweets/search/stream                  # Streaming
 ```
 
+These flags (`-X`, `-H`, `-d`, `--auth`, `-u`, `-t`, `-s`, `-F`) belong to a raw request. Given before a command word,
+one is refused at exit 2 with reason `invalid-args`, because the command reads only its own copy and would otherwise
+run without it: `xr -u work whoami` names `xr whoami -u work` as its step, and a flag the command does not take names
+the command's help.
+
 ### Media Upload
 
 ```bash
@@ -621,8 +626,8 @@ xr --output json --dry-run post "Hello"
 
 - `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
   send. `reason` says which, and `exit_code` is the code the real run would end on. A credential refusal also carries
-  the keys of its error envelope (`message`, `endpoint`, `supported`, `available_in_app`) apart from `next_step`: the
-  real run stops at the same point with nothing sent, and its envelope names the step.
+  the keys of its error envelope (`message`, `endpoint`, `supported`, `available_in_app`) and the `next_step` the real
+  run would name. A step that reruns the invocation keeps `--dry-run`, so following it sends nothing either.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
@@ -709,9 +714,9 @@ a value you do not recognize as your default branch. A step carries a `command`,
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
 fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
 carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
-and `inspect-store` when a store command is what failed. The one `fix-input` that carries an invocation answers
-`address-in-use`: `listen` again on a free port. Text mode prints the same advice as prose instead; the two need not
-match word for word.
+and `inspect-store` when a store command is what failed. Two `fix-input` steps carry an invocation: `listen` again on a
+free port, under `address-in-use`, and the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
+before, under `invalid-args`. Text mode prints the same advice as prose instead; the two need not match word for word.
 
 ### Which Errors Carry a Step
 
@@ -724,7 +729,7 @@ match word for word.
 | `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                     |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                            |
 | `processing-timeout`         | `resume-wait`                                                                                            |
-| `invalid-args`               | `show-help`                                                                                              |
+| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it           |
 | `unknown-command`            | `show-help`                                                                                              |
 | `invalid-method`             | `show-help`                                                                                              |
 | `invalid-url`                | `show-help`                                                                                              |
@@ -758,9 +763,10 @@ Every reason has a row. The five actions that are not about credentials or help 
 
 - `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
 - `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
-  `xr` command repairs it, except a port another process holds: the step is then `listen` again with `--port 0`, a
-  `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did. `docs` names
-  X's page on response codes for a 400, a 404, or a 422.
+  `xr` command repairs it, with two exceptions. For a port another process holds, the step is `listen` again with
+  `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did.
+  For `-u`, `--auth`, or `-t` given before a command word that takes it, the step is the invocation with the flag after
+  the word. `docs` names X's page on response codes for a 400, a 404, or a 422.
 - `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
 - `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
   the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by

@@ -202,8 +202,10 @@ pub struct ErrorBody {
     /// recovery is not an `xr` invocation carries neither, and `docs` when
     /// a page covers it: `enroll-app`, `wait-and-retry`, `retry`,
     /// `fix-input`, `report-issue`, and `inspect-store` when a store
-    /// command is what failed. The one `fix-input` that carries an
-    /// invocation answers `address-in-use`: `listen` again on a free port.
+    /// command is what failed. Two `fix-input` steps carry an invocation:
+    /// `listen` again on a free port, under `address-in-use`, and the
+    /// invocation with `-u`, `--auth`, or `-t` moved after the command word
+    /// it came before, under `invalid-args`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.
