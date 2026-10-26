@@ -221,6 +221,17 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
 }
 
 #[test]
+fn spec_post_lookup() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Post>> =
+        serde_json::from_value(examples["post_lookup"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 1);
+    let errors = resp.errors.expect("the ids X could not return");
+    assert_eq!(errors[0].title.as_deref(), Some("Not Found Error"));
+    assert_eq!(errors[0].extra["resource_id"], "1460323737035677698");
+}
+
+#[test]
 fn spec_action_hidden() {
     let examples = load_examples();
     let resp: ApiResponse<HiddenResult> =
@@ -641,6 +652,7 @@ fn every_fixture_is_exercised_by_a_validation_test() {
 const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("post_single", endpoints::READ_POST, ReplyKind::Success),
     ("post_list", endpoints::SEARCH_POSTS, ReplyKind::Success),
+    ("post_lookup", endpoints::READ_POSTS, ReplyKind::Success),
     ("user_single", endpoints::GET_ME, ReplyKind::Success),
     ("user_single_wire", endpoints::GET_ME, ReplyKind::Success),
     ("action_hidden", endpoints::HIDE_REPLY, ReplyKind::Success),

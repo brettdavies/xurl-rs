@@ -110,6 +110,7 @@ xr delete 1585341984679469056                  # Delete
 
 ```bash
 xr read 1585341984679469056                    # Read a post
+xr read-posts 20 1585341984679469056           # Up to 100 posts in one request
 xr search "golang" -n 20                       # Search (10-100 results)
 xr likers 1585341984679469056                  # Who liked a post
 xr reposters 1585341984679469056               # Who reposted a post
@@ -139,8 +140,9 @@ xr bookmark-folders add "Reading list"         # Create a folder
 xr likes                                       # List likes
 ```
 
-A folder lists its posts by ID alone; `xr read <id>` prints one. X's API creates folders and lists them, and has no
-endpoint that moves a bookmark into a folder or deletes one, so those stay in the X app.
+A folder lists its posts by ID alone; `xr read-posts` turns up to 100 of them into posts in one request, as in
+`xr bookmark-folders get <id> --output json | jaq -r '.data[]?.id' | xargs xr read-posts`. X's API creates folders and
+lists them, and has no endpoint that moves a bookmark into a folder or deletes one, so those stay in the X app.
 
 ### Social Graph
 

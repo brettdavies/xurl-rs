@@ -244,6 +244,18 @@ Examples:
     xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr read-posts` examples — paired text + JSON, JSONL pipeline.
+const READ_POSTS_HELP: &str = "\
+Examples:
+  Read several posts in one request (text):
+    xr read-posts 1585341984679469056 1346889436626259968
+  Ids and post URLs mixed, JSON envelope:
+    xr read-posts 1585341984679469056 https://x.com/alice/status/1346889436626259968 --output json
+  The text of each post, one per line:
+    xr read-posts 1585341984679469056 1346889436626259968 --output json | jaq -r '.data[]?.text'
+  The ids X could not return are under errors, beside the posts it could.
+";
+
 /// `xr likers` examples — paired text + JSON, JSONL pipeline.
 const LIKERS_HELP: &str = "\
 Examples:
@@ -1192,6 +1204,16 @@ pub enum Commands {
     Read {
         /// Post ID or URL to read
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read up to 100 posts in one request
+    #[command(after_help = READ_POSTS_HELP)]
+    ReadPosts {
+        /// Post IDs or URLs, 1 to 100
+        #[arg(required = true, num_args = 1..)]
+        post_ids: Vec<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
