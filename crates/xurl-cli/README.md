@@ -110,6 +110,7 @@ xr delete 1585341984679469056                  # Delete
 xr read 1585341984679469056                    # Read a post
 xr search "golang" -n 20                       # Search (10-100 results)
 xr whoami                                      # Your profile
+xr whoami --cached                             # Your id, username, and name from the store; no request
 xr user @elonmusk                              # Look up user
 xr timeline                                    # Home timeline
 xr mentions                                    # Your mentions
@@ -479,12 +480,17 @@ moved into that directory by the first command that opens it. In text output the
 (`Migrated <old path> to <new path>`). The move is one-way, and `xr` 4.3.0 and earlier cannot read the directory, so
 upgrade every copy of `xr` that shares the store. A `~/.xurl` that is a symbolic link to a file is used where it points.
 
-Beside each login the store keeps the id of the X account it belongs to. `xr` writes it from `/2/users/me` answered
-under that login: at sign-in, at the refresh of a login that has none, on `xr whoami`, and on the first command that
-needs it. A command that acts as you (`like`, `follow`, `timeline`, `bookmarks`, and the rest of them) then reads the id
-from the store, where it asked X on every run. The id sits beside the credential it was asked with and goes when that
-credential is replaced, so it cannot name another account. A login stored without a username gets its name the same way.
-Someone else's handle is looked up every time, because a handle can pass to another account.
+Beside each login the store keeps the id of the X account it belongs to, with the account's username and display name
+from the same answer. `xr` writes them from `/2/users/me` answered under that login: at sign-in, at the refresh of a
+login that has no id, on `xr whoami`, and on the first command that needs the id. A command that acts as you (`like`,
+`follow`, `timeline`, `bookmarks`, and the rest of them) then reads the id from the store, where it asked X on every
+run. The account sits beside the credential it was asked with and goes when that credential is replaced, so it cannot
+name another account. A login stored without a username gets its name the same way. Someone else's handle is looked up
+every time, because a handle can pass to another account.
+
+`xr whoami --cached` answers from the stored account with no request, as `{"data": {"id", "name", "username"},
+"source": "cache"}`. When the store holds no whole account for the login yet, it asks X once, answers with `"source":
+"api"`, and stores the answer. `xr whoami` without the flag always asks X, for the live profile and its counts.
 
 Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending state (`<path>.pending`)
 follows it. The variable applies to the binary only: a program using `xdk` passes the path to
@@ -543,7 +549,12 @@ zero-app special case. Per-app fields:
 - `redirect_uri_stored`: only present when the `REDIRECT_URI` environment variable overrides a stored app value; carries
   the stored value so precedence is auditable.
 - `oauth2_users`: array of usernames with OAuth2 tokens stored under this app.
+- `oauth2_accounts`: one object per name in `oauth2_users`, in the same order: `login`, and once X has answered under
+  that login, the account's `user_id`, `username`, and `display_name`. The text form prints the id and display name
+  beside the login.
 - `oauth1`: boolean: OAuth1 credentials are stored for this app.
+- `oauth1_account`: only present when the store holds the id of the account the OAuth1 access pair belongs to:
+  `user_id`, `username`, and `display_name`.
 - `bearer`: boolean: a bearer token is available for this app, stored on it or supplied by `XURL_BEARER_TOKEN`.
 - `bearer_source`: only present when `bearer` is `true`: `store` or `env`.
 - `default`: boolean: this is the default app.

@@ -80,6 +80,8 @@ fn test_oauth1_deterministic_signature() {
         access_token: "nnch734d00sl2jdk".to_string(),
         token_secret: "pfkkdhi9sl3r4s00".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     let fixed_nonce = "kllo9940pd9333jh";
@@ -133,6 +135,8 @@ fn test_oauth1_signature_changes_with_nonce() {
         access_token: "access-token".to_string(),
         token_secret: "token-secret".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     let header1 = build_oauth1_header_with_nonce_ts(
@@ -170,6 +174,8 @@ fn test_oauth1_signature_changes_with_method() {
         access_token: "at".to_string(),
         token_secret: "ts".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     let header_get = build_oauth1_header_with_nonce_ts(
@@ -206,6 +212,8 @@ fn test_oauth1_signature_with_query_params() {
         access_token: "at".to_string(),
         token_secret: "ts".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     // Query params should be included in the signature base string
@@ -246,6 +254,8 @@ fn test_oauth1_signature_with_additional_params() {
         access_token: "at".to_string(),
         token_secret: "ts".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     let mut extra = BTreeMap::new();
@@ -300,6 +310,8 @@ fn test_oauth1_known_vector_signature() {
         access_token: "nnch734d00sl2jdk".to_string(),
         token_secret: "pfkkdhi9sl3r4s00".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     let header = build_oauth1_header_with_nonce_ts(
@@ -378,6 +390,8 @@ fn test_oauth1_invalid_url_returns_error() {
         access_token: "at".to_string(),
         token_secret: "ts".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     let result = build_oauth1_header_with_nonce_ts(
@@ -400,6 +414,8 @@ fn test_oauth1_header_contains_all_required_params() {
         access_token: "my-access-token".to_string(),
         token_secret: "my-token-secret".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     let header = build_oauth1_header_with_nonce_ts(
@@ -461,6 +477,8 @@ fn test_x_published_example_produces_the_published_signature() {
         access_token: "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb".to_string(),
         token_secret: "LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
     let mut body = BTreeMap::new();
     body.insert("status".to_string(), X_EXAMPLE_STATUS.to_string());
@@ -503,6 +521,8 @@ fn test_a_request_without_parameters_signs_as_before() {
         access_token: "nnch734d00sl2jdk".to_string(),
         token_secret: "pfkkdhi9sl3r4s00".to_string(),
         user_id: None,
+        account_username: None,
+        display_name: None,
     };
 
     let header = build_oauth1_header_with_nonce_ts(

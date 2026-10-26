@@ -173,6 +173,20 @@ async fn a_me_lookup_under_a_named_login_stores_the_id_and_keeps_the_label() {
     let after = reloaded(&store);
     assert_eq!(oauth2_id(&after, "work").as_deref(), Some("42"));
     assert!(after.get_oauth2_token_for_app(APP, "alice").is_none());
+    let login = after
+        .get_oauth2_token_for_app(APP, "work")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("the login is stored as work");
+    assert_eq!(login.account_username.as_deref(), Some("alice"));
+    assert_eq!(login.display_name.as_deref(), Some("Alice"));
+    let found = client(&store, &server)
+        .get_me()
+        .auth_preflight()
+        .await
+        .expect("the login serves the call")
+        .expect("the client attaches a credential");
+    assert_eq!(found.account_username.as_deref(), Some("alice"));
+    assert_eq!(found.display_name.as_deref(), Some("Alice"));
 }
 
 #[tokio::test]
@@ -199,6 +213,8 @@ async fn a_me_lookup_under_oauth1_stores_the_id_beside_the_access_pair() {
         .and_then(|token| token.oauth1.as_ref())
         .expect("the access pair is stored");
     assert_eq!(pair.user_id.as_deref(), Some("42"));
+    assert_eq!(pair.account_username.as_deref(), Some("alice"));
+    assert_eq!(pair.display_name.as_deref(), Some("Alice"));
     assert!(
         after.get_oauth2_token_unnamed_for_app(APP).is_some(),
         "an answer under OAuth1 says nothing about the OAuth2 token"
@@ -211,6 +227,7 @@ async fn a_me_lookup_under_oauth1_stores_the_id_beside_the_access_pair() {
         .expect("the pair serves the call")
         .expect("the client attaches a credential");
     assert_eq!(found.user_id.as_deref(), Some("42"));
+    assert_eq!(found.display_name.as_deref(), Some("Alice"));
 }
 
 /// A new access pair may be another account's, so it starts without an id.
@@ -307,6 +324,8 @@ async fn a_refresh_asks_once_for_an_id_it_lacks_and_keeps_the_login_in_place() {
         .expect("the login is still stored as work");
     assert_eq!(token.access_token, "REFRESHED-ACCESS");
     assert_eq!(token.user_id.as_deref(), Some("42"));
+    assert_eq!(token.account_username.as_deref(), Some("alice"));
+    assert_eq!(token.display_name.as_deref(), Some("Alice"));
     assert!(
         after.get_oauth2_token_for_app(APP, "alice").is_none(),
         "no second entry appears under the name X answered with"
@@ -378,4 +397,72 @@ async fn a_refresh_of_an_unnamed_login_names_it_and_empties_the_slot() {
         after.get_oauth2_token_unnamed_for_app(APP).is_none(),
         "the pair the refresh replaced does not stay behind"
     );
+}
+
+/// The username and display name are stored only beside the id they came
+/// with: the same id keeps them, and a new id drops them, so a stored name
+/// never belongs to another account.
+#[test]
+fn a_new_id_drops_the_stored_names_and_the_same_id_keeps_them() {
+    let tmp = TempDir::new().expect("tempdir");
+    let path = tmp.path().join("auth.yml");
+    seed(&path, |store| {
+        named(store, "work", false);
+        oauth1(store);
+    });
+    let mut store = reloaded(&path);
+    let names = |store: &TokenStore| {
+        let token = store
+            .get_oauth2_token_for_app(APP, "work")
+            .and_then(|token| token.oauth2.as_ref())
+            .expect("the login is stored");
+        (token.account_username.clone(), token.display_name.clone())
+    };
+
+    assert!(
+        store
+            .set_oauth2_account_for_app(APP, "work", "42", Some("alice"), Some("Alice"))
+            .expect("store the account")
+    );
+    assert!(
+        !store
+            .set_oauth2_account_for_app(APP, "work", "42", Some("alice"), Some("Alice"))
+            .expect("the same answer"),
+        "the same answer changes nothing"
+    );
+    assert!(
+        !store
+            .set_oauth2_user_id_for_app(APP, "work", "42")
+            .expect("same id")
+    );
+    assert_eq!(
+        names(&reloaded(&path)),
+        (Some("alice".to_string()), Some("Alice".to_string()))
+    );
+
+    assert!(
+        store
+            .set_oauth2_user_id_for_app(APP, "work", "7")
+            .expect("a new id")
+    );
+    assert_eq!(names(&reloaded(&path)), (None, None));
+
+    assert!(
+        store
+            .set_oauth1_account_for_app(APP, "42", Some("alice"), Some("Alice"))
+            .expect("store the pair's account")
+    );
+    assert!(
+        store
+            .set_oauth1_user_id_for_app(APP, "7")
+            .expect("a new id")
+    );
+    let pair = reloaded(&path);
+    let pair = pair
+        .get_oauth1_tokens_for_app(APP)
+        .and_then(|token| token.oauth1.as_ref())
+        .expect("the pair is stored");
+    assert_eq!(pair.user_id.as_deref(), Some("7"));
+    assert_eq!(pair.account_username, None);
+    assert_eq!(pair.display_name, None);
 }

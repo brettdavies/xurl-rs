@@ -3366,6 +3366,99 @@ async fn test_whoami_names_a_login_stored_without_a_username() {
     assert!(after.get_oauth2_token_unnamed_for_app("myapp").is_none());
 }
 
+/// Stores the account `alice`, id 42, display name Alice, beside the
+/// login `alice`.
+fn store_alice_account(store_path: &Path) {
+    use xdk::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.set_oauth2_account_for_app("myapp", "alice", "42", Some("alice"), Some("Alice"))
+        .expect("store the account");
+}
+
+/// With the whole account stored beside the login, `whoami --cached`
+/// answers from the store and sends nothing.
+#[tokio::test]
+async fn test_whoami_cached_answers_from_the_stored_account() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 0).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), None);
+    store_alice_account(&store);
+
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &api_env(ts.uri()),
+        &["xr", "--output", "json", "whoami", "--cached"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(
+        body,
+        serde_json::json!({
+            "data": {"id": "42", "name": "Alice", "username": "alice"},
+            "source": "cache"
+        })
+    );
+}
+
+/// A login stored with its id but not the names asks X once: the answer
+/// says `source: "api"` and is stored, so the next `--cached` run answers
+/// from the store.
+#[tokio::test]
+async fn test_whoami_cached_asks_once_for_an_account_the_store_lacks() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 1).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), Some("42"));
+    let args = ["xr", "--output", "json", "whoami", "--cached"];
+
+    let (code, first, stderr) = run_at_with(&store, &api_env(ts.uri()), &args).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let first: serde_json::Value = serde_json::from_str(first.trim()).expect("JSON on stdout");
+    assert_eq!(first["source"], "api");
+    assert_eq!(first["data"]["username"], "alice");
+
+    let (code, second, stderr) = run_at_with(&store, &api_env(ts.uri()), &args).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let second: serde_json::Value = serde_json::from_str(second.trim()).expect("JSON on stdout");
+    assert_eq!(second["source"], "cache");
+    assert_eq!(second["data"]["name"], "Alice");
+}
+
+/// `auth status` names the account each login belongs to, as far as the
+/// store holds it, and the text form puts the id beside the login.
+#[tokio::test]
+async fn test_auth_status_names_each_logins_account() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), None);
+    store_alice_account(&store);
+    let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.save_oauth2_token_for_app("myapp", "work", "ACCESS", "REFRESH", 4_000_000_000)
+        .expect("save a second login");
+
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(
+        body["apps"][0]["oauth2_accounts"],
+        serde_json::json!([
+            {"login": "alice", "user_id": "42", "username": "alice", "display_name": "Alice"},
+            {"login": "work"}
+        ])
+    );
+
+    let (code, text, stderr) = run_at(&store, &["xr", "auth", "status"]).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(text.contains("oauth2: alice (id 42, Alice)"), "{text}");
+    assert!(text.contains("oauth2: work\n"), "{text}");
+}
+
 /// A command that acts as the caller needs the caller's id. With the id
 /// stored beside the login, it goes straight to its own request.
 #[tokio::test]

@@ -129,15 +129,23 @@ impl Client {
     async fn store_identity(&self, login: &StoredLogin, user: &User) -> Result<()> {
         let mut auth = self.auth().await?;
         let store = &mut auth.token_store;
+        let account_username = Some(user.username.as_str()).filter(|name| !name.is_empty());
+        let display_name = Some(user.name.as_str()).filter(|name| !name.is_empty());
         match login {
             StoredLogin::OAuth1 { app } => {
-                store.set_oauth1_user_id_for_app(app, &user.id)?;
+                store.set_oauth1_account_for_app(app, &user.id, account_username, display_name)?;
             }
             StoredLogin::OAuth2 {
                 app,
                 stored_as: Some(name),
             } => {
-                store.set_oauth2_user_id_for_app(app, name, &user.id)?;
+                store.set_oauth2_account_for_app(
+                    app,
+                    name,
+                    &user.id,
+                    account_username,
+                    display_name,
+                )?;
             }
             StoredLogin::OAuth2 {
                 app,
@@ -153,7 +161,13 @@ impl Client {
                         name = %user.username,
                         "stored the unnamed OAuth2 login under its username"
                     );
-                    store.set_oauth2_user_id_for_app(app, &user.username, &user.id)?;
+                    store.set_oauth2_account_for_app(
+                        app,
+                        &user.username,
+                        &user.id,
+                        account_username,
+                        display_name,
+                    )?;
                 }
             }
         }
