@@ -1,10 +1,12 @@
 args: ["calls", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7016
+stdout_len: 7176
 stderr_len: 0
 --- stdout ---
-X calls, and the calls on your calendar
+X calls, and the calls on your calendar (preview)
+
+A preview: X marks the Calls API as in development and not yet generally available, so its requests and the scopes it takes may change before it is.
 
 Usage: xr calls [OPTIONS] <COMMAND>
 
