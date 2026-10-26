@@ -175,6 +175,9 @@ never the tests.
 - **Endpoint declaration.** A `SHORTCUT_TEMPLATES` row in `crates/xdk/build.rs`: the constant name, the method, and the
   spec path. The build panics when the path is not in the vendored spec, and `crates/xdk/tests/auth_matrix_coverage.rs`
   fails when the generated auth matrix has no entry for it.
+- **Sign-in scopes.** Any OAuth2 scope the endpoint requires that `get_oauth2_scopes` in
+  `crates/xdk/src/auth/oauth2.rs` does not request yet. `crates/xdk/tests/auth_tests.rs` fails for a shortcut whose
+  endpoint needs a scope the sign-in leaves out, and for a requested scope the vendored spec does not declare.
 - **Shortcut.** A `pub fn` in `crates/xdk/src/api/shortcuts.rs` that reads `endpoints::<NAME>` for its method and path.
   `crates/xdk/tests/path_literal_guard.rs` fails on a `/2/` literal in the request layer or the mock.
 - **Typed response.** A struct in `crates/xdk/src/api/response/types.rs` deriving `JsonSchema`, or an existing one.
