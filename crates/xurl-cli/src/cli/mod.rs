@@ -263,6 +263,25 @@ Examples:
     xr unlike 1585341984679469056 --output json
 ";
 
+/// `xr hide` examples — paired text + JSON.
+const HIDE_HELP: &str = "\
+Examples:
+  Hide a reply to your post (text):
+    xr hide 1585341984679469056
+  Hide a reply by its URL (JSON envelope):
+    xr hide https://x.com/alice/status/1585341984679469056 --output json
+  Only the author of the post replied to can hide a reply.
+";
+
+/// `xr unhide` examples — paired text + JSON.
+const UNHIDE_HELP: &str = "\
+Examples:
+  Show a hidden reply again (text):
+    xr unhide 1585341984679469056
+  Show a hidden reply again (JSON envelope):
+    xr unhide 1585341984679469056 --output json
+";
+
 /// `xr repost` examples — paired text + JSON.
 const REPOST_HELP: &str = "\
 Examples:
@@ -1226,6 +1245,24 @@ pub enum Commands {
     #[command(after_help = UNLIKE_HELP)]
     Unlike {
         /// Post ID or URL
+        post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Hide a reply to your post
+    #[command(after_help = HIDE_HELP)]
+    Hide {
+        /// Reply post ID or URL
+        post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Show a hidden reply to your post again
+    #[command(after_help = UNHIDE_HELP)]
+    Unhide {
+        /// Reply post ID or URL
         post_id: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]

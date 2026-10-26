@@ -48,6 +48,10 @@ POST AND READ:
   Quote-post:
     xr quote 1585341984679469056 \"Worth a read.\" --output json
 
+  Hide a reply to your post, or show it again:
+    xr hide 1585341984679469056
+    xr unhide 1585341984679469056 --output json
+
   Delete a post by ID without a prompt (--force confirms it):
     xr delete 1585341984679469056 --force --no-interactive --output json
 

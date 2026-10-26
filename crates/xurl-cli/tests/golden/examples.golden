@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 7719
+stdout_len: 7847
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -32,6 +32,10 @@ POST AND READ:
 
   Quote-post:
     xr quote 1585341984679469056 "Worth a read." --output json
+
+  Hide a reply to your post, or show it again:
+    xr hide 1585341984679469056
+    xr unhide 1585341984679469056 --output json
 
   Delete a post by ID without a prompt (--force confirms it):
     xr delete 1585341984679469056 --force --no-interactive --output json
