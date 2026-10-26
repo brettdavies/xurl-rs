@@ -1166,9 +1166,10 @@ pub enum Commands {
         /// username, display name) with no request; ask X when it holds
         /// none yet. `source` says which answered.
         ///
-        /// The stored account is what X answered when this login last asked,
-        /// so a rename shows on the next live `xr whoami`. The login's token
-        /// is not checked either: an expired login still answers, so
+        /// The stored names are what X answered when a login for this account
+        /// last asked, in any app, so a rename shows once one of them asks
+        /// again, as a live `xr whoami` does. The login's token is not
+        /// checked either: an expired login still answers, so
         /// `--cached` is no test of a credential. `xr --dry-run whoami` says
         /// whether the token has expired.
         #[arg(long)]

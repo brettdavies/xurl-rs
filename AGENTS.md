@@ -115,15 +115,16 @@ the move in text output. Schema is documented in `crates/xdk/src/store/types.rs`
 `crates/xdk/src/store/migration.rs` and runs on every load: older formats upgrade transparently and the upgraded file is
 written back. Multiple apps are stored under the same file with a per-app block.
 
-Each OAuth2 login and each OAuth1 access pair carries `user_id`, the id of the account it belongs to, with the
-account's `account_username` and `display_name` from the same answer. They are written only from `/2/users/me` answered
-under that credential (at sign-in, at the refresh of a login that lacks the id, by `xr whoami`, and by the first
-command that resolves the caller's id); a new id drops the names, and a credential that replaces another starts without
-any, so they cannot name another account. `xr whoami --cached` and `xr auth status` read them. `resolve_my_user_id`
-in `crates/xurl-cli/src/cli/commands/mod.rs` reads the id through `Call::auth_preflight` and sends the lookup only when
-it is absent. A refresh replaces the token where it is stored: the key is the caller's label for the login, which
-`xr auth oauth2 NAME` lets them choose. Another user's handle is never cached, since a handle can pass to another
-account.
+Each OAuth2 login and each OAuth1 access pair carries `user_id`, the id of the account it belongs to, with the account's
+`account_username` and `display_name` from the same answer. The id is written only from `/2/users/me` answered under
+that credential (at sign-in, at the refresh of a login that lacks the id, by `xr whoami`, and by the first command that
+resolves the caller's id); a new id drops the names, and a credential that replaces another starts without any, so they
+cannot name another account. An answer's names are also written onto every other credential the store holds for the same
+id, in any app, since the id is the account's for good; a refresh that asks X nothing keeps the names the store holds
+when it writes. `xr whoami --cached` and `xr auth status` read them. `resolve_my_user_id` in
+`crates/xurl-cli/src/cli/commands/mod.rs` reads the id through `Call::auth_preflight` and sends the lookup only when it
+is absent. A refresh replaces the token where it is stored: the key is the caller's label for the login, which `xr auth
+oauth2 NAME` lets them choose. Another user's handle is never cached, since a handle can pass to another account.
 
 `xr auth status` is the operator-facing surface. Programmatic access uses `xdk::store::TokenStore`.
 

@@ -60,8 +60,9 @@ pub struct OAuth1Token {
     /// stored. Storing a new access pair starts again without one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
-    /// The account's username as `/2/users/me` last answered under this
-    /// credential. It is written and dropped with `user_id`; a username can
+    /// The account's username as `/2/users/me` last answered for the
+    /// account `user_id` names, under this credential or another the store
+    /// holds for the same id. It is dropped with `user_id`; a username can
     /// change, so it is the one the account had then.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub account_username: Option<String>,
@@ -89,8 +90,9 @@ pub struct OAuth2Token {
     /// answer has been stored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub user_id: Option<String>,
-    /// The account's username as `/2/users/me` last answered under this
-    /// credential. It is written and dropped with `user_id`; a username can
+    /// The account's username as `/2/users/me` last answered for the
+    /// account `user_id` names, under this credential or another the store
+    /// holds for the same id. It is dropped with `user_id`; a username can
     /// change, so it is the one the account had then.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub account_username: Option<String>,

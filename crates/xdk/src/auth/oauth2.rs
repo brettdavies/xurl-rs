@@ -208,7 +208,7 @@ pub(crate) async fn exchange_code_for_token(
         match auth.fetch_identity(http, &access_token).await {
             Ok(identity) => {
                 identity.record_on(&mut token);
-                auth.token_store.put_oauth2_token(
+                auth.token_store.put_answered_oauth2_token(
                     &app_name,
                     Some(&identity.username),
                     token,
@@ -648,7 +648,7 @@ pub async fn refresh_oauth2_token(
             Ok(identity) => {
                 identity.record_on(&mut token);
                 let name = stored_as.as_deref().unwrap_or(&identity.username);
-                auth.token_store.put_oauth2_token(
+                auth.token_store.put_answered_oauth2_token(
                     &app_name,
                     Some(name),
                     token,

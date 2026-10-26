@@ -77,6 +77,11 @@ impl TokenStore {
     /// Stores `token` in the named app: under `name`, or in the unnamed slot
     /// when there is none. `drop_unnamed` empties the unnamed slot in the
     /// same write, for a token that just left it for a name.
+    ///
+    /// The token's names were not asked of X for this write: a refresh
+    /// carries them from the token it replaces, read before its grant went
+    /// out. Where the slot holds the same account, the token takes the names
+    /// the store holds now, so a newer answer recorded meanwhile stands.
     pub(crate) fn put_oauth2_token(
         &mut self,
         app_name: &str,
@@ -84,8 +89,52 @@ impl TokenStore {
         token: OAuth2Token,
         drop_unnamed: bool,
     ) -> Result<()> {
+        self.write_oauth2_token(app_name, name, token, drop_unnamed, false)
+    }
+
+    /// [`Self::put_oauth2_token`] for a token whose names `/2/users/me` just
+    /// gave, under that token: they are written beside it, and onto every
+    /// credential the store holds for the same account.
+    pub(crate) fn put_answered_oauth2_token(
+        &mut self,
+        app_name: &str,
+        name: Option<&str>,
+        token: OAuth2Token,
+        drop_unnamed: bool,
+    ) -> Result<()> {
+        self.write_oauth2_token(app_name, name, token, drop_unnamed, true)
+    }
+
+    fn write_oauth2_token(
+        &mut self,
+        app_name: &str,
+        name: Option<&str>,
+        mut token: OAuth2Token,
+        drop_unnamed: bool,
+        answered: bool,
+    ) -> Result<()> {
         self.update(|store| {
+            if answered && let Some(user_id) = &token.user_id {
+                store.share_account_names(
+                    user_id,
+                    token.account_username.as_deref(),
+                    token.display_name.as_deref(),
+                );
+            }
             let app = store.resolve_app_mut(app_name);
+            let held = match name {
+                Some(name) => app.oauth2_tokens.get(name),
+                None => app.unnamed_oauth2_token.as_ref(),
+            }
+            .and_then(|held| held.oauth2.as_ref());
+            if !answered
+                && let Some(held) = held
+                && token.user_id.is_some()
+                && held.user_id == token.user_id
+            {
+                token.account_username.clone_from(&held.account_username);
+                token.display_name.clone_from(&held.display_name);
+            }
             let token = Token {
                 token_type: TokenType::Oauth2,
                 bearer: None,
@@ -133,7 +182,9 @@ impl TokenStore {
     ///
     /// A name passed replaces the stored one. A name left `None` keeps the
     /// stored one while the id is unchanged, and a new id drops it, so a
-    /// stored name never belongs to another account.
+    /// stored name never belongs to another account. A name passed is also
+    /// written onto every other credential the store holds for `user_id`, in
+    /// every app; the id itself is never copied.
     ///
     /// # Errors
     ///
@@ -173,20 +224,21 @@ impl TokenStore {
             self.get_oauth2_token_for_app(app_name, username)
         }
         .and_then(|token| token.oauth2.as_ref());
-        if current.and_then(recorded).is_none() {
+        if current.and_then(recorded).is_none()
+            && !self.has_account_names_to_share(user_id, account_username, display_name)
+        {
             return Ok(false);
         }
         self.update(|store| {
-            let Some(token) = slot(store, app_name, username) else {
-                return Ok(false);
-            };
-            match recorded(token) {
-                Some(next) => {
-                    next.write_oauth2(token);
-                    Ok(true)
-                }
-                None => Ok(false),
+            let mut changed = false;
+            if let Some(token) = slot(store, app_name, username)
+                && let Some(next) = recorded(token)
+            {
+                next.write_oauth2(token);
+                changed = true;
             }
+            let shared = store.share_account_names(user_id, account_username, display_name);
+            Ok(changed || shared)
         })
     }
 
@@ -319,7 +371,9 @@ impl TokenStore {
     }
 
     /// Records the account the named app's `OAuth1` access pair belongs to,
-    /// as [`Self::set_oauth2_account_for_app`] does for an `OAuth2` login.
+    /// as [`Self::set_oauth2_account_for_app`] does for an `OAuth2` login,
+    /// names written onto every credential held for the same account
+    /// included.
     ///
     /// # Errors
     ///
@@ -342,25 +396,25 @@ impl TokenStore {
         let current = self
             .get_oauth1_tokens_for_app(app_name)
             .and_then(|token| token.oauth1.as_ref());
-        if current.and_then(recorded).is_none() {
+        if current.and_then(recorded).is_none()
+            && !self.has_account_names_to_share(user_id, account_username, display_name)
+        {
             return Ok(false);
         }
         self.update(|store| {
-            let token = store
+            let mut changed = false;
+            if let Some(token) = store
                 .resolve_app_mut(app_name)
                 .oauth1_token
                 .as_mut()
-                .and_then(|token| token.oauth1.as_mut());
-            let Some(token) = token else {
-                return Ok(false);
-            };
-            match recorded(token) {
-                Some(next) => {
-                    next.write_oauth1(token);
-                    Ok(true)
-                }
-                None => Ok(false),
+                .and_then(|token| token.oauth1.as_mut())
+                && let Some(next) = recorded(token)
+            {
+                next.write_oauth1(token);
+                changed = true;
             }
+            let shared = store.share_account_names(user_id, account_username, display_name);
+            Ok(changed || shared)
         })
     }
 

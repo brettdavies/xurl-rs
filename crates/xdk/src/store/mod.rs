@@ -7,6 +7,7 @@
 //! - `.twurlrc` import (legacy Twitter CLI compatibility)
 //! - Credential backfill from environment variables
 
+mod account_names;
 pub(crate) mod atomic;
 mod hook;
 mod layout;
