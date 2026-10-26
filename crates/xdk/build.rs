@@ -110,6 +110,16 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/users/{id}/pinned_lists/{list_id}",
     ),
+    // community notes
+    ("CREATE_NOTE", "POST", "/2/notes"),
+    ("EVALUATE_NOTE", "POST", "/2/notes/evaluate"),
+    ("DELETE_NOTE", "DELETE", "/2/notes/{id}"),
+    ("GET_NOTES_WRITTEN", "GET", "/2/notes/search/notes_written"),
+    (
+        "GET_POSTS_ELIGIBLE_FOR_NOTES",
+        "GET",
+        "/2/notes/search/posts_eligible_for_notes",
+    ),
     // communities
     ("SEARCH_COMMUNITIES", "GET", "/2/communities/search"),
     ("GET_COMMUNITY", "GET", "/2/communities/{id}"),

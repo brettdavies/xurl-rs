@@ -26,12 +26,12 @@ use xdk::api::response::types::{
     BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community,
     DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
     LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, PersonalizedTrend,
-    PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
-    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -221,6 +221,21 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_notes() {
+    let examples = load_examples();
+    let created: ApiResponse<NoteCreated> =
+        serde_json::from_value(examples["note_created"].clone()).unwrap();
+    assert_eq!(created.data.id, "1850000000000000002");
+    let scored: ApiResponse<NoteEvaluation> =
+        serde_json::from_value(examples["note_evaluation"].clone()).unwrap();
+    assert_eq!(scored.data.claim_opinion_score, Some(0.82));
+    let written: ApiResponse<Vec<Note>> =
+        serde_json::from_value(examples["notes_written"].clone()).unwrap();
+    let info = written.data[0].info.as_ref().expect("the note's info");
+    assert_eq!(info.post_id.as_deref(), Some("1585341984679469056"));
 }
 
 #[test]
@@ -828,6 +843,17 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("community", endpoints::GET_COMMUNITY, ReplyKind::Success),
     ("list_single", endpoints::GET_LIST, ReplyKind::Success),
     ("broadcasts", endpoints::LIST_BROADCASTS, ReplyKind::Success),
+    ("note_created", endpoints::CREATE_NOTE, ReplyKind::Success),
+    (
+        "note_evaluation",
+        endpoints::EVALUATE_NOTE,
+        ReplyKind::Success,
+    ),
+    (
+        "notes_written",
+        endpoints::GET_NOTES_WRITTEN,
+        ReplyKind::Success,
+    ),
     ("broadcast", endpoints::GET_BROADCAST, ReplyKind::Success),
     (
         "scheduled_broadcasts",

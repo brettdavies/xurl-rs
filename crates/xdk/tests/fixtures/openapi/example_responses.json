@@ -354,6 +354,33 @@
       "muted": true
     }
   },
+  "note_created": {
+    "data": {
+      "id": "1850000000000000002"
+    }
+  },
+  "note_evaluation": {
+    "data": {
+      "claim_opinion_score": 0.82
+    }
+  },
+  "notes_written": {
+    "data": [
+      {
+        "id": "1850000000000000002",
+        "status": "needs_more_ratings",
+        "info": {
+          "text": "The photo is from 2019: https://example.com/source",
+          "classification": "misinformed_or_potentially_misleading",
+          "misleading_tags": [
+            "outdated_information"
+          ],
+          "post_id": "1585341984679469056",
+          "trustworthy_sources": true
+        }
+      }
+    ]
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

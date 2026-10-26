@@ -1760,6 +1760,15 @@ pub enum Commands {
         action: NewsCommands,
     },
 
+    // ── Community Notes ──────────────────────────────────────────────
+    /// Write Community Notes through X's AI Note Writer API
+    #[command(after_help = family_help::notes::page())]
+    Notes {
+        /// `notes` verb to dispatch.
+        #[command(subcommand)]
+        action: NotesCommands,
+    },
+
     // ── Trends ───────────────────────────────────────────────────────
     /// Trends for a place, and your personalized trends
     #[command(after_help = family_help::trends::page())]
@@ -2309,6 +2318,99 @@ pub enum NewsCommands {
         /// Story ID, as `xr news search` prints it
         #[arg(value_name = "STORY_ID")]
         story_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr notes` verbs.
+#[derive(Subcommand, Debug)]
+pub enum NotesCommands {
+    /// Write a Community Note about a post
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::WRITE))]
+    Write {
+        /// The post the note is about, by id or URL
+        #[arg(value_name = "POST")]
+        post: String,
+        /// The note's text; X requires a source URL in it
+        #[arg(long)]
+        text: String,
+        /// How the note classifies the post
+        #[arg(long, value_parser = ["misinformed_or_potentially_misleading", "not_misleading"])]
+        classification: String,
+        /// Why the post may be misleading; repeat for several
+        #[arg(long = "tag", value_name = "TAG", value_parser = [
+            "disputed_claim_as_fact",
+            "factual_error",
+            "manipulated_media",
+            "misinterpreted_satire",
+            "missing_important_context",
+            "other",
+            "outdated_information",
+        ])]
+        tags: Vec<String>,
+        /// The note cites trustworthy sources
+        #[arg(long)]
+        trustworthy_sources: bool,
+        /// The note is about the post's media
+        #[arg(long)]
+        media_note: bool,
+        /// Test mode, for an app X is still admitting to the program
+        #[arg(long)]
+        test: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Score a draft Community Note without writing it
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::EVALUATE))]
+    Evaluate {
+        /// The post the note is about, by id or URL
+        #[arg(value_name = "POST")]
+        post: String,
+        /// The note's text; X requires a source URL in it
+        #[arg(long)]
+        text: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List posts you could write a Community Note on
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::ELIGIBLE))]
+    Eligible {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Test mode, for an app X is still admitting to the program
+        #[arg(long)]
+        test: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the Community Notes you wrote
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::WRITTEN))]
+    Written {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Test mode, for an app X is still admitting to the program
+        #[arg(long)]
+        test: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a Community Note you wrote
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::REMOVE))]
+    Remove {
+        /// Note ID, as `xr notes written` prints it
+        #[arg(value_name = "NOTE_ID")]
+        note_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

@@ -15,6 +15,7 @@ mod graph;
 mod lists;
 mod media;
 mod news;
+mod notes;
 mod posts;
 mod process_tree;
 mod program_output;
@@ -606,6 +607,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Lists { action } => lists::run(action, run).await,
         Commands::Communities { action } => communities::run(action, run).await,
         Commands::News { action } => news::run(action, run).await,
+        Commands::Notes { action } => notes::run(action, run).await,
         Commands::Trends { action } => trends::run(action, run).await,
         Commands::BookmarkFolders { action } => bookmark_folders::run(action, run).await,
         Commands::Calls { target } => calls::run(target, run).await,

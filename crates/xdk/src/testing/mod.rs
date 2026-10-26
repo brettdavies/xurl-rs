@@ -506,6 +506,31 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::CREATE_NOTE,
+        fixture: "note_created",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::EVALUATE_NOTE,
+        fixture: "note_evaluation",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_NOTE,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_NOTES_WRITTEN,
+        fixture: "notes_written",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_POSTS_ELIGIBLE_FOR_NOTES,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::LIST_BROADCASTS,
         fixture: "broadcasts",
         status: 200,

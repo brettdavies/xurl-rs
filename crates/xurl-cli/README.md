@@ -160,6 +160,20 @@ xr news search "open source" --max-age-hours 24  # Stories from the last day
 xr news get 1850000000000000000                # One story, with the posts it clusters
 ```
 
+### Community Notes
+
+```bash
+xr notes eligible --test                       # Posts you could write a note on
+xr notes evaluate 1585341984679469056 --text "From 2019: https://example.com"
+xr notes write 1585341984679469056 --text "From 2019: https://example.com" --classification not_misleading --test
+xr notes written --test                        # The notes you wrote
+xr notes remove 1850000000000000002            # Delete (asks first; --force skips)
+```
+
+These run on X's AI Note Writer API, which takes an app X has admitted to the program; when X refuses the app, the error
+names the enrollment step. `evaluate` scores a draft without writing it. `--test` writes and lists in test mode, where a
+note is not publicly visible. A note's text carries a source URL, and `write` refuses one without before sending.
+
 ### Trends
 
 ```bash
