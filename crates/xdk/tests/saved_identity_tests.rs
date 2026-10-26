@@ -2,8 +2,9 @@
 //! that asks X who it is goes out once per login, not once per command.
 //!
 //! The account id is stored beside the credential `/2/users/me` was asked
-//! with, and nowhere else, so it cannot name another account. A login stored
-//! without a username gets its name from the same answer.
+//! with, and nowhere else, so it cannot name another account. The answer's
+//! username and display name go beside every credential holding that id. A
+//! login stored without a username gets its name from the same answer.
 
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -465,4 +466,193 @@ fn a_new_id_drops_the_stored_names_and_the_same_id_keeps_them() {
     assert_eq!(pair.user_id.as_deref(), Some("7"));
     assert_eq!(pair.account_username, None);
     assert_eq!(pair.display_name, None);
+}
+
+// ── An account's names follow its newest answer ────────────────────────
+
+const OTHER_APP: &str = "other-app";
+
+/// A second app holding a login `alice` for the account 42, recorded with
+/// the names it had before a rename.
+fn other_app_with_alice(store: &mut TokenStore) {
+    store
+        .add_app(OTHER_APP, "OTHER-CLIENT", "OTHER-SECRET")
+        .expect("add the other app");
+    store
+        .save_oauth2_token_for_app(OTHER_APP, "alice", "OTHER-ACCESS", "REFRESH", expiry(false))
+        .expect("save the other app's login");
+    store
+        .set_oauth2_account_for_app(OTHER_APP, "alice", "42", Some("alice"), Some("Alice Old"))
+        .expect("record the old names");
+}
+
+fn names_in(store: &TokenStore, app: &str, login: &str) -> (Option<String>, Option<String>) {
+    let token = store
+        .get_oauth2_token_for_app(app, login)
+        .and_then(|token| token.oauth2.as_ref())
+        .unwrap_or_else(|| panic!("{app} holds {login}"));
+    (token.account_username.clone(), token.display_name.clone())
+}
+
+fn renamed() -> (Option<String>, Option<String>) {
+    (Some("alice2".to_string()), Some("Alice New".to_string()))
+}
+
+/// An answer for an account names it on every credential that carries its
+/// id, in every app: filled where the names were missing, replaced where
+/// they were stale. A credential with another id, or with none, keeps what
+/// it had, since only an answer under it says whose it is.
+#[test]
+fn an_answer_names_its_account_on_every_credential_that_carries_its_id() {
+    let tmp = TempDir::new().expect("tempdir");
+    let path = tmp.path().join("auth.yml");
+    seed(&path, |store| {
+        named(store, "work", false);
+        named(store, "unasked", false);
+        other_app_with_alice(store);
+        store
+            .save_oauth2_token_for_app(OTHER_APP, "bob", "BOB-ACCESS", "REFRESH", expiry(false))
+            .expect("save bob");
+        store
+            .set_oauth2_account_for_app(OTHER_APP, "bob", "7", Some("bob"), Some("Bob"))
+            .expect("record bob");
+        store
+            .save_oauth1_tokens_for_app(OTHER_APP, "ACCESS", "SECRET", "KEY", "CONSUMER")
+            .expect("save the pair");
+        store
+            .set_oauth1_user_id_for_app(OTHER_APP, "42")
+            .expect("record the pair's id");
+    });
+    let mut store = reloaded(&path);
+
+    assert!(
+        store
+            .set_oauth2_account_for_app(APP, "work", "42", Some("alice2"), Some("Alice New"))
+            .expect("record the answer")
+    );
+
+    let after = reloaded(&path);
+    assert_eq!(names_in(&after, APP, "work"), renamed());
+    assert_eq!(names_in(&after, OTHER_APP, "alice"), renamed());
+    let pair = after
+        .get_oauth1_tokens_for_app(OTHER_APP)
+        .and_then(|token| token.oauth1.as_ref())
+        .expect("the pair is stored");
+    assert_eq!(
+        (pair.account_username.clone(), pair.display_name.clone()),
+        renamed()
+    );
+    assert_eq!(
+        names_in(&after, OTHER_APP, "bob"),
+        (Some("bob".to_string()), Some("Bob".to_string()))
+    );
+    let unasked = after
+        .get_oauth2_token_for_app(APP, "unasked")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("the login is stored");
+    assert_eq!(unasked.user_id, None, "an id is never copied");
+    assert_eq!(unasked.account_username, None);
+
+    let before = std::fs::read(&path).expect("read the store");
+    assert!(
+        !store
+            .set_oauth2_account_for_app(APP, "work", "42", Some("alice2"), Some("Alice New"))
+            .expect("the same answer"),
+        "an answer every credential already reflects changes nothing"
+    );
+    assert_eq!(std::fs::read(&path).expect("read the store"), before);
+}
+
+/// Records a newer answer for the account 42 through the other app's login
+/// while the refresh grant is in flight, then answers the grant.
+struct NewerAnswerDuringTheGrant {
+    store: std::path::PathBuf,
+}
+
+impl wiremock::Respond for NewerAnswerDuringTheGrant {
+    fn respond(&self, _: &wiremock::Request) -> ResponseTemplate {
+        reloaded(&self.store)
+            .set_oauth2_account_for_app(OTHER_APP, "alice", "42", Some("alice2"), Some("Alice New"))
+            .expect("a newer answer");
+        ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "REFRESHED-ACCESS",
+            "refresh_token": "REFRESHED-REFRESH",
+            "expires_in": 7200
+        }))
+    }
+}
+
+/// A refresh that asks X nothing carries the names of the token it read
+/// before its grant went out. A newer answer recorded while the grant was
+/// in flight, here through another app's login for the same account,
+/// stands: the refresh neither writes the old names back nor shares them.
+#[tokio::test]
+async fn a_refresh_that_asks_nothing_keeps_an_answer_recorded_during_its_grant() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| {
+        named(store, "work", true);
+        store
+            .set_oauth2_account_for_app(APP, "work", "42", Some("alice"), Some("Alice Old"))
+            .expect("record the old names");
+        other_app_with_alice(store);
+    });
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/token"))
+        .respond_with(NewerAnswerDuringTheGrant {
+            store: store.clone(),
+        })
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by/username/alice"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(
+            serde_json::json!({"data": {"id": "42", "name": "Alice", "username": "alice"}}),
+        ))
+        .mount(&server)
+        .await;
+
+    client(&store, &server)
+        .lookup_user("alice")
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    assert_eq!(
+        asked(&server).await,
+        ["POST /token", "GET /2/users/by/username/alice"]
+    );
+    let after = reloaded(&store);
+    let token = after
+        .get_oauth2_token_for_app(APP, "work")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("the login is stored");
+    assert_eq!(token.access_token, "REFRESHED-ACCESS");
+    assert_eq!(names_in(&after, APP, "work"), renamed());
+    assert_eq!(names_in(&after, OTHER_APP, "alice"), renamed());
+}
+
+/// A refresh that asks X who the token belongs to has a fresh answer, and
+/// names the account with it in every app.
+#[tokio::test]
+async fn a_refresh_that_asks_names_the_account_in_every_app() {
+    let server = x_answering_as_alice().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| {
+        unnamed(store, true);
+        other_app_with_alice(store);
+    });
+
+    client(&store, &server)
+        .lookup_user("alice")
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let answered = (Some("alice".to_string()), Some("Alice".to_string()));
+    assert_eq!(names_in(&after, APP, "alice"), answered);
+    assert_eq!(names_in(&after, OTHER_APP, "alice"), answered);
 }

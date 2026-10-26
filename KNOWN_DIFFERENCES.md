@@ -197,4 +197,6 @@ rewrites a login, after which `xr` asks once more. `xr whoami --cached` prints t
 Go's `whoami` always asks.
 
 The id is written only from an answer given under that same credential, and a credential that replaces another starts
-without one, so it cannot name a different account. Another user's handle is looked up on every run in both tools.
+without one, so it cannot name a different account. The username and display name of each answer are written beside
+every login the store holds for that id, in every app, so a rename seen through one login shows through all of them.
+Another user's handle is looked up on every run in both tools.
