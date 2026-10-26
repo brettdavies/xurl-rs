@@ -131,6 +131,21 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_LIKING_USERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_REPOSTED_BY,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_QUOTE_POSTS,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::HIDE_REPLY,
         fixture: "action_hidden",
         status: 200,

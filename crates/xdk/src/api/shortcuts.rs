@@ -996,6 +996,48 @@ impl Client {
         )
     }
 
+    /// Fetches the users who liked a post.
+    pub fn get_liking_users(
+        &self,
+        post_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<User>>> {
+        let post_id = resolve_post_id(post_id);
+        self.get_user_list(endpoints::GET_LIKING_USERS.path, &post_id, max_results)
+    }
+
+    /// Fetches the users who reposted a post.
+    pub fn get_reposted_by(&self, post_id: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
+        let post_id = resolve_post_id(post_id);
+        self.get_user_list(endpoints::GET_REPOSTED_BY.path, &post_id, max_results)
+    }
+
+    /// Fetches the posts that quote a post.
+    ///
+    /// X accepts 10 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
+    pub fn get_quote_posts(&self, post_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        let max_results = max_results.clamp(10, 100);
+        let post_id = resolve_post_id(post_id);
+        self.call(
+            endpoints::GET_QUOTE_POSTS.method,
+            template(
+                endpoints::GET_QUOTE_POSTS.path,
+                id_param(&post_id),
+                vec![
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
     /// Reads a single post with expansions.
     pub fn read_post(&self, post_id: &str) -> Call<ApiResponse<Post>> {
         let post_id = resolve_post_id(post_id);

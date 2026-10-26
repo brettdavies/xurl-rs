@@ -58,6 +58,11 @@ POST AND READ:
   Read a single post and pipe to jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'
 
+  Who liked or reposted a post, and the posts that quote it:
+    xr likers 1585341984679469056 --output json | jaq -r '.data[]?.username'
+    xr reposters 1585341984679469056 -n 100
+    xr quotes 1585341984679469056 --output json
+
   Search recent posts:
     xr search \"rustlang\" -n 25
     XURL_OUTPUT=json xr search \"rustlang\" -n 25

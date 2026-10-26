@@ -167,18 +167,6 @@
       }
     },
     {
-      "id": "post-engagement",
-      "operations": [
-        "GET /2/tweets/{id}/liking_users",
-        "GET /2/tweets/{id}/retweeted_by",
-        "GET /2/tweets/{id}/quote_tweets"
-      ],
-      "status": "planned",
-      "reason": "Who liked, who reposted, and which posts quote a post.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "posts-lookup",
       "operations": [
         "GET /2/tweets"

@@ -1,11 +1,12 @@
 //! The commands that read posts and profiles: `read`, `search`, `whoami`,
-//! `user`, `timeline`, and `mentions`.
+//! `user`, `timeline`, `mentions`, and who engaged with a post: `likers`,
+//! `reposters`, and `quotes`.
 
 use serde_json::json;
 
 use super::{
-    DryRun, Run, effective_limit, list_for_user, make_client, print_typed, send_or_report,
-    with_flags,
+    DryRun, Run, effective_limit, list_for_post, list_for_user, make_client, print_typed,
+    send_or_report, with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
@@ -133,6 +134,30 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         } => {
             let shortcut = Client::get_mentions;
             list_for_user(run, "mentions", max_results, None, &common, shortcut).await?;
+        }
+        Commands::Likers {
+            post_id,
+            max_results,
+            common,
+        } => {
+            let shortcut = Client::get_liking_users;
+            list_for_post(run, "likers", &post_id, max_results, &common, shortcut).await?;
+        }
+        Commands::Reposters {
+            post_id,
+            max_results,
+            common,
+        } => {
+            let shortcut = Client::get_reposted_by;
+            list_for_post(run, "reposters", &post_id, max_results, &common, shortcut).await?;
+        }
+        Commands::Quotes {
+            post_id,
+            max_results,
+            common,
+        } => {
+            let shortcut = Client::get_quote_posts;
+            list_for_post(run, "quotes", &post_id, max_results, &common, shortcut).await?;
         }
         _ => unreachable!("run_subcommand routes only the read commands here"),
     }
