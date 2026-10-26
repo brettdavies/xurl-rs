@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 14745
+stdout_len: 14831
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -110,7 +110,7 @@ Options:
           Authentication type (oauth1, oauth2, app)
 
   -u, --username <USERNAME>
-          Username for `OAuth2` authentication
+          `OAuth2` login to send the request as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
 
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary

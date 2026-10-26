@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6975
+stdout_len: 7057
 stderr_len: 0
 --- stdout ---
 Show one stream source, and whether it is receiving video
@@ -17,7 +17,7 @@ Options:
           Authentication type (oauth1, oauth2, app)
 
   -u, --username <USERNAME>
-          `OAuth2` username to act as
+          `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
 
   -t, --trace
           Add X-B3-Flags trace header

@@ -3429,6 +3429,29 @@ async fn test_whoami_cached_asks_once_for_an_account_the_store_lacks() {
     assert_eq!(second["data"]["name"], "Alice");
 }
 
+/// A dry run of `whoami --cached` says which source the real run would
+/// answer from, and sends nothing either way.
+#[tokio::test]
+async fn test_whoami_cached_dry_run_names_the_source_that_would_answer() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 0).await;
+    let args = ["xr", "--output", "json", "--dry-run", "whoami", "--cached"];
+    for (whole_account, source) in [(true, "cache"), (false, "api")] {
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth2_login(&store, Some("alice"), Some("42"));
+        if whole_account {
+            store_alice_account(&store);
+        }
+
+        let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &args).await;
+        assert_eq!(code, 0, "stderr: {stderr}");
+        let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+        assert_eq!(body["would_succeed"], true, "{body}");
+        assert_eq!(body["source"], source, "{body}");
+    }
+}
+
 /// `auth status` names the account each login belongs to, as far as the
 /// store holds it, and the text form puts the id beside the login.
 #[tokio::test]

@@ -506,9 +506,13 @@ run. The account sits beside the credential it was asked with and goes when that
 name another account. A login stored without a username gets its name the same way. Someone else's handle is looked up
 every time, because a handle can pass to another account.
 
-`xr whoami --cached` answers from the stored account with no request, as `{"data": {"id", "name", "username"},
-"source": "cache"}`. When the store holds no whole account for the login yet, it asks X once, answers with `"source":
-"api"`, and stores the answer. `xr whoami` without the flag always asks X, for the live profile and its counts.
+`xr whoami --cached` answers from the stored account with no request, as `{"data": {"id", "name", "username"}, "source":
+"cache"}`. When the store holds no whole account for the login yet, it asks X once, answers with `"source": "api"`, and
+stores the answer. `xr whoami` without the flag always asks X, for the live profile and its counts. The stored account
+is what X answered when the login last asked, so a rename shows on the next live `xr whoami`. The token is not checked
+either: an expired login still answers, so `--cached` is no test of a credential, and `xr --dry-run whoami` says whether
+the token has expired. `xr --dry-run whoami --cached` carries `source` too, naming the one the real run would answer
+from.
 
 Set `XURL_TOKEN_STORE=<path>` to point `xr` at another file; the OAuth2 headless pending state (`<path>.pending`)
 follows it. The variable applies to the binary only: a program using `xdk` passes the path to

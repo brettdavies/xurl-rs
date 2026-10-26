@@ -207,6 +207,8 @@ Examples:
     xr whoami --output json
   Act as a specific authenticated user (multi-account):
     xr whoami --username alice --output json
+  Your id, username, and name from the store, with no request:
+    xr whoami --cached
 ";
 
 /// `xr user` examples — paired text + JSON.
@@ -818,7 +820,8 @@ pub struct Cli {
     #[arg(long = "auth")]
     pub auth_type: Option<String>,
 
-    /// Username for `OAuth2` authentication
+    /// `OAuth2` login to send the request as, by the name it is stored under: its username, or the
+    /// name given to `xr auth oauth2`
     #[arg(short = 'u', long = "username")]
     pub username: Option<String>,
 
@@ -1162,6 +1165,12 @@ pub enum Commands {
         /// Answer from the account the store holds for the login (id,
         /// username, display name) with no request; ask X when it holds
         /// none yet. `source` says which answered.
+        ///
+        /// The stored account is what X answered when this login last asked,
+        /// so a rename shows on the next live `xr whoami`. The login's token
+        /// is not checked either: an expired login still answers, so
+        /// `--cached` is no test of a credential. `xr --dry-run whoami` says
+        /// whether the token has expired.
         #[arg(long)]
         cached: bool,
         /// Shortcut flags shared with every other shortcut command.
@@ -2301,7 +2310,8 @@ pub struct CommonFlags {
     #[arg(long = "auth")]
     pub auth_type: Option<String>,
 
-    /// `OAuth2` username to act as
+    /// `OAuth2` login to act as, by the name it is stored under: its username, or the name given to
+    /// `xr auth oauth2`
     #[arg(short = 'u', long = "username")]
     pub username: Option<String>,
 
@@ -2589,7 +2599,8 @@ pub enum MediaCommands {
         /// Authentication type
         #[arg(long = "auth")]
         auth_type: Option<String>,
-        /// Username
+        /// `OAuth2` login to act as, by the name it is stored under: its username, or the
+        /// name given to `xr auth oauth2`
         #[arg(short = 'u', long = "username")]
         username: Option<String>,
         /// Trace header
@@ -2607,7 +2618,8 @@ pub enum MediaCommands {
         /// Authentication type
         #[arg(long = "auth")]
         auth_type: Option<String>,
-        /// Username
+        /// `OAuth2` login to act as, by the name it is stored under: its username, or the
+        /// name given to `xr auth oauth2`
         #[arg(short = 'u', long = "username")]
         username: Option<String>,
         /// Wait for X to finish processing instead of reading the status once

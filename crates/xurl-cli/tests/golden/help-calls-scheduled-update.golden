@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8293
+stdout_len: 8375
 stderr_len: 0
 --- stdout ---
 Move, rename, or re-invite a call you organize
@@ -86,7 +86,7 @@ Options:
           [env: XURL_JSON=]
 
   -u, --username <USERNAME>
-          `OAuth2` username to act as
+          `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
 
       --jsonl
           Shorthand for `--output jsonl` (P2 alias)

@@ -1,7 +1,7 @@
 args: ["media", "status", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7539
+stdout_len: 7640
 stderr_len: 0
 --- stdout ---
 Check media upload status
@@ -17,7 +17,7 @@ Options:
           Authentication type
 
   -u, --username <USERNAME>
-          Username
+          `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
 
   -w, --wait[=<SECS>]
           Wait for X to finish processing instead of reading the status once

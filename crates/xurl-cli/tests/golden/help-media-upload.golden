@@ -1,7 +1,7 @@
 args: ["media", "upload", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8089
+stdout_len: 8190
 stderr_len: 0
 --- stdout ---
 Upload media file
@@ -34,7 +34,7 @@ Options:
           Authentication type
 
   -u, --username <USERNAME>
-          Username
+          `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
 
   -t, --trace
           Trace header

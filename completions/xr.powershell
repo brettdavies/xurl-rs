@@ -28,8 +28,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-d', '-d', [CompletionResultType]::ParameterName, 'Request body data')
             [CompletionResult]::new('--data', '--data', [CompletionResultType]::ParameterName, 'Request body data')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, 'Username for `OAuth2` authentication')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, 'Username for `OAuth2` authentication')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to send the request as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to send the request as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('-F', '-F ', [CompletionResultType]::ParameterName, 'File to upload (for multipart requests)')
@@ -109,8 +109,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;post' {
             [CompletionResult]::new('--media-id', '--media-id', [CompletionResultType]::ParameterName, 'Media ID(s) to attach (repeatable)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -140,8 +140,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;reply' {
             [CompletionResult]::new('--media-id', '--media-id', [CompletionResultType]::ParameterName, 'Media ID(s) to attach (repeatable)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -170,8 +170,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;quote' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -200,8 +200,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;delete' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -231,8 +231,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;read' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -263,8 +263,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (10-100; a lower value is raised to 10, X''s minimum). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (10-100; a lower value is raised to 10, X''s minimum). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -293,8 +293,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;whoami' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -324,8 +324,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;user' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -356,8 +356,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -388,8 +388,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -418,8 +418,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;like' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -448,8 +448,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;unlike' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -478,8 +478,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;repost' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -508,8 +508,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;unrepost' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -538,8 +538,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;bookmark' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -568,8 +568,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;unbookmark' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -600,8 +600,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -661,8 +661,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -693,8 +693,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -723,8 +723,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;bookmark-folders;add' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -774,8 +774,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -804,8 +804,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;follow' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -834,8 +834,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;unfollow' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -867,8 +867,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username to list following for (default: you)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -900,8 +900,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username to list followers for (default: you)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -930,8 +930,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;mute' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -960,8 +960,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;unmute' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -992,8 +992,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1022,8 +1022,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;block' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1052,8 +1052,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;unblock' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1084,8 +1084,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1114,8 +1114,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;usage' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1146,8 +1146,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;usage;credits' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1187,8 +1187,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;dm' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1219,8 +1219,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1306,8 +1306,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;broadcasts;moderators;list' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1336,8 +1336,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;broadcasts;moderators;add' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1366,8 +1366,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;broadcasts;moderators;remove' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1446,8 +1446,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;broadcasts;sources;list' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1476,8 +1476,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;broadcasts;sources;get' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1507,8 +1507,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;broadcasts;sources;add' {
             [CompletionResult]::new('--region', '--region', [CompletionResultType]::ParameterName, 'Ingest region: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1537,8 +1537,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;broadcasts;sources;rename' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1567,8 +1567,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;broadcasts;sources;remove' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1700,8 +1700,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;calls;get' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1766,8 +1766,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of calls (1-100)')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of calls (1-100)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1796,8 +1796,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;calls;scheduled;get' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1833,8 +1833,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--recurrence', '--recurrence', [CompletionResultType]::ParameterName, 'The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO')
             [CompletionResult]::new('--time-zone', '--time-zone', [CompletionResultType]::ParameterName, 'The IANA time zone the recurrence follows, such as America/Chicago')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1873,8 +1873,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--scope', '--scope', [CompletionResultType]::ParameterName, 'Which occurrences, counted from `--occurrence`: X assumes `all` without it and `this` with it')
             [CompletionResult]::new('--occurrence', '--occurrence', [CompletionResultType]::ParameterName, 'The occurrence''s original start (RFC 3339), as a listed call''s `occurrence_start_time` gives it')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1906,8 +1906,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--scope', '--scope', [CompletionResultType]::ParameterName, 'Which occurrences, counted from `--occurrence`: X assumes `all` without it and `this` with it')
             [CompletionResult]::new('--occurrence', '--occurrence', [CompletionResultType]::ParameterName, 'The occurrence''s original start (RFC 3339), as a listed call''s `occurrence_start_time` gives it')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -1940,8 +1940,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--scope', '--scope', [CompletionResultType]::ParameterName, 'Which occurrences, counted from `--occurrence`: X assumes `all` without it and `this` with it')
             [CompletionResult]::new('--occurrence', '--occurrence', [CompletionResultType]::ParameterName, 'The occurrence''s original start (RFC 3339), as a listed call''s `occurrence_start_time` gives it')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2074,8 +2074,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;list' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2104,8 +2104,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;add' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2134,8 +2134,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;validate' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2164,8 +2164,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;remove' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2226,8 +2226,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;subscriptions;count' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2256,8 +2256,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;subscriptions;list' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2286,8 +2286,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;subscriptions;add' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2316,8 +2316,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;subscriptions;check' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2346,8 +2346,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;subscriptions;remove' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2433,8 +2433,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;stream-links;list' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2463,8 +2463,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;stream-links;add' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2493,8 +2493,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;webhooks;stream-links;remove' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -2583,8 +2583,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--to', '--to', [CompletionResultType]::ParameterName, 'End of the window: twelve digits, `yyyymmddhhmm` in UTC')
             [CompletionResult]::new('--from-checkpoint', '--from-checkpoint', [CompletionResultType]::ParameterName, 'Request the window from the minute `xr webhooks listen --checkpoint` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -3249,8 +3249,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--category', '--category', [CompletionResultType]::ParameterName, 'Media category (e.g., `amplify_video`)')
             [CompletionResult]::new('--wait', '--wait', [CompletionResultType]::ParameterName, 'Wait for X to finish processing the upload before returning')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, 'Username')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, 'Username')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-H', '-H ', [CompletionResultType]::ParameterName, 'Request headers')
             [CompletionResult]::new('--header', '--header', [CompletionResultType]::ParameterName, 'Request headers')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
@@ -3281,8 +3281,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;media;status' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, 'Username')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, 'Username')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-w', '-w', [CompletionResultType]::ParameterName, 'Wait for X to finish processing instead of reading the status once')
             [CompletionResult]::new('--wait', '--wait', [CompletionResultType]::ParameterName, 'Wait for X to finish processing instead of reading the status once')
             [CompletionResult]::new('-H', '-H ', [CompletionResultType]::ParameterName, 'Request headers')
@@ -3315,8 +3315,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;media;alt-text' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -3376,8 +3376,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--name', '--name', [CompletionResultType]::ParameterName, 'Language name viewers pick the track by (e.g. English)')
             [CompletionResult]::new('--category', '--category', [CompletionResultType]::ParameterName, 'Category the video was uploaded with')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -3408,8 +3408,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--language', '--language', [CompletionResultType]::ParameterName, 'Two-letter language code of the track to remove (e.g. en)')
             [CompletionResult]::new('--category', '--category', [CompletionResultType]::ParameterName, 'Category the video was uploaded with')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
-            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
-            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` username to act as')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
