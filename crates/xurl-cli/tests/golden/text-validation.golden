@@ -1,0 +1,11 @@
+args: ["post", ""]
+store: empty
+exit_code: 1
+stdout_len: 0
+stderr_len: 77
+--- stdout ---
+
+--- stderr ---
+Error: The text is empty; give at least one character.
+Try 'xr post --help'.
+

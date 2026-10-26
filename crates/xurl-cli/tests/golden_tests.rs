@@ -1006,6 +1006,8 @@ fn text_cases() -> Vec<Case> {
     };
     vec![
         case("text-auth-required", &["/2/users/me"]),
+        case("text-validation", &["post", ""]),
+        case("validation-code-json", &["--output", "json", "post", ""]),
         bearer(case("text-auth-method-mismatch", &["whoami"])),
         case("text-client-credentials-missing", &["auth", "oauth2"]),
         bearer(case(

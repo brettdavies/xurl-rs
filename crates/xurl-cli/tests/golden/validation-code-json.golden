@@ -1,0 +1,19 @@
+args: ["--output", "json", "post", ""]
+store: empty
+exit_code: 1
+stdout_len: 0
+stderr_len: 176
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 1,
+  "message": "empty-body",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr post --help"
+  },
+  "reason": "validation",
+  "status": "error"
+}
+
