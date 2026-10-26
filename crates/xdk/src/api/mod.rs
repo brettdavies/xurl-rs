@@ -36,11 +36,12 @@ pub use response::types::{
     ApiError, ApiResponse, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
     ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
     Includes, LikedResult, MediaMetadataResult, MediaProcessingInfo, MediaSubtitlesResult,
-    MediaUploadResponse, MutingResult, Post, PostPublicMetrics, ProvisionedResult, ReferencedPost,
-    RepostedResult, ResponseMeta, ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
+    MediaUploadResponse, MutingResult, Post, PostCount, PostPublicMetrics, ProvisionedResult,
+    ReferencedPost, RepostedResult, ResponseMeta, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallInvitee, ScheduledCallRsvp, ScheduledCallUpdated, StreamSource,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
+    UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]

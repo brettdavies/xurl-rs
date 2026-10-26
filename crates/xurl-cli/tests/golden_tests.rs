@@ -774,6 +774,20 @@ fn dry_run_cases() -> Vec<Case> {
             &["--output", "json", "--dry-run", "like", ""],
         ),
         case(
+            "dry-run-invalid-time-window",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "search-counts",
+                "rustlang",
+                "--start",
+                "2026-10-26T00:00:00Z",
+                "--end",
+                "2026-10-25T00:00:00Z",
+            ],
+        ),
+        case(
             "dry-run-invalid-user-query",
             &["--output", "json", "--dry-run", "search-users", "rust-lang"],
         ),

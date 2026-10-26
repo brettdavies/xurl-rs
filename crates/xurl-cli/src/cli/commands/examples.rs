@@ -66,6 +66,9 @@ POST AND READ:
   Read up to 100 posts in one request:
     xr read-posts 1585341984679469056 1346889436626259968 --output json
 
+  How many recent posts match a query, per day, before searching:
+    xr search-counts rustlang --granularity day --output json | jaq '.meta.total_post_count'
+
   Search recent posts:
     xr search \"rustlang\" -n 25
     XURL_OUTPUT=json xr search \"rustlang\" -n 25

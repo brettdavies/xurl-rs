@@ -24,7 +24,7 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
     DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
-    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post,
+    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post, PostCount,
     ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
     UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
@@ -218,6 +218,17 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_post_counts() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<PostCount>> =
+        serde_json::from_value(examples["post_counts"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 2);
+    assert_eq!(resp.data[0].post_count, 12);
+    let meta = resp.meta.expect("the total");
+    assert_eq!(meta.extra["total_post_count"], 15);
 }
 
 #[test]
@@ -653,6 +664,11 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("post_single", endpoints::READ_POST, ReplyKind::Success),
     ("post_list", endpoints::SEARCH_POSTS, ReplyKind::Success),
     ("post_lookup", endpoints::READ_POSTS, ReplyKind::Success),
+    (
+        "post_counts",
+        endpoints::GET_POST_COUNTS,
+        ReplyKind::Success,
+    ),
     ("user_single", endpoints::GET_ME, ReplyKind::Success),
     ("user_single_wire", endpoints::GET_ME, ReplyKind::Success),
     ("action_hidden", endpoints::HIDE_REPLY, ReplyKind::Success),

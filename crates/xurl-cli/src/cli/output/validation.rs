@@ -21,6 +21,9 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "empty-username" => "The username is empty.".to_string(),
         "empty-post-id" => "The post id is empty; give an id or a post URL.".to_string(),
         "too-many-ids" => format!("A lookup takes at most {LOOKUP_IDS_MAX} ids."),
+        "invalid-time-window" => "A time is RFC 3339 with seconds and a zone, such as \
+             2026-11-02T15:00:00Z, and the start comes before the end."
+            .to_string(),
         "invalid-user-query" => format!(
             "A user search is 1 to {USER_SEARCH_QUERY_MAX_CHARS} letters, digits, underscores, \
              apostrophes, or spaces."
