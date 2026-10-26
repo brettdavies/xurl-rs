@@ -15,6 +15,7 @@ mod delimited;
 mod diagnostics;
 mod format;
 mod message;
+mod validation;
 
 pub(crate) use diagnostics::Diagnostics;
 
@@ -423,8 +424,23 @@ impl OutputConfig {
     /// `{"status":"error","reason":<kind>,"exit_code":<code>,"message":<display>}`.
     /// Json/Jsonl/Ndjson emit one JSON line; Yaml emits a YAML document; Csv/Tsv
     /// emit a JSON line carrying the envelope (delimited formats are not a good
-    /// fit for nested error metadata).
+    /// fit for nested error metadata). Text mode prints a validator's code as
+    /// the rule the input broke (`validation::sentence`); the envelope keeps
+    /// the code.
     pub fn print_error(&self, err: &mut dyn Write, error: &Error, exit_code: i32) {
+        let worded;
+        let error = match error {
+            Error::Validation(code) if !self.format.is_structured() => {
+                match validation::sentence(code) {
+                    Some(sentence) => {
+                        worded = Error::validation(sentence);
+                        &worded
+                    }
+                    None => error,
+                }
+            }
+            other => other,
+        };
         self.emit_error_envelope(err, error_body(error, exit_code));
     }
 
