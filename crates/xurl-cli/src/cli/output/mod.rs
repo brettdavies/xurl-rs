@@ -13,6 +13,7 @@
 
 mod delimited;
 mod diagnostics;
+mod dry_run;
 mod format;
 mod message;
 mod validation;
@@ -471,7 +472,8 @@ impl OutputConfig {
     /// Emits a canonical dry-run envelope under structured modes.
     ///
     /// Shape: `{"status":"dry_run","would_succeed":<bool>,"exit_code":<int>, ...ctx}`.
-    /// Under text mode, falls back to a pass-through of `ctx`.
+    /// Under text mode, prints the summary `dry_run::summary` builds from the
+    /// same facts.
     pub fn print_dry_run(
         &self,
         out: &mut dyn Write,
@@ -480,7 +482,9 @@ impl OutputConfig {
         ctx: &Value,
     ) {
         if !self.format.is_structured() {
-            self.print_response(out, ctx);
+            for line in dry_run::summary(would_succeed, exit_code, ctx, None) {
+                let _ = writeln!(out, "{line}");
+            }
             return;
         }
         let mut obj = serde_json::Map::new();
@@ -505,7 +509,7 @@ impl OutputConfig {
         out: &mut dyn Write,
         ctx: &Value,
         error: &Error,
-        next_step: Option<&crate::cli::hints::NextStep>,
+        hint: Option<&crate::cli::hints::Hint>,
     ) {
         // A dry run looks no id up, so a path it rendered would carry a
         // stand-in. Without one the message names the endpoint's template.
@@ -521,9 +525,24 @@ impl OutputConfig {
             other => other,
         };
         let exit_code = error.exit_code();
+        if !self.format.is_structured() {
+            let message = message::render(error);
+            let advice = match hint {
+                Some(hint) if !self.quiet => hint.text_lines.as_slice(),
+                _ => &[],
+            };
+            let refusal = dry_run::CredentialRefusal {
+                message: &message,
+                advice,
+            };
+            for line in dry_run::summary(false, exit_code, ctx, Some(&refusal)) {
+                let _ = writeln!(out, "{line}");
+            }
+            return;
+        }
         let mut merged = ctx.as_object().cloned().unwrap_or_default();
         let body = ErrorBody {
-            next_step: next_step.cloned(),
+            next_step: hint.map(|hint| hint.next_step.clone()),
             ..error_body(error, exit_code)
         };
         if let Value::Object(body) = body.into_value() {

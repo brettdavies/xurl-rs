@@ -1,18 +1,12 @@
 args: ["--dry-run", "whoami"]
 store: oauth2
 exit_code: 0
-stdout_len: 139
+stdout_len: 164
 stderr_len: 0
 --- stdout ---
-{
-  "auth": {
-    "app": "myapp",
-    "scheme": "oauth2",
-    "token_expired": false,
-    "username": "alice"
-  },
-  "command": "whoami"
-}
+Dry run of `whoami`: nothing was sent.
+The real run would succeed, as far as an offline check can tell.
+  credential: oauth2, app myapp, login alice, token current
 
 --- stderr ---
 

@@ -737,6 +737,33 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         )),
         signed_in(case("dry-run-text", &["--dry-run", "whoami"])),
+        case(
+            "dry-run-text-invalid",
+            &["--dry-run", "bookmark-folders", "add", ""],
+        ),
+        case("dry-run-text-no-credential", &["--dry-run", "whoami"]),
+        case("dry-run-text-quiet", &["--quiet", "--dry-run", "whoami"]),
+        signed_in(case(
+            "dry-run-text-delete",
+            &["--dry-run", "delete", "1234567890"],
+        )),
+        signed_in(case("dry-run-text-post", &["--dry-run", "post", "Hello"])),
+        signed_in(case("dry-run-text-raw", &["--dry-run", "/2/users/me"])),
+        signed_in(case(
+            "dry-run-text-invitees",
+            &[
+                "--dry-run",
+                "calls",
+                "scheduled",
+                "add",
+                "--start",
+                "2026-11-02T16:00:00Z",
+                "--invite",
+                "783214",
+                "--invite",
+                "2244994945",
+            ],
+        )),
         Case {
             name: "dry-run-too-many-attachments".to_string(),
             args: too_many,

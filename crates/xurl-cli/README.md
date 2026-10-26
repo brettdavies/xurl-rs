@@ -642,7 +642,16 @@ xr --output json --dry-run post "Hello"
   prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
 
 A command that only reads local state, such as `auth status`, `schema`, or `version`, has nothing to hold back and
-answers as it always does. Text output prints the context without `status`, `would_succeed`, and `exit_code`.
+answers as it always does. Text output summarizes the same facts in lines: that nothing was sent, whether the real run
+would succeed and, when it would not, the exit code and why, then the command's inputs, the credential, and whether it
+would stop to ask. A refusal for credentials prints the advice the real run's error prints, which `--quiet` leaves out.
+
+```text
+$ xr --dry-run bookmark-folders add ""
+Dry run of `bookmark-folders-add`: nothing was sent.
+The real run would fail with exit code 1: The folder name is empty.
+  name: ""
+```
 
 ### Structured Exit Codes
 
