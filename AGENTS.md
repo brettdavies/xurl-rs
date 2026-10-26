@@ -158,7 +158,8 @@ would end on, and a credential refusal carries the keys of its error envelope, `
 reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
 stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
 and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
-confirmation prompt; `confirmation_required: true` marks a destructive command that would stop to ask.
+confirmation prompt; `confirmation_required: true` marks a destructive command that would stop to ask. Text output
+summarizes the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`).
 
 ## Shortcut commands
 

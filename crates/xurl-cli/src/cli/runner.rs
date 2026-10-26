@@ -365,7 +365,7 @@ where
         }
         Err(Failure::DryRunRefusal { ctx, error }) => {
             let hint = recovery_hint(&error, &snapshot, &args_vec, structured);
-            out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref().map(|h| &h.next_step));
+            out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
             EXIT_SUCCESS
         }
         Err(Failure::Error(e)) => {
