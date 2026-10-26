@@ -526,6 +526,12 @@ xr --output jsonl search "topic"               # The document on one line
 export XURL_OUTPUT=json                          # Default to JSON
 ```
 
+Shortcut commands print X's response under the names the vendored spec gives its keys. Where X still sends a key in its
+legacy post vocabulary, the key is renamed to the spec's spelling and its value is left as X sent it:
+`edit_history_tweet_ids` prints as `edit_history_post_ids`, `tweet_count` as `post_count`, `retweet_count` as
+`repost_count`, `referenced_tweets` as `referenced_posts`, and `includes.tweets` as `includes.posts`. `--verbose` notes
+each key it renamed. A raw `xr <URL>` request prints X's body unchanged.
+
 `xr --output json auth status` and `xr --output json auth apps list` emit `{"status": "ok", "apps": [...]}`, carrying
 one object per registered app under `apps`. An empty store emits `"apps": []`, so the array is iterable without a
 zero-app special case. Per-app fields:
