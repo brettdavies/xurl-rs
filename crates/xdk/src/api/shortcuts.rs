@@ -17,10 +17,11 @@ use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    MediaSubtitlesResult, MutingResult, PersonalizedTrend, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -1215,6 +1216,41 @@ impl Client {
         self.call(
             endpoints::GET_POST_ANALYTICS.method,
             template(endpoints::GET_POST_ANALYTICS.path, HashMap::new(), query),
+        )
+    }
+
+    /// Fetches the trends for a place, named by its Yahoo WOEID (`1` is
+    /// worldwide), up to `max_trends` of them (1 to 50; X's default is 20).
+    pub fn get_trends(&self, woeid: u32, max_trends: Option<u32>) -> Call<ApiResponse<Vec<Trend>>> {
+        let mut query = vec![(
+            "trend.fields".to_string(),
+            "trend_name,tweet_count".to_string(),
+        )];
+        if let Some(max) = max_trends {
+            query.push(("max_trends".to_string(), max.to_string()));
+        }
+        self.call(
+            endpoints::GET_TRENDS.method,
+            template(
+                endpoints::GET_TRENDS.path,
+                HashMap::from([("woeid".to_string(), woeid.to_string())]),
+                query,
+            ),
+        )
+    }
+
+    /// Fetches the trends X picks for the authenticated user.
+    pub fn get_personalized_trends(&self) -> Call<ApiResponse<Vec<PersonalizedTrend>>> {
+        self.call(
+            endpoints::GET_PERSONALIZED_TRENDS.method,
+            template(
+                endpoints::GET_PERSONALIZED_TRENDS.path,
+                HashMap::new(),
+                vec![(
+                    "personalized_trend.fields".to_string(),
+                    "category,post_count,trend_name,trending_since".to_string(),
+                )],
+            ),
         )
     }
 

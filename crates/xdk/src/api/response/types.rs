@@ -409,6 +409,45 @@ pub struct AnalyticsMetrics {
     pub user_profile_clicks: Option<u64>,
 }
 
+/// A trend in one place, as `/2/trends/by/woeid/{woeid}` describes it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct Trend {
+    /// The trend's name, a hashtag or a phrase.
+    pub trend_name: String,
+    /// Posts about the trend, when X counts them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tweet_count: Option<u64>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A trend picked for the caller, as `/2/users/personalized_trends`
+/// describes it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PersonalizedTrend {
+    /// The trend's name, a hashtag or a phrase.
+    pub trend_name: String,
+    /// The topic X files the trend under.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    /// How many posts are about the trend, as X words it. Either this name
+    /// or the legacy `tweet_count` fills the field.
+    #[serde(
+        default,
+        alias = "tweet_count",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[doc(alias = "tweet_count")]
+    pub post_count: Option<String>,
+    /// How long the trend has been trending, as X words it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trending_since: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.

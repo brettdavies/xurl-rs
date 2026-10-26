@@ -13,10 +13,11 @@ use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    MediaSubtitlesResult, MutingResult, PersonalizedTrend, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -74,6 +75,16 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["like", "unlike"],
         type_name: "ApiResponse<LikedResult>",
         schema: || schema_for!(ApiResponse<LikedResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["trends-place"],
+        type_name: "ApiResponse<Vec<Trend>>",
+        schema: || schema_for!(ApiResponse<Vec<Trend>>).into(),
+    },
+    SchemaEntry {
+        commands: &["trends-personal"],
+        type_name: "ApiResponse<Vec<PersonalizedTrend>>",
+        schema: || schema_for!(ApiResponse<Vec<PersonalizedTrend>>).into(),
     },
     SchemaEntry {
         commands: &["analytics"],
@@ -335,6 +346,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "schema",
     "skill",
     "skill-update",
+    "trends",
     "validate",
     "version",
     "webhooks",

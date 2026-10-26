@@ -126,6 +126,15 @@ xr timeline                                    # Home timeline
 xr mentions                                    # Your mentions
 ```
 
+### Trends
+
+```bash
+xr trends place 1 --max 10                     # Top ten trends worldwide (WOEID 1)
+xr trends personal                             # The trends X picks for you
+```
+
+A place is named by its Yahoo Where On Earth ID: 1 is worldwide, 23424977 the United States, 44418 London.
+
 ### Engagement
 
 ```bash
