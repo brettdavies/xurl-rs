@@ -17,11 +17,12 @@ use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
-    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
-    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
+    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -101,6 +102,9 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<DeletedResult>("delete"),
     typed_alias::<RepostedResult>("repost"),
     typed_alias::<BookmarkedResult>("bookmark"),
+    typed_alias::<Vec<BookmarkFolder>>("bookmark-folders"),
+    typed_alias::<BookmarkFolder>("bookmark-folder"),
+    typed_alias::<Vec<BookmarkFolderPost>>("bookmark-folder-posts"),
     typed_alias::<MutingResult>("mute"),
     typed_alias::<BlockingResult>("block"),
     typed_alias::<ChatModeratorsResult>("moderators"),

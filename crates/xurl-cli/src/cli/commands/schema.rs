@@ -11,11 +11,12 @@ use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
-    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
-    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
+    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -121,6 +122,21 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts-moderators-add", "broadcasts-moderators-remove"],
         type_name: "ApiResponse<ChatModeratorsResult>",
         schema: || schema_for!(ApiResponse<ChatModeratorsResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["bookmark-folders-list"],
+        type_name: "ApiResponse<Vec<BookmarkFolder>>",
+        schema: || schema_for!(ApiResponse<Vec<BookmarkFolder>>).into(),
+    },
+    SchemaEntry {
+        commands: &["bookmark-folders-add"],
+        type_name: "ApiResponse<BookmarkFolder>",
+        schema: || schema_for!(ApiResponse<BookmarkFolder>).into(),
+    },
+    SchemaEntry {
+        commands: &["bookmark-folders-get"],
+        type_name: "ApiResponse<Vec<BookmarkFolderPost>>",
+        schema: || schema_for!(ApiResponse<Vec<BookmarkFolderPost>>).into(),
     },
     SchemaEntry {
         commands: &["broadcasts-sources-list"],
@@ -272,6 +288,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "auth-default",
     "auth-oauth1",
     "auth-oauth2",
+    "bookmark-folders",
     "broadcasts",
     "broadcasts-moderators",
     "broadcasts-sources",

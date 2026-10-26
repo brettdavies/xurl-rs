@@ -120,6 +120,34 @@
       "bookmarked": true
     }
   },
+  "bookmark_folders": {
+    "data": [
+      {
+        "id": "1146654567674912769",
+        "name": "Rust"
+      },
+      {
+        "id": "1146654567674912770",
+        "name": "Reading list"
+      }
+    ]
+  },
+  "bookmark_folder": {
+    "data": {
+      "id": "1146654567674912769",
+      "name": "Rust"
+    }
+  },
+  "bookmark_folder_posts": {
+    "data": [
+      {
+        "id": "1346889436626259968"
+      },
+      {
+        "id": "1460323737035677698"
+      }
+    ]
+  },
   "action_blocking": {
     "data": {
       "blocking": true

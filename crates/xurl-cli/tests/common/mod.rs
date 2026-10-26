@@ -258,8 +258,23 @@ pub fn top_level_families() -> Vec<String> {
         .collect()
 }
 
+/// A store at `dir/.xurl` whose default app carries a far-future `OAuth2`
+/// token for `alice`, for an endpoint that accepts no other user scheme; no
+/// refresh happens before the request.
+pub fn oauth2_store(dir: &Path) -> PathBuf {
+    let store = dir.join(".xurl");
+    let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
+        .expect("add_app");
+    ts.save_oauth2_token_for_app("myapp", "alice", "user-at", "user-rt", 9_999_999_999)
+        .expect("save_oauth2");
+    ts.set_default_app("myapp").expect("set_default_app");
+    let _ = ts.remove_app("default");
+    store
+}
+
 /// A store at `dir/.xurl` whose default app carries an `OAuth1` token, a
-/// scheme every user-context endpoint accepts, so an in-process run can
+/// scheme most user-context endpoints accept, so an in-process run can
 /// reach a mock server without a browser flow.
 pub fn oauth1_store(dir: &Path) -> PathBuf {
     let store = dir.join(".xurl");

@@ -161,6 +161,21 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_BOOKMARK_FOLDERS,
+        fixture: "bookmark_folders",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_BOOKMARK_FOLDER,
+        fixture: "bookmark_folder",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_BOOKMARK_FOLDER_POSTS,
+        fixture: "bookmark_folder_posts",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_FOLLOWING,
         fixture: "user_list",
         status: 200,

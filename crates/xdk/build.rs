@@ -84,6 +84,21 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_BOOKMARKS", "GET", "/2/users/{id}/bookmarks"),
     ("BOOKMARK", "POST", "/2/users/{id}/bookmarks"),
     ("UNBOOKMARK", "DELETE", "/2/users/{id}/bookmarks/{tweet_id}"),
+    (
+        "GET_BOOKMARK_FOLDERS",
+        "GET",
+        "/2/users/{id}/bookmarks/folders",
+    ),
+    (
+        "CREATE_BOOKMARK_FOLDER",
+        "POST",
+        "/2/users/{id}/bookmarks/folders",
+    ),
+    (
+        "GET_BOOKMARK_FOLDER_POSTS",
+        "GET",
+        "/2/users/{id}/bookmarks/folders/{folder_id}",
+    ),
     // following
     ("GET_FOLLOWING", "GET", "/2/users/{id}/following"),
     ("FOLLOW_USER", "POST", "/2/users/{id}/following"),

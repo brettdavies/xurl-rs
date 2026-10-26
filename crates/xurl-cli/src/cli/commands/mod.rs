@@ -1,6 +1,7 @@
 //! Command execution — dispatches CLI commands to API functions.
 
 mod auth;
+mod bookmark_folders;
 mod broadcasts;
 mod calls;
 mod dms;
@@ -580,6 +581,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Dm { .. } | Commands::Dms { .. } => dms::run(cmd, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,
         Commands::Broadcasts { target } => broadcasts::run(target, run).await,
+        Commands::BookmarkFolders { action } => bookmark_folders::run(action, run).await,
         Commands::Calls { target } => calls::run(target, run).await,
         Commands::Webhooks { action } => webhooks::run(action, run).await,
         Commands::Auth { command } => auth::run(command, run).await,
@@ -661,7 +663,26 @@ async fn list_for_user<T>(
     of: Option<&str>,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str, i32) -> Call<api::ApiResponse<T>>,
-) -> Result<()>
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
+    let ctx = json!({"command": command});
+    list_owned_by(run, ctx, || Ok(()), max_results, of, common, shortcut).await
+}
+
+/// [`list_for_user`] for a list the command's own inputs pick out, such as
+/// one folder: `ctx` names them in a dry run's answer, and `validator`
+/// checks them before any request.
+async fn list_owned_by<T>(
+    run: Run<'_>,
+    mut ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    max_results: Option<i32>,
+    of: Option<&str>,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, &str, i32) -> Call<api::ApiResponse<T>>,
+) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned + Default,
 {
@@ -673,16 +694,16 @@ where
         stdout,
         ..
     } = run;
+    if let Some(n) = max_results {
+        ctx["max_results"] = json!(n);
+    }
+    if let Some(target) = of {
+        ctx["of"] = json!(target);
+    }
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
     let n = effective_limit(max_results, flags.global_limit);
     let client = make_client(cfg, auth)?;
-    if flags.dry_run {
-        let mut ctx = json!({"command": command});
-        if let Some(n) = max_results {
-            ctx["max_results"] = json!(n);
-        }
-        if let Some(target) = of {
-            ctx["of"] = json!(target);
-        }
+    if let Some(dry_run) = dry_run {
         let owner = match of {
             Some(target) => user_id_call(&client, target, common),
             None => my_id_call(&client, common),
@@ -693,7 +714,7 @@ where
             flags.cursor.as_deref(),
         );
         let credentials = [owner.auth_preflight().await, list.auth_preflight().await];
-        DryRun::new(ctx).answer(out, stdout, credentials);
+        dry_run.answer(out, stdout, credentials);
         return Ok(());
     }
     let user_id = match of {
@@ -704,7 +725,8 @@ where
     let response = with_flags(call, common, flags.cursor.as_deref())
         .send()
         .await?;
-    print_typed(out, stdout, &response)
+    print_typed(out, stdout, &response)?;
+    Ok(())
 }
 
 /// A verb that acts on another user from the caller's account: gate on the
@@ -811,6 +833,27 @@ async fn act_from_me_on_post<T>(
 where
     T: Serialize + DeserializeOwned + Default,
 {
+    let ctx = json!({"command": command, "post_id": post_id});
+    let validator = || shortcuts::validate_post_id(post_id);
+    act_from_me(run, ctx, validator, common, |client, my_id| {
+        shortcut(client, my_id, post_id)
+    })
+    .await
+}
+
+/// A verb that acts from the caller's account: check its inputs with
+/// `validator`, resolve the caller's id, call one shortcut with it, and
+/// print the typed response. `ctx` names the inputs in a dry run's answer.
+async fn act_from_me<T>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
     let Run {
         cfg,
         auth,
@@ -819,11 +862,10 @@ where
         stdout,
         ..
     } = run;
-    let ctx = json!({"command": command, "post_id": post_id});
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || shortcuts::validate_post_id(post_id))?;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {
-        let act = shortcut(&client, UNRESOLVED_ID, post_id);
+        let act = shortcut(&client, UNRESOLVED_ID);
         let credentials = [
             my_id_call(&client, common).auth_preflight().await,
             with_flags(act, common, None).auth_preflight().await,
@@ -832,7 +874,7 @@ where
         return Ok(());
     }
     let my_id = resolve_my_user_id(&client, common).await?;
-    let response = with_flags(shortcut(&client, &my_id, post_id), common, None)
+    let response = with_flags(shortcut(&client, &my_id), common, None)
         .send()
         .await?;
     print_typed(out, stdout, &response)?;

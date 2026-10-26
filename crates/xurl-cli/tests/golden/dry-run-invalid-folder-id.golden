@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "bookmark-folders", "get", "rust"]
+store: empty
+exit_code: 0
+stdout_len: 163
+stderr_len: 0
+--- stdout ---
+{
+  "command": "bookmark-folders-get",
+  "exit_code": 1,
+  "folder_id": "rust",
+  "reason": "invalid-folder-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

@@ -26,11 +26,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, DmEvent, MediaMetadataResult,
-    MediaSubtitlesResult, Post, ProvisionedResult, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources,
-    SubscribedResult, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, BookmarkFolder, DmEvent,
+    MediaMetadataResult, MediaSubtitlesResult, Post, ProvisionedResult, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSource,
+    StreamSourceResult, StreamSources, SubscribedResult, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -230,6 +230,14 @@ fn typed_responses_match_vendored_spec() {
         (
             "RespondToScheduledCallResponseData",
             serde_json::to_value(schemars::schema_for!(ScheduledCallRsvp)).unwrap(),
+        ),
+        (
+            "GetUsersBookmarkFoldersResponseData",
+            serde_json::to_value(schemars::schema_for!(BookmarkFolder)).unwrap(),
+        ),
+        (
+            "CreateUsersBookmarkFolderResponseData",
+            serde_json::to_value(schemars::schema_for!(BookmarkFolder)).unwrap(),
         ),
         (
             "WebhookConfig",

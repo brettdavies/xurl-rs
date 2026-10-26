@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "bookmark-folders", "add", "A name that runs past the limit"]
+store: empty
+exit_code: 0
+stdout_len: 188
+stderr_len: 0
+--- stdout ---
+{
+  "command": "bookmark-folders-add",
+  "exit_code": 1,
+  "name": "A name that runs past the limit",
+  "reason": "folder-name-too-long",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

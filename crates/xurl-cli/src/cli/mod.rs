@@ -1266,6 +1266,13 @@ pub enum Commands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Your bookmark folders, and the posts in each
+    #[command(after_help = family_help::bookmark_folders::page())]
+    BookmarkFolders {
+        /// `bookmark-folders` verb to dispatch.
+        #[command(subcommand)]
+        action: BookmarkFoldersCommands,
+    },
     /// List your liked posts
     #[command(after_help = LIKES_HELP)]
     Likes {
@@ -1555,6 +1562,44 @@ pub enum UsageCommands {
     /// Show credits-based usage for the project
     #[command(after_help = USAGE_CREDITS_HELP)]
     Credits {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr bookmark-folders` verbs.
+#[derive(Subcommand, Debug)]
+pub enum BookmarkFoldersCommands {
+    /// List the folders you sort bookmarks into
+    #[command(after_help = family_help::bookmark_folders::FAMILY.verb_page(&family_help::bookmark_folders::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts in one of your bookmark folders, by id
+    #[command(after_help = family_help::bookmark_folders::FAMILY.verb_page(&family_help::bookmark_folders::GET))]
+    Get {
+        /// Folder ID, as `xr bookmark-folders list` prints it
+        #[arg(value_name = "FOLDER_ID")]
+        folder_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Create a bookmark folder
+    #[command(after_help = family_help::bookmark_folders::FAMILY.verb_page(&family_help::bookmark_folders::ADD))]
+    Add {
+        /// The folder's name, 1 to 25 characters
+        #[arg(value_name = "NAME")]
+        name: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

@@ -868,6 +868,39 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-empty-folder-name",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "bookmark-folders",
+                "add",
+                "",
+            ],
+        ),
+        case(
+            "dry-run-folder-name-too-long",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "bookmark-folders",
+                "add",
+                "A name that runs past the limit",
+            ],
+        ),
+        case(
+            "dry-run-invalid-folder-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "bookmark-folders",
+                "get",
+                "rust",
+            ],
+        ),
+        case(
             "dry-run-empty-source-name",
             &[
                 "--output",

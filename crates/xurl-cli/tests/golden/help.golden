@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 14455
+stdout_len: 14735
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -47,49 +47,50 @@ Run 'xr --help' to see all available commands.
 Usage: xr [OPTIONS] [URL] [COMMAND]
 
 Commands:
-  post         Post to X
-  reply        Reply to a post
-  quote        Quote a post
-  delete       Delete a post
-  read         Read a post
-  search       Search recent posts
-  whoami       Show the authenticated user's profile
-  user         Look up a user by username
-  timeline     Show your home timeline
-  mentions     Show your recent mentions
-  like         Like a post
-  unlike       Unlike a post
-  repost       Repost a post
-  unrepost     Undo a repost
-  bookmark     Bookmark a post
-  unbookmark   Remove a bookmark
-  bookmarks    List your bookmarks
-  likes        List your liked posts
-  follow       Follow a user
-  unfollow     Unfollow a user
-  following    List users you follow
-  followers    List your followers
-  mute         Mute a user
-  unmute       Unmute a user
-  muted        List users you have muted
-  block        Block a user
-  unblock      Unblock a user
-  blocked      List users you have blocked
-  usage        Show API usage (post caps, daily breakdown)
-  dm           Send a direct message
-  dms          List recent direct messages
-  broadcasts   Broadcast chat moderators and stream sources
-  calls        X calls, and the calls on your calendar
-  webhooks     Webhook registration, validation, and replay
-  auth         Authentication management
-  media        Media upload, alt text, and subtitles
-  skill        Install or manage the xurl-rs skill bundle
-  schema       Show JSON Schema for a command's response type
-  completions  Generate shell completion script
-  version      Show xurl version information
-  examples     Print a curated gallery of invocation examples grouped by use case
-  validate     Validate a JSON document against a bundled response schema
-  help         Print this message or the help of the given subcommand(s)
+  post              Post to X
+  reply             Reply to a post
+  quote             Quote a post
+  delete            Delete a post
+  read              Read a post
+  search            Search recent posts
+  whoami            Show the authenticated user's profile
+  user              Look up a user by username
+  timeline          Show your home timeline
+  mentions          Show your recent mentions
+  like              Like a post
+  unlike            Unlike a post
+  repost            Repost a post
+  unrepost          Undo a repost
+  bookmark          Bookmark a post
+  unbookmark        Remove a bookmark
+  bookmarks         List your bookmarks
+  bookmark-folders  Your bookmark folders, and the posts in each
+  likes             List your liked posts
+  follow            Follow a user
+  unfollow          Unfollow a user
+  following         List users you follow
+  followers         List your followers
+  mute              Mute a user
+  unmute            Unmute a user
+  muted             List users you have muted
+  block             Block a user
+  unblock           Unblock a user
+  blocked           List users you have blocked
+  usage             Show API usage (post caps, daily breakdown)
+  dm                Send a direct message
+  dms               List recent direct messages
+  broadcasts        Broadcast chat moderators and stream sources
+  calls             X calls, and the calls on your calendar
+  webhooks          Webhook registration, validation, and replay
+  auth              Authentication management
+  media             Media upload, alt text, and subtitles
+  skill             Install or manage the xurl-rs skill bundle
+  schema            Show JSON Schema for a command's response type
+  completions       Generate shell completion script
+  version           Show xurl version information
+  examples          Print a curated gallery of invocation examples grouped by use case
+  validate          Validate a JSON document against a bundled response schema
+  help              Print this message or the help of the given subcommand(s)
 
 Arguments:
   [URL]
