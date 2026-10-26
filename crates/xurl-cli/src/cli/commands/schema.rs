@@ -65,6 +65,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "blocked",
             "likers",
             "reposters",
+            "search-users",
         ],
         type_name: "ApiResponse<Vec<User>>",
         schema: || schema_for!(ApiResponse<Vec<User>>).into(),

@@ -260,7 +260,7 @@
       "description": "Pagination and result count metadata.",
       "properties": {
         "next_token": {
-          "description": "Opaque cursor for the next page; pass to a follow-up call as\n`pagination_token`.",
+          "description": "Opaque cursor for the next page; pass it back as the follow-up\nrequest's cursor.",
           "type": [
             "string",
             "null"

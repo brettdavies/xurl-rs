@@ -9,7 +9,7 @@ use xdk::api::shortcuts::{
     ALT_TEXT_MAX_CHARS, BOOKMARK_FOLDER_NAME_MAX_CHARS, CALL_DESCRIPTION_MAX_CHARS,
     CALL_DURATION_MAX_MINUTES, CALL_RECURRENCE_MAX_CHARS, CALL_TIME_ZONE_MAX_CHARS,
     CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX,
-    POST_MEDIA_MAX, WEBHOOK_URL_MAX_CHARS,
+    POST_MEDIA_MAX, USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
 };
 
 /// The sentence for the validator code `code`; `None` for a message that is
@@ -21,6 +21,10 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "empty-username" => "The username is empty.".to_string(),
         "empty-post-id" => "The post id is empty; give an id or a post URL.".to_string(),
         "too-many-ids" => format!("A lookup takes at most {LOOKUP_IDS_MAX} ids."),
+        "invalid-user-query" => format!(
+            "A user search is 1 to {USER_SEARCH_QUERY_MAX_CHARS} letters, digits, underscores, \
+             apostrophes, or spaces."
+        ),
         "invalid-media-id" => "A media id is 1 to 19 digits.".to_string(),
         "invalid-webhook-id" => "A webhook id is 1 to 19 digits.".to_string(),
         "invalid-user-id" => "A user id is 1 to 19 digits; a handle is not one.".to_string(),

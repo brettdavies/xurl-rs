@@ -74,6 +74,9 @@ MANAGE SOCIAL GRAPH:
   Look up a user:
     xr user elonmusk --output json
 
+  Find accounts by keyword:
+    xr search-users rust -n 50 --output json | jaq -r '.data[]?.username'
+
   A user's posts, newest first:
     xr user-posts @XDevelopers -n 50 --output json | jaq -r '.data[]?.text'
 

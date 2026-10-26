@@ -67,6 +67,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // users (reads)
     ("GET_ME", "GET", "/2/users/me"),
     ("LOOKUP_USER", "GET", "/2/users/by/username/{username}"),
+    ("SEARCH_USERS", "GET", "/2/users/search"),
     (
         "GET_TIMELINE",
         "GET",

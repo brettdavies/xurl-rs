@@ -112,6 +112,7 @@ xr delete 1585341984679469056                  # Delete
 xr read 1585341984679469056                    # Read a post
 xr read-posts 20 1585341984679469056           # Up to 100 posts in one request
 xr search "golang" -n 20                       # Search (10-100 results)
+xr search-users "rust lang"                    # Find accounts by keyword
 xr likers 1585341984679469056                  # Who liked a post
 xr reposters 1585341984679469056               # Who reposted a post
 xr quotes 1585341984679469056                  # Posts that quote a post
