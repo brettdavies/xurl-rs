@@ -242,6 +242,197 @@ pub mod dm_events {
     }
 }
 
+/// The `xr lists` family.
+pub mod lists {
+    use super::{Example, Family, Section, Verb, list_members, page_of};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "lists" };
+
+    /// `xr lists list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "Lists you own (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists followed`.
+    pub const FOLLOWED: Verb = Verb {
+        name: "followed",
+        example_args: "",
+        text_caption: "Lists you follow (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists memberships`.
+    pub const MEMBERSHIPS: Verb = Verb {
+        name: "memberships",
+        example_args: "",
+        text_caption: "Lists you are a member of (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists pinned`.
+    pub const PINNED: Verb = Verb {
+        name: "pinned",
+        example_args: "",
+        text_caption: "Lists you have pinned (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "1146654567674912769",
+        text_caption: "Read one list, by id (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists posts`.
+    pub const POSTS: Verb = Verb {
+        name: "posts",
+        example_args: "1146654567674912769 -n 50",
+        text_caption: "Posts from a list's members (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists followers`.
+    pub const FOLLOWERS: Verb = Verb {
+        name: "followers",
+        example_args: "1146654567674912769",
+        text_caption: "Who follows a list (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "Rustaceans --description \"People who write Rust\" --private",
+        text_caption: "Create a private list (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists update`.
+    pub const UPDATE: Verb = Verb {
+        name: "update",
+        example_args: "1146654567674912769 --name \"Rust people\" --public",
+        text_caption: "Rename a list and make it public (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1146654567674912769 --force --no-interactive",
+        text_caption: "Delete a list without a prompt (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists follow`.
+    pub const FOLLOW: Verb = Verb {
+        name: "follow",
+        example_args: "1146654567674912769",
+        text_caption: "Follow a list (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists unfollow`.
+    pub const UNFOLLOW: Verb = Verb {
+        name: "unfollow",
+        example_args: "1146654567674912769",
+        text_caption: "Stop following a list (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists pin`.
+    pub const PIN: Verb = Verb {
+        name: "pin",
+        example_args: "1146654567674912769",
+        text_caption: "Pin a list (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists unpin`.
+    pub const UNPIN: Verb = Verb {
+        name: "unpin",
+        example_args: "1146654567674912769",
+        text_caption: "Unpin a list (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr lists --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const LISTS: &[Section<'static>] = &[
+            (
+                "Your lists, and the posts in one (text)",
+                &[Example::text(&LIST), Example::text(&POSTS)],
+            ),
+            (
+                "Create a list, then follow and pin another, JSON envelope",
+                &[
+                    Example::json(&ADD),
+                    Example::json(&FOLLOW),
+                    Example::json(&PIN),
+                ],
+            ),
+        ];
+        const MEMBERS: &[Section<'static>] = &[(
+            "Add an account to a list, JSON envelope",
+            &[Example::json(&list_members::ADD)],
+        )];
+        page_of(&[(&FAMILY, LISTS), (&list_members::FAMILY, MEMBERS)])
+    }
+}
+
+/// The `xr lists members` family.
+pub mod list_members {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "lists members",
+    };
+
+    /// `xr lists members list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "1146654567674912769",
+        text_caption: "The accounts on a list (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists members add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "1146654567674912769 @XDevelopers",
+        text_caption: "Add an account to a list you own (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr lists members remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1146654567674912769 @XDevelopers",
+        text_caption: "Take an account off a list (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr lists members --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("The accounts on a list (text)", &[Example::text(&LIST)]),
+            (
+                "Add and take off an account, JSON envelope",
+                &[Example::json(&ADD), Example::json(&REMOVE)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr communities` family.
 pub mod communities {
     use super::{Example, Family, Section, Verb};

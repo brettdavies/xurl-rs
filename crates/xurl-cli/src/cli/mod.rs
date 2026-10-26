@@ -1733,6 +1733,15 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Lists ────────────────────────────────────────────────────────
+    /// Your lists, a list's posts and members, and following and pinning
+    #[command(after_help = family_help::lists::page())]
+    Lists {
+        /// `lists` verb to dispatch.
+        #[command(subcommand)]
+        action: ListsCommands,
+    },
+
     // ── Communities ──────────────────────────────────────────────────
     /// Search communities, and read one
     #[command(after_help = family_help::communities::page())]
@@ -1934,6 +1943,228 @@ pub enum BookmarkFoldersCommands {
         /// The folder's name, 1 to 25 characters
         #[arg(value_name = "NAME")]
         name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr lists` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ListsCommands {
+    /// List the lists you own
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the lists you follow
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::FOLLOWED))]
+    Followed {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the lists you are a member of
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::MEMBERSHIPS))]
+    Memberships {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the lists you have pinned
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::PINNED))]
+    Pinned {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one list, by id
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::GET))]
+    Get {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts from a list's members
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::POSTS))]
+    Posts {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List who follows a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::FOLLOWERS))]
+    Followers {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// The accounts on a list, and adding or taking one off
+    #[command(after_help = family_help::list_members::page())]
+    Members {
+        /// `members` verb to dispatch.
+        #[command(subcommand)]
+        action: ListMembersCommands,
+    },
+    /// Create a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::ADD))]
+    Add {
+        /// The list's name, 1 to 25 characters
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// What the list is for, at most 100 characters
+        #[arg(long)]
+        description: Option<String>,
+        /// Only you can see the list
+        #[arg(long)]
+        private: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Rename a list, or change its description or privacy
+    ///
+    /// Only what the flags name changes.
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::UPDATE))]
+    Update {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// New name, 1 to 25 characters
+        #[arg(long)]
+        name: Option<String>,
+        /// New description, at most 100 characters
+        #[arg(long)]
+        description: Option<String>,
+        /// Make the list private
+        #[arg(long, conflicts_with = "public")]
+        private: bool,
+        /// Make the list public
+        #[arg(long)]
+        public: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a list you own
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::REMOVE))]
+    Remove {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Follow a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::FOLLOW))]
+    Follow {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Stop following a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::UNFOLLOW))]
+    Unfollow {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Pin a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::PIN))]
+    Pin {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Unpin a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::UNPIN))]
+    Unpin {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr lists members` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ListMembersCommands {
+    /// List the accounts on a list
+    #[command(after_help = family_help::list_members::FAMILY.verb_page(&family_help::list_members::LIST))]
+    List {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Add an account to a list you own
+    #[command(after_help = family_help::list_members::FAMILY.verb_page(&family_help::list_members::ADD))]
+    Add {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Username of the account
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Take an account off a list you own
+    #[command(after_help = family_help::list_members::FAMILY.verb_page(&family_help::list_members::REMOVE))]
+    Remove {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Username of the account
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

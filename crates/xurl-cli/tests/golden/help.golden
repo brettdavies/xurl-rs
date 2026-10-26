@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 15845
+stdout_len: 15931
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -93,6 +93,7 @@ Commands:
   dm-block          Stop a user sending you direct messages
   dm-unblock        Let a user send you direct messages again
   dms               List recent direct messages
+  lists             Your lists, a list's posts and members, and following and pinning
   communities       Search communities, and read one
   news              Search news stories, and read one
   trends            Trends for a place, and your personalized trends

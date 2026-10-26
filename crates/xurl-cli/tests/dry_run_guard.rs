@@ -72,6 +72,7 @@ const OVERRIDES: &[(&str, &[&str])] = &[
     ),
     ("conversations send", &["123-456", SAMPLE]),
     ("conversations history", &["123-456"]),
+    ("lists update", &[SAMPLE, "--name", "Rust"]),
     ("calls scheduled update", &[SAMPLE, "--title", "Retro"]),
 ];
 

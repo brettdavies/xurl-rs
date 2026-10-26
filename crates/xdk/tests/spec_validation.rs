@@ -24,12 +24,12 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
     Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult,
-    NewsStory, PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, PersonalizedTrend,
+    PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -219,6 +219,35 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_lists() {
+    let examples = load_examples();
+    let one: ApiResponse<List> = serde_json::from_value(examples["list_single"].clone()).unwrap();
+    assert_eq!(one.data.member_count, Some(42));
+    let many: ApiResponse<Vec<List>> = serde_json::from_value(examples["lists"].clone()).unwrap();
+    assert_eq!(many.data[1].private, Some(true));
+    let created: ApiResponse<List> =
+        serde_json::from_value(examples["list_created"].clone()).unwrap();
+    assert_eq!(created.data.name, "Rustaceans");
+}
+
+#[test]
+fn spec_list_actions() {
+    let examples = load_examples();
+    let updated: ApiResponse<ListUpdatedResult> =
+        serde_json::from_value(examples["list_updated"].clone()).unwrap();
+    assert!(updated.data.updated);
+    let member: ApiResponse<ListMemberResult> =
+        serde_json::from_value(examples["list_member"].clone()).unwrap();
+    assert!(member.data.is_member);
+    let followed: ApiResponse<FollowingResult> =
+        serde_json::from_value(examples["list_followed"].clone()).unwrap();
+    assert!(followed.data.following);
+    let pinned: ApiResponse<PinnedResult> =
+        serde_json::from_value(examples["list_pinned"].clone()).unwrap();
+    assert!(pinned.data.pinned);
 }
 
 #[test]
@@ -764,6 +793,17 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         ReplyKind::Success,
     ),
     ("community", endpoints::GET_COMMUNITY, ReplyKind::Success),
+    ("list_single", endpoints::GET_LIST, ReplyKind::Success),
+    ("lists", endpoints::GET_OWNED_LISTS, ReplyKind::Success),
+    ("list_created", endpoints::CREATE_LIST, ReplyKind::Success),
+    ("list_updated", endpoints::UPDATE_LIST, ReplyKind::Success),
+    (
+        "list_member",
+        endpoints::ADD_LIST_MEMBER,
+        ReplyKind::Success,
+    ),
+    ("list_followed", endpoints::FOLLOW_LIST, ReplyKind::Success),
+    ("list_pinned", endpoints::PIN_LIST, ReplyKind::Success),
     ("news_story", endpoints::GET_NEWS, ReplyKind::Success),
     (
         "personalized_trends",

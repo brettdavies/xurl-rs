@@ -17,12 +17,12 @@ use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
     DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
-    PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, PinnedResult, Post,
+    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -236,6 +236,22 @@ pub struct NewScheduledCall {
     pub notify_invitees: Option<bool>,
 }
 
+/// A list's name, description, and privacy: what a new list carries, or
+/// what a change to one sets. A field left unset is not sent.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct ListDetails {
+    /// The list's name, 1 to [`LIST_NAME_MAX_CHARS`] characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// What the list is for, at most [`LIST_DESCRIPTION_MAX_CHARS`]
+    /// characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Whether only the owner can see the list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private: Option<bool>,
+}
+
 /// What to change on a scheduled call. A field left unset keeps its value;
 /// `invitee_ids`, when set, replaces the whole invite list.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -376,6 +392,12 @@ pub const DM_GROUP_PARTICIPANTS_MIN: usize = 2;
 /// the spec's `maxItems` on `participant_ids`.
 pub const DM_GROUP_PARTICIPANTS_MAX: usize = 49;
 
+/// Longest list name X accepts, the spec's `maxLength`.
+pub const LIST_NAME_MAX_CHARS: usize = 25;
+
+/// Longest list description X accepts, the spec's `maxLength`.
+pub const LIST_DESCRIPTION_MAX_CHARS: usize = 100;
+
 /// The most ids one lookup takes, the spec's `maxItems` on `ids`.
 pub const LOOKUP_IDS_MAX: usize = 100;
 
@@ -494,6 +516,64 @@ pub fn validate_conversation_id(id: &str) -> std::result::Result<(), &'static st
 pub fn validate_dm_event_id(id: &str) -> std::result::Result<(), &'static str> {
     if !is_numeric_id(id) {
         return Err("invalid-dm-event-id");
+    }
+    Ok(())
+}
+
+/// Validates a list id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-list-id` for anything else.
+pub fn validate_list_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-list-id");
+    }
+    Ok(())
+}
+
+/// Validates a new list: a name of 1 to [`LIST_NAME_MAX_CHARS`] characters,
+/// and a description of at most [`LIST_DESCRIPTION_MAX_CHARS`].
+///
+/// # Errors
+/// Returns `empty-list-name`, `list-name-too-long`, or
+/// `list-description-too-long`.
+pub fn validate_new_list(
+    name: &str,
+    description: Option<&str>,
+) -> std::result::Result<(), &'static str> {
+    check_list_name(name)?;
+    check_list_description(description)
+}
+
+/// Validates a change to a list: at least one field, each within the
+/// bounds [`validate_new_list`] holds.
+///
+/// # Errors
+/// Returns `no-list-changes` for a change that sets nothing, and otherwise
+/// the codes [`validate_new_list`] returns.
+pub fn validate_list_changes(changes: &ListDetails) -> std::result::Result<(), &'static str> {
+    if *changes == ListDetails::default() {
+        return Err("no-list-changes");
+    }
+    if let Some(name) = &changes.name {
+        check_list_name(name)?;
+    }
+    check_list_description(changes.description.as_deref())
+}
+
+fn check_list_name(name: &str) -> std::result::Result<(), &'static str> {
+    if name.is_empty() {
+        return Err("empty-list-name");
+    }
+    if name.chars().count() > LIST_NAME_MAX_CHARS {
+        return Err("list-name-too-long");
+    }
+    Ok(())
+}
+
+fn check_list_description(description: Option<&str>) -> std::result::Result<(), &'static str> {
+    if description.is_some_and(|d| d.chars().count() > LIST_DESCRIPTION_MAX_CHARS) {
+        return Err("list-description-too-long");
     }
     Ok(())
 }
@@ -1044,6 +1124,14 @@ email_tweet,engagements,follows,hashtag_clicks,id,impressions,likes,media_views,
 quote_tweets,replies,retweets,shares,timestamp,timestamped_metrics,unfollows,unlikes,url_clicks,\
 user_profile_clicks";
 
+/// Every field the spec's `list.fields` lists.
+fn list_fields() -> Vec<(String, String)> {
+    vec![(
+        "list.fields".to_string(),
+        "created_at,description,follower_count,id,member_count,name,private".to_string(),
+    )]
+}
+
 /// Every field the spec's `community.fields` lists.
 const COMMUNITY_FIELDS: &str = "access,created_at,description,id,join_policy,member_count,name";
 
@@ -1382,6 +1470,213 @@ impl Client {
                 vec![("news.fields".to_string(), NEWS_FIELDS.to_string())],
             ),
         )
+    }
+
+    /// Creates a list owned by the caller.
+    pub fn create_list(&self, details: &ListDetails) -> Call<ApiResponse<List>> {
+        self.post_json(
+            template(endpoints::CREATE_LIST.path, HashMap::new(), Vec::new()),
+            details,
+        )
+    }
+
+    /// Reads one list, by id.
+    pub fn get_list(&self, list_id: &str) -> Call<ApiResponse<List>> {
+        self.call(
+            endpoints::GET_LIST.method,
+            template(endpoints::GET_LIST.path, id_param(list_id), list_fields()),
+        )
+    }
+
+    /// Changes a list's name, description, or privacy; an unset field keeps
+    /// its value.
+    pub fn update_list(
+        &self,
+        list_id: &str,
+        changes: &ListDetails,
+    ) -> Call<ApiResponse<ListUpdatedResult>> {
+        self.json_call(
+            endpoints::UPDATE_LIST.method,
+            template(endpoints::UPDATE_LIST.path, id_param(list_id), Vec::new()),
+            changes,
+        )
+    }
+
+    /// Deletes a list the caller owns.
+    pub fn delete_list(&self, list_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_LIST.method,
+            template(endpoints::DELETE_LIST.path, id_param(list_id), Vec::new()),
+        )
+    }
+
+    /// Fetches the posts from a list's members.
+    pub fn get_list_posts(&self, list_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        self.call(
+            endpoints::GET_LIST_POSTS.method,
+            template(
+                endpoints::GET_LIST_POSTS.path,
+                id_param(list_id),
+                vec![
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Fetches the accounts on a list.
+    pub fn get_list_members(
+        &self,
+        list_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<User>>> {
+        self.get_user_list(endpoints::GET_LIST_MEMBERS.path, list_id, max_results)
+    }
+
+    /// Fetches the accounts that follow a list.
+    pub fn get_list_followers(
+        &self,
+        list_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<User>>> {
+        self.get_user_list(endpoints::GET_LIST_FOLLOWERS.path, list_id, max_results)
+    }
+
+    /// Adds an account, by user id, to a list the caller owns.
+    pub fn add_list_member(
+        &self,
+        list_id: &str,
+        user_id: &str,
+    ) -> Call<ApiResponse<ListMemberResult>> {
+        self.post_json(
+            template(
+                endpoints::ADD_LIST_MEMBER.path,
+                id_param(list_id),
+                Vec::new(),
+            ),
+            &serde_json::json!({"user_id": user_id}),
+        )
+    }
+
+    /// Removes an account, by user id, from a list the caller owns.
+    pub fn remove_list_member(
+        &self,
+        list_id: &str,
+        user_id: &str,
+    ) -> Call<ApiResponse<ListMemberResult>> {
+        self.call(
+            endpoints::REMOVE_LIST_MEMBER.method,
+            template(
+                endpoints::REMOVE_LIST_MEMBER.path,
+                id_and(list_id, "user_id", user_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Fetches the lists a user owns.
+    pub fn get_owned_lists(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<List>>> {
+        self.list_of_lists(endpoints::GET_OWNED_LISTS.path, user_id, Some(max_results))
+    }
+
+    /// Fetches the lists a user follows.
+    pub fn get_followed_lists(
+        &self,
+        user_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<List>>> {
+        self.list_of_lists(
+            endpoints::GET_FOLLOWED_LISTS.path,
+            user_id,
+            Some(max_results),
+        )
+    }
+
+    /// Fetches the lists a user is a member of.
+    pub fn get_list_memberships(
+        &self,
+        user_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<List>>> {
+        self.list_of_lists(
+            endpoints::GET_LIST_MEMBERSHIPS.path,
+            user_id,
+            Some(max_results),
+        )
+    }
+
+    /// Fetches the lists a user has pinned; X answers them in one page.
+    pub fn get_pinned_lists(&self, user_id: &str) -> Call<ApiResponse<Vec<List>>> {
+        self.list_of_lists(endpoints::GET_PINNED_LISTS.path, user_id, None)
+    }
+
+    /// Follows a list from the caller's account.
+    pub fn follow_list(&self, user_id: &str, list_id: &str) -> Call<ApiResponse<FollowingResult>> {
+        self.post_json(
+            template(endpoints::FOLLOW_LIST.path, id_param(user_id), Vec::new()),
+            &serde_json::json!({"list_id": list_id}),
+        )
+    }
+
+    /// Stops following a list from the caller's account.
+    pub fn unfollow_list(
+        &self,
+        user_id: &str,
+        list_id: &str,
+    ) -> Call<ApiResponse<FollowingResult>> {
+        self.call(
+            endpoints::UNFOLLOW_LIST.method,
+            template(
+                endpoints::UNFOLLOW_LIST.path,
+                id_and(user_id, "list_id", list_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Pins a list on the caller's account.
+    pub fn pin_list(&self, user_id: &str, list_id: &str) -> Call<ApiResponse<PinnedResult>> {
+        self.post_json(
+            template(endpoints::PIN_LIST.path, id_param(user_id), Vec::new()),
+            &serde_json::json!({"list_id": list_id}),
+        )
+    }
+
+    /// Unpins a list from the caller's account.
+    pub fn unpin_list(&self, user_id: &str, list_id: &str) -> Call<ApiResponse<PinnedResult>> {
+        self.call(
+            endpoints::UNPIN_LIST.method,
+            template(
+                endpoints::UNPIN_LIST.path,
+                id_and(user_id, "list_id", list_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    fn list_of_lists(
+        &self,
+        path: &str,
+        user_id: &str,
+        max_results: Option<i32>,
+    ) -> Call<ApiResponse<Vec<List>>> {
+        let mut query = list_fields();
+        if let Some(n) = max_results {
+            query.push(("max_results".to_string(), n.to_string()));
+        }
+        let call = self.call("GET", template(path, id_param(user_id), query));
+        if max_results.is_some() {
+            call.paginated()
+        } else {
+            call
+        }
     }
 
     /// Searches X's communities.

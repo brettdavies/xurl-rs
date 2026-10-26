@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "lists", "get", "rustaceans"]
+store: empty
+exit_code: 0
+stdout_len: 154
+stderr_len: 0
+--- stdout ---
+{
+  "command": "lists-get",
+  "exit_code": 1,
+  "list_id": "rustaceans",
+  "reason": "invalid-list-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

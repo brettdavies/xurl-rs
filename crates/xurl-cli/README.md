@@ -126,6 +126,26 @@ xr timeline                                    # Home timeline
 xr mentions                                    # Your mentions
 ```
 
+### Lists
+
+```bash
+xr lists list                                      # Lists you own
+xr lists followed                                  # Lists you follow
+xr lists memberships                               # Lists you are on
+xr lists pinned                                    # Lists you pinned
+xr lists get 1146654567674912769                   # One list, by id
+xr lists posts 1146654567674912769                 # Posts from a list's members
+xr lists followers 1146654567674912769             # Who follows a list
+xr lists members list 1146654567674912769          # The accounts on a list
+xr lists members add 1146654567674912769 @jack     # Add an account
+xr lists members remove 1146654567674912769 @jack  # Take one off
+xr lists add Rustaceans --private                  # Create a private list
+xr lists update 1146654567674912769 --public       # Change name, description, privacy
+xr lists remove 1146654567674912769                # Delete (asks first; --force skips)
+xr lists follow 1146654567674912769                # Follow; unfollow undoes it
+xr lists pin 1146654567674912769                   # Pin; unpin undoes it
+```
+
 ### Communities
 
 ```bash

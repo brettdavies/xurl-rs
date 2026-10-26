@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 5588
+stdout_len: 6540
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -49,6 +49,23 @@ hide                           ApiResponse<HiddenResult>
 like                           ApiResponse<LikedResult>
 likers                         ApiResponse<Vec<User>>
 likes                          ApiResponse<Vec<Post>>
+lists-add                      ApiResponse<List>
+lists-follow                   ApiResponse<FollowingResult>
+lists-followed                 ApiResponse<Vec<List>>
+lists-followers                ApiResponse<Vec<User>>
+lists-get                      ApiResponse<List>
+lists-list                     ApiResponse<Vec<List>>
+lists-members-add              ApiResponse<ListMemberResult>
+lists-members-list             ApiResponse<Vec<User>>
+lists-members-remove           ApiResponse<ListMemberResult>
+lists-memberships              ApiResponse<Vec<List>>
+lists-pin                      ApiResponse<PinnedResult>
+lists-pinned                   ApiResponse<Vec<List>>
+lists-posts                    ApiResponse<Vec<Post>>
+lists-remove                   ApiResponse<DeletedResult>
+lists-unfollow                 ApiResponse<FollowingResult>
+lists-unpin                    ApiResponse<PinnedResult>
+lists-update                   ApiResponse<ListUpdatedResult>
 media-alt-text                 ApiResponse<MediaMetadataResult>
 media-subtitles-add            ApiResponse<MediaSubtitlesResult>
 media-subtitles-remove         ApiResponse<DeletedResult>

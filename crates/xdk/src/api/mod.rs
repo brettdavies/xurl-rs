@@ -36,13 +36,14 @@ pub use response::types::{
     AnalyticsBucket, AnalyticsMetrics, ApiError, ApiResponse, BlockingResult, BookmarkFolder,
     BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community, DeletedResult,
     DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, Includes, LikedResult,
-    MediaMetadataResult, MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse,
-    MutingResult, NewsClusterPost, NewsStory, PersonalizedTrend, Post, PostAnalytics, PostCount,
-    PostPublicMetrics, ProvisionedResult, ReferencedPost, RepostedResult, ResponseMeta,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSource, StreamSourceDeleted, StreamSourceResult, StreamSources,
-    SubscribedResult, Trend, UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
+    List, ListMemberResult, ListUpdatedResult, MediaMetadataResult, MediaProcessingInfo,
+    MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsClusterPost, NewsStory,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, PostPublicMetrics,
+    ProvisionedResult, ReferencedPost, RepostedResult, ResponseMeta, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallInvitee, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSource, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]
