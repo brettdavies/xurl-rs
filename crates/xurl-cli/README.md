@@ -22,9 +22,11 @@ brew install xurl-rs
 ```
 
 The formula links `xurl-rs` as an alias, so the formula name runs too. The documentation and the shell completions use
-`xr`. It installs the pre-built archive this repository's release publishes for your platform. From 4.3.0 the tap signs
-the bottles it builds from those archives, and `brew verify brettdavies/tap/xurl-rs` checks one against that
-attestation.
+`xr`. It installs the pre-built archive this repository's release publishes for your platform, checked against the
+checksum the formula pins, so nothing is compiled. The tap pins a checksum only after it has verified the archive
+against the release's build-provenance attestation;
+[Verifying an archive](https://github.com/brettdavies/homebrew-tap#verifying-an-archive) in the tap's README has the
+command that repeats the check.
 
 ### Pre-built Binary
 
