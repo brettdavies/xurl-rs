@@ -25,8 +25,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -d 'Request body data'
             cand --data 'Request body data'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u 'Username for `OAuth2` authentication'
-            cand --username 'Username for `OAuth2` authentication'
+            cand -u '`OAuth2` login to send the request as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to send the request as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand -F 'File to upload (for multipart requests)'
@@ -105,8 +105,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;post'= {
             cand --media-id 'Media ID(s) to attach (repeatable)'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -135,8 +135,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;reply'= {
             cand --media-id 'Media ID(s) to attach (repeatable)'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -164,8 +164,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;quote'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -193,8 +193,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;delete'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -223,8 +223,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;read'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -254,8 +254,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (10-100; a lower value is raised to 10, X''s minimum). Overrides global `--limit` when set'
             cand --max-results 'Number of results (10-100; a lower value is raised to 10, X''s minimum). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -283,8 +283,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;whoami'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -313,8 +313,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;user'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -344,8 +344,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (1-100). Overrides global `--limit` when set'
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -375,8 +375,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set'
             cand --max-results 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -404,8 +404,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;like'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -433,8 +433,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;unlike'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -462,8 +462,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;repost'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -491,8 +491,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;unrepost'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -520,8 +520,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;bookmark'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -549,8 +549,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;unbookmark'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -580,8 +580,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (1-100). Overrides global `--limit` when set'
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -639,8 +639,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (1-100). Overrides global `--limit` when set'
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -670,8 +670,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (1-100). Overrides global `--limit` when set'
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -699,8 +699,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;bookmark-folders;add'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -744,8 +744,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set'
             cand --max-results 'Number of results (5-100; a lower value is raised to 5, X''s minimum). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -773,8 +773,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;follow'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -802,8 +802,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;unfollow'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -834,8 +834,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --of 'Username to list following for (default: you)'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -866,8 +866,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --of 'Username to list followers for (default: you)'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -895,8 +895,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;mute'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -924,8 +924,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;unmute'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -955,8 +955,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (1-100). Overrides global `--limit` when set'
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -984,8 +984,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;block'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1013,8 +1013,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;unblock'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1044,8 +1044,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (1-100). Overrides global `--limit` when set'
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1073,8 +1073,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;usage'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1104,8 +1104,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;usage;credits'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1141,8 +1141,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;dm'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1172,8 +1172,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of results (1-100). Overrides global `--limit` when set'
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1256,8 +1256,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;moderators;list'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1285,8 +1285,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;moderators;add'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1314,8 +1314,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;moderators;remove'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1387,8 +1387,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;sources;list'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1416,8 +1416,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;sources;get'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1446,8 +1446,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;sources;add'= {
             cand --region 'Ingest region: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1475,8 +1475,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;sources;rename'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1504,8 +1504,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;sources;remove'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1616,8 +1616,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;calls;get'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1680,8 +1680,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -n 'Number of calls (1-100)'
             cand --max-results 'Number of calls (1-100)'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1709,8 +1709,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;calls;scheduled;get'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1745,8 +1745,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --recurrence 'The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO'
             cand --time-zone 'The IANA time zone the recurrence follows, such as America/Chicago'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1784,8 +1784,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --scope 'Which occurrences, counted from `--occurrence`: X assumes `all` without it and `this` with it'
             cand --occurrence 'The occurrence''s original start (RFC 3339), as a listed call''s `occurrence_start_time` gives it'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1816,8 +1816,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --scope 'Which occurrences, counted from `--occurrence`: X assumes `all` without it and `this` with it'
             cand --occurrence 'The occurrence''s original start (RFC 3339), as a listed call''s `occurrence_start_time` gives it'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1849,8 +1849,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --scope 'Which occurrences, counted from `--occurrence`: X assumes `all` without it and `this` with it'
             cand --occurrence 'The occurrence''s original start (RFC 3339), as a listed call''s `occurrence_start_time` gives it'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1963,8 +1963,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;list'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -1992,8 +1992,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;add'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2021,8 +2021,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;validate'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2050,8 +2050,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;remove'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2110,8 +2110,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;subscriptions;count'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2139,8 +2139,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;subscriptions;list'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2168,8 +2168,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;subscriptions;add'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2197,8 +2197,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;subscriptions;check'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2226,8 +2226,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;subscriptions;remove'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2304,8 +2304,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;stream-links;list'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2333,8 +2333,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;stream-links;add'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2362,8 +2362,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;webhooks;stream-links;remove'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -2445,8 +2445,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --to 'End of the window: twelve digits, `yyyymmddhhmm` in UTC'
             cand --from-checkpoint 'Request the window from the minute `xr webhooks listen --checkpoint` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -3047,8 +3047,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --category 'Media category (e.g., `amplify_video`)'
             cand --wait 'Wait for X to finish processing the upload before returning'
             cand --auth 'Authentication type'
-            cand -u 'Username'
-            cand --username 'Username'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -H 'Request headers'
             cand --header 'Request headers'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
@@ -3078,8 +3078,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;media;status'= {
             cand --auth 'Authentication type'
-            cand -u 'Username'
-            cand --username 'Username'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -w 'Wait for X to finish processing instead of reading the status once'
             cand --wait 'Wait for X to finish processing instead of reading the status once'
             cand -H 'Request headers'
@@ -3111,8 +3111,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;media;alt-text'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -3170,8 +3170,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --name 'Language name viewers pick the track by (e.g. English)'
             cand --category 'Category the video was uploaded with'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -3201,8 +3201,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --language 'Two-letter language code of the track to remove (e.g. en)'
             cand --category 'Category the video was uploaded with'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
-            cand -u '`OAuth2` username to act as'
-            cand --username '`OAuth2` username to act as'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
