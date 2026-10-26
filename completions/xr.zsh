@@ -5776,7 +5776,7 @@ _xr_commands() {
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
 'broadcasts:Broadcast chat moderators and stream sources' \
-'calls:X calls, and the calls on your calendar' \
+'calls:X calls, and the calls on your calendar (preview)' \
 'webhooks:Webhook registration, validation, and replay' \
 'auth:Authentication management' \
 'media:Media upload, alt text, and subtitles' \
@@ -6596,7 +6596,7 @@ _xr__subcmd__help_commands() {
 'dm:Send a direct message' \
 'dms:List recent direct messages' \
 'broadcasts:Broadcast chat moderators and stream sources' \
-'calls:X calls, and the calls on your calendar' \
+'calls:X calls, and the calls on your calendar (preview)' \
 'webhooks:Webhook registration, validation, and replay' \
 'auth:Authentication management' \
 'media:Media upload, alt text, and subtitles' \

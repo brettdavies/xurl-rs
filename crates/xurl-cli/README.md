@@ -279,6 +279,11 @@ The calls endpoints take a user login with the `calls.read` and `calls.write` sc
 sign-in requests. A login made before `xr` requested them lacks them, and X refuses the request until you sign in again
 with `xr auth oauth2`. A call's `id` and a scheduled call's `call_id` are also the call's join secret.
 
+`xr calls` is a preview. X marks the Calls API as in development and not yet generally available, so its requests and
+the scopes it takes may change before it is; `xr calls` follows the vendored spec. Starting, joining, and leaving a live
+call (`POST /2/calls`, `/2/calls/{id}/join`, `/2/calls/{id}/leave`) have no command: joining hands out a short-lived
+token for a real-time audio WebSocket that `xr` does not drive. They stay reachable in raw mode.
+
 ### Webhooks
 
 ```bash

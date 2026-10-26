@@ -1440,7 +1440,11 @@ pub enum Commands {
     },
 
     // ── Calls ────────────────────────────────────────────────────────
-    /// X calls, and the calls on your calendar
+    /// X calls, and the calls on your calendar (preview)
+    ///
+    /// A preview: X marks the Calls API as in development and not yet
+    /// generally available, so its requests and the scopes it takes may
+    /// change before it is.
     #[command(after_help = family_help::calls::root_page())]
     Calls {
         /// `calls` family subcommand.
