@@ -1,0 +1,41 @@
+{
+  "$comment": "Endpoints in crates/xdk/vendor/x-api-openapi.json that xr deliberately leaves without a shortcut command. An operation is \"METHOD /path\"; METHOD may be *, and a path ending in /** also covers every path below it. A decision holds until its revisit_when fires: never, github-pr-merged (repo, number), or crate-published (crate). crates/xdk/tests/endpoint_decisions.rs holds every entry to the spec and the shortcut list; scripts/endpoint-decisions.sh marks covered operations in a spec-refresh PR and reports fired triggers daily.",
+  "decisions": [
+    {
+      "id": "xchat",
+      "operations": ["* /2/chat/**", "POST /2/users/{id}/public_keys"],
+      "status": "not-supported",
+      "reason": "XChat conversations are end-to-end encrypted: sending and reading them needs the conversation keys and message signatures that X's chat-xdk-core library handles, and that library is unpublished. Raw mode still reaches the endpoints.",
+      "decided": "2026-10-22",
+      "by": "Brett, on #340",
+      "revisit_when": {
+        "kind": "crate-published",
+        "crate": "chat-xdk-core"
+      }
+    },
+    {
+      "id": "calls-live",
+      "operations": ["POST /2/calls", "POST /2/calls/{id}/join", "POST /2/calls/{id}/leave"],
+      "status": "not-supported",
+      "reason": "Joining a call hands out a single-use, two-minute token for a real-time PCM16 audio WebSocket that xr does not drive, and starting one makes an empty call that xr calls scheduled add already provides. X marks the Calls API as in development. Raw mode still reaches the endpoints.",
+      "decided": "2026-10-26",
+      "by": "Brett, on #366",
+      "revisit_when": {
+        "kind": "github-pr-merged",
+        "repo": "xdevplatform/docs",
+        "number": 479
+      }
+    },
+    {
+      "id": "activity",
+      "operations": ["* /2/activity/**"],
+      "status": "raw-only",
+      "reason": "No xr activity family: raw mode covers the subscription endpoints and streams /2/activity/stream like every stream the spec declares.",
+      "decided": "2026-10-05",
+      "by": "Brett",
+      "revisit_when": {
+        "kind": "never"
+      }
+    }
+  ]
+}
