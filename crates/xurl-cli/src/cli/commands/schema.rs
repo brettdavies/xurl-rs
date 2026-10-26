@@ -12,12 +12,13 @@ use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
-    DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
-    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, Post,
-    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
+    PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -129,6 +130,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     SchemaEntry {
         commands: &[
             "delete",
+            "dm-events-remove",
             "media-subtitles-remove",
             "webhooks-remove",
             "webhooks-stream-links-remove",
@@ -157,14 +159,24 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<BlockingResult>).into(),
     },
     SchemaEntry {
-        commands: &["dm"],
+        commands: &["dm", "conversations-start", "conversations-send"],
         type_name: "ApiResponse<DmSentResult>",
         schema: || schema_for!(ApiResponse<DmSentResult>).into(),
     },
     SchemaEntry {
-        commands: &["dms"],
+        commands: &["dms", "conversations-history", "conversations-with"],
         type_name: "ApiResponse<Vec<DmEvent>>",
         schema: || schema_for!(ApiResponse<Vec<DmEvent>>).into(),
+    },
+    SchemaEntry {
+        commands: &["dm-events-get"],
+        type_name: "ApiResponse<DmEvent>",
+        schema: || schema_for!(ApiResponse<DmEvent>).into(),
+    },
+    SchemaEntry {
+        commands: &["dm-block", "dm-unblock"],
+        type_name: "ApiResponse<DmBlockResult>",
+        schema: || schema_for!(ApiResponse<DmBlockResult>).into(),
     },
     SchemaEntry {
         commands: &["usage"],
@@ -358,6 +370,8 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "calls",
     "calls-scheduled",
     "communities",
+    "conversations",
+    "dm-events",
     "completions",
     "examples",
     "media",

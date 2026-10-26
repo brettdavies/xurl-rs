@@ -828,6 +828,7 @@ const CONFIRMED_COMMANDS: &[&str] = &[
     "webhooks stream-links remove",
     "broadcasts sources remove",
     "calls scheduled cancel",
+    "dm-events remove",
 ];
 
 /// Each command that confirms a destructive op is on the list above, so a new

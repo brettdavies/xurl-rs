@@ -788,6 +788,34 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-conversation-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "conversations",
+                "history",
+                "abc",
+            ],
+        ),
+        case(
+            "dry-run-invalid-dm-event-id",
+            &["--output", "json", "--dry-run", "dm-events", "get", "dm-1"],
+        ),
+        case(
+            "dry-run-invalid-participant-count",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "conversations",
+                "start",
+                "@alice",
+                "--text",
+                "hi",
+            ],
+        ),
+        case(
             "dry-run-invalid-community-id",
             &[
                 "--output",

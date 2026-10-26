@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 15581
+stdout_len: 15845
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -88,6 +88,10 @@ Commands:
   blocked           List users you have blocked
   usage             Show API usage (post caps, daily breakdown)
   dm                Send a direct message
+  conversations     Start a group conversation, send into one, or read one
+  dm-events         Read or delete one direct message, by event id
+  dm-block          Stop a user sending you direct messages
+  dm-unblock        Let a user send you direct messages again
   dms               List recent direct messages
   communities       Search communities, and read one
   news              Search news stories, and read one

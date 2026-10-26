@@ -147,6 +147,101 @@ pub mod bookmark_folders {
     }
 }
 
+/// The `xr conversations` family.
+pub mod conversations {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "conversations",
+    };
+
+    /// `xr conversations start`.
+    pub const START: Verb = Verb {
+        name: "start",
+        example_args: "@alice @bob --text \"Plans for Friday?\"",
+        text_caption: "Start a group with two people and send the first message (text)",
+        json_caption: "Start (JSON envelope)",
+    };
+
+    /// `xr conversations send`.
+    pub const SEND: Verb = Verb {
+        name: "send",
+        example_args: "1580705921830768643 \"Running late\"",
+        text_caption: "Send into a conversation, by id (text)",
+        json_caption: "Send (JSON envelope)",
+    };
+
+    /// `xr conversations history`.
+    pub const HISTORY: Verb = Verb {
+        name: "history",
+        example_args: "1580705921830768643 -n 50",
+        text_caption: "The messages in a conversation, by id (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr conversations with`.
+    pub const WITH: Verb = Verb {
+        name: "with",
+        example_args: "@alice",
+        text_caption: "The messages between you and one person (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr conversations --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Start a group, then send into it (text)",
+                &[Example::text(&START), Example::text(&SEND)],
+            ),
+            (
+                "Read a conversation, JSON envelope",
+                &[Example::json(&HISTORY), Example::json(&WITH)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
+/// The `xr dm-events` family.
+pub mod dm_events {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "dm-events" };
+
+    /// `xr dm-events get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "1580705921830768647",
+        text_caption: "Read one direct message, by event id (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr dm-events remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1580705921830768647 --force --no-interactive",
+        text_caption: "Delete one of your direct messages without a prompt (text)",
+        json_caption: "Delete (JSON envelope)",
+    };
+
+    /// The page under `xr dm-events --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("Read one direct message (text)", &[Example::text(&GET)]),
+            (
+                "Delete one without a prompt, JSON envelope",
+                &[Example::json(&REMOVE)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr communities` family.
 pub mod communities {
     use super::{Example, Family, Section, Verb};

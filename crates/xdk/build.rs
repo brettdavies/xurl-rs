@@ -154,6 +154,26 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "/2/dm_conversations/with/{participant_id}/messages",
     ),
     ("GET_DM_EVENTS", "GET", "/2/dm_events"),
+    ("CREATE_DM_CONVERSATION", "POST", "/2/dm_conversations"),
+    (
+        "SEND_TO_CONVERSATION",
+        "POST",
+        "/2/dm_conversations/{dm_conversation_id}/messages",
+    ),
+    (
+        "GET_CONVERSATION_EVENTS",
+        "GET",
+        "/2/dm_conversations/{id}/dm_events",
+    ),
+    (
+        "GET_DM_EVENTS_WITH",
+        "GET",
+        "/2/dm_conversations/with/{participant_id}/dm_events",
+    ),
+    ("GET_DM_EVENT", "GET", "/2/dm_events/{event_id}"),
+    ("DELETE_DM_EVENT", "DELETE", "/2/dm_events/{event_id}"),
+    ("BLOCK_DMS", "POST", "/2/users/{id}/dm/block"),
+    ("UNBLOCK_DMS", "POST", "/2/users/{id}/dm/unblock"),
     // usage
     ("GET_USAGE", "GET", "/2/usage/tweets"),
     ("GET_USAGE_CREDITS", "GET", "/2/usage/credits"),

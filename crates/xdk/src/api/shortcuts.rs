@@ -16,12 +16,13 @@ use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
-    DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
-    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, Post,
-    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
+    PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -367,6 +368,14 @@ pub const POST_BODY_MAX_CHARS: usize = 280;
 /// X API media attachment cap per post.
 pub const POST_MEDIA_MAX: usize = 4;
 
+/// The fewest people a group conversation starts with besides the caller,
+/// the spec's `minItems` on `participant_ids`.
+pub const DM_GROUP_PARTICIPANTS_MIN: usize = 2;
+
+/// The most people a group conversation starts with besides the caller,
+/// the spec's `maxItems` on `participant_ids`.
+pub const DM_GROUP_PARTICIPANTS_MAX: usize = 49;
+
 /// The most ids one lookup takes, the spec's `maxItems` on `ids`.
 pub const LOOKUP_IDS_MAX: usize = 100;
 
@@ -445,6 +454,46 @@ pub fn validate_community_id(id: &str) -> std::result::Result<(), &'static str> 
 pub fn validate_news_id(id: &str) -> std::result::Result<(), &'static str> {
     if !is_numeric_id(id) {
         return Err("invalid-news-id");
+    }
+    Ok(())
+}
+
+/// Validates how many people a group conversation starts with.
+///
+/// # Errors
+/// Returns `invalid-participant-count` for fewer than
+/// [`DM_GROUP_PARTICIPANTS_MIN`] or more than [`DM_GROUP_PARTICIPANTS_MAX`].
+pub fn validate_participant_count(count: usize) -> std::result::Result<(), &'static str> {
+    if !(DM_GROUP_PARTICIPANTS_MIN..=DM_GROUP_PARTICIPANTS_MAX).contains(&count) {
+        return Err("invalid-participant-count");
+    }
+    Ok(())
+}
+
+/// Validates a conversation id against the spec's pattern: two user ids
+/// joined by a hyphen, or a group's 15 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-conversation-id` for anything else.
+pub fn validate_conversation_id(id: &str) -> std::result::Result<(), &'static str> {
+    let pair = id
+        .split_once('-')
+        .is_some_and(|(a, b)| is_numeric_id(a) && is_numeric_id(b));
+    let group = (15..=19).contains(&id.len()) && is_numeric_id(id);
+    if !(pair || group) {
+        return Err("invalid-conversation-id");
+    }
+    Ok(())
+}
+
+/// Validates a direct-message event id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-dm-event-id` for anything else.
+pub fn validate_dm_event_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-dm-event-id");
     }
     Ok(())
 }
@@ -1001,6 +1050,18 @@ const COMMUNITY_FIELDS: &str = "access,created_at,description,id,join_policy,mem
 /// Every field the spec's `news.fields` lists.
 const NEWS_FIELDS: &str =
     "category,cluster_posts_results,contexts,disclaimer,hook,id,keywords,name,summary,updated_at";
+
+/// The fields and expansions a read of direct-message events asks for.
+fn dm_event_fields() -> Vec<(String, String)> {
+    vec![
+        (
+            "dm_event.fields".to_string(),
+            "created_at,dm_conversation_id,text".to_string(),
+        ),
+        ("expansions".to_string(), "sender_id".to_string()),
+        ("user.fields".to_string(), "username,name".to_string()),
+    ]
+}
 
 /// The fields and expansions a read of whole posts asks for.
 fn post_read_fields() -> Vec<(String, String)> {
@@ -1810,25 +1871,130 @@ impl Client {
         )
     }
 
-    /// Fetches recent DM events.
-    pub fn get_dm_events(&self, max_results: i32) -> Call<ApiResponse<Vec<DmEvent>>> {
-        self.call(
-            endpoints::GET_DM_EVENTS.method,
+    /// Starts a group conversation with `participant_ids`, the people
+    /// besides the caller, and sends `text` into it.
+    pub fn create_dm_conversation<S: AsRef<str>>(
+        &self,
+        participant_ids: &[S],
+        text: &str,
+    ) -> Call<ApiResponse<DmSentResult>> {
+        let participant_ids: Vec<&str> = participant_ids.iter().map(AsRef::as_ref).collect();
+        let body = serde_json::json!({
+            "conversation_type": "Group",
+            "participant_ids": participant_ids,
+            "message": {"text": text},
+        });
+        self.post_json(
             template(
-                endpoints::GET_DM_EVENTS.path,
+                endpoints::CREATE_DM_CONVERSATION.path,
                 HashMap::new(),
-                vec![
-                    ("max_results".to_string(), max_results.to_string()),
-                    (
-                        "dm_event.fields".to_string(),
-                        "created_at,dm_conversation_id,text".to_string(),
-                    ),
-                    ("expansions".to_string(), "sender_id".to_string()),
-                    ("user.fields".to_string(), "username,name".to_string()),
-                ],
+                Vec::new(),
+            ),
+            &body,
+        )
+    }
+
+    /// Sends `text` into a conversation, by its id.
+    pub fn send_to_conversation(
+        &self,
+        conversation_id: &str,
+        text: &str,
+    ) -> Call<ApiResponse<DmSentResult>> {
+        let body = serde_json::json!({"text": text});
+        self.post_json(
+            template(
+                endpoints::SEND_TO_CONVERSATION.path,
+                HashMap::from([(
+                    "dm_conversation_id".to_string(),
+                    conversation_id.to_string(),
+                )]),
+                Vec::new(),
+            ),
+            &body,
+        )
+    }
+
+    /// Fetches the events of one conversation, by its id.
+    pub fn get_conversation_events(
+        &self,
+        conversation_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<DmEvent>>> {
+        self.dm_event_list(
+            endpoints::GET_CONVERSATION_EVENTS.path,
+            id_param(conversation_id),
+            max_results,
+        )
+    }
+
+    /// Fetches the events of the one-to-one conversation with a user.
+    pub fn get_dm_events_with(
+        &self,
+        participant_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<DmEvent>>> {
+        self.dm_event_list(
+            endpoints::GET_DM_EVENTS_WITH.path,
+            HashMap::from([("participant_id".to_string(), participant_id.to_string())]),
+            max_results,
+        )
+    }
+
+    /// Reads one direct-message event, by its id.
+    pub fn get_dm_event(&self, event_id: &str) -> Call<ApiResponse<DmEvent>> {
+        self.call(
+            endpoints::GET_DM_EVENT.method,
+            template(
+                endpoints::GET_DM_EVENT.path,
+                HashMap::from([("event_id".to_string(), event_id.to_string())]),
+                dm_event_fields(),
             ),
         )
-        .paginated()
+    }
+
+    /// Deletes one of the caller's direct-message events, by its id.
+    pub fn delete_dm_event(&self, event_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_DM_EVENT.method,
+            template(
+                endpoints::DELETE_DM_EVENT.path,
+                HashMap::from([("event_id".to_string(), event_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Blocks a user, by id, from sending the caller direct messages.
+    pub fn block_dms(&self, user_id: &str) -> Call<ApiResponse<DmBlockResult>> {
+        self.call(
+            endpoints::BLOCK_DMS.method,
+            template(endpoints::BLOCK_DMS.path, id_param(user_id), Vec::new()),
+        )
+    }
+
+    /// Lets a user, by id, send the caller direct messages again.
+    pub fn unblock_dms(&self, user_id: &str) -> Call<ApiResponse<DmBlockResult>> {
+        self.call(
+            endpoints::UNBLOCK_DMS.method,
+            template(endpoints::UNBLOCK_DMS.path, id_param(user_id), Vec::new()),
+        )
+    }
+
+    /// Fetches recent DM events.
+    pub fn get_dm_events(&self, max_results: i32) -> Call<ApiResponse<Vec<DmEvent>>> {
+        self.dm_event_list(endpoints::GET_DM_EVENTS.path, HashMap::new(), max_results)
+    }
+
+    fn dm_event_list(
+        &self,
+        path: &str,
+        path_params: HashMap<String, String>,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<DmEvent>>> {
+        let mut query = vec![("max_results".to_string(), max_results.to_string())];
+        query.extend(dm_event_fields());
+        self.call("GET", template(path, path_params, query))
+            .paginated()
     }
 
     /// Fetches posts liked by a user.

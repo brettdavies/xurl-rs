@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "dm-events", "get", "dm-1"]
+store: empty
+exit_code: 0
+stdout_len: 157
+stderr_len: 0
+--- stdout ---
+{
+  "command": "dm-events-get",
+  "event_id": "dm-1",
+  "exit_code": 1,
+  "reason": "invalid-dm-event-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

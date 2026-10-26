@@ -1,10 +1,10 @@
-//! The direct-message commands: `dm` and `dms`.
+//! The direct-message commands: `dm`, `dms`, `dm-block`, and `dm-unblock`.
 
 use serde_json::json;
 
 use super::{
-    Run, UNRESOLVED_ID, dry_run_or_validate, list_mine, make_client, print_typed, resolve_user_id,
-    user_id_call, with_flags,
+    Run, UNRESOLVED_ID, act_on_user, dry_run_or_validate, list_mine, make_client, print_typed,
+    resolve_user_id, user_id_call, with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
@@ -55,6 +55,26 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             max_results,
             common,
         } => list_mine(run, "dms", max_results, &common, Client::get_dm_events).await?,
+        Commands::DmBlock {
+            target_username,
+            common,
+        } => {
+            act_on_user(
+                run,
+                "dm-block",
+                &target_username,
+                &common,
+                Client::block_dms,
+            )
+            .await?
+        }
+        Commands::DmUnblock {
+            target_username,
+            common,
+        } => {
+            let shortcut = Client::unblock_dms;
+            act_on_user(run, "dm-unblock", &target_username, &common, shortcut).await?;
+        }
         _ => unreachable!("run_subcommand routes only the direct-message commands here"),
     }
     Ok(())

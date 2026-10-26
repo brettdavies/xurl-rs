@@ -559,6 +559,25 @@ Examples:
     xr dms -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr dm-block` examples — paired text + JSON.
+const DM_BLOCK_HELP: &str = "\
+Examples:
+  Stop someone sending you direct messages (text):
+    xr dm-block @spammer
+  Block (JSON envelope):
+    xr dm-block @spammer --output json
+  Blocks direct messages only; xr block blocks the account.
+";
+
+/// `xr dm-unblock` examples — paired text + JSON.
+const DM_UNBLOCK_HELP: &str = "\
+Examples:
+  Let someone send you direct messages again (text):
+    xr dm-unblock @friend
+  Unblock (JSON envelope):
+    xr dm-unblock @friend --output json
+";
+
 /// `xr auth` parent help — points to subcommands.
 const AUTH_HELP: &str = "\
 Examples:
@@ -1669,6 +1688,40 @@ pub enum Commands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Start a group conversation, send into one, or read one
+    #[command(after_help = family_help::conversations::page())]
+    Conversations {
+        /// `conversations` verb to dispatch.
+        #[command(subcommand)]
+        action: ConversationsCommands,
+    },
+    /// Read or delete one direct message, by event id
+    #[command(after_help = family_help::dm_events::page())]
+    DmEvents {
+        /// `dm-events` verb to dispatch.
+        #[command(subcommand)]
+        action: DmEventsCommands,
+    },
+    /// Stop a user sending you direct messages
+    #[command(after_help = DM_BLOCK_HELP)]
+    DmBlock {
+        /// Username to block from sending you direct messages
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Let a user send you direct messages again
+    #[command(after_help = DM_UNBLOCK_HELP)]
+    DmUnblock {
+        /// Username to unblock
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
     /// List recent direct messages
     #[command(after_help = DMS_HELP)]
     Dms {
@@ -1881,6 +1934,91 @@ pub enum BookmarkFoldersCommands {
         /// The folder's name, 1 to 25 characters
         #[arg(value_name = "NAME")]
         name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr conversations` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ConversationsCommands {
+    /// Start a group conversation and send its first message
+    #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::START))]
+    Start {
+        /// The people to start it with besides you, 2 to 49: each a
+        /// handle, or a numeric user id
+        #[arg(value_name = "PARTICIPANT", required = true, num_args = 1..)]
+        participants: Vec<String>,
+        /// The first message
+        #[arg(long)]
+        text: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Send a message into a conversation, by id
+    #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::SEND))]
+    Send {
+        /// Conversation ID, as `xr dms` prints it
+        #[arg(value_name = "CONVERSATION_ID")]
+        conversation_id: String,
+        /// Message text
+        text: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the messages in a conversation, by id
+    #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::HISTORY))]
+    History {
+        /// Conversation ID, as `xr dms` prints it
+        #[arg(value_name = "CONVERSATION_ID")]
+        conversation_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the messages between you and one person
+    #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::WITH))]
+    With {
+        /// Username of the other person
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr dm-events` verbs.
+#[derive(Subcommand, Debug)]
+pub enum DmEventsCommands {
+    /// Read one direct message, by event id
+    #[command(after_help = family_help::dm_events::FAMILY.verb_page(&family_help::dm_events::GET))]
+    Get {
+        /// Event ID, as `xr dms` prints it
+        #[arg(value_name = "EVENT_ID")]
+        event_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete one of your direct messages, by event id
+    #[command(after_help = family_help::dm_events::FAMILY.verb_page(&family_help::dm_events::REMOVE))]
+    Remove {
+        /// Event ID, as `xr dms` prints it
+        #[arg(value_name = "EVENT_ID")]
+        event_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

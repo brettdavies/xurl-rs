@@ -191,6 +191,14 @@ xr blocked                                     # Users you have blocked
 ```bash
 xr dm @user "Hey!"                             # Send DM
 xr dms                                         # List DMs
+xr conversations start @a @b --text "Hi"       # Start a group with two people
+xr conversations send 1580705921830768643 Hi   # Send into a conversation, by id
+xr conversations history 1580705921830768643   # A conversation's messages
+xr conversations with @alice                   # Your messages with one person
+xr dm-events get 1580705921830768647           # One message, by event id
+xr dm-events remove 1580705921830768647        # Delete one (asks first; --force skips)
+xr dm-block @spammer                           # Stop someone messaging you
+xr dm-unblock @spammer                         # Let them again
 ```
 
 ### Usage and Validation

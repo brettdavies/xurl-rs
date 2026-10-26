@@ -23,10 +23,10 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
-    Community, DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
-    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory,
-    PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult,
+    NewsStory, PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
     StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
     UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
     WebhookValidation, XCall,
@@ -373,6 +373,21 @@ fn spec_action_muting() {
     let resp: ApiResponse<MutingResult> =
         serde_json::from_value(examples["action_muting"].clone()).unwrap();
     assert!(resp.data.muting);
+}
+
+#[test]
+fn spec_dm_event() {
+    let examples = load_examples();
+    let resp: ApiResponse<DmEvent> = serde_json::from_value(examples["dm_event"].clone()).unwrap();
+    assert_eq!(resp.data.text.as_deref(), Some("hello"));
+}
+
+#[test]
+fn spec_dm_blocked() {
+    let examples = load_examples();
+    let resp: ApiResponse<DmBlockResult> =
+        serde_json::from_value(examples["dm_blocked"].clone()).unwrap();
+    assert!(resp.data.blocked);
 }
 
 #[test]
@@ -785,6 +800,8 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("action_blocking", endpoints::BLOCK_USER, ReplyKind::Success),
     ("action_muting", endpoints::MUTE_USER, ReplyKind::Success),
     ("dm_sent", endpoints::SEND_DM, ReplyKind::Success),
+    ("dm_event", endpoints::GET_DM_EVENT, ReplyKind::Success),
+    ("dm_blocked", endpoints::BLOCK_DMS, ReplyKind::Success),
     (
         "dm_event_list",
         endpoints::GET_DM_EVENTS,

@@ -319,6 +319,21 @@
       "dm_event_id": "1580705921830768647"
     }
   },
+  "dm_event": {
+    "data": {
+      "id": "1580705921830768647",
+      "text": "hello",
+      "event_type": "MessageCreate",
+      "dm_conversation_id": "1580705921830768643",
+      "sender_id": "906948460078698496",
+      "created_at": "2022-10-14T00:46:00.000Z"
+    }
+  },
+  "dm_blocked": {
+    "data": {
+      "blocked": true
+    }
+  },
   "dm_event_list": {
     "data": [
       {
