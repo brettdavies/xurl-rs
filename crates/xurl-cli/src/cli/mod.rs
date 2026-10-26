@@ -244,6 +244,17 @@ Examples:
     xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr user-posts` examples — paired text + JSON, JSONL pipeline.
+const USER_POSTS_HELP: &str = "\
+Examples:
+  A user's posts, newest first (text):
+    xr user-posts @XDevelopers
+  100 results, JSON envelope:
+    xr user-posts @XDevelopers -n 100 --output json
+  The text of each post, one per line:
+    xr user-posts @XDevelopers --output json | jaq -r '.data[]?.text'
+";
+
 /// `xr read-posts` examples — paired text + JSON, JSONL pipeline.
 const READ_POSTS_HELP: &str = "\
 Examples:
@@ -1204,6 +1215,19 @@ pub enum Commands {
     Read {
         /// Post ID or URL to read
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts a user wrote
+    #[command(after_help = USER_POSTS_HELP)]
+    UserPosts {
+        /// Username, with or without the leading @
+        target_username: String,
+        /// Number of results (5-100; a lower value is raised to 5, X's
+        /// minimum). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

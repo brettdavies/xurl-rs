@@ -73,6 +73,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "/2/users/{id}/timelines/reverse_chronological",
     ),
     ("GET_MENTIONS", "GET", "/2/users/{id}/mentions"),
+    ("GET_USER_POSTS", "GET", "/2/users/{id}/tweets"),
     ("GET_FOLLOWERS", "GET", "/2/users/{id}/followers"),
     ("GET_MY_FOLLOWERS", "GET", "/2/users/me/followers"),
     ("GET_LIKED_POSTS", "GET", "/2/users/{id}/liked_tweets"),
