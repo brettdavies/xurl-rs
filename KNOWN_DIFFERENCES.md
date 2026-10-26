@@ -173,9 +173,10 @@ path. Go `xurl` asks `/2/users/me` for it on every run (`cli/shortcuts.go`, `res
 
 The Rust version stores the id beside the login the first time `/2/users/me` answers under it: at sign-in, at the
 refresh of a login that has none, on `xr whoami`, or on the first command that needs it. Later commands read it from the
-store and send one request where Go sends two. The field is `user_id` on the OAuth2 token and on the OAuth1 access pair
-in `~/.xurl/auth.yml`. Go `xurl` does not read it, and drops it when it rewrites a login, after which `xr` asks once
-more.
+store and send one request where Go sends two. The fields are `user_id`, `account_username`, and `display_name` on the
+OAuth2 token and on the OAuth1 access pair in `~/.xurl/auth.yml`. Go `xurl` does not read them, and drops them when it
+rewrites a login, after which `xr` asks once more. `xr whoami --cached` prints the stored account with no request;
+Go's `whoami` always asks.
 
 The id is written only from an answer given under that same credential, and a credential that replaces another starts
 without one, so it cannot name a different account. Another user's handle is looked up on every run in both tools.

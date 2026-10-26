@@ -1,7 +1,7 @@
 args: ["whoami", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6830
+stdout_len: 7015
 stderr_len: 0
 --- stdout ---
 Show the authenticated user's profile
@@ -9,6 +9,9 @@ Show the authenticated user's profile
 Usage: xr whoami [OPTIONS]
 
 Options:
+      --cached
+          Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. `source` says which answered
+
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)
 

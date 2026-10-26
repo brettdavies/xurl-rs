@@ -1158,6 +1158,11 @@ pub enum Commands {
     /// Show the authenticated user's profile
     #[command(after_help = WHOAMI_HELP)]
     Whoami {
+        /// Answer from the account the store holds for the login (id,
+        /// username, display name) with no request; ask X when it holds
+        /// none yet. `source` says which answered.
+        #[arg(long)]
+        cached: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

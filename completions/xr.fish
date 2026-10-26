@@ -360,6 +360,7 @@ complete -c xr -n "__fish_xr_using_subcommand whoami" -l limit -d 'Global result
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l cached -d 'Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. `source` says which answered'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s t -l trace -d 'Add X-B3-Flags trace header'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l json -d 'Shorthand for `--output json` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'

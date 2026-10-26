@@ -349,6 +349,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--cached[Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. \`source\` says which answered]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \

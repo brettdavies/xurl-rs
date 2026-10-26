@@ -9,7 +9,7 @@ use super::{
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
-use xdk::api::Client;
+use xdk::api::{AuthPreflight, Client};
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
@@ -58,7 +58,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             );
             send_or_report(out, stdout, dry_run, call).await?;
         }
-        Commands::Whoami { common } => {
+        Commands::Whoami { cached, common } => {
             let Run {
                 cfg,
                 auth,
@@ -67,16 +67,34 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 stdout,
                 ..
             } = run;
-            let dry_run = flags
-                .dry_run
-                .then(|| DryRun::new(json!({"command": "whoami"})));
+            let mut ctx = json!({"command": "whoami"});
+            if cached {
+                ctx["cached"] = json!(true);
+            }
+            let dry_run = flags.dry_run.then(|| DryRun::new(ctx));
             let client = make_client(cfg, auth)?;
             let call = with_flags(client.get_me(), &common, None);
-            match dry_run {
-                Some(dry_run) => dry_run.answer(out, stdout, [call.auth_preflight().await]),
-                // The one command a person runs to ask who a login is, so
-                // its answer is where a login stored without a name gets one.
-                None => print_typed(out, stdout, &call.send_saving_identity().await?)?,
+            if let Some(dry_run) = dry_run {
+                dry_run.answer(out, stdout, [call.auth_preflight().await]);
+                return Ok(());
+            }
+            if cached
+                && let Ok(Some(found)) = call.auth_preflight().await
+                && let Some(stored) = stored_identity(&found)
+            {
+                out.print_response(stdout, &stored);
+                return Ok(());
+            }
+            // The one command a person runs to ask who a login is, so its
+            // answer is where a login stored without a name gets one.
+            let response = call.send_saving_identity().await?;
+            if cached {
+                let mut answered =
+                    serde_json::to_value(&response).map_err(xdk::error::Error::from)?;
+                answered["source"] = json!("api");
+                out.print_response(stdout, &answered);
+            } else {
+                print_typed(out, stdout, &response)?;
             }
         }
         Commands::User {
@@ -115,4 +133,20 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         _ => unreachable!("run_subcommand routes only the read commands here"),
     }
     Ok(())
+}
+
+/// `whoami`'s answer from the store: the account the login belongs to, when
+/// the store holds its id, username, and display name, with `source:
+/// "cache"`. `None` sends the caller to X for an account the store does not
+/// hold whole.
+fn stored_identity(found: &AuthPreflight) -> Option<serde_json::Value> {
+    let (Some(id), Some(username), Some(name)) =
+        (&found.user_id, &found.account_username, &found.display_name)
+    else {
+        return None;
+    };
+    Some(json!({
+        "data": {"id": id, "name": name, "username": username},
+        "source": "cache",
+    }))
 }

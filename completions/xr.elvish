@@ -301,6 +301,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
             cand --page 'Documented alias for `--cursor`'
             cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --cached 'Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. `source` says which answered'
             cand -t 'Add X-B3-Flags trace header'
             cand --trace 'Add X-B3-Flags trace header'
             cand --json 'Shorthand for `--output json` (P2 alias)'

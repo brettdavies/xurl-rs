@@ -6,8 +6,8 @@ use std::io::Write;
 use serde_json::json;
 
 use super::{
-    AuthCtx, AuthGlobalFlags, Gate, build_app_status_entries, destructive_dry_run_context,
-    env_bearer_app, gate_destructive, print_no_apps_registered,
+    AuthCtx, AuthGlobalFlags, Gate, StoredAccountEntry, build_app_status_entries,
+    destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
 };
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
@@ -68,11 +68,12 @@ pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) ->
             if entry.oauth2_users.is_empty() && !entry.oauth2_unnamed {
                 out.print_message(stdout, "      oauth2: (none)");
             } else {
-                for u in &entry.oauth2_users {
+                for (u, account) in entry.oauth2_users.iter().zip(&entry.oauth2_accounts) {
+                    let suffix = account.text_suffix();
                     if *u == app.default_user {
-                        out.print_message(stdout, &format!("    \u{25b8} oauth2: {u}"));
+                        out.print_message(stdout, &format!("    \u{25b8} oauth2: {u}{suffix}"));
                     } else {
-                        out.print_message(stdout, &format!("      oauth2: {u}"));
+                        out.print_message(stdout, &format!("      oauth2: {u}{suffix}"));
                     }
                 }
                 // Render the unnamed (`/me`-failed salvage)
@@ -83,7 +84,12 @@ pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) ->
             }
 
             if entry.oauth1 {
-                out.print_message(stdout, "      oauth1: \u{2713}");
+                let suffix = entry
+                    .oauth1_account
+                    .as_ref()
+                    .map(StoredAccountEntry::text_suffix)
+                    .unwrap_or_default();
+                out.print_message(stdout, &format!("      oauth1: \u{2713}{suffix}"));
             } else {
                 out.print_message(stdout, "      oauth1: \u{2013}");
             }
