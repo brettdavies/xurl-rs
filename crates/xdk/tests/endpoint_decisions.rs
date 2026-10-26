@@ -1,8 +1,9 @@
-//! `endpoint-decisions.json` records the endpoints `xr` deliberately leaves
-//! without a shortcut command, why, and what reopens each decision. These
-//! tests hold it to the vendored spec and to the shortcut list, so a decision
-//! never outlives the operations it names or contradicts a command that
-//! exists.
+//! `endpoint-decisions.json` records what `xr` decided for every spec
+//! operation that has no shortcut command: no command until a trigger fires
+//! (`raw-only`, `not-supported`), or a command family to build (`planned`).
+//! These tests hold it to the vendored spec and to the shortcut list, so a
+//! decision never outlives the operations it names or contradicts a command
+//! that exists, and no operation goes undecided.
 
 mod common;
 
@@ -30,20 +31,19 @@ struct Registry {
 struct Decision {
     id: String,
     operations: Vec<String>,
-    /// Checked by deserializing: `raw-only` or `not-supported`.
-    #[serde(rename = "status")]
-    _status: Status,
+    status: Status,
     reason: String,
     decided: String,
     by: String,
-    revisit_when: Trigger,
+    revisit_when: Option<Trigger>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 enum Status {
     RawOnly,
     NotSupported,
+    Planned,
 }
 
 #[derive(Deserialize)]
@@ -194,7 +194,17 @@ fn every_decision_says_why_when_and_who() {
                 .enumerate()
                 .all(|(at, b)| at == 4 || at == 7 || b.is_ascii_digit());
         assert!(iso_date, "{id} has no YYYY-MM-DD decided date");
-        match &decision.revisit_when {
+        let trigger = match (&decision.status, &decision.revisit_when) {
+            (Status::Planned, None) => continue,
+            (Status::Planned, Some(_)) => {
+                panic!(
+                    "{id} is planned: it is retired when the command ships, so it takes no revisit_when"
+                )
+            }
+            (_, None) => panic!("{id} has no revisit_when"),
+            (_, Some(trigger)) => trigger,
+        };
+        match trigger {
             Trigger::Never => {}
             Trigger::GithubPrMerged { repo, number } => {
                 assert!(
@@ -209,6 +219,30 @@ fn every_decision_says_why_when_and_who() {
             }
         }
     }
+}
+
+#[test]
+fn every_spec_operation_has_a_shortcut_or_a_decision() {
+    let decisions = registry().decisions;
+    let shortcuts: BTreeSet<String> = SHORTCUT_TEMPLATES
+        .iter()
+        .map(|(method, path)| format!("{method} {path}"))
+        .collect();
+    let undecided: Vec<String> = spec_operations()
+        .into_iter()
+        .filter(|op| !shortcuts.contains(op))
+        .filter(|op| {
+            !decisions
+                .iter()
+                .any(|d| d.operations.iter().any(|pattern| covers(pattern, op)))
+        })
+        .collect();
+    assert!(
+        undecided.is_empty(),
+        "operations with neither a shortcut nor a decision: {undecided:?}\n\
+         Build a command for each (AGENTS.md, \"Adding a command family\"), or propose an \
+         endpoint-decisions.json entry for a person to decide."
+    );
 }
 
 #[test]

@@ -357,7 +357,7 @@ jobs:
             echo ""
             echo "### Endpoint decisions"
             echo ""
-            echo "Operations this refresh adds that \`endpoint-decisions.json\` already decides. Build no command for them while the decision holds; the daily run's summary reports a decision whose trigger has fired."
+            echo "Operations this refresh adds that \`endpoint-decisions.json\` already decides. Build a \`planned\` one with the rest of the refresh; build no command for a \`raw-only\` or \`not-supported\` one while it holds. The daily run's summary reports a decision whose trigger has fired."
             echo ""
             cat "${decisions_dev}"
             echo ""

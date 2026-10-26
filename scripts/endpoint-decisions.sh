@@ -1,20 +1,22 @@
 #!/usr/bin/env bash
-# Read endpoint-decisions.json, the record of the endpoints xr deliberately
-# leaves without a shortcut command, why, and what reopens each decision.
+# Read endpoint-decisions.json, the record of what xr decided for every spec
+# operation without a shortcut command: no command until a trigger fires
+# (raw-only, not-supported), or a command family to build (planned).
 #
 # Usage:
 #   scripts/endpoint-decisions.sh covered <old-spec-json> <new-spec-json>
 #   scripts/endpoint-decisions.sh triggers
 #
 # covered: prints a markdown list of the operations <new-spec-json> adds over
-#   <old-spec-json> that a decision covers, so a spec-refresh runbook does not
-#   propose a command for them. Prints one line saying so when none is covered.
+#   <old-spec-json> that a decision covers, with what the decision says to do.
+#   Prints one line saying so when none is covered.
 #
 # triggers: prints one line per decision: `fired <id>: <evidence>` once its
-#   revisit_when has happened, `holding <id>: <what reopens it>` before, and
-#   `unknown <id>: <why>` when the check could not run. A fired decision is
-#   reopened by a person, who updates or retires its entry. Reads GitHub with
-#   `gh` (GH_TOKEN) and crates.io over HTTPS; nothing is written.
+#   revisit_when has happened, `holding <id>: <what reopens it>` before,
+#   `planned <id>: ...` for a command still to build, and `unknown <id>: <why>`
+#   when the check could not run. A fired decision is reopened by a person, who
+#   updates or retires its entry. Reads GitHub with `gh` (GH_TOKEN) and
+#   crates.io over HTTPS; nothing is written.
 #
 # Exits 0 whatever the decisions say; 2 on a usage error or an unreadable file.
 #
@@ -73,7 +75,7 @@ covered() {
         | [$added | split("\n")[] | select(length > 0)
            | select(. as $op | any($decision.operations[]; covers(.; $op)))]
         | select(length > 0)
-        | "- \(map("`\(.)`") | join(", ")): decided `\($decision.id)` (\($decision.status), \($decision.decided), \($decision.by)). \($decision.reason) Reopens when: \($decision.revisit_when | reopens)."
+        | "- \(map("`\(.)`") | join(", ")): decided `\($decision.id)` (\($decision.status), \($decision.decided), \($decision.by)). \($decision.reason) \(if $decision.status == "planned" then "Build it." else "No command; reopens when: \($decision.revisit_when | reopens)." end)"
     ' "${registry}")"
   if [ -z "${lines}" ]; then
     echo "No decision covers an operation this refresh adds."
@@ -88,6 +90,9 @@ triggers() {
   # so empty fields between tabs would collapse and shift the rest.
   while IFS=$'\x1f' read -r id kind repo number crate; do
     case "${kind}" in
+      planned)
+        echo "planned ${id}: until the command ships"
+        ;;
       never)
         echo "holding ${id}: never reopens"
         ;;
@@ -116,7 +121,8 @@ triggers() {
         echo "unknown ${id}: trigger kind ${kind}"
         ;;
     esac
-  done < <(jq -r '.decisions[] | [.id, .revisit_when.kind,
+  done < <(jq -r '.decisions[] | [.id,
+        (if .status == "planned" then "planned" else .revisit_when.kind end),
         (.revisit_when.repo // ""), (.revisit_when.number // "" | tostring),
         (.revisit_when.crate // "")] | join("\u001f")' "${registry}")
 }

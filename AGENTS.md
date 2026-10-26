@@ -358,13 +358,15 @@ PR to `main` (squash) → annotated tag push triggers `release.yml`.
 The spec-drift workflow opens PRs to `dev` (head `spec-refresh`) whose body is an agent runbook. Invoke the reconciling
 agent as "Triage and fix PR #N".
 
-`endpoint-decisions.json` records each endpoint `xr` deliberately leaves without a command: its operations, `raw-only`
-or `not-supported`, the reason, who decided and when, and `revisit_when`, the event that reopens it (`never`, a GitHub
-pull request merging, or a crate being published). A refresh PR's runbook lists the added operations a decision covers,
-so none is proposed again, and the daily run's summary reports each decision as fired or holding
-(`scripts/endpoint-decisions.sh triggers`). Only a person changes or retires a decision, once its trigger has fired.
-`crates/xdk/tests/endpoint_decisions.rs` fails for an entry that names an operation the vendored spec lacks or one that
-has a shortcut.
+`endpoint-decisions.json` records what was decided for every spec operation without a shortcut command: the
+operations, the status, the reason, and who decided and when. `raw-only` and `not-supported` mean no command until
+`revisit_when` fires (`never`, a GitHub pull request merging, or a crate being published); `planned` names a command
+family to build, and its entry goes when the command ships. A refresh PR's runbook lists the added operations a decision
+covers, so none is proposed again, and the daily run's summary reports each trigger as fired or holding
+(`scripts/endpoint-decisions.sh triggers`). Only a person changes a decision, and a `raw-only` or `not-supported` one
+only once its trigger has fired. `crates/xdk/tests/endpoint_decisions.rs` fails for a spec operation with neither a
+shortcut nor a decision, for an entry naming an operation the spec lacks, and for a decision covering one that has a
+shortcut.
 
 ## Known differences from the Go original
 

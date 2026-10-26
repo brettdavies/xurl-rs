@@ -1,9 +1,14 @@
 {
-  "$comment": "Endpoints in crates/xdk/vendor/x-api-openapi.json that xr deliberately leaves without a shortcut command. An operation is \"METHOD /path\"; METHOD may be *, and a path ending in /** also covers every path below it. A decision holds until its revisit_when fires: never, github-pr-merged (repo, number), or crate-published (crate). crates/xdk/tests/endpoint_decisions.rs holds every entry to the spec and the shortcut list; scripts/endpoint-decisions.sh marks covered operations in a spec-refresh PR and reports fired triggers daily.",
+  "$comment": "Endpoints in crates/xdk/vendor/x-api-openapi.json that have no shortcut command, and what xr decided for each. An operation is \"METHOD /path\"; METHOD may be *, and a path ending in /** also covers every path below it. status is raw-only or not-supported (no command, until revisit_when fires: never, github-pr-merged with repo and number, or crate-published with crate) or planned (a command family to build; it takes no revisit_when, and the entry is removed when the command ships). crates/xdk/tests/endpoint_decisions.rs holds every entry to the spec and the shortcut list, and fails for a spec operation with neither; scripts/endpoint-decisions.sh marks covered operations in a spec-refresh PR and reports fired triggers daily.",
   "decisions": [
     {
       "id": "xchat",
-      "operations": ["* /2/chat/**", "POST /2/users/{id}/public_keys"],
+      "operations": [
+        "* /2/chat/**",
+        "POST /2/users/{id}/public_keys",
+        "GET /2/users/{id}/public_keys",
+        "GET /2/users/public_keys"
+      ],
       "status": "not-supported",
       "reason": "XChat conversations are end-to-end encrypted: sending and reading them needs the conversation keys and message signatures that X's chat-xdk-core library handles, and that library is unpublished. Raw mode still reaches the endpoints.",
       "decided": "2026-10-22",
@@ -15,7 +20,11 @@
     },
     {
       "id": "calls-live",
-      "operations": ["POST /2/calls", "POST /2/calls/{id}/join", "POST /2/calls/{id}/leave"],
+      "operations": [
+        "POST /2/calls",
+        "POST /2/calls/{id}/join",
+        "POST /2/calls/{id}/leave"
+      ],
       "status": "not-supported",
       "reason": "Joining a call hands out a single-use, two-minute token for a real-time PCM16 audio WebSocket that xr does not drive, and starting one makes an empty call that xr calls scheduled add already provides. X marks the Calls API as in development. Raw mode still reaches the endpoints.",
       "decided": "2026-10-26",
@@ -28,7 +37,9 @@
     },
     {
       "id": "activity",
-      "operations": ["* /2/activity/**"],
+      "operations": [
+        "* /2/activity/**"
+      ],
       "status": "raw-only",
       "reason": "No xr activity family: raw mode covers the subscription endpoints and streams /2/activity/stream like every stream the spec declares.",
       "decided": "2026-10-05",
@@ -36,6 +47,351 @@
       "revisit_when": {
         "kind": "never"
       }
+    },
+    {
+      "id": "streams",
+      "operations": [
+        "GET /2/likes/compliance/stream",
+        "GET /2/likes/firehose/stream",
+        "GET /2/likes/sample10/stream",
+        "GET /2/tweets/compliance/stream",
+        "GET /2/tweets/firehose/stream/**",
+        "GET /2/tweets/label/stream",
+        "GET /2/tweets/sample/stream",
+        "GET /2/tweets/sample10/stream",
+        "GET /2/tweets/search/stream",
+        "GET /2/users/compliance/stream"
+      ],
+      "status": "raw-only",
+      "reason": "Raw mode streams every stream the spec declares (xr -s <path>), one JSON line per event; a command would add nothing a pipe does not.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "posts-full-archive",
+      "operations": [
+        "GET /2/tweets/search/all",
+        "GET /2/tweets/counts/all"
+      ],
+      "status": "raw-only",
+      "reason": "The same shapes as recent search and counts over all time. A flag on xr search would select an endpoint, which the command grammar forbids; raw mode serves them.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "post-repost-objects",
+      "operations": [
+        "GET /2/tweets/{id}/retweets"
+      ],
+      "status": "raw-only",
+      "reason": "The reposts of a post as post objects. Who reposted is the planned post-engagement command; these posts carry nothing more.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "users-minor-reads",
+      "operations": [
+        "GET /2/users/reposts_of_me",
+        "GET /2/users/{id}/affiliates"
+      ],
+      "status": "raw-only",
+      "reason": "Reposts of your posts and an organization's affiliates are niche reads; raw mode serves them.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "dm-legacy-media",
+      "operations": [
+        "GET /2/dm_conversations/media/{dm_id}/{media_id}/{resource_id}"
+      ],
+      "status": "raw-only",
+      "reason": "Downloads media from a legacy direct message as raw bytes; raw mode writes the body to a file.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "spaces-ticket-buyers",
+      "operations": [
+        "GET /2/spaces/{id}/buyers"
+      ],
+      "status": "raw-only",
+      "reason": "Ticket buyers of a ticketed Space, readable only by its creator.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "app-administration",
+      "operations": [
+        "* /2/bots/**",
+        "* /2/compliance/jobs/**",
+        "* /2/connections/**",
+        "* /2/account"
+      ],
+      "status": "raw-only",
+      "reason": "Project administration: bot accounts and their bearer tokens, batch compliance jobs, streaming connections, and the developer account. A command would print minted bearer tokens into transcripts; the developer console and raw mode serve these.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "openapi-document",
+      "operations": [
+        "GET /2/openapi.json"
+      ],
+      "status": "raw-only",
+      "reason": "The spec document itself, which the spec-drift workflow fetches.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "me-follow-lists",
+      "operations": [
+        "GET /2/users/me/followers",
+        "GET /2/users/me/following"
+      ],
+      "status": "planned",
+      "reason": "xr followers and xr following without --of send these, skipping the id lookup; with --of they keep /2/users/{id}/followers and /following. AGENTS.md's command grammar gains the exception that a flag naming another user may pick that user's endpoint over the caller's own.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "post-engagement",
+      "operations": [
+        "GET /2/tweets/{id}/liking_users",
+        "GET /2/tweets/{id}/retweeted_by",
+        "GET /2/tweets/{id}/quote_tweets"
+      ],
+      "status": "planned",
+      "reason": "Who liked, who reposted, and which posts quote a post.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "posts-lookup",
+      "operations": [
+        "GET /2/tweets"
+      ],
+      "status": "planned",
+      "reason": "Up to 100 posts by id in one request, which turns the ids a bookmark folder lists into posts.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "post-counts",
+      "operations": [
+        "GET /2/tweets/counts/recent"
+      ],
+      "status": "planned",
+      "reason": "How many posts match a query per bucket over the last seven days, before paying for a search.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "hidden-replies",
+      "operations": [
+        "PUT /2/tweets/{tweet_id}/hidden"
+      ],
+      "status": "planned",
+      "reason": "Hide or unhide a reply to your post.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "post-analytics",
+      "operations": [
+        "GET /2/tweets/analytics"
+      ],
+      "status": "planned",
+      "reason": "Impressions and engagement for your posts.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "lists",
+      "operations": [
+        "* /2/lists/**",
+        "* /2/users/{id}/followed_lists/**",
+        "* /2/users/{id}/pinned_lists/**",
+        "GET /2/users/{id}/list_memberships",
+        "GET /2/users/{id}/owned_lists"
+      ],
+      "status": "planned",
+      "reason": "An xr lists family: create, update, and delete lists; add and remove members; a list's posts, members, and followers; your owned, followed, and pinned lists and memberships; follow, unfollow, pin, and unpin.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "users-lookup",
+      "operations": [
+        "GET /2/users",
+        "GET /2/users/by",
+        "GET /2/users/{id}"
+      ],
+      "status": "planned",
+      "reason": "Look up users by id, or several by id or username in one request.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "users-search",
+      "operations": [
+        "GET /2/users/search"
+      ],
+      "status": "planned",
+      "reason": "Search for accounts by keyword.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "user-posts",
+      "operations": [
+        "GET /2/users/{id}/tweets"
+      ],
+      "status": "planned",
+      "reason": "A user's own posts.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "dm-conversations",
+      "operations": [
+        "POST /2/dm_conversations",
+        "POST /2/dm_conversations/{dm_conversation_id}/messages",
+        "GET /2/dm_conversations/with/{participant_id}/dm_events",
+        "GET /2/dm_conversations/{id}/dm_events",
+        "GET /2/dm_events/{event_id}",
+        "DELETE /2/dm_events/{event_id}",
+        "POST /2/users/{id}/dm/block",
+        "POST /2/users/{id}/dm/unblock"
+      ],
+      "status": "planned",
+      "reason": "Extend the dm commands: start a group conversation, send into a conversation, read one conversation's history, read or delete one message, and block or unblock a user's direct messages.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "stream-rules",
+      "operations": [
+        "* /2/tweets/search/stream/rules",
+        "GET /2/tweets/search/stream/rules/counts"
+      ],
+      "status": "planned",
+      "reason": "xr stream rules list, add, remove, and counts for the filtered stream, with the endpoint's dry_run behind --dry-run.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "broadcasts",
+      "operations": [
+        "GET /2/broadcasts",
+        "GET /2/broadcasts/{id}",
+        "* /2/broadcasts/scheduled/**",
+        "* /2/broadcasts/{id}/chat/**"
+      ],
+      "status": "planned",
+      "reason": "Extend xr broadcasts: your broadcasts; broadcasts scheduled (list, get, add, update, remove, live), which takes a source from broadcasts sources; and broadcasts chat (history, send, remove a message, mute, unmute).",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "spaces",
+      "operations": [
+        "GET /2/spaces",
+        "GET /2/spaces/by/creator_ids",
+        "GET /2/spaces/search",
+        "GET /2/spaces/{id}",
+        "GET /2/spaces/{id}/tweets"
+      ],
+      "status": "planned",
+      "reason": "An xr spaces family for discovery: search, by id, by creator, and a Space's posts.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "community-notes",
+      "operations": [
+        "* /2/notes/**"
+      ],
+      "status": "planned",
+      "reason": "An xr notes family over X's AI Note Writer API: write, rate, and delete notes, find posts eligible for one, and list the notes you wrote. Using it needs enrollment in X's program.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "media-lookup",
+      "operations": [
+        "GET /2/media",
+        "GET /2/media/{media_key}",
+        "GET /2/media/analytics"
+      ],
+      "status": "planned",
+      "reason": "Extend xr media: get one or several uploads by media key, and their analytics.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "trends",
+      "operations": [
+        "GET /2/trends/by/woeid/{woeid}",
+        "GET /2/users/personalized_trends"
+      ],
+      "status": "planned",
+      "reason": "Trends for a place and your personalized trends, as two verbs.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "news",
+      "operations": [
+        "* /2/news/**"
+      ],
+      "status": "planned",
+      "reason": "News search and a story by id.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "communities",
+      "operations": [
+        "* /2/communities/**"
+      ],
+      "status": "planned",
+      "reason": "Community search and a community by id.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
+    },
+    {
+      "id": "articles",
+      "operations": [
+        "* /2/articles/**"
+      ],
+      "status": "planned",
+      "reason": "xr articles draft and publish for long-form X Articles; publishing asks first, like other outward actions.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep"
     }
   ]
 }
