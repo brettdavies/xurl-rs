@@ -270,16 +270,6 @@
       "by": "Brett, in the #370 sweep"
     },
     {
-      "id": "news",
-      "operations": [
-        "* /2/news/**"
-      ],
-      "status": "planned",
-      "reason": "News search and a story by id.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "communities",
       "operations": [
         "* /2/communities/**"

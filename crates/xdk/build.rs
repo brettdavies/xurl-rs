@@ -62,6 +62,10 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("SEARCH_POSTS", "GET", "/2/tweets/search/recent"),
     ("GET_POST_COUNTS", "GET", "/2/tweets/counts/recent"),
     ("GET_POST_ANALYTICS", "GET", "/2/tweets/analytics"),
+    ("HIDE_REPLY", "PUT", "/2/tweets/{tweet_id}/hidden"),
+    ("GET_LIKING_USERS", "GET", "/2/tweets/{id}/liking_users"),
+    ("GET_REPOSTED_BY", "GET", "/2/tweets/{id}/retweeted_by"),
+    ("GET_QUOTE_POSTS", "GET", "/2/tweets/{id}/quote_tweets"),
     // trends
     ("GET_TRENDS", "GET", "/2/trends/by/woeid/{woeid}"),
     (
@@ -69,10 +73,9 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "GET",
         "/2/users/personalized_trends",
     ),
-    ("HIDE_REPLY", "PUT", "/2/tweets/{tweet_id}/hidden"),
-    ("GET_LIKING_USERS", "GET", "/2/tweets/{id}/liking_users"),
-    ("GET_REPOSTED_BY", "GET", "/2/tweets/{id}/retweeted_by"),
-    ("GET_QUOTE_POSTS", "GET", "/2/tweets/{id}/quote_tweets"),
+    // news
+    ("SEARCH_NEWS", "GET", "/2/news/search"),
+    ("GET_NEWS", "GET", "/2/news/{id}"),
     // users (reads)
     ("GET_ME", "GET", "/2/users/me"),
     ("LOOKUP_USER", "GET", "/2/users/by/username/{username}"),

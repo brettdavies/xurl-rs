@@ -126,6 +126,13 @@ xr timeline                                    # Home timeline
 xr mentions                                    # Your mentions
 ```
 
+### News
+
+```bash
+xr news search "open source" --max-age-hours 24  # Stories from the last day
+xr news get 1850000000000000000                # One story, with the posts it clusters
+```
+
 ### Trends
 
 ```bash

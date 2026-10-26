@@ -33,6 +33,7 @@ sign-in does not request the `calls.read` and `calls.write` scopes the calls end
 - `xr likers`, `xr reposters`, and `xr quotes`
 - `xr read-posts`, `xr user-posts`, `xr search-users`, `xr search-counts`, and `xr analytics`
 - `xr trends` (`place`, `personal`)
+- `xr news` (`search`, `get`)
 
 Go neither forwards events nor recovers from a restart. `xr webhooks listen --forward` POSTs each verified event to a
 URL of the caller's, a program after `--` runs once per event, and `--checkpoint` records how far `listen` got, which

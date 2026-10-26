@@ -448,6 +448,61 @@ pub struct PersonalizedTrend {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// A news story X assembles from posts.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct NewsStory {
+    /// Story ID.
+    pub id: String,
+    /// The story's headline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The topic X files the story under.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    /// A one-line teaser.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hook: Option<String>,
+    /// The story's summary.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary: Option<String>,
+    /// A note X attaches to the summary.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub disclaimer: Option<String>,
+    /// When X last updated the story.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    /// The entities and topics the story concerns, as X sends them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub contexts: Option<Value>,
+    /// The keywords X ties to the story, as X sends them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keywords: Option<Value>,
+    /// The posts the story clusters. Either this name or the legacy
+    /// `cluster_tweets_results` fills the field.
+    #[serde(
+        default,
+        alias = "cluster_tweets_results",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[doc(alias = "cluster_tweets_results")]
+    pub cluster_posts_results: Option<Vec<NewsClusterPost>>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A post a [`NewsStory`] clusters.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct NewsClusterPost {
+    /// Post ID. Either this name or the legacy `tweet_id` fills the field.
+    #[serde(alias = "tweet_id")]
+    #[doc(alias = "tweet_id")]
+    pub post_id: String,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.

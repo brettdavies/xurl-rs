@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 4908
+stdout_len: 5021
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -45,6 +45,8 @@ media-subtitles-remove         ApiResponse<DeletedResult>
 mentions                       ApiResponse<Vec<Post>>
 mute                           ApiResponse<MutingResult>
 muted                          ApiResponse<Vec<User>>
+news-get                       ApiResponse<NewsStory>
+news-search                    ApiResponse<Vec<NewsStory>>
 post                           ApiResponse<Post>
 quote                          ApiResponse<Post>
 quotes                         ApiResponse<Vec<Post>>

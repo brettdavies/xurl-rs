@@ -32,6 +32,7 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "invalid-webhook-id" => "A webhook id is 1 to 19 digits.".to_string(),
         "invalid-user-id" => "A user id is 1 to 19 digits; a handle is not one.".to_string(),
         "invalid-folder-id" => "A bookmark folder id is 1 to 19 digits.".to_string(),
+        "invalid-news-id" => "A news story id is 1 to 19 digits.".to_string(),
         "empty-webhook-url" => "The webhook URL is empty.".to_string(),
         "webhook-url-too-long" => {
             format!("The webhook URL is longer than {WEBHOOK_URL_MAX_CHARS} characters.")

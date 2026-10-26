@@ -151,6 +151,40 @@
       }
     ]
   },
+  "news_list": {
+    "data": [
+      {
+        "id": "1850000000000000000",
+        "name": "Rust 2026 edition plans published",
+        "category": "Technology",
+        "hook": "The project laid out what the next edition changes.",
+        "summary": "The Rust project published its plans for the 2026 edition.",
+        "updated_at": "2026-10-26T12:00:00.000Z",
+        "cluster_posts_results": [
+          {
+            "post_id": "1585341984679469056"
+          }
+        ]
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "news_story": {
+    "data": {
+      "id": "1850000000000000000",
+      "name": "Rust 2026 edition plans published",
+      "category": "Technology",
+      "summary": "The Rust project published its plans for the 2026 edition.",
+      "disclaimer": "This story is a summary of posts on X and may evolve over time.",
+      "cluster_posts_results": [
+        {
+          "post_id": "1585341984679469056"
+        }
+      ]
+    }
+  },
   "user_single": {
     "data": {
       "id": "2244994945",
