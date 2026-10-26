@@ -16,16 +16,17 @@ use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast, BroadcastChatMessage,
-    ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult,
-    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
-    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
+    ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
+    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
+    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -105,6 +106,8 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<HiddenResult>("hide"),
     typed_alias::<Vec<PostCount>>("post-counts"),
     typed_alias::<Vec<PostAnalytics>>("analytics"),
+    typed_alias::<ArticleDraft>("article-draft"),
+    typed_alias::<ArticlePublished>("article-published"),
     typed_alias::<NoteCreated>("note-created"),
     typed_alias::<NoteEvaluation>("note-evaluation"),
     typed_alias::<Vec<Note>>("notes"),

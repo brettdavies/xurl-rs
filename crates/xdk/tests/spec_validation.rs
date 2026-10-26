@@ -22,12 +22,12 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
-    BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast,
-    BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community,
-    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated,
-    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ArticleDraft, ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost,
+    BookmarkedResult, Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult,
+    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
+    FollowingResult, HiddenResult, LikedResult, List, ListMemberResult, ListUpdatedResult,
+    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, Note,
+    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
     StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
@@ -221,6 +221,17 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_articles() {
+    let examples = load_examples();
+    let draft: ApiResponse<ArticleDraft> =
+        serde_json::from_value(examples["article_draft"].clone()).unwrap();
+    assert_eq!(draft.data.title, "Why Rust");
+    let published: ApiResponse<ArticlePublished> =
+        serde_json::from_value(examples["article_published"].clone()).unwrap();
+    assert_eq!(published.data.post_id, "1585341984679469056");
 }
 
 #[test]
@@ -843,6 +854,16 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("community", endpoints::GET_COMMUNITY, ReplyKind::Success),
     ("list_single", endpoints::GET_LIST, ReplyKind::Success),
     ("broadcasts", endpoints::LIST_BROADCASTS, ReplyKind::Success),
+    (
+        "article_draft",
+        endpoints::CREATE_ARTICLE_DRAFT,
+        ReplyKind::Success,
+    ),
+    (
+        "article_published",
+        endpoints::PUBLISH_ARTICLE,
+        ReplyKind::Success,
+    ),
     ("note_created", endpoints::CREATE_NOTE, ReplyKind::Success),
     (
         "note_evaluation",

@@ -93,6 +93,10 @@ POST AND READ:
     xr notes evaluate 1585341984679469056 --text \"The photo is from 2019: https://example.com/source\"
     xr notes write 1585341984679469056 --text \"The photo is from 2019: https://example.com/source\" --classification not_misleading --test --output json
 
+  Save an X Article from a text file, then publish it without a prompt:
+    xr articles draft --title \"Why Rust\" --body-file why-rust.md --output json
+    xr articles publish 1850000000000000003 --force --no-interactive --output json
+
 MANAGE SOCIAL GRAPH:
   Look up a user:
     xr user elonmusk --output json

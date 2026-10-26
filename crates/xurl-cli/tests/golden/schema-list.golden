@@ -1,10 +1,12 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 7619
+stdout_len: 7737
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
+articles-draft                 ApiResponse<ArticleDraft>
+articles-publish               ApiResponse<ArticlePublished>
 auth-apps-list                 Vec<AppStatusEntry>
 auth-status                    Vec<AppStatusEntry>
 block                          ApiResponse<BlockingResult>

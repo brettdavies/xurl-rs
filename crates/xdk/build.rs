@@ -110,6 +110,13 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/users/{id}/pinned_lists/{list_id}",
     ),
+    // articles
+    ("CREATE_ARTICLE_DRAFT", "POST", "/2/articles/draft"),
+    (
+        "PUBLISH_ARTICLE",
+        "POST",
+        "/2/articles/{article_id}/publish",
+    ),
     // community notes
     ("CREATE_NOTE", "POST", "/2/notes"),
     ("EVALUATE_NOTE", "POST", "/2/notes/evaluate"),

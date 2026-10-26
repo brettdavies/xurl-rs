@@ -506,6 +506,16 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::CREATE_ARTICLE_DRAFT,
+        fixture: "article_draft",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::PUBLISH_ARTICLE,
+        fixture: "article_published",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::CREATE_NOTE,
         fixture: "note_created",
         status: 201,

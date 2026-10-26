@@ -381,6 +381,17 @@
       }
     ]
   },
+  "article_draft": {
+    "data": {
+      "id": "1850000000000000003",
+      "title": "Why Rust"
+    }
+  },
+  "article_published": {
+    "data": {
+      "post_id": "1585341984679469056"
+    }
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

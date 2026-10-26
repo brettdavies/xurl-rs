@@ -676,6 +676,7 @@ fn dry_run_cases() -> Vec<Case> {
         ..Case::default()
     };
     let long_title = "x".repeat(101);
+    let article_fixtures = common::workspace_root().join("crates/xurl-cli/tests/fixtures/articles");
     let long_description = "x".repeat(1001);
     let long_recurrence = "x".repeat(501);
     let long_time_zone = "x".repeat(65);
@@ -815,6 +816,51 @@ fn dry_run_cases() -> Vec<Case> {
                 "hi",
             ],
         ),
+        case(
+            "dry-run-invalid-article-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "articles",
+                "publish",
+                "draft-1",
+            ],
+        ),
+        Case {
+            cwd: Some(article_fixtures.clone()),
+            ..case(
+                "dry-run-empty-article-title",
+                &[
+                    "--output",
+                    "json",
+                    "--dry-run",
+                    "articles",
+                    "draft",
+                    "--title",
+                    "",
+                    "--body-file",
+                    "why-rust.md",
+                ],
+            )
+        },
+        Case {
+            cwd: Some(article_fixtures),
+            ..case(
+                "dry-run-empty-article-body",
+                &[
+                    "--output",
+                    "json",
+                    "--dry-run",
+                    "articles",
+                    "draft",
+                    "--title",
+                    "Why Rust",
+                    "--body-file",
+                    "blank.md",
+                ],
+            )
+        },
         case(
             "dry-run-invalid-note-id",
             &["--output", "json", "--dry-run", "notes", "remove", "note-1"],

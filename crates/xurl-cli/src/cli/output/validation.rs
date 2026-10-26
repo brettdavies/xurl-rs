@@ -36,6 +36,9 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "invalid-folder-id" => "A bookmark folder id is 1 to 19 digits.".to_string(),
         "invalid-news-id" => "A news story id is 1 to 19 digits.".to_string(),
         "invalid-community-id" => "A community id is 1 to 19 digits.".to_string(),
+        "empty-article-title" => "The article title is empty.".to_string(),
+        "empty-article-body" => "The article body holds no text.".to_string(),
+        "invalid-article-id" => "An article id is 1 to 19 digits.".to_string(),
         "invalid-note-id" => "A Community Note id is 1 to 19 digits.".to_string(),
         "note-needs-source-url" => {
             "A Community Note's text carries a source URL, http:// or https://.".to_string()

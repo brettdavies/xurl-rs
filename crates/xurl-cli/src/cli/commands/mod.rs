@@ -1,5 +1,6 @@
 //! Command execution — dispatches CLI commands to API functions.
 
+mod articles;
 mod auth;
 mod bookmark_folders;
 mod broadcast_chat;
@@ -607,6 +608,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Lists { action } => lists::run(action, run).await,
         Commands::Communities { action } => communities::run(action, run).await,
         Commands::News { action } => news::run(action, run).await,
+        Commands::Articles { action } => articles::run(action, run).await,
         Commands::Notes { action } => notes::run(action, run).await,
         Commands::Trends { action } => trends::run(action, run).await,
         Commands::BookmarkFolders { action } => bookmark_folders::run(action, run).await,

@@ -10,16 +10,17 @@ use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, Redirec
 use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast, BroadcastChatMessage,
-    ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult,
-    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
-    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
+    ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
+    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
+    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -151,6 +152,16 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts-chat-mute", "broadcasts-chat-unmute"],
         type_name: "ApiResponse<ChatMutedResult>",
         schema: || schema_for!(ApiResponse<ChatMutedResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["articles-draft"],
+        type_name: "ApiResponse<ArticleDraft>",
+        schema: || schema_for!(ApiResponse<ArticleDraft>).into(),
+    },
+    SchemaEntry {
+        commands: &["articles-publish"],
+        type_name: "ApiResponse<ArticlePublished>",
+        schema: || schema_for!(ApiResponse<ArticlePublished>).into(),
     },
     SchemaEntry {
         commands: &["notes-write"],
@@ -446,6 +457,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
 /// document for them. Every command is in exactly one of this set and
 /// `SCHEMA_ENTRIES`.
 pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
+    "articles",
     "auth",
     "auth-app",
     "auth-apps",

@@ -503,6 +503,46 @@ pub mod news {
     }
 }
 
+/// The `xr articles` family.
+pub mod articles {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "articles" };
+
+    /// `xr articles draft`.
+    pub const DRAFT: Verb = Verb {
+        name: "draft",
+        example_args: "--title \"Why Rust\" --body-file why-rust.md",
+        text_caption: "Save a draft from a text file (text)",
+        json_caption: "Save (JSON envelope)",
+    };
+
+    /// `xr articles publish`.
+    pub const PUBLISH: Verb = Verb {
+        name: "publish",
+        example_args: "1850000000000000003 --force --no-interactive",
+        text_caption: "Publish a draft without a prompt (text)",
+        json_caption: "Publish (JSON envelope)",
+    };
+
+    /// The page under `xr articles --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Save a draft from a text file (text)",
+                &[Example::text(&DRAFT)],
+            ),
+            (
+                "Publish it without a prompt, JSON envelope",
+                &[Example::json(&PUBLISH)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr notes` family.
 pub mod notes {
     use super::{Example, Family, Section, Verb};

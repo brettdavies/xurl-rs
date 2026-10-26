@@ -1,0 +1,20 @@
+args: ["--output", "json", "--dry-run", "articles", "draft", "--title", "Why Rust", "--body-file", "blank.md"]
+store: empty
+exit_code: 0
+stdout_len: 217
+stderr_len: 0
+--- stdout ---
+{
+  "blocks": 0,
+  "body_file": "blank.md",
+  "command": "articles-draft",
+  "cover": null,
+  "exit_code": 1,
+  "reason": "empty-article-body",
+  "status": "dry_run",
+  "title": "Why Rust",
+  "would_succeed": false
+}
+
+--- stderr ---
+
