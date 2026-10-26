@@ -93,6 +93,8 @@ INSPECT YOUR ACCOUNT:
   Your bookmarks and liked posts:
     xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
     xr likes -n 100 --output jsonl
+    xr bookmark-folders list --output json
+    xr bookmark-folders get 1146654567674912769 --output json | jaq -r '.data[]?.id'
 
   Users you have muted or blocked:
     xr muted -n 100 --output jsonl

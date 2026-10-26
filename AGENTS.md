@@ -188,13 +188,14 @@ never the tests.
 - **Dispatch arm.** An arm in the group's module beside `crates/xurl-cli/src/cli/commands/mod.rs` (posts, reads,
   engagement, the social graph, DMs, or the family's own), and the variant on that group's line in `run_subcommand` in
   that file. A verb that resolves a handle or acts on a post from the caller's account goes through
-  `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and a paged list that belongs to one user through
-  `list_for_user`. A verb that sends one request hands its call to `send_or_report`, through `send_validated` when its
-  inputs are checked first, or `send_confirmed` when it destroys something. Each of those answers `--dry-run`
-  with the credential its requests would go out under. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's
-  arms and its routing line disagree, `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command that sends a request
-  or changes stored state under `--dry-run`, or whose dry run and real run disagree on the credential, and the dry-run
-  golden fixtures pin the envelope.
+  `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and any other write from the caller's account through
+  `act_from_me`. A paged list that belongs to one user goes through `list_for_user`, or `list_owned_by` when the
+  command's own inputs pick the list out. A verb that sends one request hands its call to `send_or_report`, through
+  `send_validated` when its inputs are checked first, or `send_confirmed` when it destroys something. Each of those
+  answers `--dry-run` with the credential its requests would go out under. `crates/xurl-cli/tests/dispatch_guard.rs`
+  fails when a group's arms and its routing line disagree, `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command
+  that sends a request or changes stored state under `--dry-run`, or whose dry run and real run disagree on the
+  credential, and the dry-run golden fixtures pin the envelope.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that

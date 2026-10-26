@@ -3,7 +3,7 @@ store: empty
 stdin: "{}"
 exit_code: 1
 stdout_len: 0
-stderr_len: 1390
+stderr_len: 1524
 --- stdout ---
 
 --- stderr ---
@@ -25,6 +25,9 @@ stderr_len: 1390
     "delete",
     "repost",
     "bookmark",
+    "bookmark-folders",
+    "bookmark-folder",
+    "bookmark-folder-posts",
     "mute",
     "block",
     "moderators",
@@ -49,7 +52,7 @@ stderr_len: 1390
     "scheduled-call-cancelled",
     "rsvp"
   ],
-  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, mute, block, moderators, alt-text, subtitles, webhook, webhooks, webhook-validation, webhook-replay, subscription-count, subscriptions, subscribed, stream-links, stream-link, stream-sources, stream-source, stream-source-deleted, call, scheduled-calls, scheduled-call, scheduled-call-updated, scheduled-call-cancelled, rsvp or omit --schema for auto-detection",
+  "message": "unknown schema \"bogus\"; pass one of post, posts, user, users, dm, dms, dm-event, usage, credits, envelope, like, follow, delete, repost, bookmark, bookmark-folders, bookmark-folder, bookmark-folder-posts, mute, block, moderators, alt-text, subtitles, webhook, webhooks, webhook-validation, webhook-replay, subscription-count, subscriptions, subscribed, stream-links, stream-link, stream-sources, stream-source, stream-source-deleted, call, scheduled-calls, scheduled-call, scheduled-call-updated, scheduled-call-cancelled, rsvp or omit --schema for auto-detection",
   "next_step": {
     "action": "show-help",
     "command": "xr validate --help"

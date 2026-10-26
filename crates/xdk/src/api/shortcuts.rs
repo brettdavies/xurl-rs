@@ -15,11 +15,12 @@ use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult,
-    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, Post, ProvisionedResult,
-    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
+    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -70,7 +71,7 @@ struct StreamSourceBody {
 }
 
 #[derive(Serialize)]
-struct StreamSourceNameBody {
+struct NameBody {
     name: String,
 }
 
@@ -527,6 +528,38 @@ pub fn validate_source_name(name: &str) -> std::result::Result<(), &'static str>
 pub fn validate_source_region(region: &str) -> std::result::Result<(), &'static str> {
     if region.trim().is_empty() {
         return Err("empty-source-region");
+    }
+    Ok(())
+}
+
+/// Longest bookmark folder name X accepts, the spec's `maxLength`.
+pub const BOOKMARK_FOLDER_NAME_MAX_CHARS: usize = 25;
+
+/// Validates a bookmark folder's name: at least one character that is not
+/// whitespace, the spec's `minLength`, and at most
+/// [`BOOKMARK_FOLDER_NAME_MAX_CHARS`], its `maxLength`.
+///
+/// # Errors
+/// Returns `empty-folder-name` for an empty or blank name and
+/// `folder-name-too-long` for a longer one.
+pub fn validate_bookmark_folder_name(name: &str) -> std::result::Result<(), &'static str> {
+    if name.trim().is_empty() {
+        return Err("empty-folder-name");
+    }
+    if name.chars().count() > BOOKMARK_FOLDER_NAME_MAX_CHARS {
+        return Err("folder-name-too-long");
+    }
+    Ok(())
+}
+
+/// Validates a bookmark folder id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-folder-id` for anything else.
+pub fn validate_bookmark_folder_id(id: &str) -> std::result::Result<(), &'static str> {
+    if id.is_empty() || id.len() > 19 || !id.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("invalid-folder-id");
     }
     Ok(())
 }
@@ -1190,6 +1223,61 @@ impl Client {
         .paginated()
     }
 
+    /// Lists the folders the user sorts bookmarks into.
+    pub fn get_bookmark_folders(
+        &self,
+        user_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<BookmarkFolder>>> {
+        self.call(
+            endpoints::GET_BOOKMARK_FOLDERS.method,
+            template(
+                endpoints::GET_BOOKMARK_FOLDERS.path,
+                id_param(user_id),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Creates a bookmark folder named `name`, 1 to 25 characters.
+    pub fn create_bookmark_folder(
+        &self,
+        user_id: &str,
+        name: &str,
+    ) -> Call<ApiResponse<BookmarkFolder>> {
+        self.json_call(
+            endpoints::CREATE_BOOKMARK_FOLDER.method,
+            template(
+                endpoints::CREATE_BOOKMARK_FOLDER.path,
+                id_param(user_id),
+                Vec::new(),
+            ),
+            &NameBody {
+                name: name.to_string(),
+            },
+        )
+    }
+
+    /// Lists the posts in one of the user's bookmark folders. X names each
+    /// post by id alone.
+    pub fn get_bookmark_folder_posts(
+        &self,
+        user_id: &str,
+        folder_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<BookmarkFolderPost>>> {
+        self.call(
+            endpoints::GET_BOOKMARK_FOLDER_POSTS.method,
+            template(
+                endpoints::GET_BOOKMARK_FOLDER_POSTS.path,
+                id_and(user_id, "folder_id", folder_id.to_string()),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
     /// Follows a user.
     pub fn follow_user(
         &self,
@@ -1576,7 +1664,7 @@ impl Client {
                 id_param(source_id),
                 Vec::new(),
             ),
-            &StreamSourceNameBody {
+            &NameBody {
                 name: name.to_string(),
             },
         )

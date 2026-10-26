@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 4035
+stdout_len: 4226
 stderr_len: 0
 --- stdout ---
 auth-apps-list                 Vec<AppStatusEntry>
@@ -9,6 +9,9 @@ auth-status                    Vec<AppStatusEntry>
 block                          ApiResponse<BlockingResult>
 blocked                        ApiResponse<Vec<User>>
 bookmark                       ApiResponse<BookmarkedResult>
+bookmark-folders-add           ApiResponse<BookmarkFolder>
+bookmark-folders-get           ApiResponse<Vec<BookmarkFolderPost>>
+bookmark-folders-list          ApiResponse<Vec<BookmarkFolder>>
 bookmarks                      ApiResponse<Vec<Post>>
 broadcasts-moderators-add      ApiResponse<ChatModeratorsResult>
 broadcasts-moderators-list     ApiResponse<Vec<User>>

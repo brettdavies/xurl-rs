@@ -22,12 +22,12 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
-    BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult,
-    FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse,
-    MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation, XCall,
+    BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
+    DeletedResult, DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post, ProvisionedResult,
+    RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -389,6 +389,31 @@ fn spec_chat_moderators() {
 }
 
 #[test]
+fn spec_bookmark_folders() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<BookmarkFolder>> =
+        serde_json::from_value(examples["bookmark_folders"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 2);
+    assert_eq!(resp.data[0].name, "Rust");
+}
+
+#[test]
+fn spec_bookmark_folder() {
+    let examples = load_examples();
+    let resp: ApiResponse<BookmarkFolder> =
+        serde_json::from_value(examples["bookmark_folder"].clone()).unwrap();
+    assert_eq!(resp.data.id, "1146654567674912769");
+}
+
+#[test]
+fn spec_bookmark_folder_posts() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<BookmarkFolderPost>> =
+        serde_json::from_value(examples["bookmark_folder_posts"].clone()).unwrap();
+    assert_eq!(resp.data[1].id, "1460323737035677698");
+}
+
+#[test]
 fn spec_stream_sources() {
     let examples = load_examples();
     let resp: ApiResponse<StreamSources> =
@@ -618,6 +643,21 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("action_deleted", endpoints::DELETE_POST, ReplyKind::Success),
     ("action_retweeted", endpoints::REPOST, ReplyKind::Success),
     ("action_bookmarked", endpoints::BOOKMARK, ReplyKind::Success),
+    (
+        "bookmark_folders",
+        endpoints::GET_BOOKMARK_FOLDERS,
+        ReplyKind::Success,
+    ),
+    (
+        "bookmark_folder",
+        endpoints::CREATE_BOOKMARK_FOLDER,
+        ReplyKind::Success,
+    ),
+    (
+        "bookmark_folder_posts",
+        endpoints::GET_BOOKMARK_FOLDER_POSTS,
+        ReplyKind::Success,
+    ),
     ("action_blocking", endpoints::BLOCK_USER, ReplyKind::Success),
     ("action_muting", endpoints::MUTE_USER, ReplyKind::Success),
     ("dm_sent", endpoints::SEND_DM, ReplyKind::Success),

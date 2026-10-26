@@ -125,8 +125,14 @@ xr unrepost 1585341984679469056                # Undo repost
 xr bookmark 1585341984679469056                # Bookmark
 xr unbookmark 1585341984679469056              # Remove bookmark
 xr bookmarks                                   # List bookmarks
+xr bookmark-folders list                       # Your bookmark folders
+xr bookmark-folders get 1146654567674912769    # Posts in a folder, by ID
+xr bookmark-folders add "Reading list"         # Create a folder
 xr likes                                       # List likes
 ```
+
+A folder lists its posts by ID alone; `xr read <id>` prints one. X's API creates folders and lists them, and has no
+endpoint that moves a bookmark into a folder or deletes one, so those stay in the X app.
 
 ### Social Graph
 

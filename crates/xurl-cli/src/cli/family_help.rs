@@ -100,6 +100,53 @@ pub fn page_of(families: &[(&Family, &[Section<'_>])]) -> String {
     out
 }
 
+/// The `xr bookmark-folders` family.
+pub mod bookmark_folders {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "bookmark-folders",
+    };
+
+    /// `xr bookmark-folders list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "List the folders you sort bookmarks into (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr bookmark-folders get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "1146654567674912769",
+        text_caption: "List the posts in a folder, by id (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr bookmark-folders add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "\"Reading list\"",
+        text_caption: "Create a folder (text)",
+        json_caption: "Create (JSON envelope)",
+    };
+
+    /// The page under `xr bookmark-folders --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("Your bookmark folders (text)", &[Example::text(&LIST)]),
+            (
+                "Create one, then list the posts in one, JSON envelope",
+                &[Example::json(&ADD), Example::json(&GET)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr broadcasts` family.
 pub mod broadcasts {
     use super::{Example, Family, Section, Verb, broadcast_sources, page_of};

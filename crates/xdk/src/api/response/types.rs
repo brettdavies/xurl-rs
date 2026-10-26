@@ -383,6 +383,30 @@ pub struct ChatModeratorsResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+// ── Bookmark folders ────────────────────────────────────────────────
+
+/// A folder the authenticated user sorts bookmarks into.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct BookmarkFolder {
+    /// Folder identifier.
+    pub id: String,
+    /// The folder's display name.
+    pub name: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A post in a bookmark folder. X lists a folder's posts by id alone.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct BookmarkFolderPost {
+    /// Post identifier.
+    pub id: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Broadcast stream sources ────────────────────────────────────────
 
 /// A persistent RTMP and RTMPS ingest point for the account's broadcasts.
