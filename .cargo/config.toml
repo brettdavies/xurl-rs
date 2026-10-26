@@ -4,3 +4,8 @@
 # empty value against this file's parent directory.
 [env]
 CARGO_WORKSPACE_DIR = { value = "", relative = true, force = true }
+# The in-process tests run xr's argument parser on libtest's threads, and a
+# debug build of the parser takes about 1.8 MiB of stack against those
+# threads' 2 MiB default (a release build takes about 295 KiB).
+# crates/xurl-cli/tests/parse_stack_tests.rs holds the parser to half of this.
+RUST_MIN_STACK = "8388608"
