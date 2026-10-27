@@ -750,6 +750,101 @@ pub struct NoteInfo {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// An uploaded image, video, or GIF, by media key.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct Media {
+    /// Media key, two numbers joined by an underscore.
+    pub media_key: String,
+    /// `photo`, `video`, or `animated_gif`.
+    #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// Where the image is served from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// A still image for a video or GIF.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preview_image_url: Option<String>,
+    /// The media's alt text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alt_text: Option<String>,
+    /// Width in pixels.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub width: Option<u64>,
+    /// Height in pixels.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub height: Option<u64>,
+    /// A video's length, in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
+    /// Public counts, such as a video's views, as X sends them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub public_metrics: Option<Value>,
+    /// A video's renditions, as X sends them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variants: Option<Value>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Video metrics for one uploaded media over a time window.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct MediaAnalytics {
+    /// Media key.
+    pub media_key: String,
+    /// Moment the totals cover, when X names one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    /// Clicks on the call-to-action link.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cta_url_clicks: Option<u64>,
+    /// Clicks on the call-to-action watch button.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cta_watch_clicks: Option<u64>,
+    /// Plays started by a tap.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub play_from_tap: Option<u64>,
+    /// Views that reached a quarter of the video.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playback25: Option<u64>,
+    /// Views that reached half of the video.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playback50: Option<u64>,
+    /// Views that reached three quarters of the video.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playback75: Option<u64>,
+    /// Views that reached the end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playback_complete: Option<u64>,
+    /// Views that started playing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub playback_start: Option<u64>,
+    /// Views of the video.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub video_views: Option<u64>,
+    /// Total time watched, in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub watch_time_ms: Option<u64>,
+    /// The metrics per bucket, one entry per granularity bucket. Each counter
+    /// is a number, or the string X sent when it was not one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamped_metrics: Option<Vec<MediaAnalyticsBucket>>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The video metrics for one bucket of a [`MediaAnalytics`] window.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct MediaAnalyticsBucket {
+    /// Start of the bucket.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    /// The counters in the bucket, by name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<BTreeMap<String, Value>>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.

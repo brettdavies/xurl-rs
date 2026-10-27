@@ -612,6 +612,8 @@ Examples:
     xr media upload ./clip.mp4 --wait --output json
   Check upload status:
     xr media status 1585341984679469056 --output json
+  Read uploads by media key:
+    xr media get 3_1146654567674912769 --output json
   Describe an uploaded image for screen readers:
     xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
   Add an English subtitle track to an uploaded video:
@@ -881,6 +883,25 @@ Examples:
     xr media status 1585341984679469056 --wait --output json
   Resume a wait that timed out, for up to two minutes:
     xr media status 1585341984679469056 --wait=120 --output json
+";
+
+/// `xr media get` examples.
+const MEDIA_GET_HELP: &str = "\
+Examples:
+  Read two uploads by media key (text):
+    xr media get 3_1146654567674912769 7_1146654567674912770
+  Same, JSON envelope:
+    xr media get 3_1146654567674912769 7_1146654567674912770 --output json
+  A media key is the type and the id joined by an underscore, as a post's media lists it.
+";
+
+/// `xr media analytics` examples.
+const MEDIA_ANALYTICS_HELP: &str = "\
+Examples:
+  Views and plays of a video over one day (text):
+    xr media analytics 7_1146654567674912770 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z
+  Per hour, JSON envelope:
+    xr media analytics 7_1146654567674912770 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z --granularity hourly --output json
 ";
 
 /// `xr media alt-text` examples.
@@ -3765,6 +3786,36 @@ pub enum MediaCommands {
         /// Request headers
         #[arg(short = 'H', long = "header")]
         headers: Vec<String>,
+    },
+    /// Read 1 to 100 uploads by media key in one request
+    #[command(after_help = MEDIA_GET_HELP)]
+    Get {
+        /// Media keys, such as 3_1146654567674912769, 1 to 100
+        #[arg(value_name = "MEDIA_KEY", required = true, num_args = 1..)]
+        media_keys: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Video metrics for your uploads over a time window
+    #[command(after_help = MEDIA_ANALYTICS_HELP)]
+    Analytics {
+        /// Media keys, such as 7_1146654567674912770, 1 to 100
+        #[arg(value_name = "MEDIA_KEY", required = true, num_args = 1..)]
+        media_keys: Vec<String>,
+        /// Start of the window (RFC 3339 with a zone, such as
+        /// 2026-10-01T00:00:00Z)
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// End of the window (RFC 3339 with a zone); after the start
+        #[arg(long, value_name = "TIME")]
+        end: String,
+        /// Bucket size (X's default is daily)
+        #[arg(long, value_parser = ["hourly", "daily", "total"])]
+        granularity: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
     },
     /// Set the alt text shown for an uploaded image or video
     #[command(after_help = MEDIA_ALT_TEXT_HELP)]

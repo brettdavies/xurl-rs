@@ -25,13 +25,13 @@ use xdk::api::response::types::{
     ArticleDraft, ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost,
     BookmarkedResult, Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult,
     ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
-    FollowingResult, HiddenResult, LikedResult, List, ListMemberResult, ListUpdatedResult,
-    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, Note,
-    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    FollowingResult, HiddenResult, LikedResult, List, ListMemberResult, ListUpdatedResult, Media,
+    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult,
+    NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post,
+    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -221,6 +221,23 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_media_lookup() {
+    let examples = load_examples();
+    let media: ApiResponse<Vec<Media>> =
+        serde_json::from_value(examples["media_list"].clone()).unwrap();
+    assert_eq!(media.data[1].kind.as_deref(), Some("video"));
+    let analytics: ApiResponse<Vec<MediaAnalytics>> =
+        serde_json::from_value(examples["media_analytics"].clone()).unwrap();
+    assert_eq!(analytics.data[0].video_views, Some(900));
+    let buckets = analytics.data[0]
+        .timestamped_metrics
+        .as_ref()
+        .expect("buckets");
+    let metrics = buckets[0].metrics.as_ref().expect("bucket metrics");
+    assert_eq!(metrics["playback_complete"], "120");
 }
 
 #[test]
@@ -854,6 +871,12 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("community", endpoints::GET_COMMUNITY, ReplyKind::Success),
     ("list_single", endpoints::GET_LIST, ReplyKind::Success),
     ("broadcasts", endpoints::LIST_BROADCASTS, ReplyKind::Success),
+    ("media_list", endpoints::GET_MEDIA, ReplyKind::Success),
+    (
+        "media_analytics",
+        endpoints::GET_MEDIA_ANALYTICS,
+        ReplyKind::Success,
+    ),
     (
         "article_draft",
         endpoints::CREATE_ARTICLE_DRAFT,

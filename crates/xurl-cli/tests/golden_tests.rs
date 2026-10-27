@@ -1005,6 +1005,17 @@ fn dry_run_cases() -> Vec<Case> {
             &["--output", "json", "--dry-run", "search-users", "rust-lang"],
         ),
         case(
+            "dry-run-invalid-media-key",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "media",
+                "get",
+                "1146654567674912769",
+            ],
+        ),
+        case(
             "dry-run-mixed-ids-and-handles",
             &["--output", "json", "--dry-run", "users", "12", "@jack"],
         ),

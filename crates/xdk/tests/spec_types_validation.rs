@@ -28,12 +28,13 @@ use serde_json::Value;
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ArticleDraft, ArticlePublished,
     BookmarkFolder, Broadcast, BroadcastChatMessage, ChatMutedResult, ChatSentResult, Community,
-    DmBlockResult, DmEvent, HiddenResult, List, ListMemberResult, ListUpdatedResult,
-    MediaMetadataResult, MediaSubtitlesResult, NewsStory, Note, NoteCreated, NoteEvaluation,
-    NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    DmBlockResult, DmEvent, HiddenResult, List, ListMemberResult, ListUpdatedResult, Media,
+    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources,
+    SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -277,6 +278,14 @@ fn typed_responses_match_vendored_spec() {
         (
             "BlockUsersDmsResponseData",
             serde_json::to_value(schemars::schema_for!(DmBlockResult)).unwrap(),
+        ),
+        (
+            "Media",
+            serde_json::to_value(schemars::schema_for!(Media)).unwrap(),
+        ),
+        (
+            "MediaAnalytics",
+            serde_json::to_value(schemars::schema_for!(MediaAnalytics)).unwrap(),
         ),
         (
             "ArticleCreateDraftResponseData",

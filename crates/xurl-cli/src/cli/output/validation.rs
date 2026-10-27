@@ -39,6 +39,10 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
             "A user search is 1 to {USER_SEARCH_QUERY_MAX_CHARS} letters, digits, underscores, \
              apostrophes, or spaces."
         ),
+        "invalid-media-key" => {
+            "A media key is two numbers joined by an underscore, such as 3_1146654567674912769."
+                .to_string()
+        }
         "invalid-media-id" => "A media id is 1 to 19 digits.".to_string(),
         "invalid-webhook-id" => "A webhook id is 1 to 19 digits.".to_string(),
         "invalid-user-id" => "A user id is 1 to 19 digits; a handle is not one.".to_string(),

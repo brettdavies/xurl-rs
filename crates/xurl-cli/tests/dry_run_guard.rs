@@ -73,6 +73,17 @@ const OVERRIDES: &[(&str, &[&str])] = &[
     ("conversations send", &["123-456", SAMPLE]),
     ("conversations history", &["123-456"]),
     ("lists update", &[SAMPLE, "--name", "Rust"]),
+    ("media get", &["3_1234567890"]),
+    (
+        "media analytics",
+        &[
+            "3_1234567890",
+            "--start",
+            "2026-10-01T00:00:00Z",
+            "--end",
+            "2026-10-02T00:00:00Z",
+        ],
+    ),
     (
         "notes write",
         &[
