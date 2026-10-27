@@ -805,22 +805,44 @@ pub fn validate_rule_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'
     ids.iter().try_for_each(|id| validate_rule_id(id.as_ref()))
 }
 
-/// The ids of `usernames`, in the order given, from the accounts
-/// [`Client::lookup_users_by_username`] answered. A username matches
-/// without regard to case or a leading `@`, as X matches it.
+/// Validates accounts named in any mix of numeric user ids and usernames:
+/// 1 to [`LOOKUP_IDS_MAX`] of them, each in its own spec form.
+///
+/// # Errors
+/// Returns `too-many-ids`, `invalid-user-id`, or `invalid-username`.
+pub fn validate_accounts<S: AsRef<str>>(accounts: &[S]) -> std::result::Result<(), &'static str> {
+    validate_lookup_ids(accounts)?;
+    accounts.iter().try_for_each(|account| {
+        let account = account.as_ref();
+        if is_user_id_form(account) {
+            validate_user_id(account)
+        } else {
+            validate_username(account)
+        }
+    })
+}
+
+/// The user ids `accounts` name, in the order given. A numeric id stands
+/// for itself; a username takes the id of the account
+/// [`Client::lookup_users_by_username`] answered for it, matched without
+/// regard to case or a leading `@`, as X matches it.
 ///
 /// # Errors
 /// Returns a validation error naming the first username `found` does not
 /// carry: X answers an unknown username with an entry in `errors`, not with
 /// a failed request.
-pub fn user_ids_for_usernames<S: AsRef<str>>(
-    usernames: &[S],
+pub fn user_ids_for_accounts<S: AsRef<str>>(
+    accounts: &[S],
     found: &[User],
 ) -> crate::Result<Vec<String>> {
-    usernames
+    accounts
         .iter()
-        .map(|name| {
-            let name = resolve_username(name.as_ref());
+        .map(|account| {
+            let account = account.as_ref();
+            if is_user_id_form(account) {
+                return Ok(account.to_string());
+            }
+            let name = resolve_username(account);
             found
                 .iter()
                 .find(|user| user.username.eq_ignore_ascii_case(&name))

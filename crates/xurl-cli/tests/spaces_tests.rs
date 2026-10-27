@@ -1,6 +1,7 @@
 //! `xr spaces` finds X Spaces: by keyword, by id, by who created them, and
-//! the posts shared in one. Handles resolve in one lookup for `by-creator`,
-//! and a Space id outside the spec's pattern is refused before any request.
+//! the posts shared in one. `by-creator` takes ids and handles in any mix and
+//! resolves the handles in one lookup, and a Space id outside the spec's
+//! pattern is refused before any request.
 
 mod common;
 
@@ -99,6 +100,49 @@ async fn by_creator_resolves_every_handle_in_one_lookup() {
 }
 
 #[tokio::test]
+async fn by_creator_takes_ids_and_handles_together() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "bob"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [{"id": "22", "name": "Bob", "username": "bob"}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/spaces/by/creator_ids"))
+        .and(query_param("user_ids", "11,22,33"))
+        .respond_with(spaces())
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let (code, _stdout, stderr) =
+        run_json(&server, &["spaces", "by-creator", "11", "@bob", "33"]).await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+#[tokio::test]
+async fn by_creator_sends_ids_alone_without_a_lookup() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/spaces/by/creator_ids"))
+        .and(query_param("user_ids", "11,22"))
+        .respond_with(spaces())
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let (code, _stdout, stderr) = run_json(&server, &["spaces", "by-creator", "11", "22"]).await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 1);
+}
+
+#[tokio::test]
 async fn by_creator_names_a_handle_x_could_not_find() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
@@ -147,8 +191,8 @@ async fn inputs_outside_the_spec_are_refused_before_any_request() {
             "invalid-space-id",
         ),
         (
-            vec!["spaces", "by-creator", "11", "@bob"],
-            "mixed-ids-and-handles",
+            vec!["spaces", "by-creator", "11", "@not-a-handle!"],
+            "invalid-username",
         ),
     ] {
         let mut argv = vec!["--dry-run"];

@@ -1,12 +1,12 @@
-args: ["stream", "rules", "counts", "--help"]
+args: ["stream", "rules", "count", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6885
+stdout_len: 6883
 stderr_len: 0
 --- stdout ---
-How many rules your app and its project hold, against X's caps
+Count the rules your app and its project hold, against X's caps
 
-Usage: xr stream rules counts [OPTIONS]
+Usage: xr stream rules count [OPTIONS]
 
 Options:
       --auth <AUTH_TYPE>
@@ -155,9 +155,9 @@ Options:
 
 Examples:
   Your app's rules against X's caps (text):
-    xr stream rules counts
+    xr stream rules count
   As a JSON envelope:
-    xr stream rules counts --output json
+    xr stream rules count --output json
 
 --- stderr ---
 

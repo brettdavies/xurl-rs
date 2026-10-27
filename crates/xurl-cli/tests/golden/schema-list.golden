@@ -13,8 +13,8 @@ block                          ApiResponse<BlockingResult>
 blocked                        ApiResponse<Vec<User>>
 bookmark                       ApiResponse<BookmarkedResult>
 bookmark-folders-add           ApiResponse<BookmarkFolder>
-bookmark-folders-get           ApiResponse<Vec<BookmarkFolderPost>>
 bookmark-folders-list          ApiResponse<Vec<BookmarkFolder>>
+bookmark-folders-posts         ApiResponse<Vec<BookmarkFolderPost>>
 bookmarks                      ApiResponse<Vec<Post>>
 broadcasts-chat-history        ApiResponse<Vec<BroadcastChatMessage>>
 broadcasts-chat-mute           ApiResponse<ChatMutedResult>
@@ -97,10 +97,10 @@ notes-remove                   ApiResponse<DeletedResult>
 notes-write                    ApiResponse<NoteCreated>
 notes-written                  ApiResponse<Vec<Note>>
 post                           ApiResponse<Post>
+posts                          ApiResponse<Vec<Post>>
 quote                          ApiResponse<Post>
 quotes                         ApiResponse<Vec<Post>>
 read                           ApiResponse<Post>
-read-posts                     ApiResponse<Vec<Post>>
 redirect-uri-get               RedirectUriGetResponse
 redirect-uri-set               RedirectUriSetResponse
 reply                          ApiResponse<Post>
@@ -116,7 +116,7 @@ spaces-get                     ApiResponse<Vec<Space>>
 spaces-posts                   ApiResponse<Vec<Post>>
 spaces-search                  ApiResponse<Vec<Space>>
 stream-rules-add               ApiResponse<Option<Vec<StreamRule>>>
-stream-rules-counts            ApiResponse<StreamRuleCounts>
+stream-rules-count             ApiResponse<StreamRuleCounts>
 stream-rules-list              ApiResponse<Vec<StreamRule>>
 stream-rules-remove            ApiResponse<Option<Vec<StreamRule>>>
 timeline                       ApiResponse<Vec<Post>>

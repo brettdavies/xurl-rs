@@ -1,7 +1,7 @@
 args: ["trends", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6796
+stdout_len: 6807
 stderr_len: 0
 --- stdout ---
 Trends for a place, and your personalized trends
@@ -9,8 +9,8 @@ Trends for a place, and your personalized trends
 Usage: xr trends [OPTIONS] <COMMAND>
 
 Commands:
-  place     Trends for a place, by its Yahoo WOEID (1 is worldwide)
-  personal  The trends X picks for you
+  place     List the trends for a place, by its Yahoo WOEID (1 is worldwide)
+  personal  List the trends X picks for you
   help      Print this message or the help of the given subcommand(s)
 
 Options:
@@ -151,7 +151,7 @@ Options:
 
 Examples:
   Trends for a place, by its WOEID (text):
-    xr trends place 1 --max 10
+    xr trends place 1 -n 10
   Your personalized trends, JSON envelope:
     xr trends personal --output json
 

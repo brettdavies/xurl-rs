@@ -32,25 +32,25 @@ pub(super) async fn run(target: CallsCommands, run: Run<'_>) -> CommandResult<()
 async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResult<()> {
     match action {
         ScheduledCallsCommands::List {
-            from,
-            to,
+            start,
+            end,
             max_results,
             common,
         } => {
             let ctx = json!({
                 "command": "calls-scheduled-list",
-                "start_time": from,
-                "end_time": to,
+                "start_time": start,
+                "end_time": end,
                 "max_results": max_results,
             });
             let validate = || {
-                [&from, &to]
+                [&start, &end]
                     .into_iter()
                     .flatten()
                     .try_for_each(|time| shortcuts::validate_call_time(time))
             };
             send_validated(run, ctx, validate, &common, |client| {
-                client.get_scheduled_calls(from.as_deref(), to.as_deref(), max_results)
+                client.get_scheduled_calls(start.as_deref(), end.as_deref(), max_results)
             })
             .await
         }

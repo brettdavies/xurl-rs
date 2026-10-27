@@ -69,8 +69,8 @@ pub(super) async fn run(action: StreamCommands, run: Run<'_>) -> CommandResult<(
             };
             send_confirmed(run, ctx, &prompt, force, validate, &common, build).await
         }
-        StreamRulesCommands::Counts { common } => {
-            let ctx = json!({"command": "stream-rules-counts"});
+        StreamRulesCommands::Count { common } => {
+            let ctx = json!({"command": "stream-rules-count"});
             send_validated(
                 run,
                 ctx,

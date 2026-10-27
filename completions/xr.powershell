@@ -65,12 +65,12 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('quote', 'quote', [CompletionResultType]::ParameterValue, 'Quote a post')
             [CompletionResult]::new('delete', 'delete', [CompletionResultType]::ParameterValue, 'Delete a post')
             [CompletionResult]::new('read', 'read', [CompletionResultType]::ParameterValue, 'Read a post')
-            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Impressions and engagement for your posts over a time window')
+            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Report impressions and engagement for your posts over a time window')
             [CompletionResult]::new('search-counts', 'search-counts', [CompletionResultType]::ParameterValue, 'Count the recent posts that match a query, per time bucket')
             [CompletionResult]::new('search-users', 'search-users', [CompletionResultType]::ParameterValue, 'Find accounts by keyword')
             [CompletionResult]::new('users', 'users', [CompletionResultType]::ParameterValue, 'Look up 1 to 100 accounts by handle or by id in one request')
             [CompletionResult]::new('user-posts', 'user-posts', [CompletionResultType]::ParameterValue, 'List the posts a user wrote')
-            [CompletionResult]::new('read-posts', 'read-posts', [CompletionResultType]::ParameterValue, 'Read up to 100 posts in one request')
+            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'Read 1 to 100 posts by id or URL in one request')
             [CompletionResult]::new('search', 'search', [CompletionResultType]::ParameterValue, 'Search recent posts')
             [CompletionResult]::new('likers', 'likers', [CompletionResultType]::ParameterValue, 'List the users who liked a post')
             [CompletionResult]::new('reposters', 'reposters', [CompletionResultType]::ParameterValue, 'List the users who reposted a post')
@@ -115,11 +115,11 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('articles', 'articles', [CompletionResultType]::ParameterValue, 'Write and publish long-form X Articles')
             [CompletionResult]::new('notes', 'notes', [CompletionResultType]::ParameterValue, 'Write Community Notes through X''s AI Note Writer API')
             [CompletionResult]::new('trends', 'trends', [CompletionResultType]::ParameterValue, 'Trends for a place, and your personalized trends')
-            [CompletionResult]::new('broadcasts', 'broadcasts', [CompletionResultType]::ParameterValue, 'Broadcast chat moderators and stream sources')
+            [CompletionResult]::new('broadcasts', 'broadcasts', [CompletionResultType]::ParameterValue, 'Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources')
             [CompletionResult]::new('calls', 'calls', [CompletionResultType]::ParameterValue, 'X calls, and the calls on your calendar (preview)')
-            [CompletionResult]::new('webhooks', 'webhooks', [CompletionResultType]::ParameterValue, 'Webhook registration, validation, and replay')
+            [CompletionResult]::new('webhooks', 'webhooks', [CompletionResultType]::ParameterValue, 'Webhook registration, subscriptions, stream links, a local listener, and replay')
             [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
-            [CompletionResult]::new('media', 'media', [CompletionResultType]::ParameterValue, 'Media upload, alt text, and subtitles')
+            [CompletionResult]::new('media', 'media', [CompletionResultType]::ParameterValue, 'Media upload, lookup by key, video metrics, alt text, and subtitles')
             [CompletionResult]::new('skill', 'skill', [CompletionResultType]::ParameterValue, 'Install or manage the xurl-rs skill bundle')
             [CompletionResult]::new('schema', 'schema', [CompletionResultType]::ParameterValue, 'Show JSON Schema for a command''s response type')
             [CompletionResult]::new('completions', 'completions', [CompletionResultType]::ParameterValue, 'Generate shell completion script')
@@ -442,7 +442,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
         }
-        'xr;read-posts' {
+        'xr;posts' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -1021,7 +1021,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List the folders you sort bookmarks into')
-            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'List the posts in one of your bookmark folders, by id')
+            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'List the posts in one of your bookmark folders, by id')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a bookmark folder')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
@@ -1058,7 +1058,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
         }
-        'xr;bookmark-folders;get' {
+        'xr;bookmark-folders;posts' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
@@ -1122,7 +1122,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;bookmark-folders;help' {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List the folders you sort bookmarks into')
-            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'List the posts in one of your bookmark folders, by id')
+            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'List the posts in one of your bookmark folders, by id')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a bookmark folder')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
@@ -1130,7 +1130,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;bookmark-folders;help;list' {
             break
         }
-        'xr;bookmark-folders;help;get' {
+        'xr;bookmark-folders;help;posts' {
             break
         }
         'xr;bookmark-folders;help;add' {
@@ -2002,6 +2002,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;lists;list' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username whose own lists to read (default: you)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -2034,6 +2035,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;lists;followed' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username whose followed lists to read (default: you)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -2066,6 +2068,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;lists;memberships' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username whose list memberships to read (default: you)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -2891,8 +2894,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('search', 'search', [CompletionResultType]::ParameterValue, 'Search Spaces by keyword')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read 1 to 100 Spaces by id in one request')
-            [CompletionResult]::new('by-creator', 'by-creator', [CompletionResultType]::ParameterValue, 'The Spaces 1 to 100 accounts created, in one request')
-            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'The posts shared in a Space')
+            [CompletionResult]::new('by-creator', 'by-creator', [CompletionResultType]::ParameterValue, 'List the Spaces 1 to 100 accounts created, in one request')
+            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'List the posts shared in a Space')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -3024,8 +3027,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;spaces;help' {
             [CompletionResult]::new('search', 'search', [CompletionResultType]::ParameterValue, 'Search Spaces by keyword')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read 1 to 100 Spaces by id in one request')
-            [CompletionResult]::new('by-creator', 'by-creator', [CompletionResultType]::ParameterValue, 'The Spaces 1 to 100 accounts created, in one request')
-            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'The posts shared in a Space')
+            [CompletionResult]::new('by-creator', 'by-creator', [CompletionResultType]::ParameterValue, 'List the Spaces 1 to 100 accounts created, in one request')
+            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'List the posts shared in a Space')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -3097,7 +3100,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List the filtered stream''s rules')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Add a rule to the filtered stream')
             [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove rules from the filtered stream, by id')
-            [CompletionResult]::new('counts', 'counts', [CompletionResultType]::ParameterValue, 'How many rules your app and its project hold, against X''s caps')
+            [CompletionResult]::new('count', 'count', [CompletionResultType]::ParameterValue, 'Count the rules your app and its project hold, against X''s caps')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -3197,7 +3200,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
         }
-        'xr;stream;rules;counts' {
+        'xr;stream;rules;count' {
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -3231,7 +3234,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List the filtered stream''s rules')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Add a rule to the filtered stream')
             [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove rules from the filtered stream, by id')
-            [CompletionResult]::new('counts', 'counts', [CompletionResultType]::ParameterValue, 'How many rules your app and its project hold, against X''s caps')
+            [CompletionResult]::new('count', 'count', [CompletionResultType]::ParameterValue, 'Count the rules your app and its project hold, against X''s caps')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -3244,7 +3247,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;stream;rules;help;remove' {
             break
         }
-        'xr;stream;rules;help;counts' {
+        'xr;stream;rules;help;count' {
             break
         }
         'xr;stream;rules;help;help' {
@@ -3259,7 +3262,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List the filtered stream''s rules')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Add a rule to the filtered stream')
             [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove rules from the filtered stream, by id')
-            [CompletionResult]::new('counts', 'counts', [CompletionResultType]::ParameterValue, 'How many rules your app and its project hold, against X''s caps')
+            [CompletionResult]::new('count', 'count', [CompletionResultType]::ParameterValue, 'Count the rules your app and its project hold, against X''s caps')
             break
         }
         'xr;stream;help;rules;list' {
@@ -3271,7 +3274,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;stream;help;rules;remove' {
             break
         }
-        'xr;stream;help;rules;counts' {
+        'xr;stream;help;rules;count' {
             break
         }
         'xr;stream;help;help' {
@@ -3629,13 +3632,14 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
             [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
-            [CompletionResult]::new('place', 'place', [CompletionResultType]::ParameterValue, 'Trends for a place, by its Yahoo WOEID (1 is worldwide)')
-            [CompletionResult]::new('personal', 'personal', [CompletionResultType]::ParameterValue, 'The trends X picks for you')
+            [CompletionResult]::new('place', 'place', [CompletionResultType]::ParameterValue, 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)')
+            [CompletionResult]::new('personal', 'personal', [CompletionResultType]::ParameterValue, 'List the trends X picks for you')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
         'xr;trends;place' {
-            [CompletionResult]::new('--max', '--max', [CompletionResultType]::ParameterName, 'Most trends to list, 1 to 50 (X''s default is 20)')
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of trends (1-50; X''s default is 20). Overrides global `--limit` when set')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of trends (1-50; X''s default is 20). Overrides global `--limit` when set')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -3696,8 +3700,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;trends;help' {
-            [CompletionResult]::new('place', 'place', [CompletionResultType]::ParameterValue, 'Trends for a place, by its Yahoo WOEID (1 is worldwide)')
-            [CompletionResult]::new('personal', 'personal', [CompletionResultType]::ParameterValue, 'The trends X picks for you')
+            [CompletionResult]::new('place', 'place', [CompletionResultType]::ParameterValue, 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)')
+            [CompletionResult]::new('personal', 'personal', [CompletionResultType]::ParameterValue, 'List the trends X picks for you')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
         }
@@ -4825,8 +4829,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;calls;scheduled;list' {
-            [CompletionResult]::new('--from', '--from', [CompletionResultType]::ParameterName, 'Calls still running at this time or starting after it (RFC 3339); X assumes now')
-            [CompletionResult]::new('--to', '--to', [CompletionResultType]::ParameterName, 'Calls starting before this time (RFC 3339); X assumes 24 hours after `--from`')
+            [CompletionResult]::new('--start', '--start', [CompletionResultType]::ParameterName, 'Calls still running at this time or starting after it (RFC 3339); X assumes now')
+            [CompletionResult]::new('--end', '--end', [CompletionResultType]::ParameterName, 'Calls starting before this time (RFC 3339); X assumes 24 hours after `--start`')
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of calls (1-100)')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of calls (1-100)')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
@@ -6304,7 +6308,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('upload', 'upload', [CompletionResultType]::ParameterValue, 'Upload media file')
             [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Check media upload status')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read 1 to 100 uploads by media key in one request')
-            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Video metrics for your uploads over a time window')
+            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Report video metrics for your uploads over a time window')
             [CompletionResult]::new('alt-text', 'alt-text', [CompletionResultType]::ParameterValue, 'Set the alt text shown for an uploaded image or video')
             [CompletionResult]::new('subtitles', 'subtitles', [CompletionResultType]::ParameterValue, 'Add or remove the subtitle tracks of an uploaded video')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
@@ -6584,7 +6588,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('upload', 'upload', [CompletionResultType]::ParameterValue, 'Upload media file')
             [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Check media upload status')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read 1 to 100 uploads by media key in one request')
-            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Video metrics for your uploads over a time window')
+            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Report video metrics for your uploads over a time window')
             [CompletionResult]::new('alt-text', 'alt-text', [CompletionResultType]::ParameterValue, 'Set the alt text shown for an uploaded image or video')
             [CompletionResult]::new('subtitles', 'subtitles', [CompletionResultType]::ParameterValue, 'Add or remove the subtitle tracks of an uploaded video')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
@@ -6849,12 +6853,12 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('quote', 'quote', [CompletionResultType]::ParameterValue, 'Quote a post')
             [CompletionResult]::new('delete', 'delete', [CompletionResultType]::ParameterValue, 'Delete a post')
             [CompletionResult]::new('read', 'read', [CompletionResultType]::ParameterValue, 'Read a post')
-            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Impressions and engagement for your posts over a time window')
+            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Report impressions and engagement for your posts over a time window')
             [CompletionResult]::new('search-counts', 'search-counts', [CompletionResultType]::ParameterValue, 'Count the recent posts that match a query, per time bucket')
             [CompletionResult]::new('search-users', 'search-users', [CompletionResultType]::ParameterValue, 'Find accounts by keyword')
             [CompletionResult]::new('users', 'users', [CompletionResultType]::ParameterValue, 'Look up 1 to 100 accounts by handle or by id in one request')
             [CompletionResult]::new('user-posts', 'user-posts', [CompletionResultType]::ParameterValue, 'List the posts a user wrote')
-            [CompletionResult]::new('read-posts', 'read-posts', [CompletionResultType]::ParameterValue, 'Read up to 100 posts in one request')
+            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'Read 1 to 100 posts by id or URL in one request')
             [CompletionResult]::new('search', 'search', [CompletionResultType]::ParameterValue, 'Search recent posts')
             [CompletionResult]::new('likers', 'likers', [CompletionResultType]::ParameterValue, 'List the users who liked a post')
             [CompletionResult]::new('reposters', 'reposters', [CompletionResultType]::ParameterValue, 'List the users who reposted a post')
@@ -6899,11 +6903,11 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('articles', 'articles', [CompletionResultType]::ParameterValue, 'Write and publish long-form X Articles')
             [CompletionResult]::new('notes', 'notes', [CompletionResultType]::ParameterValue, 'Write Community Notes through X''s AI Note Writer API')
             [CompletionResult]::new('trends', 'trends', [CompletionResultType]::ParameterValue, 'Trends for a place, and your personalized trends')
-            [CompletionResult]::new('broadcasts', 'broadcasts', [CompletionResultType]::ParameterValue, 'Broadcast chat moderators and stream sources')
+            [CompletionResult]::new('broadcasts', 'broadcasts', [CompletionResultType]::ParameterValue, 'Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources')
             [CompletionResult]::new('calls', 'calls', [CompletionResultType]::ParameterValue, 'X calls, and the calls on your calendar (preview)')
-            [CompletionResult]::new('webhooks', 'webhooks', [CompletionResultType]::ParameterValue, 'Webhook registration, validation, and replay')
+            [CompletionResult]::new('webhooks', 'webhooks', [CompletionResultType]::ParameterValue, 'Webhook registration, subscriptions, stream links, a local listener, and replay')
             [CompletionResult]::new('auth', 'auth', [CompletionResultType]::ParameterValue, 'Authentication management')
-            [CompletionResult]::new('media', 'media', [CompletionResultType]::ParameterValue, 'Media upload, alt text, and subtitles')
+            [CompletionResult]::new('media', 'media', [CompletionResultType]::ParameterValue, 'Media upload, lookup by key, video metrics, alt text, and subtitles')
             [CompletionResult]::new('skill', 'skill', [CompletionResultType]::ParameterValue, 'Install or manage the xurl-rs skill bundle')
             [CompletionResult]::new('schema', 'schema', [CompletionResultType]::ParameterValue, 'Show JSON Schema for a command''s response type')
             [CompletionResult]::new('completions', 'completions', [CompletionResultType]::ParameterValue, 'Generate shell completion script')
@@ -6943,7 +6947,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;help;user-posts' {
             break
         }
-        'xr;help;read-posts' {
+        'xr;help;posts' {
             break
         }
         'xr;help;search' {
@@ -6999,14 +7003,14 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         }
         'xr;help;bookmark-folders' {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List the folders you sort bookmarks into')
-            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'List the posts in one of your bookmark folders, by id')
+            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'List the posts in one of your bookmark folders, by id')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a bookmark folder')
             break
         }
         'xr;help;bookmark-folders;list' {
             break
         }
-        'xr;help;bookmark-folders;get' {
+        'xr;help;bookmark-folders;posts' {
             break
         }
         'xr;help;bookmark-folders;add' {
@@ -7194,8 +7198,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;help;spaces' {
             [CompletionResult]::new('search', 'search', [CompletionResultType]::ParameterValue, 'Search Spaces by keyword')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read 1 to 100 Spaces by id in one request')
-            [CompletionResult]::new('by-creator', 'by-creator', [CompletionResultType]::ParameterValue, 'The Spaces 1 to 100 accounts created, in one request')
-            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'The posts shared in a Space')
+            [CompletionResult]::new('by-creator', 'by-creator', [CompletionResultType]::ParameterValue, 'List the Spaces 1 to 100 accounts created, in one request')
+            [CompletionResult]::new('posts', 'posts', [CompletionResultType]::ParameterValue, 'List the posts shared in a Space')
             break
         }
         'xr;help;spaces;search' {
@@ -7218,7 +7222,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List the filtered stream''s rules')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Add a rule to the filtered stream')
             [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove rules from the filtered stream, by id')
-            [CompletionResult]::new('counts', 'counts', [CompletionResultType]::ParameterValue, 'How many rules your app and its project hold, against X''s caps')
+            [CompletionResult]::new('count', 'count', [CompletionResultType]::ParameterValue, 'Count the rules your app and its project hold, against X''s caps')
             break
         }
         'xr;help;stream;rules;list' {
@@ -7230,7 +7234,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;help;stream;rules;remove' {
             break
         }
-        'xr;help;stream;rules;counts' {
+        'xr;help;stream;rules;count' {
             break
         }
         'xr;help;articles' {
@@ -7268,8 +7272,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;help;trends' {
-            [CompletionResult]::new('place', 'place', [CompletionResultType]::ParameterValue, 'Trends for a place, by its Yahoo WOEID (1 is worldwide)')
-            [CompletionResult]::new('personal', 'personal', [CompletionResultType]::ParameterValue, 'The trends X picks for you')
+            [CompletionResult]::new('place', 'place', [CompletionResultType]::ParameterValue, 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)')
+            [CompletionResult]::new('personal', 'personal', [CompletionResultType]::ParameterValue, 'List the trends X picks for you')
             break
         }
         'xr;help;trends;place' {
@@ -7546,7 +7550,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('upload', 'upload', [CompletionResultType]::ParameterValue, 'Upload media file')
             [CompletionResult]::new('status', 'status', [CompletionResultType]::ParameterValue, 'Check media upload status')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read 1 to 100 uploads by media key in one request')
-            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Video metrics for your uploads over a time window')
+            [CompletionResult]::new('analytics', 'analytics', [CompletionResultType]::ParameterValue, 'Report video metrics for your uploads over a time window')
             [CompletionResult]::new('alt-text', 'alt-text', [CompletionResultType]::ParameterValue, 'Set the alt text shown for an uploaded image or video')
             [CompletionResult]::new('subtitles', 'subtitles', [CompletionResultType]::ParameterValue, 'Add or remove the subtitle tracks of an uploaded video')
             break

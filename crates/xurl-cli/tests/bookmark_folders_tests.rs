@@ -59,7 +59,7 @@ async fn list_prints_the_callers_folders() {
 }
 
 #[tokio::test]
-async fn get_lists_the_posts_in_the_folder() {
+async fn posts_lists_the_posts_in_the_folder() {
     let server = MockServer::start().await;
     answer_me(&server).await;
     Mock::given(method("GET"))
@@ -81,7 +81,7 @@ async fn get_lists_the_posts_in_the_folder() {
         &server.uri(),
         &[
             "bookmark-folders",
-            "get",
+            "posts",
             FOLDER_ID,
             "-n",
             "50",
@@ -157,7 +157,7 @@ async fn add_refuses_a_name_past_25_characters_before_any_request() {
 }
 
 #[tokio::test]
-async fn get_refuses_a_folder_id_that_is_not_digits_before_any_request() {
+async fn posts_refuses_a_folder_id_that_is_not_digits_before_any_request() {
     let server = MockServer::start().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
@@ -165,7 +165,7 @@ async fn get_refuses_a_folder_id_that_is_not_digits_before_any_request() {
     let (code, _stdout, stderr) = run(
         &store,
         &server.uri(),
-        &["--output", "json", "bookmark-folders", "get", "rust"],
+        &["--output", "json", "bookmark-folders", "posts", "rust"],
     )
     .await;
 
@@ -183,7 +183,7 @@ async fn get_refuses_a_folder_id_that_is_not_digits_before_any_request() {
 }
 
 #[tokio::test]
-async fn get_under_dry_run_names_the_folder_and_sends_nothing() {
+async fn posts_under_dry_run_names_the_folder_and_sends_nothing() {
     let server = MockServer::start().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
@@ -196,7 +196,7 @@ async fn get_under_dry_run_names_the_folder_and_sends_nothing() {
             "--output",
             "json",
             "bookmark-folders",
-            "get",
+            "posts",
             FOLDER_ID,
         ],
     )
@@ -204,7 +204,7 @@ async fn get_under_dry_run_names_the_folder_and_sends_nothing() {
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let body = json_out(&stdout);
-    assert_eq!(body["command"], "bookmark-folders-get");
+    assert_eq!(body["command"], "bookmark-folders-posts");
     assert_eq!(body["folder_id"], FOLDER_ID);
     assert_eq!(body["would_succeed"], true);
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);

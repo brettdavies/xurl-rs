@@ -1,7 +1,7 @@
 args: ["spaces", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7059
+stdout_len: 7069
 stderr_len: 0
 --- stdout ---
 Find Spaces by keyword, id, or creator, and read their posts
@@ -11,8 +11,8 @@ Usage: xr spaces [OPTIONS] <COMMAND>
 Commands:
   search      Search Spaces by keyword
   get         Read 1 to 100 Spaces by id in one request
-  by-creator  The Spaces 1 to 100 accounts created, in one request
-  posts       The posts shared in a Space
+  by-creator  List the Spaces 1 to 100 accounts created, in one request
+  posts       List the posts shared in a Space
   help        Print this message or the help of the given subcommand(s)
 
 Options:

@@ -1,10 +1,10 @@
 args: ["broadcasts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7591
+stdout_len: 7622
 stderr_len: 0
 --- stdout ---
-Broadcast chat moderators and stream sources
+Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources
 
 Usage: xr broadcasts [OPTIONS] <COMMAND>
 

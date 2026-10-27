@@ -1,15 +1,15 @@
-args: ["read-posts", "--help"]
+args: ["posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7247
+stdout_len: 7237
 stderr_len: 0
 --- stdout ---
-Read up to 100 posts in one request
+Read 1 to 100 posts by id or URL in one request
 
-Usage: xr read-posts [OPTIONS] <POST_IDS>...
+Usage: xr posts [OPTIONS] <POST_ID>...
 
 Arguments:
-  <POST_IDS>...
+  <POST_ID>...
           Post IDs or URLs, 1 to 100
 
 Options:
@@ -159,11 +159,11 @@ Options:
 
 Examples:
   Read several posts in one request (text):
-    xr read-posts 1585341984679469056 1346889436626259968
+    xr posts 1585341984679469056 1346889436626259968
   Ids and post URLs mixed, JSON envelope:
-    xr read-posts 1585341984679469056 https://x.com/alice/status/1346889436626259968 --output json
+    xr posts 1585341984679469056 https://x.com/alice/status/1346889436626259968 --output json
   The text of each post, one per line:
-    xr read-posts 1585341984679469056 1346889436626259968 --output json | jaq -r '.data[]?.text'
+    xr posts 1585341984679469056 1346889436626259968 --output json | jaq -r '.data[]?.text'
   The ids X could not return are under errors, beside the posts it could.
 
 --- stderr ---

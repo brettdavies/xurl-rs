@@ -1,10 +1,10 @@
 args: ["trends", "place", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7057
+stdout_len: 7107
 stderr_len: 0
 --- stdout ---
-Trends for a place, by its Yahoo WOEID (1 is worldwide)
+List the trends for a place, by its Yahoo WOEID (1 is worldwide)
 
 Usage: xr trends place [OPTIONS] <WOEID>
 
@@ -13,8 +13,8 @@ Arguments:
           The place's Yahoo Where On Earth ID, a positive integer
 
 Options:
-      --max <MAX>
-          Most trends to list, 1 to 50 (X's default is 20)
+  -n, --max-results <MAX_RESULTS>
+          Number of trends (1-50; X's default is 20). Overrides global `--limit` when set
 
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)
@@ -162,9 +162,9 @@ Options:
 
 Examples:
   The top ten trends worldwide, WOEID 1 (text):
-    xr trends place 1 --max 10
+    xr trends place 1 -n 10
   As a JSON envelope:
-    xr trends place 1 --max 10 --output json
+    xr trends place 1 -n 10 --output json
 
 --- stderr ---
 

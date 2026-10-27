@@ -4,8 +4,8 @@
 use serde_json::json;
 
 use super::{
-    Run, dry_run_or_validate, list_owned_by, list_paged, make_client, print_typed, resolve_user_id,
-    send_confirmed, send_validated, user_id_call, with_flags,
+    Run, dry_run_or_validate, handles_lookup_call, list_owned_by, list_paged, make_client,
+    print_typed, resolve_account_ids, send_confirmed, send_validated, with_flags,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, ConversationsCommands, DmEventsCommands};
@@ -93,7 +93,7 @@ pub(super) async fn dm_events(action: DmEventsCommands, run: Run<'_>) -> Command
 }
 
 /// Starts a group conversation. A participant given as a numeric user id
-/// goes out as it is; each handle is looked up first.
+/// goes out as it is; every handle is looked up first, all in one request.
 async fn start(
     run: Run<'_>,
     participants: &[String],
@@ -115,30 +115,20 @@ async fn start(
     });
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
         shortcuts::validate_participant_count(participants.len())?;
-        participants
-            .iter()
-            .try_for_each(|p| shortcuts::validate_target_username(p))?;
+        shortcuts::validate_accounts(participants)?;
         shortcuts::validate_dm_body(text)
     })?;
-    let is_id = |participant: &str| shortcuts::validate_user_id(participant).is_ok();
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {
         let mut credentials = Vec::new();
-        for handle in participants.iter().filter(|p| !is_id(p)) {
-            credentials.push(user_id_call(&client, handle, common).auth_preflight().await);
+        if let Some(lookup) = handles_lookup_call(&client, participants, common) {
+            credentials.push(lookup.auth_preflight().await);
         }
         let create = client.create_dm_conversation(participants, text);
         credentials.push(with_flags(create, common, None).auth_preflight().await);
         return dry_run.answer(out, stdout, credentials);
     }
-    let mut ids = Vec::with_capacity(participants.len());
-    for participant in participants {
-        ids.push(if is_id(participant) {
-            participant.clone()
-        } else {
-            resolve_user_id(&client, participant, common).await?
-        });
-    }
+    let ids = resolve_account_ids(&client, participants, common).await?;
     let response = with_flags(client.create_dm_conversation(&ids, text), common, None)
         .send()
         .await?;

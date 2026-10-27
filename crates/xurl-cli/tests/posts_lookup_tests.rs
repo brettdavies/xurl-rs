@@ -1,4 +1,4 @@
-//! `xr read-posts` reads up to 100 posts in one request: each argument is a
+//! `xr posts` reads up to 100 posts in one request: each argument is a
 //! post id or URL, the ids go out comma-separated, and X's `errors` array,
 //! naming the ids it could not return, prints beside the posts it could.
 //! More than 100 ids are refused before any request.
@@ -38,7 +38,7 @@ async fn read_posts_sends_every_id_in_one_request() {
         &store,
         &server.uri(),
         &[
-            "read-posts",
+            "posts",
             "1",
             "https://x.com/alice/status/2",
             "3",
@@ -80,7 +80,7 @@ async fn read_posts_prints_the_ids_x_could_not_return_beside_the_posts() {
     let (code, stdout, stderr) = run(
         &store,
         &server.uri(),
-        &["read-posts", "1", "2", "--output", "json"],
+        &["posts", "1", "2", "--output", "json"],
     )
     .await;
 
@@ -103,7 +103,7 @@ async fn read_posts_takes_100_ids_and_refuses_101_before_any_request() {
     let store = oauth2_store(tmp.path());
     let ids: Vec<String> = (1..=101).map(|n| n.to_string()).collect();
     let args = |count: usize| -> Vec<&str> {
-        ["--output", "json", "read-posts"]
+        ["--output", "json", "posts"]
             .into_iter()
             .chain(ids[..count].iter().map(String::as_str))
             .collect()
@@ -134,13 +134,13 @@ async fn read_posts_refuses_an_empty_id_among_the_others() {
     let (code, stdout, stderr) = run(
         &store,
         &server.uri(),
-        &["--dry-run", "--output", "json", "read-posts", "1", ""],
+        &["--dry-run", "--output", "json", "posts", "1", ""],
     )
     .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let body = json_out(&stdout);
-    assert_eq!(body["command"], "read-posts");
+    assert_eq!(body["command"], "posts");
     assert_eq!(body["would_succeed"], false);
     assert_eq!(body["reason"], "empty-post-id");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);

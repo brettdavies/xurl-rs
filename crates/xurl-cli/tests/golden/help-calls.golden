@@ -1,7 +1,7 @@
 args: ["calls", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7176
+stdout_len: 7178
 stderr_len: 0
 --- stdout ---
 X calls, and the calls on your calendar (preview)
@@ -155,7 +155,7 @@ Examples:
   Look up a call (text):
     xr calls get 8a6f1c2e
   The calls on your calendar this week (text):
-    xr calls scheduled list --from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z
+    xr calls scheduled list --start 2026-11-02T00:00:00Z --end 2026-11-09T00:00:00Z
   Schedule one, JSON envelope:
     xr calls scheduled add --start 2026-11-02T16:00:00Z --title Standup --duration 15 --invite 2244994945 --output json
 

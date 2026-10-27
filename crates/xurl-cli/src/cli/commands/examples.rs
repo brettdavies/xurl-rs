@@ -64,7 +64,7 @@ POST AND READ:
     xr quotes 1585341984679469056 --output json
 
   Read up to 100 posts in one request:
-    xr read-posts 1585341984679469056 1346889436626259968 --output json
+    xr posts 1585341984679469056 1346889436626259968 --output json
 
   How many recent posts match a query, per day, before searching:
     xr search-counts rustlang --granularity day --output json | jaq '.meta.total_post_count'
@@ -88,10 +88,10 @@ POST AND READ:
   Have X check a filtered-stream rule, add it, and count your rules against the caps:
     xr stream rules add \"from:XDevelopers has:media\" --validate-only --output json
     xr stream rules add \"from:XDevelopers has:media\" --tag devs --output json
-    xr stream rules counts --output json
+    xr stream rules count --output json
 
   Trends worldwide, and the trends X picks for you:
-    xr trends place 1 --max 10 --output json | jaq -r '.data[]?.trend_name'
+    xr trends place 1 -n 10 --output json | jaq -r '.data[]?.trend_name'
     xr trends personal --output json
 
   Search recent posts:
@@ -157,7 +157,7 @@ INSPECT YOUR ACCOUNT:
     xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
     xr likes -n 100 --output jsonl
     xr bookmark-folders list --output json
-    xr bookmark-folders get 1146654567674912769 --output json | jaq -r '.data[]?.id'
+    xr bookmark-folders posts 1146654567674912769 --output json | jaq -r '.data[]?.id'
 
   Users you have muted or blocked:
     xr muted -n 100 --output jsonl
@@ -208,7 +208,7 @@ BROADCASTS:
 
 CALLS:
   The calls on your calendar in a week, then one with its invitees' answers:
-    xr calls scheduled list --from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z --output json
+    xr calls scheduled list --start 2026-11-02T00:00:00Z --end 2026-11-09T00:00:00Z --output json
     xr calls scheduled get 1849302018273645 --output json
 
   Schedule a call, invite someone, and answer an invitation:

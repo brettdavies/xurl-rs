@@ -1,10 +1,10 @@
 args: ["trends", "personal", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6830
+stdout_len: 6835
 stderr_len: 0
 --- stdout ---
-The trends X picks for you
+List the trends X picks for you
 
 Usage: xr trends personal [OPTIONS]
 

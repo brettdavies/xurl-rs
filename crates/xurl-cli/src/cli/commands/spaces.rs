@@ -4,8 +4,8 @@
 use serde_json::json;
 
 use super::{
-    Run, UNRESOLVED_ID, dry_run_or_validate, effective_limit, list_paged, make_client, print_typed,
-    send_validated, with_flags,
+    Run, UNRESOLVED_ID, dry_run_or_validate, effective_limit, handles_lookup_call, list_paged,
+    make_client, print_typed, resolve_account_ids, send_validated, with_flags,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, SpacesCommands};
@@ -72,25 +72,19 @@ async fn by_creator(run: Run<'_>, accounts: &[String], common: &CommonFlags) -> 
     } = run;
     let ctx = json!({"command": "spaces-by-creator", "accounts": accounts});
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_user_lookup(accounts)
+        shortcuts::validate_accounts(accounts)
     })?;
     let client = make_client(cfg, auth)?;
-    let by_id = accounts.iter().all(|a| shortcuts::is_user_id_form(a));
-    let lookup = || with_flags(client.lookup_users_by_username(accounts), common, None);
     if let Some(dry_run) = dry_run {
         let mut credentials = Vec::new();
-        if !by_id {
-            credentials.push(lookup().auth_preflight().await);
+        if let Some(lookup) = handles_lookup_call(&client, accounts, common) {
+            credentials.push(lookup.auth_preflight().await);
         }
         let spaces = client.get_spaces_by_creator(&[UNRESOLVED_ID]);
         credentials.push(with_flags(spaces, common, None).auth_preflight().await);
         return dry_run.answer(out, stdout, credentials);
     }
-    let user_ids = if by_id {
-        accounts.to_vec()
-    } else {
-        shortcuts::user_ids_for_usernames(accounts, &lookup().send().await?.data)?
-    };
+    let user_ids = resolve_account_ids(&client, accounts, common).await?;
     let response = with_flags(client.get_spaces_by_creator(&user_ids), common, None)
         .send()
         .await?;

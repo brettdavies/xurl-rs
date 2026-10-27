@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7961
+stdout_len: 7968
 stderr_len: 0
 --- stdout ---
 Schedule a call on your X Calls calendar and invite people to it
@@ -17,7 +17,7 @@ Options:
       --title <TITLE>
           The title invitees see (100 characters at most)
 
-      --description <TEXT>
+      --description <DESCRIPTION>
           What the call is about (1000 characters at most)
 
       --duration <MINUTES>

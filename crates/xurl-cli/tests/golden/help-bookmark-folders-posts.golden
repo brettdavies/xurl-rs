@@ -1,12 +1,12 @@
-args: ["bookmark-folders", "get", "--help"]
+args: ["bookmark-folders", "posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7126
+stdout_len: 7132
 stderr_len: 0
 --- stdout ---
 List the posts in one of your bookmark folders, by id
 
-Usage: xr bookmark-folders get [OPTIONS] <FOLDER_ID>
+Usage: xr bookmark-folders posts [OPTIONS] <FOLDER_ID>
 
 Arguments:
   <FOLDER_ID>
@@ -162,9 +162,9 @@ Options:
 
 Examples:
   List the posts in a folder, by id (text):
-    xr bookmark-folders get 1146654567674912769
+    xr bookmark-folders posts 1146654567674912769
   As a JSON envelope:
-    xr bookmark-folders get 1146654567674912769 --output json
+    xr bookmark-folders posts 1146654567674912769 --output json
 
 --- stderr ---
 

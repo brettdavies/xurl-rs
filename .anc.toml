@@ -24,7 +24,7 @@ domain_verbs = [
   "usage", "dm", "dms", "broadcasts",
   "media", "examples", "validate",
   "hide", "unhide", "likers", "reposters", "quotes",
-  "read-posts", "users", "user-posts", "search-users", "search-counts", "analytics",
+  "posts", "users", "user-posts", "search-users", "search-counts", "analytics",
   "bookmark-folders", "conversations", "dm-events", "dm-block", "dm-unblock",
   "lists", "communities", "news", "trends", "spaces", "stream",
   "notes", "articles", "calls", "webhooks",

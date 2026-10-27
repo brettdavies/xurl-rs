@@ -567,7 +567,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         | Commands::Quote { .. }
         | Commands::Delete { .. } => posts::run(cmd, run).await,
         Commands::Read { .. }
-        | Commands::ReadPosts { .. }
+        | Commands::Posts { .. }
         | Commands::Users { .. }
         | Commands::UserPosts { .. }
         | Commands::SearchUsers { .. }
@@ -1009,6 +1009,35 @@ fn user_id_call(
     common: &CommonFlags,
 ) -> Call<api::ApiResponse<api::User>> {
     with_flags(client.lookup_user(username), common, None)
+}
+
+/// The request that resolves every handle among `accounts` at once, or
+/// `None` when each one is a numeric user id.
+fn handles_lookup_call(
+    client: &Client,
+    accounts: &[String],
+    common: &CommonFlags,
+) -> Option<Call<api::ApiResponse<Vec<api::User>>>> {
+    let handles: Vec<&String> = accounts
+        .iter()
+        .filter(|account| !shortcuts::is_user_id_form(account))
+        .collect();
+    (!handles.is_empty())
+        .then(|| with_flags(client.lookup_users_by_username(&handles), common, None))
+}
+
+/// Resolves accounts named in any mix of numeric ids and handles to user
+/// ids, in order, with one lookup for every handle among them.
+async fn resolve_account_ids(
+    client: &Client,
+    accounts: &[String],
+    common: &CommonFlags,
+) -> Result<Vec<String>> {
+    let found = match handles_lookup_call(client, accounts, common) {
+        Some(call) => call.send().await?.data,
+        None => Vec::new(),
+    };
+    shortcuts::user_ids_for_accounts(accounts, &found)
 }
 
 /// Resolves a username to a user ID.

@@ -1,10 +1,10 @@
 args: ["webhooks", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7558
+stdout_len: 7593
 stderr_len: 0
 --- stdout ---
-Webhook registration, validation, and replay
+Webhook registration, subscriptions, stream links, a local listener, and replay
 
 Usage: xr webhooks [OPTIONS] <COMMAND>
 

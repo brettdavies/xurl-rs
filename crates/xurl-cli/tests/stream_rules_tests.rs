@@ -196,7 +196,7 @@ async fn a_removal_x_only_checks_needs_no_confirmation() {
 }
 
 #[tokio::test]
-async fn counts_reads_the_rules_against_the_caps() {
+async fn count_reads_the_rules_against_the_caps() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path(format!("{RULES}/counts")))
@@ -212,7 +212,7 @@ async fn counts_reads_the_rules_against_the_caps() {
         .mount(&server)
         .await;
 
-    let (code, stdout, stderr) = run_json(&server, &["stream", "rules", "counts"]).await;
+    let (code, stdout, stderr) = run_json(&server, &["stream", "rules", "count"]).await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     assert_eq!(
