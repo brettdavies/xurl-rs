@@ -121,6 +121,11 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_MY_FOLLOWERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_LIKED_POSTS,
         fixture: "post_list",
         status: 200,
@@ -177,6 +182,11 @@ const ROUTES: &[Route] = &[
     },
     Route {
         endpoint: endpoints::GET_FOLLOWING,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_MY_FOLLOWING,
         fixture: "user_list",
         status: 200,
     },

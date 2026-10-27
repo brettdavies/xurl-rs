@@ -3,28 +3,28 @@
 use serde_json::json;
 
 use super::{
-    DryRun, Run, UNRESOLVED_ID, dry_run_or_validate, effective_limit, make_client, print_typed,
-    resolve_user_id, send_or_report, user_id_call, with_flags,
+    Run, UNRESOLVED_ID, dry_run_or_validate, list_mine, make_client, print_typed, resolve_user_id,
+    user_id_call, with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
-use xdk::api::shortcuts;
+use xdk::api::{Client, shortcuts};
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     match cmd {
         Commands::Dm {
             target_username,
             text,
             common,
         } => {
+            let Run {
+                cfg,
+                auth,
+                flags,
+                out,
+                stdout,
+                ..
+            } = run;
             let ctx = json!({
                 "command": "dm",
                 "target_username": target_username,
@@ -54,19 +54,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Dms {
             max_results,
             common,
-        } => {
-            let dry_run = flags.dry_run.then(|| {
-                let mut ctx = json!({"command": "dms"});
-                if let Some(n) = max_results {
-                    ctx["max_results"] = json!(n);
-                }
-                DryRun::new(ctx)
-            });
-            let n = effective_limit(max_results, flags.global_limit);
-            let client = make_client(cfg, auth)?;
-            let call = with_flags(client.get_dm_events(n), &common, flags.cursor.as_deref());
-            send_or_report(out, stdout, dry_run, call).await?;
-        }
+        } => list_mine(run, "dms", max_results, &common, Client::get_dm_events).await?,
         _ => unreachable!("run_subcommand routes only the direct-message commands here"),
     }
     Ok(())

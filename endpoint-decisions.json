@@ -167,17 +167,6 @@
       }
     },
     {
-      "id": "me-follow-lists",
-      "operations": [
-        "GET /2/users/me/followers",
-        "GET /2/users/me/following"
-      ],
-      "status": "planned",
-      "reason": "xr followers and xr following without --of send these, skipping the id lookup; with --of they keep /2/users/{id}/followers and /following. AGENTS.md's command grammar gains the exception that a flag naming another user may pick that user's endpoint over the caller's own.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "post-engagement",
       "operations": [
         "GET /2/tweets/{id}/liking_users",

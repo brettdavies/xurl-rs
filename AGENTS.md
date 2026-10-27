@@ -201,7 +201,8 @@ never the tests.
   that file. A verb that resolves a handle or acts on a post from the caller's account goes through
   `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and any other write from the caller's account through
   `act_from_me`. A paged list that belongs to one user goes through `list_for_user`, or `list_owned_by` when the
-  command's own inputs pick the list out. A verb that sends one request hands its call to `send_or_report`, through
+  command's own inputs pick the list out, and the caller's own list from a path that names no user (`followers` without
+  `--of`, `dms`) through `list_mine`. A verb that sends one request hands its call to `send_or_report`, through
   `send_validated` when its inputs are checked first, or `send_confirmed` when it destroys something. Each of those
   answers `--dry-run` with the credential its requests would go out under. `crates/xurl-cli/tests/dispatch_guard.rs`
   fails when a group's arms and its routing line disagree, `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command
@@ -229,7 +230,9 @@ failure message carries a `Cause:` line) is named here, and no document lists th
 ### Command grammar: flags vs subcommands
 
 - Flags never select endpoints. A flag tunes one endpoint's request (auth method, output shape, pagination, fields); it
-  never retargets the path.
+  never retargets the path. One exception: a flag naming another user may pick that user's endpoint over the caller's
+  own, so `xr followers` reads the caller's own list from the endpoint for the signed-in user, and `xr followers --of
+  @jack` reads jack's.
 - A standalone action or read in the core domain gets its own top-level command word: `dm`/`dms`,
   `bookmark`/`bookmarks`, and `timeline`/`mentions` are separate commands because they are separate endpoints.
 - A subcommand family groups a noun that owns several operations: tooling nouns (`auth`, `skill`, `schema`,
