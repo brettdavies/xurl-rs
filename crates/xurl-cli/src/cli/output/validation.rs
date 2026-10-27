@@ -8,8 +8,9 @@
 use xdk::api::shortcuts::{
     ALT_TEXT_MAX_CHARS, BOOKMARK_FOLDER_NAME_MAX_CHARS, CALL_DESCRIPTION_MAX_CHARS,
     CALL_DURATION_MAX_MINUTES, CALL_RECURRENCE_MAX_CHARS, CALL_TIME_ZONE_MAX_CHARS,
-    CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX,
-    POST_MEDIA_MAX, USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
+    CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX, DM_GROUP_PARTICIPANTS_MAX,
+    DM_GROUP_PARTICIPANTS_MIN, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
+    USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
 };
 
 /// The sentence for the validator code `code`; `None` for a message that is
@@ -34,6 +35,14 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "invalid-folder-id" => "A bookmark folder id is 1 to 19 digits.".to_string(),
         "invalid-news-id" => "A news story id is 1 to 19 digits.".to_string(),
         "invalid-community-id" => "A community id is 1 to 19 digits.".to_string(),
+        "invalid-conversation-id" => "A conversation id is two user ids joined by a hyphen, \
+             such as 123-456, or a group's 15 to 19 digits."
+            .to_string(),
+        "invalid-dm-event-id" => "A direct message event id is 1 to 19 digits.".to_string(),
+        "invalid-participant-count" => format!(
+            "A group conversation starts with {DM_GROUP_PARTICIPANTS_MIN} to \
+             {DM_GROUP_PARTICIPANTS_MAX} people besides you."
+        ),
         "empty-webhook-url" => "The webhook URL is empty.".to_string(),
         "webhook-url-too-long" => {
             format!("The webhook URL is longer than {WEBHOOK_URL_MAX_CHARS} characters.")

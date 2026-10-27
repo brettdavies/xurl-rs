@@ -146,6 +146,16 @@ DIRECT MESSAGES:
   Send a DM:
     xr dm @recipient \"Hello\"
 
+  Start a group, send into it, and read it back:
+    xr conversations start @alice @bob --text \"Plans for Friday?\" --output json
+    xr conversations send 1580705921830768643 \"Running late\"
+    xr conversations history 1580705921830768643 --output json | jaq -r '.data[]?.text'
+
+  Delete one message without a prompt; stop someone messaging you, or let them again:
+    xr dm-events remove 1580705921830768647 --force --no-interactive --output json
+    xr dm-block @spammer
+    xr dm-unblock @spammer --output json
+
   List recent DM events:
     xr dms -n 50 --output json
 

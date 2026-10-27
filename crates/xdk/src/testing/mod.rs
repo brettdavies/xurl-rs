@@ -311,6 +311,46 @@ const ROUTES: &[Route] = &[
         status: 201,
     },
     Route {
+        endpoint: endpoints::CREATE_DM_CONVERSATION,
+        fixture: "dm_sent",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::SEND_TO_CONVERSATION,
+        fixture: "dm_sent",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_CONVERSATION_EVENTS,
+        fixture: "dm_event_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_DM_EVENTS_WITH,
+        fixture: "dm_event_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_DM_EVENT,
+        fixture: "dm_event",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_DM_EVENT,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::BLOCK_DMS,
+        fixture: "dm_blocked",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNBLOCK_DMS,
+        fixture: "dm_blocked",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_DM_EVENTS,
         fixture: "dm_event_list",
         status: 200,

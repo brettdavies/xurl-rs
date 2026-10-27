@@ -626,6 +626,18 @@ pub struct DmSentResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// Whether a user's direct messages are blocked, as the block and unblock
+/// endpoints each answer.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct DmBlockResult {
+    /// Whether the user is blocked from sending you direct messages once the
+    /// request has been served.
+    pub blocked: bool,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// The moderator set after a broadcast chat moderator is added or removed.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ChatModeratorsResult {

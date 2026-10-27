@@ -193,23 +193,6 @@
       "by": "Brett, in the #370 sweep"
     },
     {
-      "id": "dm-conversations",
-      "operations": [
-        "POST /2/dm_conversations",
-        "POST /2/dm_conversations/{dm_conversation_id}/messages",
-        "GET /2/dm_conversations/with/{participant_id}/dm_events",
-        "GET /2/dm_conversations/{id}/dm_events",
-        "GET /2/dm_events/{event_id}",
-        "DELETE /2/dm_events/{event_id}",
-        "POST /2/users/{id}/dm/block",
-        "POST /2/users/{id}/dm/unblock"
-      ],
-      "status": "planned",
-      "reason": "Extend the dm commands: start a group conversation, send into a conversation, read one conversation's history, read or delete one message, and block or unblock a user's direct messages.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "stream-rules",
       "operations": [
         "* /2/tweets/search/stream/rules",
