@@ -2958,9 +2958,550 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
             [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your broadcasts')
+            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read one broadcast, by id')
+            [CompletionResult]::new('scheduled', 'scheduled', [CompletionResultType]::ParameterValue, 'Schedule broadcasts, change or cancel them, and start them early')
+            [CompletionResult]::new('chat', 'chat', [CompletionResultType]::ParameterValue, 'Read and moderate a broadcast''s chat')
             [CompletionResult]::new('moderators', 'moderators', [CompletionResultType]::ParameterValue, 'Manage who moderates your broadcast chats')
             [CompletionResult]::new('sources', 'sources', [CompletionResultType]::ParameterValue, 'Manage the RTMP and RTMPS ingest points you stream to')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;broadcasts;list' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;get' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;scheduled' {
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your scheduled broadcasts')
+            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read one scheduled broadcast, by id')
+            [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Schedule a broadcast from one of your stream sources')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Move a scheduled broadcast, or change its details')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Cancel a scheduled broadcast')
+            [CompletionResult]::new('live', 'live', [CompletionResultType]::ParameterValue, 'Start a scheduled broadcast now')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;broadcasts;scheduled;list' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;scheduled;get' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;scheduled;add' {
+            [CompletionResult]::new('--source', '--source', [CompletionResultType]::ParameterName, 'Stream source ID, as `xr broadcasts sources list` prints it')
+            [CompletionResult]::new('--start', '--start', [CompletionResultType]::ParameterName, 'When the broadcast starts (RFC 3339 with a zone, such as 2026-11-02T16:00:00Z)')
+            [CompletionResult]::new('--end', '--end', [CompletionResultType]::ParameterName, 'When the broadcast ends (RFC 3339); open-ended when unset')
+            [CompletionResult]::new('--title', '--title', [CompletionResultType]::ParameterName, 'The broadcast''s title')
+            [CompletionResult]::new('--description', '--description', [CompletionResultType]::ParameterName, 'What the broadcast is about')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--replay', '--replay', [CompletionResultType]::ParameterName, 'Let people watch the broadcast after it ends')
+            [CompletionResult]::new('--manual-publish', '--manual-publish', [CompletionResultType]::ParameterName, 'Wait for `xr broadcasts scheduled live` rather than starting on time')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;scheduled;update' {
+            [CompletionResult]::new('--start', '--start', [CompletionResultType]::ParameterName, 'When the broadcast starts (RFC 3339 with a zone)')
+            [CompletionResult]::new('--end', '--end', [CompletionResultType]::ParameterName, 'When the broadcast ends (RFC 3339 with a zone)')
+            [CompletionResult]::new('--source', '--source', [CompletionResultType]::ParameterName, 'Stream source ID to take video from instead')
+            [CompletionResult]::new('--title', '--title', [CompletionResultType]::ParameterName, 'The broadcast''s title')
+            [CompletionResult]::new('--description', '--description', [CompletionResultType]::ParameterName, 'What the broadcast is about')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--replay', '--replay', [CompletionResultType]::ParameterName, 'Let people watch the broadcast after it ends')
+            [CompletionResult]::new('--manual-publish', '--manual-publish', [CompletionResultType]::ParameterName, 'Wait for `xr broadcasts scheduled live` rather than starting on time')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;scheduled;remove' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--force', '--force', [CompletionResultType]::ParameterName, 'Skip the confirmation prompt; required under `--no-interactive`')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;scheduled;live' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--force', '--force', [CompletionResultType]::ParameterName, 'Skip the confirmation prompt; required under `--no-interactive`')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;scheduled;help' {
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your scheduled broadcasts')
+            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read one scheduled broadcast, by id')
+            [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Schedule a broadcast from one of your stream sources')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Move a scheduled broadcast, or change its details')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Cancel a scheduled broadcast')
+            [CompletionResult]::new('live', 'live', [CompletionResultType]::ParameterValue, 'Start a scheduled broadcast now')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;broadcasts;scheduled;help;list' {
+            break
+        }
+        'xr;broadcasts;scheduled;help;get' {
+            break
+        }
+        'xr;broadcasts;scheduled;help;add' {
+            break
+        }
+        'xr;broadcasts;scheduled;help;update' {
+            break
+        }
+        'xr;broadcasts;scheduled;help;remove' {
+            break
+        }
+        'xr;broadcasts;scheduled;help;live' {
+            break
+        }
+        'xr;broadcasts;scheduled;help;help' {
+            break
+        }
+        'xr;broadcasts;chat' {
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('history', 'history', [CompletionResultType]::ParameterValue, 'List a broadcast''s chat')
+            [CompletionResult]::new('send', 'send', [CompletionResultType]::ParameterValue, 'Send a message into a broadcast''s chat')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove a message from a broadcast''s chat')
+            [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute someone in a broadcast''s chat')
+            [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute someone in a broadcast''s chat')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;broadcasts;chat;history' {
+            [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-200). Overrides global `--limit` when set')
+            [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-200). Overrides global `--limit` when set')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;chat;send' {
+            [CompletionResult]::new('--reply-to', '--reply-to', [CompletionResultType]::ParameterName, 'The chat message to reply to, by id')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;chat;remove' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--force', '--force', [CompletionResultType]::ParameterName, 'Skip the confirmation prompt; required under `--no-interactive`')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;chat;mute' {
+            [CompletionResult]::new('--until', '--until', [CompletionResultType]::ParameterName, 'When the mute ends (RFC 3339 with a zone); for good when unset')
+            [CompletionResult]::new('--message', '--message', [CompletionResultType]::ParameterName, 'A chat message of theirs to remove while muting, by id')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;chat;unmute' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;broadcasts;chat;help' {
+            [CompletionResult]::new('history', 'history', [CompletionResultType]::ParameterValue, 'List a broadcast''s chat')
+            [CompletionResult]::new('send', 'send', [CompletionResultType]::ParameterValue, 'Send a message into a broadcast''s chat')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove a message from a broadcast''s chat')
+            [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute someone in a broadcast''s chat')
+            [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute someone in a broadcast''s chat')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;broadcasts;chat;help;history' {
+            break
+        }
+        'xr;broadcasts;chat;help;send' {
+            break
+        }
+        'xr;broadcasts;chat;help;remove' {
+            break
+        }
+        'xr;broadcasts;chat;help;mute' {
+            break
+        }
+        'xr;broadcasts;chat;help;unmute' {
+            break
+        }
+        'xr;broadcasts;chat;help;help' {
             break
         }
         'xr;broadcasts;moderators' {
@@ -3312,9 +3853,69 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;broadcasts;help' {
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your broadcasts')
+            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read one broadcast, by id')
+            [CompletionResult]::new('scheduled', 'scheduled', [CompletionResultType]::ParameterValue, 'Schedule broadcasts, change or cancel them, and start them early')
+            [CompletionResult]::new('chat', 'chat', [CompletionResultType]::ParameterValue, 'Read and moderate a broadcast''s chat')
             [CompletionResult]::new('moderators', 'moderators', [CompletionResultType]::ParameterValue, 'Manage who moderates your broadcast chats')
             [CompletionResult]::new('sources', 'sources', [CompletionResultType]::ParameterValue, 'Manage the RTMP and RTMPS ingest points you stream to')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;broadcasts;help;list' {
+            break
+        }
+        'xr;broadcasts;help;get' {
+            break
+        }
+        'xr;broadcasts;help;scheduled' {
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your scheduled broadcasts')
+            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read one scheduled broadcast, by id')
+            [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Schedule a broadcast from one of your stream sources')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Move a scheduled broadcast, or change its details')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Cancel a scheduled broadcast')
+            [CompletionResult]::new('live', 'live', [CompletionResultType]::ParameterValue, 'Start a scheduled broadcast now')
+            break
+        }
+        'xr;broadcasts;help;scheduled;list' {
+            break
+        }
+        'xr;broadcasts;help;scheduled;get' {
+            break
+        }
+        'xr;broadcasts;help;scheduled;add' {
+            break
+        }
+        'xr;broadcasts;help;scheduled;update' {
+            break
+        }
+        'xr;broadcasts;help;scheduled;remove' {
+            break
+        }
+        'xr;broadcasts;help;scheduled;live' {
+            break
+        }
+        'xr;broadcasts;help;chat' {
+            [CompletionResult]::new('history', 'history', [CompletionResultType]::ParameterValue, 'List a broadcast''s chat')
+            [CompletionResult]::new('send', 'send', [CompletionResultType]::ParameterValue, 'Send a message into a broadcast''s chat')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove a message from a broadcast''s chat')
+            [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute someone in a broadcast''s chat')
+            [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute someone in a broadcast''s chat')
+            break
+        }
+        'xr;broadcasts;help;chat;history' {
+            break
+        }
+        'xr;broadcasts;help;chat;send' {
+            break
+        }
+        'xr;broadcasts;help;chat;remove' {
+            break
+        }
+        'xr;broadcasts;help;chat;mute' {
+            break
+        }
+        'xr;broadcasts;help;chat;unmute' {
             break
         }
         'xr;broadcasts;help;moderators' {
@@ -5369,7 +5970,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;validate' {
-            [CompletionResult]::new('--schema', '--schema', [CompletionResultType]::ParameterName, 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection')
+            [CompletionResult]::new('--schema', '--schema', [CompletionResultType]::ParameterName, 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -5746,8 +6347,68 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;help;broadcasts' {
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your broadcasts')
+            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read one broadcast, by id')
+            [CompletionResult]::new('scheduled', 'scheduled', [CompletionResultType]::ParameterValue, 'Schedule broadcasts, change or cancel them, and start them early')
+            [CompletionResult]::new('chat', 'chat', [CompletionResultType]::ParameterValue, 'Read and moderate a broadcast''s chat')
             [CompletionResult]::new('moderators', 'moderators', [CompletionResultType]::ParameterValue, 'Manage who moderates your broadcast chats')
             [CompletionResult]::new('sources', 'sources', [CompletionResultType]::ParameterValue, 'Manage the RTMP and RTMPS ingest points you stream to')
+            break
+        }
+        'xr;help;broadcasts;list' {
+            break
+        }
+        'xr;help;broadcasts;get' {
+            break
+        }
+        'xr;help;broadcasts;scheduled' {
+            [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your scheduled broadcasts')
+            [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Read one scheduled broadcast, by id')
+            [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Schedule a broadcast from one of your stream sources')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Move a scheduled broadcast, or change its details')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Cancel a scheduled broadcast')
+            [CompletionResult]::new('live', 'live', [CompletionResultType]::ParameterValue, 'Start a scheduled broadcast now')
+            break
+        }
+        'xr;help;broadcasts;scheduled;list' {
+            break
+        }
+        'xr;help;broadcasts;scheduled;get' {
+            break
+        }
+        'xr;help;broadcasts;scheduled;add' {
+            break
+        }
+        'xr;help;broadcasts;scheduled;update' {
+            break
+        }
+        'xr;help;broadcasts;scheduled;remove' {
+            break
+        }
+        'xr;help;broadcasts;scheduled;live' {
+            break
+        }
+        'xr;help;broadcasts;chat' {
+            [CompletionResult]::new('history', 'history', [CompletionResultType]::ParameterValue, 'List a broadcast''s chat')
+            [CompletionResult]::new('send', 'send', [CompletionResultType]::ParameterValue, 'Send a message into a broadcast''s chat')
+            [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Remove a message from a broadcast''s chat')
+            [CompletionResult]::new('mute', 'mute', [CompletionResultType]::ParameterValue, 'Mute someone in a broadcast''s chat')
+            [CompletionResult]::new('unmute', 'unmute', [CompletionResultType]::ParameterValue, 'Unmute someone in a broadcast''s chat')
+            break
+        }
+        'xr;help;broadcasts;chat;history' {
+            break
+        }
+        'xr;help;broadcasts;chat;send' {
+            break
+        }
+        'xr;help;broadcasts;chat;remove' {
+            break
+        }
+        'xr;help;broadcasts;chat;mute' {
+            break
+        }
+        'xr;help;broadcasts;chat;unmute' {
             break
         }
         'xr;help;broadcasts;moderators' {

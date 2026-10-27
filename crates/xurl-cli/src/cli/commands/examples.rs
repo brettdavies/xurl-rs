@@ -176,6 +176,14 @@ BROADCASTS:
     xr broadcasts sources add \"Studio A\" --region us-east-1 --output json
     xr broadcasts sources get 1x2y3z4w5v6u --output json
 
+  Schedule a broadcast from a source, then welcome the chat once it is live:
+    xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --output json
+    xr broadcasts chat send 1YqKDqWqdPLGV \"Welcome!\" --output json
+
+  Your broadcasts, and one by id:
+    xr broadcasts list --output json
+    xr broadcasts get 1YqKDqWqdPLGV --output json
+
 CALLS:
   The calls on your calendar in a week, then one with its invitees' answers:
     xr calls scheduled list --from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z --output json

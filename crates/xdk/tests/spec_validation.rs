@@ -22,14 +22,16 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
-    BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
-    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast,
+    BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community,
+    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
     LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
     MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, PersonalizedTrend,
-    PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
+    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -219,6 +221,37 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_broadcasts() {
+    let examples = load_examples();
+    let many: ApiResponse<Vec<Broadcast>> =
+        serde_json::from_value(examples["broadcasts"].clone()).unwrap();
+    assert_eq!(many.data[0].chat_option, Some(2));
+    let one: ApiResponse<Broadcast> =
+        serde_json::from_value(examples["broadcast"].clone()).unwrap();
+    assert_eq!(one.data.total_watched.as_deref(), Some("1200"));
+    let scheduled: ApiResponse<Vec<ScheduledBroadcast>> =
+        serde_json::from_value(examples["scheduled_broadcasts"].clone()).unwrap();
+    assert_eq!(scheduled.data[0].manual_publish, Some(false));
+    let one: ApiResponse<ScheduledBroadcast> =
+        serde_json::from_value(examples["scheduled_broadcast"].clone()).unwrap();
+    assert_eq!(one.data.scheduled_broadcast_id, "1850000000000000001");
+}
+
+#[test]
+fn spec_broadcast_chat() {
+    let examples = load_examples();
+    let chat: ApiResponse<Vec<BroadcastChatMessage>> =
+        serde_json::from_value(examples["broadcast_chat"].clone()).unwrap();
+    assert_eq!(chat.data[0].text.as_deref(), Some("Welcome!"));
+    let sent: ApiResponse<ChatSentResult> =
+        serde_json::from_value(examples["broadcast_chat_sent"].clone()).unwrap();
+    assert!(sent.data.success);
+    let muted: ApiResponse<ChatMutedResult> =
+        serde_json::from_value(examples["broadcast_chat_muted"].clone()).unwrap();
+    assert!(muted.data.muted);
 }
 
 #[test]
@@ -794,6 +827,33 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ),
     ("community", endpoints::GET_COMMUNITY, ReplyKind::Success),
     ("list_single", endpoints::GET_LIST, ReplyKind::Success),
+    ("broadcasts", endpoints::LIST_BROADCASTS, ReplyKind::Success),
+    ("broadcast", endpoints::GET_BROADCAST, ReplyKind::Success),
+    (
+        "scheduled_broadcasts",
+        endpoints::LIST_SCHEDULED_BROADCASTS,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_broadcast",
+        endpoints::GET_SCHEDULED_BROADCAST,
+        ReplyKind::Success,
+    ),
+    (
+        "broadcast_chat",
+        endpoints::GET_BROADCAST_CHAT,
+        ReplyKind::Success,
+    ),
+    (
+        "broadcast_chat_sent",
+        endpoints::SEND_BROADCAST_CHAT,
+        ReplyKind::Success,
+    ),
+    (
+        "broadcast_chat_muted",
+        endpoints::MUTE_CHAT_USER,
+        ReplyKind::Success,
+    ),
     ("lists", endpoints::GET_OWNED_LISTS, ReplyKind::Success),
     ("list_created", endpoints::CREATE_LIST, ReplyKind::Success),
     ("list_updated", endpoints::UPDATE_LIST, ReplyKind::Success),

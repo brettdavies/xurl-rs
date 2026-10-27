@@ -561,6 +561,144 @@ pub struct List {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// A live broadcast on X.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct Broadcast {
+    /// Broadcast ID.
+    pub id: String,
+    /// The broadcast's id on Periscope's side, when it differs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub broadcast_id: Option<String>,
+    /// The broadcast's title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Where the broadcast is, such as `RUNNING` or `ENDED`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    /// The stream source the broadcast takes video from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_id: Option<String>,
+    /// When the broadcast was scheduled to start, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduled_start_ms: Option<String>,
+    /// When the broadcast was scheduled to end, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduled_end_ms: Option<String>,
+    /// When the broadcast started, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_ms: Option<String>,
+    /// When the broadcast ended, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_ms: Option<String>,
+    /// The link to watch the broadcast.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub share_url: Option<String>,
+    /// How many people are watching now.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_watching: Option<String>,
+    /// How many people have watched.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_watched: Option<String>,
+    /// The post that carries the broadcast.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tweet_id: Option<String>,
+    /// The id of the account that broadcasts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub twitter_user_id: Option<String>,
+    /// Whether the broadcast can be watched after it ends.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub available_for_replay: Option<bool>,
+    /// Who can chat.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chat_option: Option<i64>,
+    /// When the broadcast was created, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at_ms: Option<String>,
+    /// When the broadcast last changed, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at_ms: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A broadcast scheduled to start later.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ScheduledBroadcast {
+    /// Scheduled broadcast ID.
+    pub scheduled_broadcast_id: String,
+    /// The broadcast the schedule becomes once it goes live.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub broadcast_id: Option<String>,
+    /// The broadcast's title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// What the broadcast is about.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Where the schedule is, such as `Scheduled`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    /// The stream source the broadcast takes video from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_id: Option<String>,
+    /// When the broadcast starts, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduled_start_ms: Option<String>,
+    /// When the broadcast ends, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduled_end_ms: Option<String>,
+    /// Whether the broadcast can be watched after it ends.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub available_for_replay: Option<bool>,
+    /// Whether the broadcast waits for `go live` rather than starting on time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manual_publish: Option<bool>,
+    /// Who can chat, as X's numeric string.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chat_option: Option<String>,
+    /// The broadcast's locale.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locale: Option<String>,
+    /// The media shown before the broadcast starts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thumbnail_media_id: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A message in a broadcast's chat.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct BroadcastChatMessage {
+    /// Message ID, which X also uses as its timestamp.
+    pub id: String,
+    /// The message.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    /// The id of the account that wrote it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub author_id: Option<String>,
+    /// The handle of the account that wrote it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub author_username: Option<String>,
+    /// The display name of the account that wrote it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub author_name: Option<String>,
+    /// The broadcast the chat belongs to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub broadcast_id: Option<String>,
+    /// When the message was sent, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at_ms: Option<String>,
+    /// The message this one replies to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_to: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.
@@ -608,6 +746,29 @@ pub struct ListMemberResult {
 pub struct PinnedResult {
     /// Whether the list is pinned once the request has been served.
     pub pinned: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Confirmation that a message reached a broadcast's chat.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ChatSentResult {
+    /// Whether the message was sent.
+    pub success: bool,
+    /// The message's id, which X also uses as its timestamp.
+    pub timestamp: String,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Whether a user is muted in a broadcast's chat, as muting and unmuting
+/// each answer.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ChatMutedResult {
+    /// Whether the user is muted once the request has been served.
+    pub muted: bool,
     /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,

@@ -2343,6 +2343,40 @@ pub enum TrendsCommands {
 /// `xr broadcasts` family subcommands.
 #[derive(Subcommand, Debug)]
 pub enum BroadcastsCommands {
+    /// List your broadcasts
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one broadcast, by id
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::GET))]
+    Get {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Schedule broadcasts, change or cancel them, and start them early
+    #[command(after_help = family_help::broadcasts_scheduled::page())]
+    Scheduled {
+        /// `scheduled` verb to dispatch.
+        #[command(subcommand)]
+        action: ScheduledBroadcastsCommands,
+    },
+    /// Read and moderate a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::page())]
+    Chat {
+        /// `chat` verb to dispatch.
+        #[command(subcommand)]
+        action: BroadcastChatCommands,
+    },
     /// Manage who moderates your broadcast chats
     #[command(after_help = family_help::broadcasts::moderators_page())]
     Moderators {
@@ -2356,6 +2390,200 @@ pub enum BroadcastsCommands {
         /// `sources` verb to dispatch.
         #[command(subcommand)]
         action: SourcesCommands,
+    },
+}
+
+/// `xr broadcasts scheduled` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ScheduledBroadcastsCommands {
+    /// List your scheduled broadcasts
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one scheduled broadcast, by id
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::GET))]
+    Get {
+        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_ID")]
+        scheduled_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Schedule a broadcast from one of your stream sources
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::ADD))]
+    Add {
+        /// Stream source ID, as `xr broadcasts sources list` prints it
+        #[arg(long, value_name = "SOURCE_ID", value_parser = clap::builder::NonEmptyStringValueParser::new())]
+        source: String,
+        /// When the broadcast starts (RFC 3339 with a zone, such as
+        /// 2026-11-02T16:00:00Z)
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// When the broadcast ends (RFC 3339); open-ended when unset
+        #[arg(long, value_name = "TIME")]
+        end: Option<String>,
+        /// The broadcast's title
+        #[arg(long)]
+        title: Option<String>,
+        /// What the broadcast is about
+        #[arg(long)]
+        description: Option<String>,
+        /// Let people watch the broadcast after it ends
+        #[arg(long)]
+        replay: bool,
+        /// Wait for `xr broadcasts scheduled live` rather than starting on time
+        #[arg(long)]
+        manual_publish: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Move a scheduled broadcast, or change its details
+    ///
+    /// X takes both times on every change.
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::UPDATE))]
+    Update {
+        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_ID")]
+        scheduled_id: String,
+        /// When the broadcast starts (RFC 3339 with a zone)
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// When the broadcast ends (RFC 3339 with a zone)
+        #[arg(long, value_name = "TIME")]
+        end: String,
+        /// Stream source ID to take video from instead
+        #[arg(long, value_name = "SOURCE_ID")]
+        source: Option<String>,
+        /// The broadcast's title
+        #[arg(long)]
+        title: Option<String>,
+        /// What the broadcast is about
+        #[arg(long)]
+        description: Option<String>,
+        /// Let people watch the broadcast after it ends
+        #[arg(long)]
+        replay: bool,
+        /// Wait for `xr broadcasts scheduled live` rather than starting on time
+        #[arg(long)]
+        manual_publish: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Cancel a scheduled broadcast
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::REMOVE))]
+    Remove {
+        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_ID")]
+        scheduled_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Start a scheduled broadcast now
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::LIVE))]
+    Live {
+        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_ID")]
+        scheduled_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr broadcasts chat` verbs.
+#[derive(Subcommand, Debug)]
+pub enum BroadcastChatCommands {
+    /// List a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::HISTORY))]
+    History {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Number of results (1-200). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Send a message into a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::SEND))]
+    Send {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Message text, 1 to 140 characters
+        text: String,
+        /// The chat message to reply to, by id
+        #[arg(long, value_name = "MESSAGE_ID")]
+        reply_to: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove a message from a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::REMOVE))]
+    Remove {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Chat message ID, as `xr broadcasts chat history` prints it
+        #[arg(value_name = "MESSAGE_ID")]
+        message_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Mute someone in a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::MUTE))]
+    Mute {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Username to mute
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// When the mute ends (RFC 3339 with a zone); for good when unset
+        #[arg(long, value_name = "TIME")]
+        until: Option<String>,
+        /// A chat message of theirs to remove while muting, by id
+        #[arg(long, value_name = "MESSAGE_ID")]
+        message: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Unmute someone in a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::UNMUTE))]
+    Unmute {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Username to unmute
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
     },
 }
 

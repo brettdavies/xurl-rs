@@ -27,7 +27,9 @@ The commands below have no Go counterpart either. With Go, their endpoints are r
 sign-in does not request the `calls.read` and `calls.write` scopes the calls endpoints take.
 
 - `xr calls get` and `xr calls scheduled` (`list`, `get`, `add`, `update`, `cancel`, `rsvp`)
-- `xr broadcasts sources` (`list`, `get`, `add`, `rename`, `remove`)
+- `xr broadcasts` (`list`, `get`), `xr broadcasts sources` (`list`, `get`, `add`, `rename`, `remove`),
+  `xr broadcasts scheduled` (`list`, `get`, `add`, `update`, `remove`, `live`), and `xr broadcasts chat` (`history`,
+  `send`, `remove`, `mute`, `unmute`)
 - `xr bookmark-folders` (`list`, `get`, `add`)
 - `xr hide` and `xr unhide`
 - `xr likers`, `xr reposters`, and `xr quotes`

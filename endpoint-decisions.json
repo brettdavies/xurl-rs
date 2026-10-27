@@ -190,19 +190,6 @@
       "by": "Brett, in the #370 sweep"
     },
     {
-      "id": "broadcasts",
-      "operations": [
-        "GET /2/broadcasts",
-        "GET /2/broadcasts/{id}",
-        "* /2/broadcasts/scheduled/**",
-        "* /2/broadcasts/{id}/chat/**"
-      ],
-      "status": "planned",
-      "reason": "Extend xr broadcasts: your broadcasts; broadcasts scheduled (list, get, add, update, remove, live), which takes a source from broadcasts sources; and broadcasts chat (history, send, remove a message, mute, unmute).",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "spaces",
       "operations": [
         "GET /2/spaces",

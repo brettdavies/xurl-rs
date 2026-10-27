@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "broadcasts", "chat", "remove", "1YqKDqWqdPLGV", "msg-1"]
+store: empty
+exit_code: 0
+stdout_len: 241
+stderr_len: 0
+--- stdout ---
+{
+  "broadcast_id": "1YqKDqWqdPLGV",
+  "command": "broadcasts-chat-remove",
+  "confirmation_required": true,
+  "exit_code": 1,
+  "message_id": "msg-1",
+  "reason": "invalid-chat-message-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+
