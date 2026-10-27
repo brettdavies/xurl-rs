@@ -1048,7 +1048,7 @@ fn dry_run_cases() -> Vec<Case> {
         ),
         Case {
             name: "dry-run-too-many-ids".to_string(),
-            args: ["--output", "json", "--dry-run", "read-posts"]
+            args: ["--output", "json", "--dry-run", "posts"]
                 .into_iter()
                 .map(str::to_string)
                 .chain((1..=101).map(|n| n.to_string()))

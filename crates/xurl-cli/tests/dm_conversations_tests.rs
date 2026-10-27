@@ -41,20 +41,25 @@ fn sent(conversation: &str) -> ResponseTemplate {
 }
 
 #[tokio::test]
-async fn start_resolves_each_handle_and_creates_a_group() {
+async fn start_resolves_every_handle_in_one_lookup_and_creates_a_group() {
     let server = MockServer::start().await;
-    answer_lookup(&server, "alice", "11").await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/22"))
-        .respond_with(ResponseTemplate::new(500))
-        .expect(0)
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "alice,bob"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [
+                {"id": "11", "name": "Alice", "username": "alice"},
+                {"id": "12", "name": "Bob", "username": "Bob"}
+            ]
+        })))
+        .expect(1)
         .mount(&server)
         .await;
     Mock::given(method("POST"))
         .and(path("/2/dm_conversations"))
         .and(body_json(serde_json::json!({
             "conversation_type": "Group",
-            "participant_ids": ["11", "22"],
+            "participant_ids": ["11", "12", "22"],
             "message": {"text": "hi"}
         })))
         .respond_with(sent("1580705921830768650"))
@@ -71,6 +76,7 @@ async fn start_resolves_each_handle_and_creates_a_group() {
             "conversations",
             "start",
             "@alice",
+            "bob",
             "22",
             "--text",
             "hi",
@@ -85,6 +91,7 @@ async fn start_resolves_each_handle_and_creates_a_group() {
         json_out(&stdout)["data"]["dm_conversation_id"],
         "1580705921830768650"
     );
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 2);
 }
 
 #[tokio::test]

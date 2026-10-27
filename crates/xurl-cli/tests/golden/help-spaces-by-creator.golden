@@ -1,16 +1,16 @@
 args: ["spaces", "by-creator", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7019
+stdout_len: 7026
 stderr_len: 0
 --- stdout ---
-The Spaces 1 to 100 accounts created, in one request
+List the Spaces 1 to 100 accounts created, in one request
 
 Usage: xr spaces by-creator [OPTIONS] <ACCOUNT>...
 
 Arguments:
   <ACCOUNT>...
-          Handles (@jack or jack) or numeric user ids, 1 to 100; not both
+          Handles (@jack or jack) or numeric user ids, 1 to 100, in any mix
 
 Options:
       --auth <AUTH_TYPE>

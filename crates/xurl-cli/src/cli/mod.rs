@@ -301,15 +301,15 @@ Examples:
   Every argument is a handle or every one an id; X answers each form from its own endpoint.
 ";
 
-/// `xr read-posts` examples — paired text + JSON, JSONL pipeline.
-const READ_POSTS_HELP: &str = "\
+/// `xr posts` examples — paired text + JSON, JSONL pipeline.
+const POSTS_HELP: &str = "\
 Examples:
   Read several posts in one request (text):
-    xr read-posts 1585341984679469056 1346889436626259968
+    xr posts 1585341984679469056 1346889436626259968
   Ids and post URLs mixed, JSON envelope:
-    xr read-posts 1585341984679469056 https://x.com/alice/status/1346889436626259968 --output json
+    xr posts 1585341984679469056 https://x.com/alice/status/1346889436626259968 --output json
   The text of each post, one per line:
-    xr read-posts 1585341984679469056 1346889436626259968 --output json | jaq -r '.data[]?.text'
+    xr posts 1585341984679469056 1346889436626259968 --output json | jaq -r '.data[]?.text'
   The ids X could not return are under errors, beside the posts it could.
 ";
 
@@ -1305,11 +1305,11 @@ pub enum Commands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// Impressions and engagement for your posts over a time window
+    /// Report impressions and engagement for your posts over a time window
     #[command(after_help = ANALYTICS_HELP)]
     Analytics {
         /// Post IDs or URLs, 1 to 100
-        #[arg(required = true, num_args = 1..)]
+        #[arg(value_name = "POST_ID", required = true, num_args = 1..)]
         post_ids: Vec<String>,
         /// Start of the window (RFC 3339 with a zone, such as
         /// 2026-10-01T00:00:00Z)
@@ -1370,6 +1370,7 @@ pub enum Commands {
     #[command(after_help = USER_POSTS_HELP)]
     UserPosts {
         /// Username, with or without the leading @
+        #[arg(value_name = "USERNAME")]
         target_username: String,
         /// Number of results (5-100; a lower value is raised to 5, X's
         /// minimum). Overrides global `--limit` when set.
@@ -1379,11 +1380,11 @@ pub enum Commands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// Read up to 100 posts in one request
-    #[command(after_help = READ_POSTS_HELP)]
-    ReadPosts {
+    /// Read 1 to 100 posts by id or URL in one request
+    #[command(after_help = POSTS_HELP)]
+    Posts {
         /// Post IDs or URLs, 1 to 100
-        #[arg(required = true, num_args = 1..)]
+        #[arg(value_name = "POST_ID", required = true, num_args = 1..)]
         post_ids: Vec<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1625,7 +1626,7 @@ pub enum Commands {
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Username to list following for (default: you)
-        #[arg(long = "of")]
+        #[arg(long = "of", value_name = "USERNAME")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1638,7 +1639,7 @@ pub enum Commands {
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Username to list followers for (default: you)
-        #[arg(long = "of")]
+        #[arg(long = "of", value_name = "USERNAME")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1849,7 +1850,7 @@ pub enum Commands {
     },
 
     // ── Broadcasts ───────────────────────────────────────────────────
-    /// Broadcast chat moderators and stream sources
+    /// Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources
     #[command(after_help = family_help::broadcasts::root_page())]
     Broadcasts {
         /// `broadcasts` family subcommand.
@@ -1871,7 +1872,7 @@ pub enum Commands {
     },
 
     // ── Webhooks ─────────────────────────────────────────────────────
-    /// Webhook registration, validation, and replay
+    /// Webhook registration, subscriptions, stream links, a local listener, and replay
     #[command(after_help = family_help::webhooks::root_page())]
     Webhooks {
         /// `webhooks` verb to dispatch.
@@ -1889,7 +1890,7 @@ pub enum Commands {
     },
 
     // ── Media ────────────────────────────────────────────────────────
-    /// Media upload, alt text, and subtitles
+    /// Media upload, lookup by key, video metrics, alt text, and subtitles
     #[command(after_help = MEDIA_HELP)]
     Media {
         /// `media` subcommand to dispatch.
@@ -2004,8 +2005,8 @@ pub enum BookmarkFoldersCommands {
         common: CommonFlags,
     },
     /// List the posts in one of your bookmark folders, by id
-    #[command(after_help = family_help::bookmark_folders::FAMILY.verb_page(&family_help::bookmark_folders::GET))]
-    Get {
+    #[command(after_help = family_help::bookmark_folders::FAMILY.verb_page(&family_help::bookmark_folders::POSTS))]
+    Posts {
         /// Folder ID, as `xr bookmark-folders list` prints it
         #[arg(value_name = "FOLDER_ID")]
         folder_id: String,
@@ -2037,6 +2038,9 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Username whose own lists to read (default: you)
+        #[arg(long = "of", value_name = "USERNAME")]
+        of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -2047,6 +2051,9 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Username whose followed lists to read (default: you)
+        #[arg(long = "of", value_name = "USERNAME")]
+        of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -2057,6 +2064,9 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Username whose list memberships to read (default: you)
+        #[arg(long = "of", value_name = "USERNAME")]
+        of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -2391,17 +2401,17 @@ pub enum SpacesCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// The Spaces 1 to 100 accounts created, in one request
+    /// List the Spaces 1 to 100 accounts created, in one request
     #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::BY_CREATOR))]
     ByCreator {
-        /// Handles (@jack or jack) or numeric user ids, 1 to 100; not both
+        /// Handles (@jack or jack) or numeric user ids, 1 to 100, in any mix
         #[arg(value_name = "ACCOUNT", required = true, num_args = 1..)]
         accounts: Vec<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// The posts shared in a Space
+    /// List the posts shared in a Space
     #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::POSTS))]
     Posts {
         /// Space ID, as `xr spaces search` prints it
@@ -2476,9 +2486,9 @@ pub enum StreamRulesCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// How many rules your app and its project hold, against X's caps
-    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::COUNTS))]
-    Counts {
+    /// Count the rules your app and its project hold, against X's caps
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::COUNT))]
+    Count {
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -2650,20 +2660,21 @@ pub enum NotesCommands {
 /// `xr trends` verbs.
 #[derive(Subcommand, Debug)]
 pub enum TrendsCommands {
-    /// Trends for a place, by its Yahoo WOEID (1 is worldwide)
+    /// List the trends for a place, by its Yahoo WOEID (1 is worldwide)
     #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::PLACE))]
     Place {
         /// The place's Yahoo Where On Earth ID, a positive integer
         #[arg(value_name = "WOEID", value_parser = clap::value_parser!(u32).range(1..))]
         woeid: u32,
-        /// Most trends to list, 1 to 50 (X's default is 20)
-        #[arg(long, value_parser = clap::value_parser!(u32).range(1..=50))]
-        max: Option<u32>,
+        /// Number of trends (1-50; X's default is 20). Overrides global
+        /// `--limit` when set.
+        #[arg(short = 'n', long = "max-results", value_parser = clap::value_parser!(u32).range(1..=50))]
+        max_results: Option<u32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// The trends X picks for you
+    /// List the trends X picks for you
     #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::PERSONAL))]
     Personal {
         /// Shortcut flags shared with every other shortcut command.
@@ -3050,11 +3061,11 @@ pub enum ScheduledCallsCommands {
         /// Calls still running at this time or starting after it (RFC 3339);
         /// X assumes now
         #[arg(long, value_name = "TIME")]
-        from: Option<String>,
+        start: Option<String>,
         /// Calls starting before this time (RFC 3339); X assumes 24 hours
-        /// after `--from`
+        /// after `--start`
         #[arg(long, value_name = "TIME")]
-        to: Option<String>,
+        end: Option<String>,
         /// Number of calls (1-100)
         #[arg(short = 'n', long = "max-results", default_value_t = 20)]
         max_results: i32,
@@ -3156,7 +3167,7 @@ pub struct CallDetailsArgs {
     #[arg(long, value_name = "TITLE")]
     pub title: Option<String>,
     /// What the call is about (1000 characters at most)
-    #[arg(long, value_name = "TEXT")]
+    #[arg(long, value_name = "DESCRIPTION")]
     pub description: Option<String>,
     /// How long the call lasts, in minutes (at most 44640, 31 days); X
     /// assumes 30
@@ -3937,7 +3948,7 @@ pub enum MediaCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// Video metrics for your uploads over a time window
+    /// Report video metrics for your uploads over a time window
     #[command(after_help = MEDIA_ANALYTICS_HELP)]
     Analytics {
         /// Media keys, such as 7_1146654567674912770, 1 to 100

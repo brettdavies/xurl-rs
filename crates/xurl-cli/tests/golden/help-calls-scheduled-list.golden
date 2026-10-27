@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7306
+stdout_len: 7313
 stderr_len: 0
 --- stdout ---
 List the calls on your calendar, earliest first
@@ -9,11 +9,11 @@ List the calls on your calendar, earliest first
 Usage: xr calls scheduled list [OPTIONS]
 
 Options:
-      --from <TIME>
+      --start <TIME>
           Calls still running at this time or starting after it (RFC 3339); X assumes now
 
-      --to <TIME>
-          Calls starting before this time (RFC 3339); X assumes 24 hours after `--from`
+      --end <TIME>
+          Calls starting before this time (RFC 3339); X assumes 24 hours after `--start`
 
   -n, --max-results <MAX_RESULTS>
           Number of calls (1-100)
@@ -166,9 +166,9 @@ Options:
 
 Examples:
   The calls on your calendar in a week (text):
-    xr calls scheduled list --from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z
+    xr calls scheduled list --start 2026-11-02T00:00:00Z --end 2026-11-09T00:00:00Z
   As a JSON envelope:
-    xr calls scheduled list --from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z --output json
+    xr calls scheduled list --start 2026-11-02T00:00:00Z --end 2026-11-09T00:00:00Z --output json
 
 --- stderr ---
 

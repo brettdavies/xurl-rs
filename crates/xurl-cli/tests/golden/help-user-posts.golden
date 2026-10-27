@@ -1,15 +1,15 @@
 args: ["user-posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7219
+stdout_len: 7205
 stderr_len: 0
 --- stdout ---
 List the posts a user wrote
 
-Usage: xr user-posts [OPTIONS] <TARGET_USERNAME>
+Usage: xr user-posts [OPTIONS] <USERNAME>
 
 Arguments:
-  <TARGET_USERNAME>
+  <USERNAME>
           Username, with or without the leading @
 
 Options:

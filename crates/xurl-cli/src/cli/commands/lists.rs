@@ -18,20 +18,39 @@ pub(super) async fn run(action: ListsCommands, run: Run<'_>) -> CommandResult<()
     match action {
         ListsCommands::List {
             max_results,
+            of,
             common,
         } => {
             let shortcut = Client::get_owned_lists;
-            list_for_user(run, "lists-list", max_results, None, &common, shortcut).await
+            list_for_user(
+                run,
+                "lists-list",
+                max_results,
+                of.as_deref(),
+                &common,
+                shortcut,
+            )
+            .await
         }
         ListsCommands::Followed {
             max_results,
+            of,
             common,
         } => {
             let shortcut = Client::get_followed_lists;
-            list_for_user(run, "lists-followed", max_results, None, &common, shortcut).await
+            list_for_user(
+                run,
+                "lists-followed",
+                max_results,
+                of.as_deref(),
+                &common,
+                shortcut,
+            )
+            .await
         }
         ListsCommands::Memberships {
             max_results,
+            of,
             common,
         } => {
             let shortcut = Client::get_list_memberships;
@@ -39,7 +58,7 @@ pub(super) async fn run(action: ListsCommands, run: Run<'_>) -> CommandResult<()
                 run,
                 "lists-memberships",
                 max_results,
-                None,
+                of.as_deref(),
                 &common,
                 shortcut,
             )

@@ -1,7 +1,7 @@
 args: ["lists", "memberships", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6951
+stdout_len: 7039
 stderr_len: 0
 --- stdout ---
 List the lists you are a member of
@@ -11,6 +11,9 @@ Usage: xr lists memberships [OPTIONS]
 Options:
   -n, --max-results <MAX_RESULTS>
           Number of results (1-100). Overrides global `--limit` when set
+
+      --of <USERNAME>
+          Username whose list memberships to read (default: you)
 
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)

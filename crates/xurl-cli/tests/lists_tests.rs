@@ -163,6 +163,30 @@ async fn remove_asks_first_and_deletes_with_force() {
 }
 
 #[tokio::test]
+async fn list_of_reads_the_lists_another_account_owns() {
+    let server = MockServer::start().await;
+    answer(
+        &server,
+        "GET",
+        "/2/users/by/username/jack",
+        serde_json::json!({"id": "12", "name": "jack", "username": "jack"}),
+    )
+    .await;
+    answer(
+        &server,
+        "GET",
+        "/2/users/12/owned_lists",
+        serde_json::json!([{"id": LIST_ID, "name": "Rustaceans"}]),
+    )
+    .await;
+
+    let (code, stdout, stderr) = run_json(&server, &["lists", "list", "--of", "@jack"]).await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(json_out(&stdout)["data"][0]["name"], "Rustaceans");
+}
+
+#[tokio::test]
 async fn members_add_resolves_the_handle_and_sends_its_id() {
     let server = MockServer::start().await;
     answer(

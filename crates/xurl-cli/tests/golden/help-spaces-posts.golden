@@ -1,10 +1,10 @@
 args: ["spaces", "posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7047
+stdout_len: 7052
 stderr_len: 0
 --- stdout ---
-The posts shared in a Space
+List the posts shared in a Space
 
 Usage: xr spaces posts [OPTIONS] <SPACE_ID>
 

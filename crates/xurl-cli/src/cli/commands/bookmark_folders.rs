@@ -26,12 +26,12 @@ pub(super) async fn run(action: BookmarkFoldersCommands, run: Run<'_>) -> Comman
             )
             .await
         }
-        BookmarkFoldersCommands::Get {
+        BookmarkFoldersCommands::Posts {
             folder_id,
             max_results,
             common,
         } => {
-            let ctx = json!({"command": "bookmark-folders-get", "folder_id": folder_id});
+            let ctx = json!({"command": "bookmark-folders-posts", "folder_id": folder_id});
             let validate = || shortcuts::validate_bookmark_folder_id(&folder_id);
             list_owned_by(
                 run,

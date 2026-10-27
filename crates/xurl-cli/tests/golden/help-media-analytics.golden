@@ -1,10 +1,10 @@
 args: ["media", "analytics", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7516
+stdout_len: 7523
 stderr_len: 0
 --- stdout ---
-Video metrics for your uploads over a time window
+Report video metrics for your uploads over a time window
 
 Usage: xr media analytics [OPTIONS] --start <TIME> --end <TIME> <MEDIA_KEY>...
 

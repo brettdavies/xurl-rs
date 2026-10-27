@@ -1,7 +1,7 @@
 args: ["lists", "followed", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6924
+stdout_len: 7010
 stderr_len: 0
 --- stdout ---
 List the lists you follow
@@ -11,6 +11,9 @@ Usage: xr lists followed [OPTIONS]
 Options:
   -n, --max-results <MAX_RESULTS>
           Number of results (1-100). Overrides global `--limit` when set
+
+      --of <USERNAME>
+          Username whose followed lists to read (default: you)
 
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)

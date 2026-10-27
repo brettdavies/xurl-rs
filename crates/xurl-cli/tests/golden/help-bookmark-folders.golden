@@ -1,7 +1,7 @@
 args: ["bookmark-folders", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6918
+stdout_len: 6924
 stderr_len: 0
 --- stdout ---
 Your bookmark folders, and the posts in each
@@ -9,10 +9,10 @@ Your bookmark folders, and the posts in each
 Usage: xr bookmark-folders [OPTIONS] <COMMAND>
 
 Commands:
-  list  List the folders you sort bookmarks into
-  get   List the posts in one of your bookmark folders, by id
-  add   Create a bookmark folder
-  help  Print this message or the help of the given subcommand(s)
+  list   List the folders you sort bookmarks into
+  posts  List the posts in one of your bookmark folders, by id
+  add    Create a bookmark folder
+  help   Print this message or the help of the given subcommand(s)
 
 Options:
   -v, --verbose[=<VERBOSE>]
@@ -155,7 +155,7 @@ Examples:
     xr bookmark-folders list
   Create one, then list the posts in one, JSON envelope:
     xr bookmark-folders add "Reading list" --output json
-    xr bookmark-folders get 1146654567674912769 --output json
+    xr bookmark-folders posts 1146654567674912769 --output json
 
 --- stderr ---
 

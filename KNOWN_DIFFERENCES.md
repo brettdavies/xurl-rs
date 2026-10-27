@@ -30,16 +30,16 @@ sign-in does not request the `calls.read` and `calls.write` scopes the calls end
 - `xr broadcasts` (`list`, `get`), `xr broadcasts sources` (`list`, `get`, `add`, `rename`, `remove`),
   `xr broadcasts scheduled` (`list`, `get`, `add`, `update`, `remove`, `live`), and `xr broadcasts chat` (`history`,
   `send`, `remove`, `mute`, `unmute`)
-- `xr bookmark-folders` (`list`, `get`, `add`)
+- `xr bookmark-folders` (`list`, `posts`, `add`)
 - `xr hide` and `xr unhide`
 - `xr likers`, `xr reposters`, and `xr quotes`
-- `xr read-posts`, `xr users`, `xr user-posts`, `xr search-users`, `xr search-counts`, and `xr analytics`
+- `xr posts`, `xr users`, `xr user-posts`, `xr search-users`, `xr search-counts`, and `xr analytics`
 - `xr trends` (`place`, `personal`)
 - `xr notes` (`write`, `evaluate`, `eligible`, `written`, `remove`)
 - `xr articles` (`draft`, `publish`)
 - `xr media get` and `xr media analytics`
 - `xr spaces` (`search`, `get`, `by-creator`, `posts`)
-- `xr stream rules` (`list`, `add`, `remove`, `counts`)
+- `xr stream rules` (`list`, `add`, `remove`, `count`)
 - `xr news` (`search`, `get`)
 - `xr communities` (`search`, `get`)
 - `xr lists` (`list`, `followed`, `memberships`, `pinned`, `get`, `posts`, `followers`, `members`, `add`, `update`,

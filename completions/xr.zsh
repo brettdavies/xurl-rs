@@ -487,7 +487,7 @@ never\:"Never emit ANSI color escapes"))' \
 ':target_username -- Username, with or without the leading @:_default' \
 && ret=0
 ;;
-(read-posts)
+(posts)
 _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -1301,7 +1301,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
-(get)
+(posts)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
@@ -1399,7 +1399,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(get)
+(posts)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -1544,7 +1544,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username to list following for (default\: you)]:OF:_default' \
+'--of=[Username to list following for (default\: you)]:USERNAME:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -1586,7 +1586,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username to list followers for (default\: you)]:OF:_default' \
+'--of=[Username to list followers for (default\: you)]:USERNAME:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -2591,6 +2591,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--of=[Username whose own lists to read (default\: you)]:USERNAME:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -2632,6 +2633,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--of=[Username whose followed lists to read (default\: you)]:USERNAME:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -2673,6 +2675,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--of=[Username whose list memberships to read (default\: you)]:USERNAME:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -3945,7 +3948,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'*::accounts -- Handles (@jack or jack) or numeric user ids, 1 to 100; not both:_default' \
+'*::accounts -- Handles (@jack or jack) or numeric user ids, 1 to 100, in any mix:_default' \
 && ret=0
 ;;
 (posts)
@@ -4239,7 +4242,7 @@ never\:"Never emit ANSI color escapes"))' \
 '*::rule_ids -- Rule ids, as `xr stream rules list` prints them:_default' \
 && ret=0
 ;;
-(counts)
+(count)
 _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -4302,7 +4305,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(counts)
+(count)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -4354,7 +4357,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(counts)
+(count)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -4873,7 +4876,8 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (place)
 _arguments "${_arguments_options[@]}" : \
-'--max=[Most trends to list, 1 to 50 (X'\''s default is 20)]:MAX:_default' \
+'-n+[Number of trends (1-50; X'\''s default is 20). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of trends (1-50; X'\''s default is 20). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -6531,8 +6535,8 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--from=[Calls still running at this time or starting after it (RFC 3339); X assumes now]:TIME:_default' \
-'--to=[Calls starting before this time (RFC 3339); X assumes 24 hours after \`--from\`]:TIME:_default' \
+'--start=[Calls still running at this time or starting after it (RFC 3339); X assumes now]:TIME:_default' \
+'--end=[Calls starting before this time (RFC 3339); X assumes 24 hours after \`--start\`]:TIME:_default' \
 '-n+[Number of calls (1-100)]:MAX_RESULTS:_default' \
 '--max-results=[Number of calls (1-100)]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
@@ -6616,7 +6620,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--start=[When the call starts (RFC 3339 with a zone, such as 2026-11-02T16\:00\:00Z); not in the past]:TIME:_default' \
 '--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
-'--description=[What the call is about (1000 characters at most)]:TEXT:_default' \
+'--description=[What the call is about (1000 characters at most)]:DESCRIPTION:_default' \
 '--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
 '*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
@@ -6663,7 +6667,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--start=[When the call, or the named occurrence, now starts (RFC 3339)]:TIME:_default' \
 '--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
-'--description=[What the call is about (1000 characters at most)]:TEXT:_default' \
+'--description=[What the call is about (1000 characters at most)]:DESCRIPTION:_default' \
 '--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
 '*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
@@ -9438,7 +9442,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(read-posts)
+(posts)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -9526,7 +9530,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(get)
+(posts)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -9890,7 +9894,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(counts)
+(count)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -10535,12 +10539,12 @@ _xr_commands() {
 'quote:Quote a post' \
 'delete:Delete a post' \
 'read:Read a post' \
-'analytics:Impressions and engagement for your posts over a time window' \
+'analytics:Report impressions and engagement for your posts over a time window' \
 'search-counts:Count the recent posts that match a query, per time bucket' \
 'search-users:Find accounts by keyword' \
 'users:Look up 1 to 100 accounts by handle or by id in one request' \
 'user-posts:List the posts a user wrote' \
-'read-posts:Read up to 100 posts in one request' \
+'posts:Read 1 to 100 posts by id or URL in one request' \
 'search:Search recent posts' \
 'likers:List the users who liked a post' \
 'reposters:List the users who reposted a post' \
@@ -10585,11 +10589,11 @@ _xr_commands() {
 'articles:Write and publish long-form X Articles' \
 'notes:Write Community Notes through X'\''s AI Note Writer API' \
 'trends:Trends for a place, and your personalized trends' \
-'broadcasts:Broadcast chat moderators and stream sources' \
+'broadcasts:Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources' \
 'calls:X calls, and the calls on your calendar (preview)' \
-'webhooks:Webhook registration, validation, and replay' \
+'webhooks:Webhook registration, subscriptions, stream links, a local listener, and replay' \
 'auth:Authentication management' \
-'media:Media upload, alt text, and subtitles' \
+'media:Media upload, lookup by key, video metrics, alt text, and subtitles' \
 'skill:Install or manage the xurl-rs skill bundle' \
 'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
@@ -10939,7 +10943,7 @@ _xr__subcmd__bookmark_commands() {
 _xr__subcmd__bookmark-folders_commands() {
     local commands; commands=(
 'list:List the folders you sort bookmarks into' \
-'get:List the posts in one of your bookmark folders, by id' \
+'posts:List the posts in one of your bookmark folders, by id' \
 'add:Create a bookmark folder' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -10950,16 +10954,11 @@ _xr__subcmd__bookmark-folders__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr bookmark-folders add commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__bookmark-folders__subcmd__get_commands] )) ||
-_xr__subcmd__bookmark-folders__subcmd__get_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr bookmark-folders get commands' commands "$@"
-}
 (( $+functions[_xr__subcmd__bookmark-folders__subcmd__help_commands] )) ||
 _xr__subcmd__bookmark-folders__subcmd__help_commands() {
     local commands; commands=(
 'list:List the folders you sort bookmarks into' \
-'get:List the posts in one of your bookmark folders, by id' \
+'posts:List the posts in one of your bookmark folders, by id' \
 'add:Create a bookmark folder' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -10969,11 +10968,6 @@ _xr__subcmd__bookmark-folders__subcmd__help_commands() {
 _xr__subcmd__bookmark-folders__subcmd__help__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr bookmark-folders help add commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__bookmark-folders__subcmd__help__subcmd__get_commands] )) ||
-_xr__subcmd__bookmark-folders__subcmd__help__subcmd__get_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr bookmark-folders help get commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__bookmark-folders__subcmd__help__subcmd__help_commands] )) ||
 _xr__subcmd__bookmark-folders__subcmd__help__subcmd__help_commands() {
@@ -10985,10 +10979,20 @@ _xr__subcmd__bookmark-folders__subcmd__help__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr bookmark-folders help list commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__bookmark-folders__subcmd__help__subcmd__posts_commands] )) ||
+_xr__subcmd__bookmark-folders__subcmd__help__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr bookmark-folders help posts commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__bookmark-folders__subcmd__list_commands] )) ||
 _xr__subcmd__bookmark-folders__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr bookmark-folders list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__bookmark-folders__subcmd__posts_commands] )) ||
+_xr__subcmd__bookmark-folders__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr bookmark-folders posts commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__bookmarks_commands] )) ||
 _xr__subcmd__bookmarks_commands() {
@@ -11865,12 +11869,12 @@ _xr__subcmd__help_commands() {
 'quote:Quote a post' \
 'delete:Delete a post' \
 'read:Read a post' \
-'analytics:Impressions and engagement for your posts over a time window' \
+'analytics:Report impressions and engagement for your posts over a time window' \
 'search-counts:Count the recent posts that match a query, per time bucket' \
 'search-users:Find accounts by keyword' \
 'users:Look up 1 to 100 accounts by handle or by id in one request' \
 'user-posts:List the posts a user wrote' \
-'read-posts:Read up to 100 posts in one request' \
+'posts:Read 1 to 100 posts by id or URL in one request' \
 'search:Search recent posts' \
 'likers:List the users who liked a post' \
 'reposters:List the users who reposted a post' \
@@ -11915,11 +11919,11 @@ _xr__subcmd__help_commands() {
 'articles:Write and publish long-form X Articles' \
 'notes:Write Community Notes through X'\''s AI Note Writer API' \
 'trends:Trends for a place, and your personalized trends' \
-'broadcasts:Broadcast chat moderators and stream sources' \
+'broadcasts:Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources' \
 'calls:X calls, and the calls on your calendar (preview)' \
-'webhooks:Webhook registration, validation, and replay' \
+'webhooks:Webhook registration, subscriptions, stream links, a local listener, and replay' \
 'auth:Authentication management' \
-'media:Media upload, alt text, and subtitles' \
+'media:Media upload, lookup by key, video metrics, alt text, and subtitles' \
 'skill:Install or manage the xurl-rs skill bundle' \
 'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
@@ -12064,7 +12068,7 @@ _xr__subcmd__help__subcmd__bookmark_commands() {
 _xr__subcmd__help__subcmd__bookmark-folders_commands() {
     local commands; commands=(
 'list:List the folders you sort bookmarks into' \
-'get:List the posts in one of your bookmark folders, by id' \
+'posts:List the posts in one of your bookmark folders, by id' \
 'add:Create a bookmark folder' \
     )
     _describe -t commands 'xr help bookmark-folders commands' commands "$@"
@@ -12074,15 +12078,15 @@ _xr__subcmd__help__subcmd__bookmark-folders__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr help bookmark-folders add commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__help__subcmd__bookmark-folders__subcmd__get_commands] )) ||
-_xr__subcmd__help__subcmd__bookmark-folders__subcmd__get_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help bookmark-folders get commands' commands "$@"
-}
 (( $+functions[_xr__subcmd__help__subcmd__bookmark-folders__subcmd__list_commands] )) ||
 _xr__subcmd__help__subcmd__bookmark-folders__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr help bookmark-folders list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__bookmark-folders__subcmd__posts_commands] )) ||
+_xr__subcmd__help__subcmd__bookmark-folders__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help bookmark-folders posts commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__bookmarks_commands] )) ||
 _xr__subcmd__help__subcmd__bookmarks_commands() {
@@ -12566,7 +12570,7 @@ _xr__subcmd__help__subcmd__media_commands() {
 'upload:Upload media file' \
 'status:Check media upload status' \
 'get:Read 1 to 100 uploads by media key in one request' \
-'analytics:Video metrics for your uploads over a time window' \
+'analytics:Report video metrics for your uploads over a time window' \
 'alt-text:Set the alt text shown for an uploaded image or video' \
 'subtitles:Add or remove the subtitle tracks of an uploaded video' \
     )
@@ -12689,6 +12693,11 @@ _xr__subcmd__help__subcmd__post_commands() {
     local commands; commands=()
     _describe -t commands 'xr help post commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__help__subcmd__posts_commands] )) ||
+_xr__subcmd__help__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help posts commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__help__subcmd__quote_commands] )) ||
 _xr__subcmd__help__subcmd__quote_commands() {
     local commands; commands=()
@@ -12703,11 +12712,6 @@ _xr__subcmd__help__subcmd__quotes_commands() {
 _xr__subcmd__help__subcmd__read_commands() {
     local commands; commands=()
     _describe -t commands 'xr help read commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__help__subcmd__read-posts_commands] )) ||
-_xr__subcmd__help__subcmd__read-posts_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help read-posts commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__reply_commands] )) ||
 _xr__subcmd__help__subcmd__reply_commands() {
@@ -12767,8 +12771,8 @@ _xr__subcmd__help__subcmd__spaces_commands() {
     local commands; commands=(
 'search:Search Spaces by keyword' \
 'get:Read 1 to 100 Spaces by id in one request' \
-'by-creator:The Spaces 1 to 100 accounts created, in one request' \
-'posts:The posts shared in a Space' \
+'by-creator:List the Spaces 1 to 100 accounts created, in one request' \
+'posts:List the posts shared in a Space' \
     )
     _describe -t commands 'xr help spaces commands' commands "$@"
 }
@@ -12805,7 +12809,7 @@ _xr__subcmd__help__subcmd__stream__subcmd__rules_commands() {
 'list:List the filtered stream'\''s rules' \
 'add:Add a rule to the filtered stream' \
 'remove:Remove rules from the filtered stream, by id' \
-'counts:How many rules your app and its project hold, against X'\''s caps' \
+'count:Count the rules your app and its project hold, against X'\''s caps' \
     )
     _describe -t commands 'xr help stream rules commands' commands "$@"
 }
@@ -12814,10 +12818,10 @@ _xr__subcmd__help__subcmd__stream__subcmd__rules__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr help stream rules add commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__help__subcmd__stream__subcmd__rules__subcmd__counts_commands] )) ||
-_xr__subcmd__help__subcmd__stream__subcmd__rules__subcmd__counts_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__stream__subcmd__rules__subcmd__count_commands] )) ||
+_xr__subcmd__help__subcmd__stream__subcmd__rules__subcmd__count_commands() {
     local commands; commands=()
-    _describe -t commands 'xr help stream rules counts commands' commands "$@"
+    _describe -t commands 'xr help stream rules count commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__stream__subcmd__rules__subcmd__list_commands] )) ||
 _xr__subcmd__help__subcmd__stream__subcmd__rules__subcmd__list_commands() {
@@ -12837,8 +12841,8 @@ _xr__subcmd__help__subcmd__timeline_commands() {
 (( $+functions[_xr__subcmd__help__subcmd__trends_commands] )) ||
 _xr__subcmd__help__subcmd__trends_commands() {
     local commands; commands=(
-'place:Trends for a place, by its Yahoo WOEID (1 is worldwide)' \
-'personal:The trends X picks for you' \
+'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
+'personal:List the trends X picks for you' \
     )
     _describe -t commands 'xr help trends commands' commands "$@"
 }
@@ -13327,7 +13331,7 @@ _xr__subcmd__media_commands() {
 'upload:Upload media file' \
 'status:Check media upload status' \
 'get:Read 1 to 100 uploads by media key in one request' \
-'analytics:Video metrics for your uploads over a time window' \
+'analytics:Report video metrics for your uploads over a time window' \
 'alt-text:Set the alt text shown for an uploaded image or video' \
 'subtitles:Add or remove the subtitle tracks of an uploaded video' \
 'help:Print this message or the help of the given subcommand(s)' \
@@ -13355,7 +13359,7 @@ _xr__subcmd__media__subcmd__help_commands() {
 'upload:Upload media file' \
 'status:Check media upload status' \
 'get:Read 1 to 100 uploads by media key in one request' \
-'analytics:Video metrics for your uploads over a time window' \
+'analytics:Report video metrics for your uploads over a time window' \
 'alt-text:Set the alt text shown for an uploaded image or video' \
 'subtitles:Add or remove the subtitle tracks of an uploaded video' \
 'help:Print this message or the help of the given subcommand(s)' \
@@ -13605,6 +13609,11 @@ _xr__subcmd__post_commands() {
     local commands; commands=()
     _describe -t commands 'xr post commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__posts_commands] )) ||
+_xr__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr posts commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__quote_commands] )) ||
 _xr__subcmd__quote_commands() {
     local commands; commands=()
@@ -13619,11 +13628,6 @@ _xr__subcmd__quotes_commands() {
 _xr__subcmd__read_commands() {
     local commands; commands=()
     _describe -t commands 'xr read commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__read-posts_commands] )) ||
-_xr__subcmd__read-posts_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr read-posts commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__reply_commands] )) ||
 _xr__subcmd__reply_commands() {
@@ -13708,8 +13712,8 @@ _xr__subcmd__spaces_commands() {
     local commands; commands=(
 'search:Search Spaces by keyword' \
 'get:Read 1 to 100 Spaces by id in one request' \
-'by-creator:The Spaces 1 to 100 accounts created, in one request' \
-'posts:The posts shared in a Space' \
+'by-creator:List the Spaces 1 to 100 accounts created, in one request' \
+'posts:List the posts shared in a Space' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr spaces commands' commands "$@"
@@ -13729,8 +13733,8 @@ _xr__subcmd__spaces__subcmd__help_commands() {
     local commands; commands=(
 'search:Search Spaces by keyword' \
 'get:Read 1 to 100 Spaces by id in one request' \
-'by-creator:The Spaces 1 to 100 accounts created, in one request' \
-'posts:The posts shared in a Space' \
+'by-creator:List the Spaces 1 to 100 accounts created, in one request' \
+'posts:List the posts shared in a Space' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr spaces help commands' commands "$@"
@@ -13797,7 +13801,7 @@ _xr__subcmd__stream__subcmd__help__subcmd__rules_commands() {
 'list:List the filtered stream'\''s rules' \
 'add:Add a rule to the filtered stream' \
 'remove:Remove rules from the filtered stream, by id' \
-'counts:How many rules your app and its project hold, against X'\''s caps' \
+'count:Count the rules your app and its project hold, against X'\''s caps' \
     )
     _describe -t commands 'xr stream help rules commands' commands "$@"
 }
@@ -13806,10 +13810,10 @@ _xr__subcmd__stream__subcmd__help__subcmd__rules__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr stream help rules add commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__stream__subcmd__help__subcmd__rules__subcmd__counts_commands] )) ||
-_xr__subcmd__stream__subcmd__help__subcmd__rules__subcmd__counts_commands() {
+(( $+functions[_xr__subcmd__stream__subcmd__help__subcmd__rules__subcmd__count_commands] )) ||
+_xr__subcmd__stream__subcmd__help__subcmd__rules__subcmd__count_commands() {
     local commands; commands=()
-    _describe -t commands 'xr stream help rules counts commands' commands "$@"
+    _describe -t commands 'xr stream help rules count commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__stream__subcmd__help__subcmd__rules__subcmd__list_commands] )) ||
 _xr__subcmd__stream__subcmd__help__subcmd__rules__subcmd__list_commands() {
@@ -13827,7 +13831,7 @@ _xr__subcmd__stream__subcmd__rules_commands() {
 'list:List the filtered stream'\''s rules' \
 'add:Add a rule to the filtered stream' \
 'remove:Remove rules from the filtered stream, by id' \
-'counts:How many rules your app and its project hold, against X'\''s caps' \
+'count:Count the rules your app and its project hold, against X'\''s caps' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr stream rules commands' commands "$@"
@@ -13837,10 +13841,10 @@ _xr__subcmd__stream__subcmd__rules__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr stream rules add commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__stream__subcmd__rules__subcmd__counts_commands] )) ||
-_xr__subcmd__stream__subcmd__rules__subcmd__counts_commands() {
+(( $+functions[_xr__subcmd__stream__subcmd__rules__subcmd__count_commands] )) ||
+_xr__subcmd__stream__subcmd__rules__subcmd__count_commands() {
     local commands; commands=()
-    _describe -t commands 'xr stream rules counts commands' commands "$@"
+    _describe -t commands 'xr stream rules count commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__stream__subcmd__rules__subcmd__help_commands] )) ||
 _xr__subcmd__stream__subcmd__rules__subcmd__help_commands() {
@@ -13848,7 +13852,7 @@ _xr__subcmd__stream__subcmd__rules__subcmd__help_commands() {
 'list:List the filtered stream'\''s rules' \
 'add:Add a rule to the filtered stream' \
 'remove:Remove rules from the filtered stream, by id' \
-'counts:How many rules your app and its project hold, against X'\''s caps' \
+'count:Count the rules your app and its project hold, against X'\''s caps' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr stream rules help commands' commands "$@"
@@ -13858,10 +13862,10 @@ _xr__subcmd__stream__subcmd__rules__subcmd__help__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr stream rules help add commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__stream__subcmd__rules__subcmd__help__subcmd__counts_commands] )) ||
-_xr__subcmd__stream__subcmd__rules__subcmd__help__subcmd__counts_commands() {
+(( $+functions[_xr__subcmd__stream__subcmd__rules__subcmd__help__subcmd__count_commands] )) ||
+_xr__subcmd__stream__subcmd__rules__subcmd__help__subcmd__count_commands() {
     local commands; commands=()
-    _describe -t commands 'xr stream rules help counts commands' commands "$@"
+    _describe -t commands 'xr stream rules help count commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__stream__subcmd__rules__subcmd__help__subcmd__help_commands] )) ||
 _xr__subcmd__stream__subcmd__rules__subcmd__help__subcmd__help_commands() {
@@ -13896,8 +13900,8 @@ _xr__subcmd__timeline_commands() {
 (( $+functions[_xr__subcmd__trends_commands] )) ||
 _xr__subcmd__trends_commands() {
     local commands; commands=(
-'place:Trends for a place, by its Yahoo WOEID (1 is worldwide)' \
-'personal:The trends X picks for you' \
+'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
+'personal:List the trends X picks for you' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr trends commands' commands "$@"
@@ -13905,8 +13909,8 @@ _xr__subcmd__trends_commands() {
 (( $+functions[_xr__subcmd__trends__subcmd__help_commands] )) ||
 _xr__subcmd__trends__subcmd__help_commands() {
     local commands; commands=(
-'place:Trends for a place, by its Yahoo WOEID (1 is worldwide)' \
-'personal:The trends X picks for you' \
+'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
+'personal:List the trends X picks for you' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr trends help commands' commands "$@"

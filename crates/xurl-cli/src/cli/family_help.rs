@@ -117,9 +117,9 @@ pub mod bookmark_folders {
         json_caption: "As a JSON envelope",
     };
 
-    /// `xr bookmark-folders get`.
-    pub const GET: Verb = Verb {
-        name: "get",
+    /// `xr bookmark-folders posts`.
+    pub const POSTS: Verb = Verb {
+        name: "posts",
         example_args: "1146654567674912769",
         text_caption: "List the posts in a folder, by id (text)",
         json_caption: "As a JSON envelope",
@@ -140,7 +140,7 @@ pub mod bookmark_folders {
             ("Your bookmark folders (text)", &[Example::text(&LIST)]),
             (
                 "Create one, then list the posts in one, JSON envelope",
-                &[Example::json(&ADD), Example::json(&GET)],
+                &[Example::json(&ADD), Example::json(&POSTS)],
             ),
         ];
         FAMILY.page(SECTIONS)
@@ -602,9 +602,9 @@ pub mod stream_rules {
         json_caption: "As a JSON envelope",
     };
 
-    /// `xr stream rules counts`.
-    pub const COUNTS: Verb = Verb {
-        name: "counts",
+    /// `xr stream rules count`.
+    pub const COUNT: Verb = Verb {
+        name: "count",
         example_args: "",
         text_caption: "Your app's rules against X's caps (text)",
         json_caption: "As a JSON envelope",
@@ -621,7 +621,7 @@ pub mod stream_rules {
             ),
             (
                 "Remove a rule, and count the rest (text)",
-                &[Example::text(&REMOVE), Example::text(&COUNTS)],
+                &[Example::text(&REMOVE), Example::text(&COUNT)],
             ),
         ];
         FAMILY.page(SECTIONS)
@@ -746,7 +746,7 @@ pub mod trends {
     /// `xr trends place`.
     pub const PLACE: Verb = Verb {
         name: "place",
-        example_args: "1 --max 10",
+        example_args: "1 -n 10",
         text_caption: "The top ten trends worldwide, WOEID 1 (text)",
         json_caption: "As a JSON envelope",
     };
@@ -1136,7 +1136,7 @@ pub mod scheduled_calls {
     /// `xr calls scheduled list`.
     pub const LIST: Verb = Verb {
         name: "list",
-        example_args: "--from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z",
+        example_args: "--start 2026-11-02T00:00:00Z --end 2026-11-09T00:00:00Z",
         text_caption: "The calls on your calendar in a week (text)",
         json_caption: "As a JSON envelope",
     };

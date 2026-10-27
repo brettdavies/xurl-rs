@@ -46,7 +46,7 @@ async fn place_reads_the_trends_for_a_woeid() {
     let (code, stdout, stderr) = run(
         &store,
         &server.uri(),
-        &["trends", "place", "1", "--max", "10", "--output", "json"],
+        &["trends", "place", "1", "-n", "10", "--output", "json"],
     )
     .await;
 
@@ -54,6 +54,31 @@ async fn place_reads_the_trends_for_a_woeid() {
     let body = json_out(&stdout);
     assert_eq!(body["data"][0]["trend_name"], "#rustlang");
     assert_eq!(body["data"][0]["tweet_count"], 1200);
+}
+
+#[tokio::test]
+async fn place_takes_the_global_limit_within_xs_range_when_n_is_absent() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/trends/by/woeid/1"))
+        .and(query_param("max_trends", "50"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [{"trend_name": "#rustlang", "tweet_count": 1200}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &["--limit", "80", "trends", "place", "1", "--output", "json"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
 }
 
 #[tokio::test]
@@ -97,7 +122,7 @@ async fn place_refuses_a_woeid_or_max_the_spec_does_not_take() {
     for args in [
         &["trends", "place", "0"][..],
         &["trends", "place", "london"][..],
-        &["trends", "place", "1", "--max", "51"][..],
+        &["trends", "place", "1", "-n", "51"][..],
     ] {
         let argv: Vec<&str> = ["--output", "json"].iter().chain(args).copied().collect();
         let (code, _stdout, stderr) = run(&store, &server.uri(), &argv).await;

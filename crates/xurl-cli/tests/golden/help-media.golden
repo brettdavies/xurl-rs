@@ -1,10 +1,10 @@
 args: ["media", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7478
+stdout_len: 7515
 stderr_len: 0
 --- stdout ---
-Media upload, alt text, and subtitles
+Media upload, lookup by key, video metrics, alt text, and subtitles
 
 Usage: xr media [OPTIONS] <COMMAND>
 
@@ -12,7 +12,7 @@ Commands:
   upload     Upload media file
   status     Check media upload status
   get        Read 1 to 100 uploads by media key in one request
-  analytics  Video metrics for your uploads over a time window
+  analytics  Report video metrics for your uploads over a time window
   alt-text   Set the alt text shown for an uploaded image or video
   subtitles  Add or remove the subtitle tracks of an uploaded video
   help       Print this message or the help of the given subcommand(s)

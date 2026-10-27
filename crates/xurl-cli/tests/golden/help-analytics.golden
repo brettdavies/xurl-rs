@@ -1,15 +1,15 @@
 args: ["analytics", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7764
+stdout_len: 7769
 stderr_len: 0
 --- stdout ---
-Impressions and engagement for your posts over a time window
+Report impressions and engagement for your posts over a time window
 
-Usage: xr analytics [OPTIONS] --start <TIME> --end <TIME> <POST_IDS>...
+Usage: xr analytics [OPTIONS] --start <TIME> --end <TIME> <POST_ID>...
 
 Arguments:
-  <POST_IDS>...
+  <POST_ID>...
           Post IDs or URLs, 1 to 100
 
 Options:

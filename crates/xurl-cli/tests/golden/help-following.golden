@@ -1,7 +1,7 @@
 args: ["following", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7067
+stdout_len: 7073
 stderr_len: 0
 --- stdout ---
 List users you follow
@@ -12,7 +12,7 @@ Options:
   -n, --max-results <MAX_RESULTS>
           Number of results (1-100). Overrides global `--limit` when set
 
-      --of <OF>
+      --of <USERNAME>
           Username to list following for (default: you)
 
       --auth <AUTH_TYPE>

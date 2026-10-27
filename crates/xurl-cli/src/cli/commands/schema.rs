@@ -45,7 +45,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     },
     SchemaEntry {
         commands: &[
-            "read-posts",
+            "posts",
             "user-posts",
             "lists-posts",
             "spaces-posts",
@@ -182,7 +182,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<Option<Vec<StreamRule>>>).into(),
     },
     SchemaEntry {
-        commands: &["stream-rules-counts"],
+        commands: &["stream-rules-count"],
         type_name: "ApiResponse<StreamRuleCounts>",
         schema: || schema_for!(ApiResponse<StreamRuleCounts>).into(),
     },
@@ -347,7 +347,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<BookmarkFolder>).into(),
     },
     SchemaEntry {
-        commands: &["bookmark-folders-get"],
+        commands: &["bookmark-folders-posts"],
         type_name: "ApiResponse<Vec<BookmarkFolderPost>>",
         schema: || schema_for!(ApiResponse<Vec<BookmarkFolderPost>>).into(),
     },

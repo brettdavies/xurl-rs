@@ -110,7 +110,7 @@ xr delete 1585341984679469056                  # Delete
 
 ```bash
 xr read 1585341984679469056                    # Read a post
-xr read-posts 20 1585341984679469056           # Up to 100 posts in one request
+xr posts 20 1585341984679469056                # Up to 100 posts in one request
 xr search "golang" -n 20                       # Search (10-100 results)
 xr search-users "rust lang"                    # Find accounts by keyword
 xr search-counts rustlang --granularity day    # Matching posts per day
@@ -133,6 +133,7 @@ xr mentions                                    # Your mentions
 xr lists list                                      # Lists you own
 xr lists followed                                  # Lists you follow
 xr lists memberships                               # Lists you are on
+xr lists list --of @XDevelopers                    # Lists another account owns (also followed, memberships)
 xr lists pinned                                    # Lists you pinned
 xr lists get 1146654567674912769                   # One list, by id
 xr lists posts 1146654567674912769                 # Posts from a list's members
@@ -170,9 +171,9 @@ xr spaces by-creator @XDevelopers @jack        # The Spaces up to 100 accounts c
 xr spaces posts 1DXxyRYNejbKM                  # The posts shared in a Space
 ```
 
-`xr spaces by-creator` resolves every handle in one lookup before it asks for the Spaces, and takes numeric ids as they
-are; a handle beside an id is refused with `mixed-ids-and-handles`. A Space id is 1 to 13 letters or digits; anything
-else is refused with `invalid-space-id` before any request.
+`xr spaces by-creator` takes handles and numeric ids in any mix: it resolves every handle in one lookup before it asks
+for the Spaces, and passes ids through as they are. A Space id is 1 to 13 letters or digits; anything else is refused
+with `invalid-space-id` before any request.
 
 ### Filtered stream rules
 
@@ -181,7 +182,7 @@ xr stream rules list                                          # The rules on the
 xr stream rules add "from:XDevelopers has:media" --tag devs   # Add a rule with a tag
 xr stream rules add "from:XDevelopers" --validate-only        # Have X check a rule, saving nothing
 xr stream rules remove 1585341984679469056                    # Remove rules by id (asks first; --force skips)
-xr stream rules counts                                        # Your app's rules against X's caps
+xr stream rules count                                         # Your app's rules against X's caps
 ```
 
 The rules endpoints take the app's bearer token only, so a user login alone is refused with `auth-method-mismatch`.
@@ -218,7 +219,7 @@ note is not publicly visible. A note's text carries a source URL, and `write` re
 ### Trends
 
 ```bash
-xr trends place 1 --max 10                     # Top ten trends worldwide (WOEID 1)
+xr trends place 1 -n 10                        # Top ten trends worldwide (WOEID 1)
 xr trends personal                             # The trends X picks for you
 ```
 
@@ -237,13 +238,13 @@ xr bookmark 1585341984679469056                # Bookmark
 xr unbookmark 1585341984679469056              # Remove bookmark
 xr bookmarks                                   # List bookmarks
 xr bookmark-folders list                       # Your bookmark folders
-xr bookmark-folders get 1146654567674912769    # Posts in a folder, by ID
+xr bookmark-folders posts 1146654567674912769  # Posts in a folder, by ID
 xr bookmark-folders add "Reading list"         # Create a folder
 xr likes                                       # List likes
 ```
 
-A folder lists its posts by ID alone; `xr read-posts` turns up to 100 of them into posts in one request, as in
-`xr bookmark-folders get <id> --output json | jaq -r '.data[]?.id' | xargs xr read-posts`. X's API creates folders and
+A folder lists its posts by ID alone; `xr posts` turns up to 100 of them into posts in one request, as in
+`xr bookmark-folders posts <id> --output json | jaq -r '.data[]?.id' | xargs xr posts`. X's API creates folders and
 lists them, and has no endpoint that moves a bookmark into a folder or deletes one, so those stay in the X app.
 
 ### Social Graph
@@ -396,7 +397,7 @@ rather than refusing one it does not know.
 
 ```bash
 xr calls scheduled list                            # Calls on your calendar in the next 24 hours
-xr calls scheduled list --from 2026-11-02T00:00:00Z --to 2026-11-09T00:00:00Z
+xr calls scheduled list --start 2026-11-02T00:00:00Z --end 2026-11-09T00:00:00Z
 xr calls scheduled get 1849302018273645            # One call, with its invitees and their answers
 xr calls scheduled add --start 2026-11-02T16:00:00Z --title Standup --duration 15 --invite 2244994945
 xr calls scheduled update 1849302018273645 --start 2026-11-02T17:00:00Z

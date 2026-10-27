@@ -1,4 +1,4 @@
-//! The commands that read posts and profiles: `read`, `read-posts`,
+//! The commands that read posts and profiles: `read`, `posts`,
 //! `users`, `user-posts`, `search`, `search-users`, `search-counts`,
 //! `whoami`, `user`, `timeline`, `mentions`, who engaged with a post
 //! (`likers`, `reposters`, and `quotes`), and how the caller's posts did
@@ -32,8 +32,8 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             let call = with_flags(client.read_post(&post_id), &common, None);
             send_or_report(out, stdout, dry_run, call).await?;
         }
-        Commands::ReadPosts { post_ids, common } => {
-            let ctx = json!({"command": "read-posts", "post_ids": post_ids});
+        Commands::Posts { post_ids, common } => {
+            let ctx = json!({"command": "posts", "post_ids": post_ids});
             let validator = || {
                 shortcuts::validate_lookup_ids(&post_ids)?;
                 post_ids

@@ -1,7 +1,7 @@
 args: ["followers", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7063
+stdout_len: 7069
 stderr_len: 0
 --- stdout ---
 List your followers
@@ -12,7 +12,7 @@ Options:
   -n, --max-results <MAX_RESULTS>
           Number of results (1-100). Overrides global `--limit` when set
 
-      --of <OF>
+      --of <USERNAME>
           Username to list followers for (default: you)
 
       --auth <AUTH_TYPE>

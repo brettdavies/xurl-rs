@@ -1,7 +1,7 @@
 args: ["stream", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6993
+stdout_len: 6992
 stderr_len: 0
 --- stdout ---
 The filtered stream's rules
@@ -156,7 +156,7 @@ Examples:
     xr stream rules add "from:XDevelopers has:media" --tag devs --output json
   Remove a rule, and count the rest (text):
     xr stream rules remove 1585341984679469056 --force --no-interactive
-    xr stream rules counts
+    xr stream rules count
 
 --- stderr ---
 
