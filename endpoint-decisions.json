@@ -199,16 +199,6 @@
       "by": "Brett, in the #370 sweep"
     },
     {
-      "id": "hidden-replies",
-      "operations": [
-        "PUT /2/tweets/{tweet_id}/hidden"
-      ],
-      "status": "planned",
-      "reason": "Hide or unhide a reply to your post.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "post-analytics",
       "operations": [
         "GET /2/tweets/analytics"

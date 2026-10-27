@@ -23,10 +23,11 @@ The management commands have no Go counterpart: `xr webhooks list`, `add`, `vali
 `xr webhooks subscriptions` for Account Activity, and `xr webhooks stream-links` for filtered-stream delivery. With Go,
 those endpoints are reached through raw requests.
 
-The calls, stream-source, and bookmark-folder commands have no Go counterpart either: `xr calls get`,
+The calls, stream-source, bookmark-folder, and hidden-reply commands have no Go counterpart either: `xr calls get`,
 `xr calls scheduled` (`list`, `get`, `add`, `update`, `cancel`, `rsvp`), `xr broadcasts sources` (`list`, `get`, `add`,
-`rename`, `remove`), and `xr bookmark-folders` (`list`, `get`, `add`). With Go, those endpoints are reached through raw
-requests, and a Go sign-in does not request the `calls.read` and `calls.write` scopes the calls endpoints take.
+`rename`, `remove`), `xr bookmark-folders` (`list`, `get`, `add`), and `xr hide` and `xr unhide`. With Go, those
+endpoints are reached through raw requests, and a Go sign-in does not request the `calls.read` and `calls.write` scopes
+the calls endpoints take.
 
 Go neither forwards events nor recovers from a restart. `xr webhooks listen --forward` POSTs each verified event to a
 URL of the caller's, a program after `--` runs once per event, and `--checkpoint` records how far `listen` got, which

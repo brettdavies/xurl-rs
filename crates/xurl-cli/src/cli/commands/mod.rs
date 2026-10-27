@@ -562,6 +562,8 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         | Commands::Mentions { .. } => reads::run(cmd, run).await,
         Commands::Like { .. }
         | Commands::Unlike { .. }
+        | Commands::Hide { .. }
+        | Commands::Unhide { .. }
         | Commands::Repost { .. }
         | Commands::Unrepost { .. }
         | Commands::Bookmark { .. }

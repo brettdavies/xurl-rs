@@ -94,6 +94,11 @@
       }
     }
   },
+  "action_hidden": {
+    "data": {
+      "hidden": true
+    }
+  },
   "action_liked": {
     "data": {
       "liked": true

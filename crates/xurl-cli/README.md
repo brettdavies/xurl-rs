@@ -123,6 +123,8 @@ xr mentions                                    # Your mentions
 ```bash
 xr like 1585341984679469056                    # Like
 xr unlike 1585341984679469056                  # Unlike
+xr hide 1585341984679469056                    # Hide a reply to your post
+xr unhide 1585341984679469056                  # Show a hidden reply again
 xr repost 1585341984679469056                  # Repost
 xr unrepost 1585341984679469056                # Undo repost
 xr bookmark 1585341984679469056                # Bookmark

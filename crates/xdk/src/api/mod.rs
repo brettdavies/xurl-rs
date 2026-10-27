@@ -34,8 +34,8 @@ pub use request::{DEFAULT_USER_AGENT, RateLimit};
 pub use response::types::{
     AccountActivitySubscription, AccountActivitySubscriptionCount, AccountActivitySubscriptions,
     ApiError, ApiResponse, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult, Includes,
-    LikedResult, MediaMetadataResult, MediaProcessingInfo, MediaSubtitlesResult,
+    ChatModeratorsResult, DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    Includes, LikedResult, MediaMetadataResult, MediaProcessingInfo, MediaSubtitlesResult,
     MediaUploadResponse, MutingResult, Post, PostPublicMetrics, ProvisionedResult, ReferencedPost,
     RepostedResult, ResponseMeta, ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee,
     ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceDeleted, StreamSourceResult,

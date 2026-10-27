@@ -131,6 +131,11 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::HIDE_REPLY,
+        fixture: "action_hidden",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::LIKE_POST,
         fixture: "action_liked",
         status: 200,

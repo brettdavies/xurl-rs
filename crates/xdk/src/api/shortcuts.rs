@@ -16,11 +16,11 @@ use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation, XCall,
+    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -73,6 +73,11 @@ struct StreamSourceBody {
 #[derive(Serialize)]
 struct NameBody {
     name: String,
+}
+
+#[derive(Serialize)]
+struct HiddenBody {
+    hidden: bool,
 }
 
 #[derive(Serialize)]
@@ -973,6 +978,21 @@ impl Client {
                 HashMap::from([("id".to_string(), post_id)]),
                 Vec::new(),
             ),
+        )
+    }
+
+    /// Hides a reply to one of the caller's posts, or shows it again when
+    /// `hidden` is false.
+    pub fn hide_reply(&self, reply_id: &str, hidden: bool) -> Call<ApiResponse<HiddenResult>> {
+        let reply_id = resolve_post_id(reply_id);
+        self.json_call(
+            endpoints::HIDE_REPLY.method,
+            template(
+                endpoints::HIDE_REPLY.path,
+                HashMap::from([("tweet_id".to_string(), reply_id)]),
+                Vec::new(),
+            ),
+            &HiddenBody { hidden },
         )
     }
 

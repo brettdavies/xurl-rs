@@ -305,6 +305,16 @@ pub struct LikedResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// Confirmation for hiding or showing a reply.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct HiddenResult {
+    /// Whether the reply is now hidden.
+    pub hidden: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// Confirmation for follow/unfollow actions.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct FollowingResult {

@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 14831
+stdout_len: 14936
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -59,6 +59,8 @@ Commands:
   mentions          Show your recent mentions
   like              Like a post
   unlike            Unlike a post
+  hide              Hide a reply to your post
+  unhide            Show a hidden reply to your post again
   repost            Repost a post
   unrepost          Undo a repost
   bookmark          Bookmark a post
