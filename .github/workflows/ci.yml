@@ -460,9 +460,10 @@ jobs:
   # The same job checks the release binary's size against a standing ceiling.
   # Cargo honors [profile.release] only in the workspace root, and a profile
   # that silently stops applying inflates `xr` several times over while every
-  # test stays green; the ceiling turns that into a red job. The release `xr`
-  # measures 9,753,712 bytes and a dropped `strip` alone roughly doubles it,
-  # so the ceiling leaves room for ordinary growth and none for a lost profile.
+  # test stays green; the ceiling turns that into a red job. With every
+  # command family the release `xr` measures about 12.6 MB, and a dropped
+  # `strip` alone roughly doubles it, so the ceiling leaves room for ordinary
+  # growth and none for a lost profile.
   anc:
     name: Agent-native audit
     needs: scope
@@ -472,7 +473,7 @@ jobs:
     env:
       ANC_VERSION: "0.6.0"
       ANC_SCORE_FLOOR: "98"
-      XR_SIZE_CEILING_BYTES: "12000000"
+      XR_SIZE_CEILING_BYTES: "15000000"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
