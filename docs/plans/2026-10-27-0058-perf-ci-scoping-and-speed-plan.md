@@ -14,10 +14,12 @@ execution: code
 
 ## Goal Capsule
 
-- **Objective:** a pull request's CI verdict arrives in about half today's time, fewer runs fail on downloads, every
-  required check still reports on every PR, and no change skips a check that could have caught it.
+- **Objective:** a pull request's CI verdict arrives within 3 minutes on warm caches, fewer runs fail on downloads,
+  every required check still reports on every PR, no change skips a check that could have caught it, and no speed
+  measure can silently drop a test.
 - **Means:** warm dependency caches written by push runs on `dev` and `main` (KTD2), a faster test job after an audit of
-  what its tests spend time on (KTD4 to KTD8), and change classes that skip the jobs a change's paths cannot affect
+  what its tests spend time on (KTD4 to KTD8), guards on every measure that could lose a test or hide a failure (R13),
+  every other job held to the same budget (KTD13), and change classes that skip the jobs a change's paths cannot affect
   (KTD9, KTD10).
 - **Authority:** R-IDs win on behavior and KTDs on mechanism; a unit overrides neither.
   `docs/solutions/conventions/ci-triggers-once-per-change-under-squash-merges.md` governs CI triggers except where KD1
@@ -77,6 +79,10 @@ job (KTD10).
   4.5 minutes.
 - R4. No test is removed, skipped, or weakened for speed without Brett approving that specific test.
 - R5. Doc tests keep running on every PR that runs tests.
+- R12. On warm caches, a PR's last check finishes within 3 minutes of the run's start, so no other job gives back what
+  the test job gains.
+- R13. Guards hold every speed measure that could silently drop a test or hide a failure: an undeclared test file, a
+  retried flaky test, a command naming a test target that no longer exists.
 
 **Scoping**
 
@@ -89,8 +95,8 @@ job (KTD10).
 
 **Records**
 
-- R10. AGENTS.md, RELEASES.md, CONTRIBUTING.md, and the workflow comments describe the warm runs, the test runner, and
-  the scoping as built.
+- R10. AGENTS.md, RELEASES.md, CONTRIBUTING.md, and the workflow comments describe the warm runs, the test runner, the
+  test layout and its guards, and the scoping as built.
 - R11. The set of required checks stays as it is; a check renamed by this work is a ruleset change Brett applies.
 
 ### Key Decisions
@@ -112,7 +118,11 @@ job (KTD10).
   4.7 to 9 cold (Appendix).
 - Within that budget, about 40 s goes to setup, formatting, and clippy, so compiling the tests takes 50 s or less (from
   77 s) and running them 40 s or less (from about 148 s).
+- On warm caches, a PR's last check finishes within 3 minutes of the run's start. In the warm baseline run the jobs
+  after the test job were `Windows program target` (270 s), `Agent-native audit` (189 s), `Windows check` (154 s), and
+  `Completions freshness` (112 s); in the cold one the audit took 355 s and completions 251 s.
 - A PR's first run, with no cache of its own, compiles no dependency crate when `dev` has a matching warm cache.
+- Every guard named in KTD4 and KTD8 fails on a seeded violation and passes on the repo as merged.
 - A CLI-only PR shows the nine library-only checks as skipped, and every required check passes.
 - No test fails intermittently under the new runner across the PRs that roll it out.
 
@@ -172,8 +182,11 @@ job (KTD10).
 - KTD4. **cargo-nextest runs the tests, behind an opt-in reusable input.** It runs every test in its own process across
   all binaries at once, where `cargo test` runs binaries one at a time. It does not run doc tests, so the job adds
   `cargo test --doc` (R5). The CI profile in `.config/nextest.toml` sets `retries = 0`, so a flaky test fails instead of
-  hiding, and a `slow-timeout` that names slow tests and ends hung ones. The pre-push hook uses nextest when it is
-  installed and `cargo test` otherwise.
+  hiding, and a `slow-timeout` that names slow tests and ends hung ones. The suite mostly waits rather than computes, so
+  U3 measures `test-threads` at one per CPU against twice that and keeps the faster setting that stays green. The
+  pre-push hook requires nextest and stops at once with the install command when it is missing, so a local run and CI
+  run the tests the same way; plain `cargo test` still passes (KTD8 keeps it correct) but is not the documented path.
+  `nextest_config_guard` fails when a profile sets `retries` above 0 or drops the slow-timeout's termination (R13).
 - KTD5. **Audit before parallelizing.** The `test-audit` skill finds duplicate and low-value tests across both crates,
   and the per-binary times in the Appendix give each one's cost. Removals go to Brett test by test (R4, KD2).
 - KTD6. **Shorten real waits through seams, keeping production defaults.** A wait the tests sit through (the forward
@@ -181,14 +194,28 @@ job (KTD10).
   runner can set. There is no new environment variable outside the list AGENTS.md § "Where a change goes" names, and no
   public CLI flag that exists only for tests; library-first placement applies. A test that walks commands serially runs
   them concurrently within the test. Assertions do not change (R4).
-- KTD7. **Lighter debug info for test builds, kept only if it pays.** Test builds compile with line-tables-only debug
-  info (backtraces keep file and line). Keep it only if the compile phase drops by 20% or more.
-- KTD8. **One integration-test binary per crate, only if the test targets dominate and the target is still missed.**
-  Measure after KTD7 with `cargo test --no-run --timings`, which reports each target's compile-and-link time but does
-  not split out linking. If the test job is still above its Success Criteria target and the 101 integration-test targets
-  take 40% or more of the compile phase, fold each crate's `tests/*.rs` into a single binary; that removes each test
-  crate's own compile as well as its link. The guards that read the tests directory by file (`recipe_guard`,
-  `store_isolation_guard`, `cargo_inputs_tests`) must keep working.
+- KTD7. **Lighter debug info for test builds, each setting kept on measurement.** Two candidates, measured separately on
+  the merged layout (KTD8): line-tables-only debug info for the workspace's test builds (backtraces keep file and line),
+  and no debug info for dependencies in test builds. Keep each that shortens the compile phase by 5% or more.
+- KTD8. **Cargo's multi-file test layout: one test binary per crate, plus one for tests that change process state.**
+  - Cargo documents a multi-file integration test as `tests/<name>/main.rs` with its modules beside it, and Cargo's own
+    suite runs as one binary (`tests/testsuite/main.rs`). Each crate's test files move with `git mv` into `tests/all/`
+    as modules of one binary, with `autotests` left on, so the layout stays Cargo's default discovery.
+  - Tests that change process state go in `tests/isolated/`, a second binary: every test on `env_mutation_guard`'s
+    allowlist and every test whose failure aborts the process (`parse_stack_tests`). Under a plain `cargo test` none of
+    them can reach or end the rest of the crate's run. The shared `common` module serves both binaries.
+  - `mock_endpoint_coverage`, which needs the `testing` feature, becomes a `#[cfg(feature = "testing")]` module. The
+    consumer check's single test file stays as it is.
+  - The measured split (Appendix) puts the integration-test targets at most of the workspace's compile, so the move is
+    not gated; U6 records the gain with `cargo test --no-run --timings` before and after.
+  - Cargo and rustc are silent about the two ways this layout fails: a file under `tests/all/` or `tests/isolated/` that
+    no `mod` line declares is never compiled, and a new top-level `tests/*.rs` file becomes its own binary again. Two
+    guards close them (R13). `test_layout_guard` fails for an undeclared module file, for a `.rs` file directly under a
+    member's `tests/`, and for an allowlisted environment-mutating test outside `tests/isolated/`.
+    `test_invocation_guard` fails for a `cargo test --test <name>` or nextest filter in a workflow, script, or document
+    that names no real test target or, with a `<module>::` filter, no real module.
+  - The guards that read the tests directory by path (`recipe_guard`, `store_isolation_guard`, `env_mutation_guard`,
+    `cargo_inputs_tests`) follow the new paths, and AGENTS.md's file references move with them.
 - KTD9. **Four change classes from one classifier.** `scripts/change-classes.sh` reads changed paths and names the
   classes they reach, using `scripts/cargo-inputs.sh` for the docs verdict:
   - `docs`: nothing reaches cargo.
@@ -216,6 +243,12 @@ job (KTD10).
   download over HTTP/2, and six of the ten stack failures were in them (`Doc build`, four `Features` cells,
   `Windows program target`). U1 cuts their downloads; if those jobs keep failing on downloads after U1, the decision is
   worth revisiting.
+- KTD13. **The verdict is the slowest job, so every job is held to R12.** With the test job at 2 m 15 s, the run ends
+  when its slowest other job does (Success Criteria). U10 measures every job warm after U1 and gives each one that ends
+  after the test job a lever of its own or a recorded floor. `Completions freshness` builds the release binary (fat LTO,
+  one codegen unit, 88 s even with a full cache hit) only to print completions, which clap renders the same from a dev
+  build. `Agent-native audit` keeps its release build, because the size ceiling measures the shipped profile. The two
+  Windows jobs restored no cache in the baseline, so U1 is their first lever.
 
 ### High-Level Technical Design
 
@@ -249,40 +282,44 @@ flowchart TB
   R3 -->|no| COLD[Build cold, as today]
 ```
 
-The test-speed levers, each gated on a measurement (KTD5 to KTD8):
+The test-speed levers and the guards that hold them (KTD4 to KTD8, KTD13):
 
 ```mermaid
 flowchart TB
   A[Audit tests U2] --> B[Brett decides removals]
-  B --> N[nextest U3]
+  B --> N[nextest U3, with nextest_config_guard]
   B --> W[Shorten waits U4]
-  N --> G[Measure compile phase]
-  W --> G
-  G --> DI{Line-tables debug info saves 20%?}
-  DI -->|yes| K[Keep U5]
-  DI -->|no| X[Drop U5]
-  K --> LS{Above target, and test targets 40% or more of compile?}
-  X --> LS
-  LS -->|yes| U6[One test binary per crate U6]
-  LS -->|no| DONE[Stop]
+  B --> M[Merged test layout U6, with test_layout_guard and test_invocation_guard]
+  M --> DI[Measure each debug-info setting U5]
+  DI --> K{Compile phase 5% shorter?}
+  K -->|yes| KEEP[Keep that setting]
+  K -->|no| DROP[Drop it, record the measurement]
+  W1[Warm caches U1] --> J[Measure every job warm U10]
+  J --> L[A lever or a recorded floor for each job ending after the test job]
 ```
 
 ### Risks & Dependencies
 
-| Risk                                                                                          | Decision                                                                                                                                                             |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A warm run's cache key differs from a PR run's, so nothing restores                           | Same job ids, inputs, and environment by construction (KTD2); U1's verification reads the PR test job's log for dependency compilation                               |
-| Warm entries push the repository past 10 GB and eviction thrashes                             | The two warm sets hold about 8.7 GiB, and PR runs that match one save nothing; U1's check after the first lockfile change decides whether PR runs stop saving (KTD3) |
-| Push runs spend Actions minutes, the convention doc's main concern                            | Accepted: the repository is public, so standard GitHub-hosted runners cost nothing; pushes to `dev` and `main` are a few a day                                       |
-| Running tests in parallel exposes tests that depend on each other or on a shared port or file | `retries = 0` surfaces them; each is fixed or put in a nextest test group, never retried into silence (KTD4)                                                         |
-| A change class skips a job that the change can break                                          | Unknown paths, workflows, and the classifier run everything (KD4); paths the library's source names are `lib` (KTD9); U7's fixture holds every rule                  |
-| A reusable change alters other repositories' runs                                             | Every new input defaults to today's behavior (KD3); the reusable merges before xurl-rs opts in                                                                       |
-| A shared-workflow PR in `brettdavies/.github` waits on review                                 | U1, U3, and U8 depend on it; the units without a reusable change (U2, U4, U5, U7) proceed meanwhile                                                                  |
+| Risk                                                                                                  | Decision                                                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A warm run's cache key differs from a PR run's, so nothing restores                                   | Same job ids, inputs, and environment by construction (KTD2); U1's verification reads the PR test job's log for dependency compilation                               |
+| Warm entries push the repository past 10 GB and eviction thrashes                                     | The two warm sets hold about 8.7 GiB, and PR runs that match one save nothing; U1's check after the first lockfile change decides whether PR runs stop saving (KTD3) |
+| Push runs spend Actions minutes, the convention doc's main concern                                    | Accepted: the repository is public, so standard GitHub-hosted runners cost nothing; pushes to `dev` and `main` are a few a day                                       |
+| Running tests in parallel exposes tests that depend on each other or on a shared port or file         | `retries = 0` surfaces them; each is fixed or put in a nextest test group, never retried into silence (KTD4)                                                         |
+| A change class skips a job that the change can break                                                  | Unknown paths, workflows, and the classifier run everything (KD4); paths the library's source names are `lib` (KTD9); U7's fixture holds every rule                  |
+| A reusable change alters other repositories' runs                                                     | Every new input defaults to today's behavior (KD3); the reusable merges before xurl-rs opts in                                                                       |
+| A shared-workflow PR in `brettdavies/.github` waits on review                                         | U1, U3, U8, and U10 (through U1) depend on it; U2, U4, U5, U6, and U7 proceed meanwhile                                                                              |
+| A test file under the merged layout is never compiled because no `mod` line declares it               | `test_layout_guard` fails naming the file (KTD8)                                                                                                                     |
+| A flaky test passes on a retry and hides                                                              | `nextest_config_guard` holds `retries = 0` (KTD4)                                                                                                                    |
+| A workflow, script, or document runs a test target the move renamed                                   | `test_invocation_guard` fails naming the command (KTD8)                                                                                                              |
+| An environment-mutating or aborting test reaches the rest of a merged binary under plain `cargo test` | Those tests live in `tests/isolated/`, and `test_layout_guard` keeps them there (KTD8)                                                                               |
+| The test job gets fast and the run still waits on a slower job                                        | U10 holds every job to R12 (KTD13)                                                                                                                                   |
 
 ### Sequencing
 
-U1 first: it is independent and helps every later run. U2 precedes U3 and U4 (KD2). U5 and U6 come after U3 and U4,
-because the gates measure what is left. U7 and U8 add scoping. U9 records the result.
+U1 first: it is independent and helps every later run, and U10 follows it because it measures warm jobs. U2 precedes U3,
+U4, and U6 (KD2), so no test is moved or parallelized before the audit settles which stay. U6 precedes U5, which
+measures debug info on the merged layout. U7 and U8 add scoping. U9 records the result.
 
 ---
 
@@ -341,29 +378,37 @@ because the gates measure what is left. U7 and U8 add scoping. U9 records the re
 
 ### U3. Run the tests with nextest
 
-- **Goal:** test binaries run in parallel instead of one after another.
-- **Requirements:** R3, R5, R9; KTD4, KTD11.
+- **Goal:** tests run in parallel, each in its own process, the same way locally and in CI.
+- **Requirements:** R3, R5, R9, R13; KTD4, KTD11.
 - **Dependencies:** U2.
 - **Files:**
   - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `test_runner` input and the nextest install.
   - `.github/workflows/ci.yml`: opts in.
-  - `.config/nextest.toml`: the `ci` profile.
-  - `scripts/hooks/pre-push`: uses nextest when installed.
-  - `CONTRIBUTING.md`.
+  - `.config/nextest.toml`: the `default` and `ci` profiles.
+  - `crates/xurl-cli/tests/nextest_config_guard.rs`, new (a module of `tests/all/` once U6 lands).
+  - `scripts/hooks/pre-push`: runs nextest and stops with the install command when it is missing.
+  - `CONTRIBUTING.md` and AGENTS.md § "Testing": nextest as the documented runner.
 - **Approach:**
   1. With `test_runner: nextest`, the reusable's test job installs `cargo-nextest` by `cargo binstall --force`, with the
      SHA-pinned binstall action the repo already uses. It then runs `cargo nextest run` with the `ci` profile and
      `cargo test --doc`.
   2. Tests that cannot share a machine concurrently go in a nextest test group with limited concurrency rather than
      serial runs of everything. Which tests need it is found while rolling out.
-- **Patterns to follow:** the `cargo binstall ... --force` install steps in `ci.yml` (`cargo-hack`, `anc`).
+  3. Measure the run phase with `test-threads` at one per CPU and at twice that, on the same warm cache, and keep the
+     faster setting that stays green across the rollout PRs.
+  4. `nextest_config_guard` parses `.config/nextest.toml` and fails, naming the profile and key, when any profile sets
+     `retries` above 0 or a slow-timeout without `terminate-after`.
+- **Patterns to follow:** the `cargo binstall ... --force` install steps in `ci.yml` (`cargo-hack`, `anc`); a guard that
+  reads repo files and names the offending entry (`env_mutation_guard`), without the `Cause:` marker `recipe_guard`
+  reserves for the family recipe.
 - **Test scenarios:**
   - A PR runs the full suite under nextest with the same test count as `cargo test`, and doc tests still run.
   - A deliberately failing test fails the job and is named in the summary; it is not retried.
   - A test that hangs past the slow timeout is terminated and named.
-  - The pre-push hook passes with nextest installed and without it.
-- **Verification:** the test count matches `cargo test`; the test-running phase falls from about 175 s; no test fails
-  intermittently across the rollout PRs.
+  - The pre-push hook passes with nextest installed and stops, naming the install command, without it.
+  - `nextest_config_guard` fails on a seeded `retries = 1` and on a slow-timeout with no `terminate-after`.
+- **Verification:** the test count matches `cargo test`; the test-running phase falls from about 148 s toward 40 s; no
+  test fails intermittently across the rollout PRs; the guard fails on both seeded violations.
 
 ### U4. Shorten the real waits in the slowest tests
 
@@ -399,36 +444,57 @@ because the gates measure what is left. U7 and U8 add scoping. U9 records the re
 
 - **Goal:** the test compile phase gets shorter without losing file-and-line backtraces.
 - **Requirements:** R3; KTD7.
-- **Dependencies:** U3, U4.
-- **Files:** `Cargo.toml` (`[profile.test]`), or the reusable's test step environment if the profile cannot reach it.
-- **Approach:** measure the compile phase with and without line-tables-only debug info on the same warm cache, and keep
-  it only at 20% or more.
+- **Dependencies:** U6.
+- **Files:** `Cargo.toml` (`[profile.test]` and a dependency override for it), or the reusable's test step environment
+  if the profile cannot reach it.
+- **Approach:** on the merged layout and the same warm cache, measure the compile phase with each candidate alone:
+  line-tables-only debug info for the workspace's test builds, and no debug info for dependencies in test builds. Keep
+  each that shortens the phase by 5% or more.
 - **Test expectation:** none -- a build setting; the suite's pass state is the check.
-- **Verification:** the compile phase falls by 20% or more and a panicking test still prints its file and line, or the
-  change is dropped with the measurement recorded.
+- **Verification:** each kept setting's measurement is recorded, and a panicking test still prints its file and line;
+  each dropped setting has its measurement recorded.
 
-### U6. One integration-test binary per crate, if the test targets dominate
+### U6. Cargo's multi-file test layout, held by guards
 
-- **Goal:** the test build links two binaries instead of 101.
-- **Requirements:** R3, R4; KTD8.
-- **Dependencies:** U5.
+- **Goal:** each crate's integration tests build as one binary, plus one for tests that change process state, with
+  guards that keep any test from going uncompiled or any command from naming a target that moved.
+- **Requirements:** R3, R4, R10, R13; KTD8.
+- **Dependencies:** U2.
 - **Files:**
-  - `crates/xdk/tests/` and `crates/xurl-cli/tests/`: each crate's tests become modules of one test target.
-  - `crates/xurl-cli/tests/recipe_guard.rs`, `store_isolation_guard.rs`, and `cargo_inputs_tests.rs`: as their file
-    reads require.
-  - AGENTS.md § "Adding a command family", where it names test files.
+  - `crates/xdk/tests/` and `crates/xurl-cli/tests/`: each file moves with `git mv` into `tests/all/` or
+    `tests/isolated/`, each with a `main.rs` declaring its modules; `common/` serves both.
+  - `crates/xdk/Cargo.toml`: the `mock_endpoint_coverage` target entry goes, replaced by a feature-gated module.
+  - `crates/xurl-cli/tests/all/test_layout_guard.rs` and `test_invocation_guard.rs`, new.
+  - `recipe_guard`, `store_isolation_guard`, `env_mutation_guard`, and `cargo_inputs_tests`: as their path reads
+    require.
+  - Every `--test <name>` command: `.github/workflows/ci.yml` (three), AGENTS.md (the golden refresh command),
+    CONTRIBUTING.md (Go parity), `scripts/update-types.sh`, and `scripts/release/preflight.sh` (the live smoke run).
+  - AGENTS.md § "Adding a command family" and § "Testing", where they name test files by path.
 - **Approach:**
-  1. Run only if, after U5, the test job is above its target and the integration-test targets take 40% or more of the
-     compile phase (KTD8).
-  2. Move each file to a module under one target per crate, keeping test names, so nextest filters and the docs' test
-     names stay valid.
-- **Execution note:** prove the move keeps every test by comparing the sorted list of test names before and after.
+  1. Record `cargo test --no-run --timings` and the sorted list of every test, qualified by its file, before the move.
+  2. Move the files: environment-mutating tests on the allowlist and `parse_stack_tests` into `tests/isolated/`,
+     everything else into `tests/all/`. Split a file only where it mixes the two, keeping each test's name.
+  3. Write `test_layout_guard` and `test_invocation_guard` (KTD8), each failing with the file or command, why it
+     matters, and the fix, and name both in AGENTS.md § "Testing". They avoid the `Cause:` marker, which `recipe_guard`
+     reserves for the command-family recipe's walks.
+  4. Update every command and document that names a test target or a test file's path.
+  5. Record the timings and the test list again.
+- **Execution note:** the move must keep every test: compare the before and after lists, mapping each file to its
+  module, and they must match one for one. Commit the moves apart from the edits so `git log --follow` keeps each file's
+  history.
 - **Test scenarios:**
-  - The sorted test-name list is identical before and after.
-  - `store_isolation_guard` still fails on a test module that names `TokenStore::new()`.
-  - `recipe_guard` still finds every walk AGENTS.md names.
-- **Verification:** the compile phase drops further and the test-name list is unchanged, or the unit is skipped with the
-  job time and the test targets' measured share recorded.
+  - The before and after test lists match one for one.
+  - `test_layout_guard` fails for a seeded undeclared file in `tests/all/`, for a seeded `tests/stray.rs`, and for an
+    allowlisted environment-mutating test moved into `tests/all/`.
+  - `test_invocation_guard` fails for a seeded `cargo test --test golden_tests` in a document and for a filter naming a
+    module that does not exist.
+  - `store_isolation_guard` still fails on a test module that names `TokenStore::new()`; `recipe_guard` still finds
+    every walk AGENTS.md names.
+  - `cargo test -p xdk-rs --features testing` still runs `mock_endpoint_coverage`, and a build without the feature skips
+    it.
+  - A plain `cargo test` passes, with the environment-mutating tests running in their own binary.
+- **Verification:** the test lists match; each guard fails on its seeded violations and passes on the moved tree; the
+  compile phase drop is recorded from the two timing runs.
 
 ### U7. Classify changes into four classes
 
@@ -483,9 +549,10 @@ because the gates measure what is left. U7 and U8 add scoping. U9 records the re
 
 ### U9. Record how CI behaves now
 
-- **Goal:** the repo's docs and comments describe the warm runs, the test runner, and the scoping as built.
+- **Goal:** the repo's docs and comments describe the warm runs, the test runner, the test layout and its guards, and
+  the scoping as built.
 - **Requirements:** R10, R11.
-- **Dependencies:** U1 to U8 (the parts that shipped).
+- **Dependencies:** U1 to U8 and U10 (the parts that shipped).
 - **Files:**
   - `AGENTS.md`: § "Testing" and its six CI gates paragraph.
   - `RELEASES.md`, where it describes CI.
@@ -496,8 +563,31 @@ because the gates measure what is left. U7 and U8 add scoping. U9 records the re
   2. Capture the warm-run pattern and the measured gains as a solutions entry with `ce-compound`, because the fleet
      convention doc says pull_request-only.
 - **Test expectation:** none -- documentation; `recipe_guard` and markdownlint check what they check.
-- **Verification:** each doc names the classifier, the warm runs, and nextest where it describes CI, and no doc still
-  says CI is pull_request-only.
+- **Verification:** each doc names the classifier, the warm runs, nextest, the `tests/all/` and `tests/isolated/`
+  layout, and the guards where it describes CI or testing, and no doc still says CI is pull_request-only.
+
+### U10. Hold every other job inside the verdict budget
+
+- **Goal:** with the test job at 2 m 15 s, no other job keeps a PR waiting more than 3 minutes on warm caches.
+- **Requirements:** R12; KTD13.
+- **Dependencies:** U1.
+- **Files:**
+  - `.github/workflows/ci.yml`: the jobs that end after the test job.
+  - `scripts/generate-completions.sh`, through its template, `rust-tool-release/scripts/generate-completions.sh` in
+    `brettdavies/agent-skills`: the repo copy derives from it, so the template changes first (from a scratch clone, not
+    the live skills checkout) and the repo copy is derived again.
+- **Approach:**
+  1. After U1 lands, read every job's duration from two warm PR runs (`gh run view --json jobs`).
+  2. `Completions freshness` builds a dev-profile binary instead of the release one; clap prints the same completions
+     from either.
+  3. Each job still ending after the test job gets a lever of its own, or its floor is recorded with the measurement
+     (the audit's release build, which the size ceiling requires).
+- **Test scenarios:**
+  - `scripts/generate-completions.sh --check` fails on a stale completion file and passes on a fresh one, built from the
+    dev profile, in CI and in the pre-push hook.
+  - Two warm PR runs end with their last required check within 3 minutes of the run's start.
+- **Verification:** both warm runs meet R12, or the job that misses it is named with its measured floor for Brett to
+  decide on.
 
 ---
 
@@ -506,18 +596,21 @@ because the gates measure what is left. U7 and U8 add scoping. U9 records the re
 | Gate                                                                            | Applies to         | Pass                                                          |
 | ------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------- |
 | `cargo nextest run --workspace --profile ci` and `cargo test --doc --workspace` | U3 onward          | All pass; test count equals the `cargo test` count            |
-| `cargo test -p xurl-rs --test change_classes_tests`                             | U7                 | All pass                                                      |
-| `scripts/hooks/pre-push`                                                        | every xurl-rs unit | Passes, with and without nextest installed                    |
+| The `change_classes_tests` module under nextest                                 | U7                 | All pass                                                      |
+| `scripts/hooks/pre-push`                                                        | every xurl-rs unit | Passes with nextest; without it, stops naming the install     |
+| `nextest_config_guard`, `test_layout_guard`, `test_invocation_guard`            | U3, U6             | Each fails on its seeded violations and passes on the tree    |
+| Test list before and after the move                                             | U6                 | Identical, file mapped to module                              |
 | actionlint on changed workflows, in both repos                                  | U1, U3, U8         | Clean                                                         |
 | Test job wall-clock on a warm PR (`gh run view --json jobs`)                    | measured after U6  | 2 m 15 s or less                                              |
 | Test compile phase (`Finished test profile`)                                    | U5, U6             | 50 s or less                                                  |
 | Test-running phase                                                              | U3, U4             | 40 s or less                                                  |
 | Dependency compilation in a fresh PR's test job                                 | U1                 | None when `dev` has a matching warm cache                     |
+| Last required check on a warm PR run                                            | U10                | Within 3 minutes of the run's start                           |
 | Skipped checks on a CLI-only PR                                                 | U8                 | Nine library-only checks skipped, all required checks passing |
 
 ## Definition of Done
 
-- Every unit's verification is met, or its gate decided it out with the measurement recorded (U5, U6).
+- Every unit's verification is met, or its gate decided it out with the measurement recorded (U5).
 - Every Success Criterion is met, or Brett has the measured shortfall and has decided what follows (the deferred
   follow-ups are the candidates).
 - No test was removed or weakened without Brett's approval of that test.
