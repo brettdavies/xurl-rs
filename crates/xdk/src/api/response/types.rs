@@ -68,8 +68,8 @@ pub struct ResponseMeta {
     /// Total items returned in `data` for list endpoints.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result_count: Option<u64>,
-    /// Opaque cursor for the next page; pass to a follow-up call as
-    /// `pagination_token`.
+    /// Opaque cursor for the next page; pass it back as the follow-up
+    /// request's cursor.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub next_token: Option<String>,
     /// Opaque cursor for the previous page.

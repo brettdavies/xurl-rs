@@ -369,6 +369,9 @@ pub const POST_MEDIA_MAX: usize = 4;
 /// The most ids one lookup takes, the spec's `maxItems` on `ids`.
 pub const LOOKUP_IDS_MAX: usize = 100;
 
+/// The longest user search query, from the spec's pattern on `query`.
+pub const USER_SEARCH_QUERY_MAX_CHARS: usize = 50;
+
 /// Validates a post / reply / quote body.
 ///
 /// Length is left to X: the limit belongs to the account (a Premium account
@@ -402,6 +405,23 @@ pub fn validate_media_attachments(ids: &[String]) -> std::result::Result<(), &'s
 pub fn validate_lookup_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'static str> {
     if ids.len() > LOOKUP_IDS_MAX {
         return Err("too-many-ids");
+    }
+    Ok(())
+}
+
+/// Validates a user search query against the spec's pattern: 1 to
+/// [`USER_SEARCH_QUERY_MAX_CHARS`] letters, digits, underscores, apostrophes,
+/// or spaces.
+///
+/// # Errors
+/// Returns `invalid-user-query` for a query outside that pattern.
+pub fn validate_user_search_query(query: &str) -> std::result::Result<(), &'static str> {
+    let allowed = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '\'' | ' ');
+    if query.is_empty()
+        || query.chars().count() > USER_SEARCH_QUERY_MAX_CHARS
+        || !query.chars().all(allowed)
+    {
+        return Err("invalid-user-query");
     }
     Ok(())
 }
@@ -1026,6 +1046,27 @@ impl Client {
             ),
             &HiddenBody { hidden },
         )
+    }
+
+    /// Finds accounts by keyword. The endpoint reads its cursor from
+    /// `next_token`.
+    pub fn search_users(&self, query: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
+        self.call(
+            endpoints::SEARCH_USERS.method,
+            template(
+                endpoints::SEARCH_USERS.path,
+                HashMap::new(),
+                vec![
+                    ("query".to_string(), query.to_string()),
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "user.fields".to_string(),
+                        "created_at,description,public_metrics,verified".to_string(),
+                    ),
+                ],
+            ),
+        )
+        .paginated_by("next_token")
     }
 
     /// Fetches the users who liked a post.

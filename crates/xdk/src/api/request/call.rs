@@ -34,7 +34,9 @@ pub struct Call<T> {
     client: Client,
     options: CallOptions,
     request: RequestOptions,
-    paginated: bool,
+    /// The query parameter a list endpoint reads its cursor from; `None`
+    /// for an endpoint that takes no cursor.
+    cursor_param: Option<&'static str>,
     failed: Option<Error>,
     response: PhantomData<fn() -> T>,
 }
@@ -48,7 +50,7 @@ impl<T> std::fmt::Debug for Call<T> {
         f.debug_struct("Call")
             .field("method", &self.request.method)
             .field("target", &self.request.target)
-            .field("paginated", &self.paginated)
+            .field("cursor_param", &self.cursor_param)
             .field("failed", &self.failed)
             .finish_non_exhaustive()
     }
@@ -181,7 +183,7 @@ impl<T> Call<T> {
             client: client.clone(),
             options: CallOptions::default(),
             request,
-            paginated: false,
+            cursor_param: None,
             failed: None,
             response: PhantomData,
         }
@@ -195,9 +197,15 @@ impl<T> Call<T> {
     }
 
     /// Marks a list endpoint, the only kind that sends
-    /// [`Call::pagination_token`].
-    pub(crate) fn paginated(mut self) -> Self {
-        self.paginated = true;
+    /// [`Call::pagination_token`], as `pagination_token`.
+    pub(crate) fn paginated(self) -> Self {
+        self.paginated_by("pagination_token")
+    }
+
+    /// [`Call::paginated`] for an endpoint that reads its cursor from
+    /// `param`, such as the `next_token` of `/2/users/search`.
+    pub(crate) fn paginated_by(mut self, param: &'static str) -> Self {
+        self.cursor_param = Some(param);
         self
     }
 
@@ -296,7 +304,7 @@ impl<T: DeserializeOwned> Call<T> {
             client,
             options,
             mut request,
-            paginated,
+            cursor_param,
             failed,
             ..
         } = self;
@@ -307,11 +315,11 @@ impl<T: DeserializeOwned> Call<T> {
         request.username = options.username;
         request.trace = options.trace;
         request.no_auth = options.no_auth;
-        if paginated
+        if let Some(param) = cursor_param
             && !options.pagination_token.is_empty()
             && let RequestTarget::Template { query, .. } = &mut request.target
         {
-            query.push(("pagination_token".to_string(), options.pagination_token));
+            query.push((param.to_string(), options.pagination_token));
         }
         let timeout = options.timeout.unwrap_or_else(|| client.request_timeout());
         decode(client.send_request_with(&request, timeout).await?)

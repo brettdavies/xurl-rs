@@ -1,12 +1,13 @@
 //! The commands that read posts and profiles: `read`, `read-posts`,
-//! `user-posts`, `search`, `whoami`, `user`, `timeline`, `mentions`, and who
-//! engaged with a post: `likers`, `reposters`, and `quotes`.
+//! `user-posts`, `search`, `search-users`, `whoami`, `user`, `timeline`,
+//! `mentions`, and who engaged with a post: `likers`, `reposters`, and
+//! `quotes`.
 
 use serde_json::json;
 
 use super::{
-    DryRun, Run, effective_limit, list_for_post, list_for_user, list_owned_by, make_client,
-    print_typed, send_or_report, send_validated, with_flags,
+    DryRun, Run, effective_limit, list_for_post, list_for_user, list_owned_by, list_paged,
+    make_client, print_typed, send_or_report, send_validated, with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
@@ -82,6 +83,18 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 flags.cursor.as_deref(),
             );
             send_or_report(out, stdout, dry_run, call).await?;
+        }
+        Commands::SearchUsers {
+            query,
+            max_results,
+            common,
+        } => {
+            let ctx = json!({"command": "search-users", "query": query});
+            let validator = || shortcuts::validate_user_search_query(&query);
+            list_paged(run, ctx, validator, max_results, &common, |client, n| {
+                client.search_users(&query, n)
+            })
+            .await?;
         }
         Commands::Whoami { cached, common } => {
             let Run {

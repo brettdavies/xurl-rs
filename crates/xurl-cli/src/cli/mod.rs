@@ -244,6 +244,18 @@ Examples:
     xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr search-users` examples — paired text + JSON, JSONL pipeline.
+const SEARCH_USERS_HELP: &str = "\
+Examples:
+  Find accounts by keyword (text):
+    xr search-users \"rust lang\"
+  50 results, JSON envelope:
+    xr search-users rust -n 50 --output json
+  The handle of each, one per line:
+    xr search-users rust --output json | jaq -r '.data[]?.username'
+  A query is 1 to 50 letters, digits, underscores, apostrophes, or spaces.
+";
+
 /// `xr user-posts` examples — paired text + JSON, JSONL pipeline.
 const USER_POSTS_HELP: &str = "\
 Examples:
@@ -1215,6 +1227,18 @@ pub enum Commands {
     Read {
         /// Post ID or URL to read
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Find accounts by keyword
+    #[command(after_help = SEARCH_USERS_HELP)]
+    SearchUsers {
+        /// Search query
+        query: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

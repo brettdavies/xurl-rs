@@ -131,6 +131,11 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::SEARCH_USERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_USER_POSTS,
         fixture: "post_list",
         status: 200,
