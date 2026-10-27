@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 4664
+stdout_len: 4723
 stderr_len: 0
 --- stdout ---
 auth-apps-list                 Vec<AppStatusEntry>
@@ -55,6 +55,7 @@ reply                          ApiResponse<Post>
 repost                         ApiResponse<RepostedResult>
 reposters                      ApiResponse<Vec<User>>
 search                         ApiResponse<Vec<Post>>
+search-counts                  ApiResponse<Vec<PostCount>>
 search-users                   ApiResponse<Vec<User>>
 skill-install                  InstallEnvelope
 skill-install-all              InstallMultiEnvelope

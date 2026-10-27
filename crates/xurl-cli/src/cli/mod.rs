@@ -244,6 +244,17 @@ Examples:
     xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr search-counts` examples — paired text + JSON, JSONL pipeline.
+const SEARCH_COUNTS_HELP: &str = "\
+Examples:
+  Posts matching a query per hour over the last seven days (text):
+    xr search-counts \"from:XDevelopers\"
+  Per day, JSON envelope:
+    xr search-counts rustlang --granularity day --output json
+  One window, the total alone:
+    xr search-counts rustlang --start 2026-10-25T00:00:00Z --end 2026-10-26T00:00:00Z --output json | jaq '.meta.total_post_count'
+";
+
 /// `xr search-users` examples — paired text + JSON, JSONL pipeline.
 const SEARCH_USERS_HELP: &str = "\
 Examples:
@@ -1227,6 +1238,25 @@ pub enum Commands {
     Read {
         /// Post ID or URL to read
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Count the recent posts that match a query, per time bucket
+    #[command(after_help = SEARCH_COUNTS_HELP)]
+    SearchCounts {
+        /// Search query, as `xr search` takes it
+        query: String,
+        /// Bucket size (X's default is hour)
+        #[arg(long, value_parser = ["minute", "hour", "day"])]
+        granularity: Option<String>,
+        /// Oldest moment counted (RFC 3339 with a zone, such as
+        /// 2026-10-25T00:00:00Z); within the last seven days
+        #[arg(long, value_name = "TIME")]
+        start: Option<String>,
+        /// Moment the count stops, exclusive (RFC 3339 with a zone)
+        #[arg(long, value_name = "TIME")]
+        end: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

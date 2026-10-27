@@ -293,6 +293,26 @@ pub struct DmEvent {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// How many posts matched a query in one time bucket.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PostCount {
+    /// Start of the bucket (inclusive), RFC 3339.
+    pub start: String,
+    /// End of the bucket (exclusive), RFC 3339.
+    pub end: String,
+    /// Posts in the bucket. X sends this as `tweet_count`, while the
+    /// spec names it `post_count`; either key fills this field.
+    #[serde(alias = "tweet_count")]
+    #[doc(alias = "tweet_count")]
+    #[schemars(
+        description = "Posts in the bucket. X sends this under its legacy name `tweet_count`; either name fills this field."
+    )]
+    pub post_count: u64,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.

@@ -1,13 +1,13 @@
 //! The commands that read posts and profiles: `read`, `read-posts`,
-//! `user-posts`, `search`, `search-users`, `whoami`, `user`, `timeline`,
-//! `mentions`, and who engaged with a post: `likers`, `reposters`, and
-//! `quotes`.
+//! `user-posts`, `search`, `search-users`, `search-counts`, `whoami`, `user`,
+//! `timeline`, `mentions`, and who engaged with a post: `likers`,
+//! `reposters`, and `quotes`.
 
 use serde_json::json;
 
 use super::{
-    DryRun, Run, effective_limit, list_for_post, list_for_user, list_owned_by, list_paged,
-    make_client, print_typed, send_or_report, send_validated, with_flags,
+    DryRun, Run, dry_run_or_validate, effective_limit, list_for_post, list_for_user, list_owned_by,
+    list_paged, make_client, print_typed, send_or_report, send_validated, with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
@@ -95,6 +95,41 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 client.search_users(&query, n)
             })
             .await?;
+        }
+        Commands::SearchCounts {
+            query,
+            granularity,
+            start,
+            end,
+            common,
+        } => {
+            let Run {
+                cfg,
+                auth,
+                flags,
+                out,
+                stdout,
+                ..
+            } = run;
+            let ctx = json!({
+                "command": "search-counts",
+                "query": query,
+                "granularity": granularity,
+                "start": start,
+                "end": end,
+            });
+            let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+                shortcuts::validate_time_window(start.as_deref(), end.as_deref())
+            })?;
+            let client = make_client(cfg, auth)?;
+            let call = client.count_recent_posts(
+                &query,
+                granularity.as_deref(),
+                start.as_deref(),
+                end.as_deref(),
+            );
+            let call = with_flags(call, &common, flags.cursor.as_deref());
+            send_or_report(out, stdout, dry_run, call).await?;
         }
         Commands::Whoami { cached, common } => {
             let Run {

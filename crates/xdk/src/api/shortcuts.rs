@@ -17,10 +17,10 @@ use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    MediaSubtitlesResult, MutingResult, Post, PostCount, ProvisionedResult, RepostedResult,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -638,6 +638,87 @@ pub fn validate_call_time(input: &str) -> std::result::Result<(), &'static str> 
     }
 }
 
+/// Validates an optional time window: each bound given is RFC 3339 with
+/// seconds and a zone, as [`validate_call_time`] takes, and the start comes
+/// before the end when both are given.
+///
+/// # Errors
+/// Returns `invalid-time-window` for a bound outside that form, or a start
+/// at or after the end.
+pub fn validate_time_window(
+    start: Option<&str>,
+    end: Option<&str>,
+) -> std::result::Result<(), &'static str> {
+    let instant = |bound: Option<&str>| {
+        bound
+            .map(|time| rfc3339_instant(time.as_bytes()).ok_or("invalid-time-window"))
+            .transpose()
+    };
+    if let (Some(start), Some(end)) = (instant(start)?, instant(end)?)
+        && start >= end
+    {
+        return Err("invalid-time-window");
+    }
+    Ok(())
+}
+
+/// The moment a time in [`is_call_time`]'s form names, as seconds since the
+/// Unix epoch and nanoseconds, so two times in different zones compare.
+fn rfc3339_instant(bytes: &[u8]) -> Option<(i64, u32)> {
+    if !is_call_time(bytes) {
+        return None;
+    }
+    let number = |digits: &[u8]| {
+        digits
+            .iter()
+            .fold(0_i64, |n, digit| n * 10 + i64::from(digit - b'0'))
+    };
+    let days = days_from_civil(
+        number(&bytes[..4]),
+        number(&bytes[5..7]),
+        number(&bytes[8..10]),
+    );
+    let seconds = days * 86_400
+        + number(&bytes[11..13]) * 3_600
+        + number(&bytes[14..16]) * 60
+        + number(&bytes[17..19]);
+    let mut zone = &bytes[19..];
+    let mut nanos = 0_u32;
+    if let Some(fraction) = zone.strip_prefix(b".") {
+        let digits = fraction.iter().take_while(|b| b.is_ascii_digit()).count();
+        nanos = fraction[..digits]
+            .iter()
+            .chain(std::iter::repeat(&b'0'))
+            .take(9)
+            .fold(0, |n, digit| n * 10 + u32::from(digit - b'0'));
+        zone = &fraction[digits..];
+    }
+    let offset = match zone {
+        [sign @ (b'+' | b'-'), ..] => {
+            let minutes = number(&zone[1..3]) * 60 + number(&zone[4..6]);
+            if *sign == b'+' {
+                minutes * 60
+            } else {
+                -minutes * 60
+            }
+        }
+        _ => 0,
+    };
+    Some((seconds - offset, nanos))
+}
+
+/// Days from 1970-01-01 to a proleptic Gregorian date, after Howard
+/// Hinnant's `days_from_civil`
+/// (<https://howardhinnant.github.io/date_algorithms.html#days_from_civil>).
+fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
+    let year = if month <= 2 { year - 1 } else { year };
+    let era = year.div_euclid(400);
+    let year_of_era = year - era * 400;
+    let day_of_year = (153 * ((month + 9) % 12) + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    era * 146_097 + day_of_era - 719_468
+}
+
 fn two_digits(bytes: &[u8], at: usize) -> Option<u8> {
     match bytes.get(at..at + 2)? {
         [tens, units] if tens.is_ascii_digit() && units.is_ascii_digit() => {
@@ -1067,6 +1148,34 @@ impl Client {
             ),
         )
         .paginated_by("next_token")
+    }
+
+    /// Counts the posts from the last seven days that match `query`, per
+    /// `granularity` bucket (`minute`, `hour`, or `day`; X's default is
+    /// `hour`), between `start_time` and `end_time` when given.
+    pub fn count_recent_posts(
+        &self,
+        query: &str,
+        granularity: Option<&str>,
+        start_time: Option<&str>,
+        end_time: Option<&str>,
+    ) -> Call<ApiResponse<Vec<PostCount>>> {
+        let mut params = vec![("query".to_string(), query.to_string())];
+        let optional = [
+            ("granularity", granularity),
+            ("start_time", start_time),
+            ("end_time", end_time),
+        ];
+        params.extend(
+            optional
+                .into_iter()
+                .filter_map(|(name, value)| Some((name.to_string(), value?.to_string()))),
+        );
+        self.call(
+            endpoints::GET_POST_COUNTS.method,
+            template(endpoints::GET_POST_COUNTS.path, HashMap::new(), params),
+        )
+        .paginated()
     }
 
     /// Fetches the users who liked a post.

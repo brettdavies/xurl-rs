@@ -19,10 +19,10 @@ use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, Post, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    MediaSubtitlesResult, MutingResult, Post, PostCount, ProvisionedResult, RepostedResult,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -99,6 +99,7 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     },
     typed_alias::<LikedResult>("like"),
     typed_alias::<HiddenResult>("hide"),
+    typed_alias::<Vec<PostCount>>("post-counts"),
     typed_alias::<FollowingResult>("follow"),
     typed_alias::<DeletedResult>("delete"),
     typed_alias::<RepostedResult>("repost"),

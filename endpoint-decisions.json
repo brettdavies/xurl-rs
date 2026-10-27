@@ -167,16 +167,6 @@
       }
     },
     {
-      "id": "post-counts",
-      "operations": [
-        "GET /2/tweets/counts/recent"
-      ],
-      "status": "planned",
-      "reason": "How many posts match a query per bucket over the last seven days, before paying for a search.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "post-analytics",
       "operations": [
         "GET /2/tweets/analytics"
