@@ -244,6 +244,39 @@ Examples:
     xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr likers` examples — paired text + JSON, JSONL pipeline.
+const LIKERS_HELP: &str = "\
+Examples:
+  Who liked a post (text):
+    xr likers 1585341984679469056
+  100 results, JSON envelope:
+    xr likers 1585341984679469056 -n 100 --output json
+  The handle of each, one per line:
+    xr likers 1585341984679469056 --output json | jaq -r '.data[]?.username'
+";
+
+/// `xr reposters` examples — paired text + JSON, JSONL pipeline.
+const REPOSTERS_HELP: &str = "\
+Examples:
+  Who reposted a post (text):
+    xr reposters 1585341984679469056
+  100 results, JSON envelope:
+    xr reposters https://x.com/alice/status/1585341984679469056 -n 100 --output json
+  The handle of each, one per line:
+    xr reposters 1585341984679469056 --output json | jaq -r '.data[]?.username'
+";
+
+/// `xr quotes` examples — paired text + JSON, JSONL pipeline.
+const QUOTES_HELP: &str = "\
+Examples:
+  Posts that quote a post (text):
+    xr quotes 1585341984679469056
+  100 results, JSON envelope:
+    xr quotes 1585341984679469056 -n 100 --output json
+  The id of each quote, one per line:
+    xr quotes 1585341984679469056 --output json | jaq -r '.data[]?.id'
+";
+
 /// `xr like` examples — paired text + JSON.
 const LIKE_HELP: &str = "\
 Examples:
@@ -1168,6 +1201,44 @@ pub enum Commands {
     Search {
         /// Search query
         query: String,
+        /// Number of results (10-100; a lower value is raised to 10, X's
+        /// minimum). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+
+    /// List the users who liked a post
+    #[command(after_help = LIKERS_HELP)]
+    Likers {
+        /// Post ID or URL
+        post_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the users who reposted a post
+    #[command(after_help = REPOSTERS_HELP)]
+    Reposters {
+        /// Post ID or URL
+        post_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts that quote a post
+    #[command(after_help = QUOTES_HELP)]
+    Quotes {
+        /// Post ID or URL
+        post_id: String,
         /// Number of results (10-100; a lower value is raised to 10, X's
         /// minimum). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]

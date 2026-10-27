@@ -39,7 +39,14 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<Post>).into(),
     },
     SchemaEntry {
-        commands: &["search", "timeline", "mentions", "bookmarks", "likes"],
+        commands: &[
+            "search",
+            "timeline",
+            "mentions",
+            "bookmarks",
+            "likes",
+            "quotes",
+        ],
         type_name: "ApiResponse<Vec<Post>>",
         schema: || schema_for!(ApiResponse<Vec<Post>>).into(),
     },
@@ -49,7 +56,14 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<User>).into(),
     },
     SchemaEntry {
-        commands: &["following", "followers", "muted", "blocked"],
+        commands: &[
+            "following",
+            "followers",
+            "muted",
+            "blocked",
+            "likers",
+            "reposters",
+        ],
         type_name: "ApiResponse<Vec<User>>",
         schema: || schema_for!(ApiResponse<Vec<User>>).into(),
     },

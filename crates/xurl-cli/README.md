@@ -111,6 +111,9 @@ xr delete 1585341984679469056                  # Delete
 ```bash
 xr read 1585341984679469056                    # Read a post
 xr search "golang" -n 20                       # Search (10-100 results)
+xr likers 1585341984679469056                  # Who liked a post
+xr reposters 1585341984679469056               # Who reposted a post
+xr quotes 1585341984679469056                  # Posts that quote a post
 xr whoami                                      # Your profile
 xr whoami --cached                             # Your id, username, and name from the store; no request
 xr user @elonmusk                              # Look up user

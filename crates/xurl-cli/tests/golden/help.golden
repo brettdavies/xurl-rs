@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 14936
+stdout_len: 15096
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -53,6 +53,9 @@ Commands:
   delete            Delete a post
   read              Read a post
   search            Search recent posts
+  likers            List the users who liked a post
+  reposters         List the users who reposted a post
+  quotes            List the posts that quote a post
   whoami            Show the authenticated user's profile
   user              Look up a user by username
   timeline          Show your home timeline

@@ -201,8 +201,9 @@ never the tests.
   that file. A verb that resolves a handle or acts on a post from the caller's account goes through
   `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and any other write from the caller's account through
   `act_from_me`. A paged list that belongs to one user goes through `list_for_user`, or `list_owned_by` when the
-  command's own inputs pick the list out, and the caller's own list from a path that names no user (`followers` without
-  `--of`, `dms`) through `list_mine`. A verb that sends one request hands its call to `send_or_report`, through
+  command's own inputs pick the list out, the caller's own list from a path that names no user (`followers` without
+  `--of`, `dms`) through `list_mine`, a list a post owns (`likers`) through `list_for_post`, and any other list one
+  request reads through `list_paged`. A verb that sends one request hands its call to `send_or_report`, through
   `send_validated` when its inputs are checked first, or `send_confirmed` when it destroys something. Each of those
   answers `--dry-run` with the credential its requests would go out under. `crates/xurl-cli/tests/dispatch_guard.rs`
   fails when a group's arms and its routing line disagree, `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command

@@ -559,7 +559,10 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         | Commands::Whoami { .. }
         | Commands::User { .. }
         | Commands::Timeline { .. }
-        | Commands::Mentions { .. } => reads::run(cmd, run).await,
+        | Commands::Mentions { .. }
+        | Commands::Likers { .. }
+        | Commands::Reposters { .. }
+        | Commands::Quotes { .. } => reads::run(cmd, run).await,
         Commands::Like { .. }
         | Commands::Unlike { .. }
         | Commands::Hide { .. }
@@ -686,6 +689,45 @@ async fn list_mine<T>(
 where
     T: Serialize + DeserializeOwned + Default,
 {
+    let ctx = json!({"command": command});
+    list_paged(run, ctx, || Ok(()), max_results, common, shortcut).await
+}
+
+/// A paged read of the list a post owns, such as the users who liked it:
+/// one request to a path that names the post.
+async fn list_for_post<T>(
+    run: Run<'_>,
+    command: &str,
+    post_id: &str,
+    max_results: Option<i32>,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, &str, i32) -> Call<api::ApiResponse<T>>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
+    let ctx = json!({"command": command, "post_id": post_id});
+    let validator = || shortcuts::validate_post_id(post_id);
+    list_paged(run, ctx, validator, max_results, common, |client, n| {
+        shortcut(client, post_id, n)
+    })
+    .await
+}
+
+/// A paged list one request reads, with no user id to resolve first: check
+/// the inputs with `validator`, call one shortcut with the page size, and
+/// print the typed response. `ctx` names the inputs in a dry run's answer.
+async fn list_paged<T>(
+    run: Run<'_>,
+    mut ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    max_results: Option<i32>,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, i32) -> Call<api::ApiResponse<T>>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
     let Run {
         cfg,
         auth,
@@ -694,13 +736,10 @@ where
         stdout,
         ..
     } = run;
-    let dry_run = flags.dry_run.then(|| {
-        let mut ctx = json!({"command": command});
-        if let Some(n) = max_results {
-            ctx["max_results"] = json!(n);
-        }
-        DryRun::new(ctx)
-    });
+    if let Some(n) = max_results {
+        ctx["max_results"] = json!(n);
+    }
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
     let n = effective_limit(max_results, flags.global_limit);
     let client = make_client(cfg, auth)?;
     let call = with_flags(shortcut(&client, n), common, flags.cursor.as_deref());

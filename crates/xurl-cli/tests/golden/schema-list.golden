@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 4340
+stdout_len: 4502
 stderr_len: 0
 --- stdout ---
 auth-apps-list                 Vec<AppStatusEntry>
@@ -36,6 +36,7 @@ followers                      ApiResponse<Vec<User>>
 following                      ApiResponse<Vec<User>>
 hide                           ApiResponse<HiddenResult>
 like                           ApiResponse<LikedResult>
+likers                         ApiResponse<Vec<User>>
 likes                          ApiResponse<Vec<Post>>
 media-alt-text                 ApiResponse<MediaMetadataResult>
 media-subtitles-add            ApiResponse<MediaSubtitlesResult>
@@ -45,11 +46,13 @@ mute                           ApiResponse<MutingResult>
 muted                          ApiResponse<Vec<User>>
 post                           ApiResponse<Post>
 quote                          ApiResponse<Post>
+quotes                         ApiResponse<Vec<Post>>
 read                           ApiResponse<Post>
 redirect-uri-get               RedirectUriGetResponse
 redirect-uri-set               RedirectUriSetResponse
 reply                          ApiResponse<Post>
 repost                         ApiResponse<RepostedResult>
+reposters                      ApiResponse<Vec<User>>
 search                         ApiResponse<Vec<Post>>
 skill-install                  InstallEnvelope
 skill-install-all              InstallMultiEnvelope
