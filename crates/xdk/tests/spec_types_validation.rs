@@ -27,7 +27,7 @@ use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, BookmarkFolder, DmEvent,
-    HiddenResult, MediaMetadataResult, MediaSubtitlesResult, PersonalizedTrend, Post,
+    HiddenResult, MediaMetadataResult, MediaSubtitlesResult, NewsStory, PersonalizedTrend, Post,
     PostAnalytics, PostCount, ProvisionedResult, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources,
     SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
@@ -271,6 +271,10 @@ fn typed_responses_match_vendored_spec() {
         (
             "CreateWebhooksStreamLinkResponseData",
             serde_json::to_value(schemars::schema_for!(ProvisionedResult)).unwrap(),
+        ),
+        (
+            "News",
+            serde_json::to_value(schemars::schema_for!(NewsStory)).unwrap(),
         ),
         (
             "Trend",

@@ -1680,6 +1680,15 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── News ─────────────────────────────────────────────────────────
+    /// Search news stories, and read one
+    #[command(after_help = family_help::news::page())]
+    News {
+        /// `news` verb to dispatch.
+        #[command(subcommand)]
+        action: NewsCommands,
+    },
+
     // ── Trends ───────────────────────────────────────────────────────
     /// Trends for a place, and your personalized trends
     #[command(after_help = family_help::trends::page())]
@@ -1863,6 +1872,37 @@ pub enum BookmarkFoldersCommands {
         /// The folder's name, 1 to 25 characters
         #[arg(value_name = "NAME")]
         name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr news` verbs.
+#[derive(Subcommand, Debug)]
+pub enum NewsCommands {
+    /// Search news stories
+    #[command(after_help = family_help::news::FAMILY.verb_page(&family_help::news::SEARCH))]
+    Search {
+        /// Search query
+        query: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Only stories updated within this many hours, 1 to 720 (X's default
+        /// is 168, one week)
+        #[arg(long, value_parser = clap::value_parser!(u32).range(1..=720))]
+        max_age_hours: Option<u32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one news story, by id
+    #[command(after_help = family_help::news::FAMILY.verb_page(&family_help::news::GET))]
+    Get {
+        /// Story ID, as `xr news search` prints it
+        #[arg(value_name = "STORY_ID")]
+        story_id: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

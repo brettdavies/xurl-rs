@@ -17,11 +17,11 @@ use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, PersonalizedTrend, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, Post, PostAnalytics,
+    PostCount, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -423,6 +423,17 @@ pub fn validate_user_search_query(query: &str) -> std::result::Result<(), &'stat
         || !query.chars().all(allowed)
     {
         return Err("invalid-user-query");
+    }
+    Ok(())
+}
+
+/// Validates a news story id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-news-id` for anything else.
+pub fn validate_news_id(id: &str) -> std::result::Result<(), &'static str> {
+    if id.is_empty() || id.len() > 19 || !id.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("invalid-news-id");
     }
     Ok(())
 }
@@ -967,6 +978,10 @@ email_tweet,engagements,follows,hashtag_clicks,id,impressions,likes,media_views,
 quote_tweets,replies,retweets,shares,timestamp,timestamped_metrics,unfollows,unlikes,url_clicks,\
 user_profile_clicks";
 
+/// Every field the spec's `news.fields` lists.
+const NEWS_FIELDS: &str =
+    "category,cluster_posts_results,contexts,disclaimer,hook,id,keywords,name,summary,updated_at";
+
 /// The fields and expansions a read of whole posts asks for.
 fn post_read_fields() -> Vec<(String, String)> {
     vec![
@@ -1250,6 +1265,40 @@ impl Client {
                     "personalized_trend.fields".to_string(),
                     "category,post_count,trend_name,trending_since".to_string(),
                 )],
+            ),
+        )
+    }
+
+    /// Searches X's news stories, up to `max_results` (1 to 100) updated in
+    /// the last `max_age_hours` (1 to 720; X's default is 168).
+    pub fn search_news(
+        &self,
+        query: &str,
+        max_results: i32,
+        max_age_hours: Option<u32>,
+    ) -> Call<ApiResponse<Vec<NewsStory>>> {
+        let mut params = vec![
+            ("query".to_string(), query.to_string()),
+            ("max_results".to_string(), max_results.to_string()),
+            ("news.fields".to_string(), NEWS_FIELDS.to_string()),
+        ];
+        if let Some(hours) = max_age_hours {
+            params.push(("max_age_hours".to_string(), hours.to_string()));
+        }
+        self.call(
+            endpoints::SEARCH_NEWS.method,
+            template(endpoints::SEARCH_NEWS.path, HashMap::new(), params),
+        )
+    }
+
+    /// Reads one news story by id.
+    pub fn get_news(&self, id: &str) -> Call<ApiResponse<NewsStory>> {
+        self.call(
+            endpoints::GET_NEWS.method,
+            template(
+                endpoints::GET_NEWS.path,
+                id_param(id),
+                vec![("news.fields".to_string(), NEWS_FIELDS.to_string())],
             ),
         )
     }

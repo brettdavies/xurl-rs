@@ -147,6 +147,40 @@ pub mod bookmark_folders {
     }
 }
 
+/// The `xr news` family.
+pub mod news {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "news" };
+
+    /// `xr news search`.
+    pub const SEARCH: Verb = Verb {
+        name: "search",
+        example_args: "\"open source\" --max-age-hours 24",
+        text_caption: "News stories from the last day about a topic (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr news get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "1850000000000000000",
+        text_caption: "Read one story, by id (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr news --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("Search news stories (text)", &[Example::text(&SEARCH)]),
+            ("Read one story, JSON envelope", &[Example::json(&GET)]),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr trends` family.
 pub mod trends {
     use super::{Example, Family, Section, Verb};

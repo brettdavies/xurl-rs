@@ -13,11 +13,11 @@ use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, PersonalizedTrend, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, Post, PostAnalytics,
+    PostCount, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -75,6 +75,16 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["like", "unlike"],
         type_name: "ApiResponse<LikedResult>",
         schema: || schema_for!(ApiResponse<LikedResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["news-search"],
+        type_name: "ApiResponse<Vec<NewsStory>>",
+        schema: || schema_for!(ApiResponse<Vec<NewsStory>>).into(),
+    },
+    SchemaEntry {
+        commands: &["news-get"],
+        type_name: "ApiResponse<NewsStory>",
+        schema: || schema_for!(ApiResponse<NewsStory>).into(),
     },
     SchemaEntry {
         commands: &["trends-place"],
@@ -343,6 +353,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "media-status",
     "media-subtitles",
     "media-upload",
+    "news",
     "schema",
     "skill",
     "skill-update",

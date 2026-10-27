@@ -9,6 +9,7 @@ mod engagement;
 pub mod examples;
 mod graph;
 mod media;
+mod news;
 mod posts;
 mod process_tree;
 mod program_output;
@@ -592,6 +593,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Dm { .. } | Commands::Dms { .. } => dms::run(cmd, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,
         Commands::Broadcasts { target } => broadcasts::run(target, run).await,
+        Commands::News { action } => news::run(action, run).await,
         Commands::Trends { action } => trends::run(action, run).await,
         Commands::BookmarkFolders { action } => bookmark_folders::run(action, run).await,
         Commands::Calls { target } => calls::run(target, run).await,

@@ -24,7 +24,7 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
     DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
-    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult,
+    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory,
     PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
     ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
     StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
@@ -219,6 +219,23 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_news_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<NewsStory>> =
+        serde_json::from_value(examples["news_list"].clone()).unwrap();
+    assert_eq!(resp.data[0].category.as_deref(), Some("Technology"));
+}
+
+#[test]
+fn spec_news_story() {
+    let examples = load_examples();
+    let resp: ApiResponse<NewsStory> =
+        serde_json::from_value(examples["news_story"].clone()).unwrap();
+    let cluster = resp.data.cluster_posts_results.expect("clustered posts");
+    assert_eq!(cluster[0].post_id, "1585341984679469056");
 }
 
 #[test]
@@ -709,6 +726,8 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         ReplyKind::Success,
     ),
     ("trends", endpoints::GET_TRENDS, ReplyKind::Success),
+    ("news_list", endpoints::SEARCH_NEWS, ReplyKind::Success),
+    ("news_story", endpoints::GET_NEWS, ReplyKind::Success),
     (
         "personalized_trends",
         endpoints::GET_PERSONALIZED_TRENDS,
