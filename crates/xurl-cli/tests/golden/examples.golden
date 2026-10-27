@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 8190
+stdout_len: 8299
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -58,6 +58,9 @@ POST AND READ:
 MANAGE SOCIAL GRAPH:
   Look up a user:
     xr user elonmusk --output json
+
+  A user's posts, newest first:
+    xr user-posts @XDevelopers -n 50 --output json | jaq -r '.data[]?.text'
 
   Follow / unfollow:
     xr follow @elonmusk

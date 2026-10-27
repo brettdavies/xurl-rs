@@ -41,6 +41,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     SchemaEntry {
         commands: &[
             "read-posts",
+            "user-posts",
             "search",
             "timeline",
             "mentions",

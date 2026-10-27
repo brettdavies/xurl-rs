@@ -223,16 +223,6 @@
       "by": "Brett, in the #370 sweep"
     },
     {
-      "id": "user-posts",
-      "operations": [
-        "GET /2/users/{id}/tweets"
-      ],
-      "status": "planned",
-      "reason": "A user's own posts.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "dm-conversations",
       "operations": [
         "POST /2/dm_conversations",

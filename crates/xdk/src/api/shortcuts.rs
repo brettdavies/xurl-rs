@@ -1208,6 +1208,31 @@ impl Client {
         .paginated()
     }
 
+    /// Fetches the posts a user wrote, newest first.
+    ///
+    /// X accepts 5 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
+    pub fn get_user_posts(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        let max_results = max_results.clamp(5, 100);
+        self.call(
+            endpoints::GET_USER_POSTS.method,
+            template(
+                endpoints::GET_USER_POSTS.path,
+                id_param(user_id),
+                vec![
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
     /// Fetches recent mentions.
     ///
     /// X accepts 5 to 100 results for this endpoint; `max_results` is brought

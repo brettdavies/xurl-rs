@@ -74,6 +74,9 @@ MANAGE SOCIAL GRAPH:
   Look up a user:
     xr user elonmusk --output json
 
+  A user's posts, newest first:
+    xr user-posts @XDevelopers -n 50 --output json | jaq -r '.data[]?.text'
+
   Follow / unfollow:
     xr follow @elonmusk
     xr unfollow @elonmusk --output json
