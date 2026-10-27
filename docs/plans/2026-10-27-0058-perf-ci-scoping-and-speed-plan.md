@@ -181,12 +181,16 @@ job (KTD10).
   (`save-if` on non-PR events).
 - KTD4. **cargo-nextest runs the tests, behind an opt-in reusable input.** It runs every test in its own process across
   all binaries at once, where `cargo test` runs binaries one at a time. It does not run doc tests, so the job adds
-  `cargo test --doc` (R5). The CI profile in `.config/nextest.toml` sets `retries = 0`, so a flaky test fails instead of
-  hiding, and a `slow-timeout` that names slow tests and ends hung ones. The suite mostly waits rather than computes, so
-  U3 measures `test-threads` at one per CPU against twice that and keeps the faster setting that stays green. The
-  pre-push hook requires nextest and stops at once with the install command when it is missing, so a local run and CI
-  run the tests the same way; plain `cargo test` still passes (KTD8 keeps it correct) but is not the documented path.
-  `nextest_config_guard` fails when a profile sets `retries` above 0 or drops the slow-timeout's termination (R13).
+  `cargo test --doc` (R5). The CI profile in `.config/nextest.toml` sets `retries = 1` with `flaky-result = "fail"`
+  (nextest 0.9.131 and later): a failed test runs once more, and a test that passes only on the rerun still fails the
+  run, labeled flaky, so the log says whether to hunt a race or a break (R2 in the Decision ledger). It also sets a
+  `slow-timeout` that names slow tests and ends hung ones, sized so `period` × `terminate-after` × 2 plus the build
+  stays under the test job's 20-minute `timeout-minutes`, or the runner would kill the job before nextest names the hung
+  test. The suite mostly waits rather than computes, so U3 measures `test-threads` at one per CPU against twice that and
+  keeps the faster setting that stays green. The pre-push hook requires nextest and stops at once with the install
+  command when it is missing, so a local run and CI run the tests the same way; plain `cargo test` still passes (KTD8
+  keeps it correct) but is not the documented path. `nextest_config_guard` fails when a profile sets `retries` above 0
+  without `flaky-result = "fail"`, or drops the slow-timeout's termination (R13).
 - KTD5. **Audit before parallelizing.** The `test-audit` skill finds duplicate and low-value tests across both crates,
   and the per-binary times in the Appendix give each one's cost. Removals go to Brett test by test (R4, KD2).
 - KTD6. **Shorten real waits through seams, keeping production defaults.** A wait the tests sit through (the forward
@@ -211,9 +215,13 @@ job (KTD10).
   - Cargo and rustc are silent about the two ways this layout fails: a file under `tests/all/` or `tests/isolated/` that
     no `mod` line declares is never compiled, and a new top-level `tests/*.rs` file becomes its own binary again. Two
     guards close them (R13). `test_layout_guard` fails for an undeclared module file, for a `.rs` file directly under a
-    member's `tests/`, and for an allowlisted environment-mutating test outside `tests/isolated/`.
-    `test_invocation_guard` fails for a `cargo test --test <name>` or nextest filter in a workflow, script, or document
-    that names no real test target or, with a `<module>::` filter, no real module.
+    member's `tests/`, and for an allowlisted environment-mutating test outside `tests/isolated/`. It reads the same
+    allowlist `env_mutation_guard` does, moved into `common` so the list has one owner. `test_invocation_guard` fails
+    for a `cargo test --test <name>` or nextest filter that names no real test target or, with a `<module>::` filter, no
+    real module. It scans the live surfaces: `.github/workflows/`, `scripts/` (the hooks included),
+    `.config/nextest.toml` (every override and test-group filter), AGENTS.md, CONTRIBUTING.md, `RELEASES*.md`,
+    KNOWN_DIFFERENCES.md, and the READMEs. Planning docs, `docs/solutions/`, and changelogs record history (18 plans
+    name `--test` targets today) and are not scanned.
   - The guards that read the tests directory by path (`recipe_guard`, `store_isolation_guard`, `env_mutation_guard`,
     `cargo_inputs_tests`) follow the new paths, and AGENTS.md's file references move with them.
 - KTD9. **Four change classes from one classifier.** `scripts/change-classes.sh` reads changed paths and names the
@@ -235,8 +243,10 @@ job (KTD10).
   - On a CLI-only change, the test job tests only `xurl-rs`, so the library's 43 test binaries neither build nor run.
   - The matrix keeps its job-level `if: !cancelled()` and skips steps, since a matrix skipped whole never expands and
     its required cells would wait forever.
-- KTD11. **The reusable gains three inputs and no more:** `warm_cache` (KTD2), `test_runner` (`cargo` or `nextest`,
-  KTD4), and `test_packages` (KTD10). Each defaults to today's behavior (KD3).
+- KTD11. **The reusable gains three inputs and no more, in one PR that lands before U1:** `warm_cache` (KTD2),
+  `test_runner` (`cargo` or `nextest`, KTD4), and `test_packages` (KTD10). Each defaults to today's behavior (KD3), so
+  landing them together changes no caller, and every xurl-rs unit after it opts in without another cross-repo wait (R1
+  in the Decision ledger).
 - KTD12. **`ci.yml` sets no `CARGO_HTTP_MULTIPLEXING`.** (session-settled: user-directed — chosen over setting it on
   xurl-rs's own jobs: Brett declined it.) Conflict call-out: `brettdavies/.github#100` (2026-10-27) sets
   `CARGO_HTTP_MULTIPLEXING: "false"` in every reusable job, citing the same curl error 16. xurl-rs's own jobs still
@@ -305,21 +315,39 @@ flowchart TB
 | A warm run's cache key differs from a PR run's, so nothing restores                                   | Same job ids, inputs, and environment by construction (KTD2); U1's verification reads the PR test job's log for dependency compilation                               |
 | Warm entries push the repository past 10 GB and eviction thrashes                                     | The two warm sets hold about 8.7 GiB, and PR runs that match one save nothing; U1's check after the first lockfile change decides whether PR runs stop saving (KTD3) |
 | Push runs spend Actions minutes, the convention doc's main concern                                    | Accepted: the repository is public, so standard GitHub-hosted runners cost nothing; pushes to `dev` and `main` are a few a day                                       |
-| Running tests in parallel exposes tests that depend on each other or on a shared port or file         | `retries = 0` surfaces them; each is fixed or put in a nextest test group, never retried into silence (KTD4)                                                         |
+| Running tests in parallel exposes tests that depend on each other or on a shared port or file         | A test that fails only some of the time is labeled flaky and still fails the run; each is fixed or put in a nextest test group, never retried into silence (KTD4)    |
 | A change class skips a job that the change can break                                                  | Unknown paths, workflows, and the classifier run everything (KD4); paths the library's source names are `lib` (KTD9); U7's fixture holds every rule                  |
 | A reusable change alters other repositories' runs                                                     | Every new input defaults to today's behavior (KD3); the reusable merges before xurl-rs opts in                                                                       |
-| A shared-workflow PR in `brettdavies/.github` waits on review                                         | U1, U3, U8, and U10 (through U1) depend on it; U2, U4, U5, U6, and U7 proceed meanwhile                                                                              |
+| A shared-workflow PR in `brettdavies/.github` waits on review                                         | One PR carries all three inputs and lands first (KTD11), so only U1 waits on it; U2, U4, U5, U6, and U7 proceed meanwhile                                            |
 | A test file under the merged layout is never compiled because no `mod` line declares it               | `test_layout_guard` fails naming the file (KTD8)                                                                                                                     |
-| A flaky test passes on a retry and hides                                                              | `nextest_config_guard` holds `retries = 0` (KTD4)                                                                                                                    |
+| A flaky test passes on a retry and hides                                                              | `flaky-result = "fail"` fails it, and `nextest_config_guard` refuses any retry without that setting (KTD4)                                                           |
 | A workflow, script, or document runs a test target the move renamed                                   | `test_invocation_guard` fails naming the command (KTD8)                                                                                                              |
 | An environment-mutating or aborting test reaches the rest of a merged binary under plain `cargo test` | Those tests live in `tests/isolated/`, and `test_layout_guard` keeps them there (KTD8)                                                                               |
 | The test job gets fast and the run still waits on a slower job                                        | U10 holds every job to R12 (KTD13)                                                                                                                                   |
 
 ### Sequencing
 
-U1 first: it is independent and helps every later run, and U10 follows it because it measures warm jobs. U2 precedes U3,
-U4, and U6 (KD2), so no test is moved or parallelized before the audit settles which stay. U6 precedes U5, which
-measures debug info on the merged layout. U7 and U8 add scoping. U9 records the result.
+The shared-workflow PR lands first (KTD11). U1 follows: it helps every later run, and U10 follows it because it measures
+warm jobs. U2 precedes U3, U4, and U6 (KD2), so no test is moved or parallelized before the audit settles which stay. U6
+precedes U5, which measures debug info on the merged layout. U7 and U8 add scoping. U9 records the result.
+
+The PRs, by repository, in merge order:
+
+1. `brettdavies/.github`: the `warm_cache`, `test_runner`, and `test_packages` inputs, each defaulting to today's
+   behavior, and every `dtolnay/rust-toolchain` use pinned to a commit SHA (T1 in the Decision ledger).
+2. xurl-rs U1: push triggers and warm mode.
+3. xurl-rs U2: no code; its findings go to Brett, and each removal he approves lands as its own PR.
+4. xurl-rs U3: nextest, its config and guard, the pre-push hook, and the pinned installs.
+5. xurl-rs U4: shorter waits.
+6. xurl-rs U6: the merged test layout and its two guards.
+7. xurl-rs U5: each debug-info setting kept on measurement, or none.
+8. xurl-rs U7: the classifier.
+9. xurl-rs U8: job conditions and the `test_packages` opt-in.
+10. `brettdavies/agent-skills`: the completions template builds a dev binary.
+11. xurl-rs U10: the completions script derived again, and the other jobs' levers.
+12. xurl-rs U9: the docs.
+
+Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on it; Brett merges every PR.
 
 ---
 
@@ -331,16 +359,22 @@ measures debug info on the merged layout. U7 and U8 add scoping. U9 records the 
 - **Requirements:** R1, R2, R9, R11; KD1, KTD2, KTD3, KTD11.
 - **Dependencies:** none.
 - **Files:**
-  - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `warm_cache` input.
+  - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `warm_cache` input, in the shared-workflow PR that carries
+    all three inputs (KTD11).
   - `.github/workflows/ci.yml`: the triggers, the flag, and warm-mode steps in xurl-rs's own caching jobs.
 - **Approach:**
   1. In the reusable, `warm_cache: true` makes each caching job compile its dependencies (a build of the targets it
      checks, with no test run, lint gate, or package check) and skip its checks; the default is `false`.
   2. In `ci.yml`, add `push` on `dev` and `main` and `workflow_dispatch`. Pass
      `warm_cache: ${{ github.event_name != 'pull_request' }}` to the reusable.
-  3. Give each of the nine local rust-cache jobs a warm-mode step that builds what its check compiles, and gate its
-     check steps on `pull_request`. The jobs that cache nothing (`lint`, `Output discipline`, `Public API semver`) and
-     the reusable's security audit skip on push; `Change scope` answers "everything" there.
+  3. Give each of the nine local rust-cache jobs a warm mode that runs the job's own build command with execution
+     switched off: `--no-run` on a test command, and `cargo check` with the same target and feature flags in place of
+     `cargo clippy`. The flags come from the same variable or step the check uses, so the cached set cannot drift from
+     what the check compiles; `Swatinem/rust-cache` skips saving after an exact-key restore (KTD3), so a narrower warm
+     entry would never be refilled while the lockfile holds. Gate the check steps on `pull_request`. Push runs save only
+     on success: `cache-on-failure` applies to PR runs alone, so a warm run that fails partway leaves no partial entry
+     under the exact key. The jobs that cache nothing (`lint`, `Output discipline`, `Public API semver`) and the
+     reusable's security audit skip on push; `Change scope` answers "everything" there.
   4. Rewrite the header comment of `ci.yml`, which explains pull_request-only, to describe the warm runs (KD1).
 - **Patterns to follow:** the reusable's existing opt-in inputs (`docs`, `msrv`, `cross_os_tests`), each defaulting to
   `false`; the `docs_only` skip.
@@ -354,6 +388,7 @@ measures debug info on the merged layout. U7 and U8 add scoping. U9 records the 
     saving (KTD3).
   - A stacked PR whose base is a feature branch restores from `main`'s warm entries when they exist.
   - A caller of the reusable that passes no `warm_cache` input sees the same jobs and steps as before.
+  - A warm run that fails partway saves nothing, and the next push to `dev` builds and saves the full set.
 - **Verification:** two consecutive PRs after the first warm run show restored caches and no dependency compilation in
   the test job; the reusable's own CI passes; actionlint passes.
 
@@ -382,22 +417,26 @@ measures debug info on the merged layout. U7 and U8 add scoping. U9 records the 
 - **Requirements:** R3, R5, R9, R13; KTD4, KTD11.
 - **Dependencies:** U2.
 - **Files:**
-  - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `test_runner` input and the nextest install.
+  - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `test_runner` input and the nextest install, landed with
+    the shared-workflow PR (KTD11).
   - `.github/workflows/ci.yml`: opts in.
   - `.config/nextest.toml`: the `default` and `ci` profiles.
   - `crates/xurl-cli/tests/nextest_config_guard.rs`, new (a module of `tests/all/` once U6 lands).
   - `scripts/hooks/pre-push`: runs nextest and stops with the install command when it is missing.
   - `CONTRIBUTING.md` and AGENTS.md § "Testing": nextest as the documented runner.
 - **Approach:**
-  1. With `test_runner: nextest`, the reusable's test job installs `cargo-nextest` by `cargo binstall --force`, with the
-     SHA-pinned binstall action the repo already uses. It then runs `cargo nextest run` with the `ci` profile and
-     `cargo test --doc`.
+  1. With `test_runner: nextest`, the reusable's test job installs `cargo-nextest@<version>` by
+     `cargo binstall --force`, with the SHA-pinned binstall action the repo already uses, at an exact version released
+     at least 7 days earlier. It then runs `cargo nextest run` with the `ci` profile and `cargo test --doc`. The same PR
+     pins `cargo-hack`, which `ci.yml` installs today with no version, the way `anc` is pinned (`ANC_VERSION`).
+     `.config/nextest.toml` sets `nextest-version` to the pinned version as its minimum, so an older local nextest stops
+     at once with nextest's own message.
   2. Tests that cannot share a machine concurrently go in a nextest test group with limited concurrency rather than
      serial runs of everything. Which tests need it is found while rolling out.
   3. Measure the run phase with `test-threads` at one per CPU and at twice that, on the same warm cache, and keep the
      faster setting that stays green across the rollout PRs.
   4. `nextest_config_guard` parses `.config/nextest.toml` and fails, naming the profile and key, when any profile sets
-     `retries` above 0 or a slow-timeout without `terminate-after`.
+     `retries` above 0 without `flaky-result = "fail"`, or a slow-timeout without `terminate-after`.
 - **Patterns to follow:** the `cargo binstall ... --force` install steps in `ci.yml` (`cargo-hack`, `anc`); a guard that
   reads repo files and names the offending entry (`env_mutation_guard`), without the `Cause:` marker `recipe_guard`
   reserves for the family recipe.
@@ -406,7 +445,9 @@ measures debug info on the merged layout. U7 and U8 add scoping. U9 records the 
   - A deliberately failing test fails the job and is named in the summary; it is not retried.
   - A test that hangs past the slow timeout is terminated and named.
   - The pre-push hook passes with nextest installed and stops, naming the install command, without it.
-  - `nextest_config_guard` fails on a seeded `retries = 1` and on a slow-timeout with no `terminate-after`.
+  - `nextest_config_guard` fails on a seeded `retries = 1` with no `flaky-result = "fail"` and on a slow-timeout with no
+    `terminate-after`.
+  - A seeded test that fails on its first run and passes on its second fails the job, labeled flaky.
 - **Verification:** the test count matches `cargo test`; the test-running phase falls from about 148 s toward 40 s; no
   test fails intermittently across the rollout PRs; the guard fails on both seeded violations.
 
@@ -473,7 +514,10 @@ measures debug info on the merged layout. U7 and U8 add scoping. U9 records the 
 - **Approach:**
   1. Record `cargo test --no-run --timings` and the sorted list of every test, qualified by its file, before the move.
   2. Move the files: environment-mutating tests on the allowlist and `parse_stack_tests` into `tests/isolated/`,
-     everything else into `tests/all/`. Split a file only where it mixes the two, keeping each test's name.
+     everything else into `tests/all/`. Split a file only where it mixes the two, keeping each test's name. The five
+     relative paths in the library's tests (`#[path = "../codegen/..."]` in `spec_validation.rs`, `streaming_table.rs`,
+     and `vocabulary_table.rs`; `include_str!("fixtures/...")` in `yaml_compat_tests.rs`) gain a `../` for the new
+     depth.
   3. Write `test_layout_guard` and `test_invocation_guard` (KTD8), each failing with the file or command, why it
      matters, and the fix, and name both in AGENTS.md § "Testing". They avoid the `Cause:` marker, which `recipe_guard`
      reserves for the command-family recipe's walks.
@@ -529,7 +573,8 @@ measures debug info on the merged layout. U7 and U8 add scoping. U9 records the 
 - **Dependencies:** U7, and U3 for the `test_packages` input to apply to nextest.
 - **Files:**
   - `.github/workflows/ci.yml`: the `Change scope` job's outputs and each job's condition.
-  - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `test_packages` input.
+  - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `test_packages` input, landed with the shared-workflow PR
+    (KTD11).
   - `scripts/hooks/pre-push`: its library battery uses the shared classifier.
 - **Approach:**
   1. `Change scope` runs the classifier on the PR's diff and outputs `lib`, `cli`, and `full`.
@@ -657,3 +702,295 @@ All binaries: 2002 tests, 160 s inside binaries, run one binary at a time.
 
 Change classes of the last 80 commits on `dev`: both crates 41; docs only 12; library only 7; CLI only 6; workflows,
 dependencies, or scripts about 14.
+
+## Eng Review Record
+
+Target: this plan, reviewed with `/plan-eng-review`.
+
+Scope record: feature answers: none proposed (U5 and U7-U8 were considered for a cut and kept); structure: A, the
+original arrangement (D1); accepted scope: the plan as written; pending remedies: none (R1 approved in D2, R2 in D3).
+
+## Decision ledger
+
+### R1: land the three shared-workflow inputs in one PR or one per unit
+
+- **Finding:** 2, INFORMATIONAL, confidence 8/10, Sequencing and KTD11, plan-eng-review.
+- **Plan baseline:** original proposal. U1, U3, and U8 each land their own `brettdavies/.github` PR for one input
+  (`warm_cache`, `test_runner`, `test_packages`) before the xurl-rs PR that uses it (U1, U3, U8 Files; the
+  shared-workflow row in Risks & Dependencies).
+- **Runtime evidence:** KTD11 defines the three inputs, each defaulting to today's behavior (R9); the reusable's `check`
+  job today runs `cargo clippy --all-targets` and `cargo test` with no such inputs
+  (`brettdavies/.github: .github/workflows/rust-ci.yml:124-149`).
+- **Comparison grid:**
+
+| Choice                            | Current                 | A                                                     | B                       |
+| --------------------------------- | ----------------------- | ----------------------------------------------------- | ----------------------- |
+| R1 grouping of the reusable PRs   | three PRs, one per unit | one PR adding all three default-off inputs, before U1 | three PRs, one per unit |
+| Sequencing lists every PR by repo | not stated              | yes                                                   | yes                     |
+| Structure (D1, approved)          | original arrangement    | original arrangement                                  | original arrangement    |
+| R2 flaky-test policy              | pending                 | pending                                               | pending                 |
+
+```text
+Question D2:
+D2 — Land the three shared-workflow inputs in one PR or three
+Project/branch/task: dev, the CI scoping and speed plan.
+ELI10: U1, U3, and U8 each need a new input in the shared Rust workflow in brettdavies/.github, and each xurl-rs PR waits for that repo's PR to merge first. Putting all three inputs, each off by default so other repos see no change, in one PR up front means one cross-repo wait instead of three. Either way, the plan's Sequencing section will list every PR by repo.
+Stakes if we pick wrong: three separate waits on the shared repo stall the xurl-rs units behind them, or one larger PR lands inputs before their callers.
+Recommendation: A because the inputs are independent and default-off, so landing them together costs one review and removes two cross-repo stalls.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) One shared-workflow PR first (recommended)
+  ✅ one cross-repo wait instead of three, so U3 and U8 never stall on the shared repo
+  ✅ the reusable's own CI checks all three defaults at once, so other repos' behavior is proven unchanged once
+  ❌ the test_packages input sits unused in the shared workflow until U8 opts in
+B) One PR per unit, as planned
+  ✅ each shared-workflow change is reviewed beside the xurl-rs change that first uses it
+  ✅ no input exists in the shared workflow before a caller uses it
+  ❌ three cross-repo waits, each blocking its xurl-rs unit until Brett merges the shared PR
+Net: fewer cross-repo stalls, against inputs that land only when first used.
+Header: Reusable PRs
+Options:
+A) One shared-workflow PR first (recommended)
+One brettdavies/.github PR adds warm_cache, test_runner, and test_packages, each defaulting to today's behavior, before U1; xurl-rs opts in unit by unit; Sequencing lists every PR by repo (human: ~2h / CC: ~15 min).
+B) One PR per unit, as planned
+U1, U3, and U8 each land their own brettdavies/.github PR before their xurl-rs PR; Sequencing lists every PR by repo (human: ~2h / CC: ~15 min).
+```
+
+- **State:** approved
+- **Actual answer:** A) One shared-workflow PR first (D2, 2026-10-27)
+- **Accepted scope:** one `brettdavies/.github` PR adds `warm_cache`, `test_runner`, and `test_packages`, each
+  defaulting to today's behavior, before U1; xurl-rs opts in unit by unit; Sequencing lists every PR by repo (KTD11,
+  Sequencing, U1, U3, U8, and the shared-workflow row in Risks & Dependencies).
+- **History:** none
+
+### R2: rerun a failing test once to tell flaky from broken
+
+- **Finding:** Section 3 finding 1, INFORMATIONAL, confidence 8/10, KTD4 (`retries = 0`), plan-eng-review.
+- **Plan baseline:** approved in session (KTD4 and R13, "yes, all"): the `ci` profile sets `retries = 0`, and
+  `nextest_config_guard` fails when any profile sets `retries` above 0.
+- **Runtime evidence:** cargo-nextest 0.9.150 is installed here; nextest's configuration reference documents
+  `flaky-result = "fail"` (0.9.131 and later), which fails a run whose test passed only on a retry and labels it flaky;
+  its default is `"pass"`.
+- **Comparison grid:**
+
+| Choice                         | Current               | A                                                    | B                     |
+| ------------------------------ | --------------------- | ---------------------------------------------------- | --------------------- |
+| R2 CI retry policy             | `retries = 0`         | `retries = 1` with `flaky-result = "fail"`           | `retries = 0`         |
+| `nextest_config_guard` rule    | fails on `retries` >0 | fails on `retries` >0 unless `flaky-result = "fail"` | fails on `retries` >0 |
+| Run verdict on a flaky test    | fails                 | fails, labeled flaky                                 | fails, unlabeled      |
+| Extra time on a failing test   | none                  | one rerun of that test                               | none                  |
+| R1 reusable PRs (approved, D2) | one PR first          | one PR first                                         | one PR first          |
+
+```text
+Question D3:
+D3 — When a test fails in CI, rerun it once to tell flaky from broken?
+Project/branch/task: dev, the CI scoping and speed plan, U3's nextest profile.
+ELI10: The plan fails the run the first time any test fails, with no rerun. nextest can rerun a failed test once and still fail the run if it then passes, labeling it flaky. Either way nothing flaky can turn a PR green; the rerun only tells you whether you are chasing a race or a real break.
+Stakes if we pick wrong: without the label, a racy test looks like a real regression and costs a debugging detour; with it, every real failure runs one more time.
+Recommendation: A because the label says which bug to chase at the price of one rerun of a test that is already failing, and the guard still forbids any retry that could pass a flaky test.
+Completeness: A=10/10, B=8/10
+Pros / cons:
+A) Rerun once, fail as flaky (recommended)
+  ✅ a failure that passes on rerun is labeled flaky, so the next step is a race hunt, not a bisect
+  ✅ the run still fails, so a flaky test can never turn a PR green
+  ❌ a real failure runs twice, adding that test's runtime once more to a job that is already failing
+B) Keep no reruns, as approved
+  ✅ the simplest profile: the first failure ends that test, with nothing to explain
+  ✅ a failing job finishes as fast as it can
+  ❌ a flaky failure and a real break look the same in the log
+Net: a flaky label, for one rerun of a test that already failed.
+Header: Flaky policy
+Options:
+A) Rerun once, fail as flaky (recommended)
+The ci profile sets retries = 1 and flaky-result = "fail"; nextest_config_guard fails any profile with retries above 0 unless flaky-result is "fail"; the nextest-version minimum is at least 0.9.131 (human: ~30 min / CC: ~5 min).
+B) Keep no reruns, as approved
+The ci profile keeps retries = 0, and nextest_config_guard fails any profile with retries above 0 (human: ~30 min / CC: ~5 min).
+```
+
+- **State:** approved
+- **Actual answer:** A) Rerun once, fail as flaky (D3, 2026-10-27)
+- **Accepted scope:** the `ci` profile sets `retries = 1` and `flaky-result = "fail"`; `nextest_config_guard` fails any
+  profile with `retries` above 0 unless `flaky-result` is `"fail"`; the `nextest-version` minimum is at least 0.9.131
+  (KTD4, U3, Risks & Dependencies).
+- **History:** the session approval of KTD4 held `retries = 0`; reopened because nextest's `flaky-result` keeps every
+  flaky test failing while labeling it.
+
+### T1: pin the toolchain action in the shared workflow
+
+- **Finding:** TODO candidate, INFORMATIONAL, confidence 10/10, `brettdavies/.github: .github/workflows/rust-ci.yml:133`
+  (`uses: dtolnay/rust-toolchain@stable`, also at lines 160 and 214), plan-eng-review.
+- **Plan baseline:** not in the plan; the shared-workflow PR (R1) edits this file.
+- **Runtime evidence:** xurl-rs pins the same action by SHA (`.github/workflows/ci.yml:120`,
+  `dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable`); the global supply-chain rule requires a
+  SHA for every third-party action.
+- **Comparison grid:**
+
+| Choice                         | Current          | A                           | B                | C                                   |
+| ------------------------------ | ---------------- | --------------------------- | ---------------- | ----------------------------------- |
+| T1 toolchain action pin        | `@stable` (tag)  | TODO.md entry, no change    | no change        | SHA pin in the shared-workflow PR   |
+| R1 reusable PRs (approved, D2) | one PR first     | one PR first                | one PR first     | one PR first                        |
+
+```text
+Question D4:
+D4 — Pin the shared workflow's toolchain action while its PR is open?
+Project/branch/task: dev, the CI scoping and speed plan, the brettdavies/.github PR from D2.
+ELI10: The shared Rust workflow installs Rust with dtolnay/rust-toolchain@stable, a tag its owner can move, in at least three jobs. xurl-rs's own workflow pins the same action to a commit, as your supply-chain rule requires for third-party actions. The shared-workflow PR from D2 already edits that file, so the pin can ride along.
+Stakes if we pick wrong: every repo that calls the shared workflow keeps running whatever the tag points at, or the shared PR grows a change reviewers did not expect.
+Recommendation: C because the PR already opens that file, the rule leaves no judgment in it, and xurl-rs already shows the pinned form to copy.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) Add to TODO.md
+  ✅ the shared PR stays about the three inputs, with nothing else to review
+  ✅ the gap is written down for a later pass over the shared workflows
+  ❌ every caller keeps running an unpinned third-party action until someone returns to it
+B) Skip
+  ✅ no work now and no change in any caller's runs
+  ✅ the tag has been stable in practice for this action
+  ❌ a standing rule stays broken in the workflow every brettdavies Rust repo calls
+C) Build it now in the shared-workflow PR (recommended)
+  ✅ closes the rule's gap in every caller at once, with the SHA form already used in xurl-rs
+  ✅ the PR already edits the file, so there is no extra cross-repo wait
+  ❌ the shared PR's diff grows by the pinned uses lines and their toolchain inputs
+Net: a small, rule-required pin now, against keeping the shared PR to its three inputs.
+Header: Toolchain pin
+Options:
+A) Add to TODO.md
+Record the unpinned action in the local TODO.md for a later pass; the shared PR carries only the three inputs (human: ~5 min / CC: ~1 min).
+B) Skip
+Leave the action on @stable (human: none / CC: none).
+C) Build it now in the shared-workflow PR (recommended)
+Pin every dtolnay/rust-toolchain use in rust-ci.yml to a commit SHA with the version comment, passing the toolchain as an input, in the D2 PR (human: ~20 min / CC: ~5 min).
+```
+
+- **State:** approved
+- **Actual answer:** C) Build it now in the shared-workflow PR (D4, 2026-10-27)
+- **Accepted scope:** the D2 shared-workflow PR pins every `dtolnay/rust-toolchain` use in `rust-ci.yml` to a commit
+  SHA with its version comment, passing the toolchain as an input (Sequencing, PR 1).
+- **History:** none
+
+### Corrections under existing approvals
+
+- **Pinned installs** (Scope Challenge finding 1, INFORMATIONAL, confidence 9/10, `.github/workflows/ci.yml:425`):
+  `cargo-nextest` and `cargo-hack` install at exact versions, and `.config/nextest.toml` names the minimum. Covered by
+  the supply-chain pinning rule in the global instructions; `anc` already follows it (`ci.yml:489`). Applied to U3.
+- **Warm mode cannot drift or save partial entries** (Architecture finding 1, confidence 8/10): rust-cache skips the
+  save after an exact-key restore (`Cache up-to-date.` in run 40442538636), so warm mode reuses each job's build
+  command with execution off and push runs save only on success. Necessary for R1. Applied to U1.
+- **Guard scope** (Architecture finding 2, confidence 9/10): `test_invocation_guard` scans live surfaces and nextest
+  config filters, not the 18 plans that name `--test` targets. Necessary for R13. Applied to KTD8.
+- **One allowlist owner** (Code quality finding 1, confidence 9/10, `crates/xurl-cli/tests/env_mutation_guard.rs:28`):
+  the allowlist moves to `common` for both guards. Applied to KTD8.
+- **Relative paths in moved tests** (Code quality finding 2, confidence 10/10): five `#[path]` and `include_str!`
+  paths gain a `../`. Applied to U6.
+- **Slow-timeout under the job timeout** (Section 3, from nextest's documented CI pitfall): `period` ×
+  `terminate-after` × 2 plus the build stays under the test job's 20 minutes. Necessary for KTD4's hung-test naming.
+  Applied to KTD4.
+
+Approval readiness: PASS. R1 (D2), R2 (D3), and T1 (D4) cite their own answers; the corrections cite the approvals
+they implement (R1, R13, KTD4, KTD8, and the supply-chain rule).
+
+## Eng Review Body
+
+### What already exists
+
+- `scripts/cargo-inputs.sh` and the `scope` job decide docs-only changes; U7's classifier builds on them (D1 kept them
+  separate).
+- `env_mutation_guard` holds the allowlist and the guard shape the new guards follow.
+- `anc` is installed at a pinned version (`ci.yml:489`); U3 copies that for nextest and `cargo-hack`.
+- `Swatinem/rust-cache` already restores across lockfile changes through its restore key, and skips the save on an
+  exact match; U1 relies on both.
+- Cargo's multi-file test layout and nextest's CI profile keys are used as documented, not rebuilt.
+
+### NOT in scope
+
+- The completions template's pointer to a local skill file prints only for a binary that lacks a `completions`
+  subcommand, which `xr` has; it is the template owner's concern, not this plan's.
+- An outside-model review of this plan: skipped by the session's rule.
+- JUnit test reports from nextest: nothing reads them today.
+
+### Failure modes
+
+| New path                          | Realistic failure                                   | Covered by                                          | Silent? |
+| --------------------------------- | --------------------------------------------------- | --------------------------------------------------- | ------- |
+| Warm run on `dev`                 | crates.io fails mid-build                           | push runs save only on success (U1 scenario)        | no      |
+| Warm set narrower than the check  | a check gains a flag the warm build lacks           | warm mode reuses the check's own build command (U1) | no      |
+| Classifier                        | the script errors                                   | the scope job runs everything on failure (U8)       | no      |
+| nextest install                   | release asset fetch fails                           | two binstall attempts, pinned version (U3)          | no      |
+| Merged binary under `cargo test`  | an environment test races or a stack overflow ends  | `tests/isolated/` and `test_layout_guard` (U6)      | no      |
+| Shared-workflow inputs            | another repo's run changes                          | every input defaults to today's behavior (R9)       | no      |
+
+Critical gaps: 0.
+
+### Worktree parallelization strategy
+
+| Step                    | Modules touched                          | Depends on      |
+| ----------------------- | ---------------------------------------- | --------------- |
+| Shared-workflow PR      | `brettdavies/.github` workflows          | —               |
+| Completions template    | `brettdavies/agent-skills` release skill | —               |
+| xurl-rs units U1 to U10 | `.github/`, `scripts/`, `crates/*/tests` | shared workflow |
+
+Three lanes could run in parallel; this session runs them in sequence (one session, no worktrees).
+
+### Implementation Tasks
+
+- [ ] **T1 (P1, human: ~3h / CC: ~20 min)** — shared workflow — add the three inputs and pin the toolchain action
+  - Surfaced by: Scope Challenge, R1 (D2) and T1 (D4)
+  - Files: `brettdavies/.github: .github/workflows/rust-ci.yml`
+  - Verify: the reusable's own CI passes; a caller passing no new input shows the same jobs and steps
+- [ ] **T2 (P1, human: ~2h / CC: ~15 min)** — U1 warm mode — reuse each job's build command with execution off; push
+  runs save only on success
+  - Surfaced by: Architecture finding 1
+  - Files: `.github/workflows/ci.yml`
+  - Verify: a PR right after a warm run logs `full match: true` and no registry `Compiling` line
+- [ ] **T3 (P1, human: ~3h / CC: ~20 min)** — U3 nextest — pinned installs, `nextest-version`, one rerun with
+  `flaky-result = "fail"`, slow-timeout under the job timeout, `nextest_config_guard`
+  - Surfaced by: Scope Challenge finding 1, R2 (D3), Section 3 timeout pitfall
+  - Files: `.config/nextest.toml`, `.github/workflows/ci.yml`, `scripts/hooks/pre-push`, the new guard
+  - Verify: the guard fails on its seeded violations; a seeded flaky test fails the job labeled flaky
+- [ ] **T4 (P1, human: ~4h / CC: ~30 min)** — U6 guards — live-surface scope and nextest filters for
+  `test_invocation_guard`, the allowlist in `common`, the five relative paths
+  - Surfaced by: Architecture finding 2, Code quality findings 1 and 2
+  - Files: `crates/xurl-cli/tests/`, `crates/xdk/tests/`
+  - Verify: the before and after test lists match; each guard fails on its seeded violations
+
+### Unresolved decisions
+
+None.
+
+### Completion summary
+
+- Step 0: Scope Challenge — scope accepted as-is
+- Reality rows: 7/7 applicable rows emitted (`PLAN_REALITY: phase=eng rows=7/7 verdict=complete`), 3 unverified
+  premises
+- Architecture Review: 2 issues found
+- Code Quality Review: 2 issues found
+- Test Review: diagram produced, 0 gaps identified (1 policy choice, R2, resolved)
+- Performance Review: 0 issues found
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 1 item proposed to user (built now, D4)
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: codex, skipped (session rule: no outside model, no subagent fallback)
+- Parallelization: 3 lanes, 0 parallel / 3 sequential
+- Lake Score: 1/1 (D3 picked the 10/10 option; D1, D2, and D4 differ in kind)
+
+### Suppressed findings
+
+None.
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger              | Why                             | Runs | Status       | Findings                              |
+| -------------- | -------------------- | ------------------------------- | ---- | ------------ | ------------------------------------- |
+| CEO Review     | `/plan-ceo-review`   | Scope & strategy                | 0    | —            | —                                     |
+| Outside Review | codex, plan review   | Independent 2nd opinion         | 19   | skipped      | session rule: no outside model        |
+| Eng Review     | `/plan-eng-review`   | Architecture & tests (required) | 14   | ISSUES OPEN  | 5 issues, 0 critical gaps (all fixed) |
+| Design Review  | `/plan-design-review`| UI/UX gaps                      | 0    | —            | —                                     |
+| DX Review      | `/plan-devex-review` | Developer experience gaps       | 6    | not run yet  | next, per Brett                       |
+
+- **OUTSIDE COVERAGE:** codex, plan review phase, skipped by the session's rule; no outside findings.
+- **VERDICT:** no review CLEAR yet; ENG has 5 findings, every one resolved in the plan — eng review required
+  (re-run clears it).
+
+NO UNRESOLVED DECISIONS
