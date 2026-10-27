@@ -22,9 +22,10 @@ use super::response::types::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -782,6 +783,26 @@ pub fn validate_space_id(id: &str) -> std::result::Result<(), &'static str> {
 pub fn validate_space_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'static str> {
     validate_lookup_ids(ids)?;
     ids.iter().try_for_each(|id| validate_space_id(id.as_ref()))
+}
+
+/// Validates a filtered-stream rule id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-rule-id` for anything else.
+pub fn validate_rule_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-rule-id");
+    }
+    Ok(())
+}
+
+/// Validates the rule ids one removal names, each in the spec's form.
+///
+/// # Errors
+/// Returns `invalid-rule-id` for the first id outside it.
+pub fn validate_rule_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'static str> {
+    ids.iter().try_for_each(|id| validate_rule_id(id.as_ref()))
 }
 
 /// The ids of `usernames`, in the order given, from the accounts
@@ -2509,6 +2530,83 @@ impl Client {
                 endpoints::GET_SPACES_BY_CREATOR.path,
                 HashMap::new(),
                 params,
+            ),
+        )
+    }
+
+    /// Lists the filtered stream's rules, 1 to 1000 a page.
+    pub fn get_stream_rules(&self, max_results: i32) -> Call<ApiResponse<Vec<StreamRule>>> {
+        self.call(
+            endpoints::GET_STREAM_RULES.method,
+            template(
+                endpoints::GET_STREAM_RULES.path,
+                HashMap::new(),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Adds a rule to the filtered stream. With `validate_only`, X checks
+    /// the rule and saves nothing: the endpoint's `dry_run`, a request all
+    /// the same.
+    pub fn add_stream_rule(
+        &self,
+        value: &str,
+        tag: Option<&str>,
+        validate_only: bool,
+    ) -> Call<ApiResponse<Option<Vec<StreamRule>>>> {
+        let mut rule = serde_json::json!({"value": value});
+        if let Some(tag) = tag {
+            rule["tag"] = serde_json::json!(tag);
+        }
+        self.update_stream_rules(&serde_json::json!({"add": [rule]}), validate_only)
+    }
+
+    /// Removes filtered-stream rules by id. With `validate_only`, X checks
+    /// the removal and deletes nothing. X's answer carries no `data`, only
+    /// the counts under `meta`.
+    pub fn remove_stream_rules<S: AsRef<str>>(
+        &self,
+        ids: &[S],
+        validate_only: bool,
+    ) -> Call<ApiResponse<Option<Vec<StreamRule>>>> {
+        let ids: Vec<&str> = ids.iter().map(AsRef::as_ref).collect();
+        self.update_stream_rules(&serde_json::json!({"delete": {"ids": ids}}), validate_only)
+    }
+
+    fn update_stream_rules(
+        &self,
+        body: &serde_json::Value,
+        validate_only: bool,
+    ) -> Call<ApiResponse<Option<Vec<StreamRule>>>> {
+        let query = if validate_only {
+            vec![("dry_run".to_string(), "true".to_string())]
+        } else {
+            Vec::new()
+        };
+        self.post_json(
+            template(endpoints::UPDATE_STREAM_RULES.path, HashMap::new(), query),
+            body,
+        )
+    }
+
+    /// Counts the filtered-stream rules the calling app and its project
+    /// hold, against X's caps.
+    pub fn get_stream_rule_counts(&self) -> Call<ApiResponse<StreamRuleCounts>> {
+        self.call(
+            endpoints::GET_STREAM_RULE_COUNTS.method,
+            template(
+                endpoints::GET_STREAM_RULE_COUNTS.path,
+                HashMap::new(),
+                // The spec gives this parameter no enum; the names are the
+                // properties of its `RulesCount` schema.
+                vec![(
+                    "rules_count.fields".to_string(),
+                    "all_project_client_apps,cap_per_client_app,cap_per_project,\
+                     client_app_rules_count,project_rules_count"
+                        .to_string(),
+                )],
             ),
         )
     }

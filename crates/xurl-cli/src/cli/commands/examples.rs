@@ -85,6 +85,11 @@ POST AND READ:
     xr spaces by-creator @XDevelopers @jack --output json
     xr spaces posts 1DXxyRYNejbKM --output json
 
+  Have X check a filtered-stream rule, add it, and count your rules against the caps:
+    xr stream rules add \"from:XDevelopers has:media\" --validate-only --output json
+    xr stream rules add \"from:XDevelopers has:media\" --tag devs --output json
+    xr stream rules counts --output json
+
   Trends worldwide, and the trends X picks for you:
     xr trends place 1 --max 10 --output json | jaq -r '.data[]?.trend_name'
     xr trends personal --output json

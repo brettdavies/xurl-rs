@@ -1027,6 +1027,18 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-rule-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "stream",
+                "rules",
+                "remove",
+                "rule-1",
+            ],
+        ),
+        case(
             "dry-run-mixed-ids-and-handles",
             &["--output", "json", "--dry-run", "users", "12", "@jack"],
         ),

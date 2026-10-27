@@ -18,9 +18,10 @@ use xdk::api::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -169,6 +170,21 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["spaces-search", "spaces-get", "spaces-by-creator"],
         type_name: "ApiResponse<Vec<Space>>",
         schema: || schema_for!(ApiResponse<Vec<Space>>).into(),
+    },
+    SchemaEntry {
+        commands: &["stream-rules-list"],
+        type_name: "ApiResponse<Vec<StreamRule>>",
+        schema: || schema_for!(ApiResponse<Vec<StreamRule>>).into(),
+    },
+    SchemaEntry {
+        commands: &["stream-rules-add", "stream-rules-remove"],
+        type_name: "ApiResponse<Option<Vec<StreamRule>>>",
+        schema: || schema_for!(ApiResponse<Option<Vec<StreamRule>>>).into(),
+    },
+    SchemaEntry {
+        commands: &["stream-rules-counts"],
+        type_name: "ApiResponse<StreamRuleCounts>",
+        schema: || schema_for!(ApiResponse<StreamRuleCounts>).into(),
     },
     SchemaEntry {
         commands: &["articles-draft"],
@@ -511,6 +527,8 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "skill",
     "skill-update",
     "spaces",
+    "stream",
+    "stream-rules",
     "trends",
     "validate",
     "version",

@@ -29,9 +29,10 @@ use xdk::api::response::types::{
     MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult,
     NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post,
     PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule,
+    StreamRuleCounts, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -247,6 +248,27 @@ fn spec_space_list() {
         serde_json::from_value(examples["space_list"].clone()).unwrap();
     assert_eq!(resp.data[0].participant_count, Some(40));
     assert_eq!(resp.data[1].state.as_deref(), Some("scheduled"));
+}
+
+#[test]
+fn spec_stream_rules() {
+    let examples = load_examples();
+    let rules: ApiResponse<Vec<StreamRule>> =
+        serde_json::from_value(examples["stream_rules"].clone()).unwrap();
+    assert_eq!(rules.data[0].tag.as_deref(), Some("devs with media"));
+    let added: ApiResponse<Option<Vec<StreamRule>>> =
+        serde_json::from_value(examples["stream_rules_added"].clone()).unwrap();
+    assert_eq!(
+        added.data.expect("added rules")[0].value.as_deref(),
+        Some("from:jack")
+    );
+    let removed: ApiResponse<Option<Vec<StreamRule>>> =
+        serde_json::from_value(serde_json::json!({"meta": {"summary": {"deleted": 1}}})).unwrap();
+    assert!(removed.data.is_none());
+    let counts: ApiResponse<StreamRuleCounts> =
+        serde_json::from_value(examples["stream_rule_counts"].clone()).unwrap();
+    let app = counts.data.client_app_rules_count.expect("the app's count");
+    assert_eq!(app.rule_count, 3);
 }
 
 #[test]
@@ -887,6 +909,21 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         ReplyKind::Success,
     ),
     ("space_list", endpoints::SEARCH_SPACES, ReplyKind::Success),
+    (
+        "stream_rules",
+        endpoints::GET_STREAM_RULES,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_rules_added",
+        endpoints::UPDATE_STREAM_RULES,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_rule_counts",
+        endpoints::GET_STREAM_RULE_COUNTS,
+        ReplyKind::Success,
+    ),
     (
         "article_draft",
         endpoints::CREATE_ARTICLE_DRAFT,

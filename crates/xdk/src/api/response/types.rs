@@ -845,6 +845,59 @@ pub struct MediaAnalyticsBucket {
     pub metrics: Option<BTreeMap<String, Value>>,
 }
 
+/// A filtered-stream rule: a filter expression, and the tag the caller gave
+/// it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamRule {
+    /// Rule ID, as X assigned it when the rule was saved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// The rule's filter expression, such as `from:XDevelopers has:media`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// The label the caller gave the rule.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tag: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// How many filtered-stream rules the calling app and its project hold,
+/// against X's caps. X sends the caps and the project's count as strings.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamRuleCounts {
+    /// The most rules one app may hold.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cap_per_client_app: Option<String>,
+    /// The most rules the project may hold across its apps.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cap_per_project: Option<String>,
+    /// How many rules the project holds across its apps.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub project_rules_count: Option<String>,
+    /// How many rules the calling app holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_app_rules_count: Option<StreamRuleAppCount>,
+    /// How many rules each of the project's apps holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub all_project_client_apps: Option<Vec<StreamRuleAppCount>>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// One app's filtered-stream rule count.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamRuleAppCount {
+    /// The app's id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_app_id: Option<String>,
+    /// How many rules the app holds.
+    #[serde(default)]
+    pub rule_count: u64,
+}
+
 /// An X Space: a live audio conversation, live, scheduled, or ended.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct Space {

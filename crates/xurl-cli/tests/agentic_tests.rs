@@ -835,6 +835,7 @@ const CONFIRMED_COMMANDS: &[&str] = &[
     "broadcasts chat remove",
     "notes remove",
     "articles publish",
+    "stream rules remove",
 ];
 
 /// Each command that confirms a destructive op is on the list above, so a new
