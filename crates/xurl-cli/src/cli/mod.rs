@@ -289,6 +289,18 @@ Examples:
     xr user-posts @XDevelopers --output json | jaq -r '.data[]?.text'
 ";
 
+/// `xr users` examples — paired text + JSON, JSONL pipeline.
+const USERS_HELP: &str = "\
+Examples:
+  Look up several accounts by handle in one request (text):
+    xr users @XDevelopers @jack
+  By numeric id, JSON envelope:
+    xr users 2244994945 12 --output json
+  The handle of each, one per line:
+    xr users 2244994945 12 --output json | jaq -r '.data[]?.username'
+  Every argument is a handle or every one an id; X answers each form from its own endpoint.
+";
+
 /// `xr read-posts` examples — paired text + JSON, JSONL pipeline.
 const READ_POSTS_HELP: &str = "\
 Examples:
@@ -1319,6 +1331,16 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Look up 1 to 100 accounts by handle or by id in one request
+    #[command(after_help = USERS_HELP)]
+    Users {
+        /// Handles (@jack or jack) or numeric user ids, 1 to 100; not both
+        #[arg(value_name = "ACCOUNT", required = true, num_args = 1..)]
+        accounts: Vec<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

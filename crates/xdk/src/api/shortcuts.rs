@@ -573,6 +573,54 @@ pub fn validate_lookup_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), 
     Ok(())
 }
 
+/// Validates a username against the spec's pattern, a leading `@` aside:
+/// 1 to 15 letters, digits, or underscores.
+///
+/// # Errors
+/// Returns `invalid-username` for anything else.
+pub fn validate_username(input: &str) -> std::result::Result<(), &'static str> {
+    let name = resolve_username(input);
+    let allowed = |c: char| c.is_ascii_alphanumeric() || c == '_';
+    if name.is_empty() || name.chars().count() > 15 || !name.chars().all(allowed) {
+        return Err("invalid-username");
+    }
+    Ok(())
+}
+
+/// Validates the accounts one batch lookup names: 1 to [`LOOKUP_IDS_MAX`]
+/// of them, every one a numeric user id or every one a username, each in
+/// the spec's form. X answers ids and usernames from different endpoints.
+///
+/// # Errors
+/// Returns `too-many-ids`, `mixed-ids-and-handles`, `invalid-user-id`, or
+/// `invalid-username`.
+pub fn validate_user_lookup<S: AsRef<str>>(
+    accounts: &[S],
+) -> std::result::Result<(), &'static str> {
+    validate_lookup_ids(accounts)?;
+    let ids = accounts
+        .iter()
+        .filter(|a| is_user_id_form(a.as_ref()))
+        .count();
+    if ids == accounts.len() {
+        return accounts
+            .iter()
+            .try_for_each(|id| validate_user_id(id.as_ref()));
+    }
+    if ids > 0 {
+        return Err("mixed-ids-and-handles");
+    }
+    accounts
+        .iter()
+        .try_for_each(|name| validate_username(name.as_ref()))
+}
+
+/// Whether `account` names a user by id: all digits, with no leading `@`.
+#[must_use]
+pub fn is_user_id_form(account: &str) -> bool {
+    !account.is_empty() && account.bytes().all(|b| b.is_ascii_digit())
+}
+
 /// Validates a user search query against the spec's pattern: 1 to
 /// [`USER_SEARCH_QUERY_MAX_CHARS`] letters, digits, underscores, apostrophes,
 /// or spaces.
@@ -1649,6 +1697,51 @@ impl Client {
                 Vec::new(),
             ),
             &HiddenBody { hidden },
+        )
+    }
+
+    /// Looks up to [`LOOKUP_IDS_MAX`] accounts by numeric id in one request.
+    pub fn lookup_users_by_id<S: AsRef<str>>(&self, ids: &[S]) -> Call<ApiResponse<Vec<User>>> {
+        self.user_batch(
+            endpoints::LOOKUP_USERS.path,
+            "ids",
+            ids.iter().map(|id| id.as_ref().to_string()),
+        )
+    }
+
+    /// Looks up to [`LOOKUP_IDS_MAX`] accounts by username, a leading `@`
+    /// aside, in one request.
+    pub fn lookup_users_by_username<S: AsRef<str>>(
+        &self,
+        usernames: &[S],
+    ) -> Call<ApiResponse<Vec<User>>> {
+        self.user_batch(
+            endpoints::LOOKUP_USERS_BY_USERNAME.path,
+            "usernames",
+            usernames.iter().map(|name| resolve_username(name.as_ref())),
+        )
+    }
+
+    fn user_batch(
+        &self,
+        path: &str,
+        key: &str,
+        values: impl Iterator<Item = String>,
+    ) -> Call<ApiResponse<Vec<User>>> {
+        let joined = values.collect::<Vec<_>>().join(",");
+        self.call(
+            "GET",
+            template(
+                path,
+                HashMap::new(),
+                vec![
+                    (key.to_string(), joined),
+                    (
+                        "user.fields".to_string(),
+                        "created_at,description,public_metrics,verified".to_string(),
+                    ),
+                ],
+            ),
         )
     }
 

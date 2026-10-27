@@ -22,6 +22,15 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "too-many-attachments" => format!("A post takes at most {POST_MEDIA_MAX} media ids."),
         "empty-username" => "The username is empty.".to_string(),
         "empty-post-id" => "The post id is empty; give an id or a post URL.".to_string(),
+        "mixed-ids-and-handles" => {
+            "Give every account as a handle or every one as an id; X looks up each form \
+             separately."
+                .to_string()
+        }
+        "invalid-username" => {
+            "A username is 1 to 15 letters, digits, or underscores, with or without a leading @."
+                .to_string()
+        }
         "too-many-ids" => format!("A lookup takes at most {LOOKUP_IDS_MAX} ids."),
         "invalid-time-window" => "A time is RFC 3339 with seconds and a zone, such as \
              2026-11-02T15:00:00Z, and the start comes before the end."

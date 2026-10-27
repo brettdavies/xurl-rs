@@ -33,7 +33,7 @@ sign-in does not request the `calls.read` and `calls.write` scopes the calls end
 - `xr bookmark-folders` (`list`, `get`, `add`)
 - `xr hide` and `xr unhide`
 - `xr likers`, `xr reposters`, and `xr quotes`
-- `xr read-posts`, `xr user-posts`, `xr search-users`, `xr search-counts`, and `xr analytics`
+- `xr read-posts`, `xr users`, `xr user-posts`, `xr search-users`, `xr search-counts`, and `xr analytics`
 - `xr trends` (`place`, `personal`)
 - `xr notes` (`write`, `evaluate`, `eligible`, `written`, `remove`)
 - `xr articles` (`draft`, `publish`)

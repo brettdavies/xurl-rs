@@ -71,6 +71,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "blocked",
             "likers",
             "reposters",
+            "users",
             "lists-followers",
             "lists-members-list",
             "search-users",

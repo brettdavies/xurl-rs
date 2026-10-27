@@ -65,6 +65,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand analytics 'Impressions and engagement for your posts over a time window'
             cand search-counts 'Count the recent posts that match a query, per time bucket'
             cand search-users 'Find accounts by keyword'
+            cand users 'Look up 1 to 100 accounts by handle or by id in one request'
             cand user-posts 'List the posts a user wrote'
             cand read-posts 'Read up to 100 posts in one request'
             cand search 'Search recent posts'
@@ -337,6 +338,35 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;search-users'= {
             cand -n 'Number of results (1-100). Overrides global `--limit` when set'
             cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --auth 'Authentication type (oauth1, oauth2, app)'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Global result-set limit, clamped to 1..=100'
+            cand --cursor 'Pagination cursor / `pagination_token` for list endpoints'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;users'= {
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
@@ -5943,6 +5973,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand analytics 'Impressions and engagement for your posts over a time window'
             cand search-counts 'Count the recent posts that match a query, per time bucket'
             cand search-users 'Find accounts by keyword'
+            cand users 'Look up 1 to 100 accounts by handle or by id in one request'
             cand user-posts 'List the posts a user wrote'
             cand read-posts 'Read up to 100 posts in one request'
             cand search 'Search recent posts'
@@ -6015,6 +6046,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;search-counts'= {
         }
         &'xr;help;search-users'= {
+        }
+        &'xr;help;users'= {
         }
         &'xr;help;user-posts'= {
         }
