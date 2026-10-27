@@ -167,16 +167,6 @@
       }
     },
     {
-      "id": "posts-lookup",
-      "operations": [
-        "GET /2/tweets"
-      ],
-      "status": "planned",
-      "reason": "Up to 100 posts by id in one request, which turns the ids a bookmark folder lists into posts.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "post-counts",
       "operations": [
         "GET /2/tweets/counts/recent"

@@ -57,6 +57,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // tweets
     ("CREATE_POST", "POST", "/2/tweets"),
     ("READ_POST", "GET", "/2/tweets/{id}"),
+    ("READ_POSTS", "GET", "/2/tweets"),
     ("DELETE_POST", "DELETE", "/2/tweets/{id}"),
     ("SEARCH_POSTS", "GET", "/2/tweets/search/recent"),
     ("HIDE_REPLY", "PUT", "/2/tweets/{tweet_id}/hidden"),

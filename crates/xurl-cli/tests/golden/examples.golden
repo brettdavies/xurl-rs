@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 8078
+stdout_len: 8190
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -47,6 +47,9 @@ POST AND READ:
     xr likers 1585341984679469056 --output json | jaq -r '.data[]?.username'
     xr reposters 1585341984679469056 -n 100
     xr quotes 1585341984679469056 --output json
+
+  Read up to 100 posts in one request:
+    xr read-posts 1585341984679469056 1346889436626259968 --output json
 
   Search recent posts:
     xr search "rustlang" -n 25

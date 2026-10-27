@@ -1,16 +1,16 @@
-//! The commands that read posts and profiles: `read`, `search`, `whoami`,
-//! `user`, `timeline`, `mentions`, and who engaged with a post: `likers`,
-//! `reposters`, and `quotes`.
+//! The commands that read posts and profiles: `read`, `read-posts`,
+//! `search`, `whoami`, `user`, `timeline`, `mentions`, and who engaged with a
+//! post: `likers`, `reposters`, and `quotes`.
 
 use serde_json::json;
 
 use super::{
     DryRun, Run, effective_limit, list_for_post, list_for_user, make_client, print_typed,
-    send_or_report, with_flags,
+    send_or_report, send_validated, with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
-use xdk::api::{AuthPreflight, Client};
+use xdk::api::{AuthPreflight, Client, shortcuts};
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
@@ -29,6 +29,19 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             let client = make_client(cfg, auth)?;
             let call = with_flags(client.read_post(&post_id), &common, None);
             send_or_report(out, stdout, dry_run, call).await?;
+        }
+        Commands::ReadPosts { post_ids, common } => {
+            let ctx = json!({"command": "read-posts", "post_ids": post_ids});
+            let validator = || {
+                shortcuts::validate_lookup_ids(&post_ids)?;
+                post_ids
+                    .iter()
+                    .try_for_each(|id| shortcuts::validate_post_id(id))
+            };
+            send_validated(run, ctx, validator, &common, |client: &Client| {
+                client.read_posts(&post_ids)
+            })
+            .await?;
         }
         Commands::Search {
             query,

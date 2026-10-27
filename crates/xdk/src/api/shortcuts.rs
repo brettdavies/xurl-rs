@@ -366,6 +366,9 @@ pub const POST_BODY_MAX_CHARS: usize = 280;
 /// X API media attachment cap per post.
 pub const POST_MEDIA_MAX: usize = 4;
 
+/// The most ids one lookup takes, the spec's `maxItems` on `ids`.
+pub const LOOKUP_IDS_MAX: usize = 100;
+
 /// Validates a post / reply / quote body.
 ///
 /// Length is left to X: the limit belongs to the account (a Premium account
@@ -388,6 +391,17 @@ pub fn validate_post_body(text: &str) -> std::result::Result<(), &'static str> {
 pub fn validate_media_attachments(ids: &[String]) -> std::result::Result<(), &'static str> {
     if ids.len() > POST_MEDIA_MAX {
         return Err("too-many-attachments");
+    }
+    Ok(())
+}
+
+/// Validates the number of ids a batch lookup sends.
+///
+/// # Errors
+/// Returns `too-many-ids` when more than [`LOOKUP_IDS_MAX`] are passed.
+pub fn validate_lookup_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'static str> {
+    if ids.len() > LOOKUP_IDS_MAX {
+        return Err("too-many-ids");
     }
     Ok(())
 }
@@ -845,6 +859,24 @@ fn source_and_target(source_user_id: &str, target_user_id: &str) -> HashMap<Stri
     ])
 }
 
+/// The fields and expansions a read of whole posts asks for.
+fn post_read_fields() -> Vec<(String, String)> {
+    vec![
+        (
+            "post.fields".to_string(),
+            "created_at,public_metrics,conversation_id,entities,attachments".to_string(),
+        ),
+        (
+            "expansions".to_string(),
+            "author_id,in_reply_to_user_id,referenced_posts".to_string(),
+        ),
+        (
+            "user.fields".to_string(),
+            "username,name,verified".to_string(),
+        ),
+    ]
+}
+
 fn target_user_body(target_user_id: &str) -> String {
     format!(r#"{{"target_user_id":"{target_user_id}"}}"#)
 }
@@ -1046,22 +1078,25 @@ impl Client {
             template(
                 endpoints::READ_POST.path,
                 HashMap::from([("id".to_string(), post_id)]),
-                vec![
-                    (
-                        "post.fields".to_string(),
-                        "created_at,public_metrics,conversation_id,entities,attachments"
-                            .to_string(),
-                    ),
-                    (
-                        "expansions".to_string(),
-                        "author_id,in_reply_to_user_id,referenced_posts".to_string(),
-                    ),
-                    (
-                        "user.fields".to_string(),
-                        "username,name,verified".to_string(),
-                    ),
-                ],
+                post_read_fields(),
             ),
+        )
+    }
+
+    /// Reads up to [`LOOKUP_IDS_MAX`] posts, each an id or a post URL, in one
+    /// request. X names the ids it could not return in the response's
+    /// `errors`, beside the posts it could.
+    pub fn read_posts<S: AsRef<str>>(&self, post_ids: &[S]) -> Call<ApiResponse<Vec<Post>>> {
+        let ids = post_ids
+            .iter()
+            .map(|id| resolve_post_id(id.as_ref()))
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut query = vec![("ids".to_string(), ids)];
+        query.extend(post_read_fields());
+        self.call(
+            endpoints::READ_POSTS.method,
+            template(endpoints::READ_POSTS.path, HashMap::new(), query),
         )
     }
 
