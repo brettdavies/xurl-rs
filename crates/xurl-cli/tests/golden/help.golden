@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 15528
+stdout_len: 15581
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -89,6 +89,7 @@ Commands:
   usage             Show API usage (post caps, daily breakdown)
   dm                Send a direct message
   dms               List recent direct messages
+  communities       Search communities, and read one
   news              Search news stories, and read one
   trends            Trends for a place, and your personalized trends
   broadcasts        Broadcast chat moderators and stream sources

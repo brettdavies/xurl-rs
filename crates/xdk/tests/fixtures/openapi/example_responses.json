@@ -185,6 +185,31 @@
       ]
     }
   },
+  "community_list": {
+    "data": [
+      {
+        "id": "1146654567674912769",
+        "name": "Rustaceans",
+        "description": "People who write Rust.",
+        "access": "Public",
+        "join_policy": "Open",
+        "member_count": 4200,
+        "created_at": "2024-03-01T10:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "next_token": "7140dibdnow9c7btw3w29grvxfcgvpb9n9coehpk7xz5i"
+    }
+  },
+  "community": {
+    "data": {
+      "id": "1146654567674912769",
+      "name": "Rustaceans",
+      "access": "Public",
+      "join_policy": "Open",
+      "member_count": 4200
+    }
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

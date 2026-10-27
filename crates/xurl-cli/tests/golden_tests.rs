@@ -788,6 +788,17 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-community-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "communities",
+                "get",
+                "rustaceans",
+            ],
+        ),
+        case(
             "dry-run-invalid-news-id",
             &["--output", "json", "--dry-run", "news", "get", "story-1"],
         ),

@@ -503,6 +503,34 @@ pub struct NewsClusterPost {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// An X community.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct Community {
+    /// Community ID.
+    pub id: String,
+    /// The community's name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// What the community is about.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Who can see the community, such as `Public`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub access: Option<String>,
+    /// How people join, such as `Open`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub join_policy: Option<String>,
+    /// How many members the community has.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub member_count: Option<u64>,
+    /// When the community was created.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.

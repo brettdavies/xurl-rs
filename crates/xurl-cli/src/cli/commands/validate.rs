@@ -17,13 +17,13 @@ use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, Post, PostAnalytics,
-    PostCount, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
+    DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
+    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, Post,
+    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -102,6 +102,8 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<HiddenResult>("hide"),
     typed_alias::<Vec<PostCount>>("post-counts"),
     typed_alias::<Vec<PostAnalytics>>("analytics"),
+    typed_alias::<Vec<Community>>("communities"),
+    typed_alias::<Community>("community"),
     typed_alias::<Vec<NewsStory>>("news"),
     typed_alias::<NewsStory>("news-story"),
     typed_alias::<Vec<Trend>>("trends"),

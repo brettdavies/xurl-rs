@@ -72,6 +72,10 @@ POST AND READ:
   Impressions and engagement for your posts, per day over a week:
     xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-08T00:00:00Z --granularity daily --output json
 
+  Communities about a topic, and one community by id:
+    xr communities search rust --output json | jaq -r '.data[]? | .name'
+    xr communities get 1146654567674912769 --output json
+
   News stories from the last day, and one story by id:
     xr news search \"open source\" --max-age-hours 24 --output json | jaq -r '.data[]?.name'
     xr news get 1850000000000000000 --output json

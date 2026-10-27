@@ -15,13 +15,13 @@ use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, Post, PostAnalytics,
-    PostCount, ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
+    DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
+    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, Post,
+    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -427,12 +427,23 @@ pub fn validate_user_search_query(query: &str) -> std::result::Result<(), &'stat
     Ok(())
 }
 
+/// Validates a community id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-community-id` for anything else.
+pub fn validate_community_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-community-id");
+    }
+    Ok(())
+}
+
 /// Validates a news story id against the spec's pattern: 1 to 19 digits.
 ///
 /// # Errors
 /// Returns `invalid-news-id` for anything else.
 pub fn validate_news_id(id: &str) -> std::result::Result<(), &'static str> {
-    if id.is_empty() || id.len() > 19 || !id.bytes().all(|b| b.is_ascii_digit()) {
+    if !is_numeric_id(id) {
         return Err("invalid-news-id");
     }
     Ok(())
@@ -480,7 +491,7 @@ pub const ALT_TEXT_MAX_CHARS: usize = 1000;
 /// Returns `invalid-media-id` for anything else, the empty string included.
 pub fn validate_media_id(input: &str) -> std::result::Result<(), &'static str> {
     let id = input.trim();
-    if id.is_empty() || id.len() > 19 || !id.bytes().all(|b| b.is_ascii_digit()) {
+    if !is_numeric_id(id) {
         return Err("invalid-media-id");
     }
     Ok(())
@@ -495,7 +506,7 @@ pub const WEBHOOK_URL_MAX_CHARS: usize = 200;
 /// # Errors
 /// Returns `invalid-webhook-id` for anything else, the empty string included.
 pub fn validate_webhook_id(input: &str) -> std::result::Result<(), &'static str> {
-    if input.is_empty() || input.len() > 19 || !input.bytes().all(|b| b.is_ascii_digit()) {
+    if !is_numeric_id(input) {
         return Err("invalid-webhook-id");
     }
     Ok(())
@@ -506,7 +517,7 @@ pub fn validate_webhook_id(input: &str) -> std::result::Result<(), &'static str>
 /// # Errors
 /// Returns `invalid-user-id` for anything else, a handle included.
 pub fn validate_user_id(input: &str) -> std::result::Result<(), &'static str> {
-    if input.is_empty() || input.len() > 19 || !input.bytes().all(|b| b.is_ascii_digit()) {
+    if !is_numeric_id(input) {
         return Err("invalid-user-id");
     }
     Ok(())
@@ -609,7 +620,7 @@ pub fn validate_bookmark_folder_name(name: &str) -> std::result::Result<(), &'st
 /// # Errors
 /// Returns `invalid-folder-id` for anything else.
 pub fn validate_bookmark_folder_id(id: &str) -> std::result::Result<(), &'static str> {
-    if id.is_empty() || id.len() > 19 || !id.bytes().all(|b| b.is_ascii_digit()) {
+    if !is_numeric_id(id) {
         return Err("invalid-folder-id");
     }
     Ok(())
@@ -729,6 +740,12 @@ fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
     let day_of_year = (153 * ((month + 9) % 12) + 2) / 5 + day - 1;
     let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
     era * 146_097 + day_of_era - 719_468
+}
+
+/// Whether `id` matches `^[0-9]{1,19}$`, the pattern the spec gives every
+/// numeric id: one to nineteen ASCII digits.
+fn is_numeric_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 19 && id.bytes().all(|b| b.is_ascii_digit())
 }
 
 fn two_digits(bytes: &[u8], at: usize) -> Option<u8> {
@@ -977,6 +994,9 @@ const POST_ANALYTICS_FIELDS: &str = "app_install_attempts,app_opens,bookmarks,de
 email_tweet,engagements,follows,hashtag_clicks,id,impressions,likes,media_views,permalink_clicks,\
 quote_tweets,replies,retweets,shares,timestamp,timestamped_metrics,unfollows,unlikes,url_clicks,\
 user_profile_clicks";
+
+/// Every field the spec's `community.fields` lists.
+const COMMUNITY_FIELDS: &str = "access,created_at,description,id,join_policy,member_count,name";
 
 /// Every field the spec's `news.fields` lists.
 const NEWS_FIELDS: &str =
@@ -1299,6 +1319,43 @@ impl Client {
                 endpoints::GET_NEWS.path,
                 id_param(id),
                 vec![("news.fields".to_string(), NEWS_FIELDS.to_string())],
+            ),
+        )
+    }
+
+    /// Searches X's communities.
+    ///
+    /// X accepts 10 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
+    pub fn search_communities(
+        &self,
+        query: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<Community>>> {
+        let max_results = max_results.clamp(10, 100);
+        self.call(
+            endpoints::SEARCH_COMMUNITIES.method,
+            template(
+                endpoints::SEARCH_COMMUNITIES.path,
+                HashMap::new(),
+                vec![
+                    ("query".to_string(), query.to_string()),
+                    ("max_results".to_string(), max_results.to_string()),
+                    ("community.fields".to_string(), COMMUNITY_FIELDS.to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Reads one community by id.
+    pub fn get_community(&self, id: &str) -> Call<ApiResponse<Community>> {
+        self.call(
+            endpoints::GET_COMMUNITY.method,
+            template(
+                endpoints::GET_COMMUNITY.path,
+                id_param(id),
+                vec![("community.fields".to_string(), COMMUNITY_FIELDS.to_string())],
             ),
         )
     }

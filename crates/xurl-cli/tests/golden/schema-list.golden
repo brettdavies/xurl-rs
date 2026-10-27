@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 5021
+stdout_len: 5134
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -29,6 +29,8 @@ calls-scheduled-get            ApiResponse<ScheduledCall>
 calls-scheduled-list           ApiResponse<Vec<ScheduledCall>>
 calls-scheduled-rsvp           ApiResponse<ScheduledCallRsvp>
 calls-scheduled-update         ApiResponse<ScheduledCallUpdated>
+communities-get                ApiResponse<Community>
+communities-search             ApiResponse<Vec<Community>>
 delete                         ApiResponse<DeletedResult>
 dm                             ApiResponse<DmSentResult>
 dms                            ApiResponse<Vec<DmEvent>>

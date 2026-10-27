@@ -23,7 +23,7 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
-    DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
+    Community, DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
     MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory,
     PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
     ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
@@ -219,6 +219,22 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_community_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Community>> =
+        serde_json::from_value(examples["community_list"].clone()).unwrap();
+    assert_eq!(resp.data[0].member_count, Some(4200));
+}
+
+#[test]
+fn spec_community() {
+    let examples = load_examples();
+    let resp: ApiResponse<Community> =
+        serde_json::from_value(examples["community"].clone()).unwrap();
+    assert_eq!(resp.data.join_policy.as_deref(), Some("Open"));
 }
 
 #[test]
@@ -727,6 +743,12 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ),
     ("trends", endpoints::GET_TRENDS, ReplyKind::Success),
     ("news_list", endpoints::SEARCH_NEWS, ReplyKind::Success),
+    (
+        "community_list",
+        endpoints::SEARCH_COMMUNITIES,
+        ReplyKind::Success,
+    ),
+    ("community", endpoints::GET_COMMUNITY, ReplyKind::Success),
     ("news_story", endpoints::GET_NEWS, ReplyKind::Success),
     (
         "personalized_trends",

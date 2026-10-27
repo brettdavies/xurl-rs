@@ -131,6 +131,16 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::SEARCH_COMMUNITIES,
+        fixture: "community_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_COMMUNITY,
+        fixture: "community",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::SEARCH_NEWS,
         fixture: "news_list",
         status: 200,

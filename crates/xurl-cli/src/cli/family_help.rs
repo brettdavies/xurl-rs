@@ -147,6 +147,42 @@ pub mod bookmark_folders {
     }
 }
 
+/// The `xr communities` family.
+pub mod communities {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "communities",
+    };
+
+    /// `xr communities search`.
+    pub const SEARCH: Verb = Verb {
+        name: "search",
+        example_args: "rust",
+        text_caption: "Communities about a topic (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr communities get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "1146654567674912769",
+        text_caption: "Read one community, by id (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr communities --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("Search communities (text)", &[Example::text(&SEARCH)]),
+            ("Read one community, JSON envelope", &[Example::json(&GET)]),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr news` family.
 pub mod news {
     use super::{Example, Family, Section, Verb};

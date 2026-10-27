@@ -1680,6 +1680,15 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Communities ──────────────────────────────────────────────────
+    /// Search communities, and read one
+    #[command(after_help = family_help::communities::page())]
+    Communities {
+        /// `communities` verb to dispatch.
+        #[command(subcommand)]
+        action: CommunitiesCommands,
+    },
+
     // ── News ─────────────────────────────────────────────────────────
     /// Search news stories, and read one
     #[command(after_help = family_help::news::page())]
@@ -1872,6 +1881,34 @@ pub enum BookmarkFoldersCommands {
         /// The folder's name, 1 to 25 characters
         #[arg(value_name = "NAME")]
         name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr communities` verbs.
+#[derive(Subcommand, Debug)]
+pub enum CommunitiesCommands {
+    /// Search communities
+    #[command(after_help = family_help::communities::FAMILY.verb_page(&family_help::communities::SEARCH))]
+    Search {
+        /// Search query
+        query: String,
+        /// Number of results (10-100; a lower value is raised to 10, X's
+        /// minimum). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one community, by id
+    #[command(after_help = family_help::communities::FAMILY.verb_page(&family_help::communities::GET))]
+    Get {
+        /// Community ID, as `xr communities search` prints it
+        #[arg(value_name = "COMMUNITY_ID")]
+        community_id: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
