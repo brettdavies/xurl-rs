@@ -167,20 +167,6 @@
       }
     },
     {
-      "id": "lists",
-      "operations": [
-        "* /2/lists/**",
-        "* /2/users/{id}/followed_lists/**",
-        "* /2/users/{id}/pinned_lists/**",
-        "GET /2/users/{id}/list_memberships",
-        "GET /2/users/{id}/owned_lists"
-      ],
-      "status": "planned",
-      "reason": "An xr lists family: create, update, and delete lists; add and remove members; a list's posts, members, and followers; your owned, followed, and pinned lists and memberships; follow, unfollow, pin, and unpin.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "users-lookup",
       "operations": [
         "GET /2/users",

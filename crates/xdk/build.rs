@@ -76,6 +76,40 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // news
     ("SEARCH_NEWS", "GET", "/2/news/search"),
     ("GET_NEWS", "GET", "/2/news/{id}"),
+    // lists
+    ("CREATE_LIST", "POST", "/2/lists"),
+    ("GET_LIST", "GET", "/2/lists/{id}"),
+    ("UPDATE_LIST", "PUT", "/2/lists/{id}"),
+    ("DELETE_LIST", "DELETE", "/2/lists/{id}"),
+    ("GET_LIST_POSTS", "GET", "/2/lists/{id}/tweets"),
+    ("GET_LIST_MEMBERS", "GET", "/2/lists/{id}/members"),
+    ("ADD_LIST_MEMBER", "POST", "/2/lists/{id}/members"),
+    (
+        "REMOVE_LIST_MEMBER",
+        "DELETE",
+        "/2/lists/{id}/members/{user_id}",
+    ),
+    ("GET_LIST_FOLLOWERS", "GET", "/2/lists/{id}/followers"),
+    ("GET_OWNED_LISTS", "GET", "/2/users/{id}/owned_lists"),
+    ("GET_FOLLOWED_LISTS", "GET", "/2/users/{id}/followed_lists"),
+    ("FOLLOW_LIST", "POST", "/2/users/{id}/followed_lists"),
+    (
+        "UNFOLLOW_LIST",
+        "DELETE",
+        "/2/users/{id}/followed_lists/{list_id}",
+    ),
+    (
+        "GET_LIST_MEMBERSHIPS",
+        "GET",
+        "/2/users/{id}/list_memberships",
+    ),
+    ("GET_PINNED_LISTS", "GET", "/2/users/{id}/pinned_lists"),
+    ("PIN_LIST", "POST", "/2/users/{id}/pinned_lists"),
+    (
+        "UNPIN_LIST",
+        "DELETE",
+        "/2/users/{id}/pinned_lists/{list_id}",
+    ),
     // communities
     ("SEARCH_COMMUNITIES", "GET", "/2/communities/search"),
     ("GET_COMMUNITY", "GET", "/2/communities/{id}"),

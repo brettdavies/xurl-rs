@@ -210,6 +210,60 @@
       "member_count": 4200
     }
   },
+  "list_single": {
+    "data": {
+      "id": "1146654567674912769",
+      "name": "Rustaceans",
+      "description": "People who write Rust.",
+      "private": false,
+      "member_count": 42,
+      "follower_count": 7,
+      "created_at": "2024-03-01T10:00:00.000Z"
+    }
+  },
+  "lists": {
+    "data": [
+      {
+        "id": "1146654567674912769",
+        "name": "Rustaceans",
+        "member_count": 42
+      },
+      {
+        "id": "1146654567674912770",
+        "name": "Reading list",
+        "private": true
+      }
+    ],
+    "meta": {
+      "result_count": 2
+    }
+  },
+  "list_created": {
+    "data": {
+      "id": "1146654567674912769",
+      "name": "Rustaceans"
+    }
+  },
+  "list_updated": {
+    "data": {
+      "updated": true
+    }
+  },
+  "list_member": {
+    "data": {
+      "is_member": true
+    }
+  },
+  "list_followed": {
+    "data": {
+      "following": true
+    }
+  },
+  "list_pinned": {
+    "data": {
+      "pinned": true
+    }
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

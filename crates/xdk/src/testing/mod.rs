@@ -131,6 +131,91 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::CREATE_LIST,
+        fixture: "list_created",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST,
+        fixture: "list_single",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_LIST,
+        fixture: "list_updated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_LIST,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST_POSTS,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST_MEMBERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::ADD_LIST_MEMBER,
+        fixture: "list_member",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::REMOVE_LIST_MEMBER,
+        fixture: "list_member",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST_FOLLOWERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_OWNED_LISTS,
+        fixture: "lists",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_FOLLOWED_LISTS,
+        fixture: "lists",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::FOLLOW_LIST,
+        fixture: "list_followed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNFOLLOW_LIST,
+        fixture: "list_followed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST_MEMBERSHIPS,
+        fixture: "lists",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_PINNED_LISTS,
+        fixture: "lists",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::PIN_LIST,
+        fixture: "list_pinned",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNPIN_LIST,
+        fixture: "list_pinned",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::SEARCH_COMMUNITIES,
         fixture: "community_list",
         status: 200,

@@ -13,12 +13,12 @@ use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult, Community,
     DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
-    PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, NewsStory, PersonalizedTrend, PinnedResult, Post,
+    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -44,6 +44,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &[
             "read-posts",
             "user-posts",
+            "lists-posts",
             "search",
             "timeline",
             "mentions",
@@ -67,6 +68,8 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "blocked",
             "likers",
             "reposters",
+            "lists-followers",
+            "lists-members-list",
             "search-users",
         ],
         type_name: "ApiResponse<Vec<User>>",
@@ -76,6 +79,36 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["like", "unlike"],
         type_name: "ApiResponse<LikedResult>",
         schema: || schema_for!(ApiResponse<LikedResult>).into(),
+    },
+    SchemaEntry {
+        commands: &[
+            "lists-list",
+            "lists-followed",
+            "lists-memberships",
+            "lists-pinned",
+        ],
+        type_name: "ApiResponse<Vec<List>>",
+        schema: || schema_for!(ApiResponse<Vec<List>>).into(),
+    },
+    SchemaEntry {
+        commands: &["lists-get", "lists-add"],
+        type_name: "ApiResponse<List>",
+        schema: || schema_for!(ApiResponse<List>).into(),
+    },
+    SchemaEntry {
+        commands: &["lists-update"],
+        type_name: "ApiResponse<ListUpdatedResult>",
+        schema: || schema_for!(ApiResponse<ListUpdatedResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["lists-members-add", "lists-members-remove"],
+        type_name: "ApiResponse<ListMemberResult>",
+        schema: || schema_for!(ApiResponse<ListMemberResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["lists-pin", "lists-unpin"],
+        type_name: "ApiResponse<PinnedResult>",
+        schema: || schema_for!(ApiResponse<PinnedResult>).into(),
     },
     SchemaEntry {
         commands: &["communities-search"],
@@ -123,7 +156,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: || schema_for!(ApiResponse<HiddenResult>).into(),
     },
     SchemaEntry {
-        commands: &["follow", "unfollow"],
+        commands: &["follow", "unfollow", "lists-follow", "lists-unfollow"],
         type_name: "ApiResponse<FollowingResult>",
         schema: || schema_for!(ApiResponse<FollowingResult>).into(),
     },
@@ -131,6 +164,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &[
             "delete",
             "dm-events-remove",
+            "lists-remove",
             "media-subtitles-remove",
             "webhooks-remove",
             "webhooks-stream-links-remove",
@@ -374,6 +408,8 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "dm-events",
     "completions",
     "examples",
+    "lists",
+    "lists-members",
     "media",
     "media-status",
     "media-subtitles",

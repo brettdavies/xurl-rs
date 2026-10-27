@@ -35,6 +35,8 @@ sign-in does not request the `calls.read` and `calls.write` scopes the calls end
 - `xr trends` (`place`, `personal`)
 - `xr news` (`search`, `get`)
 - `xr communities` (`search`, `get`)
+- `xr lists` (`list`, `followed`, `memberships`, `pinned`, `get`, `posts`, `followers`, `members`, `add`, `update`,
+  `remove`, `follow`, `unfollow`, `pin`, `unpin`)
 - `xr conversations` (`start`, `send`, `history`, `with`), `xr dm-events` (`get`, `remove`), `xr dm-block`, and
   `xr dm-unblock`
 

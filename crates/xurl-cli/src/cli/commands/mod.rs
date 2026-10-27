@@ -10,6 +10,7 @@ mod dms;
 mod engagement;
 pub mod examples;
 mod graph;
+mod lists;
 mod media;
 mod news;
 mod posts;
@@ -600,6 +601,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::DmEvents { action } => conversations::dm_events(action, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,
         Commands::Broadcasts { target } => broadcasts::run(target, run).await,
+        Commands::Lists { action } => lists::run(action, run).await,
         Commands::Communities { action } => communities::run(action, run).await,
         Commands::News { action } => news::run(action, run).await,
         Commands::Trends { action } => trends::run(action, run).await,
@@ -878,6 +880,24 @@ async fn act_on_user<T>(
 where
     T: Serialize + DeserializeOwned + Default,
 {
+    let ctx = json!({"command": command});
+    act_on_user_with(run, ctx, || Ok(()), target_username, common, shortcut).await
+}
+
+/// [`act_on_user`] for a verb whose other inputs ride along, such as the
+/// list a member joins: `ctx` names them in a dry run's answer, and
+/// `validator` checks them, after the handle, before any request.
+async fn act_on_user_with<T>(
+    run: Run<'_>,
+    mut ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    target_username: &str,
+    common: &CommonFlags,
+    shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned + Default,
+{
     let Run {
         cfg,
         auth,
@@ -886,9 +906,10 @@ where
         stdout,
         ..
     } = run;
-    let ctx = json!({"command": command, "target_username": target_username});
+    ctx["target_username"] = json!(target_username);
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_target_username(target_username)
+        shortcuts::validate_target_username(target_username)?;
+        validator()
     })?;
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {

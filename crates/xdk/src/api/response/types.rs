@@ -531,6 +531,36 @@ pub struct Community {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// An X list: a named, curated set of accounts.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct List {
+    /// List ID.
+    pub id: String,
+    /// The list's name.
+    pub name: String,
+    /// What the list is for.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Whether only the owner can see the list.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub private: Option<bool>,
+    /// How many accounts the list holds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub member_count: Option<u64>,
+    /// How many accounts follow the list.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub follower_count: Option<u64>,
+    /// The id of the account that owns the list.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_id: Option<String>,
+    /// When the list was created.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.
@@ -548,6 +578,36 @@ pub struct LikedResult {
 pub struct HiddenResult {
     /// Whether the reply is now hidden.
     pub hidden: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Confirmation for changing a list's name, description, or privacy.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ListUpdatedResult {
+    /// Whether the list was changed.
+    pub updated: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Confirmation for adding an account to a list or removing it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ListMemberResult {
+    /// Whether the account is on the list once the request has been served.
+    pub is_member: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Confirmation for pinning a list or unpinning it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PinnedResult {
+    /// Whether the list is pinned once the request has been served.
+    pub pinned: bool,
     /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,

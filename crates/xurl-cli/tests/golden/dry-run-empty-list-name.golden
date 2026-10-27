@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "lists", "add", ""]
+store: empty
+exit_code: 0
+stdout_len: 159
+stderr_len: 0
+--- stdout ---
+{
+  "command": "lists-add",
+  "exit_code": 1,
+  "list": {
+    "name": ""
+  },
+  "reason": "empty-list-name",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

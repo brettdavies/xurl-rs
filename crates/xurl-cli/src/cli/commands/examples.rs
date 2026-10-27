@@ -114,6 +114,11 @@ MANAGE SOCIAL GRAPH:
     xr bookmark 1585341984679469056
     xr unbookmark 1585341984679469056 --output json
 
+  Lists: create one, add an account, read its posts:
+    xr lists add Rustaceans --private --output json
+    xr lists members add 1146654567674912769 @XDevelopers
+    xr lists posts 1146654567674912769 -n 50 --output json | jaq -r '.data[]?.text'
+
   Mute / unmute, block / unblock:
     xr mute @noisy
     xr unmute @noisy --output json

@@ -816,6 +816,58 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-list-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "lists",
+                "get",
+                "rustaceans",
+            ],
+        ),
+        case(
+            "dry-run-empty-list-name",
+            &["--output", "json", "--dry-run", "lists", "add", ""],
+        ),
+        Case {
+            name: "dry-run-list-name-too-long".to_string(),
+            args: ["--output", "json", "--dry-run", "lists", "add"]
+                .into_iter()
+                .map(str::to_string)
+                .chain(["x".repeat(26)])
+                .collect(),
+            ..Case::default()
+        },
+        Case {
+            name: "dry-run-list-description-too-long".to_string(),
+            args: [
+                "--output",
+                "json",
+                "--dry-run",
+                "lists",
+                "add",
+                "Rust",
+                "--description",
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .chain(["x".repeat(101)])
+            .collect(),
+            ..Case::default()
+        },
+        case(
+            "dry-run-no-list-changes",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "lists",
+                "update",
+                "1146654567674912769",
+            ],
+        ),
+        case(
             "dry-run-invalid-community-id",
             &[
                 "--output",

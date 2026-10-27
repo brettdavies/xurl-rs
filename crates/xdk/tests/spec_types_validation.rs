@@ -27,11 +27,12 @@ use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, BookmarkFolder, Community,
-    DmBlockResult, DmEvent, HiddenResult, MediaMetadataResult, MediaSubtitlesResult, NewsStory,
-    PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSource,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    DmBlockResult, DmEvent, HiddenResult, List, ListMemberResult, ListUpdatedResult,
+    MediaMetadataResult, MediaSubtitlesResult, NewsStory, PersonalizedTrend, PinnedResult, Post,
+    PostAnalytics, PostCount, ProvisionedResult, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources,
+    SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -275,6 +276,22 @@ fn typed_responses_match_vendored_spec() {
         (
             "BlockUsersDmsResponseData",
             serde_json::to_value(schemars::schema_for!(DmBlockResult)).unwrap(),
+        ),
+        (
+            "List",
+            serde_json::to_value(schemars::schema_for!(List)).unwrap(),
+        ),
+        (
+            "UpdateListsResponseData",
+            serde_json::to_value(schemars::schema_for!(ListUpdatedResult)).unwrap(),
+        ),
+        (
+            "AddListsMemberResponseData",
+            serde_json::to_value(schemars::schema_for!(ListMemberResult)).unwrap(),
+        ),
+        (
+            "PinListResponseData",
+            serde_json::to_value(schemars::schema_for!(PinnedResult)).unwrap(),
         ),
         (
             "Community",
