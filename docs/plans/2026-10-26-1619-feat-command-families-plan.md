@@ -110,16 +110,20 @@ method and URL. An agent working from `xr examples`, `xr schema`, or the skill b
 
 ### Open Questions
 
-- OQ1 (blocks U17, U18, U19). **Single-id lookup paths.** `GET /2/users/{id}`, `GET /2/spaces/{id}`, and
+Both questions are answered; each answer is what the units below build.
+
+- OQ1 (U17, U18, U19). **Single-id lookup paths.** `GET /2/users/{id}`, `GET /2/spaces/{id}`, and
   `GET /2/media/{media_key}` answer one object, while their batch siblings (`/2/users`, `/2/spaces`, `/2/media`) answer
   a list. One command spanning both would give one command two response schemas, and a second command per namespace
-  (`get` beside `lookup`) duplicates what the batch command does with one id. Proposed: each namespace gets one batch
-  command that takes 1 to 100 ids, and the three single-id paths become `raw-only` entries with that reason. Changing a
-  decision is Brett's call.
-- OQ2 (blocks U20). **Stream rules and `--dry-run`.** The `stream-rules` reason puts X's `dry_run` parameter "behind
+  (`get` beside `lookup`) duplicates what the batch command does with one id. **Answer (Brett chose "batch only"):**
+  each namespace gets one batch command that takes 1 to 100 ids, and the three single-id paths are `raw-only` entries
+  (`user-by-id`, `media-by-key`, `space-by-id`) with that reason.
+- OQ2 (U20). **Stream rules and `--dry-run`.** The `stream-rules` reason put X's `dry_run` parameter "behind
   `--dry-run`", but `xr`'s dry-run contract sends nothing on any command, and X's `dry_run=true` is a request X answers.
-  Proposed: `--dry-run` keeps sending nothing, and `xr stream rules add --validate` sends the rules with `dry_run=true`
-  so X checks them without saving them.
+  **Answer (the recommendation Brett okayed):** `--dry-run` keeps sending nothing, and `--validate-only` on
+  `xr stream rules add` and `remove` sends the change with `dry_run=true`, so X checks it and saves nothing. The name
+  follows the `validate_only` request field in Google's AIP-163. A removal X only checks destroys nothing, so it skips
+  the confirmation, and `--dry-run --validate-only` sends nothing.
 
 ---
 
@@ -129,7 +133,7 @@ method and URL. An agent working from `xr examples`, `xr schema`, or the skill b
 
 - KTD1. **The twenty PRs stack on `dev`, in the Unit Index order, and land in batches with `gh stack merge`.** The
   families share `help.golden`, the completions, the schema registry, the validate alias table, the examples page,
-  `SHORTCUT_TEMPLATES`, and the KNOWN_DIFFERENCES sentence listing commands Go lacks, so independent PRs off `dev` would
+  `SHORTCUT_TEMPLATES`, and the KNOWN_DIFFERENCES list of commands Go lacks, so independent PRs off `dev` would
   conflict pairwise, and every rebase would rerun the full CI matrix. A stack builds each PR on the one below, and an
   atomic stack merge restacks nothing. About five unmerged PRs stay open at a time: a review fix low in a deeper stack
   would restack, and rerun CI on, every PR above it.
@@ -270,7 +274,7 @@ U18 because U18 reuses U8's time-window check.
 its operations: a `SHORTCUT_TEMPLATES` row, a shortcut, a typed response (KTD6), a fixture with its `spec_*` test and
 `FIXTURE_ENDPOINTS` row (KTD7), a mock route, the clap command with its help fixture, the dispatch arm, the schema
 registry row and regenerated schema, the validate alias, the examples line, and the completions. Each also removes its
-entry from `endpoint-decisions.json`, adds its commands to the KNOWN_DIFFERENCES sentence listing commands Go lacks, and
+entry from `endpoint-decisions.json`, adds its commands to the KNOWN_DIFFERENCES list of commands Go lacks, and
 documents them in `crates/xurl-cli/README.md`. Each unit's **Files** field names only what the recipe does not imply,
 and each unit's tests live in a family test file under `crates/xurl-cli/tests/` (named in the unit) plus the golden
 cases its validators need. The walks the recipe names, the `endpoint_decisions` tests, and `dry_run_guard` check every
@@ -488,8 +492,7 @@ unit without new test code; the scenarios below are the family's own behavior.
 - **Files:** `crates/xurl-cli/src/cli/commands/lists.rs` (new), `crates/xurl-cli/src/cli/family_help.rs`,
   `crates/xurl-cli/tests/lists_tests.rs`.
 - **Approach:**
-  1. Reads: `list`, `followed`, `memberships`, `pinned`, `get`, `posts`, `followers`, and
-     `members list`.
+  1. Reads: `list`, `followed`, `memberships`, `pinned`, `get`, `posts`, `followers`, and `members list`.
   2. Writes: `add <NAME> [--description] [--private]`, `update <LIST> [--name] [--description] [--private|--public]`,
      `remove <LIST>` (confirms), `members add|remove <LIST> <USER>`, `follow`, `unfollow`, `pin`, `unpin`.
   3. Offline checks from the spec: name at most 25 characters, description at most 100, a list id's pattern, and an
@@ -627,8 +630,9 @@ unit without new test code; the scenarios below are the family's own behavior.
 - **Files:** `crates/xurl-cli/src/cli/commands/stream_rules.rs` (new), `crates/xurl-cli/src/cli/family_help.rs`,
   `crates/xurl-cli/tests/stream_rules_tests.rs`.
 - **Approach:** a `stream` family with a `rules` subfamily. `add <VALUE> [--tag]` and `remove <ID>...` both post to the
-  rules endpoint, with `add` and `delete` bodies; `remove` confirms. Per OQ2, `add --validate` sends `dry_run=true`, and
-  `--dry-run` sends nothing. Every request goes out with the bearer token (KTD8).
+  rules endpoint, with `add` and `delete` bodies; `remove` confirms. Per OQ2, `--validate-only` on `add` and `remove`
+  sends `dry_run=true`, a removal sent that way skips the confirmation, and `--dry-run` sends nothing. Every request
+  goes out with the bearer token (KTD8).
 - **Patterns to follow:** `webhooks stream-links` for the app-auth stream surface.
 - **Test scenarios:**
   - `xr stream rules add "from:jack" --tag j` sends `{"add":[{"value":"from:jack","tag":"j"}]}`.
