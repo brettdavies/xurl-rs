@@ -1803,6 +1803,15 @@ pub enum Commands {
         action: NewsCommands,
     },
 
+    // ── Spaces ───────────────────────────────────────────────────────
+    /// Find Spaces by keyword, id, or creator, and read their posts
+    #[command(after_help = family_help::spaces::page())]
+    Spaces {
+        /// `spaces` verb to dispatch.
+        #[command(subcommand)]
+        action: SpacesCommands,
+    },
+
     // ── Articles ─────────────────────────────────────────────────────
     /// Write and publish long-form X Articles
     #[command(after_help = family_help::articles::page())]
@@ -2339,6 +2348,59 @@ pub enum CommunitiesCommands {
         /// Community ID, as `xr communities search` prints it
         #[arg(value_name = "COMMUNITY_ID")]
         community_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr spaces` verbs.
+#[derive(Subcommand, Debug)]
+pub enum SpacesCommands {
+    /// Search Spaces by keyword
+    #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::SEARCH))]
+    Search {
+        /// Search query
+        query: String,
+        /// Only Spaces in this state (X's default is all)
+        #[arg(long, value_parser = ["live", "scheduled", "all"])]
+        state: Option<String>,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read 1 to 100 Spaces by id in one request
+    #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::GET))]
+    Get {
+        /// Space ids, such as 1DXxyRYNejbKM, 1 to 100
+        #[arg(value_name = "SPACE_ID", required = true, num_args = 1..)]
+        space_ids: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// The Spaces 1 to 100 accounts created, in one request
+    #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::BY_CREATOR))]
+    ByCreator {
+        /// Handles (@jack or jack) or numeric user ids, 1 to 100; not both
+        #[arg(value_name = "ACCOUNT", required = true, num_args = 1..)]
+        accounts: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// The posts shared in a Space
+    #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::POSTS))]
+    Posts {
+        /// Space ID, as `xr spaces search` prints it
+        #[arg(value_name = "SPACE_ID")]
+        space_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

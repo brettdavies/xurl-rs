@@ -161,6 +161,19 @@ xr news search "open source" --max-age-hours 24  # Stories from the last day
 xr news get 1850000000000000000                # One story, with the posts it clusters
 ```
 
+### Spaces
+
+```bash
+xr spaces search rust --state live             # Live Spaces about a topic
+xr spaces get 1DXxyRYNejbKM 1YpKkgVgQwvGj      # Up to 100 Spaces, by id, in one request
+xr spaces by-creator @XDevelopers @jack        # The Spaces up to 100 accounts created
+xr spaces posts 1DXxyRYNejbKM                  # The posts shared in a Space
+```
+
+`xr spaces by-creator` resolves every handle in one lookup before it asks for the Spaces, and takes numeric ids as they
+are; a handle beside an id is refused with `mixed-ids-and-handles`. A Space id is 1 to 13 letters or digits; anything
+else is refused with `invalid-space-id` before any request.
+
 ### Articles
 
 ```bash

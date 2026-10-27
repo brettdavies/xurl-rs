@@ -22,7 +22,7 @@ use super::response::types::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSourceDeleted, StreamSourceResult,
     StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
     WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
@@ -760,6 +760,53 @@ pub fn validate_media_keys<S: AsRef<str>>(keys: &[S]) -> std::result::Result<(),
     validate_lookup_ids(keys)?;
     keys.iter()
         .try_for_each(|key| validate_media_key(key.as_ref()))
+}
+
+/// Validates a Space id against the spec's pattern: 1 to 13 letters or
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-space-id` for anything else.
+pub fn validate_space_id(id: &str) -> std::result::Result<(), &'static str> {
+    if id.is_empty() || id.len() > 13 || !id.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return Err("invalid-space-id");
+    }
+    Ok(())
+}
+
+/// Validates the Space ids one lookup names: 1 to [`LOOKUP_IDS_MAX`] of
+/// them, each in the spec's form.
+///
+/// # Errors
+/// Returns `too-many-ids` or `invalid-space-id`.
+pub fn validate_space_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'static str> {
+    validate_lookup_ids(ids)?;
+    ids.iter().try_for_each(|id| validate_space_id(id.as_ref()))
+}
+
+/// The ids of `usernames`, in the order given, from the accounts
+/// [`Client::lookup_users_by_username`] answered. A username matches
+/// without regard to case or a leading `@`, as X matches it.
+///
+/// # Errors
+/// Returns a validation error naming the first username `found` does not
+/// carry: X answers an unknown username with an entry in `errors`, not with
+/// a failed request.
+pub fn user_ids_for_usernames<S: AsRef<str>>(
+    usernames: &[S],
+    found: &[User],
+) -> crate::Result<Vec<String>> {
+    usernames
+        .iter()
+        .map(|name| {
+            let name = resolve_username(name.as_ref());
+            found
+                .iter()
+                .find(|user| user.username.eq_ignore_ascii_case(&name))
+                .map(|user| user.id.clone())
+                .ok_or_else(|| crate::error::Error::validation(format!("user @{name} not found")))
+        })
+        .collect()
 }
 
 /// Validates a Community Note id against the spec's pattern: 1 to 19
@@ -1510,6 +1557,21 @@ fn broadcast_changes_body(
 }
 
 /// `values` joined with commas, as a list-valued query parameter takes them.
+/// The fields every Spaces read asks for: each one the spec's `space.fields`
+/// lists, and the creator and hosts, whose ids the spec makes expansions
+/// and whose accounts come back under `includes.users`.
+fn space_fields() -> [(String, String); 2] {
+    [
+        (
+            "space.fields".to_string(),
+            "created_at,ended_at,id,is_ticketed,lang,participant_count,scheduled_start,\
+             started_at,state,subscriber_count,title,updated_at"
+                .to_string(),
+        ),
+        ("expansions".to_string(), "creator_id,host_ids".to_string()),
+    ]
+}
+
 fn joined<S: AsRef<str>>(values: &[S]) -> String {
     values
         .iter()
@@ -2399,6 +2461,77 @@ impl Client {
             endpoints::GET_MEDIA_ANALYTICS.method,
             template(endpoints::GET_MEDIA_ANALYTICS.path, HashMap::new(), query),
         )
+    }
+
+    /// Searches Spaces by keyword. `state` narrows the answer to `live` or
+    /// `scheduled` Spaces; X's default is `all`.
+    pub fn search_spaces(
+        &self,
+        query: &str,
+        state: Option<&str>,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<Space>>> {
+        let mut params = vec![
+            ("query".to_string(), query.to_string()),
+            ("max_results".to_string(), max_results.to_string()),
+        ];
+        if let Some(state) = state {
+            params.push(("state".to_string(), state.to_string()));
+        }
+        params.extend(space_fields());
+        self.call(
+            endpoints::SEARCH_SPACES.method,
+            template(endpoints::SEARCH_SPACES.path, HashMap::new(), params),
+        )
+    }
+
+    /// Reads up to [`LOOKUP_IDS_MAX`] Spaces by id in one request.
+    pub fn get_spaces<S: AsRef<str>>(&self, ids: &[S]) -> Call<ApiResponse<Vec<Space>>> {
+        let mut params = vec![("ids".to_string(), joined(ids))];
+        params.extend(space_fields());
+        self.call(
+            endpoints::GET_SPACES.method,
+            template(endpoints::GET_SPACES.path, HashMap::new(), params),
+        )
+    }
+
+    /// Reads the Spaces up to [`LOOKUP_IDS_MAX`] accounts created, by user
+    /// id, in one request.
+    pub fn get_spaces_by_creator<S: AsRef<str>>(
+        &self,
+        user_ids: &[S],
+    ) -> Call<ApiResponse<Vec<Space>>> {
+        let mut params = vec![("user_ids".to_string(), joined(user_ids))];
+        params.extend(space_fields());
+        self.call(
+            endpoints::GET_SPACES_BY_CREATOR.method,
+            template(
+                endpoints::GET_SPACES_BY_CREATOR.path,
+                HashMap::new(),
+                params,
+            ),
+        )
+    }
+
+    /// Reads the posts shared in a Space.
+    pub fn get_space_posts(&self, id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        self.call(
+            endpoints::GET_SPACE_POSTS.method,
+            template(
+                endpoints::GET_SPACE_POSTS.path,
+                id_param(id),
+                vec![
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
     }
 
     /// Saves a draft X Article. `body` is plain text, turned into blocks by

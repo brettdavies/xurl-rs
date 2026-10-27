@@ -18,7 +18,7 @@ use xdk::api::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSourceDeleted, StreamSourceResult,
     StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
     WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
@@ -47,6 +47,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "read-posts",
             "user-posts",
             "lists-posts",
+            "spaces-posts",
             "notes-eligible",
             "search",
             "timeline",
@@ -163,6 +164,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["media-analytics"],
         type_name: "ApiResponse<Vec<MediaAnalytics>>",
         schema: || schema_for!(ApiResponse<Vec<MediaAnalytics>>).into(),
+    },
+    SchemaEntry {
+        commands: &["spaces-search", "spaces-get", "spaces-by-creator"],
+        type_name: "ApiResponse<Vec<Space>>",
+        schema: || schema_for!(ApiResponse<Vec<Space>>).into(),
     },
     SchemaEntry {
         commands: &["articles-draft"],
@@ -504,6 +510,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "schema",
     "skill",
     "skill-update",
+    "spaces",
     "trends",
     "validate",
     "version",

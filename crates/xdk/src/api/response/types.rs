@@ -845,6 +845,55 @@ pub struct MediaAnalyticsBucket {
     pub metrics: Option<BTreeMap<String, Value>>,
 }
 
+/// An X Space: a live audio conversation, live, scheduled, or ended.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct Space {
+    /// Space ID.
+    pub id: String,
+    /// `live`, `scheduled`, or `ended`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    /// The Space's title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The id of the account that created the Space.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub creator_id: Option<String>,
+    /// The ids of the accounts hosting the Space.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host_ids: Option<Vec<String>>,
+    /// How many accounts are in the Space.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub participant_count: Option<u64>,
+    /// How many accounts bought a ticket or set a reminder for the Space.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subscriber_count: Option<u64>,
+    /// Whether the Space takes tickets.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_ticketed: Option<bool>,
+    /// The Space's language, as a BCP 47 tag, when X detected one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lang: Option<String>,
+    /// When a scheduled Space is set to start.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheduled_start: Option<String>,
+    /// When the Space started.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<String>,
+    /// When the Space ended.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ended_at: Option<String>,
+    /// When the Space was created.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<String>,
+    /// When the Space last changed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.

@@ -130,6 +130,11 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // media lookup
     ("GET_MEDIA", "GET", "/2/media"),
     ("GET_MEDIA_ANALYTICS", "GET", "/2/media/analytics"),
+    // spaces
+    ("SEARCH_SPACES", "GET", "/2/spaces/search"),
+    ("GET_SPACES", "GET", "/2/spaces"),
+    ("GET_SPACES_BY_CREATOR", "GET", "/2/spaces/by/creator_ids"),
+    ("GET_SPACE_POSTS", "GET", "/2/spaces/{id}/tweets"),
     // communities
     ("SEARCH_COMMUNITIES", "GET", "/2/communities/search"),
     ("GET_COMMUNITY", "GET", "/2/communities/{id}"),

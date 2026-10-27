@@ -1016,6 +1016,17 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-space-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "spaces",
+                "get",
+                "1DXxyRYNejbKM-",
+            ],
+        ),
+        case(
             "dry-run-mixed-ids-and-handles",
             &["--output", "json", "--dry-run", "users", "12", "@jack"],
         ),

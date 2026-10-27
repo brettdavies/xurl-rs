@@ -29,7 +29,7 @@ use xdk::api::response::types::{
     MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult,
     NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post,
     PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSourceDeleted,
     StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
     Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
@@ -238,6 +238,15 @@ fn spec_media_lookup() {
         .expect("buckets");
     let metrics = buckets[0].metrics.as_ref().expect("bucket metrics");
     assert_eq!(metrics["playback_complete"], "120");
+}
+
+#[test]
+fn spec_space_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Space>> =
+        serde_json::from_value(examples["space_list"].clone()).unwrap();
+    assert_eq!(resp.data[0].participant_count, Some(40));
+    assert_eq!(resp.data[1].state.as_deref(), Some("scheduled"));
 }
 
 #[test]
@@ -877,6 +886,7 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         endpoints::GET_MEDIA_ANALYTICS,
         ReplyKind::Success,
     ),
+    ("space_list", endpoints::SEARCH_SPACES, ReplyKind::Success),
     (
         "article_draft",
         endpoints::CREATE_ARTICLE_DRAFT,

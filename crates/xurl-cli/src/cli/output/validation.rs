@@ -44,6 +44,7 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
                 .to_string()
         }
         "invalid-media-id" => "A media id is 1 to 19 digits.".to_string(),
+        "invalid-space-id" => "A Space id is 1 to 13 letters or digits.".to_string(),
         "invalid-webhook-id" => "A webhook id is 1 to 19 digits.".to_string(),
         "invalid-user-id" => "A user id is 1 to 19 digits; a handle is not one.".to_string(),
         "invalid-folder-id" => "A bookmark folder id is 1 to 19 digits.".to_string(),
