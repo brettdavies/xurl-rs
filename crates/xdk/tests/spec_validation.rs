@@ -24,11 +24,11 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
     DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
-    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post,
+    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
+    StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -218,6 +218,23 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_post_analytics() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<PostAnalytics>> =
+        serde_json::from_value(examples["post_analytics"].clone()).unwrap();
+    let post = &resp.data[0];
+    assert_eq!(post.metrics.impressions, Some(1520));
+    assert_eq!(post.metrics.retweets, Some(9));
+    assert!(
+        post.extra.is_empty(),
+        "every metric has a field: {:?}",
+        post.extra
+    );
+    let buckets = post.timestamped_metrics.as_ref().expect("buckets");
+    assert_eq!(buckets[1].metrics.as_ref().and_then(|m| m.likes), Some(6));
 }
 
 #[test]
@@ -667,6 +684,11 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "post_counts",
         endpoints::GET_POST_COUNTS,
+        ReplyKind::Success,
+    ),
+    (
+        "post_analytics",
+        endpoints::GET_POST_ANALYTICS,
         ReplyKind::Success,
     ),
     ("user_single", endpoints::GET_ME, ReplyKind::Success),

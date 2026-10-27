@@ -313,6 +313,102 @@ pub struct PostCount {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// Impressions and engagement for one of the caller's posts over a time
+/// window, under the names the spec gives them.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct PostAnalytics {
+    /// Post ID.
+    pub id: String,
+    /// Moment the totals cover, when X names one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    /// The totals over the window.
+    #[serde(flatten)]
+    pub metrics: AnalyticsMetrics,
+    /// The metrics per bucket, one entry per granularity bucket.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamped_metrics: Option<Vec<AnalyticsBucket>>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The metrics for one bucket of a [`PostAnalytics`] window.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct AnalyticsBucket {
+    /// Start of the bucket, as an ISO 8601 date-time.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timestamp: Option<String>,
+    /// The counts in the bucket.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metrics: Option<AnalyticsMetrics>,
+}
+
+/// Engagement counts for a post; X sends only the ones it has.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct AnalyticsMetrics {
+    /// App install attempts from the post.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_install_attempts: Option<u64>,
+    /// App opens from the post.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_opens: Option<u64>,
+    /// Times the post was bookmarked.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bookmarks: Option<u64>,
+    /// Times the post's details were expanded.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail_expands: Option<u64>,
+    /// Times the post was shared by email.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub email_tweet: Option<u64>,
+    /// Engagements of any kind.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub engagements: Option<u64>,
+    /// Follows gained from the post.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub follows: Option<u64>,
+    /// Clicks on the post's hashtags.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hashtag_clicks: Option<u64>,
+    /// Times the post was seen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub impressions: Option<u64>,
+    /// Likes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub likes: Option<u64>,
+    /// Views of the post's media.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media_views: Option<u64>,
+    /// Clicks on the post's permalink.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub permalink_clicks: Option<u64>,
+    /// Quotes of the post.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quote_tweets: Option<u64>,
+    /// Replies.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replies: Option<u64>,
+    /// Reposts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retweets: Option<u64>,
+    /// Shares.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shares: Option<u64>,
+    /// Unfollows after the post.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unfollows: Option<u64>,
+    /// Likes withdrawn.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unlikes: Option<u64>,
+    /// Clicks on the post's links.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url_clicks: Option<u64>,
+    /// Clicks on the author's profile.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_profile_clicks: Option<u64>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.

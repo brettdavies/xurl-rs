@@ -244,6 +244,17 @@ Examples:
     xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr analytics` examples — paired text + JSON, JSONL pipeline.
+const ANALYTICS_HELP: &str = "\
+Examples:
+  Impressions and engagement for a post over one day (text):
+    xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z
+  Two posts per day over a week, JSON envelope:
+    xr analytics 1585341984679469056 1346889436626259968 --start 2026-10-01T00:00:00Z --end 2026-10-08T00:00:00Z --granularity daily --output json
+  The impressions of each post, one per line:
+    xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z --output json | jaq -r '.data[]? | \"\\(.id) \\(.impressions)\"'
+";
+
 /// `xr search-counts` examples — paired text + JSON, JSONL pipeline.
 const SEARCH_COUNTS_HELP: &str = "\
 Examples:
@@ -1238,6 +1249,26 @@ pub enum Commands {
     Read {
         /// Post ID or URL to read
         post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Impressions and engagement for your posts over a time window
+    #[command(after_help = ANALYTICS_HELP)]
+    Analytics {
+        /// Post IDs or URLs, 1 to 100
+        #[arg(required = true, num_args = 1..)]
+        post_ids: Vec<String>,
+        /// Start of the window (RFC 3339 with a zone, such as
+        /// 2026-10-01T00:00:00Z)
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// End of the window (RFC 3339 with a zone); after the start
+        #[arg(long, value_name = "TIME")]
+        end: String,
+        /// Bucket size (X's default is total, one bucket for the window)
+        #[arg(long, value_parser = ["hourly", "daily", "weekly", "total"])]
+        granularity: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

@@ -61,6 +61,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("DELETE_POST", "DELETE", "/2/tweets/{id}"),
     ("SEARCH_POSTS", "GET", "/2/tweets/search/recent"),
     ("GET_POST_COUNTS", "GET", "/2/tweets/counts/recent"),
+    ("GET_POST_ANALYTICS", "GET", "/2/tweets/analytics"),
     ("HIDE_REPLY", "PUT", "/2/tweets/{tweet_id}/hidden"),
     ("GET_LIKING_USERS", "GET", "/2/tweets/{id}/liking_users"),
     ("GET_REPOSTED_BY", "GET", "/2/tweets/{id}/retweeted_by"),

@@ -559,6 +559,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         | Commands::UserPosts { .. }
         | Commands::SearchUsers { .. }
         | Commands::SearchCounts { .. }
+        | Commands::Analytics { .. }
         | Commands::Search { .. }
         | Commands::Whoami { .. }
         | Commands::User { .. }
