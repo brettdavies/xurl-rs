@@ -205,16 +205,17 @@
       "by": "Brett, in the #370 sweep"
     },
     {
-      "id": "media-lookup",
+      "id": "media-by-key",
       "operations": [
-        "GET /2/media",
-        "GET /2/media/{media_key}",
-        "GET /2/media/analytics"
+        "GET /2/media/{media_key}"
       ],
-      "status": "planned",
-      "reason": "Extend xr media: get one or several uploads by media key, and their analytics.",
+      "status": "raw-only",
+      "reason": "One upload by media key answers one object; xr media get takes 1 to 100 keys and answers a list, so one key is a batch of one.",
       "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
+      "by": "Brett, on the command-families plan's OQ1",
+      "revisit_when": {
+        "kind": "never"
+      }
     }
   ]
 }

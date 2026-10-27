@@ -253,6 +253,10 @@ MEDIA UPLOAD:
   Check upload status:
     xr media status 1585341984679469056 --output json
 
+  Read uploads by media key, and a video's views over a day:
+    xr media get 3_1146654567674912769 --output json
+    xr media analytics 7_1146654567674912770 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z --output json
+
   Describe an uploaded image for screen readers:
     xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
 

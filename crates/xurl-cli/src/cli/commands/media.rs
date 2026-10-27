@@ -1,7 +1,10 @@
-/// Media subcommand handlers — upload, status, alt text, and subtitles.
+/// Media subcommand handlers — upload, status, alt text, and subtitles; the
+/// lookups by media key are in `media_lookup`.
 use serde_json::json;
 
-use super::{DryRun, Run, dry_run_or_validate, make_client, send_or_report, with_flags};
+use super::{
+    DryRun, Run, dry_run_or_validate, make_client, media_lookup, send_or_report, with_flags,
+};
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, MediaCommands, ProcessingWait, SubtitlesCommands};
 use xdk::api::{self, shortcuts};
@@ -45,6 +48,23 @@ pub(super) async fn run(cmd: MediaCommands, run: Run<'_>) -> CommandResult<()> {
             common,
         } => alt_text(run, &media_id, &text, &common).await?,
         MediaCommands::Subtitles { action } => subtitles(action, run).await?,
+        MediaCommands::Get { media_keys, common } => {
+            media_lookup::get(run, &media_keys, &common).await?;
+        }
+        MediaCommands::Analytics {
+            media_keys,
+            start,
+            end,
+            granularity,
+            common,
+        } => {
+            let window = media_lookup::Window {
+                start: &start,
+                end: &end,
+                granularity: granularity.as_deref(),
+            };
+            media_lookup::analytics(run, &media_keys, window, &common).await?;
+        }
     }
     Ok(())
 }

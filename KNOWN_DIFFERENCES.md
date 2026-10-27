@@ -37,6 +37,7 @@ sign-in does not request the `calls.read` and `calls.write` scopes the calls end
 - `xr trends` (`place`, `personal`)
 - `xr notes` (`write`, `evaluate`, `eligible`, `written`, `remove`)
 - `xr articles` (`draft`, `publish`)
+- `xr media get` and `xr media analytics`
 - `xr news` (`search`, `get`)
 - `xr communities` (`search`, `get`)
 - `xr lists` (`list`, `followed`, `memberships`, `pinned`, `get`, `posts`, `followers`, `members`, `add`, `update`,

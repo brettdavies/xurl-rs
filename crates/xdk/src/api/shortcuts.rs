@@ -18,13 +18,13 @@ use super::response::types::{
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
     Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
     Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
+    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -733,6 +733,33 @@ pub fn validate_article_id(id: &str) -> std::result::Result<(), &'static str> {
         return Err("invalid-article-id");
     }
     Ok(())
+}
+
+/// Validates a media key against the spec's pattern: two numbers joined by
+/// an underscore, such as `3_1146654567674912769`.
+///
+/// # Errors
+/// Returns `invalid-media-key` for anything else.
+pub fn validate_media_key(key: &str) -> std::result::Result<(), &'static str> {
+    let numeric = |part: &str| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit());
+    if !key
+        .split_once('_')
+        .is_some_and(|(kind, id)| numeric(kind) && numeric(id))
+    {
+        return Err("invalid-media-key");
+    }
+    Ok(())
+}
+
+/// Validates the media keys one lookup names: 1 to [`LOOKUP_IDS_MAX`] of
+/// them, each in the spec's form.
+///
+/// # Errors
+/// Returns `too-many-ids` or `invalid-media-key`.
+pub fn validate_media_keys<S: AsRef<str>>(keys: &[S]) -> std::result::Result<(), &'static str> {
+    validate_lookup_ids(keys)?;
+    keys.iter()
+        .try_for_each(|key| validate_media_key(key.as_ref()))
 }
 
 /// Validates a Community Note id against the spec's pattern: 1 to 19
@@ -1480,6 +1507,15 @@ fn broadcast_changes_body(
         changes.manual_publish,
     );
     Some(body)
+}
+
+/// `values` joined with commas, as a list-valued query parameter takes them.
+fn joined<S: AsRef<str>>(values: &[S]) -> String {
+    values
+        .iter()
+        .map(AsRef::as_ref)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 /// Adds the optional fields a new broadcast and a change share.
@@ -2310,6 +2346,58 @@ impl Client {
                 id_and(id, "message_id", message_id.to_string()),
                 Vec::new(),
             ),
+        )
+    }
+
+    /// Reads up to [`LOOKUP_IDS_MAX`] uploads by media key in one request.
+    /// Only the fields any caller may read are requested.
+    pub fn get_media<S: AsRef<str>>(&self, media_keys: &[S]) -> Call<ApiResponse<Vec<Media>>> {
+        self.call(
+            endpoints::GET_MEDIA.method,
+            template(
+                endpoints::GET_MEDIA.path,
+                HashMap::new(),
+                vec![
+                    ("media_keys".to_string(), joined(media_keys)),
+                    (
+                        "media.fields".to_string(),
+                        "alt_text,duration_ms,height,media_key,preview_image_url,public_metrics,\
+                         type,url,variants,width"
+                            .to_string(),
+                    ),
+                ],
+            ),
+        )
+    }
+
+    /// Reads video metrics for up to [`LOOKUP_IDS_MAX`] of the caller's
+    /// uploads between `start_time` and `end_time`, per `granularity`
+    /// bucket (`hourly`, `daily`, X's default, or `total`).
+    pub fn get_media_analytics<S: AsRef<str>>(
+        &self,
+        media_keys: &[S],
+        start_time: &str,
+        end_time: &str,
+        granularity: Option<&str>,
+    ) -> Call<ApiResponse<Vec<MediaAnalytics>>> {
+        let mut query = vec![
+            ("media_keys".to_string(), joined(media_keys)),
+            ("start_time".to_string(), start_time.to_string()),
+            ("end_time".to_string(), end_time.to_string()),
+            (
+                "media_analytics.fields".to_string(),
+                "cta_url_clicks,cta_watch_clicks,media_key,play_from_tap,playback25,playback50,\
+                 playback75,playback_complete,playback_start,timestamp,timestamped_metrics,\
+                 video_views,watch_time_ms"
+                    .to_string(),
+            ),
+        ];
+        if let Some(granularity) = granularity {
+            query.push(("granularity".to_string(), granularity.to_string()));
+        }
+        self.call(
+            endpoints::GET_MEDIA_ANALYTICS.method,
+            template(endpoints::GET_MEDIA_ANALYTICS.path, HashMap::new(), query),
         )
     }
 

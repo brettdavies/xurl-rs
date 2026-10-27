@@ -516,6 +516,16 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_MEDIA,
+        fixture: "media_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_MEDIA_ANALYTICS,
+        fixture: "media_analytics",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::CREATE_ARTICLE_DRAFT,
         fixture: "article_draft",
         status: 201,

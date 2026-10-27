@@ -14,13 +14,13 @@ use xdk::api::{
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
     Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
     Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
+    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -153,6 +153,16 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts-chat-mute", "broadcasts-chat-unmute"],
         type_name: "ApiResponse<ChatMutedResult>",
         schema: || schema_for!(ApiResponse<ChatMutedResult>).into(),
+    },
+    SchemaEntry {
+        commands: &["media-get"],
+        type_name: "ApiResponse<Vec<Media>>",
+        schema: || schema_for!(ApiResponse<Vec<Media>>).into(),
+    },
+    SchemaEntry {
+        commands: &["media-analytics"],
+        type_name: "ApiResponse<Vec<MediaAnalytics>>",
+        schema: || schema_for!(ApiResponse<Vec<MediaAnalytics>>).into(),
     },
     SchemaEntry {
         commands: &["articles-draft"],

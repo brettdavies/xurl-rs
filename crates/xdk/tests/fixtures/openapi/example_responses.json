@@ -392,6 +392,47 @@
       "post_id": "1585341984679469056"
     }
   },
+  "media_list": {
+    "data": [
+      {
+        "media_key": "3_1146654567674912769",
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/example.jpg",
+        "width": 1200,
+        "height": 800,
+        "alt_text": "A terminal running xr"
+      },
+      {
+        "media_key": "7_1146654567674912770",
+        "type": "video",
+        "duration_ms": 46000,
+        "preview_image_url": "https://pbs.twimg.com/ext_tw_video_thumb/example.jpg",
+        "public_metrics": {
+          "view_count": 900
+        }
+      }
+    ]
+  },
+  "media_analytics": {
+    "data": [
+      {
+        "media_key": "7_1146654567674912770",
+        "video_views": 900,
+        "playback_start": 640,
+        "playback_complete": 120,
+        "watch_time_ms": 5400000,
+        "timestamped_metrics": [
+          {
+            "timestamp": "2026-10-01T00:00:00.000Z",
+            "metrics": {
+              "video_views": 900,
+              "playback_complete": "120"
+            }
+          }
+        ]
+      }
+    ]
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

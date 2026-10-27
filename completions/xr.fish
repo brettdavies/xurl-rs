@@ -4604,44 +4604,46 @@ complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "apps" -d 'Manage registered X API apps'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "default" -d 'Set default app and/or user'
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l timeout -d 'Request timeout in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -f -a "upload" -d 'Upload media file'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -f -a "status" -d 'Check media upload status'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -f -a "alt-text" -d 'Set the alt text shown for an uploaded image or video'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -f -a "subtitles" -d 'Add or remove the subtitle tracks of an uploaded video'
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status alt-text subtitles help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -f -a "upload" -d 'Upload media file'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -f -a "status" -d 'Check media upload status'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -f -a "get" -d 'Read 1 to 100 uploads by media key in one request'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -f -a "analytics" -d 'Video metrics for your uploads over a time window'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -f -a "alt-text" -d 'Set the alt text shown for an uploaded image or video'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -f -a "subtitles" -d 'Add or remove the subtitle tracks of an uploaded video'
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l media-type -d 'Media type (e.g., video/mp4)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l category -d 'Media category (e.g., `amplify_video`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l wait -d 'Wait for X to finish processing the upload before returning' -r
@@ -4720,6 +4722,83 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l start -d 'Start of the window (RFC 3339 with a zone, such as 2026-10-01T00:00:00Z)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l end -d 'End of the window (RFC 3339 with a zone); after the start' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l granularity -d 'Bucket size (X\'s default is daily)' -r -f -a "hourly\t''
+daily\t''
+total\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
@@ -4794,6 +4873,8 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "upload" -d 'Upload media file'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "status" -d 'Check media upload status'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "get" -d 'Read 1 to 100 uploads by media key in one request'
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "analytics" -d 'Video metrics for your uploads over a time window'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "alt-text" -d 'Set the alt text shown for an uploaded image or video'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "subtitles" -d 'Add or remove the subtitle tracks of an uploaded video'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
@@ -5037,7 +5118,7 @@ complete -c xr -n "__fish_xr_using_subcommand examples" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand examples" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand examples" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -5199,6 +5280,8 @@ complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from auth" -f -a "default" -d 'Set default app and/or user'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from media" -f -a "upload" -d 'Upload media file'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from media" -f -a "status" -d 'Check media upload status'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from media" -f -a "get" -d 'Read 1 to 100 uploads by media key in one request'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from media" -f -a "analytics" -d 'Video metrics for your uploads over a time window'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from media" -f -a "alt-text" -d 'Set the alt text shown for an uploaded image or video'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from media" -f -a "subtitles" -d 'Add or remove the subtitle tracks of an uploaded video'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from skill" -f -a "install" -d 'Install the skill bundle into a host\'s canonical skills directory'

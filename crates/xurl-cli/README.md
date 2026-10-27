@@ -297,6 +297,8 @@ xr media upload video.mp4                      # Upload media; waits up to 60 s 
 xr media upload video.mp4 --wait=300           # Wait up to five minutes
 xr media upload video.mp4 --wait=false         # Return after FINALIZE
 xr media status 1234567890                     # Check status
+xr media get 3_1146654567674912769             # Uploads by media key, up to 100
+xr media analytics 7_1146654567674912770 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z
 xr media status 1234567890 --wait=120          # Wait on processing, up to two minutes
 xr media alt-text 1234567890 "A dog asleep"    # Set alt text on an upload
 xr media upload captions.srt --media-type text/srt --category subtitles

@@ -127,6 +127,9 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "GET",
         "/2/notes/search/posts_eligible_for_notes",
     ),
+    // media lookup
+    ("GET_MEDIA", "GET", "/2/media"),
+    ("GET_MEDIA_ANALYTICS", "GET", "/2/media/analytics"),
     // communities
     ("SEARCH_COMMUNITIES", "GET", "/2/communities/search"),
     ("GET_COMMUNITY", "GET", "/2/communities/{id}"),
