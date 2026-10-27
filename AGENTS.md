@@ -221,6 +221,9 @@ never the tests.
   `crates/xurl-cli/src/cli/commands/examples.rs`. `crates/xurl-cli/tests/agentic_tests.rs` fails for a family the page
   never invokes.
 - **Completions.** `scripts/generate-completions.sh`; CI's completions freshness gate fails when they are stale.
+- **Audit vocabulary.** A new top-level command word that anc does not count as a standard verb goes in
+  `domain_verbs` in `.anc.toml`. CI's `Agent-native audit` warns once too few of `xr`'s commands use standard or
+  declared words, and that warning takes its score below the job's floor.
 
 Re-bless a golden fixture only where a surface above says the content moved, with `XURL_GOLDEN_BLESS=1 cargo test -p
 xurl-rs --test golden_tests`; a fixture that moves for any other reason is a defect.

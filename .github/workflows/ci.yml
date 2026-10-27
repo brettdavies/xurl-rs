@@ -433,8 +433,9 @@ jobs:
   # execute the CLI. The gate has two halves. First, any MUST-tier `fail` or
   # `error` fails the job. Second, the credit-weighted score must stay at or
   # above the committed floor: vocabulary drift (`p6`) reports as `warn`, which
-  # a MUST-only gate never sees, so the floor is what catches it. Raise the
-  # floor deliberately when the score improves.
+  # a MUST-only gate never sees, so the floor is what catches it. A command
+  # word that is X's own vocabulary goes in `.anc.toml`'s `domain_verbs`.
+  # Raise the floor deliberately when the score improves.
   #
   # The floor is the score the audit reports for this tree. Four rows do not
   # pass:
@@ -442,10 +443,11 @@ jobs:
   # - `p2-must-output-flag` (warn): anc validates JSON only through `--help`
   #   and `--version`, and `xr` prints both as clap's own text whatever
   #   `--output` says. `xr version --output json` is the JSON form.
-  # - `p6-should-consistent-naming` (warn): `auth` and `media` each hold the
-  #   verb `status` beside names anc does not count as verbs (`oauth2`, `apps`,
-  #   `upload`, `subtitles`). Regrouping them renames commands, which is a
-  #   breaking change.
+  # - `p6-should-consistent-naming` (warn): noun groups such as `auth`,
+  #   `media`, `calls`, and `webhooks` hold verbs beside names anc does not
+  #   count as verbs (`auth oauth2`, `media upload`). Regrouping a released
+  #   command renames it, which is a breaking change. The row warns once
+  #   however many groups it names.
   # - `p1-must-no-interactive` (skip): anc skips the flag check for a tool
   #   that prints its help on a bare invocation, as `xr` does.
   # - `p2-should-consistent-envelope` (skip): the success probe is `--help
@@ -458,9 +460,10 @@ jobs:
   # The same job checks the release binary's size against a standing ceiling.
   # Cargo honors [profile.release] only in the workspace root, and a profile
   # that silently stops applying inflates `xr` several times over while every
-  # test stays green; the ceiling turns that into a red job. The release `xr`
-  # measures 9,753,712 bytes and a dropped `strip` alone roughly doubles it,
-  # so the ceiling leaves room for ordinary growth and none for a lost profile.
+  # test stays green; the ceiling turns that into a red job. With every
+  # command family the release `xr` measures about 12.6 MB, and a dropped
+  # `strip` alone roughly doubles it, so the ceiling leaves room for ordinary
+  # growth and none for a lost profile.
   anc:
     name: Agent-native audit
     needs: scope
@@ -470,7 +473,7 @@ jobs:
     env:
       ANC_VERSION: "0.6.0"
       ANC_SCORE_FLOOR: "98"
-      XR_SIZE_CEILING_BYTES: "12000000"
+      XR_SIZE_CEILING_BYTES: "15000000"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
