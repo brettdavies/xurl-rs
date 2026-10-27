@@ -121,6 +121,7 @@ xr quotes 1585341984679469056                  # Posts that quote a post
 xr whoami                                      # Your profile
 xr whoami --cached                             # Your id, username, and name from the store; no request
 xr user @elonmusk                              # Look up user
+xr users @XDevelopers @jack                    # Up to 100 accounts, by handle or by id
 xr user-posts @XDevelopers                     # A user's posts, newest first
 xr timeline                                    # Home timeline
 xr mentions                                    # Your mentions

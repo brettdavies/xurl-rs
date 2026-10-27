@@ -1,7 +1,8 @@
 //! The commands that read posts and profiles: `read`, `read-posts`,
-//! `user-posts`, `search`, `search-users`, `search-counts`, `whoami`, `user`,
-//! `timeline`, `mentions`, who engaged with a post (`likers`, `reposters`,
-//! and `quotes`), and how the caller's posts did (`analytics`).
+//! `users`, `user-posts`, `search`, `search-users`, `search-counts`,
+//! `whoami`, `user`, `timeline`, `mentions`, who engaged with a post
+//! (`likers`, `reposters`, and `quotes`), and how the caller's posts did
+//! (`analytics`).
 
 use serde_json::json;
 
@@ -41,6 +42,18 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             };
             send_validated(run, ctx, validator, &common, |client: &Client| {
                 client.read_posts(&post_ids)
+            })
+            .await?;
+        }
+        Commands::Users { accounts, common } => {
+            let ctx = json!({"command": "users", "accounts": accounts});
+            let validate = || shortcuts::validate_user_lookup(&accounts);
+            send_validated(run, ctx, validate, &common, |client: &Client| {
+                if accounts.iter().all(|a| shortcuts::is_user_id_form(a)) {
+                    client.lookup_users_by_id(&accounts)
+                } else {
+                    client.lookup_users_by_username(&accounts)
+                }
             })
             .await?;
         }

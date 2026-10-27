@@ -104,6 +104,9 @@ MANAGE SOCIAL GRAPH:
   Find accounts by keyword:
     xr search-users rust -n 50 --output json | jaq -r '.data[]?.username'
 
+  Several accounts in one request, by handle or by id:
+    xr users @XDevelopers @jack --output json | jaq -r '.data[]?.id'
+
   A user's posts, newest first:
     xr user-posts @XDevelopers -n 50 --output json | jaq -r '.data[]?.text'
 

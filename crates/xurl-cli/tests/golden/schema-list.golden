@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 7737
+stdout_len: 7791
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -123,6 +123,7 @@ usage                          ApiResponse<UsageData>
 usage-credits                  ApiResponse<UsageCreditsData>
 user                           ApiResponse<User>
 user-posts                     ApiResponse<Vec<Post>>
+users                          ApiResponse<Vec<User>>
 webhooks-add                   ApiResponse<Webhook>
 webhooks-list                  ApiResponse<Vec<Webhook>>
 webhooks-remove                ApiResponse<DeletedResult>

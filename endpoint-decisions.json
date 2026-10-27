@@ -167,16 +167,17 @@
       }
     },
     {
-      "id": "users-lookup",
+      "id": "user-by-id",
       "operations": [
-        "GET /2/users",
-        "GET /2/users/by",
         "GET /2/users/{id}"
       ],
-      "status": "planned",
-      "reason": "Look up users by id, or several by id or username in one request.",
+      "status": "raw-only",
+      "reason": "One account by id answers one object; xr users takes 1 to 100 ids and answers a list, so one id is a batch of one.",
       "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
+      "by": "Brett, on the command-families plan's OQ1",
+      "revisit_when": {
+        "kind": "never"
+      }
     },
     {
       "id": "stream-rules",

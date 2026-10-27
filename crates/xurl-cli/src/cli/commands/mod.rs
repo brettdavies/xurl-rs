@@ -565,6 +565,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         | Commands::Delete { .. } => posts::run(cmd, run).await,
         Commands::Read { .. }
         | Commands::ReadPosts { .. }
+        | Commands::Users { .. }
         | Commands::UserPosts { .. }
         | Commands::SearchUsers { .. }
         | Commands::SearchCounts { .. }

@@ -1004,6 +1004,14 @@ fn dry_run_cases() -> Vec<Case> {
             "dry-run-invalid-user-query",
             &["--output", "json", "--dry-run", "search-users", "rust-lang"],
         ),
+        case(
+            "dry-run-mixed-ids-and-handles",
+            &["--output", "json", "--dry-run", "users", "12", "@jack"],
+        ),
+        case(
+            "dry-run-invalid-username",
+            &["--output", "json", "--dry-run", "users", "@not-a-handle!"],
+        ),
         Case {
             name: "dry-run-too-many-ids".to_string(),
             args: ["--output", "json", "--dry-run", "read-posts"]
