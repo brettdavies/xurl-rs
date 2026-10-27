@@ -425,9 +425,23 @@ exercises it until the tag exists, which is the wrong moment to find a packaging
 - [ ] **Library version bumped and `crates/xdk/CHANGELOG.md` cut**, per `RELEASES.md` § Project specifics, together with
   the CLI's declared bound in the root `Cargo.toml`. The changelog beside the manifest is where `rust-ci.yml`'s
   per-crate `Changelog` check looks, and where `release-lib.yml` cuts release notes from.
-- [ ] **Rehearse the publish from the release branch**: `gh workflow run release-lib.yml --ref release/v<version>`, then
-  watch it to `success`. A manual dispatch always runs dry (the caller derives `dry_run` from `github.event_name`), so
-  this cannot publish. It runs the real audit and a real `cargo publish -p xdk-rs --dry-run`, and creates no release.
+- [ ] **Rehearse the publish from the release branch**: `cargo publish -p xdk-rs --dry-run` on the committed branch
+  packages the crate, builds it from the package, and stops before the upload, which is the step `release-lib.yml`
+  publishes with; `cargo package -p xdk-rs --list` shows the file set. The workflow's audit is the `cargo deny` pair the
+  release PR's `ci / Security audit` jobs run. When `release-lib.yml`, or the reusable `rust-lib-release.yml` it calls,
+  changed since the last `xdk-rs-v*` tag, the workflow needs a run of its own,
+  `gh workflow run release-lib.yml --ref release/v<version>`, watched to `success`. A manual dispatch always runs dry
+  (the caller derives `dry_run` from `github.event_name`), so it cannot publish and creates no release. These list the
+  changes, and print nothing when there are none:
+
+  ```bash
+  last=$(git tag -l 'xdk-rs-v*' --sort=-v:refname | head -1)
+  since=$(git log -1 --format=%cI "$last")
+  git log --oneline "$last..HEAD" -- .github/workflows/release-lib.yml
+  gh api "repos/brettdavies/.github/commits?path=.github/workflows/rust-lib-release.yml&since=$since" \
+    --jq '.[].commit.message | split("\n")[0]'
+  ```
+
 - [ ] **Tag order planned: library first, CLI second.** `cargo publish -p xurl-rs` resolves `xdk-rs` from crates.io, so
   the CLI cannot publish until the library is on the index at a version its bound accepts. The CLI's `check-version`
   refuses up front when it is not, which costs a full run to discover.
