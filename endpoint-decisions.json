@@ -191,18 +191,17 @@
       "by": "Brett, in the #370 sweep"
     },
     {
-      "id": "spaces",
+      "id": "space-by-id",
       "operations": [
-        "GET /2/spaces",
-        "GET /2/spaces/by/creator_ids",
-        "GET /2/spaces/search",
-        "GET /2/spaces/{id}",
-        "GET /2/spaces/{id}/tweets"
+        "GET /2/spaces/{id}"
       ],
-      "status": "planned",
-      "reason": "An xr spaces family for discovery: search, by id, by creator, and a Space's posts.",
+      "status": "raw-only",
+      "reason": "One Space by id answers one object; xr spaces get takes 1 to 100 ids and answers a list, so one id is a batch of one.",
       "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
+      "by": "Brett, on the command-families plan's OQ1",
+      "revisit_when": {
+        "kind": "never"
+      }
     },
     {
       "id": "media-by-key",

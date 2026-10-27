@@ -80,6 +80,11 @@ POST AND READ:
     xr news search \"open source\" --max-age-hours 24 --output json | jaq -r '.data[]?.name'
     xr news get 1850000000000000000 --output json
 
+  Live Spaces about a topic, the Spaces two accounts created, and a Space's posts:
+    xr spaces search rust --state live --output json | jaq -r '.data[]? | .title'
+    xr spaces by-creator @XDevelopers @jack --output json
+    xr spaces posts 1DXxyRYNejbKM --output json
+
   Trends worldwide, and the trends X picks for you:
     xr trends place 1 --max 10 --output json | jaq -r '.data[]?.trend_name'
     xr trends personal --output json

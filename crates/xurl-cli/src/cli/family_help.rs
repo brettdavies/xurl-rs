@@ -503,6 +503,63 @@ pub mod news {
     }
 }
 
+/// The `xr spaces` family.
+pub mod spaces {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "spaces" };
+
+    /// `xr spaces search`.
+    pub const SEARCH: Verb = Verb {
+        name: "search",
+        example_args: "rust --state live",
+        text_caption: "Live Spaces about a topic (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr spaces get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "1DXxyRYNejbKM 1YpKkgVgQwvGj",
+        text_caption: "Read two Spaces, by id (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr spaces by-creator`.
+    pub const BY_CREATOR: Verb = Verb {
+        name: "by-creator",
+        example_args: "@XDevelopers @jack",
+        text_caption: "The Spaces two accounts created (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr spaces posts`.
+    pub const POSTS: Verb = Verb {
+        name: "posts",
+        example_args: "1DXxyRYNejbKM",
+        text_caption: "The posts shared in a Space (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr spaces --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("Find live Spaces (text)", &[Example::text(&SEARCH)]),
+            (
+                "Read Spaces by id or by creator, JSON envelope",
+                &[Example::json(&GET), Example::json(&BY_CREATOR)],
+            ),
+            (
+                "The posts shared in a Space (text)",
+                &[Example::text(&POSTS)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr articles` family.
 pub mod articles {
     use super::{Example, Family, Section, Verb};

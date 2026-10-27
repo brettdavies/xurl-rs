@@ -433,6 +433,42 @@
       }
     ]
   },
+  "space_list": {
+    "data": [
+      {
+        "id": "1DXxyRYNejbKM",
+        "state": "live",
+        "title": "Rust hour",
+        "creator_id": "2244994945",
+        "host_ids": ["2244994945"],
+        "participant_count": 40,
+        "is_ticketed": false,
+        "lang": "en",
+        "started_at": "2026-10-26T18:00:00.000Z",
+        "created_at": "2026-10-26T17:55:00.000Z"
+      },
+      {
+        "id": "1YpKkgVgQwvGj",
+        "state": "scheduled",
+        "title": "Release notes, read aloud",
+        "creator_id": "2244994945",
+        "subscriber_count": 12,
+        "scheduled_start": "2026-10-28T17:00:00.000Z"
+      }
+    ],
+    "includes": {
+      "users": [
+        {
+          "id": "2244994945",
+          "name": "Twitter Dev",
+          "username": "TwitterDev"
+        }
+      ]
+    },
+    "meta": {
+      "result_count": 2
+    }
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

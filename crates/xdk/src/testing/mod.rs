@@ -526,6 +526,26 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::SEARCH_SPACES,
+        fixture: "space_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_SPACES,
+        fixture: "space_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_SPACES_BY_CREATOR,
+        fixture: "space_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_SPACE_POSTS,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::CREATE_ARTICLE_DRAFT,
         fixture: "article_draft",
         status: 201,

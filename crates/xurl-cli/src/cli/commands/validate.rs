@@ -24,7 +24,7 @@ use xdk::api::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSourceDeleted, StreamSourceResult,
     StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
     WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
@@ -108,6 +108,7 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<Vec<PostAnalytics>>("analytics"),
     typed_alias::<Vec<Media>>("media"),
     typed_alias::<Vec<MediaAnalytics>>("media-analytics"),
+    typed_alias::<Vec<Space>>("spaces"),
     typed_alias::<ArticleDraft>("article-draft"),
     typed_alias::<ArticlePublished>("article-published"),
     typed_alias::<NoteCreated>("note-created"),
