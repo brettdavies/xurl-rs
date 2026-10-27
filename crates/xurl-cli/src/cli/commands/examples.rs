@@ -72,6 +72,10 @@ POST AND READ:
   Impressions and engagement for your posts, per day over a week:
     xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-08T00:00:00Z --granularity daily --output json
 
+  Trends worldwide, and the trends X picks for you:
+    xr trends place 1 --max 10 --output json | jaq -r '.data[]?.trend_name'
+    xr trends personal --output json
+
   Search recent posts:
     xr search \"rustlang\" -n 25
     XURL_OUTPUT=json xr search \"rustlang\" -n 25

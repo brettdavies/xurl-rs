@@ -130,6 +130,27 @@
       }
     ]
   },
+  "trends": {
+    "data": [
+      {
+        "trend_name": "#rustlang",
+        "tweet_count": 18400
+      },
+      {
+        "trend_name": "Open source"
+      }
+    ]
+  },
+  "personalized_trends": {
+    "data": [
+      {
+        "trend_name": "Rust 2026",
+        "category": "Technology",
+        "post_count": "12.5K posts",
+        "trending_since": "Trending now"
+      }
+    ]
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

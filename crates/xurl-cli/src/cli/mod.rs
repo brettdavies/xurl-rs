@@ -1680,6 +1680,15 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Trends ───────────────────────────────────────────────────────
+    /// Trends for a place, and your personalized trends
+    #[command(after_help = family_help::trends::page())]
+    Trends {
+        /// `trends` verb to dispatch.
+        #[command(subcommand)]
+        action: TrendsCommands,
+    },
+
     // ── Broadcasts ───────────────────────────────────────────────────
     /// Broadcast chat moderators and stream sources
     #[command(after_help = family_help::broadcasts::root_page())]
@@ -1854,6 +1863,31 @@ pub enum BookmarkFoldersCommands {
         /// The folder's name, 1 to 25 characters
         #[arg(value_name = "NAME")]
         name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr trends` verbs.
+#[derive(Subcommand, Debug)]
+pub enum TrendsCommands {
+    /// Trends for a place, by its Yahoo WOEID (1 is worldwide)
+    #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::PLACE))]
+    Place {
+        /// The place's Yahoo Where On Earth ID, a positive integer
+        #[arg(value_name = "WOEID", value_parser = clap::value_parser!(u32).range(1..))]
+        woeid: u32,
+        /// Most trends to list, 1 to 50 (X's default is 20)
+        #[arg(long, value_parser = clap::value_parser!(u32).range(1..=50))]
+        max: Option<u32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// The trends X picks for you
+    #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::PERSONAL))]
+    Personal {
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

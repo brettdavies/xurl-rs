@@ -131,6 +131,16 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_TRENDS,
+        fixture: "trends",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_PERSONALIZED_TRENDS,
+        fixture: "personalized_trends",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_POST_ANALYTICS,
         fixture: "post_analytics",
         status: 200,

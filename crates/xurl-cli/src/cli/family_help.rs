@@ -147,6 +147,46 @@ pub mod bookmark_folders {
     }
 }
 
+/// The `xr trends` family.
+pub mod trends {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "trends" };
+
+    /// `xr trends place`.
+    pub const PLACE: Verb = Verb {
+        name: "place",
+        example_args: "1 --max 10",
+        text_caption: "The top ten trends worldwide, WOEID 1 (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr trends personal`.
+    pub const PERSONAL: Verb = Verb {
+        name: "personal",
+        example_args: "",
+        text_caption: "The trends X picks for you (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr trends --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Trends for a place, by its WOEID (text)",
+                &[Example::text(&PLACE)],
+            ),
+            (
+                "Your personalized trends, JSON envelope",
+                &[Example::json(&PERSONAL)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr broadcasts` family.
 pub mod broadcasts {
     use super::{Example, Family, Section, Verb, broadcast_sources, page_of};

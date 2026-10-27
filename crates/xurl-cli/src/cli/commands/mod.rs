@@ -16,6 +16,7 @@ mod reads;
 pub mod schema;
 pub mod skill;
 mod streaming;
+mod trends;
 mod usage;
 pub mod validate;
 mod webhooks;
@@ -591,6 +592,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Dm { .. } | Commands::Dms { .. } => dms::run(cmd, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,
         Commands::Broadcasts { target } => broadcasts::run(target, run).await,
+        Commands::Trends { action } => trends::run(action, run).await,
         Commands::BookmarkFolders { action } => bookmark_folders::run(action, run).await,
         Commands::Calls { target } => calls::run(target, run).await,
         Commands::Webhooks { action } => webhooks::run(action, run).await,

@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 4786
+stdout_len: 4908
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -61,6 +61,8 @@ search-users                   ApiResponse<Vec<User>>
 skill-install                  InstallEnvelope
 skill-install-all              InstallMultiEnvelope
 timeline                       ApiResponse<Vec<Post>>
+trends-personal                ApiResponse<Vec<PersonalizedTrend>>
+trends-place                   ApiResponse<Vec<Trend>>
 unblock                        ApiResponse<BlockingResult>
 unbookmark                     ApiResponse<BookmarkedResult>
 unfollow                       ApiResponse<FollowingResult>

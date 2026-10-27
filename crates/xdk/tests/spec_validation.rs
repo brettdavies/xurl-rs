@@ -24,11 +24,12 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, ChatModeratorsResult,
     DeletedResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult,
-    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult, Post,
-    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult,
+    PersonalizedTrend, Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -218,6 +219,22 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
          Cause: a developer searching for the name X's older docs use gets no result.\n\
          Fix: add `#[doc(alias = \"<legacy>\")]` to the item named."
     );
+}
+
+#[test]
+fn spec_trends() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Trend>> = serde_json::from_value(examples["trends"].clone()).unwrap();
+    assert_eq!(resp.data[0].tweet_count, Some(18400));
+    assert_eq!(resp.data[1].tweet_count, None);
+}
+
+#[test]
+fn spec_personalized_trends() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<PersonalizedTrend>> =
+        serde_json::from_value(examples["personalized_trends"].clone()).unwrap();
+    assert_eq!(resp.data[0].category.as_deref(), Some("Technology"));
 }
 
 #[test]
@@ -689,6 +706,12 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "post_analytics",
         endpoints::GET_POST_ANALYTICS,
+        ReplyKind::Success,
+    ),
+    ("trends", endpoints::GET_TRENDS, ReplyKind::Success),
+    (
+        "personalized_trends",
+        endpoints::GET_PERSONALIZED_TRENDS,
         ReplyKind::Success,
     ),
     ("user_single", endpoints::GET_ME, ReplyKind::Success),
