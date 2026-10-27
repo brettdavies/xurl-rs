@@ -32,9 +32,9 @@ use xdk::api::response::types::{
     MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSource, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation, XCall,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
+    StreamRuleCounts, StreamSource, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -290,6 +290,18 @@ fn typed_responses_match_vendored_spec() {
         (
             "Space",
             serde_json::to_value(schemars::schema_for!(Space)).unwrap(),
+        ),
+        (
+            "GetRulesResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamRule)).unwrap(),
+        ),
+        (
+            "GetRuleCountsResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamRuleCounts)).unwrap(),
+        ),
+        (
+            "GetRuleCountsResponseDataClientAppRulesCount",
+            serde_json::to_value(schemars::schema_for!(StreamRuleAppCount)).unwrap(),
         ),
         (
             "ArticleCreateDraftResponseData",

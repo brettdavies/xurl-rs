@@ -135,6 +135,18 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_SPACES", "GET", "/2/spaces"),
     ("GET_SPACES_BY_CREATOR", "GET", "/2/spaces/by/creator_ids"),
     ("GET_SPACE_POSTS", "GET", "/2/spaces/{id}/tweets"),
+    // filtered stream rules
+    ("GET_STREAM_RULES", "GET", "/2/tweets/search/stream/rules"),
+    (
+        "UPDATE_STREAM_RULES",
+        "POST",
+        "/2/tweets/search/stream/rules",
+    ),
+    (
+        "GET_STREAM_RULE_COUNTS",
+        "GET",
+        "/2/tweets/search/stream/rules/counts",
+    ),
     // communities
     ("SEARCH_COMMUNITIES", "GET", "/2/communities/search"),
     ("GET_COMMUNITY", "GET", "/2/communities/{id}"),

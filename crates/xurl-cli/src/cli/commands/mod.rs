@@ -25,6 +25,7 @@ mod reads;
 pub mod schema;
 pub mod skill;
 mod spaces;
+mod stream_rules;
 mod streaming;
 mod trends;
 mod usage;
@@ -612,6 +613,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Communities { action } => communities::run(action, run).await,
         Commands::News { action } => news::run(action, run).await,
         Commands::Spaces { action } => spaces::run(action, run).await,
+        Commands::Stream { action } => stream_rules::run(action, run).await,
         Commands::Articles { action } => articles::run(action, run).await,
         Commands::Notes { action } => notes::run(action, run).await,
         Commands::Trends { action } => trends::run(action, run).await,

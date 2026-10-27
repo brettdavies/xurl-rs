@@ -546,6 +546,21 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_STREAM_RULES,
+        fixture: "stream_rules",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_STREAM_RULES,
+        fixture: "stream_rules_added",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_STREAM_RULE_COUNTS,
+        fixture: "stream_rule_counts",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::CREATE_ARTICLE_DRAFT,
         fixture: "article_draft",
         status: 201,

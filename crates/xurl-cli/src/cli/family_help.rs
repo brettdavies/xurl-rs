@@ -560,6 +560,74 @@ pub mod spaces {
     }
 }
 
+/// The `xr stream rules` family, which is also the page under
+/// `xr stream --help`.
+pub mod stream_rules {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "stream rules",
+    };
+
+    /// `xr stream rules list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "The filtered stream's rules (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr stream rules add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "\"from:XDevelopers has:media\" --tag devs",
+        text_caption: "Add a rule with a tag (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr stream rules add --validate-only`, on the family page.
+    const CHECK: Verb = Verb {
+        name: "add",
+        example_args: "\"from:XDevelopers has:media\" --validate-only",
+        text_caption: "Have X check a rule (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr stream rules remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1585341984679469056 --force --no-interactive",
+        text_caption: "Remove a rule without asking (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr stream rules counts`.
+    pub const COUNTS: Verb = Verb {
+        name: "counts",
+        example_args: "",
+        text_caption: "Your app's rules against X's caps (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr stream rules --help` and `xr stream --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("List the rules (text)", &[Example::text(&LIST)]),
+            (
+                "Have X check a rule, then add it, JSON envelope",
+                &[Example::json(&CHECK), Example::json(&ADD)],
+            ),
+            (
+                "Remove a rule, and count the rest (text)",
+                &[Example::text(&REMOVE), Example::text(&COUNTS)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr articles` family.
 pub mod articles {
     use super::{Example, Family, Section, Verb};

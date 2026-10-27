@@ -174,6 +174,21 @@ xr spaces posts 1DXxyRYNejbKM                  # The posts shared in a Space
 are; a handle beside an id is refused with `mixed-ids-and-handles`. A Space id is 1 to 13 letters or digits; anything
 else is refused with `invalid-space-id` before any request.
 
+### Filtered stream rules
+
+```bash
+xr stream rules list                                          # The rules on the filtered stream
+xr stream rules add "from:XDevelopers has:media" --tag devs   # Add a rule with a tag
+xr stream rules add "from:XDevelopers" --validate-only        # Have X check a rule, saving nothing
+xr stream rules remove 1585341984679469056                    # Remove rules by id (asks first; --force skips)
+xr stream rules counts                                        # Your app's rules against X's caps
+```
+
+The rules endpoints take the app's bearer token only, so a user login alone is refused with `auth-method-mismatch`.
+`--validate-only` sends the change with X's `dry_run`: X checks it and saves nothing, and the request is a real one.
+`--dry-run` sends nothing at all, so `--dry-run --validate-only` sends nothing either. A removal X only checks asks for
+no confirmation.
+
 ### Articles
 
 ```bash

@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8129
+stdout_len: 8386
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -115,6 +115,10 @@ spaces-by-creator              ApiResponse<Vec<Space>>
 spaces-get                     ApiResponse<Vec<Space>>
 spaces-posts                   ApiResponse<Vec<Post>>
 spaces-search                  ApiResponse<Vec<Space>>
+stream-rules-add               ApiResponse<Option<Vec<StreamRule>>>
+stream-rules-counts            ApiResponse<StreamRuleCounts>
+stream-rules-list              ApiResponse<Vec<StreamRule>>
+stream-rules-remove            ApiResponse<Option<Vec<StreamRule>>>
 timeline                       ApiResponse<Vec<Post>>
 trends-personal                ApiResponse<Vec<PersonalizedTrend>>
 trends-place                   ApiResponse<Vec<Trend>>

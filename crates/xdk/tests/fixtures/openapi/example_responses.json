@@ -469,6 +469,57 @@
       "result_count": 2
     }
   },
+  "stream_rules": {
+    "data": [
+      {
+        "id": "1585341984679469056",
+        "value": "from:XDevelopers has:media",
+        "tag": "devs with media"
+      },
+      {
+        "id": "1585341984679469057",
+        "value": "rustlang -is:retweet"
+      }
+    ],
+    "meta": {
+      "result_count": 2
+    }
+  },
+  "stream_rules_added": {
+    "data": [
+      {
+        "id": "1585341984679469058",
+        "value": "from:jack",
+        "tag": "jack"
+      }
+    ],
+    "meta": {
+      "sent": "2026-10-26T20:00:00.000Z",
+      "summary": {
+        "created": 1,
+        "not_created": 0,
+        "valid": 1,
+        "invalid": 0
+      }
+    }
+  },
+  "stream_rule_counts": {
+    "data": {
+      "cap_per_client_app": "1000",
+      "cap_per_project": "1000",
+      "project_rules_count": "3",
+      "client_app_rules_count": {
+        "client_app_id": "29",
+        "rule_count": 3
+      },
+      "all_project_client_apps": [
+        {
+          "client_app_id": "29",
+          "rule_count": 3
+        }
+      ]
+    }
+  },
   "user_single": {
     "data": {
       "id": "2244994945",

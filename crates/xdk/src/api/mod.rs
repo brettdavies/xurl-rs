@@ -43,10 +43,10 @@ pub use response::types::{
     NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     PostPublicMetrics, ProvisionedResult, ReferencedPost, RepostedResult, ResponseMeta,
     ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSource, StreamSourceDeleted,
-    StreamSourceResult, StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User,
-    UserPublicMetrics, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
-    deserialize_response,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
+    StreamRuleCounts, StreamSource, StreamSourceDeleted, StreamSourceResult, StreamSources,
+    SubscribedResult, Trend, UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]

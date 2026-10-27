@@ -180,17 +180,6 @@
       }
     },
     {
-      "id": "stream-rules",
-      "operations": [
-        "* /2/tweets/search/stream/rules",
-        "GET /2/tweets/search/stream/rules/counts"
-      ],
-      "status": "planned",
-      "reason": "xr stream rules list, add, remove, and counts for the filtered stream, with the endpoint's dry_run behind --dry-run.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "space-by-id",
       "operations": [
         "GET /2/spaces/{id}"

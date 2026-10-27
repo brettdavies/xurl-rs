@@ -24,9 +24,10 @@ use xdk::api::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -109,6 +110,9 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<Vec<Media>>("media"),
     typed_alias::<Vec<MediaAnalytics>>("media-analytics"),
     typed_alias::<Vec<Space>>("spaces"),
+    typed_alias::<Vec<StreamRule>>("stream-rules"),
+    typed_alias::<Option<Vec<StreamRule>>>("stream-rules-update"),
+    typed_alias::<StreamRuleCounts>("stream-rule-counts"),
     typed_alias::<ArticleDraft>("article-draft"),
     typed_alias::<ArticlePublished>("article-published"),
     typed_alias::<NoteCreated>("note-created"),

@@ -1812,6 +1812,15 @@ pub enum Commands {
         action: SpacesCommands,
     },
 
+    // ── Filtered stream ──────────────────────────────────────────────
+    /// The filtered stream's rules
+    #[command(after_help = family_help::stream_rules::page())]
+    Stream {
+        /// `stream` noun to dispatch.
+        #[command(subcommand)]
+        action: StreamCommands,
+    },
+
     // ── Articles ─────────────────────────────────────────────────────
     /// Write and publish long-form X Articles
     #[command(after_help = family_help::articles::page())]
@@ -2401,6 +2410,75 @@ pub enum SpacesCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr stream` nouns.
+#[derive(Subcommand, Debug)]
+pub enum StreamCommands {
+    /// List, add, remove, and count the rules that pick the stream's posts
+    #[command(after_help = family_help::stream_rules::page())]
+    Rules {
+        /// `stream rules` verb to dispatch.
+        #[command(subcommand)]
+        action: StreamRulesCommands,
+    },
+}
+
+/// `xr stream rules` verbs.
+#[derive(Subcommand, Debug)]
+pub enum StreamRulesCommands {
+    /// List the filtered stream's rules
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::LIST))]
+    List {
+        /// Number of results (1-1000). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Add a rule to the filtered stream
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::ADD))]
+    Add {
+        /// The rule's filter expression, such as "from:XDevelopers has:media"
+        value: String,
+        /// A label for the rule; the stream marks each post with the tags of
+        /// the rules it matched
+        #[arg(long)]
+        tag: Option<String>,
+        /// Have X check the rule and save nothing (the endpoint's
+        /// `dry_run`). This sends a request; `--dry-run` sends none
+        #[arg(long)]
+        validate_only: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove rules from the filtered stream, by id
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::REMOVE))]
+    Remove {
+        /// Rule ids, as `xr stream rules list` prints them
+        #[arg(value_name = "RULE_ID", required = true, num_args = 1..)]
+        rule_ids: Vec<String>,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Have X check the removal and delete nothing (the endpoint's
+        /// `dry_run`); it needs no confirmation. This sends a request;
+        /// `--dry-run` sends none
+        #[arg(long)]
+        validate_only: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// How many rules your app and its project hold, against X's caps
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::COUNTS))]
+    Counts {
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
