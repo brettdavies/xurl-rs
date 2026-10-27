@@ -82,8 +82,8 @@ names the file. When a store command is what failed (reason `token-store`), the 
 step carries `docs` alone.
 
 Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
-`invalid-args` and `unknown-command` (exit 2) and the refusals that exit 1 (`validation`, `invalid-url`,
-`invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`, `missing-host`):
+`invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
+`invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
 `command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
 `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
 job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the `xr media status
@@ -260,7 +260,7 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   groups share; the files beside it hold one group each (posts, reads, engagement, the social graph, DMs, usage,
   broadcasts, calls, webhooks, media), the tooling commands (schema, skill, validate, examples), streaming, and
   `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while
-  `types.rs` holds the bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
+  `types.rs` holds the bearer-source enum and the redirect-URI shapes.
 - `crates/xdk/src/webhooks/`: the webhook receiver. It binds an address, answers X's CRC check, and yields each event
   whose signature verifies, on hyper's HTTP/1 server; `xr webhooks listen` prints what it yields.
 - `crates/xdk/src/config/`: env-var-based configuration.
@@ -268,7 +268,8 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   upgrades.
 - `crates/xurl-cli/src/cli/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv
   serializer.
-- `crates/xdk/src/error.rs`: `Error` (re-exported as `xdk::Error`) via `thiserror`.
+- `crates/xdk/src/error.rs`: `Error` (re-exported as `xdk::Error`) via `thiserror`; `Error::exit_code()` encodes the
+  exit-code contract.
 - `crates/xdk/src/lib.rs`: public library surface. The `xdk` library is consumable from downstream Rust crates; the
   binary `xr` is one consumer among potentially several. `crates/xurl-cli/src/lib.rs` exposes the CLI module only so the
   binary's own tests can drive it in-process; it is not an embedder API.
