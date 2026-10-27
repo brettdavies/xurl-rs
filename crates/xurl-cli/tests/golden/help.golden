@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 16004
+stdout_len: 16063
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -96,6 +96,7 @@ Commands:
   lists             Your lists, a list's posts and members, and following and pinning
   communities       Search communities, and read one
   news              Search news stories, and read one
+  articles          Write and publish long-form X Articles
   notes             Write Community Notes through X's AI Note Writer API
   trends            Trends for a place, and your personalized trends
   broadcasts        Broadcast chat moderators and stream sources

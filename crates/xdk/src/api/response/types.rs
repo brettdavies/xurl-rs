@@ -825,6 +825,31 @@ pub struct ChatMutedResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// A draft X Article just saved.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ArticleDraft {
+    /// Article ID, which `publish` takes.
+    pub id: String,
+    /// The article's title.
+    pub title: String,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The post a published X Article became.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ArticlePublished {
+    /// The post that carries the article. Either this name or the legacy
+    /// `tweet_id` fills the field.
+    #[serde(alias = "tweet_id")]
+    #[doc(alias = "tweet_id")]
+    pub post_id: String,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// The id of a Community Note just written.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct NoteCreated {

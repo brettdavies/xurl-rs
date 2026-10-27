@@ -1760,6 +1760,15 @@ pub enum Commands {
         action: NewsCommands,
     },
 
+    // ── Articles ─────────────────────────────────────────────────────
+    /// Write and publish long-form X Articles
+    #[command(after_help = family_help::articles::page())]
+    Articles {
+        /// `articles` verb to dispatch.
+        #[command(subcommand)]
+        action: ArticlesCommands,
+    },
+
     // ── Community Notes ──────────────────────────────────────────────
     /// Write Community Notes through X's AI Note Writer API
     #[command(after_help = family_help::notes::page())]
@@ -2318,6 +2327,44 @@ pub enum NewsCommands {
         /// Story ID, as `xr news search` prints it
         #[arg(value_name = "STORY_ID")]
         story_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr articles` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ArticlesCommands {
+    /// Save a draft X Article from a plain-text body
+    ///
+    /// A blank line ends a paragraph. A line that starts with `#`, `##`, or
+    /// `###` and a space is a header, `-` a list item, `1.` a numbered item,
+    /// and `>` a quote.
+    #[command(after_help = family_help::articles::FAMILY.verb_page(&family_help::articles::DRAFT))]
+    Draft {
+        /// The article's title
+        #[arg(long)]
+        title: String,
+        /// The file holding the body, or `-` to read it from stdin
+        #[arg(long, value_name = "PATH")]
+        body_file: String,
+        /// The media id of an uploaded image to show above the article
+        #[arg(long, value_name = "MEDIA_ID")]
+        cover: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Publish a draft X Article
+    #[command(after_help = family_help::articles::FAMILY.verb_page(&family_help::articles::PUBLISH))]
+    Publish {
+        /// Article ID, as `xr articles draft` prints it
+        #[arg(value_name = "ARTICLE_ID")]
+        article_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

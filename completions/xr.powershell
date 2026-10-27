@@ -109,6 +109,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('lists', 'lists', [CompletionResultType]::ParameterValue, 'Your lists, a list''s posts and members, and following and pinning')
             [CompletionResult]::new('communities', 'communities', [CompletionResultType]::ParameterValue, 'Search communities, and read one')
             [CompletionResult]::new('news', 'news', [CompletionResultType]::ParameterValue, 'Search news stories, and read one')
+            [CompletionResult]::new('articles', 'articles', [CompletionResultType]::ParameterValue, 'Write and publish long-form X Articles')
             [CompletionResult]::new('notes', 'notes', [CompletionResultType]::ParameterValue, 'Write Community Notes through X''s AI Note Writer API')
             [CompletionResult]::new('trends', 'trends', [CompletionResultType]::ParameterValue, 'Trends for a place, and your personalized trends')
             [CompletionResult]::new('broadcasts', 'broadcasts', [CompletionResultType]::ParameterValue, 'Broadcast chat moderators and stream sources')
@@ -2830,6 +2831,113 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;news;help;help' {
+            break
+        }
+        'xr;articles' {
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('draft', 'draft', [CompletionResultType]::ParameterValue, 'Save a draft X Article from a plain-text body')
+            [CompletionResult]::new('publish', 'publish', [CompletionResultType]::ParameterValue, 'Publish a draft X Article')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;articles;draft' {
+            [CompletionResult]::new('--title', '--title', [CompletionResultType]::ParameterName, 'The article''s title')
+            [CompletionResult]::new('--body-file', '--body-file', [CompletionResultType]::ParameterName, 'The file holding the body, or `-` to read it from stdin')
+            [CompletionResult]::new('--cover', '--cover', [CompletionResultType]::ParameterName, 'The media id of an uploaded image to show above the article')
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;articles;publish' {
+            [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (oauth1, oauth2, app)')
+            [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
+            [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
+            [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
+            [CompletionResult]::new('--output', '--output', [CompletionResultType]::ParameterName, 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`')
+            [CompletionResult]::new('--raw', '--raw', [CompletionResultType]::ParameterName, 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are')
+            [CompletionResult]::new('-q', '-q', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--quiet', '--quiet', [CompletionResultType]::ParameterName, 'Suppress all non-essential output (errors still go to stderr)')
+            [CompletionResult]::new('--no-interactive', '--no-interactive', [CompletionResultType]::ParameterName, 'Disable interactive prompts; fail with error instead')
+            [CompletionResult]::new('--timeout', '--timeout', [CompletionResultType]::ParameterName, 'Request timeout in seconds')
+            [CompletionResult]::new('--wait-on-rate-limit', '--wait-on-rate-limit', [CompletionResultType]::ParameterName, 'Wait out a rate limit and retry once, instead of failing with `rate-limited`')
+            [CompletionResult]::new('--rate-limit-max-wait', '--rate-limit-max-wait', [CompletionResultType]::ParameterName, 'Longest `--wait-on-rate-limit` waits before its retry, in seconds')
+            [CompletionResult]::new('--color', '--color', [CompletionResultType]::ParameterName, 'Colorize output: auto (TTY-aware), always, or never')
+            [CompletionResult]::new('--dry-run', '--dry-run', [CompletionResultType]::ParameterName, 'Check inputs and credentials offline, and send nothing')
+            [CompletionResult]::new('--limit', '--limit', [CompletionResultType]::ParameterName, 'Global result-set limit, clamped to 1..=100')
+            [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'Pagination cursor / `pagination_token` for list endpoints')
+            [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
+            [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--force', '--force', [CompletionResultType]::ParameterName, 'Skip the confirmation prompt; required under `--no-interactive`')
+            [CompletionResult]::new('-t', '-t', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--trace', '--trace', [CompletionResultType]::ParameterName, 'Add X-B3-Flags trace header')
+            [CompletionResult]::new('--json', '--json', [CompletionResultType]::ParameterName, 'Shorthand for `--output json` (P2 alias)')
+            [CompletionResult]::new('--jsonl', '--jsonl', [CompletionResultType]::ParameterName, 'Shorthand for `--output jsonl` (P2 alias)')
+            [CompletionResult]::new('--no-pager', '--no-pager', [CompletionResultType]::ParameterName, 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it')
+            [CompletionResult]::new('-h', '-h', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
+            break
+        }
+        'xr;articles;help' {
+            [CompletionResult]::new('draft', 'draft', [CompletionResultType]::ParameterValue, 'Save a draft X Article from a plain-text body')
+            [CompletionResult]::new('publish', 'publish', [CompletionResultType]::ParameterValue, 'Publish a draft X Article')
+            [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
+            break
+        }
+        'xr;articles;help;draft' {
+            break
+        }
+        'xr;articles;help;publish' {
+            break
+        }
+        'xr;articles;help;help' {
             break
         }
         'xr;notes' {
@@ -6193,7 +6301,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;validate' {
-            [CompletionResult]::new('--schema', '--schema', [CompletionResultType]::ParameterName, 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection')
+            [CompletionResult]::new('--schema', '--schema', [CompletionResultType]::ParameterName, 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -6268,6 +6376,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('lists', 'lists', [CompletionResultType]::ParameterValue, 'Your lists, a list''s posts and members, and following and pinning')
             [CompletionResult]::new('communities', 'communities', [CompletionResultType]::ParameterValue, 'Search communities, and read one')
             [CompletionResult]::new('news', 'news', [CompletionResultType]::ParameterValue, 'Search news stories, and read one')
+            [CompletionResult]::new('articles', 'articles', [CompletionResultType]::ParameterValue, 'Write and publish long-form X Articles')
             [CompletionResult]::new('notes', 'notes', [CompletionResultType]::ParameterValue, 'Write Community Notes through X''s AI Note Writer API')
             [CompletionResult]::new('trends', 'trends', [CompletionResultType]::ParameterValue, 'Trends for a place, and your personalized trends')
             [CompletionResult]::new('broadcasts', 'broadcasts', [CompletionResultType]::ParameterValue, 'Broadcast chat moderators and stream sources')
@@ -6557,6 +6666,17 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;help;news;get' {
+            break
+        }
+        'xr;help;articles' {
+            [CompletionResult]::new('draft', 'draft', [CompletionResultType]::ParameterValue, 'Save a draft X Article from a plain-text body')
+            [CompletionResult]::new('publish', 'publish', [CompletionResultType]::ParameterValue, 'Publish a draft X Article')
+            break
+        }
+        'xr;help;articles;draft' {
+            break
+        }
+        'xr;help;articles;publish' {
             break
         }
         'xr;help;notes' {

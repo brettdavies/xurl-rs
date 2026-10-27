@@ -160,6 +160,18 @@ xr news search "open source" --max-age-hours 24  # Stories from the last day
 xr news get 1850000000000000000                # One story, with the posts it clusters
 ```
 
+### Articles
+
+```bash
+xr articles draft --title "Why Rust" --body-file why-rust.md  # Save a draft
+cat why-rust.md | xr articles draft --title "Why Rust" --body-file -
+xr articles publish 1850000000000000003        # Publish (asks first; --force skips)
+```
+
+The body is plain text: a blank line ends a paragraph, and a line that starts with `#`, `##`, or `###` and a space is a
+header, `-` a list item, `1.` a numbered item, and `>` a quote. `xr` turns it into the blocks X's Articles API takes.
+`--cover <MEDIA_ID>` puts an image uploaded with `xr media upload` above the article.
+
 ### Community Notes
 
 ```bash

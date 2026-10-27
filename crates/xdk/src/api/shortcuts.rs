@@ -14,16 +14,17 @@ use serde::de::DeserializeOwned;
 use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, BlockingResult,
-    BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast, BroadcastChatMessage,
-    ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult,
-    DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
-    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
-    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
+    ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
+    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
+    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -235,6 +236,71 @@ pub struct NewScheduledCall {
     /// Whether invitees get an email about the call; X assumes they do.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notify_invitees: Option<bool>,
+}
+
+/// One block of an article body, as X's Articles API takes it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ArticleBlock {
+    /// The block's text, without its marker.
+    pub text: String,
+    /// The block type: `unstyled`, `header-one`, `header-two`,
+    /// `header-three`, `unordered-list-item`, `ordered-list-item`, or
+    /// `blockquote`.
+    #[serde(rename = "type")]
+    pub kind: &'static str,
+}
+
+/// Turns a plain-text article body into the blocks X's Articles API takes.
+///
+/// A blank line ends a paragraph, and consecutive plain lines join into one,
+/// separated by a space. A line that starts with a marker and a space is a
+/// block of its own: `#`, `##`, and `###` are headers, `-` an unordered list
+/// item, a number and `.` an ordered one, and `>` a quote.
+#[must_use]
+pub fn article_blocks(body: &str) -> Vec<ArticleBlock> {
+    let mut blocks = Vec::new();
+    let mut paragraph: Vec<&str> = Vec::new();
+    let flush = |paragraph: &mut Vec<&str>, blocks: &mut Vec<ArticleBlock>| {
+        if !paragraph.is_empty() {
+            blocks.push(ArticleBlock {
+                text: paragraph.join(" "),
+                kind: "unstyled",
+            });
+            paragraph.clear();
+        }
+    };
+    for line in body.lines().map(str::trim) {
+        if line.is_empty() {
+            flush(&mut paragraph, &mut blocks);
+        } else if let Some((kind, text)) = marked_block(line) {
+            flush(&mut paragraph, &mut blocks);
+            blocks.push(ArticleBlock {
+                text: text.to_string(),
+                kind,
+            });
+        } else {
+            paragraph.push(line);
+        }
+    }
+    flush(&mut paragraph, &mut blocks);
+    blocks
+}
+
+/// The block type a line's marker names, and the text after it.
+fn marked_block(line: &str) -> Option<(&'static str, &str)> {
+    const MARKERS: &[(&str, &str)] = &[
+        ("### ", "header-three"),
+        ("## ", "header-two"),
+        ("# ", "header-one"),
+        ("- ", "unordered-list-item"),
+        ("> ", "blockquote"),
+    ];
+    if let Some((marker, kind)) = MARKERS.iter().find(|(marker, _)| line.starts_with(marker)) {
+        return Some((kind, line[marker.len()..].trim()));
+    }
+    let digits = line.bytes().take_while(u8::is_ascii_digit).count();
+    let rest = line[digits..].strip_prefix(". ")?;
+    (digits > 0).then(|| ("ordered-list-item", rest.trim()))
 }
 
 /// A Community Note to write about one post.
@@ -582,6 +648,41 @@ pub fn validate_conversation_id(id: &str) -> std::result::Result<(), &'static st
 pub fn validate_dm_event_id(id: &str) -> std::result::Result<(), &'static str> {
     if !is_numeric_id(id) {
         return Err("invalid-dm-event-id");
+    }
+    Ok(())
+}
+
+/// Validates an article title: at least one character, the spec's
+/// `minLength`.
+///
+/// # Errors
+/// Returns `empty-article-title` for an empty title.
+pub fn validate_article_title(title: &str) -> std::result::Result<(), &'static str> {
+    if title.is_empty() {
+        return Err("empty-article-title");
+    }
+    Ok(())
+}
+
+/// Validates an article body: at least one block once
+/// [`article_blocks`] has read it.
+///
+/// # Errors
+/// Returns `empty-article-body` for a body with no text.
+pub fn validate_article_body(body: &str) -> std::result::Result<(), &'static str> {
+    if body.trim().is_empty() {
+        return Err("empty-article-body");
+    }
+    Ok(())
+}
+
+/// Validates an article id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-article-id` for anything else.
+pub fn validate_article_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-article-id");
     }
     Ok(())
 }
@@ -2114,6 +2215,45 @@ impl Client {
             template(
                 endpoints::DELETE_CHAT_MESSAGE.path,
                 id_and(id, "message_id", message_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Saves a draft X Article. `body` is plain text, turned into blocks by
+    /// [`article_blocks`]; `cover_media_id` names an uploaded image to show
+    /// above it.
+    pub fn create_article_draft(
+        &self,
+        title: &str,
+        body: &str,
+        cover_media_id: Option<&str>,
+    ) -> Call<ApiResponse<ArticleDraft>> {
+        let mut request = serde_json::json!({
+            "title": title,
+            "content_state": {"blocks": article_blocks(body), "entities": []},
+        });
+        if let Some(media_id) = cover_media_id {
+            request["cover_media"] =
+                serde_json::json!({"media_id": media_id, "media_category": "tweet_image"});
+        }
+        self.post_json(
+            template(
+                endpoints::CREATE_ARTICLE_DRAFT.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &request,
+        )
+    }
+
+    /// Publishes a draft X Article as a post.
+    pub fn publish_article(&self, article_id: &str) -> Call<ApiResponse<ArticlePublished>> {
+        self.call(
+            endpoints::PUBLISH_ARTICLE.method,
+            template(
+                endpoints::PUBLISH_ARTICLE.path,
+                HashMap::from([("article_id".to_string(), article_id.to_string())]),
                 Vec::new(),
             ),
         )

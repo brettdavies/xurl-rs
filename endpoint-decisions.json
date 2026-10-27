@@ -214,16 +214,6 @@
       "reason": "Extend xr media: get one or several uploads by media key, and their analytics.",
       "decided": "2026-10-26",
       "by": "Brett, in the #370 sweep"
-    },
-    {
-      "id": "articles",
-      "operations": [
-        "* /2/articles/**"
-      ],
-      "status": "planned",
-      "reason": "xr articles draft and publish for long-form X Articles; publishing asks first, like other outward actions.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
     }
   ]
 }
