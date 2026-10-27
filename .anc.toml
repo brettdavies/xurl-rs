@@ -1,6 +1,9 @@
 # Per-CLI domain vocabulary for anc's p6-may-standard-names audit.
-# These verbs are the X (Twitter) platform's canonical actions, plus
-# xr-specific surface verbs (examples, validate) and the media namespace.
+# These words are the X (Twitter) platform's canonical actions, xr-specific
+# surface verbs (examples, validate), and the X API namespaces xr's command
+# families are named for (media, lists, spaces, and the rest). A new
+# top-level command whose word anc does not count as a standard verb goes
+# here, in the PR that adds it.
 #
 # anc applies this file to an audit of xr from this repository: the
 # root with `anc audit . --bin xr`, or a built binary such as
@@ -20,4 +23,9 @@ domain_verbs = [
   "block", "unblock", "blocked",
   "usage", "dm", "dms", "broadcasts",
   "media", "examples", "validate",
+  "hide", "unhide", "likers", "reposters", "quotes",
+  "posts", "users", "user-posts", "search-users", "search-counts", "analytics",
+  "bookmark-folders", "conversations", "dm-events", "dm-block", "dm-unblock",
+  "lists", "communities", "news", "trends", "spaces", "stream",
+  "notes", "articles", "calls", "webhooks",
 ]

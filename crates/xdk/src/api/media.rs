@@ -7,11 +7,12 @@ use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
 
+use super::auth_matrix::Endpoint;
 use super::auth_matrix::endpoints::{
     MEDIA_UPLOAD, MEDIA_UPLOAD_APPEND, MEDIA_UPLOAD_FINALIZE, MEDIA_UPLOAD_INITIALIZE,
     MEDIA_UPLOAD_STATUS,
 };
-use super::request::{Client, MultipartOptions, RequestOptions, RequestTarget};
+use super::request::{AuthPreflight, Client, MultipartOptions, RequestOptions, RequestTarget};
 use super::response::types::{ApiResponse, MediaUploadResponse, deserialize_response};
 use crate::error::{Error, Result};
 
@@ -87,6 +88,96 @@ impl MediaUploadOutcome {
     }
 }
 
+/// The size of the file an upload sends, which has to be a regular file.
+fn upload_file_size(file_path: &str) -> Result<u64> {
+    let metadata = std::fs::metadata(file_path)
+        .map_err(|e| Error::io(format!("error accessing file: {e}")).with_source(e))?;
+    if !metadata.is_file() {
+        return Err(Error::io(format!("{file_path} is not a regular file")));
+    }
+    Ok(metadata.len())
+}
+
+/// Checks what a media upload can be checked for without sending it: that
+/// `file_path` is a file an upload can read, and that every request of an
+/// upload finds a credential, INIT through FINALIZE, and the status read
+/// too when the upload `waits` on processing. Reports that credential.
+///
+/// # Errors
+///
+/// [`Error::Io`] for a path that is not a readable regular file, and what
+/// [`Client::auth_preflight`] returns for the first request that finds no
+/// credential.
+#[doc(hidden)]
+pub async fn media_upload_preflight(
+    file_path: &str,
+    auth_type: &str,
+    username: &str,
+    headers: &[String],
+    waits: bool,
+    client: &Client,
+) -> Result<Option<AuthPreflight>> {
+    upload_file_size(file_path)?;
+    let mut phases = vec![
+        MEDIA_UPLOAD_INITIALIZE,
+        MEDIA_UPLOAD_APPEND,
+        MEDIA_UPLOAD_FINALIZE,
+    ];
+    if waits {
+        phases.push(MEDIA_UPLOAD_STATUS);
+    }
+    let mut found = None;
+    for phase in phases {
+        found = phase_auth_preflight(phase, auth_type, username, headers, client).await?;
+    }
+    Ok(found)
+}
+
+/// Reports the credential a media status read would be sent with. Nothing
+/// is sent.
+///
+/// # Errors
+///
+/// What [`Client::auth_preflight`] returns.
+#[doc(hidden)]
+pub async fn media_status_auth_preflight(
+    auth_type: &str,
+    username: &str,
+    headers: &[String],
+    client: &Client,
+) -> Result<Option<AuthPreflight>> {
+    phase_auth_preflight(MEDIA_UPLOAD_STATUS, auth_type, username, headers, client).await
+}
+
+/// The preflight of one media request. Scheme selection reads the method
+/// and the path template, so the upload id a path carries is a stand-in.
+async fn phase_auth_preflight(
+    phase: Endpoint,
+    auth_type: &str,
+    username: &str,
+    headers: &[String],
+    client: &Client,
+) -> Result<Option<AuthPreflight>> {
+    let path_params = if phase.path.contains("{id}") {
+        HashMap::from([("id".to_string(), "0".to_string())])
+    } else {
+        HashMap::new()
+    };
+    let options = RequestOptions {
+        method: phase.method.to_string(),
+        target: RequestTarget::Template {
+            path: phase.path.to_string(),
+            path_params,
+            query: Vec::new(),
+        },
+        headers: headers.to_vec(),
+        auth_type: auth_type.to_string(),
+        username: username.to_string(),
+        ..Default::default()
+    };
+    client.auth_preflight(&options).await
+}
+
 /// Handles the full media upload lifecycle.
 ///
 /// `wait_for_processing` is the deadline processing is awaited to, for a
@@ -111,14 +202,7 @@ pub async fn execute_media_upload(
     headers: &[String],
     client: &Client,
 ) -> Result<MediaUploadOutcome> {
-    let metadata = std::fs::metadata(file_path)
-        .map_err(|e| Error::io(format!("error accessing file: {e}")).with_source(e))?;
-
-    if !metadata.is_file() {
-        return Err(Error::io(format!("{file_path} is not a regular file")));
-    }
-
-    let file_size = metadata.len();
+    let file_size = upload_file_size(file_path)?;
 
     let base_opts = RequestOptions {
         auth_type: auth_type.to_string(),

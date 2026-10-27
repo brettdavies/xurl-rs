@@ -28,6 +28,10 @@ fn compute_update_envelope(
     dry_run: bool,
     skill_env: &SkillEnv,
 ) -> InstallEnvelope {
+    update_envelope(host, dry_run, skill_env).with_next_step()
+}
+
+fn update_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> InstallEnvelope {
     let (url, dest_template) = resolve_host(host);
     let host_str = host_envelope_str(host);
 
@@ -47,6 +51,7 @@ fn compute_update_envelope(
                 exit_code: Some(1),
                 reason: Some(InstallError::MissingHome.reason()),
                 legacy_install_dir: None,
+                next_step: None,
             };
         }
         Err(_) => unreachable!("expand_tilde_with only emits MissingHome"),
@@ -77,6 +82,7 @@ fn compute_update_envelope(
             exit_code: Some(0),
             reason: None,
             legacy_install_dir,
+            next_step: None,
         };
     }
 
@@ -97,6 +103,7 @@ fn compute_update_envelope(
             exit_code: Some(1),
             reason: Some("remove-failed"),
             legacy_install_dir,
+            next_step: None,
         };
     }
 
@@ -126,7 +133,9 @@ fn skipped_envelope(host: SkillHost, skill_env: &SkillEnv) -> InstallEnvelope {
         exit_code: Some(0),
         reason: Some(REASON_NOT_INSTALLED),
         legacy_install_dir: None,
+        next_step: None,
     }
+    .with_next_step()
 }
 
 /// Whether a host currently has something to update, at its destination or

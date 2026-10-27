@@ -1,6 +1,6 @@
 [package]
 name = "xurl-rs"
-version = "4.3.0"
+version = "4.4.0"
 description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 documentation = "https://docs.rs/xurl-rs"
 keywords = ["twitter", "x", "api", "cli", "oauth"]
@@ -45,13 +45,12 @@ clap_complete = "4"
 strsim = "0.11.1"
 
 # Runtime
-tokio = { workspace = true, features = ["signal"] }
+tokio = { workspace = true, features = ["signal", "process", "io-util"] }
 tokio-util.workspace = true
 
 # Serialization
 serde.workspace = true
 serde_json.workspace = true
-serde_yaml.workspace = true
 
 # Terminal
 colored = "3"
@@ -66,10 +65,22 @@ schemars.workspace = true
 [target.'cfg(unix)'.dependencies]
 libc.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+# The kill-on-close Job Object that stops a forward program with everything it
+# started; Toolhelp finds the suspended program's thread to resume it.
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+] }
+
 [build-dependencies]
 serde_json.workspace = true
 
 [dev-dependencies]
+xdk-rs = { workspace = true, features = ["testing"] }
 reqwest.workspace = true
 url.workspace = true
 tempfile.workspace = true
@@ -81,6 +92,7 @@ proptest.workspace = true
 wiremock.workspace = true
 toml = "1.0"
 regex.workspace = true
+serde-saphyr.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 serial_test.workspace = true
 

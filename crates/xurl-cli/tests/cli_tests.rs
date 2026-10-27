@@ -2589,7 +2589,7 @@ async fn test_post_dry_run_emits_envelope_and_skips_api() {
     let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     // No HTTP must fire.
     ts.mount(
@@ -2611,7 +2611,7 @@ async fn test_post_dry_run_emits_envelope_and_skips_api() {
             "post",
             "Hello",
             "--auth",
-            "app",
+            "oauth1",
         ],
     )
     .await;
@@ -2625,6 +2625,11 @@ async fn test_post_dry_run_emits_envelope_and_skips_api() {
     assert_eq!(v["would_succeed"], serde_json::Value::Bool(true));
     assert_eq!(v["exit_code"], 0);
     assert_eq!(v["command"], "post");
+    assert_eq!(
+        v["auth"],
+        serde_json::json!({"app": "myapp", "scheme": "oauth1"}),
+        "{v}"
+    );
     assert_eq!(v["body"], "Hello");
 }
 
@@ -2660,14 +2665,16 @@ async fn test_post_empty_body_dry_run_reports_empty_body_reason() {
     assert_eq!(v["exit_code"], 1);
 }
 
+/// A post's length limit belongs to the account: a Premium account posts
+/// past 280 characters, and X counts a URL as 23. A long body is not refused
+/// before X sees it.
 #[tokio::test]
-async fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
+async fn test_post_over_280_characters_passes_the_dry_run() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
-    // 281 chars: one past the 280-char limit.
-    let too_long: String = std::iter::repeat_n('x', 281).collect();
+    let long: String = std::iter::repeat_n('x', 281).collect();
     let (code, stdout, _stderr) = run_at(
         &store,
         &[
@@ -2676,9 +2683,9 @@ async fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
             "--output",
             "json",
             "post",
-            &too_long,
+            &long,
             "--auth",
-            "app",
+            "oauth1",
         ],
     )
     .await;
@@ -2686,8 +2693,8 @@ async fn test_post_body_too_long_dry_run_reports_body_too_long_reason() {
     assert_eq!(code, 0);
     let v = parse_json(&stdout);
     assert_eq!(v["status"], "dry_run");
-    assert_eq!(v["would_succeed"], serde_json::Value::Bool(false));
-    assert_eq!(v["reason"], "body-too-long");
+    assert_eq!(v["would_succeed"], serde_json::Value::Bool(true), "{v}");
+    assert!(v.get("reason").is_none(), "{v}");
 }
 
 /// X answers `POST /2/tweets` in its legacy vocabulary; `--output json`
@@ -3007,13 +3014,15 @@ async fn test_auth_clear_selector_removes_only_its_own_credential(
     );
 }
 
-#[tokio::test]
-#[serial_test::serial]
+/// clap reads `XURL_DRY_RUN` from the process at parse time, which
+/// `EnvOverrides` does not feed. The binding is proven in a child that holds
+/// the variable, so no test running beside this one sees it.
+#[tokio::test(flavor = "multi_thread")]
 async fn test_xurl_dry_run_env_var_engages_dry_run() {
     let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     // No HTTP must fire.
     ts.mount(
@@ -3024,26 +3033,12 @@ async fn test_xurl_dry_run_env_var_engages_dry_run() {
     )
     .await;
 
-    // ALLOWLISTED ENV MUTATION (see tests/env_mutation_guard.rs).
-    //
-    // `--dry-run` binds to `XURL_DRY_RUN` through clap's `env =` attribute,
-    // which reads the process at parse time and is not fed by `EnvOverrides`.
-    // Injection cannot reach that binding, so proving it works means exporting
-    // the variable. Do not convert this to the flag: the flag path is covered
-    // by `test_post_dry_run_emits_envelope_and_skips_api`, and converting this
-    // one would leave the env binding untested.
-    unsafe {
-        std::env::set_var("XURL_DRY_RUN", "1");
-    }
-    let (code, stdout, stderr) = run_at_with(
+    let (code, stdout, stderr) = spawn_with_env(
         &store,
-        &api_env(ts.uri()),
-        &["xr", "--output", "json", "post", "Hi", "--auth", "app"],
-    )
-    .await;
-    unsafe {
-        std::env::remove_var("XURL_DRY_RUN");
-    }
+        ts.uri(),
+        &[("XURL_DRY_RUN", "1")],
+        &["--output", "json", "post", "Hi", "--auth", "oauth1"],
+    );
 
     assert_eq!(
         code, 0,
@@ -3164,9 +3159,15 @@ async fn test_block_and_unblock_dry_run_envelopes_name_their_own_command() {
     // The two handlers share a body shape with mute/unmute, so a copied
     // `command` value would still emit a well-formed envelope and pass every
     // other gate. Pin the name each one reports.
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
     for (command, target) in [("block", "@spammer"), ("unblock", "@spammer")] {
-        let (code, stdout, stderr) =
-            run_isolated(&["xr", command, target, "--dry-run", "--output", "json"]).await;
+        let (code, stdout, stderr) = run_at(
+            &store,
+            &["xr", command, target, "--dry-run", "--output", "json"],
+        )
+        .await;
         assert_eq!(
             code, 0,
             "expected 0 for `{command}` dry-run; stderr: {stderr}"
@@ -3178,6 +3179,402 @@ async fn test_block_and_unblock_dry_run_envelopes_name_their_own_command() {
         assert_eq!(v["target_username"], target, "envelope: {v}");
         assert_eq!(v["would_succeed"], true, "envelope: {v}");
     }
+}
+
+/// A dry run looks no user id up, so the endpoint it could not serve is
+/// named by its template, in the message and in `endpoint`, and no path with
+/// a stand-in id reaches the caller.
+#[tokio::test]
+async fn test_dry_run_refused_on_a_credential_names_the_endpoint_template() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--dry-run",
+            "--output",
+            "json",
+            "unbookmark",
+            "1234567890",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 2, "{v}");
+    assert_eq!(v["reason"], "auth-method-mismatch", "{v}");
+    assert_eq!(v["endpoint"], "/2/users/{id}/bookmarks/{tweet_id}", "{v}");
+    assert_eq!(v["supported"], serde_json::json!(["oauth2"]), "{v}");
+    assert_eq!(v["available_in_app"], serde_json::json!(["oauth1"]), "{v}");
+    assert!(v.get("rendered_url").is_none(), "{v}");
+    assert!(v.get("auth").is_none(), "{v}");
+    let message = v["message"].as_str().expect("a message");
+    assert!(
+        message.contains("DELETE /2/users/{id}/bookmarks/{tweet_id}"),
+        "{message}"
+    );
+}
+
+/// With nothing stored the dry run says what the real run would stop on,
+/// and sends nothing to find out.
+#[tokio::test]
+async fn test_dry_run_with_no_credential_reports_auth_required() {
+    let (code, stdout, stderr) =
+        run_isolated(&["xr", "--dry-run", "--output", "json", "post", "Hello"]).await;
+
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 77, "{v}");
+    assert_eq!(v["reason"], "auth-required", "{v}");
+    assert_eq!(v["command"], "post", "{v}");
+    assert_eq!(v["body"], "Hello", "{v}");
+}
+
+/// An upload's file is an input a dry run can check with nothing sent.
+#[tokio::test]
+async fn test_dry_run_reports_an_upload_file_that_is_not_there() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
+    let missing = tmp.path().join("no-such-file.png");
+
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--dry-run",
+            "--output",
+            "json",
+            "media",
+            "upload",
+            missing.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["reason"], "io", "{v}");
+    assert_eq!(v["exit_code"], 5, "{v}");
+}
+
+/// A bearer token from the environment outranks the stored one and belongs
+/// to no stored app, so the dry run names the scheme and no app.
+#[tokio::test]
+async fn test_dry_run_names_no_app_for_a_bearer_from_the_environment() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_bearer_store(&store);
+    let args = ["xr", "--dry-run", "--output", "json", "search", "rust"];
+
+    let (_code, stdout, _stderr) = run_at(&store, &args).await;
+    let stored = parse_json(&stdout);
+    assert_eq!(stored["auth"]["scheme"], "app", "{stored}");
+    assert!(stored["auth"]["app"].is_string(), "{stored}");
+
+    let env = api_env_with_bearer("http://127.0.0.1:9", "ENV-BEARER");
+    let (_code, stdout, _stderr) = run_at_with(&store, &env, &args).await;
+    let from_env = parse_json(&stdout);
+    assert_eq!(from_env["would_succeed"], true, "{from_env}");
+    assert_eq!(
+        from_env["auth"],
+        serde_json::json!({"scheme": "app"}),
+        "{from_env}"
+    );
+}
+
+/// A store whose one app holds a live `OAuth2` login under `name`, with
+/// `user_id` stored beside it when given.
+fn populate_oauth2_login(store_path: &Path, name: Option<&str>, user_id: Option<&str>) {
+    use xdk::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID", "SECRET").expect("add app");
+    match name {
+        Some(name) => {
+            ts.save_oauth2_token_for_app("myapp", name, "ACCESS", "REFRESH", 4_000_000_000)
+                .expect("save the login");
+            if let Some(id) = user_id {
+                ts.set_oauth2_user_id_for_app("myapp", name, id)
+                    .expect("store the id");
+            }
+        }
+        None => ts
+            .save_oauth2_token_unnamed_for_app("myapp", "ACCESS", "REFRESH", 4_000_000_000)
+            .expect("save the unnamed login"),
+    }
+}
+
+/// Mounts `/2/users/me` answering as `alice`, id 42, expecting `times` calls.
+async fn mock_me_as_alice(ts: &CliMockServer, times: u64) {
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "42", "name": "Alice", "username": "alice"}
+            })))
+            .expect(times),
+    )
+    .await;
+}
+
+/// Mounts the like endpoint for the account with id 42, expecting `times`
+/// calls: the id in the path is the one the command resolved.
+async fn mock_like_as_42(ts: &CliMockServer, times: u64) {
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/users/42/likes"))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_json(serde_json::json!({"data": {"liked": true}})),
+            )
+            .expect(times),
+    )
+    .await;
+}
+
+/// A sign-in whose username lookup failed leaves the login stored without
+/// a name. `xr whoami` is the command that asks who it is, so its answer
+/// stores the login under that username, with the account's id.
+#[tokio::test]
+async fn test_whoami_names_a_login_stored_without_a_username() {
+    use xdk::store::TokenStore;
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 1).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, None, None);
+
+    let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &["xr", "whoami"]).await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(stdout.contains("alice"), "stdout: {stdout}");
+    let after = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let login = after
+        .get_oauth2_token_for_app("myapp", "alice")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("the login is stored under the username X answered with");
+    assert_eq!(login.user_id.as_deref(), Some("42"));
+    assert!(after.get_oauth2_token_unnamed_for_app("myapp").is_none());
+}
+
+/// Stores the account `alice`, id 42, display name Alice, beside the
+/// login `alice`.
+fn store_alice_account(store_path: &Path) {
+    use xdk::store::TokenStore;
+    let mut ts = TokenStore::new_with_path(store_path.to_str().expect("utf-8 path"));
+    ts.set_oauth2_account_for_app("myapp", "alice", "42", Some("alice"), Some("Alice"))
+        .expect("store the account");
+}
+
+/// With the whole account stored beside the login, `whoami --cached`
+/// answers from the store and sends nothing.
+#[tokio::test]
+async fn test_whoami_cached_answers_from_the_stored_account() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 0).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), None);
+    store_alice_account(&store);
+
+    let (code, stdout, stderr) = run_at_with(
+        &store,
+        &api_env(ts.uri()),
+        &["xr", "--output", "json", "whoami", "--cached"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(
+        body,
+        serde_json::json!({
+            "data": {"id": "42", "name": "Alice", "username": "alice"},
+            "source": "cache"
+        })
+    );
+}
+
+/// A login stored with its id but not the names asks X once: the answer
+/// says `source: "api"` and is stored, so the next `--cached` run answers
+/// from the store.
+#[tokio::test]
+async fn test_whoami_cached_asks_once_for_an_account_the_store_lacks() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 1).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), Some("42"));
+    let args = ["xr", "--output", "json", "whoami", "--cached"];
+
+    let (code, first, stderr) = run_at_with(&store, &api_env(ts.uri()), &args).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let first: serde_json::Value = serde_json::from_str(first.trim()).expect("JSON on stdout");
+    assert_eq!(first["source"], "api");
+    assert_eq!(first["data"]["username"], "alice");
+
+    let (code, second, stderr) = run_at_with(&store, &api_env(ts.uri()), &args).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let second: serde_json::Value = serde_json::from_str(second.trim()).expect("JSON on stdout");
+    assert_eq!(second["source"], "cache");
+    assert_eq!(second["data"]["name"], "Alice");
+}
+
+/// A dry run of `whoami --cached` says which source the real run would
+/// answer from, and sends nothing either way.
+#[tokio::test]
+async fn test_whoami_cached_dry_run_names_the_source_that_would_answer() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 0).await;
+    let args = ["xr", "--output", "json", "--dry-run", "whoami", "--cached"];
+    for (whole_account, source) in [(true, "cache"), (false, "api")] {
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth2_login(&store, Some("alice"), Some("42"));
+        if whole_account {
+            store_alice_account(&store);
+        }
+
+        let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &args).await;
+        assert_eq!(code, 0, "stderr: {stderr}");
+        let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+        assert_eq!(body["would_succeed"], true, "{body}");
+        assert_eq!(body["source"], source, "{body}");
+    }
+}
+
+/// `auth status` names the account each login belongs to, as far as the
+/// store holds it, and the text form puts the id beside the login.
+#[tokio::test]
+async fn test_auth_status_names_each_logins_account() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), None);
+    store_alice_account(&store);
+    let mut ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.save_oauth2_token_for_app("myapp", "work", "ACCESS", "REFRESH", 4_000_000_000)
+        .expect("save a second login");
+
+    let (code, stdout, stderr) =
+        run_at(&store, &["xr", "--output", "json", "auth", "status"]).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(
+        body["apps"][0]["oauth2_accounts"],
+        serde_json::json!([
+            {"login": "alice", "user_id": "42", "username": "alice", "display_name": "Alice"},
+            {"login": "work"}
+        ])
+    );
+
+    let (code, text, stderr) = run_at(&store, &["xr", "auth", "status"]).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(text.contains("oauth2: alice (id 42, Alice)"), "{text}");
+    assert!(text.contains("oauth2: work\n"), "{text}");
+}
+
+/// A command that acts as the caller needs the caller's id. With the id
+/// stored beside the login, it goes straight to its own request.
+#[tokio::test]
+async fn test_a_stored_id_spares_the_me_lookup() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 0).await;
+    mock_like_as_42(&ts, 1).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), Some("42"));
+
+    let (code, _stdout, stderr) =
+        run_at_with(&store, &api_env(ts.uri()), &["xr", "like", "1234567890"]).await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+/// Without a stored id the command asks once, and stores the answer, so the
+/// command after it does not ask.
+#[tokio::test]
+async fn test_the_first_me_lookup_is_the_last() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 1).await;
+    mock_like_as_42(&ts, 2).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("alice"), None);
+
+    for _ in 0..2 {
+        let (code, _stdout, stderr) =
+            run_at_with(&store, &api_env(ts.uri()), &["xr", "like", "1234567890"]).await;
+        assert_eq!(code, 0, "stderr: {stderr}");
+    }
+}
+
+/// `--username` picks a stored login, and that login's stored id is the
+/// caller's: no lookup of the handle is sent.
+#[tokio::test]
+async fn test_a_stored_id_spares_the_lookup_under_username() {
+    let ts = CliMockServer::new().await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/work"))
+            .respond_with(ResponseTemplate::new(404))
+            .expect(0),
+    )
+    .await;
+    mock_like_as_42(&ts, 1).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth2_login(&store, Some("work"), Some("42"));
+
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env(ts.uri()),
+        &["xr", "like", "1234567890", "--username", "work"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+/// An `OAuth1` access pair has no sign-in or refresh to learn its account
+/// at, so the first command that asks stores the answer beside the pair.
+#[tokio::test]
+async fn test_an_oauth1_login_asks_who_it_is_once() {
+    let ts = CliMockServer::new().await;
+    mock_me_as_alice(&ts, 1).await;
+    mock_like_as_42(&ts, 2).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    populate_oauth1_store(&store);
+
+    for _ in 0..2 {
+        let (code, _stdout, stderr) =
+            run_at_with(&store, &api_env(ts.uri()), &["xr", "like", "1234567890"]).await;
+        assert_eq!(code, 0, "stderr: {stderr}");
+    }
+}
+
+/// Invalid inputs are reported before credentials are looked at, so the
+/// reason a caller can fix in the invocation comes first.
+#[tokio::test]
+async fn test_dry_run_reports_invalid_inputs_before_credentials() {
+    let (code, stdout, stderr) =
+        run_isolated(&["xr", "--dry-run", "--output", "json", "post", ""]).await;
+
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v = parse_json(&stdout);
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 1, "{v}");
+    assert_ne!(v["reason"], "auth-required", "{v}");
+    assert!(v["reason"].is_string(), "{v}");
 }
 
 #[tokio::test]
@@ -3214,12 +3611,76 @@ const PAGING_COMMANDS: &[(&[&str], &str)] = &[
     (&["mentions"], "/2/users/2244994945/mentions"),
     (&["bookmarks"], "/2/users/2244994945/bookmarks"),
     (&["likes"], "/2/users/2244994945/liked_tweets"),
-    (&["following"], "/2/users/2244994945/following"),
-    (&["followers"], "/2/users/2244994945/followers"),
+    (&["following"], "/2/users/me/following"),
+    (&["followers"], "/2/users/me/followers"),
     (&["muted"], "/2/users/2244994945/muting"),
     (&["blocked"], "/2/users/2244994945/blocking"),
     (&["dms"], "/2/dm_events"),
 ];
+
+/// Without `--of`, `followers` and `following` read the caller's own list
+/// from `/2/users/me/*` and send no id lookup first; with `--of`, the handle
+/// resolves and the request goes to that user's list.
+#[tokio::test]
+async fn followers_and_following_read_the_callers_own_list_without_an_id_lookup() {
+    for (args, own_path, of_path) in [
+        (
+            "followers",
+            "/2/users/me/followers",
+            "/2/users/783214/followers",
+        ),
+        (
+            "following",
+            "/2/users/me/following",
+            "/2/users/783214/following",
+        ),
+    ] {
+        let ts = CliMockServer::new().await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store = tmp.path().join(".xurl");
+        populate_oauth1_store(&store);
+        let empty_page = serde_json::json!({"data": [], "meta": {"result_count": 0}});
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(ResponseTemplate::new(500))
+                .expect(0),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(own_path))
+                .respond_with(ResponseTemplate::new(200).set_body_json(empty_page.clone()))
+                .expect(1),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/by/username/jack"))
+                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                    "data": {"id": "783214", "name": "jack", "username": "jack"}
+                })))
+                .expect(1),
+        )
+        .await;
+        ts.mount(
+            Mock::given(method("GET"))
+                .and(path(of_path))
+                .respond_with(ResponseTemplate::new(200).set_body_json(empty_page))
+                .expect(1),
+        )
+        .await;
+
+        let own = ["xr", "--output", "json", args, "--auth", "oauth1"];
+        let (code, _stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &own).await;
+        assert_eq!(code, 0, "xr {args}: {stderr}");
+        let of = [
+            "xr", "--output", "json", args, "--of", "@jack", "--auth", "oauth1",
+        ];
+        let (code, _stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &of).await;
+        assert_eq!(code, 0, "xr {args} --of @jack: {stderr}");
+    }
+}
 
 /// `--limit` and `--cursor` reach the wire as `max_results` and
 /// `pagination_token` on every command that pages.
@@ -3393,12 +3854,14 @@ async fn test_auth_default_no_interactive_emits_no_tty_envelope() {
     );
 }
 
-/// `xr auth default` without `--no-interactive` while the test harness's
-/// stdin/stderr are not real TTYs (cargo test) must still skip dialoguer and
-/// emit the `no-tty` envelope. The TTY check is independent of the
-/// `--no-interactive` flag.
-#[tokio::test]
-async fn test_auth_default_non_tty_emits_no_tty_envelope() {
+/// `xr auth default` with no terminal attached answers the `no-tty` envelope
+/// without `--no-interactive`: the terminal check is independent of that flag.
+///
+/// The binary is spawned so its stdin and stderr are pipes whatever terminal
+/// the test runner has. The check reads the process's own handles, which an
+/// in-process run cannot substitute.
+#[test]
+fn test_auth_default_non_tty_emits_no_tty_envelope() {
     use xdk::store::TokenStore;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
@@ -3409,9 +3872,11 @@ async fn test_auth_default_non_tty_emits_no_tty_envelope() {
         .expect("add beta");
     drop(ts);
 
-    let (code, _stdout, stderr) =
-        run_at(&store, &["xr", "auth", "default", "--output", "json"]).await;
-    assert_ne!(code, 0, "expected non-zero exit");
+    let assert = common::xr_with_store(&store)
+        .args(["auth", "default", "--output", "json"])
+        .assert()
+        .code(1);
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
     let trimmed = stderr.trim();
     let v: serde_json::Value =
         serde_json::from_str(trimmed).unwrap_or_else(|_| panic!("envelope must parse: {trimmed}"));
@@ -5201,9 +5666,10 @@ async fn test_hint_reaches_every_structured_format(#[case] format: &str) {
     );
 }
 
-/// An unrelated error carries no hint at all.
+/// An argument `xr` refused carries the help of the command it was given
+/// to, and never a credential step.
 #[tokio::test]
-async fn test_other_errors_carry_no_hint() {
+async fn test_a_refused_argument_carries_the_help_and_no_credential_step() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
 
@@ -5211,9 +5677,11 @@ async fn test_other_errors_carry_no_hint() {
     assert_ne!(code, 0, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
-    assert!(
-        v.get("next_step").is_none(),
-        "only the no-credentials error gets a hint; got: {v}"
+    assert_eq!(v["reason"], "validation", "{v}");
+    assert_eq!(
+        v["next_step"],
+        serde_json::json!({"action": "show-help", "command": "xr --help"}),
+        "{v}"
     );
 }
 
@@ -5669,6 +6137,75 @@ async fn test_apps_add_names_a_missing_secret_file() {
     assert!(!store.exists(), "nothing is stored");
 }
 
+/// A secret source that holds nothing is refused. An empty value is what a
+/// vault command leaves on stdout when it fails, and storing it would
+/// register an app that cannot sign in.
+#[rstest::rstest]
+#[case::empty_file("")]
+#[case::only_a_line_ending("\n")]
+#[tokio::test]
+async fn test_apps_add_refuses_an_empty_secret_file(#[case] contents: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let secret_file = tmp.path().join("client-secret");
+    std::fs::write(&secret_file, contents).expect("secret file");
+    let secret_path = secret_file.to_str().expect("utf-8 path");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret-file",
+            secret_path,
+        ],
+    )
+    .await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "invalid-args", "got: {v}");
+    let message = v["message"].as_str().expect("message");
+    assert!(
+        message.contains("--client-secret-file") && message.contains(secret_path),
+        "the message names the flag and the file: {v}"
+    );
+    assert!(!store.exists(), "nothing is stored");
+}
+
+/// The same refusal for a pipe that carried nothing.
+#[test]
+fn test_apps_add_refuses_an_empty_secret_from_stdin() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    common::xr_with_store(&store)
+        .args([
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "myapp",
+            "--client-id",
+            "abc",
+            "--client-secret-file",
+            "-",
+        ])
+        .write_stdin("")
+        .assert()
+        .code(2)
+        .stderr(predicates::str::contains("\"reason\": \"invalid-args\""))
+        .stderr(predicates::str::contains("stdin"));
+    assert!(!store.exists(), "nothing is stored");
+}
+
 /// The plain flag stores its value as given.
 #[tokio::test]
 async fn test_apps_add_plain_client_secret_is_stored_as_given() {
@@ -5900,10 +6437,10 @@ mod rate_limit_and_body_handling {
                 "--output",
                 "json",
                 "--wait-on-rate-limit",
-                "--auth",
-                "oauth1",
                 "like",
                 "1234567890",
+                "--auth",
+                "oauth1",
             ],
         )
         .await;

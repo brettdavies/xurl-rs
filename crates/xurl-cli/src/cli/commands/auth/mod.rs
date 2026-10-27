@@ -3,7 +3,7 @@ use std::io::Write;
 
 use serde::Serialize;
 
-use super::{Gate, GlobalFlags, Run, gate_destructive};
+use super::{Gate, GlobalFlags, Run, destructive_dry_run_context, gate_destructive};
 use crate::cli::AuthCommands;
 use crate::cli::failure::CommandResult;
 use crate::cli::hints::REGISTER_APP_TEMPLATE;
@@ -74,8 +74,15 @@ pub(crate) struct AppStatusEntry {
     redirect_uri_stored: Option<String>,
     /// `OAuth2` usernames present in the app (no tokens, just names).
     oauth2_users: Vec<String>,
+    /// The account each name in `oauth2_users` belongs to, as far as the
+    /// store holds it, in the same order.
+    oauth2_accounts: Vec<StoredAccountEntry>,
     /// Whether the app has `OAuth1` credentials present (presence only).
     oauth1: bool,
+    /// The account the `OAuth1` access pair belongs to, when the store
+    /// holds its id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    oauth1_account: Option<StoredAccountEntry>,
     /// Whether a bearer credential is available for the app: stored on it,
     /// or supplied by `XURL_BEARER_TOKEN` for the active app (presence only).
     bearer: bool,
@@ -90,6 +97,38 @@ pub(crate) struct AppStatusEntry {
     /// that `App.unnamed_oauth2_token.is_some()`.
     #[serde(skip_serializing_if = "is_false")]
     oauth2_unnamed: bool,
+}
+
+/// The account a stored user credential belongs to, as `/2/users/me` last
+/// answered under it. No token or secret is part of it.
+#[derive(Debug, Clone, Serialize, schemars::JsonSchema)]
+pub(crate) struct StoredAccountEntry {
+    /// The name the `OAuth2` login is stored under; absent for `OAuth1`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    login: Option<String>,
+    /// The account's id; absent until X has answered under the login.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    user_id: Option<String>,
+    /// The account's username when the id was stored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    username: Option<String>,
+    /// The account's display name when the id was stored.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    display_name: Option<String>,
+}
+
+impl StoredAccountEntry {
+    /// The text that follows a login in `xr auth status`: `(id ..., name)`
+    /// when the store holds the id, else nothing.
+    pub(super) fn text_suffix(&self) -> String {
+        let Some(id) = &self.user_id else {
+            return String::new();
+        };
+        match &self.display_name {
+            Some(name) => format!(" (id {id}, {name})"),
+            None => format!(" (id {id})"),
+        }
+    }
 }
 
 /// Helper for `#[serde(skip_serializing_if)]` on `bool` fields that default false.
@@ -330,7 +369,32 @@ fn build_app_status_entries(
                 redirect_uri_source: resolved.source,
                 redirect_uri_stored: stored_field,
                 oauth2_users: ts.get_oauth2_usernames_for_app(name),
+                oauth2_accounts: ts
+                    .get_oauth2_usernames_for_app(name)
+                    .into_iter()
+                    .map(|login| {
+                        let token = ts
+                            .get_oauth2_token_for_app(name, &login)
+                            .and_then(|token| token.oauth2.as_ref());
+                        StoredAccountEntry {
+                            user_id: token.and_then(|t| t.user_id.clone()),
+                            username: token.and_then(|t| t.account_username.clone()),
+                            display_name: token.and_then(|t| t.display_name.clone()),
+                            login: Some(login),
+                        }
+                    })
+                    .collect(),
                 oauth1: app.oauth1_token.is_some(),
+                oauth1_account: ts
+                    .get_oauth1_tokens_for_app(name)
+                    .and_then(|token| token.oauth1.as_ref())
+                    .filter(|token| token.user_id.is_some())
+                    .map(|token| StoredAccountEntry {
+                        login: None,
+                        user_id: token.user_id.clone(),
+                        username: token.account_username.clone(),
+                        display_name: token.display_name.clone(),
+                    }),
                 bearer: bearer_source.is_some(),
                 bearer_source,
                 default: name == default_app,

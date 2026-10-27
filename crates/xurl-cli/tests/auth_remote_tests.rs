@@ -213,6 +213,58 @@ async fn step2_happy_path_exchanges_code_and_saves_token() {
     let oauth2 = token.unwrap().oauth2.as_ref().unwrap();
     assert_eq!(oauth2.access_token, "remote-access-token");
     assert_eq!(oauth2.refresh_token, "remote-refresh-token");
+    assert_eq!(
+        oauth2.user_id.as_deref(),
+        Some("12345"),
+        "the lookup that names the login also stores the account's id"
+    );
+}
+
+/// A first sign-in against a named app makes that app the default when the
+/// default holds no credentials, so the next command finds the login
+/// without `--app`.
+#[tokio::test]
+async fn step2_makes_the_first_signed_in_app_the_default() {
+    let ts = TestServer::new().await;
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    auth.token_store
+        .add_app("work", "test-client-id", "test-client-secret")
+        .unwrap();
+    auth.with_app_name("work");
+    assert_ne!(auth.token_store.default_app, "work");
+    let pending_path = tmp.path().join(".xurl.pending");
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "work-access",
+                "refresh_token": "work-refresh",
+                "expires_in": 7200
+            }))),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {"id": "12345", "username": "remoteuser"}
+            }))),
+    )
+    .await;
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "test-auth-code")
+        .append_pair("state", &state.state);
+
+    auth.remote_oauth2_step2(&http(), redirect.as_ref(), "", &pending_path)
+        .await
+        .unwrap();
+
+    assert_eq!(auth.token_store.default_app, "work");
 }
 
 #[tokio::test]
@@ -1098,27 +1150,43 @@ async fn refresh_with_caller_supplied_username_skips_fetch_username() {
     );
 }
 
-#[tokio::test]
-async fn refresh_with_empty_caller_and_me_ok_saves_named() {
-    // Empty caller + /me Ok -> save under discovered username.
-    let ts = TestServer::new().await;
-    let tmp = TempDir::new().unwrap();
-    let mut auth = create_test_auth(ts.uri(), &tmp);
-
-    // Seed with a placeholder username so `get_first_oauth2_token` returns
-    // it during the refresh entry lookup.
-    seed_expired_named_oauth2(&mut auth, "placeholder");
-
+/// Mounts the refresh grant answering with `access` and `refresh`.
+async fn mock_refresh_grant(ts: &TestServer, access: &str, refresh: &str) {
     ts.mount(
         Mock::given(method("POST"))
             .and(path("/2/oauth2/token"))
             .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "access_token": "discovered-access",
-                "refresh_token": "discovered-refresh",
+                "access_token": access,
+                "refresh_token": refresh,
                 "expires_in": 7200
             }))),
     )
     .await;
+}
+
+/// Mounts `/2/users/me` failing with a 500.
+async fn mock_me_failing(ts: &TestServer) {
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/me"))
+            .respond_with(ResponseTemplate::new(500).set_body_json(serde_json::json!({
+                "title": "Server Error",
+                "status": 500
+            }))),
+    )
+    .await;
+}
+
+/// The new pair is minted from the stored one, so it replaces it under the
+/// key it is stored under, which is the caller's label and may not be the
+/// username X answers with. The lookup adds the account's id.
+#[tokio::test]
+async fn refresh_with_empty_caller_replaces_the_login_where_it_is_stored() {
+    let ts = TestServer::new().await;
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    seed_expired_named_oauth2(&mut auth, "placeholder");
+    mock_refresh_grant(&ts, "discovered-access", "discovered-refresh").await;
     ts.mount(
         Mock::given(method("GET"))
             .and(path("/2/users/me"))
@@ -1133,49 +1201,66 @@ async fn refresh_with_empty_caller_and_me_ok_saves_named() {
 
     let token = auth
         .token_store
-        .get_oauth2_token("discovered")
-        .expect("discovered token present");
+        .get_oauth2_token("placeholder")
+        .expect("the login is still stored under its key");
     let oauth2 = token.oauth2.as_ref().unwrap();
     assert_eq!(oauth2.access_token, "discovered-access");
     assert_eq!(oauth2.refresh_token, "discovered-refresh");
-
+    assert_eq!(oauth2.user_id.as_deref(), Some("999"));
+    assert_eq!(
+        auth.token_store.get_oauth2_usernames(),
+        ["placeholder"],
+        "no second entry appears under the username X answered with"
+    );
     assert!(
         auth.token_store
             .get_oauth2_token_unnamed_for_app("default")
             .is_none(),
-        "/me-success path must not touch the unnamed slot"
+        "a named login never moves to the unnamed slot"
     );
 }
 
+/// A lookup that fails costs a named login nothing: the new pair still
+/// replaces the old one under its key, and no dead pair is left behind.
 #[tokio::test]
-async fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
-    // Empty caller + /me Err -> save into unnamed slot, return Ok.
+async fn refresh_with_empty_caller_and_me_failure_keeps_a_named_login_in_place() {
     let ts = TestServer::new().await;
     let tmp = TempDir::new().unwrap();
     let mut auth = create_test_auth(ts.uri(), &tmp);
-
     seed_expired_named_oauth2(&mut auth, "placeholder");
-    let named_before: Vec<String> = auth.token_store.get_oauth2_usernames();
+    mock_refresh_grant(&ts, "salvage-access", "salvage-refresh").await;
+    mock_me_failing(&ts).await;
 
-    ts.mount(
-        Mock::given(method("POST"))
-            .and(path("/2/oauth2/token"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                "access_token": "salvage-access",
-                "refresh_token": "salvage-refresh",
-                "expires_in": 7200
-            }))),
-    )
-    .await;
-    ts.mount(
-        Mock::given(method("GET"))
-            .and(path("/2/users/me"))
-            .respond_with(ResponseTemplate::new(500).set_body_json(serde_json::json!({
-                "title": "Server Error",
-                "status": 500
-            }))),
-    )
-    .await;
+    let access_token = auth.refresh_oauth2_token(&http(), "").await.unwrap();
+    assert_eq!(access_token, "salvage-access");
+
+    let token = auth
+        .token_store
+        .get_oauth2_token("placeholder")
+        .expect("the login is still stored under its key");
+    let oauth2 = token.oauth2.as_ref().unwrap();
+    assert_eq!(oauth2.access_token, "salvage-access");
+    assert_eq!(oauth2.refresh_token, "salvage-refresh");
+    assert!(
+        auth.token_store
+            .get_oauth2_token_unnamed_for_app("default")
+            .is_none(),
+        "a named login never moves to the unnamed slot"
+    );
+}
+
+/// A login stored without a username stays in the unnamed slot when the
+/// lookup that would name it fails, holding the new pair.
+#[tokio::test]
+async fn refresh_of_an_unnamed_login_whose_lookup_fails_stays_unnamed() {
+    let ts = TestServer::new().await;
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    auth.token_store
+        .save_oauth2_token_unnamed_for_app("default", "old-access", "old-refresh", 0)
+        .unwrap();
+    mock_refresh_grant(&ts, "salvage-access", "salvage-refresh").await;
+    mock_me_failing(&ts).await;
 
     let access_token = auth.refresh_oauth2_token(&http(), "").await.unwrap();
     assert_eq!(access_token, "salvage-access");
@@ -1183,23 +1268,11 @@ async fn refresh_with_empty_caller_and_me_failure_saves_unnamed() {
     let token = auth
         .token_store
         .get_oauth2_token_unnamed_for_app("default")
-        .expect("unnamed slot populated after /me failure");
+        .expect("the unnamed slot holds the new pair");
     let oauth2 = token.oauth2.as_ref().unwrap();
     assert_eq!(oauth2.access_token, "salvage-access");
     assert_eq!(oauth2.refresh_token, "salvage-refresh");
-
-    // Named map shape is unchanged: same keys, same (stale) values.
-    let named_after: Vec<String> = auth.token_store.get_oauth2_usernames();
-    assert_eq!(
-        named_before, named_after,
-        "named map keys unchanged when /me fails"
-    );
-    let stale = auth.token_store.get_oauth2_token("placeholder").unwrap();
-    let stale_oauth2 = stale.oauth2.as_ref().unwrap();
-    assert_eq!(
-        stale_oauth2.access_token, "old-access",
-        "placeholder's named token untouched"
-    );
+    assert!(auth.token_store.get_oauth2_usernames().is_empty());
 }
 
 #[tokio::test]

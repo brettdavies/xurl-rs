@@ -1,6 +1,7 @@
-//! The steps two errors carry: a usage error points at the help of the
-//! command it belongs to, and a store that could not be loaded points at the
-//! page that says how to recover it.
+//! The steps errors carry: a usage error points at the help of the command
+//! it belongs to, a store that could not be loaded points at the page that
+//! says how to recover it, and the README's table of steps agrees with the
+//! closed sets and with what the golden fixtures show.
 //!
 //! Parallel-safe by construction, like `tests/cli_tests.rs`: every case runs
 //! the library entrypoint against its own `TempDir`-rooted store and supplies
@@ -98,6 +99,10 @@ async fn a_usage_error_carries_the_help_to_read(#[case] args: &[&str], #[case] h
 #[case::status(&["xr", "--output", "json", "auth", "status"])]
 #[case::apps_list(&["xr", "--output", "json", "auth", "apps", "list"])]
 #[case::apps_add(&["xr", "--output", "json", "auth", "apps", "add", "work", "--client-id", "abcdefgh", "--client-secret-file"])]
+#[case::clear_all(&["xr", "--output", "json", "auth", "clear", "--all", "--force"])]
+#[case::clear_oauth1(&["xr", "--output", "json", "auth", "clear", "--oauth1", "--force"])]
+#[case::clear_bearer(&["xr", "--output", "json", "auth", "clear", "--bearer", "--force"])]
+#[case::clear_oauth2(&["xr", "--output", "json", "auth", "clear", "--oauth2-username", "alice", "--force"])]
 #[tokio::test]
 async fn a_store_that_could_not_be_loaded_carries_inspect_store(#[case] args: &[&str]) {
     let tmp = TempDir::new().expect("tempdir");
@@ -109,8 +114,15 @@ async fn a_store_that_could_not_be_loaded_carries_inspect_store(#[case] args: &[
     if args.last() == Some(&"--client-secret-file") {
         args.push(secret.to_str().expect("utf-8 path"));
     }
-    let (code, _stdout, stderr) = run_at(&store, &args).await;
+    let before = std::fs::read(&store).expect("read the broken store");
+    let (code, stdout, stderr) = run_at(&store, &args).await;
     assert_eq!(code, 77, "args {args:?}; stderr: {stderr}");
+    assert_eq!(stdout, "", "args {args:?}: nothing is reported as done");
+    assert_eq!(
+        std::fs::read(&store).expect("read the broken store"),
+        before,
+        "args {args:?}: the file is left as it was"
+    );
     let v = envelope(&stderr);
     assert_eq!(v["reason"], "token-store", "args {args:?}: {v}");
     assert_eq!(
@@ -192,11 +204,144 @@ fn the_page_inspect_store_names_is_in_the_readme() {
     assert!(found, "{file} has no heading that anchors to #{anchor}");
 }
 
+// ── A step leads somewhere ─────────────────────────────────────────────
+
+/// Two signed-in apps: `personal`, the default, holding `alice`, and `work`
+/// holding `bob`. Neither token expires, so a dry run finds each offline.
+fn two_signed_in_apps(tmp: &TempDir) -> std::path::PathBuf {
+    let store = tmp.path().join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    for (app, login) in [("personal", "alice"), ("work", "bob")] {
+        ts.add_app(app, "abcdefgh", "shh").expect("add app");
+        ts.save_oauth2_token_for_app(app, login, "AT", "RT", u64::MAX)
+            .expect("save token");
+    }
+    ts.set_default_app("personal").expect("default");
+    store
+}
+
+/// Runs a step's `command` as a dry run, which sends nothing, and returns
+/// the envelope it prints.
+async fn dry_run_of(store: &Path, command: &str) -> serde_json::Value {
+    let mut words: Vec<&str> = command.split_whitespace().collect();
+    assert_eq!(words.first(), Some(&"xr"), "{command}");
+    words.insert(1, "--dry-run");
+    let (code, stdout, stderr) = run_at(store, &words).await;
+    assert_eq!(code, 0, "{command}: {stderr}");
+    serde_json::from_str(stdout.trim())
+        .unwrap_or_else(|e| panic!("{command} printed no envelope ({e}): {stdout}"))
+}
+
+/// Every credential step a refusal hands out is one that serves the
+/// invocation: a rerun against another app finds the login there, and a
+/// sign-in stores the login under the name the invocation asked for. A
+/// step that pointed at an app holding only other logins would refuse the
+/// same way, and that app's step would point back.
+#[rstest::rstest]
+#[case::login_no_app_holds(&["whoami", "-u", "nobody"])]
+#[case::login_no_app_holds_from_the_other_app(&["--app", "work", "whoami", "-u", "nobody"])]
+#[case::login_the_default_lacks(&["whoami", "-u", "bob"])]
+#[case::login_the_named_app_lacks(&["--app", "work", "whoami", "-u", "alice"])]
+#[tokio::test]
+async fn a_credential_step_serves_the_invocation_it_answers(#[case] args: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = two_signed_in_apps(&tmp);
+    let login = args[args.len() - 1];
+    let argv: Vec<&str> = ["xr", "--output", "json"]
+        .into_iter()
+        .chain(args.iter().copied())
+        .collect();
+    let (code, _stdout, stderr) = run_at(&store, &argv).await;
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let step = envelope(&stderr)["next_step"].clone();
+    let command = step["command"].as_str().expect("a runnable step");
+    match step["action"].as_str() {
+        Some("select-app") => {
+            let answer = dry_run_of(&store, command).await;
+            assert_eq!(answer["would_succeed"], true, "{command}: {answer}");
+            assert_eq!(answer["auth"]["username"], login, "{command}: {answer}");
+        }
+        Some("sign-in") => assert!(
+            command.starts_with(&format!("xr auth oauth2 {login} ")),
+            "the sign-in stores the login under another name: {command}"
+        ),
+        other => panic!("{argv:?}: unexpected step {other:?}: {step}"),
+    }
+}
+
+/// A dry run that no stored credential serves carries the step its real
+/// run's error carries. A rerun keeps `--dry-run`, so following a dry
+/// run's step sends nothing either.
+#[rstest::rstest]
+#[case::nothing_registered(false, &["whoami"])]
+#[case::login_no_app_holds(true, &["whoami", "-u", "nobody"])]
+#[case::login_another_app_holds(true, &["whoami", "-u", "bob"])]
+#[tokio::test]
+async fn a_dry_run_refusal_carries_the_step_of_its_real_run(
+    #[case] signed_in: bool,
+    #[case] args: &[&str],
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = if signed_in {
+        two_signed_in_apps(&tmp)
+    } else {
+        tmp.path().join(".xurl")
+    };
+    let real: Vec<&str> = ["xr", "--output", "json"]
+        .into_iter()
+        .chain(args.iter().copied())
+        .collect();
+    let (_, _, stderr) = run_at(&store, &real).await;
+    let expected = envelope(&stderr)["next_step"].clone();
+    assert!(
+        expected.is_object(),
+        "the real run carries a step: {stderr}"
+    );
+
+    let dry: Vec<&str> = ["xr", "--output", "json", "--dry-run"]
+        .into_iter()
+        .chain(args.iter().copied())
+        .collect();
+    let (code, stdout, stderr) = run_at(&store, &dry).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("an envelope");
+    assert_eq!(answer["would_succeed"], false, "{answer}");
+    let mut step = answer["next_step"].clone();
+    if let Some(command) = step["command"].as_str() {
+        step["command"] = command.replacen(" --dry-run", "", 1).into();
+    }
+    assert_eq!(step, expected, "{answer}");
+}
+
+/// A login flag ahead of the command word is refused with the invocation
+/// that moves it after the word, and that invocation reaches the command.
+#[tokio::test]
+async fn a_misplaced_login_flag_moves_to_where_the_command_reads_it() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = two_signed_in_apps(&tmp);
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr", "--output", "json", "--app", "work", "-u", "bob", "whoami",
+        ],
+    )
+    .await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    let v = envelope(&stderr);
+    assert_eq!(v["reason"], "invalid-args", "{v}");
+    assert_eq!(v["next_step"]["action"], "fix-input", "{v}");
+    let command = v["next_step"]["command"].as_str().expect("a runnable step");
+    assert_eq!(command, "xr --output json --app work whoami -u bob");
+    let answer = dry_run_of(&store, command).await;
+    assert_eq!(answer["would_succeed"], true, "{answer}");
+    assert_eq!(answer["auth"]["username"], "bob", "{answer}");
+}
+
 // ── The README places every reason ─────────────────────────────────────
 
-/// The reasons the README's "Which Errors Carry a Step" section gives a row
-/// in its table, and the ones it lists as carrying no step.
-fn readme_reasons() -> (Vec<String>, Vec<String>) {
+/// The rows of the README's "Which Errors Carry a Step" table: each reason
+/// with the cell that says which actions it carries.
+fn readme_rows() -> Vec<(String, String)> {
     let readme =
         std::fs::read_to_string(common::workspace_root().join("crates/xurl-cli/README.md"))
             .expect("the README");
@@ -207,28 +352,19 @@ fn readme_reasons() -> (Vec<String>, Vec<String>) {
     let section = section
         .split_once("\n### ")
         .map_or(section, |(body, _)| body);
-    let name = regex::Regex::new(r"`([a-z-]+)`").unwrap();
-    let with_step = section
+    section
         .lines()
         .filter(|line| line.starts_with("| `") && !line.starts_with("| `reason`"))
-        .filter_map(|line| name.captures(line))
-        .map(|found| found[1].to_string())
-        .collect();
-    let listed = section
-        .split_once("Every other reason carries no step")
-        .and_then(|(_, rest)| rest.split_once(':'))
-        .expect("the list of reasons with no step")
-        .1;
-    let listed = listed.split_once("\n\n").map_or(listed, |(list, _)| list);
-    let without_step = name
-        .captures_iter(listed)
-        .map(|found| found[1].to_string())
-        .collect();
-    (with_step, without_step)
+        .filter_map(|line| {
+            let mut cells = line.trim_matches('|').split('|');
+            let reason = cells.next()?.trim().trim_matches('`').to_string();
+            Some((reason, cells.next()?.trim().to_string()))
+        })
+        .collect()
 }
 
-/// Every name in the closed set of reasons, read from the type's own schema.
-fn every_reason() -> Vec<String> {
+/// Every name a closed set holds, read from the type's own schema.
+fn names_in(schema: &serde_json::Value) -> Vec<String> {
     fn collect(node: &serde_json::Value, found: &mut Vec<String>) {
         match node {
             serde_json::Value::Object(map) => {
@@ -248,60 +384,90 @@ fn every_reason() -> Vec<String> {
             _ => {}
         }
     }
-    let schema =
-        serde_json::to_value(schemars::schema_for!(cli::envelope::Reason)).expect("schema");
     let mut found = Vec::new();
-    collect(&schema, &mut found);
+    collect(schema, &mut found);
     found
 }
 
-/// The reasons some fixture shows carrying a step.
-fn reasons_a_fixture_shows_with_a_step() -> Vec<String> {
+fn every_reason() -> Vec<String> {
+    names_in(&serde_json::to_value(schemars::schema_for!(cli::envelope::Reason)).expect("schema"))
+}
+
+fn every_action() -> Vec<String> {
+    names_in(&serde_json::to_value(schemars::schema_for!(cli::hints::NextAction)).expect("schema"))
+}
+
+/// What each `reason-<name>` fixture shows: the reason, and the action of
+/// the step its envelope carries, if it carries one.
+fn fixture_steps() -> Vec<(String, Option<String>)> {
     let golden = common::workspace_root().join("crates/xurl-cli/tests/golden");
-    let reason = regex::Regex::new(r#""reason": "([a-z-]+)""#).unwrap();
+    let action = regex::Regex::new(r#""action": "([a-z-]+)""#).unwrap();
     let mut found = Vec::new();
     for entry in std::fs::read_dir(&golden).expect("the fixtures") {
-        let text = std::fs::read_to_string(entry.expect("a fixture").path()).unwrap_or_default();
-        if text.contains("\"next_step\"")
-            && let Some(name) = reason.captures(&text)
-        {
-            found.push(name[1].to_string());
-        }
+        let path = entry.expect("a fixture").path();
+        let Some(reason) = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .and_then(|stem| stem.strip_prefix("reason-"))
+        else {
+            continue;
+        };
+        let text = std::fs::read_to_string(&path).expect("read the fixture");
+        let step = text
+            .split_once("\"next_step\"")
+            .and_then(|(_, rest)| action.captures(rest))
+            .map(|found| found[1].to_string());
+        found.push((reason.to_string(), step));
     }
     found
 }
 
-/// The README places every reason in its table or in its list of reasons with
-/// no step, never in both, names no reason that does not exist, and gives a
-/// row to each reason a fixture shows carrying a step.
+/// The README gives every reason one row, names no reason and no action
+/// that does not exist, and agrees with the fixtures: the step a fixture
+/// shows is one its row lists, and a fixture with no step has a row that
+/// says when there is none.
 #[test]
-fn the_readme_places_every_reason_with_or_without_a_step() {
-    let (with_step, without_step) = readme_reasons();
+fn the_readme_gives_every_reason_a_row_the_fixtures_agree_with() {
+    let rows = readme_rows();
     let reasons = every_reason();
+    let actions = every_action();
     assert!(reasons.len() > 30, "the closed set: {reasons:?}");
+    assert!(actions.len() > 10, "the closed set: {actions:?}");
 
+    let name = regex::Regex::new(r"`([a-z-]+)`").unwrap();
     let mut misplaced = Vec::new();
     for reason in &reasons {
-        let in_table = with_step.contains(reason);
-        let in_list = without_step.contains(reason);
-        if in_table == in_list {
-            misplaced.push(format!(
-                "{reason}: in the table {in_table}, in the list {in_list}"
-            ));
+        let count = rows.iter().filter(|(named, _)| named == reason).count();
+        if count != 1 {
+            misplaced.push(format!("{reason}: {count} rows in the table"));
         }
     }
-    for named in with_step.iter().chain(&without_step) {
-        if !reasons.contains(named) {
-            misplaced.push(format!(
-                "{named}: named in the README and no reason has that name"
-            ));
+    for (reason, cell) in &rows {
+        if !reasons.contains(reason) {
+            misplaced.push(format!("{reason}: has a row and no reason has that name"));
+        }
+        let listed = cell.split(':').next().unwrap_or(cell);
+        if !name
+            .captures_iter(listed)
+            .any(|found| actions.contains(&found[1].to_string()))
+        {
+            misplaced.push(format!("{reason}: its row names no action"));
         }
     }
-    for reason in reasons_a_fixture_shows_with_a_step() {
-        if !with_step.contains(&reason) {
-            misplaced.push(format!(
-                "{reason}: a fixture carries a step and the table has no row"
-            ));
+    let fixtures = fixture_steps();
+    assert!(fixtures.len() > 30, "the reason fixtures: {fixtures:?}");
+    for (reason, step) in fixtures {
+        let Some((_, cell)) = rows.iter().find(|(named, _)| *named == reason) else {
+            continue;
+        };
+        match step {
+            Some(action) if !cell.contains(&format!("`{action}`")) => misplaced.push(format!(
+                "{reason}: its fixture carries `{action}`, which its row does not list"
+            )),
+            None if !cell.contains("none") => misplaced.push(format!(
+                "{reason}: its fixture carries no step, and its row does not say when there is none"
+            )),
+            _ => {}
         }
     }
     assert!(

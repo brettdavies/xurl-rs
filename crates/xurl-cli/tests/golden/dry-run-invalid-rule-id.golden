@@ -1,0 +1,21 @@
+args: ["--output", "json", "--dry-run", "stream", "rules", "remove", "rule-1"]
+store: empty
+exit_code: 0
+stdout_len: 230
+stderr_len: 0
+--- stdout ---
+{
+  "command": "stream-rules-remove",
+  "confirmation_required": true,
+  "exit_code": 1,
+  "reason": "invalid-rule-id",
+  "rule_ids": [
+    "rule-1"
+  ],
+  "status": "dry_run",
+  "validate_only": false,
+  "would_succeed": false
+}
+
+--- stderr ---
+

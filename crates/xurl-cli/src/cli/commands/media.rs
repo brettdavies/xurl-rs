@@ -1,11 +1,14 @@
-/// Media subcommand handlers — upload, status, alt text, and subtitles.
+/// Media subcommand handlers — upload, status, alt text, and subtitles; the
+/// lookups by media key are in `media_lookup`.
 use serde_json::json;
 
-use super::{Run, dry_run_or_validate, make_client, print_typed, with_flags};
+use super::{
+    DryRun, Run, dry_run_or_validate, make_client, media_lookup, send_or_report, with_flags,
+};
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, MediaCommands, ProcessingWait, SubtitlesCommands};
 use xdk::api::{self, shortcuts};
-use xdk::error::Result;
+use xdk::error::Error;
 
 pub(super) async fn run(cmd: MediaCommands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
@@ -45,6 +48,23 @@ pub(super) async fn run(cmd: MediaCommands, run: Run<'_>) -> CommandResult<()> {
             common,
         } => alt_text(run, &media_id, &text, &common).await?,
         MediaCommands::Subtitles { action } => subtitles(action, run).await?,
+        MediaCommands::Get { media_keys, common } => {
+            media_lookup::get(run, &media_keys, &common).await?;
+        }
+        MediaCommands::Analytics {
+            media_keys,
+            start,
+            end,
+            granularity,
+            common,
+        } => {
+            let window = media_lookup::Window {
+                start: &start,
+                end: &end,
+                granularity: granularity.as_deref(),
+            };
+            media_lookup::analytics(run, &media_keys, window, &common).await?;
+        }
     }
     Ok(())
 }
@@ -61,7 +81,7 @@ struct UploadArgs {
     headers: Vec<String>,
 }
 
-async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
+async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
     let UploadArgs {
         file,
         media_type,
@@ -80,6 +100,9 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
         stdout,
         stderr,
     } = run;
+    let client = make_client(cfg, auth)?;
+    let auth_type = auth_type.unwrap_or_default();
+    let username = username.unwrap_or_default();
     if flags.dry_run {
         let ctx = json!({
             "command": "media-upload",
@@ -87,16 +110,18 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
             "media_type": media_type,
             "category": category,
         });
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
+        let waits = wait.0.is_some();
+        let credential =
+            api::media_upload_preflight(&file, &auth_type, &username, &headers, waits, &client)
+                .await;
+        return DryRun::new(ctx).answer(out, stdout, [credential]);
     }
-    let client = make_client(cfg, auth)?;
     let outcome = api::execute_media_upload(
         &file,
         &media_type,
         &category,
-        &auth_type.unwrap_or_default(),
-        &username.unwrap_or_default(),
+        &auth_type,
+        &username,
         trace,
         wait.0,
         &headers,
@@ -106,13 +131,19 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> Result<()> {
     // A structured answer is one document, so INIT's goes only to a human
     // who asked for verbose text.
     if flags.verbose && !out.format.is_structured() {
-        out.print_response(stdout, &serde_json::to_value(&outcome.init)?);
+        out.print_response(
+            stdout,
+            &serde_json::to_value(&outcome.init).map_err(Error::from)?,
+        );
     }
     // The upload completed at FINALIZE; a processing failure after it
     // still leaves the media id on stdout for the caller to act on.
-    out.print_response(stdout, &serde_json::to_value(outcome.response())?);
+    out.print_response(
+        stdout,
+        &serde_json::to_value(outcome.response()).map_err(Error::from)?,
+    );
     if let Some(Err(err)) = outcome.processing {
-        return Err(err);
+        return Err(err.into());
     }
     out.status(
         stderr,
@@ -132,30 +163,41 @@ async fn status(
     wait: ProcessingWait,
     trace: bool,
     headers: &[String],
-) -> Result<()> {
+) -> CommandResult<()> {
     let Run {
         cfg,
         auth,
+        flags,
         out,
         stdout,
         ..
     } = run;
     let client = make_client(cfg, auth)?;
+    let auth_type = auth_type.unwrap_or_default();
+    let username = username.unwrap_or_default();
+    if flags.dry_run {
+        let ctx = json!({"command": "media-status", "media_id": media_id});
+        let credential =
+            api::media_status_auth_preflight(&auth_type, &username, headers, &client).await;
+        return DryRun::new(ctx).answer(out, stdout, [credential]);
+    }
     let response = api::execute_media_status(
-        media_id,
-        &auth_type.unwrap_or_default(),
-        &username.unwrap_or_default(),
-        wait.0,
-        trace,
-        headers,
-        &client,
+        media_id, &auth_type, &username, wait.0, trace, headers, &client,
     )
     .await?;
-    out.print_response(stdout, &serde_json::to_value(&response)?);
+    out.print_response(
+        stdout,
+        &serde_json::to_value(&response).map_err(Error::from)?,
+    );
     Ok(())
 }
 
-async fn alt_text(run: Run<'_>, media_id: &str, text: &str, common: &CommonFlags) -> Result<()> {
+async fn alt_text(
+    run: Run<'_>,
+    media_id: &str,
+    text: &str,
+    common: &CommonFlags,
+) -> CommandResult<()> {
     let Run {
         cfg,
         auth,
@@ -169,21 +211,17 @@ async fn alt_text(run: Run<'_>, media_id: &str, text: &str, common: &CommonFlags
         "media_id": media_id,
         "text": text,
     });
-    let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
         shortcuts::validate_media_id(media_id)?;
         shortcuts::validate_alt_text(text)
     })?;
-    if !proceed {
-        return Ok(());
-    }
     let client = make_client(cfg, auth)?;
-    let response = with_flags(client.set_media_alt_text(media_id, text), common, None)
-        .send()
-        .await?;
-    print_typed(out, stdout, &response)
+    let call = with_flags(client.set_media_alt_text(media_id, text), common, None);
+    send_or_report(out, stdout, dry_run, call).await?;
+    Ok(())
 }
 
-async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> Result<()> {
+async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> CommandResult<()> {
     let Run {
         cfg,
         auth,
@@ -209,14 +247,11 @@ async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> Result<()> {
                 "name": display_name,
                 "category": category.upload_name(),
             });
-            let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
+            let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
                 shortcuts::validate_media_id(&video_id)?;
                 shortcuts::validate_media_id(&subtitles_id)?;
                 shortcuts::validate_language_code(&language)
             })?;
-            if !proceed {
-                return Ok(());
-            }
             let client = make_client(cfg, auth)?;
             let call = client.add_media_subtitles(
                 &video_id,
@@ -225,8 +260,8 @@ async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> Result<()> {
                 &language,
                 display_name.as_deref(),
             );
-            let response = with_flags(call, &common, None).send().await?;
-            print_typed(out, stdout, &response)
+            send_or_report(out, stdout, dry_run, with_flags(call, &common, None)).await?;
+            Ok(())
         }
         SubtitlesCommands::Remove {
             video_id,
@@ -240,17 +275,14 @@ async fn subtitles(action: SubtitlesCommands, run: Run<'_>) -> Result<()> {
                 "language": language,
                 "category": category.upload_name(),
             });
-            let proceed = dry_run_or_validate(out, stdout, flags.dry_run, ctx, || {
+            let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
                 shortcuts::validate_media_id(&video_id)?;
                 shortcuts::validate_language_code(&language)
             })?;
-            if !proceed {
-                return Ok(());
-            }
             let client = make_client(cfg, auth)?;
             let call = client.remove_media_subtitles(&video_id, category, &language);
-            let response = with_flags(call, &common, None).send().await?;
-            print_typed(out, stdout, &response)
+            send_or_report(out, stdout, dry_run, with_flags(call, &common, None)).await?;
+            Ok(())
         }
     }
 }

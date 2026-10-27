@@ -61,11 +61,11 @@ bearer order. Four paths:
   the hook is where the new pair gets persisted; a hook that returns an error fails the call that triggered the refresh.
 - **OAuth1 HMAC-SHA1**: an `OAuth1Credential` with the consumer pair and the user's access pair, for legacy v1.1
   endpoints and some v2 write paths.
-- **The token store**: `Client::new(&Config, Auth)` or `Client::from_env()` builds a client over the `~/.xurl` store the
-  `xr` CLI writes, so a program can reuse a sign-in done with `xr auth oauth2` with nothing exported; `from_env` also
-  reads `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, and
-  `XURL_BEARER_TOKEN` when they are set. `TokenStore::refresh_hook_for` is the reference implementation of the refresh
-  hook.
+- **The token store**: `Client::new(&Config, Auth)` or `Client::from_env()` builds a client over the `~/.xurl/auth.yml`
+  store the `xr` CLI writes, so a program can reuse a sign-in done with `xr auth oauth2` with nothing exported;
+  `from_env` also reads `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`,
+  `INFO_URL`, and `XURL_BEARER_TOKEN` when they are set. `TokenStore::refresh_hook_for` is the reference implementation
+  of the refresh hook.
 
 ```rust,no_run
 use std::time::{Duration, SystemTime};
@@ -91,14 +91,20 @@ async fn main() -> xdk::Result<()> {
 }
 ```
 
+`Call::auth_preflight()` reports the credential a call would be sent with, without sending it: the scheme, the stored
+OAuth2 user, and whether that user's token has expired. It refreshes nothing, and returns the error a send would stop on
+when no credential fits the endpoint. `Client::auth_preflight(&RequestOptions)` answers the same for a request built by
+hand.
+
 ## Errors and rate limits
 
 Every call returns `xdk::Result<T>`, whose error is the `#[non_exhaustive]` `xdk::Error`. Beyond `Display`, an error
 answers four questions: `kind()` names its category as a stable string, `exit_code()` maps it to the process exit code
-the `xr` CLI uses, `next_action()` names the one thing a caller can do about it as a closed `NextAction` (sign in,
-register an app, enroll the app, and so on), and `docs_url()` points at the page that explains it when one exists. An
-error that wraps a lower-level failure keeps it: `std::error::Error::source()` returns the `reqwest`, `std::io`,
-`serde_json`, or `serde_yaml` error underneath, so a caller can walk the chain or downcast to it.
+the `xr` CLI uses, `next_action()` names the one thing a caller can do about it as a closed `NextAction` (send it again,
+change the input, enroll the app, report a fault of the library, and so on), and `docs_url()` points at the page that
+explains it when one exists. A credential failure names no action: which stored login to use is the caller's to decide.
+An error that wraps a lower-level failure keeps it: `std::error::Error::source()` returns the `reqwest`, `std::io`,
+`serde_json`, or `serde_saphyr` error underneath, so a caller can walk the chain or downcast to it.
 
 A 429 carries the reset its own response named, as seconds since the Unix epoch in the `reset_at` field of `Error::Api`,
 and `NextAction::WaitAndRetry` with it; a 429 that named none carries neither. `ClientBuilder::wait_on_rate_limit` makes
@@ -180,6 +186,12 @@ Every published module is one an embedder has a reason to call:
   to.
 - `store`: `TokenStore`, the on-disk credential store the CLI shares, and the reference implementation of the refresh
   hook.
+- `webhooks`: `Receiver`, which binds an address, answers X's CRC check, and yields each delivered event whose signature
+  verifies, with `sign` for the signature X computes and `SignedSample` for a test delivery. `UrlTarget` forwards an
+  event to an endpoint of the caller's under `RetryBudget`, the retry rule `xr` uses. `CheckpointWriter`,
+  `read_checkpoint`, and `replay_window` record how far a receiver got and turn that into the window X can replay. It
+  opens no tunnel and prints nothing; `Client` has the shortcuts that register a webhook and subscribe to it. The
+  `webhook_forward` example runs a receiver, a forward, and a checkpoint together.
 
 Items marked `#[doc(hidden)]` are seams the `xr` binary reaches across the crate boundary; they stay callable but are
 not part of this surface.
@@ -246,8 +258,8 @@ CLI takes across its majors are written up under
 
 `xr` ([`xurl-rs`](https://crates.io/crates/xurl-rs)) is the command-line tool built on this crate and an independent
 Rust port of [`xdevplatform/xurl`](https://github.com/xdevplatform/xurl), X's own Go CLI. The two crates share the
-`~/.xurl` token store, so a sign-in done with `xr auth oauth2` is usable from a program through `Client::from_env()`.
-The repository's [README](https://github.com/brettdavies/xurl-rs#readme) routes between the two.
+`~/.xurl/auth.yml` token store, so a sign-in done with `xr auth oauth2` is usable from a program through
+`Client::from_env()`. The repository's [README](https://github.com/brettdavies/xurl-rs#readme) routes between the two.
 
 ## License
 

@@ -1,4 +1,4 @@
-args: ["--auth", "app", "search", "q429reset"]
+args: ["search", "--auth", "app", "q429reset"]
 store: bearer-env
 exit_code: 3
 stdout_len: 0

@@ -1,4 +1,4 @@
-args: ["--verbose", "--color", "always", "--auth", "app", "search", "hi"]
+args: ["--verbose", "--color", "always", "search", "--auth", "app", "hi"]
 store: bearer-env
 exit_code: 0
 stdout_len: 102

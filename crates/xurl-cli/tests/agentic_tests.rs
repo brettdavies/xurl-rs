@@ -197,7 +197,7 @@ async fn test_output_line_formats_print_an_api_document_on_one_line(#[case] form
     let (code, stdout, stderr) = run_against(
         &server,
         &[],
-        &["--output", format, "--auth", "app", "search", "hi"],
+        &["--output", format, "search", "--auth", "app", "hi"],
     );
 
     assert_eq!(code, 0, "stderr: {stderr}");
@@ -214,9 +214,11 @@ async fn test_output_line_formats_print_an_api_document_on_one_line(#[case] form
 fn test_output_yaml_prints_a_yaml_mapping() {
     let stdout = version_in("yaml");
     assert!(
-        stdout.contains(&format!("name: xr\nversion: {VERSION}\n")),
+        stdout.contains("name: xr\nversion: "),
         "--output yaml must print a block-style mapping: {stdout}"
     );
+    let document: serde_json::Value = serde_saphyr::from_str(&stdout).expect("a YAML mapping");
+    assert_eq!(document["version"], VERSION, "{stdout}");
 }
 
 #[rstest]
@@ -444,9 +446,12 @@ fn test_help_advertises_every_env_var_the_source_reads() {
             names.insert(var.to_string());
         }
     }
-    // `HOME` is the one core system variable xr reads, only to expand a
-    // `~`-prefixed skill destination; it is not an xr setting.
+    // `HOME` expands a `~`-prefixed skill destination, and `PATH` and
+    // `PATHEXT` find the program `webhooks listen` forwards to. They are the
+    // OS's own variables, read as the OS reads them, not xr settings.
     names.remove("HOME");
+    names.remove("PATH");
+    names.remove("PATHEXT");
 
     let stdout = help(&[]);
     let missing: Vec<&String> = names
@@ -710,7 +715,7 @@ async fn test_after_sends_the_pagination_token() {
     let (code, _stdout, stderr) = run_against(
         &server,
         &[],
-        &["--after", "AFTER-TOKEN", "--auth", "app", "search", "hi"],
+        &["--after", "AFTER-TOKEN", "search", "--auth", "app", "hi"],
     );
 
     assert_eq!(
@@ -814,24 +819,46 @@ fn test_validate_subcommand_appears_in_help() {
 
 /// The commands that confirm a destructive op before running it. Under
 /// `--no-interactive` each one refuses unless `--force` confirms the op.
-const CONFIRMED_COMMANDS: &[&str] = &["delete", "auth clear", "auth apps remove"];
+const CONFIRMED_COMMANDS: &[&str] = &[
+    "delete",
+    "auth clear",
+    "auth apps remove",
+    "webhooks remove",
+    "webhooks subscriptions remove",
+    "webhooks stream-links remove",
+    "broadcasts sources remove",
+    "calls scheduled cancel",
+    "dm-events remove",
+    "lists remove",
+    "broadcasts scheduled remove",
+    "broadcasts scheduled live",
+    "broadcasts chat remove",
+    "notes remove",
+    "articles publish",
+    "stream rules remove",
+];
 
 /// Each command that confirms a destructive op is on the list above, so a new
-/// one cannot escape the example check below.
+/// one cannot escape the example check below. A command confirms either by
+/// calling `gate_destructive` itself or by handing its request to
+/// `send_confirmed`, whose own gate call is not a command.
 #[test]
 fn every_confirmed_command_is_listed() {
     let call_sites: usize = common::workspace_sources()
         .iter()
         .map(|file| {
             let source = std::fs::read_to_string(file).unwrap();
-            source.matches("gate_destructive(").count()
+            let gated = source.matches("gate_destructive(").count()
                 - source.matches("fn gate_destructive(").count()
+                - source.matches("fn send_confirmed").count();
+            gated + source.matches("send_confirmed(").count()
+                - source.matches("fn send_confirmed(").count()
         })
         .sum();
     assert_eq!(
         call_sites,
         CONFIRMED_COMMANDS.len(),
-        "the number of commands calling gate_destructive changed; update CONFIRMED_COMMANDS"
+        "the number of commands that confirm a destructive op changed; update CONFIRMED_COMMANDS"
     );
 }
 

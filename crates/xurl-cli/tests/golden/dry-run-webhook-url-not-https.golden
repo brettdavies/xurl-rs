@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "webhooks", "add", "http://example.com/webhook"]
+store: empty
+exit_code: 0
+stdout_len: 175
+stderr_len: 0
+--- stdout ---
+{
+  "command": "webhooks-add",
+  "exit_code": 1,
+  "reason": "webhook-url-not-https",
+  "status": "dry_run",
+  "url": "http://example.com/webhook",
+  "would_succeed": false
+}
+
+--- stderr ---
+

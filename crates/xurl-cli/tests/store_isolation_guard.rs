@@ -1,9 +1,10 @@
 //! Fails when a test resolves the real home directory, or touches the variables
 //! a process finds it and its per-user state through.
 //!
-//! `Auth::new` and `TokenStore::new` anchor on `~/.xurl`, so a test that calls
-//! them reads the developer's real login and, through any later save, races
-//! every other test on that one file. The explicit-path constructors
+//! `Auth::new`, `TokenStore::new`, and `Client::from_env` anchor on the
+//! default store under `~/.xurl`, so a test that calls them reads the
+//! developer's real login and, through any later save, races every other test
+//! on that one file. The explicit-path constructors
 //! (`Auth::new_with_store_path`, `TokenStore::new_with_path`,
 //! `run_with_store_path`) are the seam; this guard keeps every test on it.
 //!
@@ -43,6 +44,21 @@ const ALLOWLIST: &[Allowed] = &[
         reason: "the release gate must read the operator's real login",
     },
     Allowed {
+        file: "crates/xdk/tests/api_tests.rs",
+        test: "test_from_env_without_client_id_builds_a_store_backed_client",
+        reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
+    },
+    Allowed {
+        file: "crates/xdk/tests/api_tests.rs",
+        test: "test_from_env_with_client_id_set_returns_ok",
+        reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
+    },
+    Allowed {
+        file: "crates/xdk/tests/api_tests.rs",
+        test: "test_from_env_with_client_id_but_no_secret_returns_ok",
+        reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
+    },
+    Allowed {
         file: "crates/xurl-cli/tests/wiring_tests.rs",
         test: "test_xurl_token_store_env_selects_store_file",
         reason: "proves the variable the spawn seam relies on, so it spawns raw on purpose",
@@ -65,6 +81,7 @@ const PATTERNS: &[&str] = &[
     "Auth::new(",
     "TokenStore::new()",
     "TokenStore::with_credentials(",
+    "Client::from_env(",
     "default_store_path()",
     "default_pending_path()",
     "dirs::",

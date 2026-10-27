@@ -7,21 +7,8 @@ mod common;
 use tempfile::TempDir;
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
-use xdk::store::TokenStore;
 
-/// A store whose default app holds a far-future OAuth2 token for `alice`, so
-/// no refresh happens before the upload.
-fn oauth2_store(tmp: &TempDir) -> std::path::PathBuf {
-    let store = tmp.path().join(".xurl");
-    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
-    ts.add_app("myapp", "CLIENT-ID-VALUE", "SECRET-VALUE")
-        .expect("add_app");
-    ts.save_oauth2_token_for_app("myapp", "alice", "user-at", "user-rt", 9_999_999_999)
-        .expect("save_oauth2");
-    ts.set_default_app("myapp").expect("set_default_app");
-    let _ = ts.remove_app("default");
-    store
-}
+use common::oauth2_store;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn a_processing_failure_after_finalize_still_prints_the_media_id() {
@@ -60,7 +47,7 @@ async fn a_processing_failure_after_finalize_still_prints_the_media_id() {
         .await;
 
     let tmp = TempDir::new().expect("tempdir");
-    let store = oauth2_store(&tmp);
+    let store = oauth2_store(tmp.path());
     let video = tmp.path().join("clip.mp4");
     std::fs::write(&video, b"not really a video").expect("write clip");
     let base_url = server.uri();
@@ -143,7 +130,7 @@ async fn a_status_without_processing_info_ends_the_wait_after_one_call() {
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &["--output", "json", "media", "status", "777", "--wait"],
     )
     .await;
@@ -173,7 +160,7 @@ async fn a_wait_past_its_deadline_ends_with_processing_timeout_and_a_resume_comm
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &["--output", "json", "media", "status", "777", "--wait=2"],
     )
     .await;
@@ -210,7 +197,7 @@ async fn a_processing_timeout_in_text_mode_prints_the_resume_command() {
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &["media", "status", "777", "--wait=1"],
     )
     .await;
@@ -234,7 +221,7 @@ async fn a_failed_status_is_not_a_timeout() {
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &["--output", "json", "media", "status", "777", "--wait=5"],
     )
     .await;
@@ -269,7 +256,7 @@ async fn a_bare_or_true_wait_polls_until_the_job_succeeds(#[case] wait: &str) {
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &["--output", "json", "media", "status", "777", wait],
     )
     .await;
@@ -317,7 +304,7 @@ async fn an_upload_told_not_to_wait_returns_after_finalize(#[case] wait: &str) {
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &[
             "--output",
             "json",
@@ -404,7 +391,7 @@ async fn a_waited_upload_prints_one_document_with_the_final_state(#[case] extra:
     let mut args = vec!["--output", "json"];
     args.extend_from_slice(extra);
     args.extend_from_slice(&["media", "upload", video.to_str().expect("utf-8 path")]);
-    let output = run_xr(&server, oauth2_store(&tmp), &args).await;
+    let output = run_xr(&server, oauth2_store(tmp.path()), &args).await;
 
     assert_eq!(
         output.status.code(),
@@ -460,7 +447,7 @@ async fn a_finished_status_without_processing_info_clears_the_pending_state() {
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &[
             "--output",
             "json",
@@ -511,7 +498,7 @@ async fn upload_a_gif(finalize: serde_json::Value) -> (std::process::Output, usi
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &[
             "--output",
             "json",
@@ -587,7 +574,7 @@ async fn a_wait_value_after_a_space_points_at_the_equals_form() {
 
     let output = run_xr(
         &server,
-        oauth2_store(&tmp),
+        oauth2_store(tmp.path()),
         &["--output", "json", "media", "status", "777", "--wait", "60"],
     )
     .await;

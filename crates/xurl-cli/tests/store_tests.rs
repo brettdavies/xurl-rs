@@ -1001,7 +1001,7 @@ fn test_set_app_redirect_uri_empty_clears_value_and_omits_from_yaml() {
 
     // Parse the on-disk YAML and confirm `app1` has no `redirect_uri` key.
     let raw = fs::read_to_string(&store.file_path).unwrap();
-    let parsed: serde_yaml::Value = serde_yaml::from_str(&raw).unwrap();
+    let parsed: serde_json::Value = serde_saphyr::from_str(&raw).unwrap();
     let app1 = parsed
         .get("apps")
         .and_then(|a| a.get("app1"))
@@ -1360,6 +1360,38 @@ fn unparseable_store_records_the_failure_and_leaves_the_file_alone() {
     assert_eq!(store.load_state, xdk::store::LoadState::Unparseable);
     assert!(store.apps.is_empty());
     assert!(store.add_app("myapp", "id", "secret").is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), garbage);
+}
+
+/// A clear is a write. Against a store that could not be loaded it has not
+/// seen what the file holds, so it refuses instead of finding nothing to
+/// clear.
+#[test]
+fn a_clear_on_an_unparseable_store_is_refused() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let garbage = b"\x00\x01 neither yaml nor json \x02";
+    std::fs::write(&path, garbage).unwrap();
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+
+    type Clear = fn(&mut TokenStore) -> xdk::Result<()>;
+    let clears: [(&str, Clear); 4] = [
+        ("clear_all", TokenStore::clear_all),
+        ("clear_oauth1_tokens", TokenStore::clear_oauth1_tokens),
+        ("clear_bearer_token", TokenStore::clear_bearer_token),
+        ("clear_oauth2_token", |store| {
+            store.clear_oauth2_token("alice")
+        }),
+    ];
+    for (name, clear) in clears {
+        let err = clear(&mut store).expect_err(name);
+        assert_eq!(err.kind(), "token-store", "{name}: {err}");
+        assert!(
+            err.to_string()
+                .contains(&path.to_string_lossy().to_string()),
+            "{name} names the path; got: {err}"
+        );
+    }
     assert_eq!(std::fs::read(&path).unwrap(), garbage);
 }
 
@@ -1884,4 +1916,88 @@ fn a_symlinked_store_is_written_through_and_locked_beside_its_target() {
         !tmp.path().join(".xurl.lock").exists(),
         "no second lock beside the link"
     );
+}
+
+// ── The directory layout ───────────────────────────────
+
+/// A single-file store holding one registered app, at `<tmp>/.xurl`, and the
+/// directory-layout path that names the same store.
+fn single_file_store(tmp: &TempDir) -> (std::path::PathBuf, std::path::PathBuf) {
+    let file = tmp.path().join(".xurl");
+    let mut seed = TokenStore::new_with_path(&file.to_string_lossy());
+    seed.add_app("work", "abcdefgh", "shh").expect("add app");
+    let in_directory = file.join(xdk::store::AUTH_FILE_NAME);
+    (file, in_directory)
+}
+
+/// The first command that opens a store in the directory layout moves a
+/// single-file store into place, says so, and reads it there.
+#[test]
+fn a_single_file_store_moves_on_first_use_and_the_command_says_so() {
+    let tmp = TempDir::new().unwrap();
+    let (file, in_directory) = single_file_store(&tmp);
+    let before = fs::read(&file).unwrap();
+
+    let assert = common::xr_with_store(&in_directory)
+        .args(["auth", "status"])
+        .assert()
+        .success();
+    let output = assert.get_output();
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stdout.contains("work"), "the app is listed: {stdout}");
+    assert!(
+        stderr.contains("Migrated")
+            && stderr.contains(&*file.to_string_lossy())
+            && stderr.contains(&*in_directory.to_string_lossy()),
+        "the move is reported with both paths: {stderr}"
+    );
+    assert!(file.is_dir());
+    assert_eq!(fs::read(&in_directory).unwrap(), before);
+
+    // A second command finds the store where the first left it and has
+    // nothing to report.
+    common::xr_with_store(&in_directory)
+        .args(["auth", "status"])
+        .assert()
+        .success()
+        .stderr(predicates::str::is_empty());
+}
+
+/// Under a structured format stderr carries envelopes only, so the move is
+/// made and not announced.
+#[test]
+fn a_structured_format_moves_the_store_without_a_line_on_stderr() {
+    let tmp = TempDir::new().unwrap();
+    let (file, in_directory) = single_file_store(&tmp);
+
+    common::xr_with_store(&in_directory)
+        .args(["--output", "json", "auth", "status"])
+        .assert()
+        .success()
+        .stderr(predicates::str::is_empty());
+    assert!(file.is_dir());
+    assert!(in_directory.is_file());
+}
+
+/// A store that does not exist yet is created inside its own directory,
+/// which only its owner can read.
+#[test]
+fn the_first_write_creates_the_store_directory() {
+    let tmp = TempDir::new().unwrap();
+    let dir = tmp.path().join(".xurl");
+    let in_directory = dir.join(xdk::store::AUTH_FILE_NAME);
+
+    let mut store = TokenStore::new_with_path(&in_directory.to_string_lossy());
+    assert!(!dir.exists(), "opening a store creates nothing");
+    store.add_app("work", "abcdefgh", "shh").expect("add app");
+    assert!(in_directory.is_file());
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(
+            fs::metadata(&dir).unwrap().permissions().mode() & 0o777,
+            0o700
+        );
+    }
 }

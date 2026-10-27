@@ -1,0 +1,11 @@
+args: ["--quiet", "--dry-run", "whoami"]
+store: empty
+exit_code: 0
+stdout_len: 143
+stderr_len: 0
+--- stdout ---
+Dry run of `whoami`: nothing was sent.
+The real run would fail with exit code 77: Auth Error: NoAuthMethod: no authentication method available
+
+--- stderr ---
+

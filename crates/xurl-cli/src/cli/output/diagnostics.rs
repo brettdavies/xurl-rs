@@ -16,6 +16,7 @@ use tracing::{Event, Level, Metadata, Subscriber, span};
 
 use super::OutputConfig;
 use xdk::api::{MEDIA_TARGET, VOCABULARY_TARGET, WIRE_TARGET};
+use xdk::store::STORE_TARGET;
 
 /// One dispatch's diagnostics renderer.
 pub(crate) struct Diagnostics {
@@ -78,6 +79,25 @@ impl Diagnostics {
                     return None;
                 }
                 vocabulary_line(&fields)
+            }
+            STORE_TARGET if fields.kind.as_deref() == Some("layout-moved") => {
+                if self.out.quiet || self.out.format.is_structured() {
+                    return None;
+                }
+                Some(format!(
+                    "Migrated {} to {}",
+                    fields.from.as_deref()?,
+                    fields.to.as_deref()?
+                ))
+            }
+            STORE_TARGET if fields.kind.as_deref() == Some("login-named") => {
+                if self.out.quiet || self.out.format.is_structured() {
+                    return None;
+                }
+                Some(format!(
+                    "Stored the OAuth2 login as @{}",
+                    fields.name.as_deref()?
+                ))
             }
             _ => None,
         }
@@ -161,6 +181,8 @@ struct Fields {
     value_type: Option<String>,
     value_len: Option<String>,
     collision: Option<String>,
+    from: Option<String>,
+    to: Option<String>,
 }
 
 impl Fields {
@@ -179,6 +201,8 @@ impl Fields {
             "value_type" => &mut self.value_type,
             "value_len" => &mut self.value_len,
             "collision" => &mut self.collision,
+            "from" => &mut self.from,
+            "to" => &mut self.to,
             _ => return,
         };
         *slot = Some(text);
@@ -298,6 +322,19 @@ mod tests {
                 Some("\x1b[1;31m< 200 OK\x1b[0m".to_string()),
                 Some("\x1b[1;32m< k\x1b[0m: v".to_string()),
             ]
+        );
+    }
+
+    /// The event's field arrives as `xdk` emits it, through `Display`.
+    #[test]
+    fn a_named_login_is_announced_in_text_output() {
+        let lines = rendered(diagnostics(false, ColorChoice::Never), || {
+            let username = String::from("alice");
+            tracing::info!(target: STORE_TARGET, kind = "login-named", name = %username, "named");
+        });
+        assert_eq!(
+            lines,
+            vec![Some("Stored the OAuth2 login as @alice".to_string())]
         );
     }
 

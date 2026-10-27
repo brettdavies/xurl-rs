@@ -1,0 +1,209 @@
+{
+  "$comment": "Endpoints in crates/xdk/vendor/x-api-openapi.json that have no shortcut command, and what xr decided for each. An operation is \"METHOD /path\"; METHOD may be *, and a path ending in /** also covers every path below it. status is raw-only or not-supported (no command, until revisit_when fires: never, github-pr-merged with repo and number, or crate-published with crate) or planned (a command family to build; it takes no revisit_when, and the entry is removed when the command ships). crates/xdk/tests/endpoint_decisions.rs holds every entry to the spec and the shortcut list, and fails for a spec operation with neither; scripts/endpoint-decisions.sh marks covered operations in a spec-refresh PR and reports fired triggers daily.",
+  "decisions": [
+    {
+      "id": "xchat",
+      "operations": [
+        "* /2/chat/**",
+        "POST /2/users/{id}/public_keys",
+        "GET /2/users/{id}/public_keys",
+        "GET /2/users/public_keys"
+      ],
+      "status": "not-supported",
+      "reason": "XChat conversations are end-to-end encrypted: sending and reading them needs the conversation keys and message signatures that X's chat-xdk-core library handles, and that library is unpublished. Raw mode still reaches the endpoints.",
+      "decided": "2026-10-22",
+      "by": "Brett, on #340",
+      "revisit_when": {
+        "kind": "crate-published",
+        "crate": "chat-xdk-core"
+      }
+    },
+    {
+      "id": "calls-live",
+      "operations": [
+        "POST /2/calls",
+        "POST /2/calls/{id}/join",
+        "POST /2/calls/{id}/leave"
+      ],
+      "status": "not-supported",
+      "reason": "Joining a call hands out a single-use, two-minute token for a real-time PCM16 audio WebSocket that xr does not drive, and starting one makes an empty call that xr calls scheduled add already provides. X marks the Calls API as in development. Raw mode still reaches the endpoints.",
+      "decided": "2026-10-26",
+      "by": "Brett, on #366",
+      "revisit_when": {
+        "kind": "github-pr-merged",
+        "repo": "xdevplatform/docs",
+        "number": 479
+      }
+    },
+    {
+      "id": "activity",
+      "operations": [
+        "* /2/activity/**"
+      ],
+      "status": "raw-only",
+      "reason": "No xr activity family: raw mode covers the subscription endpoints and streams /2/activity/stream like every stream the spec declares.",
+      "decided": "2026-10-05",
+      "by": "Brett",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "streams",
+      "operations": [
+        "GET /2/likes/compliance/stream",
+        "GET /2/likes/firehose/stream",
+        "GET /2/likes/sample10/stream",
+        "GET /2/tweets/compliance/stream",
+        "GET /2/tweets/firehose/stream/**",
+        "GET /2/tweets/label/stream",
+        "GET /2/tweets/sample/stream",
+        "GET /2/tweets/sample10/stream",
+        "GET /2/tweets/search/stream",
+        "GET /2/users/compliance/stream"
+      ],
+      "status": "raw-only",
+      "reason": "Raw mode streams every stream the spec declares (xr -s <path>), one JSON line per event; a command would add nothing a pipe does not.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "posts-full-archive",
+      "operations": [
+        "GET /2/tweets/search/all",
+        "GET /2/tweets/counts/all"
+      ],
+      "status": "raw-only",
+      "reason": "The same shapes as recent search and counts over all time. A flag on xr search would select an endpoint, which the command grammar forbids; raw mode serves them.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "post-repost-objects",
+      "operations": [
+        "GET /2/tweets/{id}/retweets"
+      ],
+      "status": "raw-only",
+      "reason": "The reposts of a post as post objects. Who reposted is the planned post-engagement command; these posts carry nothing more.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "users-minor-reads",
+      "operations": [
+        "GET /2/users/reposts_of_me",
+        "GET /2/users/{id}/affiliates"
+      ],
+      "status": "raw-only",
+      "reason": "Reposts of your posts and an organization's affiliates are niche reads; raw mode serves them.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "dm-legacy-media",
+      "operations": [
+        "GET /2/dm_conversations/media/{dm_id}/{media_id}/{resource_id}"
+      ],
+      "status": "raw-only",
+      "reason": "Downloads media from a legacy direct message as raw bytes; raw mode writes the body to a file.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "spaces-ticket-buyers",
+      "operations": [
+        "GET /2/spaces/{id}/buyers"
+      ],
+      "status": "raw-only",
+      "reason": "Ticket buyers of a ticketed Space, readable only by its creator.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "app-administration",
+      "operations": [
+        "* /2/bots/**",
+        "* /2/compliance/jobs/**",
+        "* /2/connections/**",
+        "* /2/account"
+      ],
+      "status": "raw-only",
+      "reason": "Project administration: bot accounts and their bearer tokens, batch compliance jobs, streaming connections, and the developer account. A command would print minted bearer tokens into transcripts; the developer console and raw mode serve these.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "openapi-document",
+      "operations": [
+        "GET /2/openapi.json"
+      ],
+      "status": "raw-only",
+      "reason": "The spec document itself, which the spec-drift workflow fetches.",
+      "decided": "2026-10-26",
+      "by": "Brett, in the #370 sweep",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "user-by-id",
+      "operations": [
+        "GET /2/users/{id}"
+      ],
+      "status": "raw-only",
+      "reason": "One account by id answers one object; xr users takes 1 to 100 ids and answers a list, so one id is a batch of one.",
+      "decided": "2026-10-26",
+      "by": "Brett, on the command-families plan's OQ1",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "space-by-id",
+      "operations": [
+        "GET /2/spaces/{id}"
+      ],
+      "status": "raw-only",
+      "reason": "One Space by id answers one object; xr spaces get takes 1 to 100 ids and answers a list, so one id is a batch of one.",
+      "decided": "2026-10-26",
+      "by": "Brett, on the command-families plan's OQ1",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "media-by-key",
+      "operations": [
+        "GET /2/media/{media_key}"
+      ],
+      "status": "raw-only",
+      "reason": "One upload by media key answers one object; xr media get takes 1 to 100 keys and answers a list, so one key is a batch of one.",
+      "decided": "2026-10-26",
+      "by": "Brett, on the command-families plan's OQ1",
+      "revisit_when": {
+        "kind": "never"
+      }
+    }
+  ]
+}

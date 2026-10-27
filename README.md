@@ -3,6 +3,7 @@
 [![xdk-rs on crates.io](https://img.shields.io/crates/v/xdk-rs.svg?label=xdk-rs)](https://crates.io/crates/xdk-rs)
 [![xurl-rs on crates.io](https://img.shields.io/crates/v/xurl-rs.svg?label=xurl-rs)](https://crates.io/crates/xurl-rs)
 [![CI](https://github.com/brettdavies/xurl-rs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/brettdavies/xurl-rs/actions/workflows/ci.yml)
+[![agent-native](https://anc.dev/badge/xr.svg)](https://anc.dev/score/xr)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](#license)
 
 Two crates for the X (Twitter) API v2, in one repository:
@@ -102,9 +103,9 @@ Without that enrollment step, `/2/*` reads can fail even when the OAuth callback
 Both crates follow [SemVer 2.0.0](https://semver.org/) and version independently.
 
 - **`xr`:** the contract is what a script or an agent depends on: command names, flags, environment variables, exit
-  codes, every structured output shape with its `reason` and `next_step.action` sets, and the `~/.xurl` store format.
-  Text output and help text are not contract. A break ships only in a major, and each major's breaks are written up
-  with before-and-after invocations under [`docs/migrating`](docs/migrating).
+  codes, every structured output shape with its `reason` and `next_step.action` sets, and the `~/.xurl/auth.yml` store
+  format. Text output and help text are not contract. A break ships only in a major, and each major's breaks are written
+  up with before-and-after invocations under [`docs/migrating`](docs/migrating).
 - **`xdk-rs`:** the contract is the public Rust API and the behavior its rustdoc documents. The crate is `0.x`, so a
   break moves the middle number (`0.1.x` to `0.2.0`), and every breaking changelog entry carries a before/after
   snippet.

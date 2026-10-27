@@ -13,9 +13,10 @@
 
 mod delimited;
 mod diagnostics;
+mod dry_run;
 mod format;
 mod message;
-mod rfc3339;
+mod validation;
 
 pub(crate) use diagnostics::Diagnostics;
 
@@ -280,6 +281,58 @@ impl OutputConfig {
         }
     }
 
+    /// Prints the `internal` error a panic answers with: the issue tracker
+    /// as its step, and the backtrace when `RUST_BACKTRACE` asked for one.
+    pub(crate) fn print_panic(
+        &self,
+        err: &mut dyn Write,
+        error: &Error,
+        backtrace: Option<String>,
+    ) {
+        let hint = crate::cli::hints::general_hint(error, "");
+        if self.format.is_structured() {
+            let body = ErrorBody {
+                next_step: hint.map(|hint| hint.next_step),
+                backtrace,
+                ..error_body(error, xdk::error::EXIT_GENERAL_ERROR)
+            };
+            self.emit_error_envelope(err, body);
+            return;
+        }
+        match &hint {
+            Some(hint) => {
+                self.print_error_with_hint(err, error, xdk::error::EXIT_GENERAL_ERROR, hint);
+            }
+            None => self.print_error(err, error, xdk::error::EXIT_GENERAL_ERROR),
+        }
+        if let Some(backtrace) = backtrace {
+            let _ = writeln!(err, "{backtrace}");
+        }
+    }
+
+    /// Prints an argument the command refused, with the help that answers
+    /// it. `reason` names the refusal when it has a name apart from the
+    /// error's kind.
+    pub(crate) fn print_refusal(
+        &self,
+        err: &mut dyn Write,
+        error: &Error,
+        reason: Option<Reason>,
+        hint: &crate::cli::hints::Hint,
+    ) {
+        let exit_code = error.exit_code();
+        if !self.format.is_structured() {
+            self.print_error_with_hint(err, error, exit_code, hint);
+            return;
+        }
+        let mut body = error_body(error, exit_code);
+        body.next_step = Some(hint.next_step.clone());
+        if let Some(reason) = reason {
+            body.reason = reason;
+        }
+        self.emit_error_envelope(err, body);
+    }
+
     /// The one path every error envelope takes.
     ///
     /// ```text
@@ -341,7 +394,7 @@ impl OutputConfig {
                 let _ = writeln!(out, "{body}");
             }
             OutputFormat::Yaml => {
-                let body = serde_yaml::to_string(value).unwrap_or_else(|_| value.to_string());
+                let body = xdk::yaml::to_string(value).unwrap_or_else(|_| value.to_string());
                 let _ = write!(out, "{body}");
             }
             OutputFormat::Csv => {
@@ -372,8 +425,23 @@ impl OutputConfig {
     /// `{"status":"error","reason":<kind>,"exit_code":<code>,"message":<display>}`.
     /// Json/Jsonl/Ndjson emit one JSON line; Yaml emits a YAML document; Csv/Tsv
     /// emit a JSON line carrying the envelope (delimited formats are not a good
-    /// fit for nested error metadata).
+    /// fit for nested error metadata). Text mode prints a validator's code as
+    /// the rule the input broke (`validation::sentence`); the envelope keeps
+    /// the code.
     pub fn print_error(&self, err: &mut dyn Write, error: &Error, exit_code: i32) {
+        let worded;
+        let error = match error {
+            Error::Validation(code) if !self.format.is_structured() => {
+                match validation::sentence(code) {
+                    Some(sentence) => {
+                        worded = Error::validation(sentence);
+                        &worded
+                    }
+                    None => error,
+                }
+            }
+            other => other,
+        };
         self.emit_error_envelope(err, error_body(error, exit_code));
     }
 
@@ -404,7 +472,8 @@ impl OutputConfig {
     /// Emits a canonical dry-run envelope under structured modes.
     ///
     /// Shape: `{"status":"dry_run","would_succeed":<bool>,"exit_code":<int>, ...ctx}`.
-    /// Under text mode, falls back to a pass-through of `ctx`.
+    /// Under text mode, prints the summary `dry_run::summary` builds from the
+    /// same facts.
     pub fn print_dry_run(
         &self,
         out: &mut dyn Write,
@@ -413,7 +482,9 @@ impl OutputConfig {
         ctx: &Value,
     ) {
         if !self.format.is_structured() {
-            self.print_response(out, ctx);
+            for line in dry_run::summary(would_succeed, exit_code, ctx, None) {
+                let _ = writeln!(out, "{line}");
+            }
             return;
         }
         let mut obj = serde_json::Map::new();
@@ -429,6 +500,60 @@ impl OutputConfig {
         self.write_structured(out, &envelope);
     }
 
+    /// Emits the dry-run envelope of a command the credentials at hand
+    /// cannot serve: `would_succeed: false`, the exit code the real run
+    /// would end on, and the keys its error envelope would carry, its
+    /// `next_step` among them.
+    pub(crate) fn print_dry_run_refusal(
+        &self,
+        out: &mut dyn Write,
+        ctx: &Value,
+        error: &Error,
+        hint: Option<&crate::cli::hints::Hint>,
+    ) {
+        // A dry run looks no id up, so a path it rendered would carry a
+        // stand-in. Without one the message names the endpoint's template.
+        let templated;
+        let error = match error {
+            Error::AuthMethodMismatch(mismatch) if mismatch.rendered_url.is_some() => {
+                templated = Error::from(xdk::error::AuthMismatch {
+                    rendered_url: None,
+                    ..(**mismatch).clone()
+                });
+                &templated
+            }
+            other => other,
+        };
+        let exit_code = error.exit_code();
+        if !self.format.is_structured() {
+            let message = message::render(error);
+            let advice = match hint {
+                Some(hint) if !self.quiet => hint.text_lines.as_slice(),
+                _ => &[],
+            };
+            let refusal = dry_run::CredentialRefusal {
+                message: &message,
+                advice,
+            };
+            for line in dry_run::summary(false, exit_code, ctx, Some(&refusal)) {
+                let _ = writeln!(out, "{line}");
+            }
+            return;
+        }
+        let mut merged = ctx.as_object().cloned().unwrap_or_default();
+        let body = ErrorBody {
+            next_step: hint.map(|hint| hint.next_step.clone()),
+            ..error_body(error, exit_code)
+        };
+        if let Value::Object(body) = body.into_value() {
+            merged.extend(
+                body.into_iter()
+                    .filter(|(key, _)| key != "status" && key != "exit_code"),
+            );
+        }
+        self.print_dry_run(out, false, exit_code, &Value::Object(merged));
+    }
+
     /// Prints a canonical confirmation-required error envelope.
     ///
     /// Emitted when a destructive op was invoked under `--no-interactive`
@@ -440,6 +565,7 @@ impl OutputConfig {
         err: &mut dyn Write,
         ctx: &serde_json::Value,
         exit_code: i32,
+        next_step: crate::cli::hints::NextStep,
     ) {
         let map = match ctx {
             serde_json::Value::Object(m) => m.clone(),
@@ -458,6 +584,7 @@ impl OutputConfig {
             oauth1: get_bool("oauth1"),
             oauth2_username: map.get("oauth2_username").cloned(),
             bearer: get_bool("bearer"),
+            next_step: Some(next_step),
             ..ErrorBody::default()
         };
         if self.format.is_structured() {
@@ -577,7 +704,7 @@ impl OutputConfig {
                 let _ = writeln!(w, "{body}");
             }
             OutputFormat::Yaml => {
-                let body = serde_yaml::to_string(value).unwrap_or_else(|_| value.to_string());
+                let body = xdk::yaml::to_string(value).unwrap_or_else(|_| value.to_string());
                 let _ = write!(w, "{body}");
             }
             OutputFormat::Csv | OutputFormat::Tsv => {
@@ -675,7 +802,10 @@ pub(crate) fn retry_times(reset_at: u64) -> (u64, String) {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
-    (reset_at.saturating_sub(now), rfc3339::utc_rfc3339(reset_at))
+    (
+        reset_at.saturating_sub(now),
+        xdk::time::utc_rfc3339(reset_at),
+    )
 }
 
 impl Default for OutputConfig {

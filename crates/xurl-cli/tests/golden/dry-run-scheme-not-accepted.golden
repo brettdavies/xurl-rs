@@ -1,0 +1,27 @@
+args: ["--output", "json", "--dry-run", "usage"]
+store: oauth2
+exit_code: 0
+stdout_len: 469
+stderr_len: 0
+--- stdout ---
+{
+  "app": "myapp",
+  "available_in_app": [
+    "oauth2"
+  ],
+  "command": "usage",
+  "endpoint": "/2/usage/tweets",
+  "exit_code": 2,
+  "message": "No stored auth method on app 'myapp' is accepted at GET /2/usage/tweets. App has: oauth2. Endpoint accepts: app. Add credentials with: xr auth app --app myapp.",
+  "method": "GET",
+  "reason": "auth-method-mismatch",
+  "requested": null,
+  "status": "dry_run",
+  "supported": [
+    "app"
+  ],
+  "would_succeed": false
+}
+
+--- stderr ---
+

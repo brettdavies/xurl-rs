@@ -3,7 +3,7 @@
   "post_single": {
     "data": {
       "id": "1346889436626259968",
-      "text": "Learn how to use the user Tweet timeline and user mention timeline endpoints in the Twitter API v2 to explore Tweet\u2026 https://t.co/56a0vZUx7i",
+      "text": "Learn how to use the user Tweet timeline and user mention timeline endpoints in the Twitter API v2 to explore Tweet… https://t.co/56a0vZUx7i",
       "created_at": "2021-01-06T18:40:40.000Z",
       "author_id": "2244994945",
       "conversation_id": "1346889436626259968",
@@ -61,6 +61,465 @@
       "next_token": "7140w"
     }
   },
+  "post_lookup": {
+    "data": [
+      {
+        "id": "1346889436626259968",
+        "text": "Learn how to use the user Tweet timeline and user mention timeline endpoints in the X API v2 to explore Tweet\u2026 https:\/\/t.co\/56a0vZUx7i",
+        "author_id": "2244994945",
+        "created_at": "2021-01-06T18:40:40.000Z"
+      }
+    ],
+    "errors": [
+      {
+        "value": "1460323737035677698",
+        "detail": "Could not find tweet with ids: [1460323737035677698].",
+        "title": "Not Found Error",
+        "resource_type": "tweet",
+        "parameter": "ids",
+        "resource_id": "1460323737035677698",
+        "type": "https://api.x.com/2/problems/resource-not-found"
+      }
+    ]
+  },
+  "post_counts": {
+    "data": [
+      {
+        "start": "2026-10-25T00:00:00.000Z",
+        "end": "2026-10-26T00:00:00.000Z",
+        "post_count": 12
+      },
+      {
+        "start": "2026-10-26T00:00:00.000Z",
+        "end": "2026-10-27T00:00:00.000Z",
+        "post_count": 3
+      }
+    ],
+    "meta": {
+      "total_post_count": 15
+    }
+  },
+  "post_analytics": {
+    "data": [
+      {
+        "id": "1346889436626259968",
+        "impressions": 1520,
+        "engagements": 64,
+        "likes": 31,
+        "replies": 4,
+        "retweets": 9,
+        "quote_tweets": 2,
+        "bookmarks": 7,
+        "url_clicks": 11,
+        "timestamped_metrics": [
+          {
+            "timestamp": "2026-10-01T00:00:00.000Z",
+            "metrics": {
+              "impressions": 1100,
+              "likes": 25
+            }
+          },
+          {
+            "timestamp": "2026-10-02T00:00:00.000Z",
+            "metrics": {
+              "impressions": 420,
+              "likes": 6
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "trends": {
+    "data": [
+      {
+        "trend_name": "#rustlang",
+        "tweet_count": 18400
+      },
+      {
+        "trend_name": "Open source"
+      }
+    ]
+  },
+  "personalized_trends": {
+    "data": [
+      {
+        "trend_name": "Rust 2026",
+        "category": "Technology",
+        "post_count": "12.5K posts",
+        "trending_since": "Trending now"
+      }
+    ]
+  },
+  "news_list": {
+    "data": [
+      {
+        "id": "1850000000000000000",
+        "name": "Rust 2026 edition plans published",
+        "category": "Technology",
+        "hook": "The project laid out what the next edition changes.",
+        "summary": "The Rust project published its plans for the 2026 edition.",
+        "updated_at": "2026-10-26T12:00:00.000Z",
+        "cluster_posts_results": [
+          {
+            "post_id": "1585341984679469056"
+          }
+        ]
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "news_story": {
+    "data": {
+      "id": "1850000000000000000",
+      "name": "Rust 2026 edition plans published",
+      "category": "Technology",
+      "summary": "The Rust project published its plans for the 2026 edition.",
+      "disclaimer": "This story is a summary of posts on X and may evolve over time.",
+      "cluster_posts_results": [
+        {
+          "post_id": "1585341984679469056"
+        }
+      ]
+    }
+  },
+  "community_list": {
+    "data": [
+      {
+        "id": "1146654567674912769",
+        "name": "Rustaceans",
+        "description": "People who write Rust.",
+        "access": "Public",
+        "join_policy": "Open",
+        "member_count": 4200,
+        "created_at": "2024-03-01T10:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "next_token": "7140dibdnow9c7btw3w29grvxfcgvpb9n9coehpk7xz5i"
+    }
+  },
+  "community": {
+    "data": {
+      "id": "1146654567674912769",
+      "name": "Rustaceans",
+      "access": "Public",
+      "join_policy": "Open",
+      "member_count": 4200
+    }
+  },
+  "list_single": {
+    "data": {
+      "id": "1146654567674912769",
+      "name": "Rustaceans",
+      "description": "People who write Rust.",
+      "private": false,
+      "member_count": 42,
+      "follower_count": 7,
+      "created_at": "2024-03-01T10:00:00.000Z"
+    }
+  },
+  "lists": {
+    "data": [
+      {
+        "id": "1146654567674912769",
+        "name": "Rustaceans",
+        "member_count": 42
+      },
+      {
+        "id": "1146654567674912770",
+        "name": "Reading list",
+        "private": true
+      }
+    ],
+    "meta": {
+      "result_count": 2
+    }
+  },
+  "list_created": {
+    "data": {
+      "id": "1146654567674912769",
+      "name": "Rustaceans"
+    }
+  },
+  "list_updated": {
+    "data": {
+      "updated": true
+    }
+  },
+  "list_member": {
+    "data": {
+      "is_member": true
+    }
+  },
+  "list_followed": {
+    "data": {
+      "following": true
+    }
+  },
+  "list_pinned": {
+    "data": {
+      "pinned": true
+    }
+  },
+  "broadcasts": {
+    "data": [
+      {
+        "id": "1YqKDqWqdPLGV",
+        "title": "Launch day",
+        "state": "ENDED",
+        "source_id": "abc123",
+        "start_ms": "1793635200000",
+        "end_ms": "1793638800000",
+        "share_url": "https://x.com/i/broadcasts/1YqKDqWqdPLGV",
+        "total_watched": "1200",
+        "tweet_id": "1585341984679469056",
+        "twitter_user_id": "2244994945",
+        "available_for_replay": true,
+        "chat_option": 2
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "broadcast": {
+    "data": {
+      "id": "1YqKDqWqdPLGV",
+      "title": "Launch day",
+      "state": "ENDED",
+      "source_id": "abc123",
+      "start_ms": "1793635200000",
+      "end_ms": "1793638800000",
+      "share_url": "https://x.com/i/broadcasts/1YqKDqWqdPLGV",
+      "total_watched": "1200",
+      "tweet_id": "1585341984679469056",
+      "twitter_user_id": "2244994945",
+      "available_for_replay": true,
+      "chat_option": 2
+    }
+  },
+  "scheduled_broadcasts": {
+    "data": [
+      {
+        "scheduled_broadcast_id": "1850000000000000001",
+        "title": "Launch day",
+        "source_id": "abc123",
+        "scheduled_start_ms": "1793635200000",
+        "scheduled_end_ms": "1793638800000",
+        "state": "Scheduled",
+        "available_for_replay": true,
+        "manual_publish": false
+      }
+    ]
+  },
+  "scheduled_broadcast": {
+    "data": {
+      "scheduled_broadcast_id": "1850000000000000001",
+      "title": "Launch day",
+      "source_id": "abc123",
+      "scheduled_start_ms": "1793635200000",
+      "scheduled_end_ms": "1793638800000",
+      "state": "Scheduled",
+      "available_for_replay": true,
+      "manual_publish": false
+    }
+  },
+  "broadcast_chat": {
+    "data": [
+      {
+        "id": "1700000000001",
+        "text": "Welcome!",
+        "author_id": "2244994945",
+        "author_username": "XDevelopers",
+        "author_name": "Developers",
+        "broadcast_id": "1YqKDqWqdPLGV",
+        "created_at_ms": "1700000000001"
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "broadcast_chat_sent": {
+    "data": {
+      "success": true,
+      "timestamp": "1700000000002"
+    }
+  },
+  "broadcast_chat_muted": {
+    "data": {
+      "muted": true
+    }
+  },
+  "note_created": {
+    "data": {
+      "id": "1850000000000000002"
+    }
+  },
+  "note_evaluation": {
+    "data": {
+      "claim_opinion_score": 0.82
+    }
+  },
+  "notes_written": {
+    "data": [
+      {
+        "id": "1850000000000000002",
+        "status": "needs_more_ratings",
+        "info": {
+          "text": "The photo is from 2019: https://example.com/source",
+          "classification": "misinformed_or_potentially_misleading",
+          "misleading_tags": [
+            "outdated_information"
+          ],
+          "post_id": "1585341984679469056",
+          "trustworthy_sources": true
+        }
+      }
+    ]
+  },
+  "article_draft": {
+    "data": {
+      "id": "1850000000000000003",
+      "title": "Why Rust"
+    }
+  },
+  "article_published": {
+    "data": {
+      "post_id": "1585341984679469056"
+    }
+  },
+  "media_list": {
+    "data": [
+      {
+        "media_key": "3_1146654567674912769",
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/example.jpg",
+        "width": 1200,
+        "height": 800,
+        "alt_text": "A terminal running xr"
+      },
+      {
+        "media_key": "7_1146654567674912770",
+        "type": "video",
+        "duration_ms": 46000,
+        "preview_image_url": "https://pbs.twimg.com/ext_tw_video_thumb/example.jpg",
+        "public_metrics": {
+          "view_count": 900
+        }
+      }
+    ]
+  },
+  "media_analytics": {
+    "data": [
+      {
+        "media_key": "7_1146654567674912770",
+        "video_views": 900,
+        "playback_start": 640,
+        "playback_complete": 120,
+        "watch_time_ms": 5400000,
+        "timestamped_metrics": [
+          {
+            "timestamp": "2026-10-01T00:00:00.000Z",
+            "metrics": {
+              "video_views": 900,
+              "playback_complete": "120"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "space_list": {
+    "data": [
+      {
+        "id": "1DXxyRYNejbKM",
+        "state": "live",
+        "title": "Rust hour",
+        "creator_id": "2244994945",
+        "host_ids": ["2244994945"],
+        "participant_count": 40,
+        "is_ticketed": false,
+        "lang": "en",
+        "started_at": "2026-10-26T18:00:00.000Z",
+        "created_at": "2026-10-26T17:55:00.000Z"
+      },
+      {
+        "id": "1YpKkgVgQwvGj",
+        "state": "scheduled",
+        "title": "Release notes, read aloud",
+        "creator_id": "2244994945",
+        "subscriber_count": 12,
+        "scheduled_start": "2026-10-28T17:00:00.000Z"
+      }
+    ],
+    "includes": {
+      "users": [
+        {
+          "id": "2244994945",
+          "name": "Twitter Dev",
+          "username": "TwitterDev"
+        }
+      ]
+    },
+    "meta": {
+      "result_count": 2
+    }
+  },
+  "stream_rules": {
+    "data": [
+      {
+        "id": "1585341984679469056",
+        "value": "from:XDevelopers has:media",
+        "tag": "devs with media"
+      },
+      {
+        "id": "1585341984679469057",
+        "value": "rustlang -is:retweet"
+      }
+    ],
+    "meta": {
+      "result_count": 2
+    }
+  },
+  "stream_rules_added": {
+    "data": [
+      {
+        "id": "1585341984679469058",
+        "value": "from:jack",
+        "tag": "jack"
+      }
+    ],
+    "meta": {
+      "sent": "2026-10-26T20:00:00.000Z",
+      "summary": {
+        "created": 1,
+        "not_created": 0,
+        "valid": 1,
+        "invalid": 0
+      }
+    }
+  },
+  "stream_rule_counts": {
+    "data": {
+      "cap_per_client_app": "1000",
+      "cap_per_project": "1000",
+      "project_rules_count": "3",
+      "client_app_rules_count": {
+        "client_app_id": "29",
+        "rule_count": 3
+      },
+      "all_project_client_apps": [
+        {
+          "client_app_id": "29",
+          "rule_count": 3
+        }
+      ]
+    }
+  },
   "user_single": {
     "data": {
       "id": "2244994945",
@@ -75,7 +534,8 @@
         "following_count": 2048,
         "post_count": 14052,
         "listed_count": 1672
-      }
+      },
+      "active_follower_count": 1234
     }
   },
   "user_single_wire": {
@@ -91,6 +551,11 @@
         "media_count": 2974,
         "tweet_count": 30972
       }
+    }
+  },
+  "action_hidden": {
+    "data": {
+      "hidden": true
     }
   },
   "action_liked": {
@@ -120,6 +585,34 @@
       "bookmarked": true
     }
   },
+  "bookmark_folders": {
+    "data": [
+      {
+        "id": "1146654567674912769",
+        "name": "Rust"
+      },
+      {
+        "id": "1146654567674912770",
+        "name": "Reading list"
+      }
+    ]
+  },
+  "bookmark_folder": {
+    "data": {
+      "id": "1146654567674912769",
+      "name": "Rust"
+    }
+  },
+  "bookmark_folder_posts": {
+    "data": [
+      {
+        "id": "1346889436626259968"
+      },
+      {
+        "id": "1460323737035677698"
+      }
+    ]
+  },
   "action_blocking": {
     "data": {
       "blocking": true
@@ -134,6 +627,21 @@
     "data": {
       "dm_conversation_id": "1580705921830768643",
       "dm_event_id": "1580705921830768647"
+    }
+  },
+  "dm_event": {
+    "data": {
+      "id": "1580705921830768647",
+      "text": "hello",
+      "event_type": "MessageCreate",
+      "dm_conversation_id": "1580705921830768643",
+      "sender_id": "906948460078698496",
+      "created_at": "2022-10-14T00:46:00.000Z"
+    }
+  },
+  "dm_blocked": {
+    "data": {
+      "blocked": true
     }
   },
   "dm_event_list": {
@@ -190,15 +698,24 @@
       "daily_project_usage": {
         "project_id": "2020044302890438656",
         "usage": [
-          {"date": "2026-03-25T00:00:00.000Z", "usage": "299"},
-          {"date": "2026-03-26T00:00:00.000Z", "usage": "100"}
+          {
+            "date": "2026-03-25T00:00:00.000Z",
+            "usage": "299"
+          },
+          {
+            "date": "2026-03-26T00:00:00.000Z",
+            "usage": "100"
+          }
         ]
       },
       "daily_client_app_usage": [
         {
           "client_app_id": "32371675",
           "usage": [
-            {"date": "2026-03-25T00:00:00.000Z", "usage": "299"}
+            {
+              "date": "2026-03-25T00:00:00.000Z",
+              "usage": "299"
+            }
           ],
           "usage_result_count": 1
         }
@@ -222,6 +739,117 @@
       "moderator_user_ids": [
         "2244994945"
       ]
+    }
+  },
+  "stream_sources": {
+    "data": {
+      "sources": [
+        {
+          "id": "1x2y3z4w5v6u",
+          "name": "Studio A",
+          "rtmp_region": "us-east-1",
+          "rtmp_url": "rtmp://va.pscp.tv:80/x",
+          "rtmps_url": "rtmps://va.pscp.tv:443/x",
+          "rtmp_stream_key": "1x2y3z4w5v6u",
+          "is_stream_active": false,
+          "creation_time": 1761148800000,
+          "owner_id": 1234567890123456789
+        }
+      ]
+    }
+  },
+  "stream_source": {
+    "data": {
+      "source": {
+        "id": "1x2y3z4w5v6u",
+        "name": "Studio A",
+        "rtmp_region": "us-east-1",
+        "rtmp_url": "rtmp://va.pscp.tv:80/x",
+        "rtmps_url": "rtmps://va.pscp.tv:443/x",
+        "rtmp_stream_key": "1x2y3z4w5v6u",
+        "is_stream_active": false,
+        "creation_time": 1761148800000,
+        "owner_id": 1234567890123456789
+      }
+    }
+  },
+  "stream_source_deleted": {
+    "data": {}
+  },
+  "call": {
+    "data": {
+      "id": "8a6f1c2e-call",
+      "title": "Standup",
+      "join_policy": "open",
+      "join_url": "https://x.com/i/calls/8a6f1c2e-call",
+      "host_id": "2244994945",
+      "created_at": "2026-10-23T14:58:00Z",
+      "participant_count": 3,
+      "viewer_may_join": true
+    },
+    "includes": {
+      "users": [
+        {
+          "id": "2244994945",
+          "name": "Host",
+          "username": "host"
+        }
+      ]
+    }
+  },
+  "scheduled_calls": {
+    "data": [
+      {
+        "id": "1849302018273645",
+        "call_id": "8a6f1c2e-call",
+        "title": "Standup",
+        "start_time": "2026-10-23T15:00:00Z",
+        "end_time": "2026-10-23T15:30:00Z",
+        "status": "scheduled",
+        "calendar": "x",
+        "join_url": "https://x.com/i/calls/8a6f1c2e-call",
+        "organizer_id": "2244994945",
+        "invitees": [
+          {
+            "id": "783214",
+            "response": "accepted"
+          }
+        ]
+      }
+    ]
+  },
+  "scheduled_call": {
+    "data": {
+      "id": "1849302018273645",
+      "call_id": "8a6f1c2e-call",
+      "title": "Standup",
+      "start_time": "2026-10-23T15:00:00Z",
+      "end_time": "2026-10-23T15:30:00Z",
+      "status": "scheduled",
+      "calendar": "x",
+      "join_url": "https://x.com/i/calls/8a6f1c2e-call",
+      "organizer_id": "2244994945",
+      "invitees": [
+        {
+          "id": "783214",
+          "response": "accepted"
+        }
+      ]
+    }
+  },
+  "scheduled_call_updated": {
+    "data": {
+      "updated": true
+    }
+  },
+  "scheduled_call_cancelled": {
+    "data": {
+      "cancelled": true
+    }
+  },
+  "scheduled_call_rsvp": {
+    "data": {
+      "response": "accepted"
     }
   },
   "media_metadata": {
@@ -271,5 +899,86 @@
     "title": "Recipient Not Messageable",
     "detail": "The recipient does not accept Direct Messages from this account.",
     "status": 403
+  },
+  "webhook_list": {
+    "data": [
+      {
+        "id": "1146654567674912769",
+        "url": "https://example.com/webhooks/x",
+        "valid": true,
+        "created_at": "2026-01-15T12:00:00.000Z"
+      }
+    ],
+    "meta": {
+      "result_count": 1
+    }
+  },
+  "webhook_single": {
+    "data": {
+      "id": "1146654567674912769",
+      "url": "https://example.com/webhooks/x",
+      "valid": true,
+      "created_at": "2026-01-15T12:00:00.000Z"
+    }
+  },
+  "webhook_validated": {
+    "data": {
+      "valid": true
+    }
+  },
+  "webhook_replay_job": {
+    "data": {
+      "job_id": "1915510368169844736",
+      "created_at": "2026-01-15T12:00:00.000Z"
+    }
+  },
+  "account_activity_count": {
+    "data": {
+      "account_name": "example-app",
+      "provisioned_count": "15",
+      "subscriptions_count_all": "2",
+      "subscriptions_count_direct_messages": "0"
+    }
+  },
+  "account_activity_subscriptions": {
+    "data": {
+      "application_id": "32371675",
+      "webhook_id": "1146654567674912769",
+      "webhook_url": "https://example.com/webhooks/x",
+      "subscriptions": [
+        {
+          "user_id": "2244994945"
+        }
+      ]
+    }
+  },
+  "account_activity_subscribed": {
+    "data": {
+      "subscribed": true
+    }
+  },
+  "account_activity_unsubscribed": {
+    "data": {
+      "subscribed": false
+    }
+  },
+  "webhook_stream_links": {
+    "data": [
+      {
+        "application_id": "32371675",
+        "business_user_id": "2244994945",
+        "instance_id": "1",
+        "webhook_id": "1146654567674912769",
+        "fields": [
+          "created_at"
+        ],
+        "created_at": "2026-01-15T12:00:00.000Z"
+      }
+    ]
+  },
+  "webhook_stream_link_provisioned": {
+    "data": {
+      "provisioned": true
+    }
   }
 }

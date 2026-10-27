@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "search-users", "rust-lang"]
+store: empty
+exit_code: 0
+stdout_len: 157
+stderr_len: 0
+--- stdout ---
+{
+  "command": "search-users",
+  "exit_code": 1,
+  "query": "rust-lang",
+  "reason": "invalid-user-query",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

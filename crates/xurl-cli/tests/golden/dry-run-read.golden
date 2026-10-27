@@ -1,0 +1,22 @@
+args: ["--output", "json", "--dry-run", "timeline", "-n", "5"]
+store: oauth2
+exit_code: 0
+stdout_len: 227
+stderr_len: 0
+--- stdout ---
+{
+  "auth": {
+    "app": "myapp",
+    "scheme": "oauth2",
+    "token_expired": false,
+    "username": "alice"
+  },
+  "command": "timeline",
+  "exit_code": 0,
+  "max_results": 5,
+  "status": "dry_run",
+  "would_succeed": true
+}
+
+--- stderr ---
+

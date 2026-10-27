@@ -10,16 +10,24 @@ use serde::{Deserialize, Serialize};
 use xdk::error::Error;
 pub use xdk::error::NextAction;
 use xdk::store::snapshot::StoreSnapshot;
+use xdk::time::utc_minute;
+
+use crate::cli::classify::{ROOT_COMMAND, requested_login};
 
 /// The `next_step` object carried by an error envelope.
 ///
 /// At most one of [`Self::command`] and [`Self::template`] is present: a
 /// command is a verbatim invocation safe for a non-TTY caller, while a
-/// template carries angle-bracket placeholders the caller must fill in. A
-/// step with neither carries `docs` alone, because its recovery is not an
-/// `xr` invocation: [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`],
-/// and [`NextAction::InspectStore`] when the command that failed is the one
-/// that reports on the store.
+/// template is one the caller finishes or decides on before running it. It
+/// carries angle-bracket placeholders to fill in, or, under
+/// [`NextAction::Confirm`], the invocation that destroys once it runs. A
+/// step with neither names an action that is not an `xr` invocation, with
+/// `docs` when a page covers it: [`NextAction::EnrollApp`],
+/// [`NextAction::WaitAndRetry`], [`NextAction::Retry`],
+/// [`NextAction::FixInput`], [`NextAction::ReportIssue`], and
+/// [`NextAction::InspectStore`] when the command that failed is the one
+/// that reports on the store. Two [`NextAction::FixInput`] steps carry an
+/// invocation: [`Self::listen_on_free_port`] and [`Self::fix_input_with`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -76,11 +84,21 @@ impl NextStep {
     /// caller is by definition not watching a browser window.
     #[must_use]
     pub fn sign_in(app: Option<&str>, headless: bool) -> Self {
-        let mut command = if headless {
-            "xr auth oauth2 --no-browser --step 1".to_string()
-        } else {
-            "xr auth oauth2".to_string()
-        };
+        Self::sign_in_as(None, app, headless)
+    }
+
+    /// Sign-in for `app` that stores the login under `login`, the name `-u`
+    /// selects it by, when one is given.
+    #[must_use]
+    pub fn sign_in_as(login: Option<&str>, app: Option<&str>, headless: bool) -> Self {
+        let mut command = "xr auth oauth2".to_string();
+        if let Some(login) = login {
+            command.push(' ');
+            command.push_str(&shell_word(login));
+        }
+        if headless {
+            command.push_str(" --no-browser --step 1");
+        }
         if let Some(name) = app {
             command.push_str(" --app ");
             command.push_str(&quote_app_name(name));
@@ -161,6 +179,169 @@ impl NextStep {
         }
     }
 
+    /// Send the same request again: nothing about it was wrong. `docs` is
+    /// the page that says what the answer meant, when X sent one.
+    #[must_use]
+    pub fn retry(docs: Option<String>) -> Self {
+        Self {
+            action: NextAction::Retry,
+            command: None,
+            template: None,
+            docs,
+        }
+    }
+
+    /// Change the input or the local state the command read; no `xr`
+    /// command repairs it. `docs` is the page that says what was refused,
+    /// when one exists.
+    #[must_use]
+    pub fn fix_input(docs: Option<String>) -> Self {
+        Self {
+            action: NextAction::FixInput,
+            command: None,
+            template: None,
+            docs,
+        }
+    }
+
+    /// Run `command`, the invocation with its input corrected: a raw-only
+    /// flag moved after the command word that reads it.
+    #[must_use]
+    pub fn fix_input_with(command: String) -> Self {
+        Self {
+            action: NextAction::FixInput,
+            command: Some(command),
+            template: None,
+            docs: None,
+        }
+    }
+
+    /// Report a fault of `xr` or of the library at `docs`.
+    #[must_use]
+    pub fn report_issue(docs: String) -> Self {
+        Self {
+            action: NextAction::ReportIssue,
+            command: None,
+            template: None,
+            docs: Some(docs),
+        }
+    }
+
+    /// Run `invocation` again with `--force`. It is a template and not a
+    /// command: running it destroys what the command names, so the caller
+    /// decides.
+    #[must_use]
+    pub fn confirm(invocation: &[String]) -> Self {
+        let mut words: Vec<String> = invocation.iter().map(|arg| shell_word(arg)).collect();
+        if let Some(program) = words.first_mut() {
+            *program = ROOT_COMMAND.to_string();
+        }
+        words.push("--force".to_string());
+        Self {
+            action: NextAction::Confirm,
+            command: None,
+            template: Some(words.join(" ")),
+            docs: None,
+        }
+    }
+
+    /// `listen` again on a port the system picks: `invocation` with every
+    /// `--port` and `-p` value dropped and `--port 0` added before any `--`,
+    /// so a program's own arguments are never read as `listen`'s. Each `-H`
+    /// header keeps its name and has its value replaced by `<value>`, which
+    /// makes the step a template: a header often carries a credential, and a
+    /// step never echoes one.
+    #[must_use]
+    pub fn listen_on_free_port(invocation: &[String]) -> Self {
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        let mut program = Vec::new();
+        let mut hid_a_value = false;
+        let mut rest = invocation.iter().skip(1);
+        while let Some(arg) = rest.next() {
+            let header = if arg == "--" {
+                program.push(shell_word(arg));
+                program.extend(rest.by_ref().map(|arg| shell_word(arg)));
+                None
+            } else if arg == "--port" || arg == "-p" {
+                rest.next();
+                None
+            } else if arg.starts_with("--port=") || arg.starts_with("-p") {
+                None
+            } else if arg == "-H" || arg == "--header" {
+                Some(rest.next().map_or("", String::as_str))
+            } else if let Some(given) = arg
+                .strip_prefix("--header=")
+                .or_else(|| arg.strip_prefix("-H"))
+            {
+                Some(given.strip_prefix('=').unwrap_or(given))
+            } else {
+                words.push(shell_word(arg));
+                None
+            };
+            if let Some(header) = header {
+                let name = header.split_once(':').map_or("", |(name, _)| name.trim());
+                let hidden = if name.is_empty() {
+                    "<value>".to_string()
+                } else {
+                    format!("{name}: <value>")
+                };
+                words.push("-H".to_string());
+                words.push(shell_word(&hidden));
+                hid_a_value = true;
+            }
+        }
+        words.extend(["--port".to_string(), "0".to_string()]);
+        words.extend(program);
+        let rerun = words.join(" ");
+        Self {
+            action: NextAction::FixInput,
+            command: (!hid_a_value).then(|| rerun.clone()),
+            template: hid_a_value.then_some(rerun),
+            docs: None,
+        }
+    }
+
+    /// The replay that delivers again an event that arrived at
+    /// `received_at` (Unix seconds): from its minute to the minute after it.
+    /// It is a template, since only the caller knows the webhook's id. Two
+    /// minutes do not depend on X accepting equal bounds, at the cost of
+    /// replaying one more minute of events.
+    #[must_use]
+    pub fn replay_window(received_at: u64) -> Self {
+        let from = utc_minute(received_at);
+        let to = utc_minute(received_at - received_at % 60 + 60);
+        Self {
+            action: NextAction::RunCommand,
+            command: None,
+            template: Some(format!(
+                "xr webhooks replay <WEBHOOK_ID> --from {from} --to {to}"
+            )),
+            docs: None,
+        }
+    }
+
+    /// Run the one other command that repairs this.
+    #[must_use]
+    pub fn run_command(command: String) -> Self {
+        Self {
+            action: NextAction::RunCommand,
+            command: Some(command),
+            template: None,
+            docs: None,
+        }
+    }
+
+    /// Name the app to make the default; only the caller knows which.
+    #[must_use]
+    pub fn name_default_app() -> Self {
+        Self {
+            action: NextAction::SelectApp,
+            command: None,
+            template: Some("xr auth default <app>".to_string()),
+            docs: None,
+        }
+    }
+
     /// The invocation to show a human: the command, else the template.
     #[must_use]
     pub fn display_invocation(&self) -> Option<&str> {
@@ -183,12 +364,17 @@ pub struct Hint {
 /// Chooses the recovery hint for a no-credentials failure.
 ///
 /// ```text
-/// load failed               -> inspect-store, naming the path
-/// another app holds tokens  -> select-app, rerunning this invocation
-/// target can sign in        -> sign-in
-/// another app has a client  -> select-app, signing in against it
-/// nothing anywhere          -> register-app, with a template
+/// load failed                    -> inspect-store, naming the path
+/// another app holds the login    -> select-app, rerunning this invocation
+/// target can sign in             -> sign-in on the target, under the login's name
+/// another app has a client       -> select-app, signing in against it
+/// nothing anywhere               -> register-app, with a template
 /// ```
+///
+/// The login is the one `-u` names in `invocation`, or any login when it
+/// names none. An app that holds only other logins is passed over, since
+/// the rerun would refuse there the same way. A sign-in on the target names
+/// it unless it is the default, so the login lands where the rerun looks.
 ///
 /// The snapshot is taken before dispatch, so the choice sees the store the
 /// run actually loaded, including an app named by `--app` and a client id
@@ -209,26 +395,37 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
         };
     }
 
-    let tokens_elsewhere: Vec<String> = snapshot
-        .apps_with_tokens()
-        .into_iter()
-        .filter(|name| name != target)
-        .collect();
-    if let Some(app) = tokens_elsewhere.first() {
+    let login = requested_login(invocation);
+    let login = login.as_deref();
+    let holders = match login {
+        Some(login) => snapshot.apps_holding_login(login),
+        None => snapshot.apps_with_tokens(),
+    };
+    if let Some(app) = holders.iter().find(|name| *name != target) {
         let command = rerun_with_app(invocation, app);
+        let line = match login {
+            Some(login) => format!("App {app:?} holds the login {login:?}. Run: {command}"),
+            None => format!("App {app:?} is already signed in. Run: {command}"),
+        };
         return Hint {
-            text_lines: vec![format!("App {app:?} is already signed in. Run: {command}")],
+            text_lines: vec![line],
             next_step: NextStep::select_app(command),
         };
     }
+    let mut text_lines: Vec<String> = login
+        .map(|login| no_such_login(snapshot, target, login))
+        .into_iter()
+        .collect();
 
     let target_has_client_id =
         snapshot.env_client_id_present || target_facts.is_some_and(|f| f.has_client_id);
     if target_has_client_id {
-        let next_step = NextStep::sign_in(None, headless);
+        let app = (target != snapshot.default_app).then_some(target);
+        let next_step = NextStep::sign_in_as(login, app, headless);
         let command = next_step.command.clone().unwrap_or_default();
+        text_lines.push(format!("Sign in first. Run: {command}"));
         return Hint {
-            text_lines: vec![format!("Sign in first. Run: {command}")],
+            text_lines,
             next_step,
         };
     }
@@ -239,21 +436,39 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
         .filter(|name| name != target)
         .collect();
     if let Some(app) = ready.first() {
-        let next_step = NextStep::sign_in(Some(app), headless);
+        let next_step = NextStep::sign_in_as(login, Some(app), headless);
         let command = next_step.command.clone().unwrap_or_default();
+        text_lines.push(format!(
+            "App {app:?} has client credentials. Run: {command}"
+        ));
         return Hint {
-            text_lines: vec![format!(
-                "App {app:?} has client credentials. Run: {command}"
-            )],
+            text_lines,
             next_step: NextStep::select_app(command),
         };
     }
 
     let next_step = NextStep::register_app();
     let template = next_step.template.clone().unwrap_or_default();
+    text_lines.push(format!("Register an app first. Run: {template}"));
     Hint {
-        text_lines: vec![format!("Register an app first. Run: {template}")],
+        text_lines,
         next_step,
+    }
+}
+
+/// The line that says `login` is in no app, with the logins the target
+/// does hold, so a mistyped name shows beside the right one.
+fn no_such_login(snapshot: &StoreSnapshot, target: &str, login: &str) -> String {
+    let held = snapshot
+        .oauth2_logins
+        .get(target)
+        .filter(|logins| !logins.is_empty());
+    match held {
+        Some(logins) => format!(
+            "No app holds the login {login:?}. App {target:?} holds: {}.",
+            logins.join(", ")
+        ),
+        None => format!("No app holds the login {login:?}."),
     }
 }
 
@@ -324,6 +539,23 @@ pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
     })
 }
 
+/// Builds the hint for a webhook receiver whose address another socket
+/// holds: the same `listen` on a port the system picks.
+#[must_use]
+pub fn address_in_use_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
+    let Error::AddressInUse { .. } = error else {
+        return None;
+    };
+    let next_step = NextStep::listen_on_free_port(invocation);
+    let rerun = next_step.display_invocation().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!(
+            "Stop the process that holds it, or listen on a free port. Run: {rerun}"
+        )],
+        next_step,
+    })
+}
+
 /// Builds the retry hint when `error` is a 429 that named its reset.
 ///
 /// A 429 that named no reset gets no hint: there is no time to state.
@@ -349,6 +581,86 @@ pub fn wait_and_retry_hint(error: &Error) -> Option<Hint> {
     })
 }
 
+/// Builds the hint for a scheme mismatch the store can answer.
+///
+/// ```text
+/// the active app stores nothing, another does  -> select-app, rerunning this invocation
+/// the endpoint takes OAuth2, the app has none  -> the step that gets a login: see choose_hint
+/// the caller named the scheme, or neither fits -> none; the message lists what is accepted
+/// ```
+#[must_use]
+pub fn mismatch_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    invocation: &[String],
+    headless: bool,
+) -> Option<Hint> {
+    let Error::AuthMethodMismatch(mismatch) = error else {
+        return None;
+    };
+    match mismatch.shape() {
+        xdk::error::MismatchShape::WrongApp { others } => {
+            let app = others.first()?;
+            let command = rerun_with_app(invocation, app);
+            Some(Hint {
+                text_lines: vec![format!("App {app:?} is already signed in. Run: {command}")],
+                next_step: NextStep::select_app(command),
+            })
+        }
+        xdk::error::MismatchShape::EmptyIntersection { available }
+            if mismatch.supported.iter().any(|scheme| scheme == "oauth2")
+                && !available.iter().any(|scheme| scheme == "oauth2") =>
+        {
+            Some(choose_hint(snapshot, invocation, headless))
+        }
+        _ => None,
+    }
+}
+
+/// Builds the hint for an argument the command refused: the help of the
+/// command the invocation names.
+#[must_use]
+pub fn show_help_hint(help: &str) -> Hint {
+    Hint {
+        text_lines: vec![format!("Try '{help}'.")],
+        next_step: NextStep::show_help(help.to_string()),
+    }
+}
+
+/// Builds the hint for an error whose step the library names and no stored
+/// credential decides.
+///
+/// A method, a URL, or a path value `xr` refused is an argument, so it
+/// takes the help of the command it was given to, as `help` names it.
+#[must_use]
+pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
+    if matches!(
+        error,
+        Error::InvalidMethod(_) | Error::InvalidUrl { .. } | Error::InvalidPathParam { .. }
+    ) {
+        return Some(show_help_hint(help));
+    }
+    let docs = error.docs_url().map(str::to_string);
+    match error.next_action()? {
+        NextAction::Retry => Some(Hint {
+            text_lines: vec!["Nothing was wrong with the request. Send it again.".to_string()],
+            next_step: NextStep::retry(docs),
+        }),
+        NextAction::FixInput => Some(Hint {
+            text_lines: Vec::new(),
+            next_step: NextStep::fix_input(docs),
+        }),
+        NextAction::ReportIssue => {
+            let docs = docs?;
+            Some(Hint {
+                text_lines: vec![format!("This is a fault in xr. Report it: {docs}")],
+                next_step: NextStep::report_issue(docs),
+            })
+        }
+        _ => None,
+    }
+}
+
 /// Pulls the `detail` string out of a JSON error body, when there is one.
 fn detail_line(body: &str) -> Option<String> {
     serde_json::from_str::<serde_json::Value>(body)
@@ -358,25 +670,36 @@ fn detail_line(body: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-/// Rebuilds this invocation with `--app NAME` inserted after the program.
+/// Rebuilds this invocation to run against `app`: `--app NAME` after the
+/// program, and without the `--app` the caller passed, which clap would
+/// refuse as a second one.
 ///
-/// The rerun has to be runnable as printed, so the app name is quoted by the
-/// same rule registration enforces.
+/// The rerun has to be runnable as printed, so the program is the name every
+/// hint gives the binary and the app name is quoted by the same rule
+/// registration enforces. Nothing after `--` is a flag, so it is kept as it
+/// was.
 fn rerun_with_app(invocation: &[String], app: &str) -> String {
-    let mut parts: Vec<String> = Vec::with_capacity(invocation.len() + 2);
-    let mut rest = invocation.iter();
-    let program = rest.next().map_or("xr", String::as_str);
-    parts.push(program.to_string());
-    parts.push("--app".to_string());
-    parts.push(quote_app_name(app));
-    for arg in rest {
-        parts.push(shell_word(arg));
+    let mut parts = vec![
+        ROOT_COMMAND.to_string(),
+        "--app".to_string(),
+        quote_app_name(app),
+    ];
+    let mut rest = invocation.iter().skip(1);
+    while let Some(arg) = rest.next() {
+        if arg == "--" {
+            parts.push(shell_word(arg));
+            parts.extend(rest.by_ref().map(|arg| shell_word(arg)));
+        } else if arg == "--app" {
+            rest.next();
+        } else if !arg.starts_with("--app=") {
+            parts.push(shell_word(arg));
+        }
     }
     parts.join(" ")
 }
 
 /// Quotes one argument of a rebuilt invocation when a shell would split it.
-fn shell_word(arg: &str) -> String {
+pub(crate) fn shell_word(arg: &str) -> String {
     if !arg.is_empty()
         && arg.chars().all(|c| {
             c.is_ascii_alphanumeric()
@@ -464,6 +787,351 @@ mod tests {
         assert_eq!(quote_app_name("my app"), "'my app'");
         assert_eq!(quote_app_name(""), "''");
         assert_eq!(quote_app_name("it's"), r"'it'\''s'");
+    }
+
+    fn step(error: &Error) -> Option<NextStep> {
+        general_hint(error, "xr post --help").map(|hint| hint.next_step)
+    }
+
+    #[test]
+    fn a_failure_that_is_not_the_requests_fault_is_retried() {
+        assert_eq!(
+            step(&Error::http("connection refused")),
+            Some(NextStep::retry(None))
+        );
+        let server = step(&Error::api(503, "unavailable")).expect("a step");
+        assert_eq!(server.action, NextAction::Retry);
+        assert!(server.command.is_none() && server.template.is_none());
+        assert!(server.docs.is_some(), "X's page on response codes");
+    }
+
+    #[test]
+    fn a_refused_input_is_fixed_and_carries_no_invocation() {
+        let not_found = step(&Error::api(404, "no such post")).expect("a step");
+        assert_eq!(not_found.action, NextAction::FixInput);
+        assert!(not_found.command.is_none() && not_found.template.is_none());
+        assert!(not_found.docs.is_some(), "X's page on response codes");
+        assert_eq!(
+            step(&Error::io("permission denied")),
+            Some(NextStep::fix_input(None))
+        );
+        assert_eq!(
+            step(&Error::validation("media processing failed")),
+            Some(NextStep::fix_input(None))
+        );
+    }
+
+    #[test]
+    fn a_fault_of_xr_names_the_issue_tracker() {
+        for error in [
+            Error::Internal("missing {id}".into()),
+            Error::json("expected value"),
+            Error::api(418, "teapot"),
+        ] {
+            let step = step(&error).expect("a step");
+            assert_eq!(step.action, NextAction::ReportIssue, "{error:?}");
+            assert_eq!(
+                step.docs.as_deref(),
+                Some("https://github.com/brettdavies/xurl-rs/issues")
+            );
+        }
+    }
+
+    #[test]
+    fn a_refused_method_url_or_path_value_takes_the_commands_help() {
+        for error in [
+            Error::InvalidMethod("FETCH".into()),
+            Error::invalid_url("ftp://example"),
+            Error::InvalidPathParam {
+                name: "id".into(),
+                value: "1/2".into(),
+            },
+        ] {
+            assert_eq!(
+                step(&error),
+                Some(NextStep::show_help("xr post --help".to_string())),
+                "{error:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_credential_failure_gets_no_general_step() {
+        assert_eq!(step(&Error::auth("token expired")), None);
+        assert_eq!(step(&Error::api(403, "plain forbidden")), None);
+        assert_eq!(step(&Error::api(429, "slow down")), None);
+    }
+
+    /// The confirming invocation is a template, quoted so it runs as
+    /// printed, and it names the binary however it was started.
+    #[test]
+    fn confirm_is_the_invocation_with_force_and_never_a_command() {
+        let invocation: Vec<String> = ["/usr/local/bin/xr", "auth", "apps", "remove", "my app"]
+            .iter()
+            .map(|arg| (*arg).to_string())
+            .collect();
+        let step = NextStep::confirm(&invocation);
+        assert_eq!(step.action, NextAction::Confirm);
+        assert!(
+            step.command.is_none(),
+            "running it destroys; the caller decides"
+        );
+        assert_eq!(
+            step.template.as_deref(),
+            Some("xr auth apps remove 'my app' --force")
+        );
+    }
+
+    fn mismatch(
+        supported: &[&str],
+        requested: Option<&str>,
+        available: &[&str],
+        others: Option<&[&str]>,
+    ) -> Error {
+        let strings = |items: &[&str]| items.iter().map(ToString::to_string).collect::<Vec<_>>();
+        Error::from(xdk::error::AuthMismatch {
+            endpoint: "/2/users/me".into(),
+            rendered_url: None,
+            method: "GET".into(),
+            requested: requested.map(str::to_string),
+            supported: strings(supported),
+            available_in_app: Some(strings(available)),
+            app: Some("work".into()),
+            other_apps_with_creds: others.map(strings),
+        })
+    }
+
+    fn snapshot_of(store: &xdk::store::TokenStore) -> StoreSnapshot {
+        StoreSnapshot::new(store, "work", false)
+    }
+
+    #[test]
+    fn a_mismatch_the_store_can_answer_names_the_app_or_the_sign_in() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let mut store =
+            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
+        store
+            .add_app("work", "CLIENT-ID", "SECRET")
+            .expect("add app");
+        let snapshot = snapshot_of(&store);
+        let invocation: Vec<String> = ["xr", "whoami"].iter().map(|a| (*a).to_string()).collect();
+
+        let elsewhere = mismatch(&["oauth2"], None, &[], Some(&["personal"]));
+        let step = mismatch_hint(&snapshot, &elsewhere, &invocation, true).expect("a step");
+        assert_eq!(
+            step.next_step,
+            NextStep::select_app("xr --app personal whoami".to_string())
+        );
+
+        let no_login = mismatch(&["oauth2", "oauth1"], None, &["app"], None);
+        let step = mismatch_hint(&snapshot, &no_login, &invocation, true).expect("a step");
+        assert_eq!(step.next_step, NextStep::sign_in(None, true));
+    }
+
+    /// Two signed-in apps, `personal` (the default, holding `alice`) and
+    /// `work` (holding `bob`), each with a client id.
+    fn two_signed_in_apps(tmp: &tempfile::TempDir) -> xdk::store::TokenStore {
+        let mut store =
+            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
+        for (app, login) in [("personal", "alice"), ("work", "bob")] {
+            store.add_app(app, "CLIENT-ID", "SECRET").expect("add app");
+            store
+                .save_oauth2_token_for_app(app, login, "AT", "RT", u64::MAX)
+                .expect("save token");
+        }
+        store.set_default_app("personal").expect("default");
+        store
+    }
+
+    #[test]
+    fn a_login_another_app_holds_reruns_there() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let store = two_signed_in_apps(&tmp);
+        let hint = choose_hint(
+            &snapshot_of(&store),
+            &words(&["xr", "--app", "work", "whoami", "-u", "alice"]),
+            true,
+        );
+        assert_eq!(
+            hint.next_step,
+            NextStep::select_app("xr --app personal whoami -u alice".to_string())
+        );
+    }
+
+    /// The step never names an app that holds only other logins: rerunning
+    /// there refuses the same way, and the next step points back.
+    #[test]
+    fn a_login_no_app_holds_signs_in_under_that_name_where_the_rerun_looks() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let store = two_signed_in_apps(&tmp);
+        let hint = choose_hint(
+            &snapshot_of(&store),
+            &words(&["xr", "--app", "work", "whoami", "-u", "nobody"]),
+            true,
+        );
+        assert_eq!(
+            hint.next_step,
+            NextStep::sign_in_as(Some("nobody"), Some("work"), true)
+        );
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr auth oauth2 nobody --no-browser --step 1 --app work")
+        );
+        assert_eq!(
+            hint.text_lines[0],
+            r#"No app holds the login "nobody". App "work" holds: bob."#
+        );
+
+        let on_default = StoreSnapshot::new(&store, "personal", false);
+        let hint = choose_hint(
+            &on_default,
+            &words(&["xr", "whoami", "-u", "nobody"]),
+            false,
+        );
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr auth oauth2 nobody")
+        );
+    }
+
+    #[test]
+    fn a_mismatch_only_the_caller_can_answer_carries_no_step() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let store =
+            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
+        let snapshot = snapshot_of(&store);
+        let invocation: Vec<String> = ["xr", "usage"].iter().map(|a| (*a).to_string()).collect();
+
+        let named = mismatch(&["oauth2"], Some("app"), &["app"], None);
+        assert!(mismatch_hint(&snapshot, &named, &invocation, true).is_none());
+        let bearer_only = mismatch(&["app"], None, &["oauth2"], None);
+        assert!(mismatch_hint(&snapshot, &bearer_only, &invocation, true).is_none());
+        assert!(mismatch_hint(&snapshot, &Error::auth("x"), &invocation, true).is_none());
+    }
+
+    /// A rerun against another app names that app once, under the name
+    /// every hint gives the binary: the `--app` the caller passed is
+    /// dropped in either spelling, since clap refuses the flag twice.
+    #[test]
+    fn a_rerun_replaces_the_app_the_invocation_named() {
+        use clap::Parser as _;
+        let rerun = |args: &[&str]| {
+            let invocation: Vec<String> = args.iter().map(|arg| (*arg).to_string()).collect();
+            rerun_with_app(&invocation, "personal")
+        };
+        assert!(
+            crate::cli::Cli::try_parse_from(["xr", "--app", "a", "--app", "b", "whoami"]).is_err(),
+            "clap takes --app once"
+        );
+        assert_eq!(
+            rerun(&["xr", "--app", "work", "whoami"]),
+            "xr --app personal whoami"
+        );
+        assert_eq!(
+            rerun(&["xr", "--output", "json", "whoami", "--app=work"]),
+            "xr --app personal --output json whoami"
+        );
+        assert_eq!(
+            rerun(&["/usr/local/bin/xr", "whoami"]),
+            "xr --app personal whoami"
+        );
+        assert_eq!(
+            rerun(&["xr", "post", "--", "--app", "is text"]),
+            "xr --app personal post -- --app 'is text'"
+        );
+    }
+
+    fn words(args: &[&str]) -> Vec<String> {
+        args.iter().map(|arg| (*arg).to_string()).collect()
+    }
+
+    /// Every spelling of the port the caller gave is dropped and `--port 0`
+    /// takes its place, before a `--` when there is one, so a program's own
+    /// arguments are never read as `listen`'s.
+    #[test]
+    fn a_taken_port_reruns_listen_on_port_zero() {
+        let rerun = |args: &[&str]| NextStep::listen_on_free_port(&words(args));
+        for given in [
+            &["--port", "8080"][..],
+            &["--port=8080"],
+            &["-p", "8080"],
+            &["-p8080"],
+            &["-p=8080"],
+        ] {
+            let mut args = vec!["/usr/local/bin/xr", "webhooks", "listen"];
+            args.extend_from_slice(given);
+            let step = rerun(&args);
+            assert_eq!(step.action, NextAction::FixInput, "{given:?}");
+            assert_eq!(
+                step.command.as_deref(),
+                Some("xr webhooks listen --port 0"),
+                "{given:?}"
+            );
+            assert!(step.template.is_none(), "{given:?}");
+        }
+        assert_eq!(
+            rerun(&[
+                "xr",
+                "webhooks",
+                "listen",
+                "--port",
+                "8080",
+                "--",
+                "./handle.sh",
+                "--port",
+                "9"
+            ])
+            .command
+            .as_deref(),
+            Some("xr webhooks listen --port 0 -- ./handle.sh --port 9")
+        );
+    }
+
+    /// A header often carries a credential, so with any `-H` the rerun is a
+    /// template that names each header and hides its value.
+    #[test]
+    fn a_taken_port_with_headers_reruns_as_a_template_that_hides_each_value() {
+        let step = NextStep::listen_on_free_port(&words(&[
+            "xr",
+            "webhooks",
+            "listen",
+            "-H",
+            "Authorization: Bearer abc",
+            "--header=X-Team: blue",
+            "-HX-Trace:zz9",
+        ]));
+        assert_eq!(step.action, NextAction::FixInput);
+        assert!(step.command.is_none(), "{step:?}");
+        let template = step.template.as_deref().expect("a template");
+        assert_eq!(
+            template,
+            "xr webhooks listen -H 'Authorization: <value>' -H 'X-Team: <value>' \
+             -H 'X-Trace: <value>' --port 0"
+        );
+        for secret in ["abc", "blue", "zz9"] {
+            assert!(!template.contains(secret), "{template}");
+        }
+    }
+
+    /// The window is the arrival minute and the minute after it, across an
+    /// hour, a day, a month, and a year.
+    #[test]
+    fn a_replay_window_spans_the_arrival_minute_and_the_next() {
+        for (received_at, from, to) in [
+            (1_792_681_470, "202610221504", "202610221505"),
+            (1_792_684_770, "202610221559", "202610221600"),
+            (1_793_491_199, "202610312359", "202611010000"),
+            (1_798_761_540, "202612312359", "202701010000"),
+        ] {
+            let step = NextStep::replay_window(received_at);
+            assert_eq!(step.action, NextAction::RunCommand);
+            assert!(step.command.is_none(), "only the caller knows the id");
+            assert_eq!(
+                step.template.as_deref(),
+                Some(format!("xr webhooks replay <WEBHOOK_ID> --from {from} --to {to}").as_str()),
+                "received at {received_at}"
+            );
+        }
     }
 
     #[test]

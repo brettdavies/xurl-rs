@@ -1,0 +1,20 @@
+args: ["--output", "json", "--dry-run", "search-counts", "rustlang", "--start", "2026-10-26T00:00:00Z", "--end", "2026-10-25T00:00:00Z"]
+store: empty
+exit_code: 0
+stdout_len: 249
+stderr_len: 0
+--- stdout ---
+{
+  "command": "search-counts",
+  "end": "2026-10-25T00:00:00Z",
+  "exit_code": 1,
+  "granularity": null,
+  "query": "rustlang",
+  "reason": "invalid-time-window",
+  "start": "2026-10-26T00:00:00Z",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

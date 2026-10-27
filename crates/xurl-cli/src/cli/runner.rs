@@ -29,8 +29,8 @@ use clap::{CommandFactory, Parser};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
-    Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, nearest_command,
-    suggestion_for_rejected,
+    Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, invoked_help,
+    nearest_command, suggestion_for_rejected,
 };
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::Failure;
@@ -57,22 +57,25 @@ const CLAP_HELP_FOOTER: &str = "For more information, try '--help'.";
 
 /// Runs the `xr` CLI using `std::env::args_os()` and real stdio.
 ///
-/// The binary's `main` calls this. Library consumers wanting capture should
-/// call [`run`] or [`run_with_store_path`] directly.
+/// The binary's `main` calls this, and it alone installs the panic hook, so
+/// a panic anywhere answers the `internal` error and exits 1. Library
+/// consumers wanting capture should call [`run`] or [`run_with_store_path`]
+/// directly; they keep Rust's own panic behavior.
+///
+/// Stdout and stderr are locked per write rather than for the whole run, so
+/// the hook can write from whichever thread panicked.
 #[must_use]
 pub async fn run_argv() -> i32 {
+    crate::cli::panic_hook::install();
     let args: Vec<OsString> = std::env::args_os().collect();
-    let stdout = std::io::stdout();
-    let stderr = std::io::stderr();
-    let mut stdout_lock = stdout.lock();
-    let mut stderr_lock = stderr.lock();
-    run(args, &mut stdout_lock, &mut stderr_lock).await
+    run(args, &mut std::io::stdout(), &mut std::io::stderr()).await
 }
 
 /// Runs the `xr` CLI with caller-supplied args + writers.
 ///
 /// Resolves the token-store path from `XURL_TOKEN_STORE`, falling back to
-/// [`Config::default_store_path`], and delegates to [`run_with_overrides`].
+/// [`Config::default_store_path`] (`~/.xurl/auth.yml`), and delegates to
+/// [`run_with_overrides`].
 pub async fn run<I, S>(args: I, stdout: &mut dyn Write, stderr: &mut dyn Write) -> i32
 where
     I: IntoIterator<Item = S>,
@@ -187,6 +190,7 @@ where
         overrides.no_color,
     )
     .with_no_interactive(cli.no_interactive);
+    crate::cli::panic_hook::publish(&out);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
     if let Some(ref cmd) = cli.command {
@@ -221,7 +225,13 @@ where
                 return match crate::cli::commands::examples::run_examples(stdout) {
                     Ok(()) => EXIT_SUCCESS,
                     Err(e) => {
-                        out.print_error(stderr, &e, EXIT_GENERAL_ERROR);
+                        let help = invoked_help(&args_vec);
+                        match crate::cli::hints::general_hint(&e, &help) {
+                            Some(hint) => {
+                                out.print_error_with_hint(stderr, &e, EXIT_GENERAL_ERROR, &hint);
+                            }
+                            None => out.print_error(stderr, &e, EXIT_GENERAL_ERROR),
+                        }
                         EXIT_GENERAL_ERROR
                     }
                 };
@@ -241,8 +251,10 @@ where
                     stdout,
                 ) {
                     Ok(()) => EXIT_SUCCESS,
+                    // What `schema` refuses is the name it was given.
                     Err(e) => {
-                        out.print_error(stderr, &e, EXIT_GENERAL_ERROR);
+                        let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
+                        out.print_refusal(stderr, &e, None, &hint);
                         EXIT_GENERAL_ERROR
                     }
                 };
@@ -290,6 +302,9 @@ where
         }
         Classified::Raw => {}
     }
+    if let Some(misplaced) = crate::cli::misplaced_flags::misplaced(&cli, &args_vec) {
+        return render_misplaced_flags(&misplaced, &args_vec, &out, stderr);
+    }
 
     // ── Tier 3: Everything else (needs config + auth) ──────────────────
     let mut cfg = Config::from_overrides(overrides);
@@ -298,9 +313,12 @@ where
     cfg.http_timeout_secs = cli.timeout;
     // Store loading and redirect-URI resolution warn through `tracing` too,
     // and they run before the dispatch future the renderer below is attached
-    // to, so the same renderer covers them for the duration of this call.
+    // to, so the same renderer covers them for the duration of this call. A
+    // single-file store is moved into its directory here, on the first
+    // command that opens it, and the renderer prints the move.
     let auth = tracing::subscriber::with_default(Diagnostics::new(out.clone()), || {
-        Auth::new_with_store_path_and_overrides(&cfg, store_path, overrides)
+        let store_path = xdk::store::adopt_directory_layout(store_path);
+        Auth::new_with_store_path_and_overrides(&cfg, &store_path, overrides)
     });
 
     // Taken before `Auth` moves into dispatch: the recovery hint is chosen at
@@ -326,30 +344,68 @@ where
     let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides)
         .with_subscriber(diagnostics)
         .await;
+    let invocation = || -> Vec<String> {
+        args_vec
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect()
+    };
     match dispatched {
         Ok(()) => EXIT_SUCCESS,
         Err(Failure::Emitted { exit_code }) => exit_code,
+        Err(Failure::Refused { error, reason }) => {
+            let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
+            out.print_refusal(stderr, &error, reason, &hint);
+            error.exit_code()
+        }
+        Err(Failure::Unconfirmed(ctx)) => {
+            let next_step = NextStep::confirm(&invocation());
+            out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR, next_step);
+            EXIT_GENERAL_ERROR
+        }
+        Err(Failure::DryRunRefusal { ctx, error }) => {
+            let hint = recovery_hint(&error, &snapshot, &args_vec, structured);
+            out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
+            EXIT_SUCCESS
+        }
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
-            if carries_no_auth_method(&e) {
-                let invocation: Vec<String> = args_vec
-                    .iter()
-                    .map(|a| a.to_string_lossy().into_owned())
-                    .collect();
-                let hint = crate::cli::hints::choose_hint(&snapshot, &invocation, structured);
-                out.print_error_with_hint(stderr, &e, code, &hint);
-            } else if let Some(hint) = crate::cli::hints::unloadable_store_hint(&snapshot, &e)
-                .or_else(|| crate::cli::hints::enrollment_hint(&e))
-                .or_else(|| crate::cli::hints::resume_wait_hint(&e))
-                .or_else(|| crate::cli::hints::wait_and_retry_hint(&e))
-            {
-                out.print_error_with_hint(stderr, &e, code, &hint);
-            } else {
-                out.print_error(stderr, &e, code);
+            match recovery_hint(&e, &snapshot, &args_vec, structured) {
+                Some(hint) => out.print_error_with_hint(stderr, &e, code, &hint),
+                None => out.print_error(stderr, &e, code),
             }
             code
         }
     }
+}
+
+/// The recovery hint for a library error, chosen from the store as this
+/// run loaded it and the invocation as given. A dry run's refusal takes the
+/// same hint its real run would.
+fn recovery_hint(
+    error: &xdk::error::Error,
+    snapshot: &xdk::store::snapshot::StoreSnapshot,
+    args: &[OsString],
+    structured: bool,
+) -> Option<crate::cli::hints::Hint> {
+    let invocation: Vec<String> = args
+        .iter()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
+    if carries_no_auth_method(error) {
+        return Some(crate::cli::hints::choose_hint(
+            snapshot,
+            &invocation,
+            structured,
+        ));
+    }
+    crate::cli::hints::unloadable_store_hint(snapshot, error)
+        .or_else(|| crate::cli::hints::enrollment_hint(error))
+        .or_else(|| crate::cli::hints::resume_wait_hint(error))
+        .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
+        .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
+        .or_else(|| crate::cli::hints::mismatch_hint(snapshot, error, &invocation, structured))
+        .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
 }
 
 /// Whether this error is a missing-credential failure a recovery hint answers.
@@ -519,6 +575,56 @@ fn help_command_page(args: &[OsString]) -> String {
 /// The pointer names a help page rather than the corrected invocation: the
 /// suggestion is a guess, and the corrected invocation of a write command
 /// would act on it.
+/// Renders raw-only flags given ahead of a command word: `invalid-args`,
+/// with the invocation that moves them after the word as its step when one
+/// exists, and the command's help otherwise. The message and the step name
+/// the same invocation.
+fn render_misplaced_flags(
+    misplaced: &crate::cli::misplaced_flags::Misplaced,
+    args: &[OsString],
+    out: &OutputConfig,
+    stderr: &mut dyn Write,
+) -> i32 {
+    let quoted: Vec<String> = misplaced
+        .flags
+        .iter()
+        .map(|flag| format!("'{flag}'"))
+        .collect();
+    let (named, verb, pronoun) = match quoted.as_slice() {
+        [one] => (one.clone(), "comes", "it"),
+        [first, second] => (format!("{first} and {second}"), "come", "them"),
+        [rest @ .., last] => (format!("{}, and {last}", rest.join(", ")), "come", "them"),
+        [] => (String::new(), "comes", "it"),
+    };
+    let problem = format!(
+        "{named} {verb} before the command word, where only a raw request reads {pronoun}."
+    );
+    let (message, next_step) = match &misplaced.moved {
+        Some(moved) => (
+            format!("{problem} Run: {moved}"),
+            NextStep::fix_input_with(moved.clone()),
+        ),
+        None => {
+            let help = invoked_help(args);
+            (
+                format!("{problem} Try '{help}'."),
+                NextStep::show_help(help),
+            )
+        }
+    };
+    out.emit_error_envelope(
+        stderr,
+        ErrorBody {
+            reason: Reason::InvalidArgs,
+            exit_code: EXIT_USAGE_ERROR,
+            message: Some(message),
+            next_step: Some(next_step),
+            ..ErrorBody::default()
+        },
+    );
+    EXIT_USAGE_ERROR
+}
+
 fn render_unknown_command(
     word: &str,
     suggestion: Option<&str>,

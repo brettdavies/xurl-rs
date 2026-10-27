@@ -68,10 +68,15 @@ const NOTHING_STRUCTURAL: &str =
 
 #[test]
 fn drift_report_lists_auth_method_changes_outside_the_allowlist() {
-    let local = spec(&[("get", "/2/webhooks", json!([{ "BearerToken": [] }]))]);
+    // GET /2/activity/subscriptions has no row in build.rs's SHORTCUT_TEMPLATES.
+    let local = spec(&[(
+        "get",
+        "/2/activity/subscriptions",
+        json!([{ "BearerToken": [] }]),
+    )]);
     let upstream = spec(&[(
         "get",
-        "/2/webhooks",
+        "/2/activity/subscriptions",
         json!([{ "BearerToken": [] }, { "OAuth2UserToken": [] }, { "UserToken": [] }]),
     )]);
     let report = drift_report(&local, &upstream);
@@ -80,7 +85,7 @@ fn drift_report_lists_auth_method_changes_outside_the_allowlist() {
         "{report}"
     );
     assert!(
-        report.contains("- `GET /2/webhooks`: +`OAuth2UserToken`, +`UserToken`"),
+        report.contains("- `GET /2/activity/subscriptions`: +`OAuth2UserToken`, +`UserToken`"),
         "{report}"
     );
     assert!(

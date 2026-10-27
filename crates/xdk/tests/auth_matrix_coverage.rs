@@ -81,9 +81,10 @@ fn supported_auth_returns_none_for_unknown_shortcut() {
     // for unknown paths, the coverage check would pass vacuously and the
     // build-time guarantee would be silently broken.
     assert!(supported_auth("GET", "/2/never/heard/of").is_none());
-    // A real spec path with no shortcut mapping: `xr` exposes no Lists API
-    // surface, so this stays a genuine negative.
-    assert!(supported_auth("DELETE", "/2/users/{id}/followed_lists/{list_id}").is_none());
+    // A real spec path with no shortcut mapping: `endpoint-decisions.json`
+    // keeps the full-archive search raw-only for good, so this stays a
+    // genuine negative.
+    assert!(supported_auth("GET", "/2/tweets/search/all").is_none());
 }
 
 #[test]

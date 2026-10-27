@@ -1,0 +1,10 @@
+args: ["-u", "work", "whoami"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 101
+--- stdout ---
+
+--- stderr ---
+Error: '-u' comes before the command word, where only a raw request reads it. Run: xr whoami -u work
+

@@ -15,10 +15,27 @@ use crate::cli::output::OutputFormat;
 use crate::cli::{Cli, ColorChoice};
 
 /// Jaro score a candidate must beat to be offered as the nearest command.
-const SUGGESTION_THRESHOLD: f64 = 0.7;
+/// Above clap's 0.7: at 0.7 a short command word such as `calls` matches
+/// unrelated words (`localhost` scores 0.785, `false` 0.733), while a one- or
+/// two-character typo of a command scores 0.9 or more.
+const SUGGESTION_THRESHOLD: f64 = 0.8;
 
 /// The name every hint gives the binary, however it was invoked.
 pub(crate) const ROOT_COMMAND: &str = "xr";
+
+/// The help invocation of the command `args` names: `xr --help` for a raw
+/// request, `xr media alt-text --help` for a subcommand.
+pub(crate) fn invoked_help<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> String {
+    let mut path = vec![ROOT_COMMAND.to_string()];
+    if let Ok(matches) = Cli::command().try_get_matches_from(args.iter().map(AsRef::as_ref)) {
+        let mut current = &matches;
+        while let Some((name, sub)) = current.subcommand() {
+            path.push(name.to_string());
+            current = sub;
+        }
+    }
+    format!("{} --help", path.join(" "))
+}
 
 /// What an invocation is asking for, once clap has parsed it.
 pub(crate) enum Classified {
@@ -39,16 +56,9 @@ pub(crate) fn classify(cli: &Cli) -> Classified {
     if cli.command.is_some() {
         return Classified::Raw;
     }
-    // Every flag that only raw mode reads. Their presence says the caller
-    // means a request, so the positional stays a URL.
-    let raw_only_flag = cli.method.is_some()
-        || !cli.headers.is_empty()
-        || cli.data.is_some()
-        || cli.auth_type.is_some()
-        || cli.username.is_some()
-        || cli.file.is_some()
-        || cli.trace
-        || cli.stream;
+    // Their presence says the caller means a request, so the positional
+    // stays a URL.
+    let raw_only_flag = raw_only_flag_given(cli);
 
     let Some(word) = cli.url.as_deref() else {
         return if raw_only_flag {
@@ -67,6 +77,38 @@ pub(crate) fn classify(cli: &Cli) -> Classified {
         return Classified::UnknownCommand(word.to_string());
     }
     Classified::Raw
+}
+
+/// Whether the root carries a flag that only raw mode reads. clap parses
+/// root flags only ahead of a command word, so beside a command, one of
+/// these reached the root and no command reads it.
+pub(crate) fn raw_only_flag_given(cli: &Cli) -> bool {
+    cli.method.is_some()
+        || !cli.headers.is_empty()
+        || cli.data.is_some()
+        || cli.auth_type.is_some()
+        || cli.username.is_some()
+        || cli.file.is_some()
+        || cli.trace
+        || cli.stream
+}
+
+/// The login `-u` names, on the command the invocation runs or on a raw
+/// request; `None` when the invocation does not parse or names none.
+pub(crate) fn requested_login<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<String> {
+    let matches = Cli::command()
+        .try_get_matches_from(args.iter().map(AsRef::as_ref))
+        .ok()?;
+    let mut current = &matches;
+    while let Some((_, sub)) = current.subcommand() {
+        current = sub;
+    }
+    current
+        .try_get_one::<String>("username")
+        .ok()
+        .flatten()
+        .filter(|login| !login.is_empty())
+        .cloned()
 }
 
 /// Whether the whole token reads as a command name: a letter, then letters,

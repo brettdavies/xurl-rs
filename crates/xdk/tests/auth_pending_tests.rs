@@ -185,7 +185,7 @@ fn load_corrupt_yaml_returns_error() {
     assert_eq!(err.kind(), "auth-required", "got: {err:?}");
     assert!(
         std::error::Error::source(&err)
-            .and_then(|source| source.downcast_ref::<serde_yaml::Error>())
+            .and_then(|source| source.downcast_ref::<serde_saphyr::Error>())
             .is_some(),
         "the YAML error is the auth error's source: {err:?}"
     );

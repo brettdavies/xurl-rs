@@ -48,7 +48,7 @@ impl TokenStore {
     pub(crate) fn load_from_data(&mut self, data: &[u8]) -> bool {
         // Try new YAML format first. Legacy JSON is also valid YAML, so a
         // parse that yields no apps must still fall through to the JSON path.
-        let yaml_parsed = match serde_yaml::from_slice::<StoreFile>(data) {
+        let yaml_parsed = match serde_saphyr::from_slice::<StoreFile>(data) {
             Ok(sf) => {
                 if !sf.apps.is_empty() {
                     self.apps = sf.apps;
@@ -86,7 +86,7 @@ impl TokenStore {
             // file cannot interleave its copy with this one.
             if let Err(e) = self.save_locked() {
                 tracing::warn!(
-                    target: "xdk::store",
+                    target: super::STORE_TARGET,
                     "legacy token store migrated in memory but not saved: {e}"
                 );
             }
@@ -103,7 +103,7 @@ impl TokenStore {
     /// Returns an error if the file cannot be read, parsed, or the store cannot be saved.
     pub fn import_from_twurlrc(&mut self, file_path: &std::path::Path) -> Result<()> {
         let data = std::fs::read(file_path)?;
-        let twurlrc: TwurlrcConfig = serde_yaml::from_slice(&data)?;
+        let twurlrc: TwurlrcConfig = serde_saphyr::from_slice(&data)?;
 
         self.update(|store| {
             store.import_twurlrc_tokens(&twurlrc);
@@ -133,6 +133,9 @@ impl TokenStore {
                                     .consumer_secret
                                     .clone()
                                     .unwrap_or_default(),
+                                user_id: None,
+                                account_username: None,
+                                display_name: None,
                             }),
                         });
                     }

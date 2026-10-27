@@ -228,7 +228,7 @@ impl Client {
             }
         }
 
-        if !options.no_auth && !user_supplied_header(&options.headers, "Authorization") {
+        if attaches_credential(options) {
             let auth_header = self.get_auth_header(options).await?;
             builder = builder.header("Authorization", auth_header);
         }
@@ -420,6 +420,13 @@ fn user_supplied_header(headers: &[String], name: &str) -> bool {
         .iter()
         .filter_map(|h| h.split_once(':'))
         .any(|(key, _)| key.trim().eq_ignore_ascii_case(name))
+}
+
+/// Whether the client attaches a credential of its own to `options`: not
+/// when the request is marked `no_auth`, and not when the caller supplied
+/// an `Authorization` header.
+pub(super) fn attaches_credential(options: &RequestOptions) -> bool {
+    !options.no_auth && !user_supplied_header(&options.headers, "Authorization")
 }
 
 /// Emits one wire note for each client-added header that was suppressed because

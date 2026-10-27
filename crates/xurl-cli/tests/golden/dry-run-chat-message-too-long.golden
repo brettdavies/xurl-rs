@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "broadcasts", "chat", "send", "1YqKDqWqdPLGV", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+store: empty
+exit_code: 0
+stdout_len: 354
+stderr_len: 0
+--- stdout ---
+{
+  "body": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "broadcast_id": "1YqKDqWqdPLGV",
+  "command": "broadcasts-chat-send",
+  "exit_code": 1,
+  "reason": "chat-message-too-long",
+  "reply_to": null,
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

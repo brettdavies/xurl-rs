@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "webhooks", "add", ""]
+store: empty
+exit_code: 0
+stdout_len: 145
+stderr_len: 0
+--- stdout ---
+{
+  "command": "webhooks-add",
+  "exit_code": 1,
+  "reason": "empty-webhook-url",
+  "status": "dry_run",
+  "url": "",
+  "would_succeed": false
+}
+
+--- stderr ---
+

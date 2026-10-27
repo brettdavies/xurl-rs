@@ -1,11 +1,13 @@
-//! An in-process X API for tests that must not spend credits.
+//! An in-process X API for tests that must not spend credits, built only
+//! with the `testing` feature.
 //!
 //! [`MockX::start`] binds a local server that answers every endpoint the
 //! shortcut layer declares with the fixture responses the response types are
 //! validated against, so a `read_post` or `search_posts` against it
 //! deserializes into the same `Post` a live call would. Every response
 //! carries a rate-limit window, so [`Client::last_rate_limit`] reads
-//! something too.
+//! something too. [`deliver_signed_sample`] posts a signed sample event to a
+//! [`webhooks::Receiver`](crate::webhooks::Receiver) under test.
 //!
 //! Enable the feature in a test profile only, so a release build pulls none
 //! of the mock's dependencies:
@@ -47,6 +49,10 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 use crate::api::auth_matrix::{Endpoint, endpoints};
 use crate::api::{Client, ClientBuilder};
 use crate::auth::OAuth2Credential;
+
+mod webhooks;
+
+pub use webhooks::deliver_signed_sample;
 
 /// The bearer token [`MockX::app_client`] sends; the mock accepts anything.
 pub const MOCK_BEARER_TOKEN: &str = "mock-bearer-token";
@@ -115,8 +121,183 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_MY_FOLLOWERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_LIKED_POSTS,
         fixture: "post_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_LIST,
+        fixture: "list_created",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST,
+        fixture: "list_single",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_LIST,
+        fixture: "list_updated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_LIST,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST_POSTS,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST_MEMBERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::ADD_LIST_MEMBER,
+        fixture: "list_member",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::REMOVE_LIST_MEMBER,
+        fixture: "list_member",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST_FOLLOWERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_OWNED_LISTS,
+        fixture: "lists",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_FOLLOWED_LISTS,
+        fixture: "lists",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::FOLLOW_LIST,
+        fixture: "list_followed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNFOLLOW_LIST,
+        fixture: "list_followed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIST_MEMBERSHIPS,
+        fixture: "lists",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_PINNED_LISTS,
+        fixture: "lists",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::PIN_LIST,
+        fixture: "list_pinned",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNPIN_LIST,
+        fixture: "list_pinned",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SEARCH_COMMUNITIES,
+        fixture: "community_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_COMMUNITY,
+        fixture: "community",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SEARCH_NEWS,
+        fixture: "news_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_NEWS,
+        fixture: "news_story",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_TRENDS,
+        fixture: "trends",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_PERSONALIZED_TRENDS,
+        fixture: "personalized_trends",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_POST_ANALYTICS,
+        fixture: "post_analytics",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_POST_COUNTS,
+        fixture: "post_counts",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::LOOKUP_USERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::LOOKUP_USERS_BY_USERNAME,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SEARCH_USERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_USER_POSTS,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::READ_POSTS,
+        fixture: "post_lookup",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_LIKING_USERS,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_REPOSTED_BY,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_QUOTE_POSTS,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::HIDE_REPLY,
+        fixture: "action_hidden",
         status: 200,
     },
     Route {
@@ -155,7 +336,27 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_BOOKMARK_FOLDERS,
+        fixture: "bookmark_folders",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_BOOKMARK_FOLDER,
+        fixture: "bookmark_folder",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_BOOKMARK_FOLDER_POSTS,
+        fixture: "bookmark_folder_posts",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_FOLLOWING,
+        fixture: "user_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_MY_FOLLOWING,
         fixture: "user_list",
         status: 200,
     },
@@ -203,6 +404,46 @@ const ROUTES: &[Route] = &[
         endpoint: endpoints::SEND_DM,
         fixture: "dm_sent",
         status: 201,
+    },
+    Route {
+        endpoint: endpoints::CREATE_DM_CONVERSATION,
+        fixture: "dm_sent",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::SEND_TO_CONVERSATION,
+        fixture: "dm_sent",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_CONVERSATION_EVENTS,
+        fixture: "dm_event_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_DM_EVENTS_WITH,
+        fixture: "dm_event_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_DM_EVENT,
+        fixture: "dm_event",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_DM_EVENT,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::BLOCK_DMS,
+        fixture: "dm_blocked",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNBLOCK_DMS,
+        fixture: "dm_blocked",
+        status: 200,
     },
     Route {
         endpoint: endpoints::GET_DM_EVENTS,
@@ -272,6 +513,276 @@ const ROUTES: &[Route] = &[
     Route {
         endpoint: endpoints::REMOVE_CHAT_MODERATOR,
         fixture: "chat_moderators",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_MEDIA,
+        fixture: "media_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_MEDIA_ANALYTICS,
+        fixture: "media_analytics",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SEARCH_SPACES,
+        fixture: "space_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_SPACES,
+        fixture: "space_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_SPACES_BY_CREATOR,
+        fixture: "space_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_SPACE_POSTS,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_STREAM_RULES,
+        fixture: "stream_rules",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_STREAM_RULES,
+        fixture: "stream_rules_added",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_STREAM_RULE_COUNTS,
+        fixture: "stream_rule_counts",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_ARTICLE_DRAFT,
+        fixture: "article_draft",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::PUBLISH_ARTICLE,
+        fixture: "article_published",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_NOTE,
+        fixture: "note_created",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::EVALUATE_NOTE,
+        fixture: "note_evaluation",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_NOTE,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_NOTES_WRITTEN,
+        fixture: "notes_written",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_POSTS_ELIGIBLE_FOR_NOTES,
+        fixture: "post_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::LIST_BROADCASTS,
+        fixture: "broadcasts",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_BROADCAST,
+        fixture: "broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::LIST_SCHEDULED_BROADCASTS,
+        fixture: "scheduled_broadcasts",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_SCHEDULED_BROADCAST,
+        fixture: "scheduled_broadcast",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_SCHEDULED_BROADCAST,
+        fixture: "scheduled_broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_SCHEDULED_BROADCAST,
+        fixture: "scheduled_broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_SCHEDULED_BROADCAST,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GO_LIVE,
+        fixture: "scheduled_broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_BROADCAST_CHAT,
+        fixture: "broadcast_chat",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SEND_BROADCAST_CHAT,
+        fixture: "broadcast_chat_sent",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::MUTE_CHAT_USER,
+        fixture: "broadcast_chat_muted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UNMUTE_CHAT_USER,
+        fixture: "broadcast_chat_muted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_CHAT_MESSAGE,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_STREAM_SOURCES,
+        fixture: "stream_sources",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_STREAM_SOURCE,
+        fixture: "stream_source",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_STREAM_SOURCE,
+        fixture: "stream_source",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::RENAME_STREAM_SOURCE,
+        fixture: "stream_source",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_STREAM_SOURCE,
+        fixture: "stream_source_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_CALL,
+        fixture: "call",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_SCHEDULED_CALLS,
+        fixture: "scheduled_calls",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::SCHEDULE_CALL,
+        fixture: "scheduled_call",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_SCHEDULED_CALL,
+        fixture: "scheduled_call",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_SCHEDULED_CALL,
+        fixture: "scheduled_call_updated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CANCEL_SCHEDULED_CALL,
+        fixture: "scheduled_call_cancelled",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::RESPOND_TO_SCHEDULED_CALL,
+        fixture: "scheduled_call_rsvp",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_WEBHOOKS,
+        fixture: "webhook_list",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_WEBHOOK,
+        fixture: "webhook_single",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::VALIDATE_WEBHOOK,
+        fixture: "webhook_validated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_WEBHOOK,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_WEBHOOK_REPLAY,
+        fixture: "webhook_replay_job",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT,
+        fixture: "account_activity_count",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS,
+        fixture: "account_activity_subscriptions",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CHECK_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        fixture: "account_activity_subscribed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        fixture: "account_activity_subscribed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        fixture: "account_activity_unsubscribed",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_WEBHOOK_STREAM_LINKS,
+        fixture: "webhook_stream_links",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_WEBHOOK_STREAM_LINK,
+        fixture: "webhook_stream_link_provisioned",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::DELETE_WEBHOOK_STREAM_LINK,
+        fixture: "action_deleted",
         status: 200,
     },
 ];

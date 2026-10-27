@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "install", "claude_code"]
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 363
+stdout_len: 459
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,11 @@ stderr_len: 0
   "destination_status": "non-empty-dir",
   "status": "error",
   "exit_code": 1,
-  "reason": "destination-not-empty"
+  "reason": "destination-not-empty",
+  "next_step": {
+    "action": "run-command",
+    "command": "xr skill update claude_code"
+  }
 }
 
 --- stderr ---

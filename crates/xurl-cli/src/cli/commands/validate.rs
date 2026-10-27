@@ -12,12 +12,22 @@ use std::path::Path;
 
 use serde::de::DeserializeOwned;
 
-use crate::cli::envelope::Reason;
+use crate::cli::envelope::{ErrorBody, Reason};
+use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
-    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
+    ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
+    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
+    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
+    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -85,6 +95,7 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<DmSentResult>("dm"),
     typed_alias::<Vec<DmEvent>>("dms"),
     typed_alias::<DmEvent>("dm-event"),
+    typed_alias::<DmBlockResult>("dm-block"),
     typed_alias::<UsageData>("usage"),
     typed_alias::<UsageCreditsData>("credits"),
     SchemaAlias {
@@ -93,15 +104,68 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
         response_type: None,
     },
     typed_alias::<LikedResult>("like"),
+    typed_alias::<HiddenResult>("hide"),
+    typed_alias::<Vec<PostCount>>("post-counts"),
+    typed_alias::<Vec<PostAnalytics>>("analytics"),
+    typed_alias::<Vec<Media>>("media"),
+    typed_alias::<Vec<MediaAnalytics>>("media-analytics"),
+    typed_alias::<Vec<Space>>("spaces"),
+    typed_alias::<Vec<StreamRule>>("stream-rules"),
+    typed_alias::<Option<Vec<StreamRule>>>("stream-rules-update"),
+    typed_alias::<StreamRuleCounts>("stream-rule-counts"),
+    typed_alias::<ArticleDraft>("article-draft"),
+    typed_alias::<ArticlePublished>("article-published"),
+    typed_alias::<NoteCreated>("note-created"),
+    typed_alias::<NoteEvaluation>("note-evaluation"),
+    typed_alias::<Vec<Note>>("notes"),
+    typed_alias::<Broadcast>("broadcast"),
+    typed_alias::<Vec<Broadcast>>("broadcasts"),
+    typed_alias::<ScheduledBroadcast>("scheduled-broadcast"),
+    typed_alias::<Vec<ScheduledBroadcast>>("scheduled-broadcasts"),
+    typed_alias::<Vec<BroadcastChatMessage>>("chat-messages"),
+    typed_alias::<ChatSentResult>("chat-sent"),
+    typed_alias::<ChatMutedResult>("chat-muted"),
+    typed_alias::<List>("list"),
+    typed_alias::<Vec<List>>("lists"),
+    typed_alias::<ListUpdatedResult>("list-updated"),
+    typed_alias::<ListMemberResult>("list-member"),
+    typed_alias::<PinnedResult>("pinned"),
+    typed_alias::<Vec<Community>>("communities"),
+    typed_alias::<Community>("community"),
+    typed_alias::<Vec<NewsStory>>("news"),
+    typed_alias::<NewsStory>("news-story"),
+    typed_alias::<Vec<Trend>>("trends"),
+    typed_alias::<Vec<PersonalizedTrend>>("personalized-trends"),
     typed_alias::<FollowingResult>("follow"),
     typed_alias::<DeletedResult>("delete"),
     typed_alias::<RepostedResult>("repost"),
     typed_alias::<BookmarkedResult>("bookmark"),
+    typed_alias::<Vec<BookmarkFolder>>("bookmark-folders"),
+    typed_alias::<BookmarkFolder>("bookmark-folder"),
+    typed_alias::<Vec<BookmarkFolderPost>>("bookmark-folder-posts"),
     typed_alias::<MutingResult>("mute"),
     typed_alias::<BlockingResult>("block"),
     typed_alias::<ChatModeratorsResult>("moderators"),
     typed_alias::<MediaMetadataResult>("alt-text"),
     typed_alias::<MediaSubtitlesResult>("subtitles"),
+    typed_alias::<Webhook>("webhook"),
+    typed_alias::<Vec<Webhook>>("webhooks"),
+    typed_alias::<WebhookValidation>("webhook-validation"),
+    typed_alias::<WebhookReplayJob>("webhook-replay"),
+    typed_alias::<AccountActivitySubscriptionCount>("subscription-count"),
+    typed_alias::<AccountActivitySubscriptions>("subscriptions"),
+    typed_alias::<SubscribedResult>("subscribed"),
+    typed_alias::<Vec<WebhookStreamLink>>("stream-links"),
+    typed_alias::<ProvisionedResult>("stream-link"),
+    typed_alias::<StreamSources>("stream-sources"),
+    typed_alias::<StreamSourceResult>("stream-source"),
+    typed_alias::<StreamSourceDeleted>("stream-source-deleted"),
+    typed_alias::<XCall>("call"),
+    typed_alias::<Vec<ScheduledCall>>("scheduled-calls"),
+    typed_alias::<ScheduledCall>("scheduled-call"),
+    typed_alias::<ScheduledCallUpdated>("scheduled-call-updated"),
+    typed_alias::<ScheduledCallCancelled>("scheduled-call-cancelled"),
+    typed_alias::<ScheduledCallRsvp>("rsvp"),
 ];
 
 /// Every name `--schema` accepts, in declaration order.
@@ -210,7 +274,16 @@ pub fn run_validate(
     let raw = match read_input(file) {
         Ok(s) => s,
         Err(reason) => {
-            out.print_error_envelope(stderr, Reason::Io, EXIT_GENERAL_ERROR, &reason);
+            out.emit_error_envelope(
+                stderr,
+                ErrorBody {
+                    reason: Reason::Io,
+                    exit_code: EXIT_GENERAL_ERROR,
+                    message: Some(reason),
+                    next_step: Some(NextStep::fix_input(None)),
+                    ..ErrorBody::default()
+                },
+            );
             return EXIT_GENERAL_ERROR;
         }
     };
@@ -223,6 +296,7 @@ pub fn run_validate(
                 "reason": Reason::InvalidJson,
                 "exit_code": EXIT_VALIDATION_FAILED,
                 "message": format!("input is not valid JSON: {e}"),
+                "next_step": NextStep::show_help("xr validate --help".to_string()),
             });
             out.print_response(stderr, &payload);
             return EXIT_VALIDATION_FAILED;
@@ -246,6 +320,7 @@ pub fn run_validate(
                 "unknown schema {schema:?}; pass one of {} or omit --schema for auto-detection",
                 known.join(", ")
             ),
+            "next_step": NextStep::show_help("xr validate --help".to_string()),
         });
         out.print_response(stderr, &payload);
         return EXIT_VALIDATION_FAILED;
@@ -269,6 +344,7 @@ pub fn run_validate(
                 "schema": schema,
                 "valid": false,
                 "message": msg,
+                "next_step": NextStep::fix_input(None),
             });
             out.print_response(stderr, &payload);
             EXIT_VALIDATION_FAILED
