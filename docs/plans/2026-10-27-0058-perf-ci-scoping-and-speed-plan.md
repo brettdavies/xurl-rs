@@ -73,7 +73,8 @@ job (KTD10).
 
 **Faster checks**
 
-- R3. The test job's wall-clock on a warm cache drops to about half of today's.
+- R3. The test job's wall-clock on a warm cache drops to about half of today's warm run: 2 m 15 s or less, from about
+  4.5 minutes.
 - R4. No test is removed, skipped, or weakened for speed without Brett approving that specific test.
 - R5. Doc tests keep running on every PR that runs tests.
 
@@ -107,9 +108,10 @@ job (KTD10).
 
 ### Success Criteria
 
-- The test job (`ci / Fmt, clippy, test`) on a warm cache finishes in 3 minutes or less, from about 4.5 warm and 4.7 to
-  9 cold (Appendix).
-- Its test-running phase takes 60 s or less, from about 150 to 175 s.
+- The test job (`ci / Fmt, clippy, test`) on a warm cache finishes in 2 m 15 s or less, from about 4.5 minutes warm and
+  4.7 to 9 cold (Appendix).
+- Within that budget, about 40 s goes to setup, formatting, and clippy, so compiling the tests takes 50 s or less (from
+  77 s) and running them 40 s or less (from about 148 s).
 - A PR's first run, with no cache of its own, compiles no dependency crate when `dev` has a matching warm cache.
 - A CLI-only PR shows the nine library-only checks as skipped, and every required check passes.
 - No test fails intermittently under the new runner across the PRs that roll it out.
@@ -124,15 +126,17 @@ job (KTD10).
   - **A faster linker.** Rust 1.90 made `rust-lld` the default on `x86_64-unknown-linux-gnu`, and the pin is 1.96, so
     `mold` would gain little. Revisit if a compile profile after U5 shows linking dominated even with `lld`.
   - **`CARGO_HTTP_MULTIPLEXING` in `ci.yml`** (KTD12).
-  - **Splitting the crates further.** The test job's cost is linking 101 test binaries and running them serially, not
-    the crate graph. Revisit if, after U3 to U6, compiling the workspace crates themselves dominates.
+  - **Splitting the crates further.** With CI's flags at 4 jobs, the library builds in 4 s and the CLI crate in 9 s,
+    while the integration-test targets take 133 s of build time, about 33 of the 45 s the workspace takes once
+    dependencies are built (Appendix). More crates would not shorten that; fewer test targets would (U6). Revisit if,
+    after U6, compiling the workspace crates themselves dominates.
   - **Finer job scoping** (for example, `Windows program target` only on webhook-program paths). Four coarse classes are
     easier to keep correct; revisit if a measured job still runs often without cause.
 
 #### Deferred to Follow-Up Work
 
 - Sharding tests across runners with `cargo nextest run --partition` and an archive: only if the test-running phase
-  stays above 60 s after U3 and U4.
+  stays above 40 s after U3 and U4.
 - A weekly scheduled warm run on `main`: only if stacked PRs, which restore from `main`, keep missing after its entries
   expire.
 
@@ -505,8 +509,9 @@ because the gates measure what is left. U7 and U8 add scoping. U9 records the re
 | `cargo test -p xurl-rs --test change_classes_tests`                             | U7                 | All pass                                                      |
 | `scripts/hooks/pre-push`                                                        | every xurl-rs unit | Passes, with and without nextest installed                    |
 | actionlint on changed workflows, in both repos                                  | U1, U3, U8         | Clean                                                         |
-| Test job wall-clock on a warm PR (`gh run view --json jobs`)                    | U1, U3 to U6       | 3 minutes or less                                             |
-| Test-running phase                                                              | U3, U4             | 60 s or less                                                  |
+| Test job wall-clock on a warm PR (`gh run view --json jobs`)                    | measured after U6  | 2 m 15 s or less                                              |
+| Test compile phase (`Finished test profile`)                                    | U5, U6             | 50 s or less                                                  |
+| Test-running phase                                                              | U3, U4             | 40 s or less                                                  |
 | Dependency compilation in a fresh PR's test job                                 | U1                 | None when `dev` has a matching warm cache                     |
 | Skipped checks on a CLI-only PR                                                 | U8                 | Nine library-only checks skipped, all required checks passing |
 
@@ -537,6 +542,12 @@ Baseline, job `ci / Fmt, clippy, test` in two runs: `40442538636` (#397, cache r
 
 Cold runs on slower runners took up to 546 s (clippy 82 s, compile 177 s). One full set of the run's caches (the 17
 `v0-rust-*` keys in `gh cache list`) is about 4.3 GiB.
+
+Build-time split, measured locally with `RUSTFLAGS=-Dwarnings CARGO_INCREMENTAL=0 cargo test --no-run --timings -j 4` in
+a fresh target directory (this machine builds faster than a CI runner, so the shares matter more than the seconds):
+dependencies finish at 38 s and the workspace at 82 s. Within the workspace, the library takes 4 s, the CLI crate 9 s,
+the two crates' unit-test targets 5 s and 10 s, and the 104 integration-test targets (the 101 test files plus the
+consumer check's) 133 s of build time across the 4 jobs.
 
 Slowest test binaries in the #407 run (time inside the binary, test count):
 
