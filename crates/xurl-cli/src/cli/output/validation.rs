@@ -36,6 +36,10 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "invalid-folder-id" => "A bookmark folder id is 1 to 19 digits.".to_string(),
         "invalid-news-id" => "A news story id is 1 to 19 digits.".to_string(),
         "invalid-community-id" => "A community id is 1 to 19 digits.".to_string(),
+        "invalid-note-id" => "A Community Note id is 1 to 19 digits.".to_string(),
+        "note-needs-source-url" => {
+            "A Community Note's text carries a source URL, http:// or https://.".to_string()
+        }
         "invalid-broadcast-id" => "A broadcast id is 1 to 24 letters and digits.".to_string(),
         "invalid-scheduled-broadcast-id" => {
             "A scheduled broadcast id is 1 to 19 digits.".to_string()

@@ -503,6 +503,74 @@ pub mod news {
     }
 }
 
+/// The `xr notes` family.
+pub mod notes {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "notes" };
+
+    /// `xr notes write`.
+    pub const WRITE: Verb = Verb {
+        name: "write",
+        example_args: "1585341984679469056 --text \"The photo is from 2019: https://example.com/source\" --classification misinformed_or_potentially_misleading --tag outdated_information --trustworthy-sources --test",
+        text_caption: "Write a note in test mode (text)",
+        json_caption: "Write (JSON envelope)",
+    };
+
+    /// `xr notes evaluate`.
+    pub const EVALUATE: Verb = Verb {
+        name: "evaluate",
+        example_args: "1585341984679469056 --text \"The photo is from 2019: https://example.com/source\"",
+        text_caption: "Score a draft before writing it (text)",
+        json_caption: "Score (JSON envelope)",
+    };
+
+    /// `xr notes eligible`.
+    pub const ELIGIBLE: Verb = Verb {
+        name: "eligible",
+        example_args: "-n 20 --test",
+        text_caption: "Posts you could write a note on, in test mode (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr notes written`.
+    pub const WRITTEN: Verb = Verb {
+        name: "written",
+        example_args: "--test",
+        text_caption: "The notes you wrote in test mode (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr notes remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1850000000000000002 --force --no-interactive",
+        text_caption: "Delete a note without a prompt (text)",
+        json_caption: "Delete (JSON envelope)",
+    };
+
+    /// The page under `xr notes --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Find a post, score a draft, then write it in test mode (text)",
+                &[
+                    Example::text(&ELIGIBLE),
+                    Example::text(&EVALUATE),
+                    Example::text(&WRITE),
+                ],
+            ),
+            (
+                "The notes you wrote, JSON envelope",
+                &[Example::json(&WRITTEN)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr trends` family.
 pub mod trends {
     use super::{Example, Family, Section, Verb};

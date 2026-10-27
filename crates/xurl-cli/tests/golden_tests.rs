@@ -816,6 +816,25 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-note-id",
+            &["--output", "json", "--dry-run", "notes", "remove", "note-1"],
+        ),
+        case(
+            "dry-run-note-needs-source-url",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "notes",
+                "write",
+                "1585341984679469056",
+                "--text",
+                "No source here",
+                "--classification",
+                "not_misleading",
+            ],
+        ),
+        case(
             "dry-run-invalid-broadcast-id",
             &[
                 "--output",

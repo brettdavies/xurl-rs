@@ -699,6 +699,57 @@ pub struct BroadcastChatMessage {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// A Community Note the caller wrote.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct Note {
+    /// Note ID.
+    pub id: String,
+    /// What the note says and about which post.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub info: Option<NoteInfo>,
+    /// Where the note stands, such as `needs_more_ratings`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    /// How raters have scored the note, as X sends it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scoring_status: Option<Value>,
+    /// The AI evaluators' results for a note written in test mode, as X
+    /// sends them.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_result: Option<Value>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// What a Community Note says, and about which post.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct NoteInfo {
+    /// The note's text.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    /// How the note classifies the post, such as `not_misleading`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub classification: Option<String>,
+    /// Why the post may be misleading.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub misleading_tags: Option<Vec<String>>,
+    /// The post the note is about. Either this name or the legacy `tweet_id`
+    /// fills the field.
+    #[serde(default, alias = "tweet_id", skip_serializing_if = "Option::is_none")]
+    #[doc(alias = "tweet_id")]
+    pub post_id: Option<String>,
+    /// The note's rating status.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rating_status: Option<String>,
+    /// Whether the note cites trustworthy sources.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trustworthy_sources: Option<bool>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Action confirmations ────────────────────────────────────────────
 
 /// Confirmation for like/unlike actions.
@@ -769,6 +820,27 @@ pub struct ChatSentResult {
 pub struct ChatMutedResult {
     /// Whether the user is muted once the request has been served.
     pub muted: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The id of a Community Note just written.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct NoteCreated {
+    /// Note ID.
+    pub id: String,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// X's score for a draft Community Note.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct NoteEvaluation {
+    /// How far the draft reads as a claim rather than an opinion.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub claim_opinion_score: Option<f64>,
     /// Forward-compatibility bucket — captures unknown response fields.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,

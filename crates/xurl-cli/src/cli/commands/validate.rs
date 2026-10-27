@@ -20,12 +20,12 @@ use xdk::api::{
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast, BroadcastChatMessage,
     ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
+    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -105,6 +105,9 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<HiddenResult>("hide"),
     typed_alias::<Vec<PostCount>>("post-counts"),
     typed_alias::<Vec<PostAnalytics>>("analytics"),
+    typed_alias::<NoteCreated>("note-created"),
+    typed_alias::<NoteEvaluation>("note-evaluation"),
+    typed_alias::<Vec<Note>>("notes"),
     typed_alias::<Broadcast>("broadcast"),
     typed_alias::<Vec<Broadcast>>("broadcasts"),
     typed_alias::<ScheduledBroadcast>("scheduled-broadcast"),

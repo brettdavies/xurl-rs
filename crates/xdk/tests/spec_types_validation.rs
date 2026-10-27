@@ -29,11 +29,11 @@ use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, BookmarkFolder, Broadcast,
     BroadcastChatMessage, ChatMutedResult, ChatSentResult, Community, DmBlockResult, DmEvent,
     HiddenResult, List, ListMemberResult, ListUpdatedResult, MediaMetadataResult,
-    MediaSubtitlesResult, NewsStory, PersonalizedTrend, PinnedResult, Post, PostAnalytics,
-    PostCount, ProvisionedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources,
-    SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    MediaSubtitlesResult, NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, StreamSource, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -277,6 +277,22 @@ fn typed_responses_match_vendored_spec() {
         (
             "BlockUsersDmsResponseData",
             serde_json::to_value(schemars::schema_for!(DmBlockResult)).unwrap(),
+        ),
+        (
+            "Note",
+            serde_json::to_value(schemars::schema_for!(Note)).unwrap(),
+        ),
+        (
+            "NoteInfo",
+            serde_json::to_value(schemars::schema_for!(NoteInfo)).unwrap(),
+        ),
+        (
+            "CreateCommunityNotesResponseData",
+            serde_json::to_value(schemars::schema_for!(NoteCreated)).unwrap(),
+        ),
+        (
+            "EvaluateCommunityNotesResponseData",
+            serde_json::to_value(schemars::schema_for!(NoteEvaluation)).unwrap(),
         ),
         (
             "Broadcast",

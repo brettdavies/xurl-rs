@@ -88,6 +88,11 @@ POST AND READ:
     xr search \"rustlang\" -n 25
     XURL_OUTPUT=json xr search \"rustlang\" -n 25
 
+  Community Notes in test mode: posts you could note, a draft's score, then the note:
+    xr notes eligible --test --output json | jaq -r '.data[]?.id'
+    xr notes evaluate 1585341984679469056 --text \"The photo is from 2019: https://example.com/source\"
+    xr notes write 1585341984679469056 --text \"The photo is from 2019: https://example.com/source\" --classification not_misleading --test --output json
+
 MANAGE SOCIAL GRAPH:
   Look up a user:
     xr user elonmusk --output json

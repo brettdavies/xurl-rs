@@ -204,16 +204,6 @@
       "by": "Brett, in the #370 sweep"
     },
     {
-      "id": "community-notes",
-      "operations": [
-        "* /2/notes/**"
-      ],
-      "status": "planned",
-      "reason": "An xr notes family over X's AI Note Writer API: write, rate, and delete notes, find posts eligible for one, and list the notes you wrote. Using it needs enrollment in X's program.",
-      "decided": "2026-10-26",
-      "by": "Brett, in the #370 sweep"
-    },
-    {
       "id": "media-lookup",
       "operations": [
         "GET /2/media",

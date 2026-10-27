@@ -18,12 +18,12 @@ use super::response::types::{
     BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast, BroadcastChatMessage,
     ChatModeratorsResult, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult,
     DmEvent, DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    ListUpdatedResult, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
+    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, StreamSourceDeleted, StreamSourceResult,
+    StreamSources, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -235,6 +235,25 @@ pub struct NewScheduledCall {
     /// Whether invitees get an email about the call; X assumes they do.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub notify_invitees: Option<bool>,
+}
+
+/// A Community Note to write about one post.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct NewNote {
+    /// The post the note is about, as an id or a post URL.
+    #[serde(skip)]
+    pub post: String,
+    /// The note's text, which X requires to carry a source URL.
+    pub text: String,
+    /// `misinformed_or_potentially_misleading` or `not_misleading`.
+    pub classification: String,
+    /// Why the post may be misleading, from the spec's tags; may be empty.
+    pub misleading_tags: Vec<String>,
+    /// Whether the note cites trustworthy sources.
+    pub trustworthy_sources: bool,
+    /// Whether the note is about the post's media.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_media_note: Option<bool>,
 }
 
 /// A broadcast to schedule. The times are RFC 3339; the request carries
@@ -563,6 +582,38 @@ pub fn validate_conversation_id(id: &str) -> std::result::Result<(), &'static st
 pub fn validate_dm_event_id(id: &str) -> std::result::Result<(), &'static str> {
     if !is_numeric_id(id) {
         return Err("invalid-dm-event-id");
+    }
+    Ok(())
+}
+
+/// Validates a Community Note id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-note-id` for anything else.
+pub fn validate_note_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-note-id");
+    }
+    Ok(())
+}
+
+/// Validates a Community Note's text against the spec's pattern, which
+/// requires an `http://` or `https://` URL in it.
+///
+/// # Errors
+/// Returns `note-needs-source-url` for text with none.
+pub fn validate_note_text(text: &str) -> std::result::Result<(), &'static str> {
+    let has_url = ["http://", "https://"].iter().any(|scheme| {
+        text.match_indices(scheme).any(|(at, _)| {
+            text[at + scheme.len()..]
+                .chars()
+                .next()
+                .is_some_and(|c| !c.is_whitespace())
+        })
+    });
+    if !has_url {
+        return Err("note-needs-source-url");
     }
     Ok(())
 }
@@ -2066,6 +2117,87 @@ impl Client {
                 Vec::new(),
             ),
         )
+    }
+
+    /// Writes a Community Note; `test_mode` keeps it from the public, for
+    /// apps still being admitted to X's AI Note Writer program.
+    pub fn create_note(&self, note: &NewNote, test_mode: bool) -> Call<ApiResponse<NoteCreated>> {
+        let body = serde_json::json!({
+            "test_mode": test_mode,
+            "post_id": resolve_post_id(&note.post),
+            "info": note,
+        });
+        self.post_json(
+            template(endpoints::CREATE_NOTE.path, HashMap::new(), Vec::new()),
+            &body,
+        )
+    }
+
+    /// Scores a draft Community Note about a post without writing it.
+    pub fn evaluate_note(&self, post: &str, text: &str) -> Call<ApiResponse<NoteEvaluation>> {
+        let body = serde_json::json!({"post_id": resolve_post_id(post), "note_text": text});
+        self.post_json(
+            template(endpoints::EVALUATE_NOTE.path, HashMap::new(), Vec::new()),
+            &body,
+        )
+    }
+
+    /// Deletes a Community Note the caller wrote.
+    pub fn delete_note(&self, id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_NOTE.method,
+            template(endpoints::DELETE_NOTE.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Fetches the Community Notes the caller wrote, in test mode or not.
+    pub fn get_notes_written(
+        &self,
+        test_mode: bool,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<Note>>> {
+        self.call(
+            endpoints::GET_NOTES_WRITTEN.method,
+            template(
+                endpoints::GET_NOTES_WRITTEN.path,
+                HashMap::new(),
+                vec![
+                    ("test_mode".to_string(), test_mode.to_string()),
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "note.fields".to_string(),
+                        "id,info,scoring_status,status,test_result".to_string(),
+                    ),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Fetches posts X would take a Community Note on, in test mode or not.
+    pub fn get_posts_eligible_for_notes(
+        &self,
+        test_mode: bool,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<Post>>> {
+        self.call(
+            endpoints::GET_POSTS_ELIGIBLE_FOR_NOTES.method,
+            template(
+                endpoints::GET_POSTS_ELIGIBLE_FOR_NOTES.path,
+                HashMap::new(),
+                vec![
+                    ("test_mode".to_string(), test_mode.to_string()),
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
     }
 
     /// Searches X's communities.
