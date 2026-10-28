@@ -85,11 +85,13 @@ offending word in `command` and the nearest real name in `suggestion` when one i
 | `xr`             | Usage error                     | Exit 0, root help on stdout                           |
 
 A help or version flag does not change that outcome: `xr whoam --help`, `xr whoam -h`, and `xr whoam --version` fail
-exactly as `xr whoam` does.
+exactly as `xr whoam` does. Neither does a word after it: `xr suth status` fails as `xr suth` does, naming `suth` and
+suggesting `auth`.
 
 A positional that starts with `http://`, `https://`, or `/` is still a raw request, and so is any invocation carrying a
-raw-only flag (`-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, `-s`), which no command reads. A raw request has no help
-page of its own, so `xr /2/users/me --help` prints the root help.
+raw-only flag (`-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, `-s`), which no command reads. A word after a raw target is
+an unexpected argument (`invalid-args`), never a command. A raw request has no help page of its own, so
+`xr /2/users/me --help` prints the root help.
 
 ## A raw-only flag before a command word is refused (intentional difference)
 

@@ -3,8 +3,9 @@
 //! When clap rejects an invocation there is no [`Cli`] to read, so the
 //! renderings a clap failure hands the runner parse the same argv again
 //! through a command whose root help and version flags are inert: strictly,
-//! to classify the word one of those flags hid, and leniently, to recover what
-//! clap resolved before it stopped.
+//! to classify the word one of those flags hid; with room for words after the
+//! root positional, to classify the positional the first of them stopped clap
+//! at; and leniently, to recover what clap resolved before it stopped.
 
 use std::ffi::OsString;
 
@@ -49,6 +50,22 @@ fn command_with_inert_display_flags() -> clap::Command {
 pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Result<Cli, clap::Error> {
     let matches = command_with_inert_display_flags().try_get_matches_from(args)?;
     Cli::from_arg_matches(&matches)
+}
+
+/// `args` parsed with room for words after the root positional, so an
+/// invocation clap stopped at the first of them can be classified like any
+/// other: `xr suth status` reads as `xr suth`, while a raw-only flag anywhere
+/// in argv still marks a request. `None` when it fails for any other reason.
+pub(crate) fn parse_past_stray_words(args: &[OsString]) -> Option<Cli> {
+    let matches = command_with_inert_display_flags()
+        .arg(
+            Arg::new("stray_words")
+                .num_args(1..)
+                .action(ArgAction::Append),
+        )
+        .try_get_matches_from(args)
+        .ok()?;
+    Cli::from_arg_matches(&matches).ok()
 }
 
 /// `args` read leniently as a [`Cli`]: what clap bound before any error, so
