@@ -157,10 +157,27 @@ check_markdownlint() {
 
 # Workflow lint. actionlint discovers .github/workflows itself, so the file
 # list gates whether it runs rather than what it reads.
+# actionlint 1.7.12 writes a run: block into shellcheck's stdin before it
+# starts shellcheck, so a block larger than the pipe buffer blocks it forever
+# (rhysd/actionlint#650, fixed after that release). A pipe holds 64 KiB, or
+# 8 KiB once the user exceeds fs.pipe-user-pages-soft, which busy hosts do.
+# The bound turns that hang into a failure that names the cause.
+HOOK_ACTIONLINT_TIMEOUT_SECONDS="${HOOK_ACTIONLINT_TIMEOUT_SECONDS:-60}"
+
 check_actionlint() {
   [ "$#" -gt 0 ] || return "$HOOK_SKIPPED"
   have actionlint || skip "actionlint" "install via \`brew install actionlint\`" || return
-  actionlint
+  local bound=() rc=0
+  if have timeout; then
+    bound=(timeout -k 5 "$HOOK_ACTIONLINT_TIMEOUT_SECONDS")
+  elif have gtimeout; then
+    bound=(gtimeout -k 5 "$HOOK_ACTIONLINT_TIMEOUT_SECONDS")
+  fi
+  "${bound[@]}" actionlint || rc=$?
+  if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+    echo "actionlint did not finish in ${HOOK_ACTIONLINT_TIMEOUT_SECONDS}s. A run: block larger than this host's pipe buffer hangs actionlint 1.7.12 (https://github.com/rhysd/actionlint/issues/650); move the largest run: block into a script under scripts/." >&2
+  fi
+  return "$rc"
 }
 
 # Concurrency-group namespacing. The file list gates whether it runs; the script
