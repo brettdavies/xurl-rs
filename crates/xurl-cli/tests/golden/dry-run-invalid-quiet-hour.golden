@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "settings", "update", "--quiet-hours-end", "24"]
+store: empty
+exit_code: 0
+stdout_len: 179
+stderr_len: 0
+--- stdout ---
+{
+  "command": "settings-update",
+  "exit_code": 1,
+  "quiet_hours": {
+    "end_hour": 24
+  },
+  "reason": "invalid-quiet-hour",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

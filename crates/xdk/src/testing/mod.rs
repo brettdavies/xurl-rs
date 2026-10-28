@@ -721,6 +721,16 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_SETTINGS,
+        fixture: "user_settings",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_SETTINGS,
+        fixture: "updated",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_CALL,
         fixture: "call",
         status: 200,

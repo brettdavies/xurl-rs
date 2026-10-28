@@ -12,7 +12,9 @@ use xdk::api::shortcuts::{
     DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
     PROFILE_DESCRIPTION_MAX_CHARS, PROFILE_LOCATION_MAX_CHARS, PROFILE_NAME_MAX_CHARS,
-    PROFILE_URL_MAX_CHARS, USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
+    PROFILE_URL_MAX_CHARS, QUIET_HOUR_MAX, SETTINGS_LANGUAGE_MAX_CHARS,
+    SETTINGS_LANGUAGE_MIN_CHARS, SETTINGS_TIME_ZONE_MAX_CHARS, USER_SEARCH_QUERY_MAX_CHARS,
+    WEBHOOK_URL_MAX_CHARS,
 };
 
 /// The sentence for the validator code `code`; `None` for a message that is
@@ -95,6 +97,20 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
             "The webhook URL names a port; X takes one without a port.".to_string()
         }
         "invalid-replay-time" => "A replay time is 12 digits, yyyymmddhhmm in UTC.".to_string(),
+        "no-settings-changes" => {
+            "Nothing would change; give at least one setting to update.".to_string()
+        }
+        "invalid-settings-language" => format!(
+            "A language is a BCP 47 tag of {SETTINGS_LANGUAGE_MIN_CHARS} to \
+             {SETTINGS_LANGUAGE_MAX_CHARS} characters, such as en or pt-BR."
+        ),
+        "invalid-settings-time-zone" => format!(
+            "A time zone is 1 to {SETTINGS_TIME_ZONE_MAX_CHARS} characters, such as \
+             America/Chicago."
+        ),
+        "invalid-quiet-hour" => {
+            format!("A quiet hour is 0 to {QUIET_HOUR_MAX}, in your time zone.")
+        }
         "no-profile-changes" => {
             "Nothing would change; give at least one field to update.".to_string()
         }

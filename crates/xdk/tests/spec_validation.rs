@@ -31,8 +31,8 @@ use xdk::api::response::types::{
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted,
-    SubscribedResult, Trend, UpdatedResult, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    SubscribedResult, Trend, UpdatedResult, UsageCreditsData, UsageData, User, UserSettings,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -674,6 +674,18 @@ fn spec_bookmark_folder_posts() {
 }
 
 #[test]
+fn spec_user_settings() {
+    let examples = load_examples();
+    let resp: ApiResponse<UserSettings> =
+        serde_json::from_value(examples["user_settings"].clone()).unwrap();
+    assert_eq!(resp.data.allow_dms_from.as_deref(), Some("following"));
+    let quiet = resp.data.quiet_hours.expect("quiet hours");
+    assert_eq!(quiet.start_hour, Some(22));
+    let zone = resp.data.time_zone.expect("a time zone");
+    assert_eq!(zone.utc_offset_seconds, Some(-25200));
+}
+
+#[test]
 fn spec_updated() {
     let examples = load_examples();
     let resp: ApiResponse<UpdatedResult> =
@@ -1086,6 +1098,7 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         ReplyKind::Success,
     ),
     ("updated", endpoints::UPDATE_PROFILE, ReplyKind::Success),
+    ("user_settings", endpoints::GET_SETTINGS, ReplyKind::Success),
     ("call", endpoints::GET_CALL, ReplyKind::Success),
     (
         "scheduled_calls",

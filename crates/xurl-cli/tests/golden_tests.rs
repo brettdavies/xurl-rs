@@ -1219,6 +1219,46 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-no-settings-changes",
+            &["--output", "json", "--dry-run", "settings", "update"],
+        ),
+        case(
+            "dry-run-invalid-settings-language",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "settings",
+                "update",
+                "--language",
+                "e",
+            ],
+        ),
+        case(
+            "dry-run-invalid-settings-time-zone",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "settings",
+                "update",
+                "--time-zone",
+                "",
+            ],
+        ),
+        case(
+            "dry-run-invalid-quiet-hour",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "settings",
+                "update",
+                "--quiet-hours-end",
+                "24",
+            ],
+        ),
+        case(
             "dry-run-no-profile-changes",
             &["--output", "json", "--dry-run", "profile", "update"],
         ),

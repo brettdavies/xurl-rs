@@ -1,0 +1,16 @@
+args: ["--output", "json", "--dry-run", "settings", "update"]
+store: empty
+exit_code: 0
+stdout_len: 137
+stderr_len: 0
+--- stdout ---
+{
+  "command": "settings-update",
+  "exit_code": 1,
+  "reason": "no-settings-changes",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

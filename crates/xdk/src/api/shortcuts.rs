@@ -24,10 +24,17 @@ use super::response::types::{
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
     StreamSourceDeleted, SubscribedResult, Trend, UpdatedResult, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    UserSettings, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
+
+/// Every `user_settings.fields` value the spec lists, so a read returns
+/// the whole settings object.
+const USER_SETTINGS_FIELDS: &str = "allow_dms_from,allow_media_tagging,\
+always_allow_dms_from_subscribers,discoverable_by_email,discoverable_by_phone,\
+display_sensitive_media,id,language,location_tagging_enabled,personalized_trends,protected,\
+quiet_hours,time_zone,use_cookie_personalization";
 
 #[derive(Serialize)]
 struct WebhookBody {
@@ -480,6 +487,136 @@ pub struct BannerCrop {
     pub offset_left: u32,
     /// Distance of the region from the image's top edge.
     pub offset_top: u32,
+}
+
+/// Who may send the authenticated user direct messages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DmsFrom {
+    /// Anyone.
+    All,
+    /// Accounts the user follows.
+    Following,
+    /// Verified accounts.
+    Verified,
+}
+
+/// Who may tag the authenticated user in media.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MediaTagging {
+    /// Anyone.
+    All,
+    /// Accounts the user follows.
+    Following,
+    /// No one.
+    None,
+}
+
+/// A change to the daily window with no push or SMS notifications. A field
+/// left unset keeps its value.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+pub struct QuietHours {
+    /// Whether quiet hours are on.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// The hour quiet hours begin, 0 to [`QUIET_HOUR_MAX`] in the user's
+    /// time zone.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_hour: Option<u8>,
+    /// The hour quiet hours end, 0 to [`QUIET_HOUR_MAX`] in the user's time
+    /// zone.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_hour: Option<u8>,
+}
+
+impl QuietHours {
+    /// Whether the change names no field, so it would change nothing.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.enabled.is_none() && self.start_hour.is_none() && self.end_hour.is_none()
+    }
+}
+
+/// What to change in the authenticated user's account settings. A field
+/// left unset keeps its value.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct SettingsChanges {
+    /// Who may send the user direct messages.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_dms_from: Option<DmsFrom>,
+    /// Who may tag the user in media.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_media_tagging: Option<MediaTagging>,
+    /// Whether the user's subscribers may always message them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub always_allow_dms_from_subscribers: Option<bool>,
+    /// Whether people with the user's email address can find them on X.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discoverable_by_email: Option<bool>,
+    /// Whether people with the user's phone number can find them on X.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discoverable_by_phone: Option<bool>,
+    /// Whether media that may be sensitive is shown to the user.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_sensitive_media: Option<bool>,
+    /// The account's language, a BCP 47 tag such as `en` or `pt-BR`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    /// Whether a precise location may be attached to the user's posts.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub location_tagging_enabled: Option<bool>,
+    /// Whether the user's posts are protected, visible only to approved
+    /// followers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protected: Option<bool>,
+    /// The daily window with no push or SMS notifications.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quiet_hours: Option<QuietHours>,
+    /// The account's time zone: an IANA name such as `America/Chicago`, or
+    /// a display name such as `Central Time (US & Canada)`.
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "time_zone_object"
+    )]
+    pub time_zone: Option<String>,
+    /// Whether X may use the user's activity off X to personalize what they
+    /// see.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub use_cookie_personalization: Option<bool>,
+}
+
+impl SettingsChanges {
+    /// Whether the change set names no setting, so it would change nothing.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.allow_dms_from.is_none()
+            && self.allow_media_tagging.is_none()
+            && self.always_allow_dms_from_subscribers.is_none()
+            && self.discoverable_by_email.is_none()
+            && self.discoverable_by_phone.is_none()
+            && self.display_sensitive_media.is_none()
+            && self.language.is_none()
+            && self.location_tagging_enabled.is_none()
+            && self.protected.is_none()
+            && self.quiet_hours.as_ref().is_none_or(QuietHours::is_empty)
+            && self.time_zone.is_none()
+            && self.use_cookie_personalization.is_none()
+    }
+}
+
+/// Writes a time zone as the `{"name": ...}` object the API takes.
+fn time_zone_object<S: serde::Serializer>(
+    zone: &Option<String>,
+    serializer: S,
+) -> std::result::Result<S::Ok, S::Error> {
+    #[derive(Serialize)]
+    struct Zone<'a> {
+        name: &'a str,
+    }
+    zone.as_deref()
+        .map(|name| Zone { name })
+        .serialize(serializer)
 }
 
 /// The upload category of a video that carries subtitles.
@@ -1597,6 +1734,56 @@ pub fn validate_banner_crop(crop: &BannerCrop) -> std::result::Result<(), &'stat
     let values = [crop.width, crop.height, crop.offset_left, crop.offset_top];
     if crop.width == 0 || crop.height == 0 || values.iter().any(|v| *v > max) {
         return Err("invalid-banner-crop");
+    }
+    Ok(())
+}
+
+/// Shortest account language tag X accepts, the spec's `minLength`.
+pub const SETTINGS_LANGUAGE_MIN_CHARS: usize = 2;
+
+/// Longest account language tag X accepts, the spec's `maxLength`.
+pub const SETTINGS_LANGUAGE_MAX_CHARS: usize = 35;
+
+/// Longest account time zone name X accepts, the spec's `maxLength`.
+pub const SETTINGS_TIME_ZONE_MAX_CHARS: usize = 100;
+
+/// Latest hour quiet hours may begin or end, the spec's `maximum`.
+pub const QUIET_HOUR_MAX: u8 = 23;
+
+/// Validates a settings change against the spec's bounds: at least one
+/// setting, a language tag of [`SETTINGS_LANGUAGE_MIN_CHARS`] to
+/// [`SETTINGS_LANGUAGE_MAX_CHARS`] characters, a time zone of 1 to
+/// [`SETTINGS_TIME_ZONE_MAX_CHARS`], and quiet hours of 0 to
+/// [`QUIET_HOUR_MAX`].
+///
+/// # Errors
+/// Returns `no-settings-changes` for a change that names no setting,
+/// `invalid-settings-language` or `invalid-settings-time-zone` for one out
+/// of its length bounds, and `invalid-quiet-hour` for an hour past 23.
+pub fn validate_settings_changes(
+    changes: &SettingsChanges,
+) -> std::result::Result<(), &'static str> {
+    if changes.is_empty() {
+        return Err("no-settings-changes");
+    }
+    let languages = SETTINGS_LANGUAGE_MIN_CHARS..=SETTINGS_LANGUAGE_MAX_CHARS;
+    if let Some(language) = &changes.language
+        && !languages.contains(&language.chars().count())
+    {
+        return Err("invalid-settings-language");
+    }
+    if let Some(zone) = &changes.time_zone
+        && !(1..=SETTINGS_TIME_ZONE_MAX_CHARS).contains(&zone.chars().count())
+    {
+        return Err("invalid-settings-time-zone");
+    }
+    if let Some(hours) = &changes.quiet_hours
+        && [hours.start_hour, hours.end_hour]
+            .into_iter()
+            .flatten()
+            .any(|hour| hour > QUIET_HOUR_MAX)
+    {
+        return Err("invalid-quiet-hour");
     }
     Ok(())
 }
@@ -3966,6 +4153,34 @@ impl Client {
                 HashMap::new(),
                 Vec::new(),
             ),
+        )
+    }
+
+    // ── Account settings ────────────────────────────────────────────
+
+    /// Reads the authenticated user's account settings, every field the
+    /// spec names.
+    pub fn get_settings(&self) -> Call<ApiResponse<UserSettings>> {
+        self.call(
+            endpoints::GET_SETTINGS.method,
+            template(
+                endpoints::GET_SETTINGS.path,
+                HashMap::new(),
+                vec![(
+                    "user_settings.fields".to_string(),
+                    USER_SETTINGS_FIELDS.to_string(),
+                )],
+            ),
+        )
+    }
+
+    /// Changes the authenticated user's account settings; only the settings
+    /// `changes` sets are sent.
+    pub fn update_settings(&self, changes: &SettingsChanges) -> Call<ApiResponse<UpdatedResult>> {
+        self.json_call(
+            endpoints::UPDATE_SETTINGS.method,
+            template(endpoints::UPDATE_SETTINGS.path, HashMap::new(), Vec::new()),
+            changes,
         )
     }
 

@@ -1033,6 +1033,43 @@ pub mod broadcasts {
     }
 }
 
+/// The `xr settings` family.
+pub mod settings {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "settings" };
+
+    /// `xr settings get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "",
+        text_caption: "Your privacy, message, and notification settings (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr settings update`.
+    pub const UPDATE: Verb = Verb {
+        name: "update",
+        example_args: "--allow-dms-from following --quiet-hours-start 22 --quiet-hours-end 7",
+        text_caption: "Take messages from accounts you follow, and mute nights (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// The page under `xr settings --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("Your account settings (text)", &[Example::text(&GET)]),
+            (
+                "Change two of them, JSON envelope",
+                &[Example::json(&UPDATE)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr profile` family.
 pub mod profile {
     use super::{Example, Family, Section, Verb, page_of, profile_banner, profile_image};

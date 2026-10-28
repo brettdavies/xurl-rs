@@ -1190,6 +1190,101 @@ pub struct ChatModeratorsResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+// ── Account settings ────────────────────────────────────────────────
+
+/// The authenticated user's account settings.
+///
+/// Every field is optional because the spec requires none of them.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct UserSettings {
+    /// The id of the user the settings belong to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Who may send the user direct messages: `all`, `verified`, or
+    /// `following` (accounts the user follows).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_dms_from: Option<String>,
+    /// Who may tag the user in media: `all`, `following`, or `none`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allow_media_tagging: Option<String>,
+    /// Whether the user's subscribers may always message them, whatever
+    /// `allow_dms_from` says.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub always_allow_dms_from_subscribers: Option<bool>,
+    /// Whether people with the user's email address can find them on X.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discoverable_by_email: Option<bool>,
+    /// Whether people with the user's phone number can find them on X.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub discoverable_by_phone: Option<bool>,
+    /// Whether media that may be sensitive is shown to the user.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_sensitive_media: Option<bool>,
+    /// The account's language, a BCP 47 tag such as `en` or `pt-BR`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    /// Whether a precise location may be attached to the user's posts.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub location_tagging_enabled: Option<bool>,
+    /// Whether the user's trends are personalized. X sets it; no update
+    /// changes it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub personalized_trends: Option<bool>,
+    /// Whether the user's posts are protected, visible only to approved
+    /// followers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub protected: Option<bool>,
+    /// The daily window with no push or SMS notifications.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quiet_hours: Option<UserSettingsQuietHours>,
+    /// The time zone the account is set to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub time_zone: Option<UserSettingsTimeZone>,
+    /// Whether X may use the user's activity off X to personalize what
+    /// they see.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub use_cookie_personalization: Option<bool>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The daily window in which the user gets no push or SMS notifications.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct UserSettingsQuietHours {
+    /// Whether quiet hours are on.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// The hour quiet hours begin, 0 to 23 in the user's time zone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_hour: Option<i64>,
+    /// The hour quiet hours end, 0 to 23 in the user's time zone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_hour: Option<i64>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The time zone an account is set to.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct UserSettingsTimeZone {
+    /// The name the zone was set with: an IANA name such as
+    /// `America/Los_Angeles`, or a display name such as
+    /// `Pacific Time (US & Canada)`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The zone's IANA name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tz_name: Option<String>,
+    /// The zone's offset from UTC now, in seconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub utc_offset_seconds: Option<i64>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 // ── Bookmark folders ────────────────────────────────────────────────
 
 /// A folder the authenticated user sorts bookmarks into.

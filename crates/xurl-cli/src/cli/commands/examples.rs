@@ -168,6 +168,10 @@ INSPECT YOUR ACCOUNT:
     xr profile image set 1146654567674912769 --output json
     xr profile banner set 1146654567674912770 --crop 1500x500+0+120 --output json
 
+  Your account settings, then take messages only from accounts you follow:
+    xr settings get --output json
+    xr settings update --allow-dms-from following --output json
+
   Your API usage (caps + daily breakdown):
     xr usage --output json
 

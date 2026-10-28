@@ -1715,6 +1715,14 @@ pub enum Commands {
         #[command(subcommand)]
         action: ProfileCommands,
     },
+    /// Read or change your account settings: privacy, discoverability,
+    /// messages, and notifications
+    #[command(after_help = family_help::settings::page())]
+    Settings {
+        /// `settings` verb to dispatch.
+        #[command(subcommand)]
+        action: SettingsCommands,
+    },
 
     // ── Usage ─────────────────────────────────────────────────────────
     /// Show API usage (post caps, daily breakdown)
@@ -3043,6 +3051,103 @@ pub enum ModeratorsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+}
+
+/// `xr settings` verbs.
+#[derive(Subcommand, Debug)]
+pub enum SettingsCommands {
+    /// Show your account settings
+    #[command(after_help = family_help::settings::FAMILY.verb_page(&family_help::settings::GET))]
+    Get {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Change your account settings
+    ///
+    /// Only the settings given change. A yes-or-no setting takes `true` or
+    /// `false`.
+    #[command(after_help = family_help::settings::FAMILY.verb_page(&family_help::settings::UPDATE))]
+    Update {
+        /// The settings to change.
+        #[command(flatten)]
+        changes: SettingsArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// The settings `xr settings update` changes, one flag per field the API
+/// takes.
+#[derive(clap::Args, Debug)]
+pub struct SettingsArgs {
+    /// Who may message you
+    #[arg(long, value_enum, value_name = "WHO")]
+    pub allow_dms_from: Option<AllowDmsFrom>,
+    /// Who may tag you in media
+    #[arg(long, value_enum, value_name = "WHO")]
+    pub allow_media_tagging: Option<AllowMediaTagging>,
+    /// Whether your subscribers may always message you, whatever
+    /// `--allow-dms-from` says
+    #[arg(long, value_name = "BOOL")]
+    pub always_allow_dms_from_subscribers: Option<bool>,
+    /// Whether people with your email address can find you on X
+    #[arg(long, value_name = "BOOL")]
+    pub discoverable_by_email: Option<bool>,
+    /// Whether people with your phone number can find you on X
+    #[arg(long, value_name = "BOOL")]
+    pub discoverable_by_phone: Option<bool>,
+    /// Whether media that may be sensitive is shown to you
+    #[arg(long, value_name = "BOOL")]
+    pub display_sensitive_media: Option<bool>,
+    /// The account's language, a BCP 47 tag such as en or pt-BR
+    #[arg(long, value_name = "TAG")]
+    pub language: Option<String>,
+    /// Whether a precise location may be attached to your posts
+    #[arg(long, value_name = "BOOL")]
+    pub location_tagging_enabled: Option<bool>,
+    /// Whether your posts are protected, visible only to approved followers
+    #[arg(long, value_name = "BOOL")]
+    pub protected: Option<bool>,
+    /// Whether quiet hours, with no push or SMS notifications, are on
+    #[arg(long, value_name = "BOOL")]
+    pub quiet_hours_enabled: Option<bool>,
+    /// The hour quiet hours begin, 0 to 23 in your time zone
+    #[arg(long, value_name = "HOUR")]
+    pub quiet_hours_start: Option<u8>,
+    /// The hour quiet hours end, 0 to 23 in your time zone
+    #[arg(long, value_name = "HOUR")]
+    pub quiet_hours_end: Option<u8>,
+    /// Your time zone: an IANA name such as America/Chicago, or a display
+    /// name such as "Central Time (US & Canada)"
+    #[arg(long, value_name = "ZONE")]
+    pub time_zone: Option<String>,
+    /// Whether X may use your activity off X to personalize what you see
+    #[arg(long, value_name = "BOOL")]
+    pub use_cookie_personalization: Option<bool>,
+}
+
+/// Who may send you direct messages.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AllowDmsFrom {
+    /// Anyone
+    All,
+    /// Accounts you follow
+    Following,
+    /// Verified accounts
+    Verified,
+}
+
+/// Who may tag you in media.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AllowMediaTagging {
+    /// Anyone
+    All,
+    /// Accounts you follow
+    Following,
+    /// No one
+    None,
 }
 
 /// `xr profile` verbs.

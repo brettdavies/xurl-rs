@@ -34,8 +34,8 @@ use xdk::api::response::types::{
     PostAnalytics, PostCount, ProvisionedResult, ScheduledBroadcast, ScheduledCall,
     ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule,
     StreamRuleAppCount, StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult,
-    Trend, UpdatedResult, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    Trend, UpdatedResult, UsageData, User, UserSettings, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -399,6 +399,14 @@ fn typed_responses_match_vendored_spec() {
         (
             "GetPostsCountsRecentResponseData",
             serde_json::to_value(schemars::schema_for!(PostCount)).unwrap(),
+        ),
+        (
+            "UserSettings",
+            serde_json::to_value(schemars::schema_for!(UserSettings)).unwrap(),
+        ),
+        (
+            "UpdateUsersMeSettingsResponseData",
+            serde_json::to_value(schemars::schema_for!(UpdatedResult)).unwrap(),
         ),
         (
             "UpdateUsersMeResponseData",

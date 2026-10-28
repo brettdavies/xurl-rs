@@ -346,6 +346,9 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/users/me/profile_banner",
     ),
+    // account settings
+    ("GET_SETTINGS", "GET", "/2/users/me/settings"),
+    ("UPDATE_SETTINGS", "PUT", "/2/users/me/settings"),
     // calls
     ("GET_CALL", "GET", "/2/calls/{id}"),
     ("GET_SCHEDULED_CALLS", "GET", "/2/calls/scheduled"),

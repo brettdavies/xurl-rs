@@ -74,6 +74,7 @@ const OVERRIDES: &[(&str, &[&str])] = &[
     ("conversations history", &["123-456"]),
     ("lists update", &[SAMPLE, "--name", "Rust"]),
     ("profile update", &["--name", "Rust"]),
+    ("settings update", &["--protected", "true"]),
     ("media get", &["3_1234567890"]),
     (
         "media analytics",

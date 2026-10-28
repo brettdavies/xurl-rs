@@ -24,6 +24,7 @@ mod profile;
 mod program_output;
 mod reads;
 pub mod schema;
+mod settings;
 pub mod skill;
 mod spaces;
 mod stream_rules;
@@ -622,6 +623,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::DmEvents { action } => conversations::dm_events(action, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,
         Commands::Profile { action } => profile::run(action, run).await,
+        Commands::Settings { action } => settings::run(action, run).await,
         Commands::Broadcasts { target } => broadcasts::run(target, run).await,
         Commands::Lists { action } => lists::run(action, run).await,
         Commands::Communities { action } => communities::run(action, run).await,

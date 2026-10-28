@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "settings", "update", "--time-zone", ""]
+store: empty
+exit_code: 0
+stdout_len: 181
+stderr_len: 0
+--- stdout ---
+{
+  "command": "settings-update",
+  "exit_code": 1,
+  "reason": "invalid-settings-time-zone",
+  "status": "dry_run",
+  "time_zone": {
+    "name": ""
+  },
+  "would_succeed": false
+}
+
+--- stderr ---
+
