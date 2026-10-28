@@ -22,8 +22,8 @@ execution: code
 - **Authority:** R-IDs win on behavior and KTDs on mechanism; a unit overrides neither. Every command and flag name, the
   retired-name behavior, and the version call are Brett's (AGENTS.md § "Command grammar"); this plan records
   recommendations, and the Decision Record names what is still his to answer.
-- **Execution profile:** inline in one session, no subagents or worktrees. A stack of PRs, one per renamed spot plus one
-  for the grammar text, the bottom PR targeting `dev`. Brett merges.
+- **Execution profile:** inline in one session, no subagents or worktrees. A stack of three PRs, one per renamed spot,
+  the bottom PR targeting `dev` (KTD5). Brett merges.
 - **Stop conditions:** a change would touch a public item of `xdk-rs`; a change would add a `reason` or a
   `next_step.action`; a retired word would run a request instead of refusing; Brett's answer drops or renames a spot
   differently than the units assume (re-plan that unit, keep the others).
@@ -249,9 +249,10 @@ records below list them.
   `crates/xurl-cli/src/cli/retired_verbs.rs` holds rows of family path, retired word, replacing word, and one lookup.
   The clap rejection path in `crates/xurl-cli/src/cli/runner.rs` computes the failing family (`failing_command`) and
   asks the table before `suggestion_for_rejected`, so `xr <family> <old>`, its `--help` form, `xr help <family> <old>`,
-  and `--dry-run` all resolve the same way (each already reaches that branch; reproduced for a missing verb). A module
-  of its own keeps `classify.rs` (334 lines) from growing past the refactor trigger. The root classifier path needs no
-  row, since no top-level word is renamed.
+  and `--dry-run` all resolve the same way (each already reaches that branch; reproduced for a missing verb). A row keys
+  on the family string `failing_command` returns (`xr broadcasts scheduled`), which already names the binary `xr` under
+  any `argv[0]`, so the table holds no second spelling of a family. A module of its own keeps `classify.rs` (334 lines)
+  from growing past the refactor trigger. The root classifier path needs no row, since no top-level word is renamed.
 - KTD2. **Each rename is a variant rename, not an alias.** The clap variant, its `family_help` verb constant, its
   dispatch arm, its `--dry-run` context name, its `SCHEMA_ENTRIES` string, and its `schema/responses/` file all move
   together; nothing keeps the old spelling (R6).
@@ -259,10 +260,14 @@ records below list them.
   the schema registry's slug, as every arm does today. If #424 lands first and the context moves to space-separated
   paths, the arm follows whatever form it set.
 - KTD4. **The table's guard is a plain test, not a recipe walk.** It walks `Cli::command()` and fails when a row's
-  family is gone, its replacing word is not a subcommand there, or its retired word is one again. Its failure message
-  carries no `Cause:` line, so `crates/xurl-cli/tests/recipe_guard.rs` does not require `AGENTS.md` to name it.
-- KTD5. **One PR per spot.** Each rename is separable and Brett may take some and not others; each PR carries its own
-  retired-verb row, fixtures, schema file, completions, and README lines. U1 introduces the module with the first row.
+  family is gone, its replacing word is not a subcommand there, or its retired word is one again. `recipe_guard.rs`
+  counts any test file containing `Cause:` as a recipe walk (`walk_files`), so the guard lives in
+  `crates/xurl-cli/tests/unknown_command_tests.rs`, which has none, and its message carries none either.
+- KTD5. **One PR per spot, three in all.** Each rename is separable, so Brett can still hold one back after answering
+  D1; each PR carries its own retired-verb row, fixtures, schema file, completions, and README lines. U1 introduces the
+  module with the first row. U4's grammar text is its own commit in U3's PR, since it describes the end state and a
+  fourth PR would add one more run of CI's jobs to the account's 20-job queue. The stack lands with
+  `gh stack merge --squash`, one atomic merge, so no restack re-runs CI.
 
 ### High-Level Technical Design
 
@@ -335,6 +340,10 @@ flowchart TB
   - `xr lists remove 1 --force --no-interactive` still runs: a row keyed by family does not touch another family's
     `remove`.
   - Guard: a row whose replacing word is not a subcommand of its family, or whose retired word is one, fails the walk.
+  - Run as `xurl-rs` (the in-process entrypoint with that `argv[0]`), `broadcasts scheduled remove` still names
+    `cancel`.
+  - Regression contract (R7): every existing `broadcasts scheduled remove` test moves to `cancel` with its assertions
+    unchanged; only the command word in argv and the dry-run `command` value differ.
 - **Verification:** the suites above pass; `xr broadcasts scheduled --help` lists `cancel` and not `remove`;
   `xr schema --list` names `broadcasts-scheduled-cancel`.
 
@@ -353,7 +362,9 @@ flowchart TB
   - Replace `help-broadcasts-sources-rename.golden` with `help-broadcasts-sources-update.golden`; re-bless
     `help-broadcasts-sources.golden` and `schema-list.golden`.
   - Modify `crates/xurl-cli/tests/broadcast_sources_tests.rs` and `crates/xurl-cli/tests/unknown_command_tests.rs`;
-    regenerate `completions/`; modify `crates/xurl-cli/README.md` § "Broadcasts".
+    check `crates/xurl-cli/tests/dry_run_guard.rs`, which synthesizes arguments from clap and needs an `OVERRIDES` row
+    only if the synthesized `--name` fails the name check; regenerate `completions/`; modify `crates/xurl-cli/README.md`
+    § "Broadcasts".
 - **Approach:** The arm still calls `rename_stream_source` with the same validation (`validate_source_name`); only the
   argument moves from a positional to `--name` (D5, KTD2).
 - **Patterns to follow:** `ListsCommands::Update` in `crates/xurl-cli/src/cli/mod.rs` for `--name`;
@@ -367,6 +378,8 @@ flowchart TB
     `"command": "broadcasts-sources-update"` with `source_id` and `name`.
   - `xr --output json broadcasts sources rename 1x2y3z4w5v6u "Studio B"` exits 2 with `suggestion` `update`, never
     `remove`, and `next_step.command` `xr broadcasts sources update --help`.
+  - Regression contract (R7): the existing `rename` tests move to `update --name` with the same request and answer
+    assertions.
 - **Verification:** the suites pass; `xr broadcasts sources --help` lists `update`; no `rename` remains in the tree.
 
 ### U3. `broadcasts scheduled live` becomes `start`
@@ -397,13 +410,15 @@ flowchart TB
     `"command": "broadcasts-scheduled-start"`.
   - `xr --output json broadcasts scheduled live 1850000000000000001` exits 2 with `suggestion` `start` and no request.
   - `xr broadcasts scheduled add --help` describes `--manual-publish` with `xr broadcasts scheduled start`.
+  - Regression contract (R7): the existing `live` tests move to `start` with their assertions unchanged.
 - **Verification:** the suites pass; no `live` verb remains; the `--manual-publish` text names a command that exists.
 
 ### U4. The verb rule in `AGENTS.md`
 
 - **Goal:** The next command family picks its verbs by the rule these renames follow.
 - **Requirements:** R8.
-- **Dependencies:** U1, U2, U3 (the text describes their end state; adjust to Brett's D1).
+- **Dependencies:** U1, U2, U3 (the text describes their end state; adjust to Brett's D1). Ships as its own commit in
+  U3's PR (KTD5).
 - **Files:** Modify `AGENTS.md` § "Command grammar: flags vs subcommands".
 - **Approach:** Add one bullet group stating present rules only:
   1. An action is a verb; sibling subtrees name the same action with the same verb.
@@ -463,3 +478,140 @@ exists and quote the failure.
 - `docs/solutions/conventions/renaming-an-overloaded-domain-noun.md`: a rename's failures are over-applications in the
   source repo, so sweep for bystander uses of `remove`, `live`, and `rename` (`--state live` in `spaces search` stays).
 - `RELEASES.md` § "Versioning"; `AGENTS.md` § "Command grammar", § "Adding a command family", § "Where a change goes".
+
+---
+
+## Engineering Review Record
+
+`/plan-eng-review` of this plan on 2026-10-28, run inline in one session with no subagent and no outside model (Brett's
+standing rule for this repo). Nobody watches the session, so each choice below was settled from the cited evidence under
+the session brief's authorization, and Brett's own questions (D1 to D3) went to him as one brief instead.
+
+**Scope Challenge.** The plan touches about 25 files and adds one module, so the complexity gate tripped. Structure:
+original arrangement (a `retired_verbs.rs` module) kept over the smaller arrangement (rows inside `classify.rs`),
+because `classify.rs` is already 334 lines and the rows are their own concern. PR count: four PRs became three, with U4
+as a commit in U3's PR (KTD5); each `xr` PR fires about 25 CI jobs against the account's 20-job cap. Result: scope
+accepted as-is.
+
+**Reality rows.**
+
+- REALITY: premise-table pass. Every factual claim cites a receipt: X's operation ids
+  `crates/xdk/vendor/x-api-openapi.json:21571` (`deleteScheduledBroadcast`), `:21766` (`goLiveScheduledBroadcast`),
+  `:22466` (`cancelScheduledCall`), `:30623` (`updateSource`); `xr`'s own wording `crates/xurl-cli/src/cli/mod.rs:2709`,
+  `:2824`, `:2837`, `crates/xurl-cli/src/cli/commands/broadcast_scheduled.rs:112`, `:125`; anc's root-only scope
+  agentnative-cli `src/audits/behavioral/standard_names.rs:188`, `:241`. unverified=1: the post-rename clap scores come
+  from a reimplementation of `strsim::jaro` that matched clap's live answer on both cases it could check (`list` to
+  `history` at 0.726; `cancel` with no suggestion); re-measure on the built binary in U1 to U3.
+- REALITY: already-done pass. `git log origin/dev --since=2026-10-27` over the touched files shows only #427 and #428,
+  both in the base; no retired-name work exists.
+- REALITY: surface-check pass. Every existing command the plan names was checked against the walked `--help` tree; the
+  new names are proposals.
+- REALITY: binding-decisions pass. No branch decision governs these names. #407 (`142030e`) audited the families before
+  4.4.0 and changed other names; it neither chose nor rejected these.
+- REALITY: numbers pass. Fourteen `remove` verbs [measured: tree walk]; `classify.rs` 334 lines [measured: `wc -l`];
+  Jaro values [measured: reimplementation, two live cross-checks]; about 25 CI jobs per PR [estimated: prior learning,
+  re-measure on the first push].
+- REALITY: deferred-asks pass. Issue #421 asks for spots 1, 2, and 4 (U1 to U3) and flags spot 3, which its own proposal
+  keeps; R4 keeps it, with the evidence in the Problem Frame. "No aliases" holds under D2's recommendation.
+- REALITY: pr-count finding. Four PRs became three (KTD5).
+
+**Section 1, Architecture.**
+
+- [INFORMATIONAL] (confidence: 8/10) `crates/xurl-cli/src/cli/runner.rs:516`,
+  `let command = failing_command(error, args);`. The rows needed one family spelling; `failing_command` yields
+  `xr broadcasts scheduled` and already names `xr` under any `argv[0]`. Accepted: KTD1 keys rows on that string, and U1
+  tests the `xurl-rs` name.
+- Design-twice. Shape A, a row table with a walk test over `Cli::command()`. Shape B, rows declared on each
+  `family_help` `Family` and pointing at its `Verb` constants, so the replacement word checks at compile time. Shape B
+  needs a registry of every family, which does not exist, and would be a hand-synced list (red flag 8). Picked A: one
+  table behind one lookup, its drift caught by the walk. Red flags screened: no pass-through, one owner of the
+  suggestion order, no importable internals (`pub(crate)`).
+
+**Section 2, Code quality.**
+
+- [INFORMATIONAL] (confidence: 9/10) `crates/xurl-cli/tests/recipe_guard.rs:65`,
+  `.filter(|file| std::fs::read_to_string(file).is_ok_and(|source| source.contains("Cause:")))`. The walk set is any
+  test file containing `Cause:`, not any message. Accepted: KTD4 names the file and its rule.
+- [INFORMATIONAL] (confidence: 7/10) `crates/xurl-cli/tests/dry_run_guard.rs:42`,
+  `const OVERRIDES: &[(&str, &[&str])] = &[`. The guard synthesizes each command's arguments from clap, so the new
+  required `--name` gets a sample value. Accepted: U2 checks the file.
+- No shared-code extraction proposed.
+
+**Section 3, Tests.**
+
+```text
+CODE PATHS                                         USER FLOWS
+[+] runner.rs clap rejection branch                [+] Caller types a retired word
+  ├── retired row found  -> suggestion = new         ├── [GAP→U1-U3] JSON envelope names the new word
+  │   [GAP→U1-U3] JSON, text, --help, help, dry-run  ├── [GAP→U2] rename never suggests remove
+  ├── no row -> clap score  [★★★ unknown_command_tests] └── [GAP→U1] other families' remove still run
+  └── guard walk over Cli::command()  [GAP→U1]
+[+] renamed arms (cancel, update, start)           [+] Caller runs the new name
+  ├── request path and body  [★★★ family tests, moved]  ├── [★★★ moved] confirmation gate
+  └── dry-run command value  [GAP→U1-U3]                └── [★★★ moved] dry run sends nothing
+COVERAGE after the plan: every path has a planned or moved test; no E2E or eval scope.
+```
+
+- Value: protects=a retired word names its replacement in every format; fails_when=the row is missing or keyed wrong;
+  why_new=no test covers a renamed verb; seam=none; no_claim=X's acceptance of the new request (mock only)
+- Value: protects=the table never names a word clap does not parse; fails_when=a later rename leaves a row stale;
+  why_new=nothing walks the table; seam=none; no_claim=none beyond protects
+- Regression contract: each existing test of an old name moves with its assertions unchanged (R7, U1 to U3). Tests to
+  retire: none.
+
+**Section 4, Performance.** No issues found: one table lookup on an error path that exits 2.
+
+**Outside voice.** Skipped: the session rule forbids an outside model and a subagent. An inline challenge raised three
+points. Is the table worth building? Yes: without it the `rename` caller is pointed at `remove`. Should `remove` win
+spot 1 on count? That is D1, already with Brett. Should a day-old rename take a major? That is D3, already with Brett.
+
+**NOT in scope.** Library renames (D5); response keys; `.anc.toml`; validate aliases; a deprecation alias; row expiry;
+retired names for `xr schema <slug>` (Scope Boundaries).
+
+**What already exists.** `render_unknown_command` and the `unknown-command` envelope (reused as is); `failing_command`
+(reused for the family); clap's own score (kept as the fallback); the golden, schema, dry-run, and confirmed-command
+walks (each catches a missed surface).
+
+**Failure modes.** A stale row: the guard walk fails. A row keyed wrong: the retired-name tests fail, and the caller
+falls back to clap's score with no silent harm. A renamed arm that drops behavior: the moved tests fail. A missed
+fixture, schema file, or completion: the golden, schema, and completions gates fail. No critical gaps.
+
+**Parallelization.** Sequential implementation, no parallelization opportunity: every unit edits `mod.rs`,
+`family_help.rs`, and `schema.rs`.
+
+**Implementation tasks.**
+
+- [ ] T1 (P1, human: ~3h / CC: ~30 min). `retired_verbs.rs` with the guard walk and the `remove` row, plus the `cancel`
+  rename. Surfaced by: KTD1, Architecture finding 1. Verify: `cargo test -p xurl-rs --test unknown_command_tests`.
+- [ ] T2 (P1, human: ~2h / CC: ~20 min). `sources update --name`, its row, and the `dry_run_guard.rs` check. Surfaced
+  by: Code quality finding 2. Verify: `cargo test -p xurl-rs --test broadcast_sources_tests --test dry_run_guard`.
+- [ ] T3 (P1, human: ~2h / CC: ~20 min). `scheduled start`, its row, the `--manual-publish` text, and the AGENTS.md
+  commit. Surfaced by: KTD5. Verify: `cargo test -p xurl-rs --test broadcasts_family_tests --test golden_tests`.
+
+**Decision ledger.** Every choice above was settled from evidence and accepted. D1 to D3 stay open and are Brett's.
+Approval readiness: PASS (Scope structure, PR count, Architecture 1, Code quality 1 and 2; each cites its evidence
+above).
+
+**Completion summary.** Step 0: scope accepted as-is. Reality rows: 7/7 emitted, 1 unverified premise. Architecture: 1
+issue. Code quality: 2 issues. Tests: diagram produced, 3 gaps planned. Performance: 0. NOT in scope: written. What
+already exists: written. TODOS.md: 0 proposed. Failure modes: 0 critical gaps. Unresolved decisions: 3 (D1 to D3,
+Brett's). Outside voice: codex, skipped (session rule). Parallelization: 1 lane, sequential. Lake Score: N/A.
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                              |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | not run     | n/a                                   |
+| Outside Review | codex (plan review)   | Independent 2nd opinion         | 0    | skipped     | session rule: no outside model        |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 6 issues, 0 critical gaps, all folded |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | not run     | n/a                                   |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | pending     | runs next                             |
+
+- **OUTSIDE COVERAGE:** codex, plan-review phase, skipped under the session rule; no findings.
+- **VERDICT:** Eng review done; every finding folded into the plan. Build waits on D1 to D3.
+
+**UNRESOLVED DECISIONS:**
+
+- D1, the names for spots 1, 2, and 4 (Brett).
+- D2, whether a retired name refuses with its replacement, disappears, or aliases (Brett).
+- D3, `xr` 5.0.0 batched with #424 and #426, or 4.5.0 (Brett).
