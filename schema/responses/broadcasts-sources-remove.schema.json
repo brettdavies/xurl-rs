@@ -236,7 +236,16 @@
     },
     "StreamSourceDeleted": {
       "additionalProperties": true,
-      "description": "What X answers a deleted stream source with: an empty object.",
+      "description": "What X answers a deleted stream source with.",
+      "properties": {
+        "deleted": {
+          "description": "Whether the source was deleted.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "deleted"
+      ],
       "type": "object"
     },
     "User": {

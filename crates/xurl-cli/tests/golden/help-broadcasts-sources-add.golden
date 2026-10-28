@@ -1,12 +1,12 @@
 args: ["broadcasts", "sources", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7330
+stdout_len: 7317
 stderr_len: 0
 --- stdout ---
 Create a stream source
 
-Point an encoder at its `rtmps_url` with its `id` as the stream key.
+Point an encoder at its `rtmps_url` with its `stream_key`.
 
 Usage: xr broadcasts sources add [OPTIONS] --region <REGION> <NAME>
 
@@ -163,7 +163,7 @@ Options:
           Print help (see a summary with '-h')
 
 Examples:
-  Create a source; stream to its rtmps_url with its id as the key (text):
+  Create a source; stream to its rtmps_url with its stream_key (text):
     xr broadcasts sources add "Studio A" --region us-east-1
   Create (JSON envelope):
     xr broadcasts sources add "Studio A" --region us-east-1 --output json

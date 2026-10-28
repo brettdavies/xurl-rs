@@ -1057,7 +1057,7 @@ pub mod broadcast_sources {
     pub const ADD: Verb = Verb {
         name: "add",
         example_args: "\"Studio A\" --region us-east-1",
-        text_caption: "Create a source; stream to its rtmps_url with its id as the key (text)",
+        text_caption: "Create a source; stream to its rtmps_url with its stream_key (text)",
         json_caption: "Create (JSON envelope)",
     };
 

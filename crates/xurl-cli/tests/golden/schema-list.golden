@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8386
+stdout_len: 8372
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -32,11 +32,11 @@ broadcasts-scheduled-list      ApiResponse<Vec<ScheduledBroadcast>>
 broadcasts-scheduled-live      ApiResponse<ScheduledBroadcast>
 broadcasts-scheduled-remove    ApiResponse<DeletedResult>
 broadcasts-scheduled-update    ApiResponse<ScheduledBroadcast>
-broadcasts-sources-add         ApiResponse<StreamSourceResult>
-broadcasts-sources-get         ApiResponse<StreamSourceResult>
-broadcasts-sources-list        ApiResponse<StreamSources>
+broadcasts-sources-add         ApiResponse<StreamSource>
+broadcasts-sources-get         ApiResponse<StreamSource>
+broadcasts-sources-list        ApiResponse<Vec<StreamSource>>
 broadcasts-sources-remove      ApiResponse<StreamSourceDeleted>
-broadcasts-sources-rename      ApiResponse<StreamSourceResult>
+broadcasts-sources-rename      ApiResponse<StreamSource>
 calls-get                      ApiResponse<XCall>
 calls-scheduled-add            ApiResponse<ScheduledCall>
 calls-scheduled-cancel         ApiResponse<ScheduledCallCancelled>

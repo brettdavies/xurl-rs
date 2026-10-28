@@ -1189,65 +1189,47 @@ pub struct BookmarkFolderPost {
 
 // ── Broadcast stream sources ────────────────────────────────────────
 
-/// A persistent RTMP and RTMPS ingest point for the account's broadcasts.
-///
-/// The spec closes this object to further properties, so it carries no
-/// forward-compatibility bucket.
+/// A persistent RTMP and RTMPS ingest point for the account's broadcasts,
+/// as `/2/sources` describes one.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct StreamSource {
-    /// Source identifier. It is also the stream key an encoder sends, so
-    /// whoever holds it can stream to the source.
+    /// Source identifier, the `source_id` a scheduled broadcast binds to.
     pub id: String,
     /// The label the account gave the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Ingest region, such as `us-east-1`.
+    /// Ingest region: `atla` or `pdxa` for a source in X's own data
+    /// centers, an AWS region such as `us-east-1` for an older one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rtmp_region: Option<String>,
+    pub region: Option<String>,
     /// RTMP ingest URL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rtmp_url: Option<String>,
     /// RTMPS ingest URL, on port 443.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rtmps_url: Option<String>,
-    /// The stream key, equal to `id`.
+    /// The stream key an encoder sends, so whoever holds it can stream to
+    /// the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rtmp_stream_key: Option<String>,
-    /// Whether the source is receiving video now.
+    pub stream_key: Option<String>,
+    /// Whether an encoder is sending video to the source now. Publishing a
+    /// broadcast on the source needs it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_stream_active: Option<bool>,
-    /// When the source was created, in milliseconds since the Unix epoch.
+    /// When the source was created, in milliseconds since the Unix epoch,
+    /// as a decimal string.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub creation_time: Option<u64>,
-    /// The owner's numeric user id. X sends it as a JSON number past the
-    /// range a 64-bit float holds exactly; this field keeps every digit.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub owner_id: Option<u64>,
-}
-
-/// The account's stream sources.
-#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct StreamSources {
-    /// Every source the account has, or none.
-    pub sources: Vec<StreamSource>,
+    pub created_at_ms: Option<String>,
     /// Forward-compatibility bucket for fields the spec adds later.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
 
-/// One stream source, as reading, creating, and renaming a source answer.
-#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct StreamSourceResult {
-    /// The source.
-    pub source: StreamSource,
-    /// Forward-compatibility bucket for fields the spec adds later.
-    #[serde(flatten)]
-    pub extra: BTreeMap<String, Value>,
-}
-
-/// What X answers a deleted stream source with: an empty object.
+/// What X answers a deleted stream source with.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct StreamSourceDeleted {
+    /// Whether the source was deleted.
+    pub deleted: bool,
     /// Forward-compatibility bucket for fields the spec adds later.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,

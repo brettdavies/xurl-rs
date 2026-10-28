@@ -17,11 +17,11 @@ fn source(name: &str) -> serde_json::Value {
     serde_json::json!({
         "id": SOURCE_ID,
         "name": name,
-        "rtmp_region": "us-east-1",
+        "region": "pdxa",
         "rtmps_url": "rtmps://va.pscp.tv:443/x",
-        "rtmp_stream_key": SOURCE_ID,
+        "stream_key": SOURCE_ID,
         "is_stream_active": false,
-        "owner_id": 1_234_567_890_123_456_789_u64
+        "created_at_ms": "1761148800000"
     })
 }
 
@@ -34,10 +34,9 @@ async fn sources_list_prints_the_sources_as_json() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path("/2/sources"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(serde_json::json!({"data": {"sources": [source("Studio A")]}})),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(
+            serde_json::json!({"data": [source("Studio A")], "meta": {"result_count": 1}}),
+        ))
         .expect(1)
         .mount(&server)
         .await;
@@ -53,12 +52,9 @@ async fn sources_list_prints_the_sources_as_json() {
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let body = json_out(&stdout);
-    assert_eq!(body["data"]["sources"][0]["name"], "Studio A");
-    assert_eq!(
-        body["data"]["sources"][0]["owner_id"].as_u64(),
-        Some(1_234_567_890_123_456_789),
-        "the owner id keeps every digit"
-    );
+    assert_eq!(body["data"][0]["name"], "Studio A");
+    assert_eq!(body["data"][0]["stream_key"], SOURCE_ID);
+    assert_eq!(body["meta"]["result_count"], 1);
 }
 
 #[tokio::test]
@@ -70,8 +66,8 @@ async fn sources_add_posts_the_name_and_region() {
             serde_json::json!({"name": "Studio A", "region": "eu-west-1"}),
         ))
         .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(serde_json::json!({"data": {"source": source("Studio A")}})),
+            ResponseTemplate::new(201)
+                .set_body_json(serde_json::json!({"data": source("Studio A")})),
         )
         .expect(1)
         .mount(&server)
@@ -96,7 +92,7 @@ async fn sources_add_posts_the_name_and_region() {
     .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
-    assert_eq!(json_out(&stdout)["data"]["source"]["id"], SOURCE_ID);
+    assert_eq!(json_out(&stdout)["data"]["id"], SOURCE_ID);
 }
 
 #[tokio::test]
@@ -106,7 +102,7 @@ async fn sources_get_reads_one_source() {
         .and(path(format!("/2/sources/{SOURCE_ID}")))
         .respond_with(
             ResponseTemplate::new(200)
-                .set_body_json(serde_json::json!({"data": {"source": source("Studio A")}})),
+                .set_body_json(serde_json::json!({"data": source("Studio A")})),
         )
         .expect(1)
         .mount(&server)
@@ -129,10 +125,7 @@ async fn sources_get_reads_one_source() {
     .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
-    assert_eq!(
-        json_out(&stdout)["data"]["source"]["is_stream_active"],
-        false
-    );
+    assert_eq!(json_out(&stdout)["data"]["is_stream_active"], false);
 }
 
 #[tokio::test]
@@ -143,7 +136,7 @@ async fn sources_rename_puts_the_new_name() {
         .and(body_json(serde_json::json!({"name": "Studio B"})))
         .respond_with(
             ResponseTemplate::new(200)
-                .set_body_json(serde_json::json!({"data": {"source": source("Studio B")}})),
+                .set_body_json(serde_json::json!({"data": source("Studio B")})),
         )
         .expect(1)
         .mount(&server)
@@ -167,7 +160,7 @@ async fn sources_rename_puts_the_new_name() {
     .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
-    assert_eq!(json_out(&stdout)["data"]["source"]["name"], "Studio B");
+    assert_eq!(json_out(&stdout)["data"]["name"], "Studio B");
 }
 
 #[tokio::test]
@@ -210,7 +203,10 @@ async fn sources_remove_with_force_deletes_the_source() {
     let server = MockServer::start().await;
     Mock::given(method("DELETE"))
         .and(path(format!("/2/sources/{SOURCE_ID}")))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": {}})))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"deleted": true}})),
+        )
         .expect(1)
         .mount(&server)
         .await;
@@ -233,7 +229,7 @@ async fn sources_remove_with_force_deletes_the_source() {
     .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
-    assert_eq!(json_out(&stdout)["data"], serde_json::json!({}));
+    assert_eq!(json_out(&stdout)["data"]["deleted"], true);
 }
 
 #[tokio::test]

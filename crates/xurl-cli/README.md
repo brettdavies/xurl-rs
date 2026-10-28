@@ -387,11 +387,10 @@ xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force
 A scheduled broadcast takes its video from a stream source, so `add` names one with `--source`; its times are RFC 3339,
 and `xr` sends them as the milliseconds since the Unix epoch X takes. X takes both times on every `update`.
 
-A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `id` as the
-stream key, then poll `get` until `is_stream_active` is true. The `id` is the stream key itself, so whoever holds it can
-stream to the source; keep it out of logs you share. `--region` takes an ingest region, and
-`xr broadcasts sources add --help` lists them. The API lists the regions in prose, so `xr` passes the value through
-rather than refusing one it does not know.
+A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `stream_key`,
+then poll `get` until `is_stream_active` is true. Whoever holds the stream key can stream to the source; keep it out of
+logs you share. `--region` takes an ingest region, and `xr broadcasts sources add --help` lists them. The API lists the
+regions in prose, so `xr` passes the value through rather than refusing one it does not know.
 
 ### Calls
 

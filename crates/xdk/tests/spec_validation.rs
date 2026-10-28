@@ -30,9 +30,8 @@ use xdk::api::response::types::{
     NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post,
     PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall,
     ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule,
-    StreamRuleCounts, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
-    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -665,21 +664,20 @@ fn spec_bookmark_folder_posts() {
 #[test]
 fn spec_stream_sources() {
     let examples = load_examples();
-    let resp: ApiResponse<StreamSources> =
+    let resp: ApiResponse<Vec<StreamSource>> =
         serde_json::from_value(examples["stream_sources"].clone()).unwrap();
-    assert_eq!(resp.data.sources[0].id, "1x2y3z4w5v6u");
-    assert_eq!(
-        resp.data.sources[0].owner_id,
-        Some(1_234_567_890_123_456_789)
-    );
+    assert_eq!(resp.data[0].id, "1x2y3z4w5v6u");
+    assert_eq!(resp.data[0].stream_key.as_deref(), Some("1x2y3z4w5v6u"));
+    assert_eq!(resp.meta.and_then(|meta| meta.result_count), Some(1));
 }
 
 #[test]
 fn spec_stream_source() {
     let examples = load_examples();
-    let resp: ApiResponse<StreamSourceResult> =
+    let resp: ApiResponse<StreamSource> =
         serde_json::from_value(examples["stream_source"].clone()).unwrap();
-    assert_eq!(resp.data.source.rtmp_region.as_deref(), Some("us-east-1"));
+    assert_eq!(resp.data.region.as_deref(), Some("pdxa"));
+    assert_eq!(resp.data.created_at_ms.as_deref(), Some("1761148800000"));
 }
 
 #[test]
@@ -687,7 +685,7 @@ fn spec_stream_source_deleted() {
     let examples = load_examples();
     let resp: ApiResponse<StreamSourceDeleted> =
         serde_json::from_value(examples["stream_source_deleted"].clone()).unwrap();
-    assert!(resp.data.extra.is_empty());
+    assert!(resp.data.deleted);
 }
 
 #[test]

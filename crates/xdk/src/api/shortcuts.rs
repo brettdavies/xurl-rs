@@ -22,10 +22,9 @@ use super::response::types::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
+    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -3637,7 +3636,7 @@ impl Client {
     }
 
     /// Lists the authenticated user's RTMP and RTMPS stream sources.
-    pub fn get_stream_sources(&self) -> Call<ApiResponse<StreamSources>> {
+    pub fn get_stream_sources(&self) -> Call<ApiResponse<Vec<StreamSource>>> {
         self.call(
             endpoints::GET_STREAM_SOURCES.method,
             template(
@@ -3649,13 +3648,13 @@ impl Client {
     }
 
     /// Creates a stream source named `name` that ingests in `region`, such
-    /// as `us-east-1`. An encoder streams to its `rtmps_url` with its `id`
-    /// as the stream key.
+    /// as `us-east-1`. An encoder streams to its `rtmps_url` with its
+    /// `stream_key`.
     pub fn create_stream_source(
         &self,
         name: &str,
         region: &str,
-    ) -> Call<ApiResponse<StreamSourceResult>> {
+    ) -> Call<ApiResponse<StreamSource>> {
         self.post_json(
             template(
                 endpoints::CREATE_STREAM_SOURCE.path,
@@ -3671,7 +3670,7 @@ impl Client {
 
     /// Reads one of the authenticated user's stream sources, including
     /// whether it is receiving video.
-    pub fn get_stream_source(&self, source_id: &str) -> Call<ApiResponse<StreamSourceResult>> {
+    pub fn get_stream_source(&self, source_id: &str) -> Call<ApiResponse<StreamSource>> {
         self.call(
             endpoints::GET_STREAM_SOURCE.method,
             template(
@@ -3687,7 +3686,7 @@ impl Client {
         &self,
         source_id: &str,
         name: &str,
-    ) -> Call<ApiResponse<StreamSourceResult>> {
+    ) -> Call<ApiResponse<StreamSource>> {
         self.json_call(
             endpoints::RENAME_STREAM_SOURCE.method,
             template(

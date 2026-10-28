@@ -33,8 +33,8 @@ use xdk::api::response::types::{
     NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
-    StreamRuleCounts, StreamSource, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -193,23 +193,23 @@ fn typed_responses_match_vendored_spec() {
         ),
         (
             "ListSourcesResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSources)).unwrap(),
-        ),
-        (
-            "ListSourcesResponseDataSources",
             serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
         ),
         (
             "GetSourceResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
         ),
         (
             "CreateSourceResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
         ),
         (
             "UpdateSourceResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
+        ),
+        (
+            "DeleteSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceDeleted)).unwrap(),
         ),
         (
             "Call",

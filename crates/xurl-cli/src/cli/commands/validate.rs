@@ -24,10 +24,9 @@ use xdk::api::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
+    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -157,8 +156,8 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<SubscribedResult>("subscribed"),
     typed_alias::<Vec<WebhookStreamLink>>("stream-links"),
     typed_alias::<ProvisionedResult>("stream-link"),
-    typed_alias::<StreamSources>("stream-sources"),
-    typed_alias::<StreamSourceResult>("stream-source"),
+    typed_alias::<Vec<StreamSource>>("stream-sources"),
+    typed_alias::<StreamSource>("stream-source"),
     typed_alias::<StreamSourceDeleted>("stream-source-deleted"),
     typed_alias::<XCall>("call"),
     typed_alias::<Vec<ScheduledCall>>("scheduled-calls"),

@@ -142,3 +142,11 @@ enum_tuple_variant_changed_kind = { lint-level = "deny", required-update = "mino
 # id of the account a credential belongs to beside it, so a literal of either
 # struct names one more field.
 constructible_struct_adds_field = { lint-level = "deny", required-update = "minor" }
+# Covers `StreamSources` and `StreamSourceResult`: `/2/sources` answers a
+# list with a bare array and a read with the source itself, so no response
+# is shaped like either wrapper.
+struct_missing = { lint-level = "deny", required-update = "minor" }
+# Covers `StreamSource::rtmp_region`, `rtmp_stream_key`, `creation_time`, and
+# `owner_id`: `/2/sources` names a source's region, stream key, and creation
+# time `region`, `stream_key`, and `created_at_ms`, and sends no owner id.
+struct_pub_field_missing = { lint-level = "deny", required-update = "minor" }

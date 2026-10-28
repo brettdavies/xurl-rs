@@ -18,10 +18,9 @@ use xdk::api::{
     MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
+    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -353,8 +352,8 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     },
     SchemaEntry {
         commands: &["broadcasts-sources-list"],
-        type_name: "ApiResponse<StreamSources>",
-        schema: || schema_for!(ApiResponse<StreamSources>).into(),
+        type_name: "ApiResponse<Vec<StreamSource>>",
+        schema: || schema_for!(ApiResponse<Vec<StreamSource>>).into(),
     },
     SchemaEntry {
         commands: &[
@@ -362,8 +361,8 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "broadcasts-sources-add",
             "broadcasts-sources-rename",
         ],
-        type_name: "ApiResponse<StreamSourceResult>",
-        schema: || schema_for!(ApiResponse<StreamSourceResult>).into(),
+        type_name: "ApiResponse<StreamSource>",
+        schema: || schema_for!(ApiResponse<StreamSource>).into(),
     },
     SchemaEntry {
         commands: &["broadcasts-sources-remove"],

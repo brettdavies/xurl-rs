@@ -2943,8 +2943,7 @@ pub enum SourcesCommands {
     /// Show one stream source, and whether it is receiving video
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::GET))]
     Get {
-        /// Source ID, as `xr broadcasts sources list` prints it; it is also
-        /// the stream key
+        /// Source ID, as `xr broadcasts sources list` prints it
         #[arg(value_name = "SOURCE_ID")]
         source_id: String,
         /// Shortcut flags shared with every other shortcut command.
@@ -2953,7 +2952,7 @@ pub enum SourcesCommands {
     },
     /// Create a stream source
     ///
-    /// Point an encoder at its `rtmps_url` with its `id` as the stream key.
+    /// Point an encoder at its `rtmps_url` with its `stream_key`.
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::ADD))]
     Add {
         /// A label for the source
