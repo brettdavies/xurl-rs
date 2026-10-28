@@ -8,7 +8,7 @@
 
 use std::ffi::OsString;
 
-use clap::error::{ContextKind, ContextValue};
+use clap::error::{ContextKind, ContextValue, ErrorKind};
 use clap::{CommandFactory, ValueEnum};
 
 use crate::cli::output::OutputFormat;
@@ -177,6 +177,18 @@ pub(crate) fn help_command_precedes(args: &[OsString], word: &str) -> bool {
     args.iter()
         .take_while(|a| a.to_string_lossy() != word)
         .any(|a| a.to_string_lossy() == "help")
+}
+
+/// Whether clap stopped at a word it found no place for: an unrecognized
+/// subcommand or an unexpected argument, either one a word rather than a flag
+/// spelling.
+pub(crate) fn rejected_a_word(error: &clap::Error) -> bool {
+    let kind = match error.kind() {
+        ErrorKind::InvalidSubcommand => ContextKind::InvalidSubcommand,
+        ErrorKind::UnknownArgument => ContextKind::InvalidArg,
+        _ => return false,
+    };
+    context_string(error, kind).is_some_and(|word| !word.starts_with('-'))
 }
 
 /// clap's own suggestion for an unrecognized subcommand, where it scored one.

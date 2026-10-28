@@ -30,7 +30,7 @@ use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
     Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, invoked_help,
-    nearest_command, suggestion_for_rejected,
+    nearest_command, rejected_a_word, suggestion_for_rejected,
 };
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::Failure;
@@ -38,7 +38,7 @@ use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::reparse::{
     color_choice, equals_form_hint, failing_command, lenient_cli, output_intent,
-    parse_without_display_flags, raw_choice,
+    parse_past_stray_words, parse_without_display_flags, raw_choice,
 };
 use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
@@ -108,8 +108,8 @@ where
 /// print. Otherwise it is the `Error:` line every error takes, closing on the
 /// failing command's help. An unrecognized subcommand,
 /// and a bare word that names no command, both render as `unknown-command` at
-/// the same exit code, with or without a help or version flag, and a bare
-/// invocation prints the root help at exit 0.
+/// the same exit code, with or without a help or version flag or a word after
+/// it, and a bare invocation prints the root help at exit 0.
 pub async fn run_with_store_path<I, S>(
     args: I,
     stdout: &mut dyn Write,
@@ -435,7 +435,9 @@ fn is_display(kind: ErrorKind) -> bool {
 /// Help and version go to stdout at exit 0, except a help or version flag on a
 /// word that names no command, which renders as the invocation does without
 /// the flag: as that word does, or, when the invocation is a usage error of its
-/// own (a repeated or unknown flag), as that error. An unrecognized subcommand
+/// own (a repeated or unknown flag), as that error. A word clap rejected after
+/// a root positional that names no command renders as that positional does
+/// alone, so `xr suth status` reports `suth`. Any other unrecognized subcommand
 /// takes the unknown-command rendering, carrying clap's own suggestion where
 /// clap scored one. A flag spelling where clap wanted a command is an
 /// unexpected argument instead, except `-h` or `--help` given to the `help`
@@ -489,7 +491,13 @@ fn render_parse_error(
         overrides.no_color,
     );
 
-    if let Some(word) = hidden_word {
+    let root_word = hidden_word.or_else(|| {
+        if !rejected_a_word(error) {
+            return None;
+        }
+        unknown_word(&parse_past_stray_words(args)?)
+    });
+    if let Some(word) = root_word {
         let suggestion = nearest_command(&word);
         return render_unknown_command(&word, suggestion.as_deref(), ROOT_COMMAND, &out, stderr);
     }

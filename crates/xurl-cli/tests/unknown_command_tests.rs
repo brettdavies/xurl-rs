@@ -289,6 +289,7 @@ async fn the_next_step_names_xr_whatever_the_binary_is_called() {
 #[case::help_flag(&["xr", "--output", "json", "bookmarsk", "--help"])]
 #[case::help_command(&["xr", "--output", "json", "help", "whoam"])]
 #[case::version_flag(&["xr", "--output", "json", "bookmarsk", "--version"])]
+#[case::word_after_the_word(&["xr", "--output", "json", "suth", "status"])]
 #[case::verb(&["xr", "--output", "json", "auth", "statsu"])]
 #[case::nested_verb(&["xr", "--output", "json", "auth", "apps", "ad"])]
 #[tokio::test]
@@ -362,9 +363,119 @@ async fn a_flag_where_a_command_goes_is_an_unexpected_argument(
     assert!(v.get("command").is_none(), "args {json:?}; got: {v}");
 }
 
+/// The words clap scores itself keep clap's answer: a word under the `help`
+/// command, scored against the root, and a mistyped verb under a real command,
+/// scored against that command's verbs.
+#[rstest::rstest]
+#[case::help_command(
+    &["xr", "help", "suth"],
+    "Error: unknown command 'suth'. Did you mean 'auth'? Try 'xr auth --help'."
+)]
+#[case::verb(
+    &["xr", "auth", "sttus"],
+    "Error: unknown command 'sttus'. Did you mean 'status'? Try 'xr auth status --help'."
+)]
+#[tokio::test]
+async fn a_word_clap_scored_keeps_claps_answer(#[case] args: &[&str], #[case] line: &str) {
+    let (code, stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
+    assert_eq!(plain(&stderr).trim_end(), line, "args {args:?}");
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Words after a mistyped command
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// clap takes a mistyped command as the root positional and rejects the word
+/// after it, but the unknown command is still the first word: the invocation
+/// renders as that word does alone, whether or not clap scored the word it
+/// rejected and wherever a help flag sits.
+#[rstest::rstest]
+#[case::clap_scored_the_next_word(&["suth", "status"], "suth", Some("auth"))]
+#[case::clap_scored_nothing(&["suth", "qqqq"], "suth", Some("auth"))]
+#[case::near_nothing(&["zzzz", "status"], "zzzz", None)]
+#[case::several_words(&["suth", "status", "now"], "suth", Some("auth"))]
+#[case::help_flag_after_the_words(&["suth", "status", "--help"], "suth", Some("auth"))]
+#[case::help_flag_between_the_words(&["suth", "--help", "status"], "suth", Some("auth"))]
+#[tokio::test]
+async fn a_word_after_a_mistyped_command_does_not_hide_it(
+    #[case] rest: &[&str],
+    #[case] word: &str,
+    #[case] suggestion: Option<&str>,
+) {
+    let mut args = vec!["xr"];
+    args.extend(rest);
+    let (code, stdout, stderr) = run_isolated(&args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
+    assert_eq!(
+        plain(&stderr).trim_end(),
+        text_line(word, suggestion),
+        "args {args:?}"
+    );
+    assert_eq!(
+        (code, stdout, stderr),
+        run_isolated(&["xr", word]).await,
+        "args {args:?} render exactly as {word} alone"
+    );
+}
+
+#[rstest::rstest]
+#[case::text("text")]
+#[case::json("json")]
+#[case::jsonl("jsonl")]
+#[case::yaml("yaml")]
+#[case::csv("csv")]
+#[case::tsv("tsv")]
+#[tokio::test]
+async fn a_word_after_a_mistyped_command_renders_in_every_format(
+    #[case] format: &str,
+    #[values(true, false)] flag_first: bool,
+) {
+    let args = if flag_first {
+        vec!["xr", "--output", format, "suth", "status"]
+    } else {
+        vec!["xr", "suth", "status", "--output", format]
+    };
+    let (code, stdout, stderr) = run_isolated(&args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
+    assert_unknown_command(&stderr, format, "suth", Some("auth"));
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // What stays a raw request
 // ═══════════════════════════════════════════════════════════════════════════
+
+/// After a raw target, or with a raw-only flag anywhere in argv, the caller
+/// meant a request, so clap's rejection of the word after the target stands:
+/// the rendering names that word and never the target.
+#[rstest::rstest]
+#[case::path(&["/2/users/me", "extra"], "/2/users/me", "extra")]
+#[case::url(&["https://api.x.com/2/users/me", "extra"], "https://api.x.com/2/users/me", "extra")]
+#[case::raw_only_flag_before_the_words(&["-X", "POST", "suth", "status"], "suth", "status")]
+#[case::raw_only_flag_after_the_words(&["suth", "status", "-X", "POST"], "suth", "status")]
+#[tokio::test]
+async fn a_word_after_a_raw_target_stays_the_rejected_one(
+    #[case] rest: &[&str],
+    #[case] target: &str,
+    #[case] rejected: &str,
+) {
+    let mut args = vec!["xr"];
+    args.extend(rest);
+    let (code, _stdout, stderr) = run_isolated(&args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    let text = plain(&stderr);
+    assert!(
+        text.contains(&format!("'{rejected}'")),
+        "args {args:?}; stderr: {stderr}"
+    );
+    assert!(
+        !text.contains(&format!("'{target}'")),
+        "args {args:?}; stderr: {stderr}"
+    );
+}
 
 #[rstest::rstest]
 #[case::dotted_host(&["xr", "--output", "json", "example.com"])]
