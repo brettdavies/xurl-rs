@@ -2,13 +2,17 @@ args: ["--output", "json", "auth", "default"]
 store: empty
 exit_code: 1
 stdout_len: 0
-stderr_len: 157
+stderr_len: 247
 --- stdout ---
 
 --- stderr ---
 {
   "exit_code": 1,
   "message": "no default app set; pass --app or run 'xr auth default <name>' interactively",
+  "next_step": {
+    "action": "select-app",
+    "template": "xr auth default <app>"
+  },
   "reason": "no-tty",
   "status": "error"
 }

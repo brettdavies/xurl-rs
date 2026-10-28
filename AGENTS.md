@@ -48,18 +48,21 @@ xr auth status                   # list configured apps and token freshness
 
 Bare `xr` (no arguments) prints the root help on stdout at exit 0. A word that names no command exits 2 with reason
 `unknown-command`, echoing the word in `command` and naming the nearest real command in `suggestion` when one is close
-enough. Read those rather than parsing the message.
+enough. Read those rather than parsing the message. A flag only a raw request reads (`-X`, `-H`, `-d`, `--auth`, `-u`,
+`-t`, `-s`, `-F`), given before a command word, exits 2 with reason `invalid-args`, since the command reads only its own
+copy: for `-u`, `--auth`, or `-t` on a command that takes it, `next_step` is `fix-input` carrying the invocation with
+the flag after the word.
 
 ## Auth paths
 
 Four auth modes, selected by what's available in the token store and the environment.
 
-| Path               | When used                                                                                           | Surface                                                 |
-| ------------------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| OAuth1 (HMAC-SHA1) | User tokens stored in `~/.xurl` via `xr auth oauth1` (consumer key + secret, access token + secret) | v2 user-context endpoints whose spec entry lists OAuth1 |
-| OAuth2 PKCE        | User-scoped flow via `xr auth oauth2` (browser-driven) or `xr auth oauth2 --no-browser`             | All v2 user-scoped endpoints                            |
-| OAuth2 headless    | `xr auth oauth2 --no-browser`: copy-paste the URL flow on a graphical-display-less host             | Same as OAuth2 PKCE                                     |
-| Bearer (app-only)  | `XURL_BEARER_TOKEN=…` in env, or stored via `xr auth app --bearer-token`                            | v2 read-only endpoints + search                         |
+| Path               | When used                                                                                                    | Surface                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| OAuth1 (HMAC-SHA1) | User tokens stored in `~/.xurl/auth.yml` via `xr auth oauth1` (consumer key + secret, access token + secret) | v2 user-context endpoints whose spec entry lists OAuth1 |
+| OAuth2 PKCE        | User-scoped flow via `xr auth oauth2` (browser-driven) or `xr auth oauth2 --no-browser`                      | All v2 user-scoped endpoints                            |
+| OAuth2 headless    | `xr auth oauth2 --no-browser`: copy-paste the URL flow on a graphical-display-less host                      | Same as OAuth2 PKCE                                     |
+| Bearer (app-only)  | `XURL_BEARER_TOKEN=…` in env, or stored via `xr auth app --bearer-token`                                     | v2 read-only endpoints + search                         |
 
 The CLI picks per request: if a Bearer is set and the endpoint accepts app-auth, it's used; otherwise the stored
 user-scoped tokens for the active app drive the call. Multi-app is supported in the token store; `xr auth status`
@@ -78,25 +81,50 @@ be loaded. It carries `docs`, the README section on recovering the file, and its
 names the file. When a store command is what failed (reason `token-store`), the message already names the file and the
 step carries `docs` alone.
 
-Three actions answer failures that are not about credentials. `show-help` rides on reasons `invalid-args` and
-`unknown-command` (exit 2): `command` is the `xr <command> --help` the message closes on, the help of the nearest
-command when the word was mistyped. `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media
-processing reached its deadline with the job still running. The upload is intact, the envelope names it in `media_id`,
-and `command` is the `xr media status <media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry`
-rides on reason `rate-limited` (exit 3) when the 429 named its reset. The envelope carries `retry_after_secs`, the
-seconds until the reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries
-`docs` and no command, because the request to send again is the caller's own. A 429 that names no reset carries neither
-key and no `next_step`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it fits
-`--rate-limit-max-wait` (60 seconds unless set).
+Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
+`invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
+`invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
+`command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
+`resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
+job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the `xr media status
+<media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry` rides on reason `rate-limited` (exit 3)
+when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the reset and zero once it has
+passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no command, because the request to
+send again is the caller's own. A 429 that names no reset carries neither key and no `next_step`. `--wait-on-rate-limit`
+does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
+
+`retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
+(`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
+invocation fails again until its input or the state it read changes. Under `address-in-use`, a port another process
+holds, it carries `listen` again on `--port 0`: a `command`, or a `template` that hides each `-H` value. Under
+`invalid-args`, for `-u`, `--auth`, or `-t` given before a command word that takes it, it carries the invocation with
+the flag after the word. `report-issue` (`internal`, `serialization`, `api-error`) names the issue tracker in `docs`.
+`confirm` rides on `confirmation-required` and carries a `template`, the invocation with `--force`: it is never a
+`command`, so an agent that runs every command it is handed cannot confirm a deletion by accident. `run-command` names
+the sibling skill verb that repairs `destination-not-empty` or `not-installed`.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
 
 ## Token store
 
-YAML at `~/.xurl`. Schema is documented in `crates/xdk/src/store/types.rs`. Migration logic lives in
+YAML at `~/.xurl/auth.yml`, the file Go `xurl` 1.3.0 and later use. `crates/xdk/src/store/layout.rs` owns the path. A
+library constructor opens the store wherever it sits and moves nothing (`locate_store`). `xr` moves a single-file store
+at `~/.xurl` into the directory on the first command that opens it (`adopt_directory_layout`), and `Diagnostics` prints
+the move in text output. Schema is documented in `crates/xdk/src/store/types.rs`. Migration logic lives in
 `crates/xdk/src/store/migration.rs` and runs on every load: older formats upgrade transparently and the upgraded file is
 written back. Multiple apps are stored under the same file with a per-app block.
+
+Each OAuth2 login and each OAuth1 access pair carries `user_id`, the id of the account it belongs to, with the account's
+`account_username` and `display_name` from the same answer. The id is written only from `/2/users/me` answered under
+that credential (at sign-in, at the refresh of a login that lacks the id, by `xr whoami`, and by the first command that
+resolves the caller's id); a new id drops the names, and a credential that replaces another starts without any, so they
+cannot name another account. An answer's names are also written onto every other credential the store holds for the same
+id, in any app, since the id is the account's for good; a refresh that asks X nothing keeps the names the store holds
+when it writes. `xr whoami --cached` and `xr auth status` read them. `resolve_my_user_id` in
+`crates/xurl-cli/src/cli/commands/mod.rs` reads the id through `Call::auth_preflight` and sends the lookup only when it
+is absent. A refresh replaces the token where it is stored: the key is the caller's label for the login, which `xr auth
+oauth2 NAME` lets them choose. Another user's handle is never cached, since a handle can pass to another account.
 
 `xr auth status` is the operator-facing surface. Programmatic access uses `xdk::store::TokenStore`.
 
@@ -114,13 +142,24 @@ then close.
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
-reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`; the table
-under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` names the reasons that do and lists the ones that do
-not, and `crates/xurl-cli/tests/next_step_tests.rs` holds it to the closed set of reasons. `action` is a closed set;
-`command` is runnable verbatim by a non-TTY caller, while `template` carries angle-bracket placeholders only the caller
-can fill. A new error picks an existing action where one fits before it ships without a step. Prefer additive envelope
-changes: add keys rather than renaming or retyping existing ones.
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. It
+also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table under "Which
+Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
+`crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
+fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
+caller finishes or decides on first: angle-bracket placeholders to fill, or, under `confirm`, the invocation that
+destroys once it runs. A new error picks an existing action where one fits, and does not ship without a step. Prefer
+additive envelope changes: add keys rather than renaming or retyping existing ones.
+
+`--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
+`{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
+invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
+would end on, and a credential refusal carries the keys of its error envelope, `next_step` among them; a step that
+reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
+stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
+and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
+confirmation prompt; `confirmation_required: true` marks a destructive command that would stop to ask. Text output
+summarizes the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`).
 
 ## Shortcut commands
 
@@ -142,6 +181,9 @@ never the tests.
 - **Endpoint declaration.** A `SHORTCUT_TEMPLATES` row in `crates/xdk/build.rs`: the constant name, the method, and the
   spec path. The build panics when the path is not in the vendored spec, and `crates/xdk/tests/auth_matrix_coverage.rs`
   fails when the generated auth matrix has no entry for it.
+- **Sign-in scopes.** Any OAuth2 scope the endpoint requires that `get_oauth2_scopes` in
+  `crates/xdk/src/auth/oauth2.rs` does not request yet. `crates/xdk/tests/auth_tests.rs` fails for a shortcut whose
+  endpoint needs a scope the sign-in leaves out, and for a requested scope the vendored spec does not declare.
 - **Shortcut.** A `pub fn` in `crates/xdk/src/api/shortcuts.rs` that reads `endpoints::<NAME>` for its method and path.
   `crates/xdk/tests/path_literal_guard.rs` fails on a `/2/` literal in the request layer or the mock.
 - **Typed response.** A struct in `crates/xdk/src/api/response/types.rs` deriving `JsonSchema`, or an existing one.
@@ -157,9 +199,17 @@ never the tests.
 - **Dispatch arm.** An arm in the group's module beside `crates/xurl-cli/src/cli/commands/mod.rs` (posts, reads,
   engagement, the social graph, DMs, or the family's own), and the variant on that group's line in `run_subcommand` in
   that file. A verb that resolves a handle or acts on a post from the caller's account goes through
-  `act_from_me_on_user`, `act_on_user`, or `act_from_me_on_post`, and a paged list that belongs to one user through
-  `list_for_user`. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
-  and the dry-run golden fixtures pin the envelope.
+  `act_from_me_on_user`, `act_on_user` (`act_on_user_with` when other inputs ride along, as `lists members add` takes a
+  list), or `act_from_me_on_post`, and any other write from the caller's account through `act_from_me`. A paged list
+  that belongs to one user goes through `list_for_user`, or `list_owned_by` when the command's own inputs pick the list
+  out, the caller's own list from a path that names no user (`followers` without `--of`, `dms`) through `list_mine`, a
+  list a post owns (`likers`) through `list_for_post`, and any other list one request reads through `list_paged`. A verb
+  that sends one request hands its call to `send_or_report`, through `send_validated` when its inputs are checked first,
+  or `send_confirmed` when it destroys something. Each of those answers `--dry-run` with the credential its requests
+  would go out under. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
+  `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command that sends a request or changes stored state under
+  `--dry-run`, or whose dry run and real run disagree on the credential, and the dry-run golden fixtures pin the
+  envelope.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that
@@ -172,6 +222,9 @@ never the tests.
   `crates/xurl-cli/src/cli/commands/examples.rs`. `crates/xurl-cli/tests/agentic_tests.rs` fails for a family the page
   never invokes.
 - **Completions.** `scripts/generate-completions.sh`; CI's completions freshness gate fails when they are stale.
+- **Audit vocabulary.** A new top-level command word that anc does not count as a standard verb goes in
+  `domain_verbs` in `.anc.toml`. CI's `Agent-native audit` warns once too few of `xr`'s commands use standard or
+  declared words, and that warning takes its score below the job's floor.
 
 Re-bless a golden fixture only where a surface above says the content moved, with `XURL_GOLDEN_BLESS=1 cargo test -p
 xurl-rs --test golden_tests`; a fixture that moves for any other reason is a defect.
@@ -182,7 +235,9 @@ failure message carries a `Cause:` line) is named here, and no document lists th
 ### Command grammar: flags vs subcommands
 
 - Flags never select endpoints. A flag tunes one endpoint's request (auth method, output shape, pagination, fields); it
-  never retargets the path.
+  never retargets the path. One exception: a flag naming another user may pick that user's endpoint over the caller's
+  own, so `xr followers` reads the caller's own list from the endpoint for the signed-in user, and `xr followers --of
+  @jack` reads jack's.
 - A standalone action or read in the core domain gets its own top-level command word: `dm`/`dms`,
   `bookmark`/`bookmarks`, and `timeline`/`mentions` are separate commands because they are separate endpoints.
 - A subcommand family groups a noun that owns several operations: tooling nouns (`auth`, `skill`, `schema`,
@@ -203,14 +258,18 @@ The repository is a Cargo workspace with two members: `crates/xdk` (package `xdk
   Bearer token. PKCE pending-state is in `pending.rs`; the callback HTTP server is `callback.rs`.
 - `crates/xurl-cli/src/cli/`: clap-based CLI. `commands/mod.rs` routes each command to its group and holds what the
   groups share; the files beside it hold one group each (posts, reads, engagement, the social graph, DMs, usage,
-  broadcasts, media), the tooling commands (schema, skill, validate, examples), streaming, and `commands/auth/`, where
-  `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while `types.rs` holds the
-  bearer-source enum and the redirect-URI shapes. `exit_codes.rs` encodes the exit-code contract.
+  broadcasts, calls, webhooks, media), the tooling commands (schema, skill, validate, examples), streaming, and
+  `commands/auth/`, where `mod.rs` routes to `signin.rs`, `session.rs`, and `apps.rs` and owns `AppStatusEntry`, while
+  `types.rs` holds the bearer-source enum and the redirect-URI shapes.
+- `crates/xdk/src/webhooks/`: the webhook receiver. It binds an address, answers X's CRC check, and yields each event
+  whose signature verifies, on hyper's HTTP/1 server; `xr webhooks listen` prints what it yields.
 - `crates/xdk/src/config/`: env-var-based configuration.
-- `crates/xdk/src/store/`: YAML token store at `~/.xurl`; multi-app, with `migration.rs` for transparent upgrades.
+- `crates/xdk/src/store/`: YAML token store at `~/.xurl/auth.yml`; multi-app, with `migration.rs` for transparent
+  upgrades.
 - `crates/xurl-cli/src/cli/output/`: `OutputConfig` for text/json/jsonl formatting; `delimited.rs` holds the csv/tsv
   serializer.
-- `crates/xdk/src/error.rs`: `Error` (re-exported as `xdk::Error`) via `thiserror`.
+- `crates/xdk/src/error.rs`: `Error` (re-exported as `xdk::Error`) via `thiserror`; `Error::exit_code()` encodes the
+  exit-code contract.
 - `crates/xdk/src/lib.rs`: public library surface. The `xdk` library is consumable from downstream Rust crates; the
   binary `xr` is one consumer among potentially several. `crates/xurl-cli/src/lib.rs` exposes the CLI module only so the
   binary's own tests can drive it in-process; it is not an embedder API.
@@ -223,18 +282,18 @@ The line between the crates holds on four rules; a change that crosses one belon
    combination: `cargo tree -p xdk-rs --all-features -i <crate>` is empty for each, and CI's `Consumer check` compiles
    an out-of-package embedder against the documented surface.
 2. **I/O.** The library returns data, URLs, and `tracing` events (targets `xdk::wire`, `xdk::media`, `xdk::vocabulary`,
-   `xdk::auth`, `xdk::store`, `xdk::config`); it never writes to stdout or stderr and never opens a browser. It reads
-   the process environment in one place, `EnvOverrides::from_env`, which takes the client variables (`CLIENT_ID`,
-   `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`, `XURL_BEARER_TOKEN`); `HOME`,
-   `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, and the skill hosts' config- and base-directory
-   variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`) are read once, in
-   `crates/xurl-cli/src/cli/env.rs`.
-   Binding the loopback OAuth2 callback listener and reading or writing `~/.xurl` are network and file I/O, and belong
-   to the library.
-3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, and
-   `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming the
-   `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests can
-   drive the dispatcher in-process.
+   `xdk::auth`, `xdk::store`, `xdk::config`, `xdk::webhooks`); it never writes to stdout or stderr and never opens a
+   browser. It reads the process environment in one place, `EnvOverrides::from_env`, which takes the client variables
+   (`CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AUTH_URL`, `TOKEN_URL`, `API_BASE_URL`, `INFO_URL`,
+   `XURL_BEARER_TOKEN`); `HOME`, `XURL_OUTPUT`, `XURL_TOKEN_STORE`, `NO_COLOR`, `XURL_SKILL_HOME`, the skill hosts'
+   config- and base-directory variables (named in `crates/xurl-cli/src/cli/skill_install/skill.json`), and the `PATH`
+   and `PATHEXT` that find a `webhooks listen` program are read once, in `crates/xurl-cli/src/cli/env.rs`. Binding the
+   loopback OAuth2 callback listener, binding the webhook receiver, and reading or writing `~/.xurl/auth.yml` are
+   network and file I/O, and belong to the library.
+3. **Surface.** Every published module is one an embedder calls (`api`, `auth`, `config`, `error`, `store`, `webhooks`,
+   and `testing` behind its feature). Machinery only `xr` reaches is `pub` and `#[doc(hidden)]`, with a comment naming
+   the `xr` path that uses it. The CLI crate's `xurl` library target is doc-hidden and exists so its integration tests
+   can drive the dispatcher in-process.
 4. **Errors.** The library states the fact: an `Error` variant plus `kind()`, `exit_code()`, `next_action()`, and
    `docs_url()`, each matched exhaustively in-crate. The binary composes the sentence: the `Auth Error:` prefixes, the
    recovery wording, `next_step.command` and `template`, and the envelope live in `crates/xurl-cli/src/cli/output/`.
@@ -277,30 +336,35 @@ distribution manifest; the pin is effectively a SHA pin. Toolchain bumps land vi
 cargo test                    # unit + integration
 cargo test -- --ignored       # slower / network-dependent tests
 scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, msrv, doc, examples, the offline example
-                              # run, TLS feature cells, deny, shellcheck, Windows cross-clippy, markdownlint,
-                              # actionlint; docs.rs nightly build and cargo-hack powerset when installed)
+                              # run, TLS feature cells, the docs.rs feature set, deny, shellcheck, Windows
+                              # cross-clippy, markdownlint, actionlint; cargo-hack powerset when installed)
 ```
+
+A development build run by hand moves a single-file `~/.xurl` into the directory layout like any other `xr`, and a
+released `xr` 4.3.0 or earlier cannot read the store afterwards. Set `XURL_TOKEN_STORE` to a scratch path for a manual
+run unless the move is intended.
 
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
 (`TokenStore::new_with_path`, `Auth::new_with_store_path`, `run_with_store_path`).
 `crates/xurl-cli/tests/store_isolation_guard.rs` fails the suite when a test file names `Auth::new(`,
-`TokenStore::new()`, `TokenStore::with_credentials(`, `default_store_path()`, `default_pending_path()`, any `dirs::`
-call or `env::home_dir(`, sets, removes, or reads `HOME` or another home variable (`USERPROFILE`, `TMPDIR`,
-`CARGO_HOME`, `RUSTUP_HOME`, an `XDG_` directory), clears or bulk-sets a child's environment, or spawns the `xr` binary
-outside `common::xr()` and `common::xr_with_store` (which point `XURL_TOKEN_STORE` at an unwritable scratch path or the
-test's own temp store); a test that must touch the real path goes on its allowlist with the reason. A companion guard in
-`crates/xurl-cli/tests/agentic_tests.rs` derives every environment variable either crate reads and fails when `xr
---help` does not advertise one.
+`TokenStore::new()`, `TokenStore::with_credentials(`, `Client::from_env(`, `default_store_path()`,
+`default_pending_path()`, any `dirs::` call or `env::home_dir(`, sets, removes, or reads `HOME` or another home variable
+(`USERPROFILE`, `TMPDIR`, `CARGO_HOME`, `RUSTUP_HOME`, an `XDG_` directory), clears or bulk-sets a child's environment,
+or spawns the `xr` binary outside `common::xr()` and `common::xr_with_store` (which point `XURL_TOKEN_STORE` at an
+unwritable scratch path or the test's own temp store); a test that must touch the real path goes on its allowlist with
+the reason. A companion guard in `crates/xurl-cli/tests/agentic_tests.rs` derives every environment variable either
+crate reads and fails when `xr --help` does not advertise one.
 
 `scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
 format, workflow, and markdown checks over the staged files only, and `pre-push` runs the CI mirror over the repo. Run
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
-Five CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
-semver gate, the agent-native audit with the release binary's size ceiling, and `Go parity`, the differential suite
-against Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary. Run them
-yourself when a change touches the CLI surface, the library API, or the release profile.
+Six CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
+semver gate, the agent-native audit with the release binary's size ceiling, `Go parity`, the differential suite against
+Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary, and
+`Windows program target`, the `webhooks listen` program-target tests on a Windows runner. Run the first five yourself
+when a change touches the CLI surface, the library API, or the release profile; the sixth needs a Windows machine.
 
 ## Releasing
 
@@ -314,6 +378,16 @@ PR to `main` (squash) → annotated tag push triggers `release.yml`.
 The spec-drift workflow opens PRs to `dev` (head `spec-refresh`) whose body is an agent runbook. Invoke the reconciling
 agent as "Triage and fix PR #N".
 
+`endpoint-decisions.json` records what was decided for every spec operation without a shortcut command: the
+operations, the status, the reason, and who decided and when. `raw-only` and `not-supported` mean no command until
+`revisit_when` fires (`never`, a GitHub pull request merging, or a crate being published); `planned` names a command
+family to build, and its entry goes when the command ships. A refresh PR's runbook lists the added operations a decision
+covers, so none is proposed again, and the daily run's summary reports each trigger as fired or holding
+(`scripts/endpoint-decisions.sh triggers`). Only a person changes a decision, and a `raw-only` or `not-supported` one
+only once its trigger has fired. `crates/xdk/tests/endpoint_decisions.rs` fails for a spec operation with neither a
+shortcut nor a decision, for an entry naming an operation the spec lacks, and for a decision covering one that has a
+shortcut.
+
 ## Known differences from the Go original
 
 See [`KNOWN_DIFFERENCES.md`](KNOWN_DIFFERENCES.md) for intentional deviations from
@@ -322,9 +396,9 @@ See [`KNOWN_DIFFERENCES.md`](KNOWN_DIFFERENCES.md) for intentional deviations fr
 ## Documented solutions
 
 On `dev`, `docs/solutions/` is a symlink to `~/dev/solutions-docs/`, a shared, searchable archive of past solutions and
-best practices organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Search with `qmd query
-"<topic>" --collection solutions` before implementing or debugging in a documented area; the corpus crosses repos and
-already captures known pitfalls.
+best practices organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Search with
+`qmd query "<topic>" --collection solutions` before implementing or debugging in a documented area; the corpus crosses
+repos and already captures known pitfalls.
 
 `CONCEPTS.md`, on `dev` alongside the engineering docs, holds the shared domain vocabulary (entities, named processes,
 and status concepts with project-specific meaning), relevant when orienting to the codebase or discussing domain

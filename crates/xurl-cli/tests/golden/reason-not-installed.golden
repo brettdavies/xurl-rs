@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "update", "--all"]
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 0
-stdout_len: 2423
+stdout_len: 3076
 stderr_len: 0
 --- stdout ---
 {
@@ -17,7 +17,11 @@ stderr_len: 0
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
-      "reason": "not-installed"
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install claude_code"
+      }
     },
     {
       "action": "skill-update",
@@ -27,7 +31,11 @@ stderr_len: 0
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
-      "reason": "not-installed"
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install codex"
+      }
     },
     {
       "action": "skill-update",
@@ -37,7 +45,11 @@ stderr_len: 0
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
-      "reason": "not-installed"
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install cursor"
+      }
     },
     {
       "action": "skill-update",
@@ -47,7 +59,11 @@ stderr_len: 0
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
-      "reason": "not-installed"
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install factory"
+      }
     },
     {
       "action": "skill-update",
@@ -57,7 +73,11 @@ stderr_len: 0
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
-      "reason": "not-installed"
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install kiro"
+      }
     },
     {
       "action": "skill-update",
@@ -67,7 +87,11 @@ stderr_len: 0
       "destination_status": "absent",
       "status": "skipped",
       "exit_code": 0,
-      "reason": "not-installed"
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install opencode"
+      }
     }
   ],
   "exit_code": 0

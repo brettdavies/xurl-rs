@@ -65,7 +65,7 @@ pub(super) fn render_structured<T: serde::Serialize>(env: &T, format: &OutputFor
         OutputFormat::Jsonl | OutputFormat::Ndjson | OutputFormat::Csv | OutputFormat::Tsv => {
             serde_json::to_string(env).unwrap_or_else(|_| "{\"status\":\"error\"}".to_string())
         }
-        OutputFormat::Yaml => serde_yaml::to_string(env)
+        OutputFormat::Yaml => xdk::yaml::to_string(env)
             .unwrap_or_else(|_| "status: error\n".to_string())
             .trim_end()
             .to_string(),
@@ -94,6 +94,7 @@ mod tests {
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: Some("/old/xurl-rs".to_string()),
+            next_step: None,
         }
     }
 

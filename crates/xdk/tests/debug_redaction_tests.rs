@@ -29,11 +29,17 @@ fn store_token_types_redact_every_secret() {
         token_secret: SECRET.into(),
         consumer_key: "consumer-key".into(),
         consumer_secret: SECRET.into(),
+        user_id: None,
+        account_username: None,
+        display_name: None,
     };
     let oauth2 = OAuth2Token {
         access_token: SECRET.into(),
         refresh_token: SECRET.into(),
         expiration_time: 1,
+        user_id: None,
+        account_username: None,
+        display_name: None,
     };
     let bearer = Token {
         token_type: TokenType::Bearer,

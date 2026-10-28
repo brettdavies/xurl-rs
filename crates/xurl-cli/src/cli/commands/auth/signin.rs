@@ -9,7 +9,7 @@ use super::secret::{self, SecretArg};
 use super::{AuthCtx, AuthGlobalFlags};
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
-use crate::cli::hints::NextStep;
+use crate::cli::hints::{NextStep, quote_app_name, shell_word};
 use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
 use xdk::config::Config;
@@ -138,6 +138,7 @@ pub(super) async fn oauth2(
                     );
                 }
                 let url = client.auth().await?.remote_oauth2_step1(&pending_path)?;
+                let app = client.auth().await?.app_name().to_string();
                 if out.format.is_structured() {
                     // Explicit `--no-browser` (no `--step`) and
                     // the auto-engaged path both emit the canonical
@@ -153,7 +154,10 @@ pub(super) async fn oauth2(
                             &serde_json::json!({
                                 "status": "awaiting_callback",
                                 "url": url,
-                                "instructions": "Open the URL in a browser, authorize, then run 'xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>'",
+                                "instructions": format!(
+                                    "Open the URL in a browser, authorize, then run '{}'",
+                                    step_two(username_arg, &app, "<redirect-url>")
+                                ),
                             }),
                         );
                     } else {
@@ -182,7 +186,10 @@ pub(super) async fn oauth2(
                     out.print_message(stdout, "Then run:");
                     out.print_message(
                         stdout,
-                        "  echo '<redirect-url>' | xr auth oauth2 --no-browser --step 2 --auth-url -",
+                        &format!(
+                            "  echo '<redirect-url>' | {}",
+                            step_two(username_arg, &app, "-")
+                        ),
                     );
                 }
             }
@@ -232,6 +239,25 @@ pub(super) async fn oauth2(
         }
     }
     Ok(())
+}
+
+/// Step 2 of the headless sign-in, reading the redirect URL from `auth_url`.
+/// Step 1 saves neither the login's name nor the app, so each comes back
+/// here: without the name the login is stored under its username, and
+/// without the app step 2 refuses another app's pending state.
+fn step_two(login: &str, app: &str, auth_url: &str) -> String {
+    let mut command = "xr auth oauth2".to_string();
+    if !login.is_empty() {
+        command.push(' ');
+        command.push_str(&shell_word(login));
+    }
+    command.push_str(" --no-browser --step 2 --auth-url ");
+    command.push_str(auth_url);
+    if !app.is_empty() {
+        command.push_str(" --app ");
+        command.push_str(&quote_app_name(app));
+    }
+    command
 }
 
 /// Arguments of `xr auth oauth1`: the consumer key/secret pair identifying the
@@ -389,4 +415,21 @@ fn client_credentials_missing(
         next_step: Some(next_step),
         ..ErrorBody::default()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::step_two;
+
+    #[test]
+    fn step_two_carries_the_name_and_app_step_one_was_given() {
+        assert_eq!(
+            step_two("", "", "-"),
+            "xr auth oauth2 --no-browser --step 2 --auth-url -"
+        );
+        assert_eq!(
+            step_two("work", "side project", "<redirect-url>"),
+            "xr auth oauth2 work --no-browser --step 2 --auth-url <redirect-url> --app 'side project'"
+        );
+    }
 }

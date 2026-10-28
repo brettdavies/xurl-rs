@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "webhooks", "add", "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
+store: empty
+exit_code: 0
+stdout_len: 349
+stderr_len: 0
+--- stdout ---
+{
+  "command": "webhooks-add",
+  "exit_code": 1,
+  "reason": "webhook-url-too-long",
+  "status": "dry_run",
+  "url": "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "would_succeed": false
+}
+
+--- stderr ---
+

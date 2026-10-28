@@ -38,6 +38,27 @@ pub enum NextAction {
     /// X rate limited the request and said when the window resets; send it
     /// again once that time has passed.
     WaitAndRetry,
+    /// Nothing is wrong with the request; send it again.
+    Retry,
+    /// The input, or the local state the command read, is what failed, and
+    /// no other command repairs it; change it before another try.
+    FixInput,
+    /// The tool or the library is at fault; report it.
+    ReportIssue,
+    /// The command destroys something and ran without its confirmation;
+    /// run it again with the flag that confirms it.
+    // `xr` reaches this alone: its `confirmation-required` envelope
+    // (`crates/xurl-cli/src/cli/output/mod.rs`,
+    // `print_confirmation_required`) carries it, and no library error
+    // returns it.
+    #[doc(hidden)]
+    Confirm,
+    /// One other command repairs this; run it.
+    // `xr` reaches this alone: its skill envelopes
+    // (`crates/xurl-cli/src/cli/skill_install/mod.rs`) carry it, and no
+    // library error returns it.
+    #[doc(hidden)]
+    RunCommand,
 }
 
 /// The enrollment recipe for an app X refuses.
@@ -46,6 +67,10 @@ const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform
 const AUTHENTICATION_DOCS: &str = "https://docs.x.com/resources/fundamentals/authentication";
 /// Where X documents its rate limits.
 const RATE_LIMIT_DOCS: &str = "https://docs.x.com/resources/fundamentals/rate-limits";
+/// Where X documents what each response status means.
+const RESPONSE_CODE_DOCS: &str = "https://docs.x.com/x-api/fundamentals/response-codes-and-errors";
+/// Where a fault of the library or of `xr` is reported.
+const ISSUE_TRACKER: &str = "https://github.com/brettdavies/xurl-rs/issues";
 
 /// Whether an API refusal is X declining the app itself rather than the
 /// request: a 403 whose body carries either enrollment marker.
@@ -70,7 +95,7 @@ pub type Source = Box<dyn std::error::Error + Send + Sync + 'static>;
 /// classified before it ships.
 ///
 /// A variant that wraps a lower-level failure keeps it: `source()` returns
-/// the `reqwest`, `std::io`, `serde_json`, or `serde_yaml` error underneath,
+/// the `reqwest`, `std::io`, `serde_json`, or `serde_saphyr` error underneath,
 /// so a caller can walk the chain or downcast to it. `Display` stays the
 /// message alone.
 ///
@@ -206,6 +231,17 @@ pub enum Error {
         media_id: String,
         /// The deadline the wait ran to.
         waited: std::time::Duration,
+    },
+
+    /// A webhook receiver could not bind its address because another socket
+    /// holds it. Any other bind failure is [`Self::Io`].
+    #[error("could not bind {address}: the address is already in use")]
+    AddressInUse {
+        /// The address the receiver was asked to bind.
+        address: std::net::SocketAddr,
+        /// The error the operating system returned.
+        #[source]
+        source: std::io::Error,
     },
 
     /// Auth method mismatch: the caller asked for, or auto-detect resolved,
@@ -459,9 +495,13 @@ impl Error {
     /// A 403 that says X refused the app is `EnrollApp`; a bare 403 on X's
     /// Pay-per-use enrollment failure is unactionable without it. A
     /// processing timeout is `ResumeWait`, and a 429 that named its reset is
-    /// `WaitAndRetry`; a 429 that named none has no time to wait for. Every
-    /// other error is `None` here: the steps that depend on a credential
-    /// store are the binary's to choose.
+    /// `WaitAndRetry`; a 429 that named none has no time to wait for. A
+    /// request that got no response and a 5xx are `Retry`. A 400, a 404, or
+    /// a 422, a file that could not be read, and an input refused before it
+    /// was sent are `FixInput`. A status with no reading of its own, a body
+    /// that could not be read, and a broken invariant are `ReportIssue`. A
+    /// credential failure is `None` here: the steps that depend on a
+    /// credential store are the binary's to choose.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -479,20 +519,34 @@ impl Error {
                 ..
             } => Some(NextAction::WaitAndRetry),
             Self::ProcessingTimeout { .. } => Some(NextAction::ResumeWait),
-            Self::Api { .. }
-            | Self::Http { .. }
+            Self::Http { .. }
+            | Self::Api {
+                status: 500..=599, ..
+            } => Some(NextAction::Retry),
+            Self::Api {
+                status: 400 | 404 | 422,
+                ..
+            }
             | Self::Io { .. }
+            | Self::AddressInUse { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
             | Self::InvalidUrl { .. }
-            | Self::InvalidPathParam { .. }
-            | Self::Internal(_)
-            | Self::Json { .. }
-            | Self::Auth { .. }
-            | Self::TokenStore { .. } => None,
+            | Self::InvalidPathParam { .. } => Some(NextAction::FixInput),
             // The stored-credential recovery steps are the binary's: it knows
-            // which apps hold what and names the invocation.
-            Self::AuthMethodMismatch(_) => None,
+            // which apps hold what and names the invocation. A 401, a 403
+            // that is not about enrollment, and a 429 that names no reset
+            // are credential and quota questions of the same kind.
+            Self::Api {
+                status: 401 | 403 | 429,
+                ..
+            }
+            | Self::Auth { .. }
+            | Self::TokenStore { .. }
+            | Self::AuthMethodMismatch(_) => None,
+            Self::Api { .. } | Self::Internal(_) | Self::Json { .. } => {
+                Some(NextAction::ReportIssue)
+            }
         }
     }
 
@@ -512,17 +566,21 @@ impl Error {
                 Some(AUTHENTICATION_DOCS)
             }
             Self::Api { status: 429, .. } => Some(RATE_LIMIT_DOCS),
-            Self::Api { .. }
+            Self::Api {
+                status: 400 | 404 | 422 | 500..=599,
+                ..
+            } => Some(RESPONSE_CODE_DOCS),
+            Self::Api { status: 403, .. }
             | Self::Http { .. }
             | Self::Io { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
             | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
-            | Self::Internal(_)
-            | Self::Json { .. }
             | Self::TokenStore { .. }
-            | Self::ProcessingTimeout { .. } => None,
+            | Self::ProcessingTimeout { .. }
+            | Self::AddressInUse { .. } => None,
+            Self::Api { .. } | Self::Internal(_) | Self::Json { .. } => Some(ISSUE_TRACKER),
         }
     }
 
@@ -564,6 +622,7 @@ impl Error {
     /// | `Internal`             | `internal`       |
     /// | `AuthMethodMismatch`   | `auth-method-mismatch` |
     /// | `ProcessingTimeout`    | `processing-timeout` |
+    /// | `AddressInUse`         | `address-in-use` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -590,6 +649,7 @@ impl Error {
             Self::InvalidPathParam { .. } => "invalid-path-param",
             Self::Internal(_) => "internal",
             Self::ProcessingTimeout { .. } => "processing-timeout",
+            Self::AddressInUse { .. } => "address-in-use",
         }
     }
 
@@ -608,7 +668,7 @@ impl Error {
             Self::Api { status: 429, .. } => EXIT_RATE_LIMITED,
             Self::Api { status: 404, .. } => EXIT_NOT_FOUND,
             Self::Api { .. } => EXIT_GENERAL_ERROR,
-            Self::Http { .. } | Self::Io { .. } => EXIT_NETWORK_ERROR,
+            Self::Http { .. } | Self::Io { .. } | Self::AddressInUse { .. } => EXIT_NETWORK_ERROR,
             Self::Json { .. }
             | Self::InvalidMethod(_)
             | Self::Validation(_)
@@ -640,8 +700,8 @@ impl From<serde_json::Error> for Error {
 }
 
 // The token store and a `.twurlrc` import are the library's only YAML.
-impl From<serde_yaml::Error> for Error {
-    fn from(err: serde_yaml::Error) -> Self {
+impl From<serde_saphyr::Error> for Error {
+    fn from(err: serde_saphyr::Error) -> Self {
         Self::token_store(err.to_string()).with_source(err)
     }
 }
@@ -722,9 +782,9 @@ pub const EXIT_RATE_LIMITED: i32 = 3;
 /// Resource not found (HTTP 404).
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NOT_FOUND: i32 = 4;
-/// A transport or filesystem failure: [`Error::Http`] and [`Error::Io`]. An
-/// API response whose status has no code of its own exits
-/// [`EXIT_GENERAL_ERROR`].
+/// A transport or filesystem failure: [`Error::Http`], [`Error::Io`], and an
+/// address another socket holds, [`Error::AddressInUse`]. An API response
+/// whose status has no code of its own exits [`EXIT_GENERAL_ERROR`].
 #[allow(dead_code)] // Public library API — used by consumers
 pub const EXIT_NETWORK_ERROR: i32 = 5;
 

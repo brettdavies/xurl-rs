@@ -6,11 +6,12 @@ use std::time::Duration;
 
 use serde::de::DeserializeOwned;
 
-use crate::api::auth_matrix::WireScheme;
-use crate::api::response::types::decode;
+use crate::api::auth_matrix::{WireScheme, endpoints};
+use crate::api::response::types::{ApiResponse, User, decode};
 use crate::error::{Error, Result};
+use crate::store::STORE_TARGET;
 
-use super::{CallOptions, Client, RequestOptions, RequestTarget};
+use super::{AuthPreflight, CallOptions, Client, RequestOptions, RequestTarget};
 
 /// A shortcut request that has not been sent.
 ///
@@ -33,7 +34,9 @@ pub struct Call<T> {
     client: Client,
     options: CallOptions,
     request: RequestOptions,
-    paginated: bool,
+    /// The query parameter a list endpoint reads its cursor from; `None`
+    /// for an endpoint that takes no cursor.
+    cursor_param: Option<&'static str>,
     failed: Option<Error>,
     response: PhantomData<fn() -> T>,
 }
@@ -47,9 +50,130 @@ impl<T> std::fmt::Debug for Call<T> {
         f.debug_struct("Call")
             .field("method", &self.request.method)
             .field("target", &self.request.target)
-            .field("paginated", &self.paginated)
+            .field("cursor_param", &self.cursor_param)
             .field("failed", &self.failed)
             .finish_non_exhaustive()
+    }
+}
+
+/// The stored login a `/2/users/me` request goes out with.
+enum StoredLogin {
+    /// An `OAuth2` token in `app`, under `stored_as` or unnamed.
+    OAuth2 {
+        app: String,
+        stored_as: Option<String>,
+    },
+    /// The `OAuth1` access pair of `app`.
+    OAuth1 { app: String },
+}
+
+impl Call<ApiResponse<User>> {
+    /// Sends the call, and stores what the answer says of the login it went
+    /// out with: when this is `GET /2/users/me` under a user credential from
+    /// the store, the account's id is stored beside that credential, and an
+    /// `OAuth2` token stored without a username is stored under the one X
+    /// answered with.
+    ///
+    /// Any other call is sent as [`Call::send`] sends it. A lookup of
+    /// another user says nothing about the stored login, so it stores
+    /// nothing. A store that cannot be written is a warning on `xdk::auth`,
+    /// not a failure: the answer is still X's.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Call::send`] returns.
+    // `xr` is the caller: `whoami`, and the commands that resolve the
+    // caller's id before they act (`crates/xurl-cli/src/cli/commands/`).
+    #[doc(hidden)]
+    pub async fn send_saving_identity(self) -> Result<ApiResponse<User>> {
+        let asks_who_i_am = self.request.method == endpoints::GET_ME.method
+            && matches!(
+                &self.request.target,
+                RequestTarget::Template { path, .. } if path == endpoints::GET_ME.path
+            );
+        let login = if asks_who_i_am {
+            match self.auth_preflight().await {
+                Ok(Some(AuthPreflight {
+                    scheme: WireScheme::OAuth2,
+                    app: Some(app),
+                    username,
+                    ..
+                })) => Some(StoredLogin::OAuth2 {
+                    app,
+                    stored_as: username,
+                }),
+                Ok(Some(AuthPreflight {
+                    scheme: WireScheme::OAuth1,
+                    app: Some(app),
+                    ..
+                })) => Some(StoredLogin::OAuth1 { app }),
+                _ => None,
+            }
+        } else {
+            None
+        };
+        let client = self.client.clone();
+        let response = self.send().await?;
+        if let Some(login) = login
+            && let Err(error) = client.store_identity(&login, &response.data).await
+        {
+            tracing::warn!(
+                target: "xdk::auth",
+                "the answer could not be stored with the login: {error}"
+            );
+        }
+        Ok(response)
+    }
+}
+
+impl Client {
+    /// Stores `user` as the account behind `login`.
+    async fn store_identity(&self, login: &StoredLogin, user: &User) -> Result<()> {
+        let mut auth = self.auth().await?;
+        let store = &mut auth.token_store;
+        let account_username = Some(user.username.as_str()).filter(|name| !name.is_empty());
+        let display_name = Some(user.name.as_str()).filter(|name| !name.is_empty());
+        match login {
+            StoredLogin::OAuth1 { app } => {
+                store.set_oauth1_account_for_app(app, &user.id, account_username, display_name)?;
+            }
+            StoredLogin::OAuth2 {
+                app,
+                stored_as: Some(name),
+            } => {
+                store.set_oauth2_account_for_app(
+                    app,
+                    name,
+                    &user.id,
+                    account_username,
+                    display_name,
+                )?;
+            }
+            StoredLogin::OAuth2 {
+                app,
+                stored_as: None,
+            } => {
+                // A token already stored under the username is the newer
+                // one, written by a refresh that learned the name; the
+                // unnamed one is then not the login this answer is about.
+                if store.name_unnamed_oauth2_token_for_app(app, &user.username)? {
+                    tracing::info!(
+                        target: STORE_TARGET,
+                        kind = "login-named",
+                        name = %user.username,
+                        "stored the unnamed OAuth2 login under its username"
+                    );
+                    store.set_oauth2_account_for_app(
+                        app,
+                        &user.username,
+                        &user.id,
+                        account_username,
+                        display_name,
+                    )?;
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -59,7 +183,7 @@ impl<T> Call<T> {
             client: client.clone(),
             options: CallOptions::default(),
             request,
-            paginated: false,
+            cursor_param: None,
             failed: None,
             response: PhantomData,
         }
@@ -73,9 +197,15 @@ impl<T> Call<T> {
     }
 
     /// Marks a list endpoint, the only kind that sends
-    /// [`Call::pagination_token`].
-    pub(crate) fn paginated(mut self) -> Self {
-        self.paginated = true;
+    /// [`Call::pagination_token`], as `pagination_token`.
+    pub(crate) fn paginated(self) -> Self {
+        self.paginated_by("pagination_token")
+    }
+
+    /// [`Call::paginated`] for an endpoint that reads its cursor from
+    /// `param`, such as the `next_token` of `/2/users/search`.
+    pub(crate) fn paginated_by(mut self, param: &'static str) -> Self {
+        self.cursor_param = Some(param);
         self
     }
 
@@ -143,6 +273,25 @@ impl<T: DeserializeOwned> Call<T> {
         self
     }
 
+    /// Reports the credential this call would be sent with, without sending
+    /// it: [`Client::auth_preflight`] for the request as built so far.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Client::auth_preflight`] returns, plus the error of a
+    /// request that could not be built.
+    pub async fn auth_preflight(&self) -> Result<Option<AuthPreflight>> {
+        if let Some(error) = &self.failed {
+            // `failed` holds only a body that did not serialize.
+            return Err(Error::json(error.to_string()));
+        }
+        let mut request = self.request.clone();
+        request.auth_type.clone_from(&self.options.auth_type);
+        request.username.clone_from(&self.options.username);
+        request.no_auth = self.options.no_auth;
+        self.client.auth_preflight(&request).await
+    }
+
     /// Performs the request and decodes the response.
     ///
     /// # Errors
@@ -155,7 +304,7 @@ impl<T: DeserializeOwned> Call<T> {
             client,
             options,
             mut request,
-            paginated,
+            cursor_param,
             failed,
             ..
         } = self;
@@ -166,11 +315,11 @@ impl<T: DeserializeOwned> Call<T> {
         request.username = options.username;
         request.trace = options.trace;
         request.no_auth = options.no_auth;
-        if paginated
+        if let Some(param) = cursor_param
             && !options.pagination_token.is_empty()
             && let RequestTarget::Template { query, .. } = &mut request.target
         {
-            query.push(("pagination_token".to_string(), options.pagination_token));
+            query.push((param.to_string(), options.pagination_token));
         }
         let timeout = options.timeout.unwrap_or_else(|| client.request_timeout());
         decode(client.send_request_with(&request, timeout).await?)

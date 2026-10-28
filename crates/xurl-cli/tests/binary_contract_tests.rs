@@ -168,4 +168,46 @@ fn sigpipe_smoke() {
         !stderr.contains("BrokenPipe"),
         "child surfaced BrokenPipe (SIGPIPE restoration likely drifted): {stderr}"
     );
+    // The exit status holds whatever a panic prints: the panic hook answers
+    // with the `internal` record and exit 1, which these text checks alone
+    // would pass over if its wording changed.
+    use std::os::unix::process::ExitStatusExt;
+    #[cfg(unix)]
+    let sigpipe = libc::SIGPIPE;
+    assert!(
+        output.status.code() == Some(0) || output.status.signal() == Some(sigpipe),
+        "child neither exited 0 nor died by SIGPIPE (restoration likely drifted): {:?}; \
+         stderr: {stderr}",
+        output.status
+    );
+}
+
+/// The signed-sample builder `listen` prints from lives outside the library's
+/// `testing` feature, which pulls in `wiremock`; the release `xr` reaches it
+/// without that feature, which only the dev-dependency turns on.
+#[test]
+fn the_release_build_enables_no_testing_feature_of_the_library() {
+    let output = std::process::Command::new(env!("CARGO"))
+        .args([
+            "tree",
+            "--offline",
+            "--locked",
+            "-p",
+            "xurl-rs",
+            "-e",
+            "features,no-dev",
+            "-i",
+            "xdk-rs",
+        ])
+        .current_dir(common::workspace_root())
+        .output()
+        .expect("cargo tree runs");
+    let tree = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        output.status.success(),
+        "cargo tree failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(tree.contains("xdk-rs feature \"default\""), "{tree}");
+    assert!(!tree.contains("feature \"testing\""), "{tree}");
 }

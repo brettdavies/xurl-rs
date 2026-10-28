@@ -2,6 +2,145 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-10-27
+
+### Breaking changes
+
+- Add `user_id` to `OAuth2Token` and `OAuth1Token`, the id of the account the credential belongs to. A struct literal of either names one more field. by @brettdavies in [#328](https://github.com/brettdavies/xurl-rs/pull/328)
+
+  ```rust
+  // Before
+  let token = OAuth2Token { access_token, refresh_token, expiration_time };
+
+  // After
+  let token = OAuth2Token { access_token, refresh_token, expiration_time, user_id: None };
+  ```
+- Add `account_username` and `display_name` to `OAuth2Token` and `OAuth1Token`, the account's username and display name from the `/2/users/me` answer that stored `user_id`. A struct literal of either names two more fields. by @brettdavies in [#345](https://github.com/brettdavies/xurl-rs/pull/345)
+
+  ```rust
+  // Before
+  let token = OAuth2Token { access_token, refresh_token, expiration_time, user_id: None };
+
+  // After
+  let token = OAuth2Token {
+      access_token,
+      refresh_token,
+      expiration_time,
+      user_id: None,
+      account_username: None,
+      display_name: None,
+  };
+  ```
+- Change `xdk::Error`'s YAML conversion from `serde_yaml::Error` to `serde_saphyr::Error`: the `From` impl takes a `serde_saphyr::Error`, and a token-store YAML failure's `source()` downcasts to `serde_saphyr::Error`. by @brettdavies in [#348](https://github.com/brettdavies/xurl-rs/pull/348)
+
+  ```rust
+  // Before
+  let err: xdk::Error = serde_yaml::from_str::<Config>(text).unwrap_err().into();
+  let yaml = std::error::Error::source(&err).and_then(|s| s.downcast_ref::<serde_yaml::Error>());
+  // After
+  let err: xdk::Error = serde_saphyr::from_str::<Config>(text).unwrap_err().into();
+  let yaml = std::error::Error::source(&err).and_then(|s| s.downcast_ref::<serde_saphyr::Error>());
+  ```
+- Add `active_follower_count` to `User`, filled by `Client::get_me`. A struct literal of `User` names one more field. by @brettdavies in [#373](https://github.com/brettdavies/xurl-rs/pull/373)
+
+  ```rust
+  // Before
+  let user = User { id, name, username, ..Default::default() };
+
+  // After: unchanged when built with `..Default::default()`; a literal that names every field adds
+  let user = User { id, name, username, active_follower_count: None, ..Default::default() };
+  ```
+
+### Added
+
+- Add `store::default_store_path`, `store::locate_store`, and `store::adopt_directory_layout`, with the `store::AUTH_FILE_NAME` and `store::STORE_TARGET` constants. `locate_store` finds a store in either layout and moves nothing; `adopt_directory_layout` moves a single-file store into its directory and reports it as a `tracing` event. by @brettdavies in [#315](https://github.com/brettdavies/xurl-rs/pull/315)
+- Add `Call::auth_preflight()` and `Client::auth_preflight(&RequestOptions)`, which report the credential a request would be sent with and send nothing. An expired OAuth2 token is reported, not refreshed. by @brettdavies in [#322](https://github.com/brettdavies/xurl-rs/pull/322)
+- Add `AuthPreflight`, their answer: `scheme`, `app`, `username`, and `token_expired`.
+- Add `TokenStore::first_oauth2_user_for_app`, the user a request with no username is sent as, with that user's token.
+- Add `NextAction::Retry`, `NextAction::FixInput`, and `NextAction::ReportIssue`. `Error::next_action()` returns them for a transport failure or a 5xx, for a 400, 404, 422, an unreadable file, or a refused input, and for a status with no reading of its own, an unreadable body, or a broken invariant. by @brettdavies in [#325](https://github.com/brettdavies/xurl-rs/pull/325)
+- Add pointers to `Error::docs_url()`: X's response-code page for a 400, 404, 422, or 5xx, and the issue tracker for a fault of the library.
+- Add `AuthPreflight::user_id`, the account id stored beside the credential a request would be sent with. by @brettdavies in [#328](https://github.com/brettdavies/xurl-rs/pull/328)
+- Add `TokenStore::set_oauth2_user_id_for_app`, `TokenStore::set_oauth1_user_id_for_app`, and `TokenStore::name_unnamed_oauth2_token_for_app`.
+- Add `Client::get_webhooks`, `create_webhook`, `validate_webhook`, `delete_webhook`, and `create_webhook_replay` for the `/2/webhooks` endpoints, with the response types `Webhook`, `WebhookValidation`, and `WebhookReplayJob`. `testing::MockX` answers each. by @brettdavies in [#333](https://github.com/brettdavies/xurl-rs/pull/333)
+- Add the offline validators `validate_webhook_url`, `validate_webhook_id`, and `validate_replay_time`, and the constant `WEBHOOK_URL_MAX_CHARS`, which hold the spec's bounds for the webhook endpoints. by @brettdavies in [#334](https://github.com/brettdavies/xurl-rs/pull/334)
+- Add `Client::get_account_activity_subscription_count`, `get_account_activity_subscriptions`, `check_account_activity_subscription`, `create_account_activity_subscription`, and `delete_account_activity_subscription`, with the response types `AccountActivitySubscriptionCount`, `AccountActivitySubscriptions`, `AccountActivitySubscription`, and `SubscribedResult`. `testing::MockX` answers each. by @brettdavies in [#336](https://github.com/brettdavies/xurl-rs/pull/336)
+- Add the offline validator `validate_user_id`.
+- Add `Client::get_webhook_stream_links`, `create_webhook_stream_link`, and `delete_webhook_stream_link`, with the response types `WebhookStreamLink` and `ProvisionedResult`. `testing::MockX` answers each. by @brettdavies in [#337](https://github.com/brettdavies/xurl-rs/pull/337)
+- Add the `webhooks` module: `Receiver`, `ReceiverConfig`, `SigningSecrets`, `Event`, `Signature`, and `sign`. A `Receiver` binds an address, answers X's CRC check, and yields each event whose signature verifies. by @brettdavies in [#338](https://github.com/brettdavies/xurl-rs/pull/338)
+- Add the refusals `webhook-url-not-https` and `webhook-url-has-port` to `validate_webhook_url`, the two URL rules X documents.
+- Add the call shortcuts on `Client`: `get_call`, `get_scheduled_calls`, `schedule_call`, `get_scheduled_call`, `update_scheduled_call`, `cancel_scheduled_call`, and `respond_to_scheduled_call`. They come with the response types `XCall`, `ScheduledCall`, `ScheduledCallInvitee`, `ScheduledCallUpdated`, `ScheduledCallCancelled`, and `ScheduledCallRsvp`, and the request types `NewScheduledCall`, `ScheduledCallChanges`, `Occurrences`, `OccurrenceScope`, and `RsvpAnswer`. The validators are `validate_call_time`, `validate_new_scheduled_call`, `validate_scheduled_call_changes`, and `validate_occurrences`. by @brettdavies in [#340](https://github.com/brettdavies/xurl-rs/pull/340)
+- Add the stream-source shortcuts on `Client`: `get_stream_sources`, `create_stream_source`, `get_stream_source`, `rename_stream_source`, and `delete_stream_source`, with `StreamSource`, `StreamSources`, `StreamSourceResult`, `StreamSourceDeleted`, `validate_source_name`, and `validate_source_region`.
+- Add `calls.read` and `calls.write` to `get_oauth2_scopes`, the set a sign-in requests when the caller names none.
+- Add `Client::get_bookmark_folders`, `Client::create_bookmark_folder`, and `Client::get_bookmark_folder_posts`, with the `BookmarkFolder` and `BookmarkFolderPost` response types and the `validate_bookmark_folder_name` and `validate_bookmark_folder_id` validators. by @brettdavies in [#341](https://github.com/brettdavies/xurl-rs/pull/341)
+- Add `TokenStore::set_oauth2_account_for_app` and `TokenStore::set_oauth1_account_for_app`, which store an account's id with its username and display name. by @brettdavies in [#345](https://github.com/brettdavies/xurl-rs/pull/345)
+- Add `AuthPreflight::account_username` and `AuthPreflight::display_name`, read offline from the store beside the credential a request would go out under.
+- Add `headers` and `received_at` to `webhooks::Event`: the `Content-Type` and signature header the delivery carried, and when it arrived. by @brettdavies in [#353](https://github.com/brettdavies/xurl-rs/pull/353)
+- Add `Error::AddressInUse`, which `webhooks::Receiver::bind` returns when another socket holds the address, with kind `address-in-use`, exit code 5, and the OS error as its source. Any other bind failure stays `Error::Io`. by @brettdavies in [#354](https://github.com/brettdavies/xurl-rs/pull/354)
+- Add `webhooks::SignedSample`, a sample event signed with the secret a `Receiver` verifies with, and make `OAUTH2_SIGNATURE_HEADER` and `LEGACY_SIGNATURE_HEADER` public. by @brettdavies in [#355](https://github.com/brettdavies/xurl-rs/pull/355)
+- Add `testing::deliver_signed_sample`, which posts a signed sample to a bound `Receiver` for an embedder's tests.
+- Add `webhooks::UrlTarget`, which forwards a verified event to an HTTP endpoint with X's bytes, `Content-Type`, and signature, an `Idempotency-Key` derived from the bytes, and the caller's headers, following no redirect. A URL or header it could not send is refused before anything is sent. by @brettdavies in [#356](https://github.com/brettdavies/xurl-rs/pull/356)
+- Add `webhooks::RetryBudget` with `Attempt`, `AttemptTimedOut`, and `Outcome`: four attempts with 1, 2, and 4 seconds between them, each under an attempt timeout, for a URL or any other target.
+- Add `webhooks::ForwardFailure` and `Event::sha256`.
+- Add `webhooks::validate_forward_url`, which checks a forward URL offline and names the refusal as `forward-url-invalid`, `forward-url-not-http`, or `forward-url-has-credentials`. `UrlTarget::new` prefixes its URL refusals with the same reason. by @brettdavies in [#357](https://github.com/brettdavies/xurl-rs/pull/357)
+- Add `webhooks::CheckpointWriter`, `read_checkpoint`, `replay_window`, and `ReplayWindow`: record how far a webhook receiver got, at most once a minute and atomically, and turn that record into the window X can replay, clamped to X's 24 hours with what is lost named. by @brettdavies in [#359](https://github.com/brettdavies/xurl-rs/pull/359)
+- Add `Client::get_my_followers` and `Client::get_my_following` over `/2/users/me/followers` and `/2/users/me/following`, with routes for both in the testing mock. by @brettdavies in [#383](https://github.com/brettdavies/xurl-rs/pull/383)
+- Add `Client::hide_reply` over `PUT /2/tweets/{tweet_id}/hidden`, the `HiddenResult` response, and a route for the endpoint in the testing mock. by @brettdavies in [#384](https://github.com/brettdavies/xurl-rs/pull/384)
+- Add `Client::get_liking_users`, `Client::get_reposted_by`, and `Client::get_quote_posts`, with routes for all three in the testing mock. by @brettdavies in [#386](https://github.com/brettdavies/xurl-rs/pull/386)
+- Add `Client::read_posts` over `GET /2/tweets`, `validate_lookup_ids`, `LOOKUP_IDS_MAX`, and a route for the endpoint in the testing mock. by @brettdavies in [#387](https://github.com/brettdavies/xurl-rs/pull/387)
+- Add `Client::get_user_posts` over `GET /2/users/{id}/tweets`, with a route for the endpoint in the testing mock. by @brettdavies in [#388](https://github.com/brettdavies/xurl-rs/pull/388)
+- Add `Client::search_users` over `GET /2/users/search`, `validate_user_search_query`, `USER_SEARCH_QUERY_MAX_CHARS`, and a route for the endpoint in the testing mock. by @brettdavies in [#389](https://github.com/brettdavies/xurl-rs/pull/389)
+- Add `Client::count_recent_posts` over `GET /2/tweets/counts/recent`, the `PostCount` response, `validate_time_window`, and a route for the endpoint in the testing mock. by @brettdavies in [#390](https://github.com/brettdavies/xurl-rs/pull/390)
+- Add `Client::post_analytics` over `GET /2/tweets/analytics`, the `PostAnalytics`, `AnalyticsMetrics`, and `AnalyticsBucket` response types, and a route for the endpoint in the testing mock. by @brettdavies in [#391](https://github.com/brettdavies/xurl-rs/pull/391)
+- Add `Client::get_trends` and `Client::get_personalized_trends`, the `Trend` and `PersonalizedTrend` response types, and routes for both endpoints in the testing mock. by @brettdavies in [#392](https://github.com/brettdavies/xurl-rs/pull/392)
+- Add `Client::search_news` and `Client::get_news`, the `NewsStory` and `NewsClusterPost` response types, `validate_news_id`, and routes for both endpoints in the testing mock. by @brettdavies in [#393](https://github.com/brettdavies/xurl-rs/pull/393)
+- Add `Client::search_communities` and `Client::get_community`, the `Community` response type, `validate_community_id`, and routes for both endpoints in the testing mock. by @brettdavies in [#394](https://github.com/brettdavies/xurl-rs/pull/394)
+- Add `Client::create_dm_conversation`, `send_to_conversation`, `get_conversation_events`, `get_dm_events_with`, `get_dm_event`, `delete_dm_event`, `block_dms`, and `unblock_dms`, the `DmBlockResult` response type, `validate_participant_count`, `validate_conversation_id`, `validate_dm_event_id`, `DM_GROUP_PARTICIPANTS_MIN` and `_MAX`, and routes for every endpoint in the testing mock. by @brettdavies in [#395](https://github.com/brettdavies/xurl-rs/pull/395)
+- Add the list shortcuts on `Client` (`create_list`, `get_list`, `update_list`, `delete_list`, `get_list_posts`, `get_list_members`, `get_list_followers`, `add_list_member`, `remove_list_member`, `get_owned_lists`, `get_followed_lists`, `get_list_memberships`, `get_pinned_lists`, `follow_list`, `unfollow_list`, `pin_list`, `unpin_list`), the `List`, `ListUpdatedResult`, `ListMemberResult`, and `PinnedResult` response types, `ListDetails`, `validate_list_id`, `validate_new_list`, `validate_list_changes`, `LIST_NAME_MAX_CHARS`, `LIST_DESCRIPTION_MAX_CHARS`, and routes for every list endpoint in the testing mock. by @brettdavies in [#396](https://github.com/brettdavies/xurl-rs/pull/396)
+- Add the broadcast shortcuts on `Client` (`list_broadcasts`, `get_broadcast`, `list_scheduled_broadcasts`, `get_scheduled_broadcast`, `create_scheduled_broadcast`, `update_scheduled_broadcast`, `delete_scheduled_broadcast`, `go_live`, `get_broadcast_chat`, `send_broadcast_chat`, `mute_chat_user`, `unmute_chat_user`, `delete_chat_message`), the `Broadcast`, `ScheduledBroadcast`, `BroadcastChatMessage`, `ChatSentResult`, and `ChatMutedResult` response types, the `NewScheduledBroadcast` and `ScheduledBroadcastChanges` inputs, `validate_broadcast_id`, `validate_scheduled_broadcast_id`, `validate_chat_message_id`, `validate_chat_message`, `BROADCAST_CHAT_MAX_CHARS`, and routes for every endpoint in the testing mock. by @brettdavies in [#398](https://github.com/brettdavies/xurl-rs/pull/398)
+- Add `Client::create_note`, `evaluate_note`, `delete_note`, `get_notes_written`, and `get_posts_eligible_for_notes`, the `Note`, `NoteInfo`, `NoteCreated`, and `NoteEvaluation` response types, the `NewNote` input, `validate_note_id`, `validate_note_text`, and routes for every endpoint in the testing mock. by @brettdavies in [#399](https://github.com/brettdavies/xurl-rs/pull/399)
+- Add `Client::create_article_draft` and `Client::publish_article`, `article_blocks` and `ArticleBlock` for turning plain text into article blocks, the `ArticleDraft` and `ArticlePublished` response types, `validate_article_title`, `validate_article_body`, `validate_article_id`, and routes for both endpoints in the testing mock. by @brettdavies in [#400](https://github.com/brettdavies/xurl-rs/pull/400)
+- Add `Client::lookup_users_by_id` and `Client::lookup_users_by_username` over `GET /2/users` and `GET /2/users/by`, `validate_user_lookup`, `validate_username`, `is_user_id_form`, and routes for both endpoints in the testing mock. by @brettdavies in [#401](https://github.com/brettdavies/xurl-rs/pull/401)
+- Add `Client::get_media` and `Client::get_media_analytics` over `GET /2/media` and `GET /2/media/analytics`, the `Media`, `MediaAnalytics`, and `MediaAnalyticsBucket` response types, `validate_media_key`, `validate_media_keys`, and routes for both endpoints in the testing mock. by @brettdavies in [#402](https://github.com/brettdavies/xurl-rs/pull/402)
+- Add `Client::search_spaces`, `Client::get_spaces`, `Client::get_spaces_by_creator`, and `Client::get_space_posts` over `GET /2/spaces/search`, `GET /2/spaces`, `GET /2/spaces/by/creator_ids`, and `GET /2/spaces/{id}/tweets`; the `Space` response type; `validate_space_id`, `validate_space_ids`, and `user_ids_for_accounts`, which maps a mix of numeric ids and usernames to ids from the answer to a username lookup; and routes for all four endpoints in the testing mock. by @brettdavies in [#403](https://github.com/brettdavies/xurl-rs/pull/403)
+- Add `Client::get_stream_rules`, `Client::add_stream_rule`, `Client::remove_stream_rules`, and `Client::get_stream_rule_counts` over `GET` and `POST /2/tweets/search/stream/rules` and `GET /2/tweets/search/stream/rules/counts`; the `StreamRule`, `StreamRuleCounts`, and `StreamRuleAppCount` response types; `validate_rule_id` and `validate_rule_ids`; and routes for the three endpoints in the testing mock. by @brettdavies in [#404](https://github.com/brettdavies/xurl-rs/pull/404)
+- Add `validate_accounts`, which checks up to 100 accounts named by any mix of numeric ids and usernames. by @brettdavies in [#407](https://github.com/brettdavies/xurl-rs/pull/407)
+
+### Changed
+
+- Change the default token store to `~/.xurl/auth.yml`. `Config::default_store_path` returns it, and `TokenStore::new`, `TokenStore::with_credentials`, `Auth::new`, and `Client::from_env` open it there, or a single-file store still at `~/.xurl`, without moving anything. by @brettdavies in [#315](https://github.com/brettdavies/xurl-rs/pull/315)
+- Change the vendored X API spec to the 2026-10-08 upstream content of 2.169, which adds `created_at` to `ActivityStreamResponse.data` and lets an id in `UpdateRulesDelete.ids` be an integer. `API_SPEC_SHA256` and `API_SPEC_DATE` follow; no typed response or shortcut changes. by @brettdavies in [#327](https://github.com/brettdavies/xurl-rs/pull/327)
+- Change `Auth::refresh_oauth2_token` to save the refreshed token where the old one is stored, and to look the account up only when the store lacks its name or id. by @brettdavies in [#328](https://github.com/brettdavies/xurl-rs/pull/328)
+- Change the vendored X API spec to upstream 2.172, which adds the calls, stream-source, and XChat endpoints. `API_SPEC_SHA256` and `API_SPEC_DATE` follow. by @brettdavies in [#340](https://github.com/brettdavies/xurl-rs/pull/340)
+- Change `TokenStore::set_oauth2_user_id_for_app` and `TokenStore::set_oauth1_user_id_for_app` to drop the stored username and display name when the id changes. by @brettdavies in [#345](https://github.com/brettdavies/xurl-rs/pull/345)
+- Change sign-in, refresh, and `Call::send_saving_identity` to store the account's username and display name beside its id.
+- Change the token store's YAML to double-quote quoted strings and to quote values a YAML 1.1 reader would misread; stores written in the earlier layout load with every value intact. by @brettdavies in [#348](https://github.com/brettdavies/xurl-rs/pull/348)
+- Change the vendored X API spec to the 2026-10-24 upstream content of 2.172, which adds `POST /2/calls`, `POST /2/calls/{id}/join`, `POST /2/calls/{id}/leave`, `GET /2/users/me/followers`, and `GET /2/users/me/following` with their schemas. `API_SPEC_SHA256` and `API_SPEC_DATE` follow, and the auth matrix gains the five operations; no typed response or shortcut changes. by @brettdavies in [#366](https://github.com/brettdavies/xurl-rs/pull/366)
+- Change `Client::get_me` to request `active_follower_count`. by @brettdavies in [#373](https://github.com/brettdavies/xurl-rs/pull/373)
+- Change `TokenStore::set_oauth2_account_for_app` and `set_oauth1_account_for_app` to also write the names they record onto every `OAuth2` login and `OAuth1` access pair the store holds for the same `user_id`, in every app. Each returns whether the store changed anywhere. A sign-in or refresh that asks `/2/users/me` does the same. A refresh that asks nothing keeps the names the store holds for the slot it writes, so it never writes back names an answer recorded during its grant replaced. by @brettdavies in [#376](https://github.com/brettdavies/xurl-rs/pull/376)
+
+### Deprecated
+
+- Deprecate `POST_BODY_MAX_CHARS`: X sets a post's length limit per account, and nothing in the library checks the constant. by @brettdavies in [#311](https://github.com/brettdavies/xurl-rs/pull/311)
+
+### Fixed
+
+- Fix `Client::get_mentions` and `Client::get_liked_posts` sending a `max_results` outside the 5 to 100 X accepts: the value is brought into that range, as `Client::search_posts` does with 10 to 100. by @brettdavies in [#310](https://github.com/brettdavies/xurl-rs/pull/310)
+- Fix `validate_post_body` refusing a body over 280 characters; it returns `empty-body` for an empty one and accepts every other. by @brettdavies in [#311](https://github.com/brettdavies/xurl-rs/pull/311)
+- Fix `TokenStore::clear_all`, `clear_oauth1_tokens`, `clear_oauth2_token`, `clear_bearer_token`, and their `_for_app` forms returning `Ok` for a store that failed to load; each returns the token-store error every other write returns. by @brettdavies in [#313](https://github.com/brettdavies/xurl-rs/pull/313)
+- Fix scheme auto-detect on a store-backed client ignoring an OAuth2 token stored without a username: a call that names no user is sent with it. by @brettdavies in [#324](https://github.com/brettdavies/xurl-rs/pull/324)
+- Fix a refresh without a username saving the new token under the username X answered with, which left the entry it was minted from holding a dead refresh token. by @brettdavies in [#328](https://github.com/brettdavies/xurl-rs/pull/328)
+- Fix TLS certificate verification accepting a path through distrusted intermediates, by updating rustls-webpki to 0.103.16 (RUSTSEC-2026-0382). by @brettdavies in [#352](https://github.com/brettdavies/xurl-rs/pull/352)
+- Fix RUSTSEC-2026-0385 in the tested dependency set by updating ctutils to 0.4.6. The published manifest is unchanged; an embedder's own lockfile takes the fix with `cargo update -p ctutils`. by @brettdavies in [#369](https://github.com/brettdavies/xurl-rs/pull/369)
+
+### Documentation
+
+- List the `webhooks` module in the README's published surface. by @brettdavies in [#339](https://github.com/brettdavies/xurl-rs/pull/339)
+- Add an example to `webhooks::Receiver` that binds and reads events. by @brettdavies in [#353](https://github.com/brettdavies/xurl-rs/pull/353)
+- Add the `webhook_forward` example, which receives events, forwards each to an endpoint under `RetryBudget`, and keeps a checkpoint, and name the forwarding and checkpoint items in the README's `webhooks` entry. by @brettdavies in [#361](https://github.com/brettdavies/xurl-rs/pull/361)
+- Say in the `testing` module's summary that it is built only with the `testing` feature, in place of the docs.rs feature badge. by @brettdavies in [#364](https://github.com/brettdavies/xurl-rs/pull/364)
+
+**Full Changelog**: [xdk-rs-v0.2.0...xdk-rs-v0.3.0](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.2.0...xdk-rs-v0.3.0)
+
 ## [0.2.0] - 2026-10-07
 
 ### Breaking changes

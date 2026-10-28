@@ -7,6 +7,7 @@ mod classify;
 pub mod commands;
 mod failure;
 pub mod hints;
+mod misplaced_flags;
 pub mod runner;
 pub(crate) mod shutdown;
 
@@ -19,6 +20,7 @@ pub mod env;
 pub mod envelope;
 pub mod family_help;
 pub mod output;
+pub mod panic_hook;
 #[cfg(test)]
 mod parse_tests;
 mod reparse;
@@ -80,7 +82,7 @@ ENVIRONMENT VARIABLES:
   XURL_JSON              Shorthand for XURL_OUTPUT=json (same as --json)
   XURL_JSONL             Shorthand for XURL_OUTPUT=jsonl (same as --jsonl)
   XURL_NO_BROWSER        Skip browser-open on `auth oauth2` (same as --no-browser)
-  XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl (OAuth2 pending state sits beside it)
+  XURL_TOKEN_STORE       Token-store file to use instead of ~/.xurl/auth.yml (OAuth2 pending state sits beside it)
   XURL_SKILL_HOME        Directory ~ means in skill install destinations; wins over HOME
 ",
     include_str!(concat!(env!("OUT_DIR"), "/skill_env_help.txt")),
@@ -205,6 +207,8 @@ Examples:
     xr whoami --output json
   Act as a specific authenticated user (multi-account):
     xr whoami --username alice --output json
+  Your id, username, and name from the store, with no request:
+    xr whoami --cached
 ";
 
 /// `xr user` examples — paired text + JSON.
@@ -240,6 +244,108 @@ Examples:
     xr mentions -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr analytics` examples — paired text + JSON, JSONL pipeline.
+const ANALYTICS_HELP: &str = "\
+Examples:
+  Impressions and engagement for a post over one day (text):
+    xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z
+  Two posts per day over a week, JSON envelope:
+    xr analytics 1585341984679469056 1346889436626259968 --start 2026-10-01T00:00:00Z --end 2026-10-08T00:00:00Z --granularity daily --output json
+  The impressions of each post, one per line:
+    xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z --output json | jaq -r '.data[]? | \"\\(.id) \\(.impressions)\"'
+";
+
+/// `xr search-counts` examples — paired text + JSON, JSONL pipeline.
+const SEARCH_COUNTS_HELP: &str = "\
+Examples:
+  Posts matching a query per hour over the last seven days (text):
+    xr search-counts \"from:XDevelopers\"
+  Per day, JSON envelope:
+    xr search-counts rustlang --granularity day --output json
+  One window, the total alone:
+    xr search-counts rustlang --start 2026-10-25T00:00:00Z --end 2026-10-26T00:00:00Z --output json | jaq '.meta.total_post_count'
+";
+
+/// `xr search-users` examples — paired text + JSON, JSONL pipeline.
+const SEARCH_USERS_HELP: &str = "\
+Examples:
+  Find accounts by keyword (text):
+    xr search-users \"rust lang\"
+  50 results, JSON envelope:
+    xr search-users rust -n 50 --output json
+  The handle of each, one per line:
+    xr search-users rust --output json | jaq -r '.data[]?.username'
+  A query is 1 to 50 letters, digits, underscores, apostrophes, or spaces.
+";
+
+/// `xr user-posts` examples — paired text + JSON, JSONL pipeline.
+const USER_POSTS_HELP: &str = "\
+Examples:
+  A user's posts, newest first (text):
+    xr user-posts @XDevelopers
+  100 results, JSON envelope:
+    xr user-posts @XDevelopers -n 100 --output json
+  The text of each post, one per line:
+    xr user-posts @XDevelopers --output json | jaq -r '.data[]?.text'
+";
+
+/// `xr users` examples — paired text + JSON, JSONL pipeline.
+const USERS_HELP: &str = "\
+Examples:
+  Look up several accounts by handle in one request (text):
+    xr users @XDevelopers @jack
+  By numeric id, JSON envelope:
+    xr users 2244994945 12 --output json
+  The handle of each, one per line:
+    xr users 2244994945 12 --output json | jaq -r '.data[]?.username'
+  Every argument is a handle or every one an id; X answers each form from its own endpoint.
+";
+
+/// `xr posts` examples — paired text + JSON, JSONL pipeline.
+const POSTS_HELP: &str = "\
+Examples:
+  Read several posts in one request (text):
+    xr posts 1585341984679469056 1346889436626259968
+  Ids and post URLs mixed, JSON envelope:
+    xr posts 1585341984679469056 https://x.com/alice/status/1346889436626259968 --output json
+  The text of each post, one per line:
+    xr posts 1585341984679469056 1346889436626259968 --output json | jaq -r '.data[]?.text'
+  The ids X could not return are under errors, beside the posts it could.
+";
+
+/// `xr likers` examples — paired text + JSON, JSONL pipeline.
+const LIKERS_HELP: &str = "\
+Examples:
+  Who liked a post (text):
+    xr likers 1585341984679469056
+  100 results, JSON envelope:
+    xr likers 1585341984679469056 -n 100 --output json
+  The handle of each, one per line:
+    xr likers 1585341984679469056 --output json | jaq -r '.data[]?.username'
+";
+
+/// `xr reposters` examples — paired text + JSON, JSONL pipeline.
+const REPOSTERS_HELP: &str = "\
+Examples:
+  Who reposted a post (text):
+    xr reposters 1585341984679469056
+  100 results, JSON envelope:
+    xr reposters https://x.com/alice/status/1585341984679469056 -n 100 --output json
+  The handle of each, one per line:
+    xr reposters 1585341984679469056 --output json | jaq -r '.data[]?.username'
+";
+
+/// `xr quotes` examples — paired text + JSON, JSONL pipeline.
+const QUOTES_HELP: &str = "\
+Examples:
+  Posts that quote a post (text):
+    xr quotes 1585341984679469056
+  100 results, JSON envelope:
+    xr quotes 1585341984679469056 -n 100 --output json
+  The id of each quote, one per line:
+    xr quotes 1585341984679469056 --output json | jaq -r '.data[]?.id'
+";
+
 /// `xr like` examples — paired text + JSON.
 const LIKE_HELP: &str = "\
 Examples:
@@ -257,6 +363,25 @@ Examples:
     xr unlike 1585341984679469056
   Unlike (JSON envelope):
     xr unlike 1585341984679469056 --output json
+";
+
+/// `xr hide` examples — paired text + JSON.
+const HIDE_HELP: &str = "\
+Examples:
+  Hide a reply to your post (text):
+    xr hide 1585341984679469056
+  Hide a reply by its URL (JSON envelope):
+    xr hide https://x.com/alice/status/1585341984679469056 --output json
+  Only the author of the post replied to can hide a reply.
+";
+
+/// `xr unhide` examples — paired text + JSON.
+const UNHIDE_HELP: &str = "\
+Examples:
+  Show a hidden reply again (text):
+    xr unhide 1585341984679469056
+  Show a hidden reply again (JSON envelope):
+    xr unhide 1585341984679469056 --output json
 ";
 
 /// `xr repost` examples — paired text + JSON.
@@ -446,6 +571,25 @@ Examples:
     xr dms -n 100 --output json | jaq -r '.data[]?.id'
 ";
 
+/// `xr dm-block` examples — paired text + JSON.
+const DM_BLOCK_HELP: &str = "\
+Examples:
+  Stop someone sending you direct messages (text):
+    xr dm-block @spammer
+  Block (JSON envelope):
+    xr dm-block @spammer --output json
+  Blocks direct messages only; xr block blocks the account.
+";
+
+/// `xr dm-unblock` examples — paired text + JSON.
+const DM_UNBLOCK_HELP: &str = "\
+Examples:
+  Let someone send you direct messages again (text):
+    xr dm-unblock @friend
+  Unblock (JSON envelope):
+    xr dm-unblock @friend --output json
+";
+
 /// `xr auth` parent help — points to subcommands.
 const AUTH_HELP: &str = "\
 Examples:
@@ -468,6 +612,8 @@ Examples:
     xr media upload ./clip.mp4 --wait --output json
   Check upload status:
     xr media status 1585341984679469056 --output json
+  Read uploads by media key:
+    xr media get 3_1146654567674912769 --output json
   Describe an uploaded image for screen readers:
     xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
   Add an English subtitle track to an uploaded video:
@@ -739,6 +885,25 @@ Examples:
     xr media status 1585341984679469056 --wait=120 --output json
 ";
 
+/// `xr media get` examples.
+const MEDIA_GET_HELP: &str = "\
+Examples:
+  Read two uploads by media key (text):
+    xr media get 3_1146654567674912769 7_1146654567674912770
+  Same, JSON envelope:
+    xr media get 3_1146654567674912769 7_1146654567674912770 --output json
+  A media key is the type and the id joined by an underscore, as a post's media lists it.
+";
+
+/// `xr media analytics` examples.
+const MEDIA_ANALYTICS_HELP: &str = "\
+Examples:
+  Views and plays of a video over one day (text):
+    xr media analytics 7_1146654567674912770 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z
+  Per hour, JSON envelope:
+    xr media analytics 7_1146654567674912770 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z --granularity hourly --output json
+";
+
 /// `xr media alt-text` examples.
 const MEDIA_ALT_TEXT_HELP: &str = "\
 Examples:
@@ -816,7 +981,8 @@ pub struct Cli {
     #[arg(long = "auth")]
     pub auth_type: Option<String>,
 
-    /// Username for `OAuth2` authentication
+    /// `OAuth2` login to send the request as, by the name it is stored under: its username, or the
+    /// name given to `xr auth oauth2`
     #[arg(short = 'u', long = "username")]
     pub username: Option<String>,
 
@@ -982,11 +1148,20 @@ pub struct Cli {
     )]
     pub color: ColorChoice,
 
-    /// Validate inputs and skip the API call.
+    /// Check inputs and credentials offline, and send nothing.
     ///
-    /// Honored by every write op; emits a canonical dry-run envelope on
-    /// stdout under `--output json` / `--output jsonl`, or a "Would …" line
-    /// under `--output text`. Read ops ignore it.
+    /// No request is sent and nothing stored changes, whichever command the
+    /// flag is on: a write, a read, or a raw request with any method. The
+    /// answer says whether the inputs are valid and whether a stored
+    /// credential serves each request the command would send:
+    /// `would_succeed`, with `reason` when it is false. `auth` names the
+    /// app and the scheme the request would go out under, and for an
+    /// `OAuth2` login the user and whether the token has expired. Whether X
+    /// still accepts that credential is not checked. The flag outranks
+    /// `--force` and the confirmation a destructive command asks for, and
+    /// `confirmation_required` marks a run that would stop to ask. A
+    /// structured `--output` prints the dry-run envelope on stdout; text
+    /// output prints the same context without the envelope's own keys.
     #[arg(
         long = "dry-run",
         global = true,
@@ -1061,6 +1236,7 @@ pub struct Cli {
     pub command: Option<Commands>,
 
     /// URL for raw mode (positional, only when no subcommand)
+    #[arg(value_hint = clap::ValueHint::Url)]
     pub url: Option<String>,
 }
 
@@ -1129,6 +1305,91 @@ pub enum Commands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Report impressions and engagement for your posts over a time window
+    #[command(after_help = ANALYTICS_HELP)]
+    Analytics {
+        /// Post IDs or URLs, 1 to 100
+        #[arg(value_name = "POST_ID", required = true, num_args = 1..)]
+        post_ids: Vec<String>,
+        /// Start of the window (RFC 3339 with a zone, such as
+        /// 2026-10-01T00:00:00Z)
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// End of the window (RFC 3339 with a zone); after the start
+        #[arg(long, value_name = "TIME")]
+        end: String,
+        /// Bucket size (X's default is total, one bucket for the window)
+        #[arg(long, value_parser = ["hourly", "daily", "weekly", "total"])]
+        granularity: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Count the recent posts that match a query, per time bucket
+    #[command(after_help = SEARCH_COUNTS_HELP)]
+    SearchCounts {
+        /// Search query, as `xr search` takes it
+        query: String,
+        /// Bucket size (X's default is hour)
+        #[arg(long, value_parser = ["minute", "hour", "day"])]
+        granularity: Option<String>,
+        /// Oldest moment counted (RFC 3339 with a zone, such as
+        /// 2026-10-25T00:00:00Z); within the last seven days
+        #[arg(long, value_name = "TIME")]
+        start: Option<String>,
+        /// Moment the count stops, exclusive (RFC 3339 with a zone)
+        #[arg(long, value_name = "TIME")]
+        end: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Find accounts by keyword
+    #[command(after_help = SEARCH_USERS_HELP)]
+    SearchUsers {
+        /// Search query
+        query: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Look up 1 to 100 accounts by handle or by id in one request
+    #[command(after_help = USERS_HELP)]
+    Users {
+        /// Handles (@jack or jack) or numeric user ids, 1 to 100; not both
+        #[arg(value_name = "ACCOUNT", required = true, num_args = 1..)]
+        accounts: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts a user wrote
+    #[command(after_help = USER_POSTS_HELP)]
+    UserPosts {
+        /// Username, with or without the leading @
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Number of results (5-100; a lower value is raised to 5, X's
+        /// minimum). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read 1 to 100 posts by id or URL in one request
+    #[command(after_help = POSTS_HELP)]
+    Posts {
+        /// Post IDs or URLs, 1 to 100
+        #[arg(value_name = "POST_ID", required = true, num_args = 1..)]
+        post_ids: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
     /// Search recent posts
     #[command(after_help = SEARCH_HELP)]
     Search {
@@ -1143,10 +1404,60 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    /// List the users who liked a post
+    #[command(after_help = LIKERS_HELP)]
+    Likers {
+        /// Post ID or URL
+        post_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the users who reposted a post
+    #[command(after_help = REPOSTERS_HELP)]
+    Reposters {
+        /// Post ID or URL
+        post_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts that quote a post
+    #[command(after_help = QUOTES_HELP)]
+    Quotes {
+        /// Post ID or URL
+        post_id: String,
+        /// Number of results (10-100; a lower value is raised to 10, X's
+        /// minimum). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+
     // ── User Info ────────────────────────────────────────────────────
     /// Show the authenticated user's profile
     #[command(after_help = WHOAMI_HELP)]
     Whoami {
+        /// Answer from the account the store holds for the login (id,
+        /// username, display name) with no request; ask X when it holds
+        /// none yet. `source` says which answered.
+        ///
+        /// The stored names are what X answered when a login for this account
+        /// last asked, in any app, so a rename shows once one of them asks
+        /// again, as a live `xr whoami` does. The login's token is not
+        /// checked either: an expired login still answers, so
+        /// `--cached` is no test of a credential. `xr --dry-run whoami` says
+        /// whether the token has expired.
+        #[arg(long)]
+        cached: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -1176,7 +1487,8 @@ pub enum Commands {
     /// Show your recent mentions
     #[command(after_help = MENTIONS_HELP)]
     Mentions {
-        /// Number of results (5-100). Overrides global `--limit` when set.
+        /// Number of results (5-100; a lower value is raised to 5, X's
+        /// minimum). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -1198,6 +1510,24 @@ pub enum Commands {
     #[command(after_help = UNLIKE_HELP)]
     Unlike {
         /// Post ID or URL
+        post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Hide a reply to your post
+    #[command(after_help = HIDE_HELP)]
+    Hide {
+        /// Reply post ID or URL
+        post_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Show a hidden reply to your post again
+    #[command(after_help = UNHIDE_HELP)]
+    Unhide {
+        /// Reply post ID or URL
         post_id: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1249,10 +1579,18 @@ pub enum Commands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Your bookmark folders, and the posts in each
+    #[command(after_help = family_help::bookmark_folders::page())]
+    BookmarkFolders {
+        /// `bookmark-folders` verb to dispatch.
+        #[command(subcommand)]
+        action: BookmarkFoldersCommands,
+    },
     /// List your liked posts
     #[command(after_help = LIKES_HELP)]
     Likes {
-        /// Number of results (5-100). Overrides global `--limit` when set.
+        /// Number of results (5-100; a lower value is raised to 5, X's
+        /// minimum). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -1288,7 +1626,7 @@ pub enum Commands {
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Username to list following for (default: you)
-        #[arg(long = "of")]
+        #[arg(long = "of", value_name = "USERNAME")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1301,7 +1639,7 @@ pub enum Commands {
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Username to list followers for (default: you)
-        #[arg(long = "of")]
+        #[arg(long = "of", value_name = "USERNAME")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1394,6 +1732,40 @@ pub enum Commands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Start a group conversation, send into one, or read one
+    #[command(after_help = family_help::conversations::page())]
+    Conversations {
+        /// `conversations` verb to dispatch.
+        #[command(subcommand)]
+        action: ConversationsCommands,
+    },
+    /// Read or delete one direct message, by event id
+    #[command(after_help = family_help::dm_events::page())]
+    DmEvents {
+        /// `dm-events` verb to dispatch.
+        #[command(subcommand)]
+        action: DmEventsCommands,
+    },
+    /// Stop a user sending you direct messages
+    #[command(after_help = DM_BLOCK_HELP)]
+    DmBlock {
+        /// Username to block from sending you direct messages
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Let a user send you direct messages again
+    #[command(after_help = DM_UNBLOCK_HELP)]
+    DmUnblock {
+        /// Username to unblock
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
     /// List recent direct messages
     #[command(after_help = DMS_HELP)]
     Dms {
@@ -1405,13 +1777,107 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Lists ────────────────────────────────────────────────────────
+    /// Your lists, a list's posts and members, and following and pinning
+    #[command(after_help = family_help::lists::page())]
+    Lists {
+        /// `lists` verb to dispatch.
+        #[command(subcommand)]
+        action: ListsCommands,
+    },
+
+    // ── Communities ──────────────────────────────────────────────────
+    /// Search communities, and read one
+    #[command(after_help = family_help::communities::page())]
+    Communities {
+        /// `communities` verb to dispatch.
+        #[command(subcommand)]
+        action: CommunitiesCommands,
+    },
+
+    // ── News ─────────────────────────────────────────────────────────
+    /// Search news stories, and read one
+    #[command(after_help = family_help::news::page())]
+    News {
+        /// `news` verb to dispatch.
+        #[command(subcommand)]
+        action: NewsCommands,
+    },
+
+    // ── Spaces ───────────────────────────────────────────────────────
+    /// Find Spaces by keyword, id, or creator, and read their posts
+    #[command(after_help = family_help::spaces::page())]
+    Spaces {
+        /// `spaces` verb to dispatch.
+        #[command(subcommand)]
+        action: SpacesCommands,
+    },
+
+    // ── Filtered stream ──────────────────────────────────────────────
+    /// The filtered stream's rules
+    #[command(after_help = family_help::stream_rules::page())]
+    Stream {
+        /// `stream` noun to dispatch.
+        #[command(subcommand)]
+        action: StreamCommands,
+    },
+
+    // ── Articles ─────────────────────────────────────────────────────
+    /// Write and publish long-form X Articles
+    #[command(after_help = family_help::articles::page())]
+    Articles {
+        /// `articles` verb to dispatch.
+        #[command(subcommand)]
+        action: ArticlesCommands,
+    },
+
+    // ── Community Notes ──────────────────────────────────────────────
+    /// Write Community Notes through X's AI Note Writer API
+    #[command(after_help = family_help::notes::page())]
+    Notes {
+        /// `notes` verb to dispatch.
+        #[command(subcommand)]
+        action: NotesCommands,
+    },
+
+    // ── Trends ───────────────────────────────────────────────────────
+    /// Trends for a place, and your personalized trends
+    #[command(after_help = family_help::trends::page())]
+    Trends {
+        /// `trends` verb to dispatch.
+        #[command(subcommand)]
+        action: TrendsCommands,
+    },
+
     // ── Broadcasts ───────────────────────────────────────────────────
-    /// Broadcast chat moderation
+    /// Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources
     #[command(after_help = family_help::broadcasts::root_page())]
     Broadcasts {
         /// `broadcasts` family subcommand.
         #[command(subcommand)]
         target: BroadcastsCommands,
+    },
+
+    // ── Calls ────────────────────────────────────────────────────────
+    /// X calls, and the calls on your calendar (preview)
+    ///
+    /// A preview: X marks the Calls API as in development and not yet
+    /// generally available, so its requests and the scopes it takes may
+    /// change before it is.
+    #[command(after_help = family_help::calls::root_page())]
+    Calls {
+        /// `calls` family subcommand.
+        #[command(subcommand)]
+        target: CallsCommands,
+    },
+
+    // ── Webhooks ─────────────────────────────────────────────────────
+    /// Webhook registration, subscriptions, stream links, a local listener, and replay
+    #[command(after_help = family_help::webhooks::root_page())]
+    Webhooks {
+        /// `webhooks` verb to dispatch.
+        #[command(subcommand)]
+        action: WebhooksCommands,
     },
 
     // ── Auth ─────────────────────────────────────────────────────────
@@ -1424,7 +1890,7 @@ pub enum Commands {
     },
 
     // ── Media ────────────────────────────────────────────────────────
-    /// Media upload, alt text, and subtitles
+    /// Media upload, lookup by key, video metrics, alt text, and subtitles
     #[command(after_help = MEDIA_HELP)]
     Media {
         /// `media` subcommand to dispatch.
@@ -1525,15 +1991,1009 @@ pub enum UsageCommands {
     },
 }
 
+/// `xr bookmark-folders` verbs.
+#[derive(Subcommand, Debug)]
+pub enum BookmarkFoldersCommands {
+    /// List the folders you sort bookmarks into
+    #[command(after_help = family_help::bookmark_folders::FAMILY.verb_page(&family_help::bookmark_folders::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts in one of your bookmark folders, by id
+    #[command(after_help = family_help::bookmark_folders::FAMILY.verb_page(&family_help::bookmark_folders::POSTS))]
+    Posts {
+        /// Folder ID, as `xr bookmark-folders list` prints it
+        #[arg(value_name = "FOLDER_ID")]
+        folder_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Create a bookmark folder
+    #[command(after_help = family_help::bookmark_folders::FAMILY.verb_page(&family_help::bookmark_folders::ADD))]
+    Add {
+        /// The folder's name, 1 to 25 characters
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr lists` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ListsCommands {
+    /// List the lists you own
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Username whose own lists to read (default: you)
+        #[arg(long = "of", value_name = "USERNAME")]
+        of: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the lists you follow
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::FOLLOWED))]
+    Followed {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Username whose followed lists to read (default: you)
+        #[arg(long = "of", value_name = "USERNAME")]
+        of: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the lists you are a member of
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::MEMBERSHIPS))]
+    Memberships {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Username whose list memberships to read (default: you)
+        #[arg(long = "of", value_name = "USERNAME")]
+        of: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the lists you have pinned
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::PINNED))]
+    Pinned {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one list, by id
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::GET))]
+    Get {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts from a list's members
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::POSTS))]
+    Posts {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List who follows a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::FOLLOWERS))]
+    Followers {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// The accounts on a list, and adding or taking one off
+    #[command(after_help = family_help::list_members::page())]
+    Members {
+        /// `members` verb to dispatch.
+        #[command(subcommand)]
+        action: ListMembersCommands,
+    },
+    /// Create a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::ADD))]
+    Add {
+        /// The list's name, 1 to 25 characters
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// What the list is for, at most 100 characters
+        #[arg(long)]
+        description: Option<String>,
+        /// Only you can see the list
+        #[arg(long)]
+        private: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Rename a list, or change its description or privacy
+    ///
+    /// Only what the flags name changes.
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::UPDATE))]
+    Update {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// New name, 1 to 25 characters
+        #[arg(long)]
+        name: Option<String>,
+        /// New description, at most 100 characters
+        #[arg(long)]
+        description: Option<String>,
+        /// Make the list private
+        #[arg(long, conflicts_with = "public")]
+        private: bool,
+        /// Make the list public
+        #[arg(long)]
+        public: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a list you own
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::REMOVE))]
+    Remove {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Follow a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::FOLLOW))]
+    Follow {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Stop following a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::UNFOLLOW))]
+    Unfollow {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Pin a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::PIN))]
+    Pin {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Unpin a list
+    #[command(after_help = family_help::lists::FAMILY.verb_page(&family_help::lists::UNPIN))]
+    Unpin {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr lists members` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ListMembersCommands {
+    /// List the accounts on a list
+    #[command(after_help = family_help::list_members::FAMILY.verb_page(&family_help::list_members::LIST))]
+    List {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Add an account to a list you own
+    #[command(after_help = family_help::list_members::FAMILY.verb_page(&family_help::list_members::ADD))]
+    Add {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Username of the account
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Take an account off a list you own
+    #[command(after_help = family_help::list_members::FAMILY.verb_page(&family_help::list_members::REMOVE))]
+    Remove {
+        /// List ID, as `xr lists list` prints it
+        #[arg(value_name = "LIST_ID")]
+        list_id: String,
+        /// Username of the account
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr conversations` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ConversationsCommands {
+    /// Start a group conversation and send its first message
+    #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::START))]
+    Start {
+        /// The people to start it with besides you, 2 to 49: each a
+        /// handle, or a numeric user id
+        #[arg(value_name = "PARTICIPANT", required = true, num_args = 1..)]
+        participants: Vec<String>,
+        /// The first message
+        #[arg(long)]
+        text: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Send a message into a conversation, by id
+    #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::SEND))]
+    Send {
+        /// Conversation ID, as `xr dms` prints it
+        #[arg(value_name = "CONVERSATION_ID")]
+        conversation_id: String,
+        /// Message text
+        text: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the messages in a conversation, by id
+    #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::HISTORY))]
+    History {
+        /// Conversation ID, as `xr dms` prints it
+        #[arg(value_name = "CONVERSATION_ID")]
+        conversation_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the messages between you and one person
+    #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::WITH))]
+    With {
+        /// Username of the other person
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr dm-events` verbs.
+#[derive(Subcommand, Debug)]
+pub enum DmEventsCommands {
+    /// Read one direct message, by event id
+    #[command(after_help = family_help::dm_events::FAMILY.verb_page(&family_help::dm_events::GET))]
+    Get {
+        /// Event ID, as `xr dms` prints it
+        #[arg(value_name = "EVENT_ID")]
+        event_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete one of your direct messages, by event id
+    #[command(after_help = family_help::dm_events::FAMILY.verb_page(&family_help::dm_events::REMOVE))]
+    Remove {
+        /// Event ID, as `xr dms` prints it
+        #[arg(value_name = "EVENT_ID")]
+        event_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr communities` verbs.
+#[derive(Subcommand, Debug)]
+pub enum CommunitiesCommands {
+    /// Search communities
+    #[command(after_help = family_help::communities::FAMILY.verb_page(&family_help::communities::SEARCH))]
+    Search {
+        /// Search query
+        query: String,
+        /// Number of results (10-100; a lower value is raised to 10, X's
+        /// minimum). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one community, by id
+    #[command(after_help = family_help::communities::FAMILY.verb_page(&family_help::communities::GET))]
+    Get {
+        /// Community ID, as `xr communities search` prints it
+        #[arg(value_name = "COMMUNITY_ID")]
+        community_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr spaces` verbs.
+#[derive(Subcommand, Debug)]
+pub enum SpacesCommands {
+    /// Search Spaces by keyword
+    #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::SEARCH))]
+    Search {
+        /// Search query
+        query: String,
+        /// Only Spaces in this state (X's default is all)
+        #[arg(long, value_parser = ["live", "scheduled", "all"])]
+        state: Option<String>,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read 1 to 100 Spaces by id in one request
+    #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::GET))]
+    Get {
+        /// Space ids, such as 1DXxyRYNejbKM, 1 to 100
+        #[arg(value_name = "SPACE_ID", required = true, num_args = 1..)]
+        space_ids: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the Spaces 1 to 100 accounts created, in one request
+    #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::BY_CREATOR))]
+    ByCreator {
+        /// Handles (@jack or jack) or numeric user ids, 1 to 100, in any mix
+        #[arg(value_name = "ACCOUNT", required = true, num_args = 1..)]
+        accounts: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts shared in a Space
+    #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::POSTS))]
+    Posts {
+        /// Space ID, as `xr spaces search` prints it
+        #[arg(value_name = "SPACE_ID")]
+        space_id: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr stream` nouns.
+#[derive(Subcommand, Debug)]
+pub enum StreamCommands {
+    /// List, add, remove, and count the rules that pick the stream's posts
+    #[command(after_help = family_help::stream_rules::page())]
+    Rules {
+        /// `stream rules` verb to dispatch.
+        #[command(subcommand)]
+        action: StreamRulesCommands,
+    },
+}
+
+/// `xr stream rules` verbs.
+#[derive(Subcommand, Debug)]
+pub enum StreamRulesCommands {
+    /// List the filtered stream's rules
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::LIST))]
+    List {
+        /// Number of results (1-1000). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Add a rule to the filtered stream
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::ADD))]
+    Add {
+        /// The rule's filter expression, such as "from:XDevelopers has:media"
+        value: String,
+        /// A label for the rule; the stream marks each post with the tags of
+        /// the rules it matched
+        #[arg(long)]
+        tag: Option<String>,
+        /// Have X check the rule and save nothing (the endpoint's
+        /// `dry_run`). This sends a request; `--dry-run` sends none
+        #[arg(long)]
+        validate_only: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove rules from the filtered stream, by id
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::REMOVE))]
+    Remove {
+        /// Rule ids, as `xr stream rules list` prints them
+        #[arg(value_name = "RULE_ID", required = true, num_args = 1..)]
+        rule_ids: Vec<String>,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Have X check the removal and delete nothing (the endpoint's
+        /// `dry_run`); it needs no confirmation. This sends a request;
+        /// `--dry-run` sends none
+        #[arg(long)]
+        validate_only: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Count the rules your app and its project hold, against X's caps
+    #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::COUNT))]
+    Count {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr news` verbs.
+#[derive(Subcommand, Debug)]
+pub enum NewsCommands {
+    /// Search news stories
+    #[command(after_help = family_help::news::FAMILY.verb_page(&family_help::news::SEARCH))]
+    Search {
+        /// Search query
+        query: String,
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Only stories updated within this many hours, 1 to 720 (X's default
+        /// is 168, one week)
+        #[arg(long, value_parser = clap::value_parser!(u32).range(1..=720))]
+        max_age_hours: Option<u32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one news story, by id
+    #[command(after_help = family_help::news::FAMILY.verb_page(&family_help::news::GET))]
+    Get {
+        /// Story ID, as `xr news search` prints it
+        #[arg(value_name = "STORY_ID")]
+        story_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr articles` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ArticlesCommands {
+    /// Save a draft X Article from a plain-text body
+    ///
+    /// A blank line ends a paragraph. A line that starts with `#`, `##`, or
+    /// `###` and a space is a header, `-` a list item, `1.` a numbered item,
+    /// and `>` a quote.
+    #[command(after_help = family_help::articles::FAMILY.verb_page(&family_help::articles::DRAFT))]
+    Draft {
+        /// The article's title
+        #[arg(long)]
+        title: String,
+        /// The file holding the body, or `-` to read it from stdin
+        #[arg(long, value_name = "PATH")]
+        body_file: String,
+        /// The media id of an uploaded image to show above the article
+        #[arg(long, value_name = "MEDIA_ID")]
+        cover: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Publish a draft X Article
+    #[command(after_help = family_help::articles::FAMILY.verb_page(&family_help::articles::PUBLISH))]
+    Publish {
+        /// Article ID, as `xr articles draft` prints it
+        #[arg(value_name = "ARTICLE_ID")]
+        article_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr notes` verbs.
+#[derive(Subcommand, Debug)]
+pub enum NotesCommands {
+    /// Write a Community Note about a post
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::WRITE))]
+    Write {
+        /// The post the note is about, by id or URL
+        #[arg(value_name = "POST")]
+        post: String,
+        /// The note's text; X requires a source URL in it
+        #[arg(long)]
+        text: String,
+        /// How the note classifies the post
+        #[arg(long, value_parser = ["misinformed_or_potentially_misleading", "not_misleading"])]
+        classification: String,
+        /// Why the post may be misleading; repeat for several
+        #[arg(long = "tag", value_name = "TAG", value_parser = [
+            "disputed_claim_as_fact",
+            "factual_error",
+            "manipulated_media",
+            "misinterpreted_satire",
+            "missing_important_context",
+            "other",
+            "outdated_information",
+        ])]
+        tags: Vec<String>,
+        /// The note cites trustworthy sources
+        #[arg(long)]
+        trustworthy_sources: bool,
+        /// The note is about the post's media
+        #[arg(long)]
+        media_note: bool,
+        /// Test mode, for an app X is still admitting to the program
+        #[arg(long)]
+        test: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Score a draft Community Note without writing it
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::EVALUATE))]
+    Evaluate {
+        /// The post the note is about, by id or URL
+        #[arg(value_name = "POST")]
+        post: String,
+        /// The note's text; X requires a source URL in it
+        #[arg(long)]
+        text: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List posts you could write a Community Note on
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::ELIGIBLE))]
+    Eligible {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Test mode, for an app X is still admitting to the program
+        #[arg(long)]
+        test: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the Community Notes you wrote
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::WRITTEN))]
+    Written {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Test mode, for an app X is still admitting to the program
+        #[arg(long)]
+        test: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a Community Note you wrote
+    #[command(after_help = family_help::notes::FAMILY.verb_page(&family_help::notes::REMOVE))]
+    Remove {
+        /// Note ID, as `xr notes written` prints it
+        #[arg(value_name = "NOTE_ID")]
+        note_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr trends` verbs.
+#[derive(Subcommand, Debug)]
+pub enum TrendsCommands {
+    /// List the trends for a place, by its Yahoo WOEID (1 is worldwide)
+    #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::PLACE))]
+    Place {
+        /// The place's Yahoo Where On Earth ID, a positive integer
+        #[arg(value_name = "WOEID", value_parser = clap::value_parser!(u32).range(1..))]
+        woeid: u32,
+        /// Number of trends (1-50; X's default is 20). Overrides global
+        /// `--limit` when set.
+        #[arg(short = 'n', long = "max-results", value_parser = clap::value_parser!(u32).range(1..=50))]
+        max_results: Option<u32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the trends X picks for you
+    #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::PERSONAL))]
+    Personal {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
 /// `xr broadcasts` family subcommands.
 #[derive(Subcommand, Debug)]
 pub enum BroadcastsCommands {
+    /// List your broadcasts
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one broadcast, by id
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::GET))]
+    Get {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Schedule broadcasts, change or cancel them, and start them early
+    #[command(after_help = family_help::broadcasts_scheduled::page())]
+    Scheduled {
+        /// `scheduled` verb to dispatch.
+        #[command(subcommand)]
+        action: ScheduledBroadcastsCommands,
+    },
+    /// Read and moderate a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::page())]
+    Chat {
+        /// `chat` verb to dispatch.
+        #[command(subcommand)]
+        action: BroadcastChatCommands,
+    },
     /// Manage who moderates your broadcast chats
     #[command(after_help = family_help::broadcasts::moderators_page())]
     Moderators {
         /// `moderators` verb to dispatch.
         #[command(subcommand)]
         action: ModeratorsCommands,
+    },
+    /// Manage the RTMP and RTMPS ingest points you stream to
+    #[command(after_help = family_help::broadcast_sources::page())]
+    Sources {
+        /// `sources` verb to dispatch.
+        #[command(subcommand)]
+        action: SourcesCommands,
+    },
+}
+
+/// `xr broadcasts scheduled` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ScheduledBroadcastsCommands {
+    /// List your scheduled broadcasts
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one scheduled broadcast, by id
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::GET))]
+    Get {
+        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_ID")]
+        scheduled_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Schedule a broadcast from one of your stream sources
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::ADD))]
+    Add {
+        /// Stream source ID, as `xr broadcasts sources list` prints it
+        #[arg(long, value_name = "SOURCE_ID", value_parser = clap::builder::NonEmptyStringValueParser::new())]
+        source: String,
+        /// When the broadcast starts (RFC 3339 with a zone, such as
+        /// 2026-11-02T16:00:00Z)
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// When the broadcast ends (RFC 3339); open-ended when unset
+        #[arg(long, value_name = "TIME")]
+        end: Option<String>,
+        /// The broadcast's title
+        #[arg(long)]
+        title: Option<String>,
+        /// What the broadcast is about
+        #[arg(long)]
+        description: Option<String>,
+        /// Let people watch the broadcast after it ends
+        #[arg(long)]
+        replay: bool,
+        /// Wait for `xr broadcasts scheduled live` rather than starting on time
+        #[arg(long)]
+        manual_publish: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Move a scheduled broadcast, or change its details
+    ///
+    /// X takes both times on every change.
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::UPDATE))]
+    Update {
+        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_ID")]
+        scheduled_id: String,
+        /// When the broadcast starts (RFC 3339 with a zone)
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// When the broadcast ends (RFC 3339 with a zone)
+        #[arg(long, value_name = "TIME")]
+        end: String,
+        /// Stream source ID to take video from instead
+        #[arg(long, value_name = "SOURCE_ID")]
+        source: Option<String>,
+        /// The broadcast's title
+        #[arg(long)]
+        title: Option<String>,
+        /// What the broadcast is about
+        #[arg(long)]
+        description: Option<String>,
+        /// Let people watch the broadcast after it ends
+        #[arg(long)]
+        replay: bool,
+        /// Wait for `xr broadcasts scheduled live` rather than starting on time
+        #[arg(long)]
+        manual_publish: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Cancel a scheduled broadcast
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::REMOVE))]
+    Remove {
+        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_ID")]
+        scheduled_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Start a scheduled broadcast now
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::LIVE))]
+    Live {
+        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_ID")]
+        scheduled_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr broadcasts chat` verbs.
+#[derive(Subcommand, Debug)]
+pub enum BroadcastChatCommands {
+    /// List a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::HISTORY))]
+    History {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Number of results (1-200). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Send a message into a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::SEND))]
+    Send {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Message text, 1 to 140 characters
+        text: String,
+        /// The chat message to reply to, by id
+        #[arg(long, value_name = "MESSAGE_ID")]
+        reply_to: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove a message from a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::REMOVE))]
+    Remove {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Chat message ID, as `xr broadcasts chat history` prints it
+        #[arg(value_name = "MESSAGE_ID")]
+        message_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Mute someone in a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::MUTE))]
+    Mute {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Username to mute
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// When the mute ends (RFC 3339 with a zone); for good when unset
+        #[arg(long, value_name = "TIME")]
+        until: Option<String>,
+        /// A chat message of theirs to remove while muting, by id
+        #[arg(long, value_name = "MESSAGE_ID")]
+        message: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Unmute someone in a broadcast's chat
+    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::UNMUTE))]
+    Unmute {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Username to unmute
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr broadcasts sources` verbs.
+#[derive(Subcommand, Debug)]
+pub enum SourcesCommands {
+    /// List your stream sources
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::LIST))]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Show one stream source, and whether it is receiving video
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::GET))]
+    Get {
+        /// Source ID, as `xr broadcasts sources list` prints it; it is also
+        /// the stream key
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Create a stream source
+    ///
+    /// Point an encoder at its `rtmps_url` with its `id` as the stream key.
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::ADD))]
+    Add {
+        /// A label for the source
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Ingest region: us-east-1, us-east-2, us-west-1, us-west-2,
+        /// ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1,
+        /// ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or
+        /// ap-northeast-2
+        #[arg(long, value_name = "REGION")]
+        region: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Rename a stream source
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::RENAME))]
+    Rename {
+        /// Source ID, as `xr broadcasts sources list` prints it
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// The new label
+        #[arg(value_name = "NAME")]
+        name: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a stream source; an encoder sending to it is no longer received
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::REMOVE))]
+    Remove {
+        /// Source ID, as `xr broadcasts sources list` prints it
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
     },
 }
 
@@ -1563,6 +3023,477 @@ pub enum ModeratorsCommands {
         /// Username to remove
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr calls` family subcommands.
+#[derive(Subcommand, Debug)]
+pub enum CallsCommands {
+    /// Show an X call: its title, join policy, host, and who is in it
+    #[command(after_help = family_help::calls::FAMILY.verb_page(&family_help::calls::GET))]
+    Get {
+        /// Call ID, as a scheduled call's `call_id` gives it; it is also the
+        /// call's join secret
+        #[arg(value_name = "CALL_ID")]
+        call_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// The calls on your calendar: schedule, change, cancel, and answer them
+    #[command(after_help = family_help::scheduled_calls::page())]
+    Scheduled {
+        /// `scheduled` verb to dispatch.
+        #[command(subcommand)]
+        action: ScheduledCallsCommands,
+    },
+}
+
+/// `xr calls scheduled` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ScheduledCallsCommands {
+    /// List the calls on your calendar, earliest first
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::LIST))]
+    List {
+        /// Calls still running at this time or starting after it (RFC 3339);
+        /// X assumes now
+        #[arg(long, value_name = "TIME")]
+        start: Option<String>,
+        /// Calls starting before this time (RFC 3339); X assumes 24 hours
+        /// after `--start`
+        #[arg(long, value_name = "TIME")]
+        end: Option<String>,
+        /// Number of calls (1-100)
+        #[arg(short = 'n', long = "max-results", default_value_t = 20)]
+        max_results: i32,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Show a scheduled call, with its invitees and their answers
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::GET))]
+    Get {
+        /// Scheduled call ID, as `xr calls scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_CALL_ID")]
+        scheduled_call_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Schedule a call on your X Calls calendar and invite people to it
+    ///
+    /// The call exists at once: its `join_url` works from now. Invitees get
+    /// an email unless `--no-notify` is given.
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::ADD))]
+    Add {
+        /// When the call starts (RFC 3339 with a zone, such as
+        /// 2026-11-02T16:00:00Z); not in the past
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// What the call is, and who is invited
+        #[command(flatten)]
+        details: CallDetailsArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Move, rename, or re-invite a call you organize
+    ///
+    /// Only what the flags name changes; `--invite` replaces the invite
+    /// list.
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::UPDATE))]
+    Update {
+        /// Scheduled call ID, as `xr calls scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_CALL_ID")]
+        scheduled_call_id: String,
+        /// When the call, or the named occurrence, now starts (RFC 3339)
+        #[arg(long, value_name = "TIME")]
+        start: Option<String>,
+        /// What the call is, and who is invited
+        #[command(flatten)]
+        details: CallDetailsArgs,
+        /// Which occurrences of a recurring call change
+        #[command(flatten)]
+        occurrences: OccurrenceArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Cancel a call you organize and take it off invitees' calendars
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::CANCEL))]
+    Cancel {
+        /// Scheduled call ID, as `xr calls scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_CALL_ID")]
+        scheduled_call_id: String,
+        /// Which occurrences of a recurring call to cancel
+        #[command(flatten)]
+        occurrences: OccurrenceArgs,
+        /// Send invitees no email about the cancellation
+        #[arg(long)]
+        no_notify: bool,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Answer an invitation to a scheduled call
+    #[command(after_help = family_help::scheduled_calls::FAMILY.verb_page(&family_help::scheduled_calls::RSVP))]
+    Rsvp {
+        /// Scheduled call ID, as `xr calls scheduled list` prints it
+        #[arg(value_name = "SCHEDULED_CALL_ID")]
+        scheduled_call_id: String,
+        /// Your answer
+        #[arg(value_name = "ANSWER", value_enum)]
+        answer: CallAnswer,
+        /// Which occurrences of a recurring call the answer is for
+        #[command(flatten)]
+        occurrences: OccurrenceArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// What a scheduled call is and who it invites, as scheduling and
+/// changing one both take them.
+#[derive(clap::Args, Debug)]
+pub struct CallDetailsArgs {
+    /// The title invitees see (100 characters at most)
+    #[arg(long, value_name = "TITLE")]
+    pub title: Option<String>,
+    /// What the call is about (1000 characters at most)
+    #[arg(long, value_name = "DESCRIPTION")]
+    pub description: Option<String>,
+    /// How long the call lasts, in minutes (at most 44640, 31 days); X
+    /// assumes 30
+    #[arg(long, value_name = "MINUTES")]
+    pub duration: Option<u32>,
+    /// Numeric user ID of someone to invite; repeat for each person
+    #[arg(long = "invite", value_name = "USER_ID")]
+    pub invite: Vec<String>,
+    /// The RFC 5545 RRULE to repeat the call by, such as
+    /// FREQ=WEEKLY;BYDAY=MO
+    #[arg(long, value_name = "RRULE")]
+    pub recurrence: Option<String>,
+    /// The IANA time zone the recurrence follows, such as America/Chicago
+    #[arg(long, value_name = "ZONE")]
+    pub time_zone: Option<String>,
+    /// Send invitees no email about it
+    #[arg(long)]
+    pub no_notify: bool,
+}
+
+/// The occurrences of a recurring scheduled call a request names; with
+/// neither flag, every occurrence.
+#[derive(clap::Args, Debug)]
+pub struct OccurrenceArgs {
+    /// Which occurrences, counted from `--occurrence`: X assumes `all`
+    /// without it and `this` with it
+    #[arg(long, value_enum, value_name = "SCOPE")]
+    pub scope: Option<CallScope>,
+    /// The occurrence's original start (RFC 3339), as a listed call's
+    /// `occurrence_start_time` gives it
+    #[arg(long, value_name = "TIME")]
+    pub occurrence: Option<String>,
+}
+
+/// Which occurrences of a recurring call a request applies to.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CallScope {
+    /// Every occurrence
+    All,
+    /// The named occurrence alone
+    This,
+    /// The named occurrence and every one after it
+    ThisAndFollowing,
+}
+
+/// An answer to a scheduled-call invitation.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CallAnswer {
+    /// You will attend
+    Accepted,
+    /// You will not attend
+    Declined,
+    /// You might attend
+    Tentative,
+}
+
+/// `xr webhooks` verbs.
+#[derive(Subcommand, Debug)]
+pub enum WebhooksCommands {
+    /// List the webhooks registered for the app
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::LIST))]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Register a webhook URL
+    ///
+    /// X sends its CRC check to the URL before it answers, so the request
+    /// succeeds only while a receiver is reachable there.
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::ADD))]
+    Add {
+        /// The public HTTPS URL X delivers events to (200 characters at most)
+        #[arg(value_name = "URL")]
+        url: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Ask X to send its CRC check to a webhook again
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::VALIDATE))]
+    Validate {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a webhook; its subscriptions stop delivering
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REMOVE))]
+    Remove {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Account Activity subscriptions: whose activity a webhook receives
+    #[command(after_help = family_help::webhook_subscriptions::page())]
+    Subscriptions {
+        /// `subscriptions` verb to dispatch.
+        #[command(subcommand)]
+        action: WebhookSubscriptionsCommands,
+    },
+    /// Filtered-stream links: deliver the posts your stream rules match to a webhook
+    #[command(name = "stream-links", after_help = family_help::webhook_stream_links::page())]
+    StreamLinks {
+        /// `stream-links` verb to dispatch.
+        #[command(subcommand)]
+        action: WebhookStreamLinksCommands,
+    },
+    /// Receive webhook deliveries on a local address
+    ///
+    /// Answers X's CRC check and prints each event X delivers, once its
+    /// signature verifies, as one JSON line on stdout. X delivers only to a
+    /// public HTTPS URL with no port, so expose the local address through a
+    /// tunnel or reverse proxy of your own and register that URL with
+    /// `xr webhooks add`. This command opens no tunnel and sends nothing to X.
+    /// It runs until interrupted, or until `--max-events` events have printed.
+    ///
+    /// Once up, it hands out a signed sample delivery to prove the wiring
+    /// before X sends anything: `test_command`, a curl invocation, and
+    /// `test_request`, the same request as data, on the JSON `listening`
+    /// line, or the curl invocation on stderr in text. The sample's body
+    /// carries `"xr_test_event": true`.
+    #[command(
+        after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::LISTEN),
+        group = clap::ArgGroup::new("target").args(["forward", "program"]).multiple(true)
+    )]
+    Listen {
+        /// Local port to listen on; 0 takes any free port
+        #[arg(long, short = 'p', default_value_t = 8080)]
+        port: u16,
+        /// Local address to bind
+        #[arg(long, value_name = "ADDRESS", default_value = "127.0.0.1")]
+        bind: std::net::IpAddr,
+        /// Request path to answer on
+        #[arg(long, default_value = xdk::webhooks::DEFAULT_PATH)]
+        path: String,
+        /// Which of the app's secrets X signs with. Unset, the OAuth2 client
+        /// secret when the app has one, else the OAuth1 consumer secret
+        #[arg(long, value_enum)]
+        secret: Option<SigningSecret>,
+        /// Also print a POST that carries no signature, for a local test
+        /// with curl. A POST with a wrong signature is refused either way
+        #[arg(long)]
+        allow_unsigned: bool,
+        /// Exit 0 once this many events have printed
+        #[arg(long, value_name = "N", value_parser = clap::value_parser!(u64).range(1..))]
+        max_events: Option<u64>,
+        /// Also POST each verified event to this http or https URL, after X
+        /// has its answer: the body and signature header as X sent them, an
+        /// Idempotency-Key, and each -H. Each delivery is reported on stderr
+        #[arg(long, value_name = "URL")]
+        forward: Option<String>,
+        /// A header for each forward, as 'Name: Value'; repeat for more. Its
+        /// value is never printed
+        #[arg(
+            short = 'H',
+            long = "header",
+            value_name = "NAME: VALUE",
+            requires = "forward"
+        )]
+        header: Vec<String>,
+        /// Seconds one forward attempt may take before it is tried again
+        /// (four attempts, 1, 2, then 4 seconds apart). Unset, 30
+        #[arg(
+            long,
+            value_name = "SECS",
+            requires = "target",
+            value_parser = clap::value_parser!(u64).range(1..)
+        )]
+        forward_timeout: Option<u64>,
+        /// A program to run once per verified event, after `--`, with the
+        /// event's body on its stdin and XR_EVENT_SHA256 set to the key a
+        /// --forward target gets. No shell runs it; its stdout and stderr go
+        /// to stderr. A run past --forward-timeout is stopped with everything
+        /// it started
+        #[arg(last = true, value_name = "PROGRAM")]
+        program: Vec<String>,
+        /// Record, at most once a minute, when the oldest event not yet
+        /// delivered to every target arrived (the newest event when none is
+        /// waiting), so `xr webhooks replay --from-checkpoint` can request
+        /// what a stop missed
+        #[arg(long, value_name = "FILE")]
+        checkpoint: Option<std::path::PathBuf>,
+    },
+    /// Deliver a past window of events to a webhook again
+    #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::REPLAY))]
+    Replay {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Start of the window: twelve digits, `yyyymmddhhmm` in UTC
+        #[arg(
+            long,
+            value_name = "YYYYMMDDHHMM",
+            requires = "to",
+            required_unless_present = "from_checkpoint"
+        )]
+        from: Option<String>,
+        /// End of the window: twelve digits, `yyyymmddhhmm` in UTC
+        #[arg(
+            long,
+            value_name = "YYYYMMDDHHMM",
+            requires = "from",
+            required_unless_present = "from_checkpoint"
+        )]
+        to: Option<String>,
+        /// Request the window from the minute `xr webhooks listen
+        /// --checkpoint` recorded to the current minute, at most the 24 hours
+        /// X replays. Replayed events reach the targets again, repeats
+        /// included
+        #[arg(long, value_name = "FILE", conflicts_with_all = ["from", "to"])]
+        from_checkpoint: Option<std::path::PathBuf>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// The app secret `xr webhooks listen` answers and verifies with.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SigningSecret {
+    /// The app's `OAuth2` client secret
+    Oauth2,
+    /// The app's `OAuth1` consumer secret (API Secret Key)
+    Oauth1,
+}
+
+/// `xr webhooks subscriptions` verbs.
+#[derive(Subcommand, Debug)]
+pub enum WebhookSubscriptionsCommands {
+    /// Count the subscriptions the app holds and may hold
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::COUNT))]
+    Count {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the accounts whose activity a webhook receives
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::LIST))]
+    List {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Subscribe your account's activity to a webhook
+    ///
+    /// X bills each event it then delivers to the webhook.
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::ADD))]
+    Add {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Say whether your account's activity is subscribed to a webhook
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::CHECK))]
+    Check {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// End an account's subscription to a webhook
+    #[command(after_help = family_help::webhook_subscriptions::FAMILY.verb_page(&family_help::webhook_subscriptions::REMOVE))]
+    Remove {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Numeric user ID of the subscribed account, as `subscriptions list` prints it
+        #[arg(value_name = "USER_ID")]
+        user_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr webhooks stream-links` verbs.
+#[derive(Subcommand, Debug)]
+pub enum WebhookStreamLinksCommands {
+    /// List the webhooks the app's filtered stream delivers to
+    #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::LIST))]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Deliver the app's filtered stream to a webhook
+    ///
+    /// X bills each post it then delivers to the webhook.
+    #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::ADD))]
+    Add {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Stop delivering the app's filtered stream to a webhook
+    #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::REMOVE))]
+    Remove {
+        /// Webhook ID, as `xr webhooks list` prints it
+        #[arg(value_name = "WEBHOOK_ID")]
+        webhook_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -1670,7 +3601,8 @@ pub struct CommonFlags {
     #[arg(long = "auth")]
     pub auth_type: Option<String>,
 
-    /// `OAuth2` username to act as
+    /// `OAuth2` login to act as, by the name it is stored under: its username, or the name given to
+    /// `xr auth oauth2`
     #[arg(short = 'u', long = "username")]
     pub username: Option<String>,
 
@@ -1958,7 +3890,8 @@ pub enum MediaCommands {
         /// Authentication type
         #[arg(long = "auth")]
         auth_type: Option<String>,
-        /// Username
+        /// `OAuth2` login to act as, by the name it is stored under: its username, or the
+        /// name given to `xr auth oauth2`
         #[arg(short = 'u', long = "username")]
         username: Option<String>,
         /// Trace header
@@ -1976,7 +3909,8 @@ pub enum MediaCommands {
         /// Authentication type
         #[arg(long = "auth")]
         auth_type: Option<String>,
-        /// Username
+        /// `OAuth2` login to act as, by the name it is stored under: its username, or the
+        /// name given to `xr auth oauth2`
         #[arg(short = 'u', long = "username")]
         username: Option<String>,
         /// Wait for X to finish processing instead of reading the status once
@@ -2003,6 +3937,36 @@ pub enum MediaCommands {
         /// Request headers
         #[arg(short = 'H', long = "header")]
         headers: Vec<String>,
+    },
+    /// Read 1 to 100 uploads by media key in one request
+    #[command(after_help = MEDIA_GET_HELP)]
+    Get {
+        /// Media keys, such as 3_1146654567674912769, 1 to 100
+        #[arg(value_name = "MEDIA_KEY", required = true, num_args = 1..)]
+        media_keys: Vec<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Report video metrics for your uploads over a time window
+    #[command(after_help = MEDIA_ANALYTICS_HELP)]
+    Analytics {
+        /// Media keys, such as 7_1146654567674912770, 1 to 100
+        #[arg(value_name = "MEDIA_KEY", required = true, num_args = 1..)]
+        media_keys: Vec<String>,
+        /// Start of the window (RFC 3339 with a zone, such as
+        /// 2026-10-01T00:00:00Z)
+        #[arg(long, value_name = "TIME")]
+        start: String,
+        /// End of the window (RFC 3339 with a zone); after the start
+        #[arg(long, value_name = "TIME")]
+        end: String,
+        /// Bucket size (X's default is daily)
+        #[arg(long, value_parser = ["hourly", "daily", "total"])]
+        granularity: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
     },
     /// Set the alt text shown for an uploaded image or video
     #[command(after_help = MEDIA_ALT_TEXT_HELP)]

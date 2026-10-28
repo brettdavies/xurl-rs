@@ -7,6 +7,9 @@
 //! consuming Rust module on the next `cargo build` (via
 //! `cargo::rerun-if-changed`). Mirrors the pattern in
 //! `agentnative-cli/build.rs`.
+//!
+//! It also names the main-thread stack of the Windows executable
+//! (`reserve_windows_main_stack`).
 
 use std::env;
 use std::fs;
@@ -15,6 +18,24 @@ use std::path::{Path, PathBuf};
 fn main() {
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     emit_skill_hosts(&manifest_dir);
+    reserve_windows_main_stack();
+}
+
+/// Name an 8 MiB main-thread stack in the Windows executable, the size Linux
+/// gives a main thread. Windows gives the main thread the stack its executable
+/// names, 1 MiB by default, and `xr` runs every command there; a debug build
+/// needs more than 1 MiB for any command, `--help` included. The size is a
+/// reservation: pages are committed only as the stack grows.
+fn reserve_windows_main_stack() {
+    if env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("windows") {
+        return;
+    }
+    let arg = match env::var("CARGO_CFG_TARGET_ENV").as_deref() {
+        Ok("msvc") => "/STACK:8388608",
+        Ok("gnu") => "-Wl,--stack,8388608",
+        _ => return,
+    };
+    println!("cargo:rustc-link-arg-bin=xr={arg}");
 }
 
 /// Emit `$OUT_DIR/generated_hosts.rs` from `src/cli/skill_install/skill.json`.

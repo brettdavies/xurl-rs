@@ -98,7 +98,7 @@ Both crates follow [SemVer 2.0.0](https://semver.org/). A release's version come
 - **Structured output:** every shape `--output json|jsonl|ndjson|yaml|csv|tsv` prints, meaning the success responses in
   `schema/responses/` and `xr schema`, and the error envelope in `schema/output.schema.json`, including its `reason` and
   `next_step.action` sets.
-- **Stored state:** the `~/.xurl` token store format.
+- **Stored state:** the `~/.xurl/auth.yml` token store format.
 
 Text-mode output, help text, colors, `--verbose` diagnostics, suggestion wording, and raw-mode response bodies (X's
 bytes, passed through) are not contract. The one text-mode exception is the plain `xr --version` line, `xr X.Y.Z`, which
@@ -355,12 +355,12 @@ Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/re
 
 The tap's formula installs this release's archives. Its `update-formula` workflow downloads the four it names (the two
 `apple-darwin` and the two `linux-musl` archives), verifies each against the attestation `attest` made, and pins its
-checksum; an archive with no attestation stops the bump, so `attest: true` in `release.yml` is what lets a release
-reach Homebrew. The tap then builds bottles from those archives, signs them in its own `publish.yml`, and uploads them
-to this repo's release assets.
+checksum; an archive with no attestation stops the bump, so `attest: true` in `release.yml` is what lets a release reach
+Homebrew. The tap then installs and tests the formula from those archives on four platforms and lands the bump on its
+`main`. It builds no bottle: the binaries are compiled once, by `release.yml`, and `brew install` downloads the archive.
 
-After the homebrew-tap workflow uploads bottles to this repo's release assets, it dispatches `finalize-release` back to
-this repo, which idempotently flips `make_latest: true`.
+After the homebrew-tap workflow lands the formula bump, it dispatches `finalize-release` back to this repo, which
+idempotently flips `make_latest: true`.
 
 → Rationale (`make_latest` flow, target matrix, annotated-tag gotcha):
 [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
@@ -483,10 +483,11 @@ cargo yank --version "${BAD#v}" xurl-rs
 # GitHub Release: re-point /releases/latest (and cargo-binstall) at the last-good tag.
 gh release edit "$PREV" --latest
 
-# Homebrew: revert the tap's two commits for the bad release (`chore(xurl-rs): bump to
-# vX.Y.Z`, then `xurl-rs: add X.Y.Z bottle.`) so `brew install` resolves the previous
-# bottle, whose assets are still attached to the previous GitHub Release.
-git -C ~/dev/homebrew-tap revert <bottle-sha> <bump-sha>
+# Homebrew: revert the tap's commit for the bad release (`chore(xurl-rs): bump to
+# vX.Y.Z`) so `brew install` resolves the previous version, whose assets are still
+# attached to the previous GitHub Release. A release the tap published with a bottle
+# (4.3.0 and earlier) has a second commit, `xurl-rs: add X.Y.Z bottle.`; revert it first.
+git -C ~/dev/homebrew-tap revert <bump-sha>
 ```
 
 `cargo yank --undo --version <version> xurl-rs` reverses a wrong yank. A yanked version cannot be published again, so
@@ -539,16 +540,20 @@ drift the next regeneration overwrites.
 
 Two rulesets are committed under `.github/rulesets/` and applied to the repo via the GitHub API:
 
-- `protect-main.json` (required signatures, linear history, squash-only merges via PR, creation/deletion blocked,
-  non-fast-forward blocked, and the required status checks the file lists: every check `dev` requires but one, plus `ci
-  / Changelog` and the three `guard-*` checks). The one it leaves out is `Surface growth needs a minor section`, because
-  the `Changelog bump` workflow does not run on release PRs. A release tree that `dev` never checked as a whole, from a
-  cherry-pick release or a fix made on the release branch, meets no weaker gate on `main`.
-- `protect-dev.json` (required signatures, deletion blocked, non-fast-forward blocked, and the required status checks
-  the file lists: every `ci / ...` job of the reusable workflow, the repository's own CI jobs, `Agent-native audit`,
-  `Go parity`, and `MSRV` among them, and `Surface growth needs a minor section` from the `Changelog bump` workflow).
-  The file is the list; apply it after changing it. PR-only norm is convention + `guard-release-branch` on the main
-  side.
+- `protect-main.json` (required signatures, linear history, squash-only merges via PR with one approving review,
+  creation/deletion blocked, non-fast-forward blocked, and the required status checks the file lists: every check `dev`
+  requires but one, plus `ci / Changelog` and the three `guard-*` checks). The one it leaves out is `Surface growth
+  needs a minor section`, because the `Changelog bump` workflow does not run on release PRs. A release tree that `dev`
+  never checked as a whole, from a cherry-pick release or a fix made on the release branch, meets no weaker gate on
+  `main`.
+- `protect-dev.json` (required signatures, linear history, squash-only merges via PR with no approval required,
+  deletion blocked, non-fast-forward blocked, and the required status checks the file lists: every `ci / ...` job of
+  the reusable workflow, the repository's own CI jobs, `Agent-native audit`, `Go parity`, and `MSRV` among them, and
+  `Surface growth needs a minor section` from the `Changelog bump` workflow). The file is the list; apply it after
+  changing it.
+
+The repository admin role bypasses both rulesets. That is how the owner merges a release PR without a second reviewer,
+and how planning documents are committed to `dev` directly.
 
 A job its `if:` skips on a documentation-only PR still reports under its own name, as skipped, and that satisfies the
 requirement. A matrix job skipped whole never expands and reports nothing, which is why `Features (...)` runs on every

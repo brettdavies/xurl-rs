@@ -21,9 +21,18 @@ use serde_json::Value;
 use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
-    ApiError, ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult,
-    DmEvent, DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MediaUploadResponse, MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
+    ArticleDraft, ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost,
+    BookmarkedResult, Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult,
+    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
+    FollowingResult, HiddenResult, LikedResult, List, ListMemberResult, ListUpdatedResult, Media,
+    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse, MutingResult,
+    NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post,
+    PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule,
+    StreamRuleCounts, StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult,
+    Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -216,6 +225,235 @@ fn every_legacy_spelling_is_a_docs_search_alias() {
 }
 
 #[test]
+fn spec_media_lookup() {
+    let examples = load_examples();
+    let media: ApiResponse<Vec<Media>> =
+        serde_json::from_value(examples["media_list"].clone()).unwrap();
+    assert_eq!(media.data[1].kind.as_deref(), Some("video"));
+    let analytics: ApiResponse<Vec<MediaAnalytics>> =
+        serde_json::from_value(examples["media_analytics"].clone()).unwrap();
+    assert_eq!(analytics.data[0].video_views, Some(900));
+    let buckets = analytics.data[0]
+        .timestamped_metrics
+        .as_ref()
+        .expect("buckets");
+    let metrics = buckets[0].metrics.as_ref().expect("bucket metrics");
+    assert_eq!(metrics["playback_complete"], "120");
+}
+
+#[test]
+fn spec_space_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Space>> =
+        serde_json::from_value(examples["space_list"].clone()).unwrap();
+    assert_eq!(resp.data[0].participant_count, Some(40));
+    assert_eq!(resp.data[1].state.as_deref(), Some("scheduled"));
+}
+
+#[test]
+fn spec_stream_rules() {
+    let examples = load_examples();
+    let rules: ApiResponse<Vec<StreamRule>> =
+        serde_json::from_value(examples["stream_rules"].clone()).unwrap();
+    assert_eq!(rules.data[0].tag.as_deref(), Some("devs with media"));
+    let added: ApiResponse<Option<Vec<StreamRule>>> =
+        serde_json::from_value(examples["stream_rules_added"].clone()).unwrap();
+    assert_eq!(
+        added.data.expect("added rules")[0].value.as_deref(),
+        Some("from:jack")
+    );
+    let removed: ApiResponse<Option<Vec<StreamRule>>> =
+        serde_json::from_value(serde_json::json!({"meta": {"summary": {"deleted": 1}}})).unwrap();
+    assert!(removed.data.is_none());
+    let counts: ApiResponse<StreamRuleCounts> =
+        serde_json::from_value(examples["stream_rule_counts"].clone()).unwrap();
+    let app = counts.data.client_app_rules_count.expect("the app's count");
+    assert_eq!(app.rule_count, 3);
+}
+
+#[test]
+fn spec_articles() {
+    let examples = load_examples();
+    let draft: ApiResponse<ArticleDraft> =
+        serde_json::from_value(examples["article_draft"].clone()).unwrap();
+    assert_eq!(draft.data.title, "Why Rust");
+    let published: ApiResponse<ArticlePublished> =
+        serde_json::from_value(examples["article_published"].clone()).unwrap();
+    assert_eq!(published.data.post_id, "1585341984679469056");
+}
+
+#[test]
+fn spec_notes() {
+    let examples = load_examples();
+    let created: ApiResponse<NoteCreated> =
+        serde_json::from_value(examples["note_created"].clone()).unwrap();
+    assert_eq!(created.data.id, "1850000000000000002");
+    let scored: ApiResponse<NoteEvaluation> =
+        serde_json::from_value(examples["note_evaluation"].clone()).unwrap();
+    assert_eq!(scored.data.claim_opinion_score, Some(0.82));
+    let written: ApiResponse<Vec<Note>> =
+        serde_json::from_value(examples["notes_written"].clone()).unwrap();
+    let info = written.data[0].info.as_ref().expect("the note's info");
+    assert_eq!(info.post_id.as_deref(), Some("1585341984679469056"));
+}
+
+#[test]
+fn spec_broadcasts() {
+    let examples = load_examples();
+    let many: ApiResponse<Vec<Broadcast>> =
+        serde_json::from_value(examples["broadcasts"].clone()).unwrap();
+    assert_eq!(many.data[0].chat_option, Some(2));
+    let one: ApiResponse<Broadcast> =
+        serde_json::from_value(examples["broadcast"].clone()).unwrap();
+    assert_eq!(one.data.total_watched.as_deref(), Some("1200"));
+    let scheduled: ApiResponse<Vec<ScheduledBroadcast>> =
+        serde_json::from_value(examples["scheduled_broadcasts"].clone()).unwrap();
+    assert_eq!(scheduled.data[0].manual_publish, Some(false));
+    let one: ApiResponse<ScheduledBroadcast> =
+        serde_json::from_value(examples["scheduled_broadcast"].clone()).unwrap();
+    assert_eq!(one.data.scheduled_broadcast_id, "1850000000000000001");
+}
+
+#[test]
+fn spec_broadcast_chat() {
+    let examples = load_examples();
+    let chat: ApiResponse<Vec<BroadcastChatMessage>> =
+        serde_json::from_value(examples["broadcast_chat"].clone()).unwrap();
+    assert_eq!(chat.data[0].text.as_deref(), Some("Welcome!"));
+    let sent: ApiResponse<ChatSentResult> =
+        serde_json::from_value(examples["broadcast_chat_sent"].clone()).unwrap();
+    assert!(sent.data.success);
+    let muted: ApiResponse<ChatMutedResult> =
+        serde_json::from_value(examples["broadcast_chat_muted"].clone()).unwrap();
+    assert!(muted.data.muted);
+}
+
+#[test]
+fn spec_lists() {
+    let examples = load_examples();
+    let one: ApiResponse<List> = serde_json::from_value(examples["list_single"].clone()).unwrap();
+    assert_eq!(one.data.member_count, Some(42));
+    let many: ApiResponse<Vec<List>> = serde_json::from_value(examples["lists"].clone()).unwrap();
+    assert_eq!(many.data[1].private, Some(true));
+    let created: ApiResponse<List> =
+        serde_json::from_value(examples["list_created"].clone()).unwrap();
+    assert_eq!(created.data.name, "Rustaceans");
+}
+
+#[test]
+fn spec_list_actions() {
+    let examples = load_examples();
+    let updated: ApiResponse<ListUpdatedResult> =
+        serde_json::from_value(examples["list_updated"].clone()).unwrap();
+    assert!(updated.data.updated);
+    let member: ApiResponse<ListMemberResult> =
+        serde_json::from_value(examples["list_member"].clone()).unwrap();
+    assert!(member.data.is_member);
+    let followed: ApiResponse<FollowingResult> =
+        serde_json::from_value(examples["list_followed"].clone()).unwrap();
+    assert!(followed.data.following);
+    let pinned: ApiResponse<PinnedResult> =
+        serde_json::from_value(examples["list_pinned"].clone()).unwrap();
+    assert!(pinned.data.pinned);
+}
+
+#[test]
+fn spec_community_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Community>> =
+        serde_json::from_value(examples["community_list"].clone()).unwrap();
+    assert_eq!(resp.data[0].member_count, Some(4200));
+}
+
+#[test]
+fn spec_community() {
+    let examples = load_examples();
+    let resp: ApiResponse<Community> =
+        serde_json::from_value(examples["community"].clone()).unwrap();
+    assert_eq!(resp.data.join_policy.as_deref(), Some("Open"));
+}
+
+#[test]
+fn spec_news_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<NewsStory>> =
+        serde_json::from_value(examples["news_list"].clone()).unwrap();
+    assert_eq!(resp.data[0].category.as_deref(), Some("Technology"));
+}
+
+#[test]
+fn spec_news_story() {
+    let examples = load_examples();
+    let resp: ApiResponse<NewsStory> =
+        serde_json::from_value(examples["news_story"].clone()).unwrap();
+    let cluster = resp.data.cluster_posts_results.expect("clustered posts");
+    assert_eq!(cluster[0].post_id, "1585341984679469056");
+}
+
+#[test]
+fn spec_trends() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Trend>> = serde_json::from_value(examples["trends"].clone()).unwrap();
+    assert_eq!(resp.data[0].tweet_count, Some(18400));
+    assert_eq!(resp.data[1].tweet_count, None);
+}
+
+#[test]
+fn spec_personalized_trends() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<PersonalizedTrend>> =
+        serde_json::from_value(examples["personalized_trends"].clone()).unwrap();
+    assert_eq!(resp.data[0].category.as_deref(), Some("Technology"));
+}
+
+#[test]
+fn spec_post_analytics() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<PostAnalytics>> =
+        serde_json::from_value(examples["post_analytics"].clone()).unwrap();
+    let post = &resp.data[0];
+    assert_eq!(post.metrics.impressions, Some(1520));
+    assert_eq!(post.metrics.retweets, Some(9));
+    assert!(
+        post.extra.is_empty(),
+        "every metric has a field: {:?}",
+        post.extra
+    );
+    let buckets = post.timestamped_metrics.as_ref().expect("buckets");
+    assert_eq!(buckets[1].metrics.as_ref().and_then(|m| m.likes), Some(6));
+}
+
+#[test]
+fn spec_post_counts() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<PostCount>> =
+        serde_json::from_value(examples["post_counts"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 2);
+    assert_eq!(resp.data[0].post_count, 12);
+    let meta = resp.meta.expect("the total");
+    assert_eq!(meta.extra["total_post_count"], 15);
+}
+
+#[test]
+fn spec_post_lookup() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Post>> =
+        serde_json::from_value(examples["post_lookup"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 1);
+    let errors = resp.errors.expect("the ids X could not return");
+    assert_eq!(errors[0].title.as_deref(), Some("Not Found Error"));
+    assert_eq!(errors[0].extra["resource_id"], "1460323737035677698");
+}
+
+#[test]
+fn spec_action_hidden() {
+    let examples = load_examples();
+    let resp: ApiResponse<HiddenResult> =
+        serde_json::from_value(examples["action_hidden"].clone()).unwrap();
+    assert!(resp.data.hidden);
+}
+
+#[test]
 fn spec_action_liked() {
     let examples = load_examples();
     let resp: ApiResponse<LikedResult> =
@@ -271,6 +509,21 @@ fn spec_action_muting() {
     let resp: ApiResponse<MutingResult> =
         serde_json::from_value(examples["action_muting"].clone()).unwrap();
     assert!(resp.data.muting);
+}
+
+#[test]
+fn spec_dm_event() {
+    let examples = load_examples();
+    let resp: ApiResponse<DmEvent> = serde_json::from_value(examples["dm_event"].clone()).unwrap();
+    assert_eq!(resp.data.text.as_deref(), Some("hello"));
+}
+
+#[test]
+fn spec_dm_blocked() {
+    let examples = load_examples();
+    let resp: ApiResponse<DmBlockResult> =
+        serde_json::from_value(examples["dm_blocked"].clone()).unwrap();
+    assert!(resp.data.blocked);
 }
 
 #[test]
@@ -385,6 +638,197 @@ fn spec_chat_moderators() {
 }
 
 #[test]
+fn spec_bookmark_folders() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<BookmarkFolder>> =
+        serde_json::from_value(examples["bookmark_folders"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 2);
+    assert_eq!(resp.data[0].name, "Rust");
+}
+
+#[test]
+fn spec_bookmark_folder() {
+    let examples = load_examples();
+    let resp: ApiResponse<BookmarkFolder> =
+        serde_json::from_value(examples["bookmark_folder"].clone()).unwrap();
+    assert_eq!(resp.data.id, "1146654567674912769");
+}
+
+#[test]
+fn spec_bookmark_folder_posts() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<BookmarkFolderPost>> =
+        serde_json::from_value(examples["bookmark_folder_posts"].clone()).unwrap();
+    assert_eq!(resp.data[1].id, "1460323737035677698");
+}
+
+#[test]
+fn spec_stream_sources() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSources> =
+        serde_json::from_value(examples["stream_sources"].clone()).unwrap();
+    assert_eq!(resp.data.sources[0].id, "1x2y3z4w5v6u");
+    assert_eq!(
+        resp.data.sources[0].owner_id,
+        Some(1_234_567_890_123_456_789)
+    );
+}
+
+#[test]
+fn spec_stream_source() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSourceResult> =
+        serde_json::from_value(examples["stream_source"].clone()).unwrap();
+    assert_eq!(resp.data.source.rtmp_region.as_deref(), Some("us-east-1"));
+}
+
+#[test]
+fn spec_stream_source_deleted() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSourceDeleted> =
+        serde_json::from_value(examples["stream_source_deleted"].clone()).unwrap();
+    assert!(resp.data.extra.is_empty());
+}
+
+#[test]
+fn spec_call() {
+    let examples = load_examples();
+    let resp: ApiResponse<XCall> = serde_json::from_value(examples["call"].clone()).unwrap();
+    assert_eq!(resp.data.join_policy.as_deref(), Some("open"));
+    assert_eq!(resp.data.participant_count, Some(3));
+}
+
+#[test]
+fn spec_scheduled_calls() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<ScheduledCall>> =
+        serde_json::from_value(examples["scheduled_calls"].clone()).unwrap();
+    assert_eq!(resp.data[0].id.as_deref(), Some("1849302018273645"));
+}
+
+#[test]
+fn spec_scheduled_call() {
+    let examples = load_examples();
+    let resp: ApiResponse<ScheduledCall> =
+        serde_json::from_value(examples["scheduled_call"].clone()).unwrap();
+    let invitees = resp.data.invitees.expect("invitees");
+    assert_eq!(invitees[0].response, "accepted");
+}
+
+#[test]
+fn spec_scheduled_call_updated() {
+    let examples = load_examples();
+    let resp: ApiResponse<ScheduledCallUpdated> =
+        serde_json::from_value(examples["scheduled_call_updated"].clone()).unwrap();
+    assert!(resp.data.updated);
+}
+
+#[test]
+fn spec_scheduled_call_cancelled() {
+    let examples = load_examples();
+    let resp: ApiResponse<ScheduledCallCancelled> =
+        serde_json::from_value(examples["scheduled_call_cancelled"].clone()).unwrap();
+    assert!(resp.data.cancelled);
+}
+
+#[test]
+fn spec_scheduled_call_rsvp() {
+    let examples = load_examples();
+    let resp: ApiResponse<ScheduledCallRsvp> =
+        serde_json::from_value(examples["scheduled_call_rsvp"].clone()).unwrap();
+    assert_eq!(resp.data.response, "accepted");
+}
+
+#[test]
+fn spec_webhook_list() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<Webhook>> =
+        serde_json::from_value(examples["webhook_list"].clone()).unwrap();
+    assert_eq!(resp.data.len(), 1);
+    assert_eq!(resp.data[0].id.as_deref(), Some("1146654567674912769"));
+    assert_eq!(resp.data[0].valid, Some(true));
+}
+
+#[test]
+fn spec_webhook_single() {
+    let examples = load_examples();
+    let resp: ApiResponse<Webhook> =
+        serde_json::from_value(examples["webhook_single"].clone()).unwrap();
+    assert_eq!(
+        resp.data.url.as_deref(),
+        Some("https://example.com/webhooks/x")
+    );
+}
+
+#[test]
+fn spec_webhook_validated() {
+    let examples = load_examples();
+    let resp: ApiResponse<WebhookValidation> =
+        serde_json::from_value(examples["webhook_validated"].clone()).unwrap();
+    assert!(resp.data.valid);
+}
+
+#[test]
+fn spec_webhook_replay_job() {
+    let examples = load_examples();
+    let resp: ApiResponse<WebhookReplayJob> =
+        serde_json::from_value(examples["webhook_replay_job"].clone()).unwrap();
+    assert_eq!(resp.data.job_id, "1915510368169844736");
+}
+
+#[test]
+fn spec_account_activity_count() {
+    let examples = load_examples();
+    let resp: ApiResponse<AccountActivitySubscriptionCount> =
+        serde_json::from_value(examples["account_activity_count"].clone()).unwrap();
+    assert_eq!(resp.data.subscriptions_count_all.as_deref(), Some("2"));
+}
+
+#[test]
+fn spec_account_activity_subscriptions() {
+    let examples = load_examples();
+    let resp: ApiResponse<AccountActivitySubscriptions> =
+        serde_json::from_value(examples["account_activity_subscriptions"].clone()).unwrap();
+    let subscriptions = resp.data.subscriptions.expect("subscriptions");
+    assert_eq!(subscriptions[0].user_id.as_deref(), Some("2244994945"));
+}
+
+#[test]
+fn spec_account_activity_subscribed() {
+    let examples = load_examples();
+    let resp: ApiResponse<SubscribedResult> =
+        serde_json::from_value(examples["account_activity_subscribed"].clone()).unwrap();
+    assert!(resp.data.subscribed);
+}
+
+#[test]
+fn spec_account_activity_unsubscribed() {
+    let examples = load_examples();
+    let resp: ApiResponse<SubscribedResult> =
+        serde_json::from_value(examples["account_activity_unsubscribed"].clone()).unwrap();
+    assert!(!resp.data.subscribed);
+}
+
+#[test]
+fn spec_webhook_stream_links() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<WebhookStreamLink>> =
+        serde_json::from_value(examples["webhook_stream_links"].clone()).unwrap();
+    assert_eq!(
+        resp.data[0].webhook_id.as_deref(),
+        Some("1146654567674912769")
+    );
+}
+
+#[test]
+fn spec_webhook_stream_link_provisioned() {
+    let examples = load_examples();
+    let resp: ApiResponse<ProvisionedResult> =
+        serde_json::from_value(examples["webhook_stream_link_provisioned"].clone()).unwrap();
+    assert!(resp.data.provisioned);
+}
+
+#[test]
 fn spec_media_metadata() {
     let examples = load_examples();
     let resp: ApiResponse<MediaMetadataResult> =
@@ -437,8 +881,115 @@ fn every_fixture_is_exercised_by_a_validation_test() {
 const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("post_single", endpoints::READ_POST, ReplyKind::Success),
     ("post_list", endpoints::SEARCH_POSTS, ReplyKind::Success),
+    ("post_lookup", endpoints::READ_POSTS, ReplyKind::Success),
+    (
+        "post_counts",
+        endpoints::GET_POST_COUNTS,
+        ReplyKind::Success,
+    ),
+    (
+        "post_analytics",
+        endpoints::GET_POST_ANALYTICS,
+        ReplyKind::Success,
+    ),
+    ("trends", endpoints::GET_TRENDS, ReplyKind::Success),
+    ("news_list", endpoints::SEARCH_NEWS, ReplyKind::Success),
+    (
+        "community_list",
+        endpoints::SEARCH_COMMUNITIES,
+        ReplyKind::Success,
+    ),
+    ("community", endpoints::GET_COMMUNITY, ReplyKind::Success),
+    ("list_single", endpoints::GET_LIST, ReplyKind::Success),
+    ("broadcasts", endpoints::LIST_BROADCASTS, ReplyKind::Success),
+    ("media_list", endpoints::GET_MEDIA, ReplyKind::Success),
+    (
+        "media_analytics",
+        endpoints::GET_MEDIA_ANALYTICS,
+        ReplyKind::Success,
+    ),
+    ("space_list", endpoints::SEARCH_SPACES, ReplyKind::Success),
+    (
+        "stream_rules",
+        endpoints::GET_STREAM_RULES,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_rules_added",
+        endpoints::UPDATE_STREAM_RULES,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_rule_counts",
+        endpoints::GET_STREAM_RULE_COUNTS,
+        ReplyKind::Success,
+    ),
+    (
+        "article_draft",
+        endpoints::CREATE_ARTICLE_DRAFT,
+        ReplyKind::Success,
+    ),
+    (
+        "article_published",
+        endpoints::PUBLISH_ARTICLE,
+        ReplyKind::Success,
+    ),
+    ("note_created", endpoints::CREATE_NOTE, ReplyKind::Success),
+    (
+        "note_evaluation",
+        endpoints::EVALUATE_NOTE,
+        ReplyKind::Success,
+    ),
+    (
+        "notes_written",
+        endpoints::GET_NOTES_WRITTEN,
+        ReplyKind::Success,
+    ),
+    ("broadcast", endpoints::GET_BROADCAST, ReplyKind::Success),
+    (
+        "scheduled_broadcasts",
+        endpoints::LIST_SCHEDULED_BROADCASTS,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_broadcast",
+        endpoints::GET_SCHEDULED_BROADCAST,
+        ReplyKind::Success,
+    ),
+    (
+        "broadcast_chat",
+        endpoints::GET_BROADCAST_CHAT,
+        ReplyKind::Success,
+    ),
+    (
+        "broadcast_chat_sent",
+        endpoints::SEND_BROADCAST_CHAT,
+        ReplyKind::Success,
+    ),
+    (
+        "broadcast_chat_muted",
+        endpoints::MUTE_CHAT_USER,
+        ReplyKind::Success,
+    ),
+    ("lists", endpoints::GET_OWNED_LISTS, ReplyKind::Success),
+    ("list_created", endpoints::CREATE_LIST, ReplyKind::Success),
+    ("list_updated", endpoints::UPDATE_LIST, ReplyKind::Success),
+    (
+        "list_member",
+        endpoints::ADD_LIST_MEMBER,
+        ReplyKind::Success,
+    ),
+    ("list_followed", endpoints::FOLLOW_LIST, ReplyKind::Success),
+    ("list_pinned", endpoints::PIN_LIST, ReplyKind::Success),
+    ("news_story", endpoints::GET_NEWS, ReplyKind::Success),
+    (
+        "personalized_trends",
+        endpoints::GET_PERSONALIZED_TRENDS,
+        ReplyKind::Success,
+    ),
     ("user_single", endpoints::GET_ME, ReplyKind::Success),
     ("user_single_wire", endpoints::GET_ME, ReplyKind::Success),
+    ("action_hidden", endpoints::HIDE_REPLY, ReplyKind::Success),
     ("action_liked", endpoints::LIKE_POST, ReplyKind::Success),
     (
         "action_following",
@@ -448,9 +999,26 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     ("action_deleted", endpoints::DELETE_POST, ReplyKind::Success),
     ("action_retweeted", endpoints::REPOST, ReplyKind::Success),
     ("action_bookmarked", endpoints::BOOKMARK, ReplyKind::Success),
+    (
+        "bookmark_folders",
+        endpoints::GET_BOOKMARK_FOLDERS,
+        ReplyKind::Success,
+    ),
+    (
+        "bookmark_folder",
+        endpoints::CREATE_BOOKMARK_FOLDER,
+        ReplyKind::Success,
+    ),
+    (
+        "bookmark_folder_posts",
+        endpoints::GET_BOOKMARK_FOLDER_POSTS,
+        ReplyKind::Success,
+    ),
     ("action_blocking", endpoints::BLOCK_USER, ReplyKind::Success),
     ("action_muting", endpoints::MUTE_USER, ReplyKind::Success),
     ("dm_sent", endpoints::SEND_DM, ReplyKind::Success),
+    ("dm_event", endpoints::GET_DM_EVENT, ReplyKind::Success),
+    ("dm_blocked", endpoints::BLOCK_DMS, ReplyKind::Success),
     (
         "dm_event_list",
         endpoints::GET_DM_EVENTS,
@@ -481,6 +1049,93 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "chat_moderators",
         endpoints::ADD_CHAT_MODERATOR,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_sources",
+        endpoints::GET_STREAM_SOURCES,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_source",
+        endpoints::GET_STREAM_SOURCE,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_source_deleted",
+        endpoints::DELETE_STREAM_SOURCE,
+        ReplyKind::Success,
+    ),
+    ("call", endpoints::GET_CALL, ReplyKind::Success),
+    (
+        "scheduled_calls",
+        endpoints::GET_SCHEDULED_CALLS,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_call",
+        endpoints::GET_SCHEDULED_CALL,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_call_updated",
+        endpoints::UPDATE_SCHEDULED_CALL,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_call_cancelled",
+        endpoints::CANCEL_SCHEDULED_CALL,
+        ReplyKind::Success,
+    ),
+    (
+        "scheduled_call_rsvp",
+        endpoints::RESPOND_TO_SCHEDULED_CALL,
+        ReplyKind::Success,
+    ),
+    ("webhook_list", endpoints::GET_WEBHOOKS, ReplyKind::Success),
+    (
+        "webhook_single",
+        endpoints::CREATE_WEBHOOK,
+        ReplyKind::Success,
+    ),
+    (
+        "webhook_validated",
+        endpoints::VALIDATE_WEBHOOK,
+        ReplyKind::Success,
+    ),
+    (
+        "webhook_replay_job",
+        endpoints::CREATE_WEBHOOK_REPLAY,
+        ReplyKind::Success,
+    ),
+    (
+        "account_activity_count",
+        endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT,
+        ReplyKind::Success,
+    ),
+    (
+        "account_activity_subscriptions",
+        endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS,
+        ReplyKind::Success,
+    ),
+    (
+        "account_activity_subscribed",
+        endpoints::CREATE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        ReplyKind::Success,
+    ),
+    (
+        "account_activity_unsubscribed",
+        endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION,
+        ReplyKind::Success,
+    ),
+    (
+        "webhook_stream_links",
+        endpoints::GET_WEBHOOK_STREAM_LINKS,
+        ReplyKind::Success,
+    ),
+    (
+        "webhook_stream_link_provisioned",
+        endpoints::CREATE_WEBHOOK_STREAM_LINK,
         ReplyKind::Success,
     ),
     (

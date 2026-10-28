@@ -3,13 +3,17 @@ store: empty
 stdin: "nope"
 exit_code: 1
 stdout_len: 0
-stderr_len: 145
+stderr_len: 230
 --- stdout ---
 
 --- stderr ---
 {
   "exit_code": 1,
   "message": "input is not valid JSON: expected ident at line 1 column 2",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr validate --help"
+  },
   "reason": "invalid-json",
   "status": "error"
 }

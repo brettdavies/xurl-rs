@@ -1,0 +1,12 @@
+args: ["--dry-run", "bookmark-folders", "add", ""]
+store: empty
+exit_code: 0
+stdout_len: 132
+stderr_len: 0
+--- stdout ---
+Dry run of `bookmark-folders-add`: nothing was sent.
+The real run would fail with exit code 1: The folder name is empty.
+  name: ""
+
+--- stderr ---
+

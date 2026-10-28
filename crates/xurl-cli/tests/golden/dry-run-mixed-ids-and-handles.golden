@@ -1,0 +1,20 @@
+args: ["--output", "json", "--dry-run", "users", "12", "@jack"]
+store: empty
+exit_code: 0
+stdout_len: 172
+stderr_len: 0
+--- stdout ---
+{
+  "accounts": [
+    "12",
+    "@jack"
+  ],
+  "command": "users",
+  "exit_code": 1,
+  "reason": "mixed-ids-and-handles",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

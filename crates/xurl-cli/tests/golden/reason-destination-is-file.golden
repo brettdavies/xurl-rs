@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "install", "claude_code"]
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 352
+stdout_len: 400
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,10 @@ stderr_len: 0
   "destination_status": "file",
   "status": "error",
   "exit_code": 1,
-  "reason": "destination-is-file"
+  "reason": "destination-is-file",
+  "next_step": {
+    "action": "fix-input"
+  }
 }
 
 --- stderr ---

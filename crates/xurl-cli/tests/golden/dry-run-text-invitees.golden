@@ -1,0 +1,14 @@
+args: ["--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02T16:00:00Z", "--invite", "783214", "--invite", "2244994945"]
+store: oauth2
+exit_code: 0
+stdout_len: 246
+stderr_len: 0
+--- stdout ---
+Dry run of `calls-scheduled-add`: nothing was sent.
+The real run would succeed, as far as an offline check can tell.
+  invitee_ids: 783214, 2244994945
+  start_time: 2026-11-02T16:00:00Z
+  credential: oauth2, app myapp, login alice, token current
+
+--- stderr ---
+

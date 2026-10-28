@@ -291,11 +291,12 @@ exist first; that token has since been removed.
 
 ### Why `make_latest: false` then `finalize-release`
 
-The GitHub Release is created visible-but-not-latest (`make_latest: false`) so `cargo-binstall` and `/releases/latest`
-don't 404 during the bottle-build window, but the release isn't yet promoted to "Latest" while bottles upload. After the
-homebrew-tap workflow uploads bottles to this repo's release assets, it dispatches `finalize-release` back to this repo,
-which idempotently flips `make_latest: true`. End result: crate on crates.io, GitHub Release marked latest, Homebrew
-formula updated with bottles, all atomically advertised.
+The GitHub Release is created visible-but-not-latest (`make_latest: false`) so its archives resolve by tag at once,
+which the tap's bump needs, while `cargo-binstall` and `/releases/latest` keep resolving the previous version until
+Homebrew can install the new one. The tap verifies the archives, tests the formula bump on four platforms, and lands it;
+it builds no bottle, so nothing is uploaded back to this repo's release. It then dispatches `finalize-release` back to
+this repo, which idempotently flips `make_latest: true`. End result: crate on crates.io, GitHub Release marked latest,
+Homebrew formula updated, all atomically advertised.
 
 ### Why `xdk-rs` ships on its own tag
 
@@ -311,10 +312,10 @@ The library's tag is namespaced `<crate>-v<version>` so it cannot match the bina
 filter. One tag push then starts exactly one pipeline, which is what keeps the two lines from racing each other for the
 same crate.
 
-Its GitHub Release keeps `make_latest: false` permanently, for a reason unrelated to the bottle window above: a visitor
-resolving `/releases/latest` is looking for a binary to download, and a library release carries no archive. Nothing
-finalizes it. The postflight `make-latest` gate inverts accordingly on a library tag, failing if latest ever resolves to
-one.
+Its GitHub Release keeps `make_latest: false` permanently, for a reason unrelated to the Homebrew window above: a
+visitor resolving `/releases/latest` is looking for a binary to download, and a library release carries no archive.
+Nothing finalizes it. The postflight `make-latest` gate inverts accordingly on a library tag, failing if latest ever
+resolves to one.
 
 Order is a hard dependency: the library publishes first, and the binary's `check-version` refuses up front when a
 workspace member it depends on is not yet on crates.io at the declared bound. Without that check the same failure lands
@@ -372,9 +373,16 @@ Seven targets: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-
 `aarch64-unknown-linux-musl`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`. xurl-rs is a
 network CLI against a hosted API (X / Twitter); the binaries are consumed by interactive shell users on the three
 desktop platforms and on Linux CI runners, including Alpine and other glibc-free hosts, which the musl rows serve.
-`release.yml` passes `linux_musl_required: true`, so a musl build failure blocks the release, and
-`release-matrix-check.yml` builds the same seven rows on every push to a `release/*` branch so a broken row surfaces
-before the tag.
+`release.yml` passes `linux_musl_required: true`, so a musl build failure blocks the release.
+
+A release compiles the seven rows once, on the tag push. `release-matrix-check.yml` builds the same rows on a pull
+request to `dev` that changes a manifest, `Cargo.lock`, or the toolchain pin, since those are the changes that break
+a cross-compiled row, so a broken row surfaces on the change that broke it. It does not run for a release: the
+release pull request and the backport of its version bump change no dependency, and a build there would be thrown
+away minutes before the tag builds the same tree. `gh workflow run release-matrix-check.yml --ref release/v<version>`
+runs the matrix on a release branch when a release wants a rehearsal. The workflow calls
+`rust-release-matrix-check.yml` in `brettdavies/.github`, where the matrix sits beside the release workflow's and a
+lint check holds the two equal, so this repository keeps no target list of its own.
 
 Four of the archives are also what Homebrew installs. `Formula/xurl-rs.rb` in `brettdavies/homebrew-tap` names
 `xurl-rs-aarch64-apple-darwin.tar.gz`, `xurl-rs-x86_64-apple-darwin.tar.gz`, `xurl-rs-aarch64-unknown-linux-musl.tar.gz`,

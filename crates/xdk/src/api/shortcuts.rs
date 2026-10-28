@@ -14,12 +14,33 @@ use serde::de::DeserializeOwned;
 use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
-    ApiResponse, BlockingResult, BookmarkedResult, ChatModeratorsResult, DeletedResult, DmEvent,
-    DmSentResult, FollowingResult, LikedResult, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, Post, RepostedResult, UsageCreditsData, UsageData, User,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
+    ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
+    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
+    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
+    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
+    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct WebhookBody {
+    url: String,
+}
+
+#[derive(Serialize)]
+struct WebhookReplayBody {
+    webhook_id: String,
+    from_date: String,
+    to_date: String,
+}
 
 #[derive(Serialize)]
 struct PostBody {
@@ -46,6 +67,22 @@ struct PostMedia {
 #[derive(Serialize)]
 struct ChatModeratorBody {
     user_id: String,
+}
+
+#[derive(Serialize)]
+struct StreamSourceBody {
+    name: String,
+    region: String,
+}
+
+#[derive(Serialize)]
+struct NameBody {
+    name: String,
+}
+
+#[derive(Serialize)]
+struct HiddenBody {
+    hidden: bool,
 }
 
 #[derive(Serialize)]
@@ -84,6 +121,314 @@ struct RemoveSubtitlesBody {
     id: String,
     media_category: &'static str,
     language_code: String,
+}
+
+#[derive(Serialize)]
+struct RsvpBody<'a> {
+    response: RsvpAnswer,
+    #[serde(flatten)]
+    occurrences: &'a Occurrences,
+}
+
+/// Which occurrences of a recurring scheduled call a change, cancellation,
+/// or answer applies to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OccurrenceScope {
+    /// Every occurrence: what X assumes when no occurrence is named.
+    All,
+    /// The named occurrence alone: what X assumes when one is named.
+    This,
+    /// The named occurrence and every one after it.
+    ThisAndFollowing,
+}
+
+impl OccurrenceScope {
+    /// Every scope, in the order help text lists them.
+    pub const ALL: [Self; 3] = [Self::All, Self::This, Self::ThisAndFollowing];
+
+    /// The scope as the API spells it, such as `this_and_following`.
+    #[must_use]
+    pub const fn wire_name(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::This => "this",
+            Self::ThisAndFollowing => "this_and_following",
+        }
+    }
+}
+
+/// The occurrences of a recurring scheduled call a request names. Left
+/// empty, it names every occurrence.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct Occurrences {
+    /// Which occurrences, counted from `occurrence_start_time`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<OccurrenceScope>,
+    /// The original start of the occurrence `scope` counts from, RFC 3339,
+    /// as a listed call's `occurrence_start_time` gives it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub occurrence_start_time: Option<String>,
+}
+
+impl Occurrences {
+    fn query(&self) -> Vec<(String, String)> {
+        let mut query = Vec::new();
+        if let Some(scope) = self.scope {
+            query.push(("scope".to_string(), scope.wire_name().to_string()));
+        }
+        if let Some(start) = &self.occurrence_start_time {
+            query.push(("occurrence_start_time".to_string(), start.clone()));
+        }
+        query
+    }
+}
+
+/// An answer to a scheduled-call invitation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RsvpAnswer {
+    /// The invitee will attend.
+    Accepted,
+    /// The invitee will not attend.
+    Declined,
+    /// The invitee might attend.
+    Tentative,
+}
+
+impl RsvpAnswer {
+    /// The answer as the API spells it, such as `tentative`.
+    #[must_use]
+    pub const fn wire_name(self) -> &'static str {
+        match self {
+            Self::Accepted => "accepted",
+            Self::Declined => "declined",
+            Self::Tentative => "tentative",
+        }
+    }
+}
+
+/// A call to put on the authenticated user's X Calls calendar, with them as
+/// its organizer. A field left unset takes X's default.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct NewScheduledCall {
+    /// When the call starts, RFC 3339 with a zone; not in the past.
+    pub start_time: String,
+    /// The title invitees see.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// What the call is about.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// How long the call lasts, in minutes; X assumes 30.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_minutes: Option<u32>,
+    /// User ids of the people to invite.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub invitee_ids: Vec<String>,
+    /// The RFC 5545 RRULE to repeat the call by, such as
+    /// `FREQ=WEEKLY;BYDAY=MO`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recurrence: Option<String>,
+    /// The IANA time zone the recurrence follows, such as
+    /// `America/Los_Angeles`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_zone: Option<String>,
+    /// Whether invitees get an email about the call; X assumes they do.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify_invitees: Option<bool>,
+}
+
+/// One block of an article body, as X's Articles API takes it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ArticleBlock {
+    /// The block's text, without its marker.
+    pub text: String,
+    /// The block type: `unstyled`, `header-one`, `header-two`,
+    /// `header-three`, `unordered-list-item`, `ordered-list-item`, or
+    /// `blockquote`.
+    #[serde(rename = "type")]
+    pub kind: &'static str,
+}
+
+/// Turns a plain-text article body into the blocks X's Articles API takes.
+///
+/// A blank line ends a paragraph, and consecutive plain lines join into one,
+/// separated by a space. A line that starts with a marker and a space is a
+/// block of its own: `#`, `##`, and `###` are headers, `-` an unordered list
+/// item, a number and `.` an ordered one, and `>` a quote.
+#[must_use]
+pub fn article_blocks(body: &str) -> Vec<ArticleBlock> {
+    let mut blocks = Vec::new();
+    let mut paragraph: Vec<&str> = Vec::new();
+    let flush = |paragraph: &mut Vec<&str>, blocks: &mut Vec<ArticleBlock>| {
+        if !paragraph.is_empty() {
+            blocks.push(ArticleBlock {
+                text: paragraph.join(" "),
+                kind: "unstyled",
+            });
+            paragraph.clear();
+        }
+    };
+    for line in body.lines().map(str::trim) {
+        if line.is_empty() {
+            flush(&mut paragraph, &mut blocks);
+        } else if let Some((kind, text)) = marked_block(line) {
+            flush(&mut paragraph, &mut blocks);
+            blocks.push(ArticleBlock {
+                text: text.to_string(),
+                kind,
+            });
+        } else {
+            paragraph.push(line);
+        }
+    }
+    flush(&mut paragraph, &mut blocks);
+    blocks
+}
+
+/// The block type a line's marker names, and the text after it.
+fn marked_block(line: &str) -> Option<(&'static str, &str)> {
+    const MARKERS: &[(&str, &str)] = &[
+        ("### ", "header-three"),
+        ("## ", "header-two"),
+        ("# ", "header-one"),
+        ("- ", "unordered-list-item"),
+        ("> ", "blockquote"),
+    ];
+    if let Some((marker, kind)) = MARKERS.iter().find(|(marker, _)| line.starts_with(marker)) {
+        return Some((kind, line[marker.len()..].trim()));
+    }
+    let digits = line.bytes().take_while(u8::is_ascii_digit).count();
+    let rest = line[digits..].strip_prefix(". ")?;
+    (digits > 0).then(|| ("ordered-list-item", rest.trim()))
+}
+
+/// A Community Note to write about one post.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct NewNote {
+    /// The post the note is about, as an id or a post URL.
+    #[serde(skip)]
+    pub post: String,
+    /// The note's text, which X requires to carry a source URL.
+    pub text: String,
+    /// `misinformed_or_potentially_misleading` or `not_misleading`.
+    pub classification: String,
+    /// Why the post may be misleading, from the spec's tags; may be empty.
+    pub misleading_tags: Vec<String>,
+    /// Whether the note cites trustworthy sources.
+    pub trustworthy_sources: bool,
+    /// Whether the note is about the post's media.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_media_note: Option<bool>,
+}
+
+/// A broadcast to schedule. The times are RFC 3339; the request carries
+/// them as the millisecond strings X takes.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct NewScheduledBroadcast {
+    /// The stream source to take video from, as `xr broadcasts sources list`
+    /// names it.
+    pub source_id: String,
+    /// When the broadcast starts.
+    pub start_time: String,
+    /// When the broadcast ends; unset for an open-ended broadcast.
+    pub end_time: Option<String>,
+    /// The broadcast's title.
+    pub title: Option<String>,
+    /// What the broadcast is about.
+    pub description: Option<String>,
+    /// Whether the broadcast can be watched after it ends.
+    pub available_for_replay: Option<bool>,
+    /// Whether the broadcast waits for `go live` rather than starting on
+    /// time.
+    pub manual_publish: Option<bool>,
+}
+
+/// What to change on a scheduled broadcast. X takes both times on every
+/// change; any other field left unset keeps its value.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ScheduledBroadcastChanges {
+    /// When the broadcast starts, RFC 3339.
+    pub start_time: String,
+    /// When the broadcast ends, RFC 3339.
+    pub end_time: String,
+    /// The stream source to take video from.
+    pub source_id: Option<String>,
+    /// The broadcast's title.
+    pub title: Option<String>,
+    /// What the broadcast is about.
+    pub description: Option<String>,
+    /// Whether the broadcast can be watched after it ends.
+    pub available_for_replay: Option<bool>,
+    /// Whether the broadcast waits for `go live` rather than starting on
+    /// time.
+    pub manual_publish: Option<bool>,
+}
+
+/// A list's name, description, and privacy: what a new list carries, or
+/// what a change to one sets. A field left unset is not sent.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct ListDetails {
+    /// The list's name, 1 to [`LIST_NAME_MAX_CHARS`] characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// What the list is for, at most [`LIST_DESCRIPTION_MAX_CHARS`]
+    /// characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// Whether only the owner can see the list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub private: Option<bool>,
+}
+
+/// What to change on a scheduled call. A field left unset keeps its value;
+/// `invitee_ids`, when set, replaces the whole invite list.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct ScheduledCallChanges {
+    /// When the call, or the named occurrence, now starts, RFC 3339.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_time: Option<String>,
+    /// The title invitees see.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// What the call is about.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// How long the call lasts, in minutes.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_minutes: Option<u32>,
+    /// Everyone to invite, replacing the invite list.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub invitee_ids: Option<Vec<String>>,
+    /// The RFC 5545 RRULE to repeat the call by.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub recurrence: Option<String>,
+    /// The IANA time zone the recurrence follows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub time_zone: Option<String>,
+    /// Whether invitees get an email about the change; X assumes they do.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify_invitees: Option<bool>,
+    /// Which occurrences of a recurring call the change applies to.
+    #[serde(flatten)]
+    pub occurrences: Occurrences,
+}
+
+impl ScheduledCallChanges {
+    /// Whether the change set leaves the call as it is: no field it would
+    /// change is set. Naming occurrences or the email setting changes
+    /// nothing on its own.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.start_time.is_none()
+            && self.title.is_none()
+            && self.description.is_none()
+            && self.duration_minutes.is_none()
+            && self.invitee_ids.is_none()
+            && self.recurrence.is_none()
+            && self.time_zone.is_none()
+    }
 }
 
 /// The upload category of a video that carries subtitles.
@@ -160,22 +505,49 @@ pub fn resolve_username(input: &str) -> String {
 // API and `Err(reason)` with a kebab-case reason otherwise. Callers compose
 // these into the canonical dry-run envelope without issuing HTTP.
 
-/// X API post body length budget. The platform rejects > 280 chars.
+/// The post length X documents for a standard account.
+#[deprecated(
+    note = "X sets a post's length limit per account, so `validate_post_body` no longer checks it"
+)]
 pub const POST_BODY_MAX_CHARS: usize = 280;
 
 /// X API media attachment cap per post.
 pub const POST_MEDIA_MAX: usize = 4;
 
+/// The fewest people a group conversation starts with besides the caller,
+/// the spec's `minItems` on `participant_ids`.
+pub const DM_GROUP_PARTICIPANTS_MIN: usize = 2;
+
+/// The most people a group conversation starts with besides the caller,
+/// the spec's `maxItems` on `participant_ids`.
+pub const DM_GROUP_PARTICIPANTS_MAX: usize = 49;
+
+/// Longest broadcast chat message X accepts, the spec's `maxLength`.
+pub const BROADCAST_CHAT_MAX_CHARS: usize = 140;
+
+/// Longest list name X accepts, the spec's `maxLength`.
+pub const LIST_NAME_MAX_CHARS: usize = 25;
+
+/// Longest list description X accepts, the spec's `maxLength`.
+pub const LIST_DESCRIPTION_MAX_CHARS: usize = 100;
+
+/// The most ids one lookup takes, the spec's `maxItems` on `ids`.
+pub const LOOKUP_IDS_MAX: usize = 100;
+
+/// The longest user search query, from the spec's pattern on `query`.
+pub const USER_SEARCH_QUERY_MAX_CHARS: usize = 50;
+
 /// Validates a post / reply / quote body.
 ///
+/// Length is left to X: the limit belongs to the account (a Premium account
+/// posts past 280 characters) and X counts a URL as 23, so a character count
+/// taken here refuses posts X accepts.
+///
 /// # Errors
-/// Returns the kebab-case reason: `empty-body`, `body-too-long`.
+/// Returns the kebab-case reason `empty-body`.
 pub fn validate_post_body(text: &str) -> std::result::Result<(), &'static str> {
     if text.is_empty() {
         return Err("empty-body");
-    }
-    if text.chars().count() > POST_BODY_MAX_CHARS {
-        return Err("body-too-long");
     }
     Ok(())
 }
@@ -187,6 +559,436 @@ pub fn validate_post_body(text: &str) -> std::result::Result<(), &'static str> {
 pub fn validate_media_attachments(ids: &[String]) -> std::result::Result<(), &'static str> {
     if ids.len() > POST_MEDIA_MAX {
         return Err("too-many-attachments");
+    }
+    Ok(())
+}
+
+/// Validates the number of ids a batch lookup sends.
+///
+/// # Errors
+/// Returns `too-many-ids` when more than [`LOOKUP_IDS_MAX`] are passed.
+pub fn validate_lookup_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'static str> {
+    if ids.len() > LOOKUP_IDS_MAX {
+        return Err("too-many-ids");
+    }
+    Ok(())
+}
+
+/// Validates a username against the spec's pattern, a leading `@` aside:
+/// 1 to 15 letters, digits, or underscores.
+///
+/// # Errors
+/// Returns `invalid-username` for anything else.
+pub fn validate_username(input: &str) -> std::result::Result<(), &'static str> {
+    let name = resolve_username(input);
+    let allowed = |c: char| c.is_ascii_alphanumeric() || c == '_';
+    if name.is_empty() || name.chars().count() > 15 || !name.chars().all(allowed) {
+        return Err("invalid-username");
+    }
+    Ok(())
+}
+
+/// Validates the accounts one batch lookup names: 1 to [`LOOKUP_IDS_MAX`]
+/// of them, every one a numeric user id or every one a username, each in
+/// the spec's form. X answers ids and usernames from different endpoints.
+///
+/// # Errors
+/// Returns `too-many-ids`, `mixed-ids-and-handles`, `invalid-user-id`, or
+/// `invalid-username`.
+pub fn validate_user_lookup<S: AsRef<str>>(
+    accounts: &[S],
+) -> std::result::Result<(), &'static str> {
+    validate_lookup_ids(accounts)?;
+    let ids = accounts
+        .iter()
+        .filter(|a| is_user_id_form(a.as_ref()))
+        .count();
+    if ids == accounts.len() {
+        return accounts
+            .iter()
+            .try_for_each(|id| validate_user_id(id.as_ref()));
+    }
+    if ids > 0 {
+        return Err("mixed-ids-and-handles");
+    }
+    accounts
+        .iter()
+        .try_for_each(|name| validate_username(name.as_ref()))
+}
+
+/// Whether `account` names a user by id: all digits, with no leading `@`.
+#[must_use]
+pub fn is_user_id_form(account: &str) -> bool {
+    !account.is_empty() && account.bytes().all(|b| b.is_ascii_digit())
+}
+
+/// Validates a user search query against the spec's pattern: 1 to
+/// [`USER_SEARCH_QUERY_MAX_CHARS`] letters, digits, underscores, apostrophes,
+/// or spaces.
+///
+/// # Errors
+/// Returns `invalid-user-query` for a query outside that pattern.
+pub fn validate_user_search_query(query: &str) -> std::result::Result<(), &'static str> {
+    let allowed = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '\'' | ' ');
+    if query.is_empty()
+        || query.chars().count() > USER_SEARCH_QUERY_MAX_CHARS
+        || !query.chars().all(allowed)
+    {
+        return Err("invalid-user-query");
+    }
+    Ok(())
+}
+
+/// Validates a community id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-community-id` for anything else.
+pub fn validate_community_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-community-id");
+    }
+    Ok(())
+}
+
+/// Validates a news story id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-news-id` for anything else.
+pub fn validate_news_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-news-id");
+    }
+    Ok(())
+}
+
+/// Validates how many people a group conversation starts with.
+///
+/// # Errors
+/// Returns `invalid-participant-count` for fewer than
+/// [`DM_GROUP_PARTICIPANTS_MIN`] or more than [`DM_GROUP_PARTICIPANTS_MAX`].
+pub fn validate_participant_count(count: usize) -> std::result::Result<(), &'static str> {
+    if !(DM_GROUP_PARTICIPANTS_MIN..=DM_GROUP_PARTICIPANTS_MAX).contains(&count) {
+        return Err("invalid-participant-count");
+    }
+    Ok(())
+}
+
+/// Validates a conversation id against the spec's pattern: two user ids
+/// joined by a hyphen, or a group's 15 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-conversation-id` for anything else.
+pub fn validate_conversation_id(id: &str) -> std::result::Result<(), &'static str> {
+    let pair = id
+        .split_once('-')
+        .is_some_and(|(a, b)| is_numeric_id(a) && is_numeric_id(b));
+    let group = (15..=19).contains(&id.len()) && is_numeric_id(id);
+    if !(pair || group) {
+        return Err("invalid-conversation-id");
+    }
+    Ok(())
+}
+
+/// Validates a direct-message event id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-dm-event-id` for anything else.
+pub fn validate_dm_event_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-dm-event-id");
+    }
+    Ok(())
+}
+
+/// Validates an article title: at least one character, the spec's
+/// `minLength`.
+///
+/// # Errors
+/// Returns `empty-article-title` for an empty title.
+pub fn validate_article_title(title: &str) -> std::result::Result<(), &'static str> {
+    if title.is_empty() {
+        return Err("empty-article-title");
+    }
+    Ok(())
+}
+
+/// Validates an article body: at least one block once
+/// [`article_blocks`] has read it.
+///
+/// # Errors
+/// Returns `empty-article-body` for a body with no text.
+pub fn validate_article_body(body: &str) -> std::result::Result<(), &'static str> {
+    if body.trim().is_empty() {
+        return Err("empty-article-body");
+    }
+    Ok(())
+}
+
+/// Validates an article id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-article-id` for anything else.
+pub fn validate_article_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-article-id");
+    }
+    Ok(())
+}
+
+/// Validates a media key against the spec's pattern: two numbers joined by
+/// an underscore, such as `3_1146654567674912769`.
+///
+/// # Errors
+/// Returns `invalid-media-key` for anything else.
+pub fn validate_media_key(key: &str) -> std::result::Result<(), &'static str> {
+    let numeric = |part: &str| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit());
+    if !key
+        .split_once('_')
+        .is_some_and(|(kind, id)| numeric(kind) && numeric(id))
+    {
+        return Err("invalid-media-key");
+    }
+    Ok(())
+}
+
+/// Validates the media keys one lookup names: 1 to [`LOOKUP_IDS_MAX`] of
+/// them, each in the spec's form.
+///
+/// # Errors
+/// Returns `too-many-ids` or `invalid-media-key`.
+pub fn validate_media_keys<S: AsRef<str>>(keys: &[S]) -> std::result::Result<(), &'static str> {
+    validate_lookup_ids(keys)?;
+    keys.iter()
+        .try_for_each(|key| validate_media_key(key.as_ref()))
+}
+
+/// Validates a Space id against the spec's pattern: 1 to 13 letters or
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-space-id` for anything else.
+pub fn validate_space_id(id: &str) -> std::result::Result<(), &'static str> {
+    if id.is_empty() || id.len() > 13 || !id.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return Err("invalid-space-id");
+    }
+    Ok(())
+}
+
+/// Validates the Space ids one lookup names: 1 to [`LOOKUP_IDS_MAX`] of
+/// them, each in the spec's form.
+///
+/// # Errors
+/// Returns `too-many-ids` or `invalid-space-id`.
+pub fn validate_space_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'static str> {
+    validate_lookup_ids(ids)?;
+    ids.iter().try_for_each(|id| validate_space_id(id.as_ref()))
+}
+
+/// Validates a filtered-stream rule id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-rule-id` for anything else.
+pub fn validate_rule_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-rule-id");
+    }
+    Ok(())
+}
+
+/// Validates the rule ids one removal names, each in the spec's form.
+///
+/// # Errors
+/// Returns `invalid-rule-id` for the first id outside it.
+pub fn validate_rule_ids<S: AsRef<str>>(ids: &[S]) -> std::result::Result<(), &'static str> {
+    ids.iter().try_for_each(|id| validate_rule_id(id.as_ref()))
+}
+
+/// Validates accounts named in any mix of numeric user ids and usernames:
+/// 1 to [`LOOKUP_IDS_MAX`] of them, each in its own spec form.
+///
+/// # Errors
+/// Returns `too-many-ids`, `invalid-user-id`, or `invalid-username`.
+pub fn validate_accounts<S: AsRef<str>>(accounts: &[S]) -> std::result::Result<(), &'static str> {
+    validate_lookup_ids(accounts)?;
+    accounts.iter().try_for_each(|account| {
+        let account = account.as_ref();
+        if is_user_id_form(account) {
+            validate_user_id(account)
+        } else {
+            validate_username(account)
+        }
+    })
+}
+
+/// The user ids `accounts` name, in the order given. A numeric id stands
+/// for itself; a username takes the id of the account
+/// [`Client::lookup_users_by_username`] answered for it, matched without
+/// regard to case or a leading `@`, as X matches it.
+///
+/// # Errors
+/// Returns a validation error naming the first username `found` does not
+/// carry: X answers an unknown username with an entry in `errors`, not with
+/// a failed request.
+pub fn user_ids_for_accounts<S: AsRef<str>>(
+    accounts: &[S],
+    found: &[User],
+) -> crate::Result<Vec<String>> {
+    accounts
+        .iter()
+        .map(|account| {
+            let account = account.as_ref();
+            if is_user_id_form(account) {
+                return Ok(account.to_string());
+            }
+            let name = resolve_username(account);
+            found
+                .iter()
+                .find(|user| user.username.eq_ignore_ascii_case(&name))
+                .map(|user| user.id.clone())
+                .ok_or_else(|| crate::error::Error::validation(format!("user @{name} not found")))
+        })
+        .collect()
+}
+
+/// Validates a Community Note id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-note-id` for anything else.
+pub fn validate_note_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-note-id");
+    }
+    Ok(())
+}
+
+/// Validates a Community Note's text against the spec's pattern, which
+/// requires an `http://` or `https://` URL in it.
+///
+/// # Errors
+/// Returns `note-needs-source-url` for text with none.
+pub fn validate_note_text(text: &str) -> std::result::Result<(), &'static str> {
+    let has_url = ["http://", "https://"].iter().any(|scheme| {
+        text.match_indices(scheme).any(|(at, _)| {
+            text[at + scheme.len()..]
+                .chars()
+                .next()
+                .is_some_and(|c| !c.is_whitespace())
+        })
+    });
+    if !has_url {
+        return Err("note-needs-source-url");
+    }
+    Ok(())
+}
+
+/// Validates a broadcast id against the spec's pattern: 1 to 24 letters
+/// and digits.
+///
+/// # Errors
+/// Returns `invalid-broadcast-id` for anything else.
+pub fn validate_broadcast_id(id: &str) -> std::result::Result<(), &'static str> {
+    if id.is_empty() || id.len() > 24 || !id.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return Err("invalid-broadcast-id");
+    }
+    Ok(())
+}
+
+/// Validates a scheduled broadcast id against the spec's pattern for
+/// `scheduled_broadcast_id`: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-scheduled-broadcast-id` for anything else.
+pub fn validate_scheduled_broadcast_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-scheduled-broadcast-id");
+    }
+    Ok(())
+}
+
+/// Validates a broadcast chat message id, which X also uses as the message's
+/// timestamp, against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-chat-message-id` for anything else.
+pub fn validate_chat_message_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-chat-message-id");
+    }
+    Ok(())
+}
+
+/// Validates a broadcast chat message: 1 to [`BROADCAST_CHAT_MAX_CHARS`]
+/// characters.
+///
+/// # Errors
+/// Returns `empty-body` or `chat-message-too-long`.
+pub fn validate_chat_message(text: &str) -> std::result::Result<(), &'static str> {
+    if text.is_empty() {
+        return Err("empty-body");
+    }
+    if text.chars().count() > BROADCAST_CHAT_MAX_CHARS {
+        return Err("chat-message-too-long");
+    }
+    Ok(())
+}
+
+/// Validates a list id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-list-id` for anything else.
+pub fn validate_list_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-list-id");
+    }
+    Ok(())
+}
+
+/// Validates a new list: a name of 1 to [`LIST_NAME_MAX_CHARS`] characters,
+/// and a description of at most [`LIST_DESCRIPTION_MAX_CHARS`].
+///
+/// # Errors
+/// Returns `empty-list-name`, `list-name-too-long`, or
+/// `list-description-too-long`.
+pub fn validate_new_list(
+    name: &str,
+    description: Option<&str>,
+) -> std::result::Result<(), &'static str> {
+    check_list_name(name)?;
+    check_list_description(description)
+}
+
+/// Validates a change to a list: at least one field, each within the
+/// bounds [`validate_new_list`] holds.
+///
+/// # Errors
+/// Returns `no-list-changes` for a change that sets nothing, and otherwise
+/// the codes [`validate_new_list`] returns.
+pub fn validate_list_changes(changes: &ListDetails) -> std::result::Result<(), &'static str> {
+    if *changes == ListDetails::default() {
+        return Err("no-list-changes");
+    }
+    if let Some(name) = &changes.name {
+        check_list_name(name)?;
+    }
+    check_list_description(changes.description.as_deref())
+}
+
+fn check_list_name(name: &str) -> std::result::Result<(), &'static str> {
+    if name.is_empty() {
+        return Err("empty-list-name");
+    }
+    if name.chars().count() > LIST_NAME_MAX_CHARS {
+        return Err("list-name-too-long");
+    }
+    Ok(())
+}
+
+fn check_list_description(description: Option<&str>) -> std::result::Result<(), &'static str> {
+    if description.is_some_and(|d| d.chars().count() > LIST_DESCRIPTION_MAX_CHARS) {
+        return Err("list-description-too-long");
     }
     Ok(())
 }
@@ -233,10 +1035,414 @@ pub const ALT_TEXT_MAX_CHARS: usize = 1000;
 /// Returns `invalid-media-id` for anything else, the empty string included.
 pub fn validate_media_id(input: &str) -> std::result::Result<(), &'static str> {
     let id = input.trim();
-    if id.is_empty() || id.len() > 19 || !id.bytes().all(|b| b.is_ascii_digit()) {
+    if !is_numeric_id(id) {
         return Err("invalid-media-id");
     }
     Ok(())
+}
+
+/// Longest webhook URL X accepts, the spec's `maxLength` on the `url` of a
+/// webhook registration.
+pub const WEBHOOK_URL_MAX_CHARS: usize = 200;
+
+/// Validates a webhook id: one to nineteen ASCII digits, the spec's pattern.
+///
+/// # Errors
+/// Returns `invalid-webhook-id` for anything else, the empty string included.
+pub fn validate_webhook_id(input: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(input) {
+        return Err("invalid-webhook-id");
+    }
+    Ok(())
+}
+
+/// Validates a user id: one to nineteen ASCII digits, the spec's pattern.
+///
+/// # Errors
+/// Returns `invalid-user-id` for anything else, a handle included.
+pub fn validate_user_id(input: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(input) {
+        return Err("invalid-user-id");
+    }
+    Ok(())
+}
+
+/// Validates a webhook URL against the spec's length bounds and the two
+/// rules X's webhook documentation gives: the URL uses HTTPS, and it names
+/// no port.
+///
+/// # Errors
+/// Returns the kebab-case reason: `empty-webhook-url`, `webhook-url-too-long`,
+/// `webhook-url-not-https`, `webhook-url-has-port`.
+pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> {
+    if url.is_empty() {
+        return Err("empty-webhook-url");
+    }
+    if url.chars().count() > WEBHOOK_URL_MAX_CHARS {
+        return Err("webhook-url-too-long");
+    }
+    let Some(rest) = url.strip_prefix("https://") else {
+        return Err("webhook-url-not-https");
+    };
+    if url::Url::parse(url).is_err() {
+        return Err("webhook-url-not-https");
+    }
+    // The authority as written: `Url` drops a port that is the scheme's
+    // default, and X refuses one that is spelled out.
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    let host_and_port = authority.rsplit('@').next().unwrap_or_default();
+    let has_port = match host_and_port.rsplit_once(']') {
+        Some((_, after_bracket)) => after_bracket.starts_with(':'),
+        None => host_and_port.contains(':'),
+    };
+    if has_port {
+        return Err("webhook-url-has-port");
+    }
+    Ok(())
+}
+
+/// Validates one bound of a webhook replay window: twelve ASCII digits,
+/// `yyyymmddhhmm` in UTC, the spec's pattern.
+///
+/// # Errors
+/// Returns `invalid-replay-time` for anything else.
+pub fn validate_replay_time(input: &str) -> std::result::Result<(), &'static str> {
+    if input.len() != 12 || !input.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("invalid-replay-time");
+    }
+    Ok(())
+}
+
+/// Validates a stream source's name: at least one character that is not
+/// whitespace, the spec's `minLength`.
+///
+/// # Errors
+/// Returns `empty-source-name` for an empty or blank name.
+pub fn validate_source_name(name: &str) -> std::result::Result<(), &'static str> {
+    if name.trim().is_empty() {
+        return Err("empty-source-name");
+    }
+    Ok(())
+}
+
+/// Validates a stream source's ingest region: not empty, the spec's
+/// `minLength`. The spec lists the regions in prose rather than as an enum,
+/// so a region X adds later is not refused here.
+///
+/// # Errors
+/// Returns `empty-source-region` for an empty or blank region.
+pub fn validate_source_region(region: &str) -> std::result::Result<(), &'static str> {
+    if region.trim().is_empty() {
+        return Err("empty-source-region");
+    }
+    Ok(())
+}
+
+/// Longest bookmark folder name X accepts, the spec's `maxLength`.
+pub const BOOKMARK_FOLDER_NAME_MAX_CHARS: usize = 25;
+
+/// Validates a bookmark folder's name: at least one character that is not
+/// whitespace, the spec's `minLength`, and at most
+/// [`BOOKMARK_FOLDER_NAME_MAX_CHARS`], its `maxLength`.
+///
+/// # Errors
+/// Returns `empty-folder-name` for an empty or blank name and
+/// `folder-name-too-long` for a longer one.
+pub fn validate_bookmark_folder_name(name: &str) -> std::result::Result<(), &'static str> {
+    if name.trim().is_empty() {
+        return Err("empty-folder-name");
+    }
+    if name.chars().count() > BOOKMARK_FOLDER_NAME_MAX_CHARS {
+        return Err("folder-name-too-long");
+    }
+    Ok(())
+}
+
+/// Validates a bookmark folder id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-folder-id` for anything else.
+pub fn validate_bookmark_folder_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-folder-id");
+    }
+    Ok(())
+}
+
+/// Longest scheduled-call title X accepts, the spec's `maxLength`.
+pub const CALL_TITLE_MAX_CHARS: usize = 100;
+
+/// Longest scheduled-call description X accepts, the spec's `maxLength`.
+pub const CALL_DESCRIPTION_MAX_CHARS: usize = 1000;
+
+/// Longest recurrence rule X accepts, the spec's `maxLength`.
+pub const CALL_RECURRENCE_MAX_CHARS: usize = 500;
+
+/// Longest time zone name X accepts, the spec's `maxLength`.
+pub const CALL_TIME_ZONE_MAX_CHARS: usize = 64;
+
+/// Longest a scheduled call may last, in minutes: 31 days, the spec's
+/// `maximum`.
+pub const CALL_DURATION_MAX_MINUTES: u32 = 44_640;
+
+/// Most people a new scheduled call may invite, the spec's `maxItems`.
+pub const NEW_CALL_INVITEES_MAX: usize = 25;
+
+/// Most people an updated invite list may hold, the spec's `maxItems`.
+pub const CHANGED_CALL_INVITEES_MAX: usize = 100;
+
+/// Validates a call time against the spec's pattern: RFC 3339 with seconds,
+/// up to nine fractional digits, and a `Z` or `±hh:mm` zone.
+///
+/// # Errors
+/// Returns `invalid-call-time` for anything else.
+pub fn validate_call_time(input: &str) -> std::result::Result<(), &'static str> {
+    if is_call_time(input.as_bytes()) {
+        Ok(())
+    } else {
+        Err("invalid-call-time")
+    }
+}
+
+/// Validates an optional time window: each bound given is RFC 3339 with
+/// seconds and a zone, as [`validate_call_time`] takes, and the start comes
+/// before the end when both are given.
+///
+/// # Errors
+/// Returns `invalid-time-window` for a bound outside that form, or a start
+/// at or after the end.
+pub fn validate_time_window(
+    start: Option<&str>,
+    end: Option<&str>,
+) -> std::result::Result<(), &'static str> {
+    let instant = |bound: Option<&str>| {
+        bound
+            .map(|time| rfc3339_instant(time.as_bytes()).ok_or("invalid-time-window"))
+            .transpose()
+    };
+    if let (Some(start), Some(end)) = (instant(start)?, instant(end)?)
+        && start >= end
+    {
+        return Err("invalid-time-window");
+    }
+    Ok(())
+}
+
+/// The moment a time in [`is_call_time`]'s form names, as seconds since the
+/// Unix epoch and nanoseconds, so two times in different zones compare.
+fn rfc3339_instant(bytes: &[u8]) -> Option<(i64, u32)> {
+    if !is_call_time(bytes) {
+        return None;
+    }
+    let number = |digits: &[u8]| {
+        digits
+            .iter()
+            .fold(0_i64, |n, digit| n * 10 + i64::from(digit - b'0'))
+    };
+    let days = days_from_civil(
+        number(&bytes[..4]),
+        number(&bytes[5..7]),
+        number(&bytes[8..10]),
+    );
+    let seconds = days * 86_400
+        + number(&bytes[11..13]) * 3_600
+        + number(&bytes[14..16]) * 60
+        + number(&bytes[17..19]);
+    let mut zone = &bytes[19..];
+    let mut nanos = 0_u32;
+    if let Some(fraction) = zone.strip_prefix(b".") {
+        let digits = fraction.iter().take_while(|b| b.is_ascii_digit()).count();
+        nanos = fraction[..digits]
+            .iter()
+            .chain(std::iter::repeat(&b'0'))
+            .take(9)
+            .fold(0, |n, digit| n * 10 + u32::from(digit - b'0'));
+        zone = &fraction[digits..];
+    }
+    let offset = match zone {
+        [sign @ (b'+' | b'-'), ..] => {
+            let minutes = number(&zone[1..3]) * 60 + number(&zone[4..6]);
+            if *sign == b'+' {
+                minutes * 60
+            } else {
+                -minutes * 60
+            }
+        }
+        _ => 0,
+    };
+    Some((seconds - offset, nanos))
+}
+
+/// Days from 1970-01-01 to a proleptic Gregorian date, after Howard
+/// Hinnant's `days_from_civil`
+/// (<https://howardhinnant.github.io/date_algorithms.html#days_from_civil>).
+fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
+    let year = if month <= 2 { year - 1 } else { year };
+    let era = year.div_euclid(400);
+    let year_of_era = year - era * 400;
+    let day_of_year = (153 * ((month + 9) % 12) + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    era * 146_097 + day_of_era - 719_468
+}
+
+/// An RFC 3339 time as the decimal string of milliseconds since the Unix
+/// epoch that the broadcast endpoints take; `None` outside the form
+/// [`validate_time_window`] takes.
+fn epoch_millis(time: &str) -> Option<String> {
+    let (seconds, nanos) = rfc3339_instant(time.as_bytes())?;
+    Some((seconds * 1000 + i64::from(nanos / 1_000_000)).to_string())
+}
+
+/// Whether `id` matches `^[0-9]{1,19}$`, the pattern the spec gives every
+/// numeric id: one to nineteen ASCII digits.
+fn is_numeric_id(id: &str) -> bool {
+    !id.is_empty() && id.len() <= 19 && id.bytes().all(|b| b.is_ascii_digit())
+}
+
+fn two_digits(bytes: &[u8], at: usize) -> Option<u8> {
+    match bytes.get(at..at + 2)? {
+        [tens, units] if tens.is_ascii_digit() && units.is_ascii_digit() => {
+            Some((tens - b'0') * 10 + (units - b'0'))
+        }
+        _ => None,
+    }
+}
+
+fn is_call_time(bytes: &[u8]) -> bool {
+    let year = bytes
+        .get(..4)
+        .is_some_and(|y| y.iter().all(u8::is_ascii_digit));
+    let separators = [(4, b'-'), (7, b'-'), (10, b'T'), (13, b':'), (16, b':')]
+        .iter()
+        .all(|&(at, byte)| bytes.get(at) == Some(&byte));
+    let fields = [
+        (5, 1, 12),
+        (8, 1, 31),
+        (11, 0, 23),
+        (14, 0, 59),
+        (17, 0, 59),
+    ]
+    .iter()
+    .all(|&(at, low, high)| two_digits(bytes, at).is_some_and(|n| (low..=high).contains(&n)));
+    if !(year && separators && fields) {
+        return false;
+    }
+    let mut zone = &bytes[19..];
+    if let Some(fraction) = zone.strip_prefix(b".") {
+        let digits = fraction.iter().take_while(|b| b.is_ascii_digit()).count();
+        if !(1..=9).contains(&digits) {
+            return false;
+        }
+        zone = &fraction[digits..];
+    }
+    match zone {
+        b"Z" => true,
+        [b'+' | b'-', ..] => {
+            zone.len() == 6
+                && zone[3] == b':'
+                && two_digits(zone, 1).is_some_and(|hours| hours <= 23)
+                && two_digits(zone, 4).is_some_and(|minutes| minutes <= 59)
+        }
+        _ => false,
+    }
+}
+
+/// Holds the spec's bounds on what a new call and a change both carry.
+fn check_call_details(
+    title: Option<&str>,
+    description: Option<&str>,
+    recurrence: Option<&str>,
+    time_zone: Option<&str>,
+    duration_minutes: Option<u32>,
+) -> std::result::Result<(), &'static str> {
+    let longer = |text: Option<&str>, max: usize| text.is_some_and(|t| t.chars().count() > max);
+    if longer(title, CALL_TITLE_MAX_CHARS) {
+        return Err("call-title-too-long");
+    }
+    if longer(description, CALL_DESCRIPTION_MAX_CHARS) {
+        return Err("call-description-too-long");
+    }
+    if longer(recurrence, CALL_RECURRENCE_MAX_CHARS) {
+        return Err("call-recurrence-too-long");
+    }
+    if longer(time_zone, CALL_TIME_ZONE_MAX_CHARS) {
+        return Err("call-time-zone-too-long");
+    }
+    if duration_minutes.is_some_and(|m| !(1..=CALL_DURATION_MAX_MINUTES).contains(&m)) {
+        return Err("invalid-call-duration");
+    }
+    Ok(())
+}
+
+fn check_invitees(invitee_ids: &[String], max: usize) -> std::result::Result<(), &'static str> {
+    if invitee_ids.len() > max {
+        return Err("too-many-invitees");
+    }
+    invitee_ids.iter().try_for_each(|id| validate_user_id(id))
+}
+
+/// Validates a call to schedule against the spec's bounds.
+///
+/// # Errors
+/// Returns the kebab-case reason: `invalid-call-time`, `call-title-too-long`,
+/// `call-description-too-long`, `call-recurrence-too-long`,
+/// `call-time-zone-too-long`, `invalid-call-duration`, `too-many-invitees`,
+/// `invalid-user-id`.
+pub fn validate_new_scheduled_call(
+    call: &NewScheduledCall,
+) -> std::result::Result<(), &'static str> {
+    validate_call_time(&call.start_time)?;
+    check_call_details(
+        call.title.as_deref(),
+        call.description.as_deref(),
+        call.recurrence.as_deref(),
+        call.time_zone.as_deref(),
+        call.duration_minutes,
+    )?;
+    check_invitees(&call.invitee_ids, NEW_CALL_INVITEES_MAX)
+}
+
+/// Validates a change to a scheduled call against the spec's bounds.
+///
+/// # Errors
+/// Returns the kebab-case reason: `no-call-changes` when nothing would
+/// change, `empty-call-recurrence`, and any reason
+/// [`validate_new_scheduled_call`] gives.
+pub fn validate_scheduled_call_changes(
+    changes: &ScheduledCallChanges,
+) -> std::result::Result<(), &'static str> {
+    if changes.is_empty() {
+        return Err("no-call-changes");
+    }
+    if let Some(start) = &changes.start_time {
+        validate_call_time(start)?;
+    }
+    if changes.recurrence.as_deref() == Some("") {
+        return Err("empty-call-recurrence");
+    }
+    check_call_details(
+        changes.title.as_deref(),
+        changes.description.as_deref(),
+        changes.recurrence.as_deref(),
+        changes.time_zone.as_deref(),
+        changes.duration_minutes,
+    )?;
+    if let Some(ids) = &changes.invitee_ids {
+        check_invitees(ids, CHANGED_CALL_INVITEES_MAX)?;
+    }
+    validate_occurrences(&changes.occurrences)
+}
+
+/// Validates the occurrence a request names.
+///
+/// # Errors
+/// Returns `invalid-call-time` when `occurrence_start_time` is not RFC 3339.
+pub fn validate_occurrences(occurrences: &Occurrences) -> std::result::Result<(), &'static str> {
+    match &occurrences.occurrence_start_time {
+        Some(start) => validate_call_time(start),
+        None => Ok(()),
+    }
 }
 
 /// Validates the alt text for a media id.
@@ -288,6 +1494,35 @@ fn request(method: &str, target: RequestTarget, data: String) -> RequestOptions 
     }
 }
 
+/// Every field the spec gives an X call.
+const CALL_FIELDS: &str =
+    "conversation_id,created_at,id,join_policy,join_url,participant_count,title,viewer_may_join";
+
+/// Every field the spec gives a scheduled call.
+const SCHEDULED_CALL_FIELDS: &str = "calendar,call_id,description,end_time,id,join_url,\
+                                     occurrence_start_time,recurrence,start_time,status,\
+                                     time_zone,title";
+
+/// The user fields a call's host, organizer, and invitees are expanded with.
+const CALL_USER_FIELDS: &str = "username,name";
+
+/// Every field and expansion a scheduled call is read with: its invitees,
+/// its call, and its organizer.
+fn scheduled_call_query() -> Vec<(String, String)> {
+    vec![
+        (
+            "scheduled_call.fields".to_string(),
+            SCHEDULED_CALL_FIELDS.to_string(),
+        ),
+        (
+            "expansions".to_string(),
+            "call_id,invitees,organizer_id".to_string(),
+        ),
+        ("call.fields".to_string(), CALL_FIELDS.to_string()),
+        ("user.fields".to_string(), CALL_USER_FIELDS.to_string()),
+    ]
+}
+
 fn id_param(user_id: &str) -> HashMap<String, String> {
     HashMap::from([("id".to_string(), user_id.to_string())])
 }
@@ -304,6 +1539,155 @@ fn source_and_target(source_user_id: &str, target_user_id: &str) -> HashMap<Stri
         ("source_user_id".to_string(), source_user_id.to_string()),
         ("target_user_id".to_string(), target_user_id.to_string()),
     ])
+}
+
+/// Every field the spec's `analytics.fields` lists for a post.
+const POST_ANALYTICS_FIELDS: &str = "app_install_attempts,app_opens,bookmarks,detail_expands,\
+email_tweet,engagements,follows,hashtag_clicks,id,impressions,likes,media_views,permalink_clicks,\
+quote_tweets,replies,retweets,shares,timestamp,timestamped_metrics,unfollows,unlikes,url_clicks,\
+user_profile_clicks";
+
+/// The body that schedules `broadcast`; `None` when a time is not RFC 3339.
+fn new_broadcast_body(
+    broadcast: &NewScheduledBroadcast,
+) -> Option<serde_json::Map<String, serde_json::Value>> {
+    let mut body = serde_json::Map::new();
+    body.insert("source_id".into(), broadcast.source_id.clone().into());
+    body.insert(
+        "scheduled_start_ms".into(),
+        epoch_millis(&broadcast.start_time)?.into(),
+    );
+    if let Some(end) = &broadcast.end_time {
+        body.insert("scheduled_end_ms".into(), epoch_millis(end)?.into());
+    }
+    insert_broadcast_details(
+        &mut body,
+        broadcast.title.as_deref(),
+        broadcast.description.as_deref(),
+        broadcast.available_for_replay,
+        broadcast.manual_publish,
+    );
+    Some(body)
+}
+
+/// The body that changes scheduled broadcast `id`; `None` when a time is not
+/// RFC 3339.
+fn broadcast_changes_body(
+    id: &str,
+    changes: &ScheduledBroadcastChanges,
+) -> Option<serde_json::Map<String, serde_json::Value>> {
+    let mut body = serde_json::Map::new();
+    body.insert("scheduled_broadcast_id".into(), id.into());
+    body.insert(
+        "scheduled_start_ms".into(),
+        epoch_millis(&changes.start_time)?.into(),
+    );
+    body.insert(
+        "scheduled_end_ms".into(),
+        epoch_millis(&changes.end_time)?.into(),
+    );
+    if let Some(source) = &changes.source_id {
+        body.insert("source_id".into(), source.clone().into());
+    }
+    insert_broadcast_details(
+        &mut body,
+        changes.title.as_deref(),
+        changes.description.as_deref(),
+        changes.available_for_replay,
+        changes.manual_publish,
+    );
+    Some(body)
+}
+
+/// `values` joined with commas, as a list-valued query parameter takes them.
+/// The fields every Spaces read asks for: each one the spec's `space.fields`
+/// lists, and the creator and hosts, whose ids the spec makes expansions
+/// and whose accounts come back under `includes.users`.
+fn space_fields() -> [(String, String); 2] {
+    [
+        (
+            "space.fields".to_string(),
+            "created_at,ended_at,id,is_ticketed,lang,participant_count,scheduled_start,\
+             started_at,state,subscriber_count,title,updated_at"
+                .to_string(),
+        ),
+        ("expansions".to_string(), "creator_id,host_ids".to_string()),
+    ]
+}
+
+fn joined<S: AsRef<str>>(values: &[S]) -> String {
+    values
+        .iter()
+        .map(AsRef::as_ref)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// Adds the optional fields a new broadcast and a change share.
+fn insert_broadcast_details(
+    body: &mut serde_json::Map<String, serde_json::Value>,
+    title: Option<&str>,
+    description: Option<&str>,
+    available_for_replay: Option<bool>,
+    manual_publish: Option<bool>,
+) {
+    if let Some(title) = title {
+        body.insert("title".into(), title.into());
+    }
+    if let Some(description) = description {
+        body.insert("description".into(), description.into());
+    }
+    if let Some(replay) = available_for_replay {
+        body.insert("available_for_replay".into(), replay.into());
+    }
+    if let Some(manual) = manual_publish {
+        body.insert("manual_publish".into(), manual.into());
+    }
+}
+
+/// Every field the spec's `list.fields` lists.
+fn list_fields() -> Vec<(String, String)> {
+    vec![(
+        "list.fields".to_string(),
+        "created_at,description,follower_count,id,member_count,name,private".to_string(),
+    )]
+}
+
+/// Every field the spec's `community.fields` lists.
+const COMMUNITY_FIELDS: &str = "access,created_at,description,id,join_policy,member_count,name";
+
+/// Every field the spec's `news.fields` lists.
+const NEWS_FIELDS: &str =
+    "category,cluster_posts_results,contexts,disclaimer,hook,id,keywords,name,summary,updated_at";
+
+/// The fields and expansions a read of direct-message events asks for.
+fn dm_event_fields() -> Vec<(String, String)> {
+    vec![
+        (
+            "dm_event.fields".to_string(),
+            "created_at,dm_conversation_id,text".to_string(),
+        ),
+        ("expansions".to_string(), "sender_id".to_string()),
+        ("user.fields".to_string(), "username,name".to_string()),
+    ]
+}
+
+/// The fields and expansions a read of whole posts asks for.
+fn post_read_fields() -> Vec<(String, String)> {
+    vec![
+        (
+            "post.fields".to_string(),
+            "created_at,public_metrics,conversation_id,entities,attachments".to_string(),
+        ),
+        (
+            "expansions".to_string(),
+            "author_id,in_reply_to_user_id,referenced_posts".to_string(),
+        ),
+        (
+            "user.fields".to_string(),
+            "username,name,verified".to_string(),
+        ),
+    ]
 }
 
 fn target_user_body(target_user_id: &str) -> String {
@@ -442,6 +1826,1033 @@ impl Client {
         )
     }
 
+    /// Hides a reply to one of the caller's posts, or shows it again when
+    /// `hidden` is false.
+    pub fn hide_reply(&self, reply_id: &str, hidden: bool) -> Call<ApiResponse<HiddenResult>> {
+        let reply_id = resolve_post_id(reply_id);
+        self.json_call(
+            endpoints::HIDE_REPLY.method,
+            template(
+                endpoints::HIDE_REPLY.path,
+                HashMap::from([("tweet_id".to_string(), reply_id)]),
+                Vec::new(),
+            ),
+            &HiddenBody { hidden },
+        )
+    }
+
+    /// Looks up to [`LOOKUP_IDS_MAX`] accounts by numeric id in one request.
+    pub fn lookup_users_by_id<S: AsRef<str>>(&self, ids: &[S]) -> Call<ApiResponse<Vec<User>>> {
+        self.user_batch(
+            endpoints::LOOKUP_USERS.path,
+            "ids",
+            ids.iter().map(|id| id.as_ref().to_string()),
+        )
+    }
+
+    /// Looks up to [`LOOKUP_IDS_MAX`] accounts by username, a leading `@`
+    /// aside, in one request.
+    pub fn lookup_users_by_username<S: AsRef<str>>(
+        &self,
+        usernames: &[S],
+    ) -> Call<ApiResponse<Vec<User>>> {
+        self.user_batch(
+            endpoints::LOOKUP_USERS_BY_USERNAME.path,
+            "usernames",
+            usernames.iter().map(|name| resolve_username(name.as_ref())),
+        )
+    }
+
+    fn user_batch(
+        &self,
+        path: &str,
+        key: &str,
+        values: impl Iterator<Item = String>,
+    ) -> Call<ApiResponse<Vec<User>>> {
+        let joined = values.collect::<Vec<_>>().join(",");
+        self.call(
+            "GET",
+            template(
+                path,
+                HashMap::new(),
+                vec![
+                    (key.to_string(), joined),
+                    (
+                        "user.fields".to_string(),
+                        "created_at,description,public_metrics,verified".to_string(),
+                    ),
+                ],
+            ),
+        )
+    }
+
+    /// Finds accounts by keyword. The endpoint reads its cursor from
+    /// `next_token`.
+    pub fn search_users(&self, query: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
+        self.call(
+            endpoints::SEARCH_USERS.method,
+            template(
+                endpoints::SEARCH_USERS.path,
+                HashMap::new(),
+                vec![
+                    ("query".to_string(), query.to_string()),
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "user.fields".to_string(),
+                        "created_at,description,public_metrics,verified".to_string(),
+                    ),
+                ],
+            ),
+        )
+        .paginated_by("next_token")
+    }
+
+    /// Counts the posts from the last seven days that match `query`, per
+    /// `granularity` bucket (`minute`, `hour`, or `day`; X's default is
+    /// `hour`), between `start_time` and `end_time` when given.
+    pub fn count_recent_posts(
+        &self,
+        query: &str,
+        granularity: Option<&str>,
+        start_time: Option<&str>,
+        end_time: Option<&str>,
+    ) -> Call<ApiResponse<Vec<PostCount>>> {
+        let mut params = vec![("query".to_string(), query.to_string())];
+        let optional = [
+            ("granularity", granularity),
+            ("start_time", start_time),
+            ("end_time", end_time),
+        ];
+        params.extend(
+            optional
+                .into_iter()
+                .filter_map(|(name, value)| Some((name.to_string(), value?.to_string()))),
+        );
+        self.call(
+            endpoints::GET_POST_COUNTS.method,
+            template(endpoints::GET_POST_COUNTS.path, HashMap::new(), params),
+        )
+        .paginated()
+    }
+
+    /// Reads impressions and engagement for up to [`LOOKUP_IDS_MAX`] of the
+    /// caller's posts, each an id or a post URL, between `start_time` and
+    /// `end_time`, per `granularity` bucket (`hourly`, `daily`, `weekly`, or
+    /// `total`, X's default). Every metric the spec names is requested.
+    pub fn post_analytics<S: AsRef<str>>(
+        &self,
+        post_ids: &[S],
+        start_time: &str,
+        end_time: &str,
+        granularity: Option<&str>,
+    ) -> Call<ApiResponse<Vec<PostAnalytics>>> {
+        let ids = post_ids
+            .iter()
+            .map(|id| resolve_post_id(id.as_ref()))
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut query = vec![
+            ("ids".to_string(), ids),
+            ("start_time".to_string(), start_time.to_string()),
+            ("end_time".to_string(), end_time.to_string()),
+            (
+                "analytics.fields".to_string(),
+                POST_ANALYTICS_FIELDS.to_string(),
+            ),
+        ];
+        if let Some(granularity) = granularity {
+            query.push(("granularity".to_string(), granularity.to_string()));
+        }
+        self.call(
+            endpoints::GET_POST_ANALYTICS.method,
+            template(endpoints::GET_POST_ANALYTICS.path, HashMap::new(), query),
+        )
+    }
+
+    /// Fetches the trends for a place, named by its Yahoo WOEID (`1` is
+    /// worldwide), up to `max_trends` of them (1 to 50; X's default is 20).
+    pub fn get_trends(&self, woeid: u32, max_trends: Option<u32>) -> Call<ApiResponse<Vec<Trend>>> {
+        let mut query = vec![(
+            "trend.fields".to_string(),
+            "trend_name,tweet_count".to_string(),
+        )];
+        if let Some(max) = max_trends {
+            query.push(("max_trends".to_string(), max.to_string()));
+        }
+        self.call(
+            endpoints::GET_TRENDS.method,
+            template(
+                endpoints::GET_TRENDS.path,
+                HashMap::from([("woeid".to_string(), woeid.to_string())]),
+                query,
+            ),
+        )
+    }
+
+    /// Fetches the trends X picks for the authenticated user.
+    pub fn get_personalized_trends(&self) -> Call<ApiResponse<Vec<PersonalizedTrend>>> {
+        self.call(
+            endpoints::GET_PERSONALIZED_TRENDS.method,
+            template(
+                endpoints::GET_PERSONALIZED_TRENDS.path,
+                HashMap::new(),
+                vec![(
+                    "personalized_trend.fields".to_string(),
+                    "category,post_count,trend_name,trending_since".to_string(),
+                )],
+            ),
+        )
+    }
+
+    /// Searches X's news stories, up to `max_results` (1 to 100) updated in
+    /// the last `max_age_hours` (1 to 720; X's default is 168).
+    pub fn search_news(
+        &self,
+        query: &str,
+        max_results: i32,
+        max_age_hours: Option<u32>,
+    ) -> Call<ApiResponse<Vec<NewsStory>>> {
+        let mut params = vec![
+            ("query".to_string(), query.to_string()),
+            ("max_results".to_string(), max_results.to_string()),
+            ("news.fields".to_string(), NEWS_FIELDS.to_string()),
+        ];
+        if let Some(hours) = max_age_hours {
+            params.push(("max_age_hours".to_string(), hours.to_string()));
+        }
+        self.call(
+            endpoints::SEARCH_NEWS.method,
+            template(endpoints::SEARCH_NEWS.path, HashMap::new(), params),
+        )
+    }
+
+    /// Reads one news story by id.
+    pub fn get_news(&self, id: &str) -> Call<ApiResponse<NewsStory>> {
+        self.call(
+            endpoints::GET_NEWS.method,
+            template(
+                endpoints::GET_NEWS.path,
+                id_param(id),
+                vec![("news.fields".to_string(), NEWS_FIELDS.to_string())],
+            ),
+        )
+    }
+
+    /// Creates a list owned by the caller.
+    pub fn create_list(&self, details: &ListDetails) -> Call<ApiResponse<List>> {
+        self.post_json(
+            template(endpoints::CREATE_LIST.path, HashMap::new(), Vec::new()),
+            details,
+        )
+    }
+
+    /// Reads one list, by id.
+    pub fn get_list(&self, list_id: &str) -> Call<ApiResponse<List>> {
+        self.call(
+            endpoints::GET_LIST.method,
+            template(endpoints::GET_LIST.path, id_param(list_id), list_fields()),
+        )
+    }
+
+    /// Changes a list's name, description, or privacy; an unset field keeps
+    /// its value.
+    pub fn update_list(
+        &self,
+        list_id: &str,
+        changes: &ListDetails,
+    ) -> Call<ApiResponse<ListUpdatedResult>> {
+        self.json_call(
+            endpoints::UPDATE_LIST.method,
+            template(endpoints::UPDATE_LIST.path, id_param(list_id), Vec::new()),
+            changes,
+        )
+    }
+
+    /// Deletes a list the caller owns.
+    pub fn delete_list(&self, list_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_LIST.method,
+            template(endpoints::DELETE_LIST.path, id_param(list_id), Vec::new()),
+        )
+    }
+
+    /// Fetches the posts from a list's members.
+    pub fn get_list_posts(&self, list_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        self.call(
+            endpoints::GET_LIST_POSTS.method,
+            template(
+                endpoints::GET_LIST_POSTS.path,
+                id_param(list_id),
+                vec![
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Fetches the accounts on a list.
+    pub fn get_list_members(
+        &self,
+        list_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<User>>> {
+        self.get_user_list(endpoints::GET_LIST_MEMBERS.path, list_id, max_results)
+    }
+
+    /// Fetches the accounts that follow a list.
+    pub fn get_list_followers(
+        &self,
+        list_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<User>>> {
+        self.get_user_list(endpoints::GET_LIST_FOLLOWERS.path, list_id, max_results)
+    }
+
+    /// Adds an account, by user id, to a list the caller owns.
+    pub fn add_list_member(
+        &self,
+        list_id: &str,
+        user_id: &str,
+    ) -> Call<ApiResponse<ListMemberResult>> {
+        self.post_json(
+            template(
+                endpoints::ADD_LIST_MEMBER.path,
+                id_param(list_id),
+                Vec::new(),
+            ),
+            &serde_json::json!({"user_id": user_id}),
+        )
+    }
+
+    /// Removes an account, by user id, from a list the caller owns.
+    pub fn remove_list_member(
+        &self,
+        list_id: &str,
+        user_id: &str,
+    ) -> Call<ApiResponse<ListMemberResult>> {
+        self.call(
+            endpoints::REMOVE_LIST_MEMBER.method,
+            template(
+                endpoints::REMOVE_LIST_MEMBER.path,
+                id_and(list_id, "user_id", user_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Fetches the lists a user owns.
+    pub fn get_owned_lists(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<List>>> {
+        self.list_of_lists(endpoints::GET_OWNED_LISTS.path, user_id, Some(max_results))
+    }
+
+    /// Fetches the lists a user follows.
+    pub fn get_followed_lists(
+        &self,
+        user_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<List>>> {
+        self.list_of_lists(
+            endpoints::GET_FOLLOWED_LISTS.path,
+            user_id,
+            Some(max_results),
+        )
+    }
+
+    /// Fetches the lists a user is a member of.
+    pub fn get_list_memberships(
+        &self,
+        user_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<List>>> {
+        self.list_of_lists(
+            endpoints::GET_LIST_MEMBERSHIPS.path,
+            user_id,
+            Some(max_results),
+        )
+    }
+
+    /// Fetches the lists a user has pinned; X answers them in one page.
+    pub fn get_pinned_lists(&self, user_id: &str) -> Call<ApiResponse<Vec<List>>> {
+        self.list_of_lists(endpoints::GET_PINNED_LISTS.path, user_id, None)
+    }
+
+    /// Follows a list from the caller's account.
+    pub fn follow_list(&self, user_id: &str, list_id: &str) -> Call<ApiResponse<FollowingResult>> {
+        self.post_json(
+            template(endpoints::FOLLOW_LIST.path, id_param(user_id), Vec::new()),
+            &serde_json::json!({"list_id": list_id}),
+        )
+    }
+
+    /// Stops following a list from the caller's account.
+    pub fn unfollow_list(
+        &self,
+        user_id: &str,
+        list_id: &str,
+    ) -> Call<ApiResponse<FollowingResult>> {
+        self.call(
+            endpoints::UNFOLLOW_LIST.method,
+            template(
+                endpoints::UNFOLLOW_LIST.path,
+                id_and(user_id, "list_id", list_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Pins a list on the caller's account.
+    pub fn pin_list(&self, user_id: &str, list_id: &str) -> Call<ApiResponse<PinnedResult>> {
+        self.post_json(
+            template(endpoints::PIN_LIST.path, id_param(user_id), Vec::new()),
+            &serde_json::json!({"list_id": list_id}),
+        )
+    }
+
+    /// Unpins a list from the caller's account.
+    pub fn unpin_list(&self, user_id: &str, list_id: &str) -> Call<ApiResponse<PinnedResult>> {
+        self.call(
+            endpoints::UNPIN_LIST.method,
+            template(
+                endpoints::UNPIN_LIST.path,
+                id_and(user_id, "list_id", list_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    fn list_of_lists(
+        &self,
+        path: &str,
+        user_id: &str,
+        max_results: Option<i32>,
+    ) -> Call<ApiResponse<Vec<List>>> {
+        let mut query = list_fields();
+        if let Some(n) = max_results {
+            query.push(("max_results".to_string(), n.to_string()));
+        }
+        let call = self.call("GET", template(path, id_param(user_id), query));
+        if max_results.is_some() {
+            call.paginated()
+        } else {
+            call
+        }
+    }
+
+    /// Fetches the caller's broadcasts.
+    pub fn list_broadcasts(&self, max_results: i32) -> Call<ApiResponse<Vec<Broadcast>>> {
+        self.call(
+            endpoints::LIST_BROADCASTS.method,
+            template(
+                endpoints::LIST_BROADCASTS.path,
+                HashMap::new(),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Reads one broadcast, by id.
+    pub fn get_broadcast(&self, id: &str) -> Call<ApiResponse<Broadcast>> {
+        self.call(
+            endpoints::GET_BROADCAST.method,
+            template(endpoints::GET_BROADCAST.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Fetches the caller's scheduled broadcasts.
+    pub fn list_scheduled_broadcasts(
+        &self,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<ScheduledBroadcast>>> {
+        self.call(
+            endpoints::LIST_SCHEDULED_BROADCASTS.method,
+            template(
+                endpoints::LIST_SCHEDULED_BROADCASTS.path,
+                HashMap::new(),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Reads one scheduled broadcast, by id.
+    pub fn get_scheduled_broadcast(&self, id: &str) -> Call<ApiResponse<ScheduledBroadcast>> {
+        self.call(
+            endpoints::GET_SCHEDULED_BROADCAST.method,
+            template(
+                endpoints::GET_SCHEDULED_BROADCAST.path,
+                id_param(id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Schedules a broadcast. A time outside RFC 3339 fails the call with
+    /// `invalid-time-window` before anything is sent.
+    pub fn create_scheduled_broadcast(
+        &self,
+        broadcast: &NewScheduledBroadcast,
+    ) -> Call<ApiResponse<ScheduledBroadcast>> {
+        let target = template(
+            endpoints::CREATE_SCHEDULED_BROADCAST.path,
+            HashMap::new(),
+            Vec::new(),
+        );
+        match new_broadcast_body(broadcast) {
+            Some(body) => self.post_json(target, &body),
+            None => Call::failed(self, crate::error::Error::validation("invalid-time-window")),
+        }
+    }
+
+    /// Changes a scheduled broadcast. A time outside RFC 3339 fails the call
+    /// with `invalid-time-window` before anything is sent.
+    pub fn update_scheduled_broadcast(
+        &self,
+        id: &str,
+        changes: &ScheduledBroadcastChanges,
+    ) -> Call<ApiResponse<ScheduledBroadcast>> {
+        let target = template(
+            endpoints::UPDATE_SCHEDULED_BROADCAST.path,
+            id_param(id),
+            Vec::new(),
+        );
+        match broadcast_changes_body(id, changes) {
+            Some(body) => {
+                self.json_call(endpoints::UPDATE_SCHEDULED_BROADCAST.method, target, &body)
+            }
+            None => Call::failed(self, crate::error::Error::validation("invalid-time-window")),
+        }
+    }
+
+    /// Cancels a scheduled broadcast.
+    pub fn delete_scheduled_broadcast(&self, id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_SCHEDULED_BROADCAST.method,
+            template(
+                endpoints::DELETE_SCHEDULED_BROADCAST.path,
+                id_param(id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Starts a scheduled broadcast now.
+    pub fn go_live(&self, id: &str) -> Call<ApiResponse<ScheduledBroadcast>> {
+        self.call(
+            endpoints::GO_LIVE.method,
+            template(endpoints::GO_LIVE.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Fetches a broadcast's chat.
+    ///
+    /// X accepts 1 to 200 results for this endpoint.
+    pub fn get_broadcast_chat(
+        &self,
+        id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<BroadcastChatMessage>>> {
+        self.call(
+            endpoints::GET_BROADCAST_CHAT.method,
+            template(
+                endpoints::GET_BROADCAST_CHAT.path,
+                id_param(id),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Sends a message into a broadcast's chat, as a reply to `reply_to`
+    /// when given.
+    pub fn send_broadcast_chat(
+        &self,
+        id: &str,
+        text: &str,
+        reply_to: Option<&str>,
+    ) -> Call<ApiResponse<ChatSentResult>> {
+        let mut body = serde_json::Map::new();
+        body.insert("text".into(), text.into());
+        if let Some(reply_to) = reply_to {
+            body.insert("reply_to".into(), reply_to.into());
+        }
+        self.post_json(
+            template(
+                endpoints::SEND_BROADCAST_CHAT.path,
+                id_param(id),
+                Vec::new(),
+            ),
+            &body,
+        )
+    }
+
+    /// Mutes a user, by id, in a broadcast's chat, until `until` (RFC 3339)
+    /// or for good, removing `message_id` from the chat when given. A time
+    /// outside RFC 3339 fails the call with `invalid-time-window` before
+    /// anything is sent.
+    pub fn mute_chat_user(
+        &self,
+        id: &str,
+        user_id: &str,
+        until: Option<&str>,
+        message_id: Option<&str>,
+    ) -> Call<ApiResponse<ChatMutedResult>> {
+        let mut body = serde_json::Map::new();
+        body.insert("user_id".into(), user_id.into());
+        if let Some(until) = until {
+            match epoch_millis(until) {
+                Some(ms) => body.insert("end_at_ms".into(), ms.into()),
+                None => {
+                    return Call::failed(
+                        self,
+                        crate::error::Error::validation("invalid-time-window"),
+                    );
+                }
+            };
+        }
+        if let Some(message_id) = message_id {
+            body.insert("message_id".into(), message_id.into());
+        }
+        self.post_json(
+            template(endpoints::MUTE_CHAT_USER.path, id_param(id), Vec::new()),
+            &body,
+        )
+    }
+
+    /// Unmutes a user, by id, in a broadcast's chat.
+    pub fn unmute_chat_user(&self, id: &str, user_id: &str) -> Call<ApiResponse<ChatMutedResult>> {
+        self.call(
+            endpoints::UNMUTE_CHAT_USER.method,
+            template(
+                endpoints::UNMUTE_CHAT_USER.path,
+                id_and(id, "user_id", user_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Removes a message from a broadcast's chat.
+    pub fn delete_chat_message(
+        &self,
+        id: &str,
+        message_id: &str,
+    ) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_CHAT_MESSAGE.method,
+            template(
+                endpoints::DELETE_CHAT_MESSAGE.path,
+                id_and(id, "message_id", message_id.to_string()),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Reads up to [`LOOKUP_IDS_MAX`] uploads by media key in one request.
+    /// Only the fields any caller may read are requested.
+    pub fn get_media<S: AsRef<str>>(&self, media_keys: &[S]) -> Call<ApiResponse<Vec<Media>>> {
+        self.call(
+            endpoints::GET_MEDIA.method,
+            template(
+                endpoints::GET_MEDIA.path,
+                HashMap::new(),
+                vec![
+                    ("media_keys".to_string(), joined(media_keys)),
+                    (
+                        "media.fields".to_string(),
+                        "alt_text,duration_ms,height,media_key,preview_image_url,public_metrics,\
+                         type,url,variants,width"
+                            .to_string(),
+                    ),
+                ],
+            ),
+        )
+    }
+
+    /// Reads video metrics for up to [`LOOKUP_IDS_MAX`] of the caller's
+    /// uploads between `start_time` and `end_time`, per `granularity`
+    /// bucket (`hourly`, `daily`, X's default, or `total`).
+    pub fn get_media_analytics<S: AsRef<str>>(
+        &self,
+        media_keys: &[S],
+        start_time: &str,
+        end_time: &str,
+        granularity: Option<&str>,
+    ) -> Call<ApiResponse<Vec<MediaAnalytics>>> {
+        let mut query = vec![
+            ("media_keys".to_string(), joined(media_keys)),
+            ("start_time".to_string(), start_time.to_string()),
+            ("end_time".to_string(), end_time.to_string()),
+            (
+                "media_analytics.fields".to_string(),
+                "cta_url_clicks,cta_watch_clicks,media_key,play_from_tap,playback25,playback50,\
+                 playback75,playback_complete,playback_start,timestamp,timestamped_metrics,\
+                 video_views,watch_time_ms"
+                    .to_string(),
+            ),
+        ];
+        if let Some(granularity) = granularity {
+            query.push(("granularity".to_string(), granularity.to_string()));
+        }
+        self.call(
+            endpoints::GET_MEDIA_ANALYTICS.method,
+            template(endpoints::GET_MEDIA_ANALYTICS.path, HashMap::new(), query),
+        )
+    }
+
+    /// Searches Spaces by keyword. `state` narrows the answer to `live` or
+    /// `scheduled` Spaces; X's default is `all`.
+    pub fn search_spaces(
+        &self,
+        query: &str,
+        state: Option<&str>,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<Space>>> {
+        let mut params = vec![
+            ("query".to_string(), query.to_string()),
+            ("max_results".to_string(), max_results.to_string()),
+        ];
+        if let Some(state) = state {
+            params.push(("state".to_string(), state.to_string()));
+        }
+        params.extend(space_fields());
+        self.call(
+            endpoints::SEARCH_SPACES.method,
+            template(endpoints::SEARCH_SPACES.path, HashMap::new(), params),
+        )
+    }
+
+    /// Reads up to [`LOOKUP_IDS_MAX`] Spaces by id in one request.
+    pub fn get_spaces<S: AsRef<str>>(&self, ids: &[S]) -> Call<ApiResponse<Vec<Space>>> {
+        let mut params = vec![("ids".to_string(), joined(ids))];
+        params.extend(space_fields());
+        self.call(
+            endpoints::GET_SPACES.method,
+            template(endpoints::GET_SPACES.path, HashMap::new(), params),
+        )
+    }
+
+    /// Reads the Spaces up to [`LOOKUP_IDS_MAX`] accounts created, by user
+    /// id, in one request.
+    pub fn get_spaces_by_creator<S: AsRef<str>>(
+        &self,
+        user_ids: &[S],
+    ) -> Call<ApiResponse<Vec<Space>>> {
+        let mut params = vec![("user_ids".to_string(), joined(user_ids))];
+        params.extend(space_fields());
+        self.call(
+            endpoints::GET_SPACES_BY_CREATOR.method,
+            template(
+                endpoints::GET_SPACES_BY_CREATOR.path,
+                HashMap::new(),
+                params,
+            ),
+        )
+    }
+
+    /// Lists the filtered stream's rules, 1 to 1000 a page.
+    pub fn get_stream_rules(&self, max_results: i32) -> Call<ApiResponse<Vec<StreamRule>>> {
+        self.call(
+            endpoints::GET_STREAM_RULES.method,
+            template(
+                endpoints::GET_STREAM_RULES.path,
+                HashMap::new(),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Adds a rule to the filtered stream. With `validate_only`, X checks
+    /// the rule and saves nothing: the endpoint's `dry_run`, a request all
+    /// the same.
+    pub fn add_stream_rule(
+        &self,
+        value: &str,
+        tag: Option<&str>,
+        validate_only: bool,
+    ) -> Call<ApiResponse<Option<Vec<StreamRule>>>> {
+        let mut rule = serde_json::json!({"value": value});
+        if let Some(tag) = tag {
+            rule["tag"] = serde_json::json!(tag);
+        }
+        self.update_stream_rules(&serde_json::json!({"add": [rule]}), validate_only)
+    }
+
+    /// Removes filtered-stream rules by id. With `validate_only`, X checks
+    /// the removal and deletes nothing. X's answer carries no `data`, only
+    /// the counts under `meta`.
+    pub fn remove_stream_rules<S: AsRef<str>>(
+        &self,
+        ids: &[S],
+        validate_only: bool,
+    ) -> Call<ApiResponse<Option<Vec<StreamRule>>>> {
+        let ids: Vec<&str> = ids.iter().map(AsRef::as_ref).collect();
+        self.update_stream_rules(&serde_json::json!({"delete": {"ids": ids}}), validate_only)
+    }
+
+    fn update_stream_rules(
+        &self,
+        body: &serde_json::Value,
+        validate_only: bool,
+    ) -> Call<ApiResponse<Option<Vec<StreamRule>>>> {
+        let query = if validate_only {
+            vec![("dry_run".to_string(), "true".to_string())]
+        } else {
+            Vec::new()
+        };
+        self.post_json(
+            template(endpoints::UPDATE_STREAM_RULES.path, HashMap::new(), query),
+            body,
+        )
+    }
+
+    /// Counts the filtered-stream rules the calling app and its project
+    /// hold, against X's caps.
+    pub fn get_stream_rule_counts(&self) -> Call<ApiResponse<StreamRuleCounts>> {
+        self.call(
+            endpoints::GET_STREAM_RULE_COUNTS.method,
+            template(
+                endpoints::GET_STREAM_RULE_COUNTS.path,
+                HashMap::new(),
+                // The spec gives this parameter no enum; the names are the
+                // properties of its `RulesCount` schema.
+                vec![(
+                    "rules_count.fields".to_string(),
+                    "all_project_client_apps,cap_per_client_app,cap_per_project,\
+                     client_app_rules_count,project_rules_count"
+                        .to_string(),
+                )],
+            ),
+        )
+    }
+
+    /// Reads the posts shared in a Space.
+    pub fn get_space_posts(&self, id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        self.call(
+            endpoints::GET_SPACE_POSTS.method,
+            template(
+                endpoints::GET_SPACE_POSTS.path,
+                id_param(id),
+                vec![
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Saves a draft X Article. `body` is plain text, turned into blocks by
+    /// [`article_blocks`]; `cover_media_id` names an uploaded image to show
+    /// above it.
+    pub fn create_article_draft(
+        &self,
+        title: &str,
+        body: &str,
+        cover_media_id: Option<&str>,
+    ) -> Call<ApiResponse<ArticleDraft>> {
+        let mut request = serde_json::json!({
+            "title": title,
+            "content_state": {"blocks": article_blocks(body), "entities": []},
+        });
+        if let Some(media_id) = cover_media_id {
+            request["cover_media"] =
+                serde_json::json!({"media_id": media_id, "media_category": "tweet_image"});
+        }
+        self.post_json(
+            template(
+                endpoints::CREATE_ARTICLE_DRAFT.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &request,
+        )
+    }
+
+    /// Publishes a draft X Article as a post.
+    pub fn publish_article(&self, article_id: &str) -> Call<ApiResponse<ArticlePublished>> {
+        self.call(
+            endpoints::PUBLISH_ARTICLE.method,
+            template(
+                endpoints::PUBLISH_ARTICLE.path,
+                HashMap::from([("article_id".to_string(), article_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Writes a Community Note; `test_mode` keeps it from the public, for
+    /// apps still being admitted to X's AI Note Writer program.
+    pub fn create_note(&self, note: &NewNote, test_mode: bool) -> Call<ApiResponse<NoteCreated>> {
+        let body = serde_json::json!({
+            "test_mode": test_mode,
+            "post_id": resolve_post_id(&note.post),
+            "info": note,
+        });
+        self.post_json(
+            template(endpoints::CREATE_NOTE.path, HashMap::new(), Vec::new()),
+            &body,
+        )
+    }
+
+    /// Scores a draft Community Note about a post without writing it.
+    pub fn evaluate_note(&self, post: &str, text: &str) -> Call<ApiResponse<NoteEvaluation>> {
+        let body = serde_json::json!({"post_id": resolve_post_id(post), "note_text": text});
+        self.post_json(
+            template(endpoints::EVALUATE_NOTE.path, HashMap::new(), Vec::new()),
+            &body,
+        )
+    }
+
+    /// Deletes a Community Note the caller wrote.
+    pub fn delete_note(&self, id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_NOTE.method,
+            template(endpoints::DELETE_NOTE.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Fetches the Community Notes the caller wrote, in test mode or not.
+    pub fn get_notes_written(
+        &self,
+        test_mode: bool,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<Note>>> {
+        self.call(
+            endpoints::GET_NOTES_WRITTEN.method,
+            template(
+                endpoints::GET_NOTES_WRITTEN.path,
+                HashMap::new(),
+                vec![
+                    ("test_mode".to_string(), test_mode.to_string()),
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "note.fields".to_string(),
+                        "id,info,scoring_status,status,test_result".to_string(),
+                    ),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Fetches posts X would take a Community Note on, in test mode or not.
+    pub fn get_posts_eligible_for_notes(
+        &self,
+        test_mode: bool,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<Post>>> {
+        self.call(
+            endpoints::GET_POSTS_ELIGIBLE_FOR_NOTES.method,
+            template(
+                endpoints::GET_POSTS_ELIGIBLE_FOR_NOTES.path,
+                HashMap::new(),
+                vec![
+                    ("test_mode".to_string(), test_mode.to_string()),
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Searches X's communities.
+    ///
+    /// X accepts 10 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
+    pub fn search_communities(
+        &self,
+        query: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<Community>>> {
+        let max_results = max_results.clamp(10, 100);
+        self.call(
+            endpoints::SEARCH_COMMUNITIES.method,
+            template(
+                endpoints::SEARCH_COMMUNITIES.path,
+                HashMap::new(),
+                vec![
+                    ("query".to_string(), query.to_string()),
+                    ("max_results".to_string(), max_results.to_string()),
+                    ("community.fields".to_string(), COMMUNITY_FIELDS.to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Reads one community by id.
+    pub fn get_community(&self, id: &str) -> Call<ApiResponse<Community>> {
+        self.call(
+            endpoints::GET_COMMUNITY.method,
+            template(
+                endpoints::GET_COMMUNITY.path,
+                id_param(id),
+                vec![("community.fields".to_string(), COMMUNITY_FIELDS.to_string())],
+            ),
+        )
+    }
+
+    /// Fetches the users who liked a post.
+    pub fn get_liking_users(
+        &self,
+        post_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<User>>> {
+        let post_id = resolve_post_id(post_id);
+        self.get_user_list(endpoints::GET_LIKING_USERS.path, &post_id, max_results)
+    }
+
+    /// Fetches the users who reposted a post.
+    pub fn get_reposted_by(&self, post_id: &str, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
+        let post_id = resolve_post_id(post_id);
+        self.get_user_list(endpoints::GET_REPOSTED_BY.path, &post_id, max_results)
+    }
+
+    /// Fetches the posts that quote a post.
+    ///
+    /// X accepts 10 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
+    pub fn get_quote_posts(&self, post_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        let max_results = max_results.clamp(10, 100);
+        let post_id = resolve_post_id(post_id);
+        self.call(
+            endpoints::GET_QUOTE_POSTS.method,
+            template(
+                endpoints::GET_QUOTE_POSTS.path,
+                id_param(&post_id),
+                vec![
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
     /// Reads a single post with expansions.
     pub fn read_post(&self, post_id: &str) -> Call<ApiResponse<Post>> {
         let post_id = resolve_post_id(post_id);
@@ -450,22 +2861,25 @@ impl Client {
             template(
                 endpoints::READ_POST.path,
                 HashMap::from([("id".to_string(), post_id)]),
-                vec![
-                    (
-                        "post.fields".to_string(),
-                        "created_at,public_metrics,conversation_id,entities,attachments"
-                            .to_string(),
-                    ),
-                    (
-                        "expansions".to_string(),
-                        "author_id,in_reply_to_user_id,referenced_posts".to_string(),
-                    ),
-                    (
-                        "user.fields".to_string(),
-                        "username,name,verified".to_string(),
-                    ),
-                ],
+                post_read_fields(),
             ),
+        )
+    }
+
+    /// Reads up to [`LOOKUP_IDS_MAX`] posts, each an id or a post URL, in one
+    /// request. X names the ids it could not return in the response's
+    /// `errors`, beside the posts it could.
+    pub fn read_posts<S: AsRef<str>>(&self, post_ids: &[S]) -> Call<ApiResponse<Vec<Post>>> {
+        let ids = post_ids
+            .iter()
+            .map(|id| resolve_post_id(id.as_ref()))
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut query = vec![("ids".to_string(), ids)];
+        query.extend(post_read_fields());
+        self.call(
+            endpoints::READ_POSTS.method,
+            template(endpoints::READ_POSTS.path, HashMap::new(), query),
         )
     }
 
@@ -531,7 +2945,10 @@ impl Client {
                 HashMap::new(),
                 vec![(
                     "user.fields".to_string(),
-                    "created_at,description,public_metrics,verified,profile_image_url".to_string(),
+                    // `active_follower_count` is returned only for the
+                    // authenticated user, so only this lookup asks for it.
+                    "created_at,description,public_metrics,verified,profile_image_url,active_follower_count"
+                        .to_string(),
                 )],
             ),
         )
@@ -574,8 +2991,37 @@ impl Client {
         .paginated()
     }
 
+    /// Fetches the posts a user wrote, newest first.
+    ///
+    /// X accepts 5 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
+    pub fn get_user_posts(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        let max_results = max_results.clamp(5, 100);
+        self.call(
+            endpoints::GET_USER_POSTS.method,
+            template(
+                endpoints::GET_USER_POSTS.path,
+                id_param(user_id),
+                vec![
+                    ("max_results".to_string(), max_results.to_string()),
+                    (
+                        "post.fields".to_string(),
+                        "created_at,public_metrics,conversation_id,entities".to_string(),
+                    ),
+                    ("expansions".to_string(), "author_id".to_string()),
+                    ("user.fields".to_string(), "username,name".to_string()),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
     /// Fetches recent mentions.
+    ///
+    /// X accepts 5 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
     pub fn get_mentions(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        let max_results = max_results.clamp(5, 100);
         self.call(
             endpoints::GET_MENTIONS.method,
             template(
@@ -685,6 +3131,61 @@ impl Client {
         .paginated()
     }
 
+    /// Lists the folders the user sorts bookmarks into.
+    pub fn get_bookmark_folders(
+        &self,
+        user_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<BookmarkFolder>>> {
+        self.call(
+            endpoints::GET_BOOKMARK_FOLDERS.method,
+            template(
+                endpoints::GET_BOOKMARK_FOLDERS.path,
+                id_param(user_id),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Creates a bookmark folder named `name`, 1 to 25 characters.
+    pub fn create_bookmark_folder(
+        &self,
+        user_id: &str,
+        name: &str,
+    ) -> Call<ApiResponse<BookmarkFolder>> {
+        self.json_call(
+            endpoints::CREATE_BOOKMARK_FOLDER.method,
+            template(
+                endpoints::CREATE_BOOKMARK_FOLDER.path,
+                id_param(user_id),
+                Vec::new(),
+            ),
+            &NameBody {
+                name: name.to_string(),
+            },
+        )
+    }
+
+    /// Lists the posts in one of the user's bookmark folders. X names each
+    /// post by id alone.
+    pub fn get_bookmark_folder_posts(
+        &self,
+        user_id: &str,
+        folder_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<BookmarkFolderPost>>> {
+        self.call(
+            endpoints::GET_BOOKMARK_FOLDER_POSTS.method,
+            template(
+                endpoints::GET_BOOKMARK_FOLDER_POSTS.path,
+                id_and(user_id, "folder_id", folder_id.to_string()),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
     /// Follows a user.
     pub fn follow_user(
         &self,
@@ -728,6 +3229,24 @@ impl Client {
         self.get_user_list(endpoints::GET_FOLLOWERS.path, user_id, max_results)
     }
 
+    /// Fetches the authenticated user's followers, with no id to look up.
+    pub fn get_my_followers(&self, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
+        self.user_list(
+            endpoints::GET_MY_FOLLOWERS.path,
+            HashMap::new(),
+            max_results,
+        )
+    }
+
+    /// Fetches the users the authenticated user follows, with no id to look up.
+    pub fn get_my_following(&self, max_results: i32) -> Call<ApiResponse<Vec<User>>> {
+        self.user_list(
+            endpoints::GET_MY_FOLLOWING.path,
+            HashMap::new(),
+            max_results,
+        )
+    }
+
     /// Sends a direct message; the response names the conversation and the
     /// event the message created.
     pub fn send_dm(&self, participant_id: &str, text: &str) -> Call<ApiResponse<DmSentResult>> {
@@ -742,29 +3261,138 @@ impl Client {
         )
     }
 
-    /// Fetches recent DM events.
-    pub fn get_dm_events(&self, max_results: i32) -> Call<ApiResponse<Vec<DmEvent>>> {
-        self.call(
-            endpoints::GET_DM_EVENTS.method,
+    /// Starts a group conversation with `participant_ids`, the people
+    /// besides the caller, and sends `text` into it.
+    pub fn create_dm_conversation<S: AsRef<str>>(
+        &self,
+        participant_ids: &[S],
+        text: &str,
+    ) -> Call<ApiResponse<DmSentResult>> {
+        let participant_ids: Vec<&str> = participant_ids.iter().map(AsRef::as_ref).collect();
+        let body = serde_json::json!({
+            "conversation_type": "Group",
+            "participant_ids": participant_ids,
+            "message": {"text": text},
+        });
+        self.post_json(
             template(
-                endpoints::GET_DM_EVENTS.path,
+                endpoints::CREATE_DM_CONVERSATION.path,
                 HashMap::new(),
-                vec![
-                    ("max_results".to_string(), max_results.to_string()),
-                    (
-                        "dm_event.fields".to_string(),
-                        "created_at,dm_conversation_id,text".to_string(),
-                    ),
-                    ("expansions".to_string(), "sender_id".to_string()),
-                    ("user.fields".to_string(), "username,name".to_string()),
-                ],
+                Vec::new(),
+            ),
+            &body,
+        )
+    }
+
+    /// Sends `text` into a conversation, by its id.
+    pub fn send_to_conversation(
+        &self,
+        conversation_id: &str,
+        text: &str,
+    ) -> Call<ApiResponse<DmSentResult>> {
+        let body = serde_json::json!({"text": text});
+        self.post_json(
+            template(
+                endpoints::SEND_TO_CONVERSATION.path,
+                HashMap::from([(
+                    "dm_conversation_id".to_string(),
+                    conversation_id.to_string(),
+                )]),
+                Vec::new(),
+            ),
+            &body,
+        )
+    }
+
+    /// Fetches the events of one conversation, by its id.
+    pub fn get_conversation_events(
+        &self,
+        conversation_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<DmEvent>>> {
+        self.dm_event_list(
+            endpoints::GET_CONVERSATION_EVENTS.path,
+            id_param(conversation_id),
+            max_results,
+        )
+    }
+
+    /// Fetches the events of the one-to-one conversation with a user.
+    pub fn get_dm_events_with(
+        &self,
+        participant_id: &str,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<DmEvent>>> {
+        self.dm_event_list(
+            endpoints::GET_DM_EVENTS_WITH.path,
+            HashMap::from([("participant_id".to_string(), participant_id.to_string())]),
+            max_results,
+        )
+    }
+
+    /// Reads one direct-message event, by its id.
+    pub fn get_dm_event(&self, event_id: &str) -> Call<ApiResponse<DmEvent>> {
+        self.call(
+            endpoints::GET_DM_EVENT.method,
+            template(
+                endpoints::GET_DM_EVENT.path,
+                HashMap::from([("event_id".to_string(), event_id.to_string())]),
+                dm_event_fields(),
             ),
         )
-        .paginated()
+    }
+
+    /// Deletes one of the caller's direct-message events, by its id.
+    pub fn delete_dm_event(&self, event_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_DM_EVENT.method,
+            template(
+                endpoints::DELETE_DM_EVENT.path,
+                HashMap::from([("event_id".to_string(), event_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Blocks a user, by id, from sending the caller direct messages.
+    pub fn block_dms(&self, user_id: &str) -> Call<ApiResponse<DmBlockResult>> {
+        self.call(
+            endpoints::BLOCK_DMS.method,
+            template(endpoints::BLOCK_DMS.path, id_param(user_id), Vec::new()),
+        )
+    }
+
+    /// Lets a user, by id, send the caller direct messages again.
+    pub fn unblock_dms(&self, user_id: &str) -> Call<ApiResponse<DmBlockResult>> {
+        self.call(
+            endpoints::UNBLOCK_DMS.method,
+            template(endpoints::UNBLOCK_DMS.path, id_param(user_id), Vec::new()),
+        )
+    }
+
+    /// Fetches recent DM events.
+    pub fn get_dm_events(&self, max_results: i32) -> Call<ApiResponse<Vec<DmEvent>>> {
+        self.dm_event_list(endpoints::GET_DM_EVENTS.path, HashMap::new(), max_results)
+    }
+
+    fn dm_event_list(
+        &self,
+        path: &str,
+        path_params: HashMap<String, String>,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<DmEvent>>> {
+        let mut query = vec![("max_results".to_string(), max_results.to_string())];
+        query.extend(dm_event_fields());
+        self.call("GET", template(path, path_params, query))
+            .paginated()
     }
 
     /// Fetches posts liked by a user.
+    ///
+    /// X accepts 5 to 100 results for this endpoint; `max_results` is brought
+    /// into that range.
     pub fn get_liked_posts(&self, user_id: &str, max_results: i32) -> Call<ApiResponse<Vec<Post>>> {
+        let max_results = max_results.clamp(5, 100);
         self.call(
             endpoints::GET_LIKED_POSTS.method,
             template(
@@ -1008,6 +3636,405 @@ impl Client {
         )
     }
 
+    /// Lists the authenticated user's RTMP and RTMPS stream sources.
+    pub fn get_stream_sources(&self) -> Call<ApiResponse<StreamSources>> {
+        self.call(
+            endpoints::GET_STREAM_SOURCES.method,
+            template(
+                endpoints::GET_STREAM_SOURCES.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Creates a stream source named `name` that ingests in `region`, such
+    /// as `us-east-1`. An encoder streams to its `rtmps_url` with its `id`
+    /// as the stream key.
+    pub fn create_stream_source(
+        &self,
+        name: &str,
+        region: &str,
+    ) -> Call<ApiResponse<StreamSourceResult>> {
+        self.post_json(
+            template(
+                endpoints::CREATE_STREAM_SOURCE.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &StreamSourceBody {
+                name: name.to_string(),
+                region: region.to_string(),
+            },
+        )
+    }
+
+    /// Reads one of the authenticated user's stream sources, including
+    /// whether it is receiving video.
+    pub fn get_stream_source(&self, source_id: &str) -> Call<ApiResponse<StreamSourceResult>> {
+        self.call(
+            endpoints::GET_STREAM_SOURCE.method,
+            template(
+                endpoints::GET_STREAM_SOURCE.path,
+                id_param(source_id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Renames one of the authenticated user's stream sources.
+    pub fn rename_stream_source(
+        &self,
+        source_id: &str,
+        name: &str,
+    ) -> Call<ApiResponse<StreamSourceResult>> {
+        self.json_call(
+            endpoints::RENAME_STREAM_SOURCE.method,
+            template(
+                endpoints::RENAME_STREAM_SOURCE.path,
+                id_param(source_id),
+                Vec::new(),
+            ),
+            &NameBody {
+                name: name.to_string(),
+            },
+        )
+    }
+
+    /// Deletes one of the authenticated user's stream sources; an encoder
+    /// sending to it is no longer received.
+    pub fn delete_stream_source(&self, source_id: &str) -> Call<ApiResponse<StreamSourceDeleted>> {
+        self.call(
+            endpoints::DELETE_STREAM_SOURCE.method,
+            template(
+                endpoints::DELETE_STREAM_SOURCE.path,
+                id_param(source_id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    // ── Calls ───────────────────────────────────────────────────────
+
+    /// Reads an X call: its title, join policy, host, and participant
+    /// count, with the host expanded.
+    pub fn get_call(&self, call_id: &str) -> Call<ApiResponse<XCall>> {
+        self.call(
+            endpoints::GET_CALL.method,
+            template(
+                endpoints::GET_CALL.path,
+                id_param(call_id),
+                vec![
+                    ("call.fields".to_string(), CALL_FIELDS.to_string()),
+                    ("expansions".to_string(), "host_id".to_string()),
+                    ("user.fields".to_string(), CALL_USER_FIELDS.to_string()),
+                ],
+            ),
+        )
+    }
+
+    /// Lists the calls on the authenticated user's calendar, earliest first.
+    /// X assumes a window from now to 24 hours later for a bound left
+    /// `None`; both are RFC 3339. X accepts 1 to 100 results;
+    /// `max_results` is brought into that range.
+    pub fn get_scheduled_calls(
+        &self,
+        start_time: Option<&str>,
+        end_time: Option<&str>,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<ScheduledCall>>> {
+        let mut query = Vec::new();
+        if let Some(start) = start_time {
+            query.push(("start_time".to_string(), start.to_string()));
+        }
+        if let Some(end) = end_time {
+            query.push(("end_time".to_string(), end.to_string()));
+        }
+        query.push((
+            "max_results".to_string(),
+            max_results.clamp(1, 100).to_string(),
+        ));
+        query.extend(scheduled_call_query());
+        self.call(
+            endpoints::GET_SCHEDULED_CALLS.method,
+            template(endpoints::GET_SCHEDULED_CALLS.path, HashMap::new(), query),
+        )
+    }
+
+    /// Puts a call on the authenticated user's X Calls calendar and invites
+    /// people to it. The call exists at once: its `join_url` works from now.
+    pub fn schedule_call(&self, call: &NewScheduledCall) -> Call<ApiResponse<ScheduledCall>> {
+        self.post_json(
+            template(endpoints::SCHEDULE_CALL.path, HashMap::new(), Vec::new()),
+            call,
+        )
+    }
+
+    /// Reads a scheduled call the authenticated user organizes or is invited
+    /// to, at its occurrence running now or its next one.
+    pub fn get_scheduled_call(&self, scheduled_call_id: &str) -> Call<ApiResponse<ScheduledCall>> {
+        self.call(
+            endpoints::GET_SCHEDULED_CALL.method,
+            template(
+                endpoints::GET_SCHEDULED_CALL.path,
+                id_param(scheduled_call_id),
+                scheduled_call_query(),
+            ),
+        )
+    }
+
+    /// Moves, renames, or re-invites a scheduled call the authenticated user
+    /// organizes. Only the fields `changes` sets are sent.
+    pub fn update_scheduled_call(
+        &self,
+        scheduled_call_id: &str,
+        changes: &ScheduledCallChanges,
+    ) -> Call<ApiResponse<ScheduledCallUpdated>> {
+        self.json_call(
+            endpoints::UPDATE_SCHEDULED_CALL.method,
+            template(
+                endpoints::UPDATE_SCHEDULED_CALL.path,
+                id_param(scheduled_call_id),
+                Vec::new(),
+            ),
+            changes,
+        )
+    }
+
+    /// Cancels the named occurrences of a scheduled call the authenticated
+    /// user organizes and takes them off invitees' calendars. Cancelling what
+    /// is already cancelled succeeds.
+    pub fn cancel_scheduled_call(
+        &self,
+        scheduled_call_id: &str,
+        occurrences: &Occurrences,
+        notify_invitees: Option<bool>,
+    ) -> Call<ApiResponse<ScheduledCallCancelled>> {
+        let mut query = occurrences.query();
+        if let Some(notify) = notify_invitees {
+            query.push(("notify_invitees".to_string(), notify.to_string()));
+        }
+        self.call(
+            endpoints::CANCEL_SCHEDULED_CALL.method,
+            template(
+                endpoints::CANCEL_SCHEDULED_CALL.path,
+                id_param(scheduled_call_id),
+                query,
+            ),
+        )
+    }
+
+    /// Answers an invitation to a scheduled call for the authenticated user,
+    /// for the named occurrences.
+    pub fn respond_to_scheduled_call(
+        &self,
+        scheduled_call_id: &str,
+        answer: RsvpAnswer,
+        occurrences: &Occurrences,
+    ) -> Call<ApiResponse<ScheduledCallRsvp>> {
+        self.post_json(
+            template(
+                endpoints::RESPOND_TO_SCHEDULED_CALL.path,
+                id_param(scheduled_call_id),
+                Vec::new(),
+            ),
+            &RsvpBody {
+                response: answer,
+                occurrences,
+            },
+        )
+    }
+
+    // ── Webhooks ────────────────────────────────────────────────────
+
+    /// Lists the webhooks registered for the app.
+    pub fn get_webhooks(&self) -> Call<ApiResponse<Vec<Webhook>>> {
+        self.call(
+            endpoints::GET_WEBHOOKS.method,
+            template(endpoints::GET_WEBHOOKS.path, HashMap::new(), Vec::new()),
+        )
+    }
+
+    /// Registers `url` as a webhook. X sends its CRC check to the URL before
+    /// it answers, so the request succeeds only while a receiver is reachable
+    /// there.
+    pub fn create_webhook(&self, url: &str) -> Call<ApiResponse<Webhook>> {
+        self.post_json(
+            template(endpoints::CREATE_WEBHOOK.path, HashMap::new(), Vec::new()),
+            &WebhookBody {
+                url: url.to_string(),
+            },
+        )
+    }
+
+    /// Asks X to send its CRC check to a webhook again; the response says
+    /// whether the URL answered it.
+    pub fn validate_webhook(&self, webhook_id: &str) -> Call<ApiResponse<WebhookValidation>> {
+        self.call(
+            endpoints::VALIDATE_WEBHOOK.method,
+            template(
+                endpoints::VALIDATE_WEBHOOK.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Deletes a webhook. Its subscriptions stop delivering.
+    pub fn delete_webhook(&self, webhook_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_WEBHOOK.method,
+            template(
+                endpoints::DELETE_WEBHOOK.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Starts a job that delivers the events between `from_date` and
+    /// `to_date` to a webhook again. Both are twelve digits, `yyyymmddhhmm`
+    /// in UTC, which is the form the endpoint takes.
+    pub fn create_webhook_replay(
+        &self,
+        webhook_id: &str,
+        from_date: &str,
+        to_date: &str,
+    ) -> Call<ApiResponse<WebhookReplayJob>> {
+        self.post_json(
+            template(
+                endpoints::CREATE_WEBHOOK_REPLAY.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &WebhookReplayBody {
+                webhook_id: webhook_id.to_string(),
+                from_date: from_date.to_string(),
+                to_date: to_date.to_string(),
+            },
+        )
+    }
+
+    /// Counts the Account Activity subscriptions the app holds and may hold.
+    pub fn get_account_activity_subscription_count(
+        &self,
+    ) -> Call<ApiResponse<AccountActivitySubscriptionCount>> {
+        self.call(
+            endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT.method,
+            template(
+                endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Lists the accounts whose activity a webhook receives.
+    pub fn get_account_activity_subscriptions(
+        &self,
+        webhook_id: &str,
+    ) -> Call<ApiResponse<AccountActivitySubscriptions>> {
+        self.call(
+            endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS.method,
+            template(
+                endpoints::GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Says whether the authenticated account's activity is subscribed to a
+    /// webhook.
+    pub fn check_account_activity_subscription(
+        &self,
+        webhook_id: &str,
+    ) -> Call<ApiResponse<SubscribedResult>> {
+        self.call(
+            endpoints::CHECK_ACCOUNT_ACTIVITY_SUBSCRIPTION.method,
+            template(
+                endpoints::CHECK_ACCOUNT_ACTIVITY_SUBSCRIPTION.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Subscribes the authenticated account's activity to a webhook. X bills
+    /// each event it then delivers.
+    pub fn create_account_activity_subscription(
+        &self,
+        webhook_id: &str,
+    ) -> Call<ApiResponse<SubscribedResult>> {
+        self.post_json(
+            template(
+                endpoints::CREATE_ACCOUNT_ACTIVITY_SUBSCRIPTION.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+            &serde_json::json!({}),
+        )
+    }
+
+    /// Ends the subscription of `user_id`'s activity to a webhook.
+    pub fn delete_account_activity_subscription(
+        &self,
+        webhook_id: &str,
+        user_id: &str,
+    ) -> Call<ApiResponse<SubscribedResult>> {
+        self.call(
+            endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION.method,
+            template(
+                endpoints::DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION.path,
+                HashMap::from([
+                    ("webhook_id".to_string(), webhook_id.to_string()),
+                    ("user_id".to_string(), user_id.to_string()),
+                ]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Lists the webhooks the app's filtered stream delivers to.
+    pub fn get_webhook_stream_links(&self) -> Call<ApiResponse<Vec<WebhookStreamLink>>> {
+        self.call(
+            endpoints::GET_WEBHOOK_STREAM_LINKS.method,
+            template(
+                endpoints::GET_WEBHOOK_STREAM_LINKS.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Links the app's filtered stream to a webhook, so each post that
+    /// matches the stream's rules is delivered there. X bills each delivery.
+    pub fn create_webhook_stream_link(
+        &self,
+        webhook_id: &str,
+    ) -> Call<ApiResponse<ProvisionedResult>> {
+        self.call(
+            endpoints::CREATE_WEBHOOK_STREAM_LINK.method,
+            template(
+                endpoints::CREATE_WEBHOOK_STREAM_LINK.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Ends delivery of the app's filtered stream to a webhook.
+    pub fn delete_webhook_stream_link(&self, webhook_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_WEBHOOK_STREAM_LINK.method,
+            template(
+                endpoints::DELETE_WEBHOOK_STREAM_LINK.path,
+                HashMap::from([("webhook_id".to_string(), webhook_id.to_string())]),
+                Vec::new(),
+            ),
+        )
+    }
+
     /// Shared GET for the user-list endpoints keyed on a single `{id}`.
     fn get_user_list(
         &self,
@@ -1015,11 +4042,20 @@ impl Client {
         user_id: &str,
         max_results: i32,
     ) -> Call<ApiResponse<Vec<User>>> {
+        self.user_list(path, id_param(user_id), max_results)
+    }
+
+    fn user_list(
+        &self,
+        path: &str,
+        path_params: HashMap<String, String>,
+        max_results: i32,
+    ) -> Call<ApiResponse<Vec<User>>> {
         self.call(
             "GET",
             template(
                 path,
-                id_param(user_id),
+                path_params,
                 vec![
                     ("max_results".to_string(), max_results.to_string()),
                     (

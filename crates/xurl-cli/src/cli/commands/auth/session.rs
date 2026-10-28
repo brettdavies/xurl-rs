@@ -6,11 +6,12 @@ use std::io::Write;
 use serde_json::json;
 
 use super::{
-    AuthCtx, AuthGlobalFlags, Gate, build_app_status_entries, env_bearer_app, gate_destructive,
-    print_no_apps_registered,
+    AuthCtx, AuthGlobalFlags, Gate, StoredAccountEntry, build_app_status_entries,
+    destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
 };
-use crate::cli::envelope::Reason;
+use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
+use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
 use xdk::error::{EXIT_GENERAL_ERROR, Error, Result};
@@ -67,11 +68,12 @@ pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) ->
             if entry.oauth2_users.is_empty() && !entry.oauth2_unnamed {
                 out.print_message(stdout, "      oauth2: (none)");
             } else {
-                for u in &entry.oauth2_users {
+                for (u, account) in entry.oauth2_users.iter().zip(&entry.oauth2_accounts) {
+                    let suffix = account.text_suffix();
                     if *u == app.default_user {
-                        out.print_message(stdout, &format!("    \u{25b8} oauth2: {u}"));
+                        out.print_message(stdout, &format!("    \u{25b8} oauth2: {u}{suffix}"));
                     } else {
-                        out.print_message(stdout, &format!("      oauth2: {u}"));
+                        out.print_message(stdout, &format!("      oauth2: {u}{suffix}"));
                     }
                 }
                 // Render the unnamed (`/me`-failed salvage)
@@ -82,7 +84,12 @@ pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) ->
             }
 
             if entry.oauth1 {
-                out.print_message(stdout, "      oauth1: \u{2713}");
+                let suffix = entry
+                    .oauth1_account
+                    .as_ref()
+                    .map(StoredAccountEntry::text_suffix)
+                    .unwrap_or_default();
+                out.print_message(stdout, &format!("      oauth1: \u{2713}{suffix}"));
             } else {
                 out.print_message(stdout, "      oauth1: \u{2013}");
             }
@@ -126,7 +133,7 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         flags,
         out,
         stdout,
-        stderr,
+        ..
     } = ctx;
     let AuthGlobalFlags {
         no_interactive,
@@ -142,9 +149,12 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         "bearer": bearer,
     });
 
-    // Force/confirmation gate runs BEFORE dry-run so an unconfirmed
-    // destructive op in interactive mode does not leak a dry-run
-    // envelope. Dry-run still composes with --force.
+    if dry_run {
+        let ctx = destructive_dry_run_context(ctx, force);
+        out.print_dry_run(stdout, true, 0, &ctx);
+        return Ok(());
+    }
+
     let target = if all {
         "all credentials"
     } else if oauth1 {
@@ -160,18 +170,8 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         match gate_destructive(force, no_interactive, quiet, &format!("Clear {target}?"))? {
             Gate::Proceed => {}
             Gate::Declined => return Ok(()),
-            Gate::ConfirmationRequired => {
-                out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR);
-                return Err(Failure::Emitted {
-                    exit_code: EXIT_GENERAL_ERROR,
-                });
-            }
+            Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
         }
-    }
-
-    if dry_run {
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
     }
 
     if all {
@@ -233,11 +233,18 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
         // and hand back only the exit code so the runner skips its
         // generic error path.
         if !out.is_interactive_terminal() {
-            out.print_error_envelope(
+            out.emit_error_envelope(
                 stderr,
-                Reason::NoTty,
-                EXIT_GENERAL_ERROR,
-                "no default app set; pass --app or run 'xr auth default <name>' interactively",
+                ErrorBody {
+                    reason: Reason::NoTty,
+                    exit_code: EXIT_GENERAL_ERROR,
+                    message: Some(
+                        "no default app set; pass --app or run 'xr auth default <name>' interactively"
+                            .to_string(),
+                    ),
+                    next_step: Some(NextStep::name_default_app()),
+                    ..ErrorBody::default()
+                },
             );
             return Err(Failure::Emitted {
                 exit_code: EXIT_GENERAL_ERROR,

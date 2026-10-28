@@ -27,9 +27,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   # Whether this PR can reach cargo at all. A PR whose every path is
   # documentation no Rust source reads (scripts/cargo-inputs.sh, the filter
@@ -108,9 +105,9 @@ jobs:
 
   # Docs build with warnings denied; a broken intra-doc link or bad code
   # fence fails here instead of surfacing after publish. Two builds: the
-  # pinned toolchain is what `cargo doc` gives a consumer, and nightly with `--cfg docsrs` is
-  # what docs.rs runs, the only toolchain that accepts the `doc_cfg` feature
-  # the library enables under that cfg to render feature badges.
+  # workspace with default features is what `cargo doc` gives a consumer,
+  # and xdk-rs with every feature is what docs.rs documents, the only
+  # build that reaches the `testing` module.
   docs:
     name: Doc build
     needs: scope
@@ -121,10 +118,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-      - name: Install nightly Rust for the docs.rs build
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-        with:
-          toolchain: nightly
       - name: Cache dependencies
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: cargo doc
@@ -135,10 +128,10 @@ jobs:
       # gate that fails when the landing example stops compiling.
       - name: README doctests
         run: cargo test --doc -p xdk-rs --locked
-      - name: cargo doc as docs.rs builds it
+      - name: cargo doc with every feature, as docs.rs documents it
         env:
-          RUSTDOCFLAGS: --cfg docsrs -D warnings
-        run: cargo +nightly doc -p xdk-rs --no-deps --all-features --locked
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc -p xdk-rs --no-deps --all-features --locked
 
   # A textual diff of the library sources cannot answer whether the public API
   # broke: it misses pub fields, consts, type aliases, and traits. This reads
@@ -200,6 +193,28 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Verify completions match the CLI definition
         run: ./scripts/generate-completions.sh --check
+
+  # `webhooks listen` stops a forward program with everything it started: a
+  # process group on Unix, a kill-on-close Job Object on Windows. Only a
+  # Windows runner executes the Windows half, so this job runs the
+  # program-target tests there, and the signed test request a caller with no
+  # POSIX shell posts.
+  windows:
+    name: Windows program target
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Program-target tests
+        run: cargo test --locked -p xurl-rs --test webhooks_program_tests
+      - name: The signed test request
+        run: cargo test --locked -p xurl-rs --test webhooks_tests listen_hands_out_a_signed_test_request
 
   # A package-scoped test run proves nothing about an out-of-package consumer,
   # so an embedder-shaped crate compiles and runs a read against the
@@ -402,7 +417,7 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@422f3094be6a0843857aa008b499caaf6bce0da8 # v1.24.0
+        uses: cargo-bins/cargo-binstall@8a2045612414e945291083f820cd50b4d8fc2218 # v1.26.0
       - name: Install cargo-hack
         # A second binstall attempt covers a transient release-asset fetch
         # failure; a source build is the fallback after that.
@@ -418,8 +433,9 @@ jobs:
   # execute the CLI. The gate has two halves. First, any MUST-tier `fail` or
   # `error` fails the job. Second, the credit-weighted score must stay at or
   # above the committed floor: vocabulary drift (`p6`) reports as `warn`, which
-  # a MUST-only gate never sees, so the floor is what catches it. Raise the
-  # floor deliberately when the score improves.
+  # a MUST-only gate never sees, so the floor is what catches it. A command
+  # word that is X's own vocabulary goes in `.anc.toml`'s `domain_verbs`.
+  # Raise the floor deliberately when the score improves.
   #
   # The floor is the score the audit reports for this tree. Four rows do not
   # pass:
@@ -427,10 +443,11 @@ jobs:
   # - `p2-must-output-flag` (warn): anc validates JSON only through `--help`
   #   and `--version`, and `xr` prints both as clap's own text whatever
   #   `--output` says. `xr version --output json` is the JSON form.
-  # - `p6-should-consistent-naming` (warn): `auth` and `media` each hold the
-  #   verb `status` beside names anc does not count as verbs (`oauth2`, `apps`,
-  #   `upload`, `subtitles`). Regrouping them renames commands, which is a
-  #   breaking change.
+  # - `p6-should-consistent-naming` (warn): noun groups such as `auth`,
+  #   `media`, `calls`, and `webhooks` hold verbs beside names anc does not
+  #   count as verbs (`auth oauth2`, `media upload`). Regrouping a released
+  #   command renames it, which is a breaking change. The row warns once
+  #   however many groups it names.
   # - `p1-must-no-interactive` (skip): anc skips the flag check for a tool
   #   that prints its help on a bare invocation, as `xr` does.
   # - `p2-should-consistent-envelope` (skip): the success probe is `--help
@@ -443,9 +460,10 @@ jobs:
   # The same job checks the release binary's size against a standing ceiling.
   # Cargo honors [profile.release] only in the workspace root, and a profile
   # that silently stops applying inflates `xr` several times over while every
-  # test stays green; the ceiling turns that into a red job. The release `xr`
-  # measures 7,727,512 bytes and a dropped `strip` alone roughly doubles it,
-  # so the ceiling leaves room for ordinary growth and none for a lost profile.
+  # test stays green; the ceiling turns that into a red job. With every
+  # command family the release `xr` measures about 12.6 MB, and a dropped
+  # `strip` alone roughly doubles it, so the ceiling leaves room for ordinary
+  # growth and none for a lost profile.
   anc:
     name: Agent-native audit
     needs: scope
@@ -455,7 +473,7 @@ jobs:
     env:
       ANC_VERSION: "0.6.0"
       ANC_SCORE_FLOOR: "98"
-      XR_SIZE_CEILING_BYTES: "9600000"
+      XR_SIZE_CEILING_BYTES: "15000000"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
@@ -463,7 +481,7 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@422f3094be6a0843857aa008b499caaf6bce0da8 # v1.24.0
+        uses: cargo-bins/cargo-binstall@8a2045612414e945291083f820cd50b4d8fc2218 # v1.26.0
       - name: Install anc
         # A second binstall attempt covers a transient release-asset fetch
         # failure; a source build is the fallback after that.
@@ -521,7 +539,7 @@ jobs:
           fi
       - name: Upload the scorecard
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: anc-scorecard
           path: |

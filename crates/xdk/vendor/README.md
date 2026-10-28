@@ -8,11 +8,11 @@ matrix in `crates/xdk/src/api/auth_matrix.rs` (see `crates/xdk/build.rs`).
 | Field               | Value                                                              |
 | ------------------- | ------------------------------------------------------------------ |
 | Upstream URL        | https://api.x.com/2/openapi.json                                   |
-| Spec `info.version` | 2.169                                                              |
-| Path count          | 175                                                                |
-| File size           | 1072450 bytes                                                      |
-| SHA256              | `166a3cd1ede22b132eef320e1ac594b978e673de7f0bdc42c668ac6cc099722a` |
-| Refreshed (UTC)     | 2026-10-02                                                         |
+| Spec `info.version` | 2.172                                                              |
+| Path count          | 191                                                                |
+| File size           | 1187588 bytes                                                      |
+| SHA256              | `611d39a28079ae818c0af8e538a28faca491344c55611155bd47e63abd3829ce` |
+| Refreshed (UTC)     | 2026-10-24                                                         |
 
 ## Refresh
 
@@ -28,6 +28,6 @@ between runs and, depending on the trigger, writes a job summary, comments on th
 
 ## Why vendor?
 
-A checked-in spec gives reproducible builds (Homebrew bottle CI, offline builds), an auditable supply chain (the spec is
-greppable from source), and CI that does not need to reach `api.x.com` on every push. Manual refresh is the trade-off we
-accept; the drift-check workflow shortens time-to-notice.
+A checked-in spec gives reproducible builds (a Homebrew `--HEAD` install, offline builds), an auditable supply chain
+(the spec is greppable from source), and CI that does not need to reach `api.x.com` on every push. Manual refresh is the
+trade-off we accept; the drift-check workflow shortens time-to-notice.

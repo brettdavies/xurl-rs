@@ -1,0 +1,20 @@
+args: ["--output", "json", "--dry-run", "bookmark-folders", "get", "rust"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 259
+--- stdout ---
+
+--- stderr ---
+{
+  "command": "get",
+  "exit_code": 2,
+  "message": "unknown command 'get'. Try 'xr bookmark-folders --help'.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr bookmark-folders --help"
+  },
+  "reason": "unknown-command",
+  "status": "error"
+}
+

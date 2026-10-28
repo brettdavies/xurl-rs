@@ -1,0 +1,24 @@
+args: ["--output", "json", "--dry-run", "notes", "write", "1585341984679469056", "--text", "No source here", "--classification", "not_misleading"]
+store: empty
+exit_code: 0
+stdout_len: 337
+stderr_len: 0
+--- stdout ---
+{
+  "command": "notes-write",
+  "exit_code": 1,
+  "note": {
+    "classification": "not_misleading",
+    "misleading_tags": [],
+    "text": "No source here",
+    "trustworthy_sources": false
+  },
+  "post": "1585341984679469056",
+  "reason": "note-needs-source-url",
+  "status": "dry_run",
+  "test_mode": false,
+  "would_succeed": false
+}
+
+--- stderr ---
+

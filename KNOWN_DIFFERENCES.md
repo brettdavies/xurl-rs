@@ -1,20 +1,55 @@
 # Known Differences from Go xurl
 
-## Webhooks (intentionally deferred)
+## Webhooks: no built-in tunnel, verified events, and management commands (intentional difference)
 
-The Go `xurl` includes ~194 lines of webhook/ngrok code (`cli/webhook.go`) that supports:
+Go `xurl` has one webhook command, `xurl webhook start`. It opens an ngrok tunnel itself (prompting for an authtoken or
+reading `NGROK_AUTHTOKEN`), answers X's CRC check, logs each POST body, and prints the public URL for the user to
+register by other means. `xr` has a `webhooks` family, and its receiver differs in four ways.
 
-- Webhook registration and listing
-- Local listener with ngrok tunneling
+- **No tunnel.** `xr webhooks listen` binds a local address and stops there. X delivers only to a public HTTPS URL with
+  no port, and the caller provides it with a tunnel or reverse proxy of their own. Linking a tunnel client into the
+  binary would add a third-party account and a large dependency for one command.
+- **The signing secret X documents.** Go keys the CRC response with the OAuth1 consumer secret and refuses to start
+  without OAuth1 credentials. X's webhook documentation says to use the app's OAuth2 client secret when it has one and
+  the consumer secret otherwise. `listen` follows the documentation; `--secret oauth1` selects Go's behavior.
+- **Events are verified.** Go prints every POST. X signs each event (`X-Twitter-Webhooks-Signature-OAuth2`, or the
+  legacy `X-Twitter-Webhooks-Signature`), and `listen` prints an event only when its signature verifies, answering 401
+  otherwise. `--allow-unsigned` prints a POST with no signature.
+- **Output is JSON Lines on stdout.** Go logs bodies to the terminal with `-q` and `-P` to shape them and `-o` to append
+  them to a file. `listen` writes one event per line to stdout, so a shell redirect or `jaq` does the rest, and
+  `--max-events` bounds the run.
 
-This feature is **intentionally not ported** because:
+The management commands have no Go counterpart: `xr webhooks list`, `add`, `validate`, `remove`, and `replay`,
+`xr webhooks subscriptions` for Account Activity, and `xr webhooks stream-links` for filtered-stream delivery. With Go,
+those endpoints are reached through raw requests.
 
-1. It requires an external `ngrok` binary and account, making it a niche workflow.
-2. The X API Account Activity API (which webhooks serve) has been largely superseded by the v2 filtered stream and
-   compliance endpoints.
-3. It adds a significant dependency surface (ngrok process management, tunnel lifecycle) for a rarely-used feature.
+The commands below have no Go counterpart either. With Go, their endpoints are reached through raw requests, and a Go
+sign-in does not request the `calls.read` and `calls.write` scopes the calls endpoints take.
 
-If you need webhook support, continue using the Go `xurl` binary for that workflow.
+- `xr calls get` and `xr calls scheduled` (`list`, `get`, `add`, `update`, `cancel`, `rsvp`)
+- `xr broadcasts` (`list`, `get`), `xr broadcasts sources` (`list`, `get`, `add`, `rename`, `remove`),
+  `xr broadcasts scheduled` (`list`, `get`, `add`, `update`, `remove`, `live`), and `xr broadcasts chat` (`history`,
+  `send`, `remove`, `mute`, `unmute`)
+- `xr bookmark-folders` (`list`, `posts`, `add`)
+- `xr hide` and `xr unhide`
+- `xr likers`, `xr reposters`, and `xr quotes`
+- `xr posts`, `xr users`, `xr user-posts`, `xr search-users`, `xr search-counts`, and `xr analytics`
+- `xr trends` (`place`, `personal`)
+- `xr notes` (`write`, `evaluate`, `eligible`, `written`, `remove`)
+- `xr articles` (`draft`, `publish`)
+- `xr media get` and `xr media analytics`
+- `xr spaces` (`search`, `get`, `by-creator`, `posts`)
+- `xr stream rules` (`list`, `add`, `remove`, `count`)
+- `xr news` (`search`, `get`)
+- `xr communities` (`search`, `get`)
+- `xr lists` (`list`, `followed`, `memberships`, `pinned`, `get`, `posts`, `followers`, `members`, `add`, `update`,
+  `remove`, `follow`, `unfollow`, `pin`, `unpin`)
+- `xr conversations` (`start`, `send`, `history`, `with`), `xr dm-events` (`get`, `remove`), `xr dm-block`, and
+  `xr dm-unblock`
+
+Go neither forwards events nor recovers from a restart. `xr webhooks listen --forward` POSTs each verified event to a
+URL of the caller's, a program after `--` runs once per event, and `--checkpoint` records how far `listen` got, which
+`xr webhooks replay --from-checkpoint` turns into the window X can replay.
 
 ## Exit code mapping for HTTP errors (intentional improvement)
 
@@ -55,6 +90,27 @@ exactly as `xr whoam` does.
 A positional that starts with `http://`, `https://`, or `/` is still a raw request, and so is any invocation carrying a
 raw-only flag (`-X`, `-H`, `-d`, `-F`, `-u`, `--auth`, `-t`, `-s`), which no command reads. A raw request has no help
 page of its own, so `xr /2/users/me --help` prints the root help.
+
+## A raw-only flag before a command word is refused (intentional difference)
+
+Go `xurl` defines `-X`, `-H`, `-d`, `--auth`, `-u`, `-t`, `-s`, and `-F` on its root command (`cli/root.go`), and every
+shortcut command defines its own `--auth`, `-u`, and `-t` (`addCommonFlags` in `cli/shortcuts.go`). Cobra parses the
+flags given before a command name against that command's own, so Go applies `--auth`, `-u`, and `-t` there as if they
+followed the command word, and fails on any other raw-only flag as one the command does not define.
+
+In the Rust version clap reads root flags only before the command word, and each command reads its own copy, so the
+root's copy of a flag given there would go unread: `xr -u work whoami` would answer as the default login. Such an
+invocation is a usage error at exit `2` with reason `invalid-args`. When each misplaced flag is `-u`, `--auth`, or `-t`
+and the command takes it, `next_step` is `fix-input` carrying the invocation with the flags after the command word;
+otherwise it is `show-help` with the command's help:
+
+| Invocation             | Go behavior                                 | Rust behavior                                       |
+| ---------------------- | ------------------------------------------- | --------------------------------------------------- |
+| `xr -u work whoami`    | Runs `whoami -u work`                       | Exit 2, `invalid-args`, step `xr whoami -u work`    |
+| `xr --auth app whoami` | Runs `whoami --auth app`                    | Exit 2, `invalid-args`, step `xr whoami --auth app` |
+| `xr -X POST whoami`    | Exit 1, `unknown shorthand flag: 'X' in -X` | Exit 2, `invalid-args`, step `xr whoami --help`     |
+
+A raw request keeps every one of these flags: `xr -u work /2/users/me` is unchanged.
 
 ## Every stream the spec declares is streamed (intentional improvement)
 
@@ -119,7 +175,8 @@ The Rust version always ends the wait:
 Which uploads are waited for differs too. Go `xurl` decides by category alone: one whose name contains `video` or
 `gif` (`mediaNeedsProcessing`). The Rust version waits for a video category, and for any other upload whose FINALIZE
 answer carries a `processing_info` that is not yet final, which is the signal X documents for media that needs
-processing. A GIF that X reports as ready at FINALIZE therefore costs no status call, where Go polls it.
+processing. X answers FINALIZE for an animated GIF with `processing_info.state` `pending`, so both tools wait for one. An
+image X reports as ready costs no status call here, whatever its category.
 
 `media upload` still waits by default and `media status` still reads the status once unless `--wait` is given. The
 timeout leaves the upload intact: its envelope carries `media_id` and a `resume-wait` step whose `command`, `xr media
@@ -147,3 +204,21 @@ removed when that status carries none, and with any other field only the status 
 
 An upload that did not wait prints FINALIZE's document unchanged, and so does one whose wait failed or timed out, with
 the error on stderr. Under `--verbose`, INIT's response is printed ahead of it in text output only.
+
+## The caller's id is asked for once per login (intentional improvement)
+
+A command that acts as the caller (`like`, `follow`, `timeline`, `bookmarks`, and the rest) needs the caller's id in its
+path. Go `xurl` asks `/2/users/me` for it on every run (`cli/shortcuts.go`, `resolveMyUserID`), or
+`/2/users/by/username/<name>` under `--username`. Each is a billed user read.
+
+The Rust version stores the id beside the login the first time `/2/users/me` answers under it: at sign-in, at the
+refresh of a login that has none, on `xr whoami`, or on the first command that needs it. Later commands read it from the
+store and send one request where Go sends two. The fields are `user_id`, `account_username`, and `display_name` on the
+OAuth2 token and on the OAuth1 access pair in `~/.xurl/auth.yml`. Go `xurl` does not read them, and drops them when it
+rewrites a login, after which `xr` asks once more. `xr whoami --cached` prints the stored account with no request;
+Go's `whoami` always asks.
+
+The id is written only from an answer given under that same credential, and a credential that replaces another starts
+without one, so it cannot name a different account. The username and display name of each answer are written beside
+every login the store holds for that id, in every app, so a rename seen through one login shows through all of them.
+Another user's handle is looked up on every run in both tools.

@@ -97,6 +97,8 @@ pub enum Reason {
     Serialization,
     /// A file or stream could not be read or written.
     Io,
+    /// Another process holds the port `webhooks listen` was asked to bind.
+    AddressInUse,
     /// The token store could not be read or written.
     TokenStore,
     /// An invariant inside `xr` or the library did not hold.
@@ -167,7 +169,7 @@ pub struct ErrorBody {
     /// `invalid-request`, `server-error`, `api-error`, `network-error`,
     /// `invalid-args`, `unknown-command`, `invalid-method`,
     /// `invalid-url`, `invalid-path-param`, `validation`, `serialization`,
-    /// `io`, `token-store`, `internal`, `processing-timeout`,
+    /// `io`, `address-in-use`, `token-store`, `internal`, `processing-timeout`,
     /// `confirmation-required`, `no-tty`, `unsupported-pagination`, and the
     /// verb-local `invalid-json`, `unknown-schema`, `validation-failed`,
     /// `missing-host`, `home-not-set`, `destination-not-empty`,
@@ -190,13 +192,20 @@ pub struct ErrorBody {
     ///
     /// `action` is closed: `register-app`, `sign-in`, `select-app`,
     /// `inspect-store`, `enroll-app`, `show-help`, `resume-wait`,
-    /// `wait-and-retry`. A newer release can add an action, so treat one you
+    /// `wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`,
+    /// `run-command`. A newer release can add an action, so treat one you
     /// do not recognize as your default branch. A step carries either a
-    /// `command`, runnable verbatim by a non-TTY caller, or a `template` whose
-    /// angle-bracket placeholders only the caller can fill, never both. One
-    /// whose recovery is not an `xr` invocation carries neither, only `docs`:
-    /// `enroll-app`, `wait-and-retry`, and `inspect-store` when a store
-    /// command is what failed.
+    /// `command`, runnable verbatim by a non-TTY caller, or a `template`
+    /// the caller finishes or decides on first, never both: a template
+    /// holds angle-bracket placeholders only the caller can fill, or, under
+    /// `confirm`, the invocation that destroys once it runs. One whose
+    /// recovery is not an `xr` invocation carries neither, and `docs` when
+    /// a page covers it: `enroll-app`, `wait-and-retry`, `retry`,
+    /// `fix-input`, `report-issue`, and `inspect-store` when a store
+    /// command is what failed. Two `fix-input` steps carry an invocation:
+    /// `listen` again on a free port, under `address-in-use`, and the
+    /// invocation with `-u`, `--auth`, or `-t` moved after the command word
+    /// it came before, under `invalid-args`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.
@@ -295,6 +304,11 @@ pub struct ErrorBody {
     /// Whether a dry-run skill verb would have succeeded.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub would_succeed: Option<bool>,
+
+    /// The stack at a panic, as Rust prints it; present on the `internal`
+    /// error a panic answers with when `RUST_BACKTRACE` asks for one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backtrace: Option<String>,
 }
 
 /// Reads a key that is present as `Some`, `null` included. Serde's own

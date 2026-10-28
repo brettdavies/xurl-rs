@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "media", "get", "1146654567674912769"]
+store: empty
+exit_code: 0
+stdout_len: 178
+stderr_len: 0
+--- stdout ---
+{
+  "command": "media-get",
+  "exit_code": 1,
+  "media_keys": [
+    "1146654567674912769"
+  ],
+  "reason": "invalid-media-key",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

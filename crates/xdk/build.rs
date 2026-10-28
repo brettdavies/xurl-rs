@@ -57,18 +57,114 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // tweets
     ("CREATE_POST", "POST", "/2/tweets"),
     ("READ_POST", "GET", "/2/tweets/{id}"),
+    ("READ_POSTS", "GET", "/2/tweets"),
     ("DELETE_POST", "DELETE", "/2/tweets/{id}"),
     ("SEARCH_POSTS", "GET", "/2/tweets/search/recent"),
+    ("GET_POST_COUNTS", "GET", "/2/tweets/counts/recent"),
+    ("GET_POST_ANALYTICS", "GET", "/2/tweets/analytics"),
+    ("HIDE_REPLY", "PUT", "/2/tweets/{tweet_id}/hidden"),
+    ("GET_LIKING_USERS", "GET", "/2/tweets/{id}/liking_users"),
+    ("GET_REPOSTED_BY", "GET", "/2/tweets/{id}/retweeted_by"),
+    ("GET_QUOTE_POSTS", "GET", "/2/tweets/{id}/quote_tweets"),
+    // trends
+    ("GET_TRENDS", "GET", "/2/trends/by/woeid/{woeid}"),
+    (
+        "GET_PERSONALIZED_TRENDS",
+        "GET",
+        "/2/users/personalized_trends",
+    ),
+    // news
+    ("SEARCH_NEWS", "GET", "/2/news/search"),
+    ("GET_NEWS", "GET", "/2/news/{id}"),
+    // lists
+    ("CREATE_LIST", "POST", "/2/lists"),
+    ("GET_LIST", "GET", "/2/lists/{id}"),
+    ("UPDATE_LIST", "PUT", "/2/lists/{id}"),
+    ("DELETE_LIST", "DELETE", "/2/lists/{id}"),
+    ("GET_LIST_POSTS", "GET", "/2/lists/{id}/tweets"),
+    ("GET_LIST_MEMBERS", "GET", "/2/lists/{id}/members"),
+    ("ADD_LIST_MEMBER", "POST", "/2/lists/{id}/members"),
+    (
+        "REMOVE_LIST_MEMBER",
+        "DELETE",
+        "/2/lists/{id}/members/{user_id}",
+    ),
+    ("GET_LIST_FOLLOWERS", "GET", "/2/lists/{id}/followers"),
+    ("GET_OWNED_LISTS", "GET", "/2/users/{id}/owned_lists"),
+    ("GET_FOLLOWED_LISTS", "GET", "/2/users/{id}/followed_lists"),
+    ("FOLLOW_LIST", "POST", "/2/users/{id}/followed_lists"),
+    (
+        "UNFOLLOW_LIST",
+        "DELETE",
+        "/2/users/{id}/followed_lists/{list_id}",
+    ),
+    (
+        "GET_LIST_MEMBERSHIPS",
+        "GET",
+        "/2/users/{id}/list_memberships",
+    ),
+    ("GET_PINNED_LISTS", "GET", "/2/users/{id}/pinned_lists"),
+    ("PIN_LIST", "POST", "/2/users/{id}/pinned_lists"),
+    (
+        "UNPIN_LIST",
+        "DELETE",
+        "/2/users/{id}/pinned_lists/{list_id}",
+    ),
+    // articles
+    ("CREATE_ARTICLE_DRAFT", "POST", "/2/articles/draft"),
+    (
+        "PUBLISH_ARTICLE",
+        "POST",
+        "/2/articles/{article_id}/publish",
+    ),
+    // community notes
+    ("CREATE_NOTE", "POST", "/2/notes"),
+    ("EVALUATE_NOTE", "POST", "/2/notes/evaluate"),
+    ("DELETE_NOTE", "DELETE", "/2/notes/{id}"),
+    ("GET_NOTES_WRITTEN", "GET", "/2/notes/search/notes_written"),
+    (
+        "GET_POSTS_ELIGIBLE_FOR_NOTES",
+        "GET",
+        "/2/notes/search/posts_eligible_for_notes",
+    ),
+    // media lookup
+    ("GET_MEDIA", "GET", "/2/media"),
+    ("GET_MEDIA_ANALYTICS", "GET", "/2/media/analytics"),
+    // spaces
+    ("SEARCH_SPACES", "GET", "/2/spaces/search"),
+    ("GET_SPACES", "GET", "/2/spaces"),
+    ("GET_SPACES_BY_CREATOR", "GET", "/2/spaces/by/creator_ids"),
+    ("GET_SPACE_POSTS", "GET", "/2/spaces/{id}/tweets"),
+    // filtered stream rules
+    ("GET_STREAM_RULES", "GET", "/2/tweets/search/stream/rules"),
+    (
+        "UPDATE_STREAM_RULES",
+        "POST",
+        "/2/tweets/search/stream/rules",
+    ),
+    (
+        "GET_STREAM_RULE_COUNTS",
+        "GET",
+        "/2/tweets/search/stream/rules/counts",
+    ),
+    // communities
+    ("SEARCH_COMMUNITIES", "GET", "/2/communities/search"),
+    ("GET_COMMUNITY", "GET", "/2/communities/{id}"),
     // users (reads)
     ("GET_ME", "GET", "/2/users/me"),
     ("LOOKUP_USER", "GET", "/2/users/by/username/{username}"),
+    ("SEARCH_USERS", "GET", "/2/users/search"),
+    ("LOOKUP_USERS", "GET", "/2/users"),
+    ("LOOKUP_USERS_BY_USERNAME", "GET", "/2/users/by"),
     (
         "GET_TIMELINE",
         "GET",
         "/2/users/{id}/timelines/reverse_chronological",
     ),
     ("GET_MENTIONS", "GET", "/2/users/{id}/mentions"),
+    ("GET_USER_POSTS", "GET", "/2/users/{id}/tweets"),
     ("GET_FOLLOWERS", "GET", "/2/users/{id}/followers"),
+    ("GET_MY_FOLLOWERS", "GET", "/2/users/me/followers"),
     ("GET_LIKED_POSTS", "GET", "/2/users/{id}/liked_tweets"),
     // likes
     ("LIKE_POST", "POST", "/2/users/{id}/likes"),
@@ -84,8 +180,24 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_BOOKMARKS", "GET", "/2/users/{id}/bookmarks"),
     ("BOOKMARK", "POST", "/2/users/{id}/bookmarks"),
     ("UNBOOKMARK", "DELETE", "/2/users/{id}/bookmarks/{tweet_id}"),
+    (
+        "GET_BOOKMARK_FOLDERS",
+        "GET",
+        "/2/users/{id}/bookmarks/folders",
+    ),
+    (
+        "CREATE_BOOKMARK_FOLDER",
+        "POST",
+        "/2/users/{id}/bookmarks/folders",
+    ),
+    (
+        "GET_BOOKMARK_FOLDER_POSTS",
+        "GET",
+        "/2/users/{id}/bookmarks/folders/{folder_id}",
+    ),
     // following
     ("GET_FOLLOWING", "GET", "/2/users/{id}/following"),
+    ("GET_MY_FOLLOWING", "GET", "/2/users/me/following"),
     ("FOLLOW_USER", "POST", "/2/users/{id}/following"),
     (
         "UNFOLLOW_USER",
@@ -115,6 +227,26 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "/2/dm_conversations/with/{participant_id}/messages",
     ),
     ("GET_DM_EVENTS", "GET", "/2/dm_events"),
+    ("CREATE_DM_CONVERSATION", "POST", "/2/dm_conversations"),
+    (
+        "SEND_TO_CONVERSATION",
+        "POST",
+        "/2/dm_conversations/{dm_conversation_id}/messages",
+    ),
+    (
+        "GET_CONVERSATION_EVENTS",
+        "GET",
+        "/2/dm_conversations/{id}/dm_events",
+    ),
+    (
+        "GET_DM_EVENTS_WITH",
+        "GET",
+        "/2/dm_conversations/with/{participant_id}/dm_events",
+    ),
+    ("GET_DM_EVENT", "GET", "/2/dm_events/{event_id}"),
+    ("DELETE_DM_EVENT", "DELETE", "/2/dm_events/{event_id}"),
+    ("BLOCK_DMS", "POST", "/2/users/{id}/dm/block"),
+    ("UNBLOCK_DMS", "POST", "/2/users/{id}/dm/unblock"),
     // usage
     ("GET_USAGE", "GET", "/2/usage/tweets"),
     ("GET_USAGE_CREDITS", "GET", "/2/usage/credits"),
@@ -150,6 +282,113 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "REMOVE_CHAT_MODERATOR",
         "DELETE",
         "/2/broadcasts/chat/moderators/{user_id}",
+    ),
+    // broadcast stream sources
+    ("LIST_BROADCASTS", "GET", "/2/broadcasts"),
+    ("GET_BROADCAST", "GET", "/2/broadcasts/{id}"),
+    (
+        "LIST_SCHEDULED_BROADCASTS",
+        "GET",
+        "/2/broadcasts/scheduled",
+    ),
+    (
+        "CREATE_SCHEDULED_BROADCAST",
+        "POST",
+        "/2/broadcasts/scheduled",
+    ),
+    (
+        "GET_SCHEDULED_BROADCAST",
+        "GET",
+        "/2/broadcasts/scheduled/{id}",
+    ),
+    (
+        "UPDATE_SCHEDULED_BROADCAST",
+        "PUT",
+        "/2/broadcasts/scheduled/{id}",
+    ),
+    (
+        "DELETE_SCHEDULED_BROADCAST",
+        "DELETE",
+        "/2/broadcasts/scheduled/{id}",
+    ),
+    ("GO_LIVE", "POST", "/2/broadcasts/scheduled/{id}/live"),
+    ("GET_BROADCAST_CHAT", "GET", "/2/broadcasts/{id}/chat"),
+    ("SEND_BROADCAST_CHAT", "POST", "/2/broadcasts/{id}/chat"),
+    ("MUTE_CHAT_USER", "POST", "/2/broadcasts/{id}/chat/mutes"),
+    (
+        "UNMUTE_CHAT_USER",
+        "DELETE",
+        "/2/broadcasts/{id}/chat/mutes/{user_id}",
+    ),
+    (
+        "DELETE_CHAT_MESSAGE",
+        "DELETE",
+        "/2/broadcasts/{id}/chat/{message_id}",
+    ),
+    ("GET_STREAM_SOURCES", "GET", "/2/sources"),
+    ("CREATE_STREAM_SOURCE", "POST", "/2/sources"),
+    ("GET_STREAM_SOURCE", "GET", "/2/sources/{id}"),
+    ("RENAME_STREAM_SOURCE", "PUT", "/2/sources/{id}"),
+    ("DELETE_STREAM_SOURCE", "DELETE", "/2/sources/{id}"),
+    // calls
+    ("GET_CALL", "GET", "/2/calls/{id}"),
+    ("GET_SCHEDULED_CALLS", "GET", "/2/calls/scheduled"),
+    ("SCHEDULE_CALL", "POST", "/2/calls/scheduled"),
+    ("GET_SCHEDULED_CALL", "GET", "/2/calls/scheduled/{id}"),
+    ("UPDATE_SCHEDULED_CALL", "PUT", "/2/calls/scheduled/{id}"),
+    ("CANCEL_SCHEDULED_CALL", "DELETE", "/2/calls/scheduled/{id}"),
+    (
+        "RESPOND_TO_SCHEDULED_CALL",
+        "POST",
+        "/2/calls/scheduled/{id}/rsvp",
+    ),
+    // webhooks
+    ("GET_WEBHOOKS", "GET", "/2/webhooks"),
+    ("CREATE_WEBHOOK", "POST", "/2/webhooks"),
+    ("VALIDATE_WEBHOOK", "PUT", "/2/webhooks/{webhook_id}"),
+    ("DELETE_WEBHOOK", "DELETE", "/2/webhooks/{webhook_id}"),
+    ("CREATE_WEBHOOK_REPLAY", "POST", "/2/webhooks/replay"),
+    // account activity subscriptions on a webhook
+    (
+        "GET_ACCOUNT_ACTIVITY_SUBSCRIPTION_COUNT",
+        "GET",
+        "/2/account_activity/subscriptions/count",
+    ),
+    (
+        "GET_ACCOUNT_ACTIVITY_SUBSCRIPTIONS",
+        "GET",
+        "/2/account_activity/webhooks/{webhook_id}/subscriptions/all/list",
+    ),
+    (
+        "CHECK_ACCOUNT_ACTIVITY_SUBSCRIPTION",
+        "GET",
+        "/2/account_activity/webhooks/{webhook_id}/subscriptions/all",
+    ),
+    (
+        "CREATE_ACCOUNT_ACTIVITY_SUBSCRIPTION",
+        "POST",
+        "/2/account_activity/webhooks/{webhook_id}/subscriptions/all",
+    ),
+    (
+        "DELETE_ACCOUNT_ACTIVITY_SUBSCRIPTION",
+        "DELETE",
+        "/2/account_activity/webhooks/{webhook_id}/subscriptions/{user_id}/all",
+    ),
+    // filtered-stream delivery to a webhook
+    (
+        "GET_WEBHOOK_STREAM_LINKS",
+        "GET",
+        "/2/tweets/search/webhooks",
+    ),
+    (
+        "CREATE_WEBHOOK_STREAM_LINK",
+        "POST",
+        "/2/tweets/search/webhooks/{webhook_id}",
+    ),
+    (
+        "DELETE_WEBHOOK_STREAM_LINK",
+        "DELETE",
+        "/2/tweets/search/webhooks/{webhook_id}",
     ),
 ];
 

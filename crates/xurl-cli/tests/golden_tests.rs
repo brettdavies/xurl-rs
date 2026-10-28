@@ -42,6 +42,9 @@ const SKILL_HOME_PLACEHOLDER: &str = "{{SKILL_HOME}}";
 /// Stands in for the run's scratch directory inside an `env:` value.
 const SCRATCH_PLACEHOLDER: &str = "{{SCRATCH}}";
 const VERSION_PLACEHOLDER: &str = "{{CRATE_VERSION}}";
+/// Stands in for the loopback port [`Scratch`] holds, in an argument and in
+/// the output.
+const HELD_PORT_PLACEHOLDER: &str = "{{HELD_PORT}}";
 const BEARER: &str = "GOLDEN-BEARER-TOKEN";
 const FIXTURE_EXT: &str = "golden";
 
@@ -250,19 +253,68 @@ impl MockApi {
                         })),
                 ),
         );
+        // The seeded OAuth2 login is `alice`, so `whoami` answers as her.
+        self.mount(
+            Mock::given(method("GET"))
+                .and(path("/2/users/me"))
+                .respond_with(
+                    ResponseTemplate::new(200)
+                        .insert_header("date", "Thu, 01 Jan 2026 00:00:00 GMT")
+                        .set_body_json(serde_json::json!({
+                            "data": {
+                                "id": "2244994945",
+                                "name": "Alice",
+                                "username": "alice",
+                                "public_metrics": {
+                                    "followers_count": 10,
+                                    "following_count": 20,
+                                    "post_count": 30,
+                                    "listed_count": 1
+                                }
+                            }
+                        })),
+                ),
+        );
+        self.mount(
+            Mock::given(method("POST"))
+                .and(path("/2/tweets"))
+                .respond_with(
+                    ResponseTemplate::new(201)
+                        .insert_header("date", "Thu, 01 Jan 2026 00:00:00 GMT")
+                        .set_body_json(serde_json::json!({
+                            "data": {
+                                "id": "1346889436626259968",
+                                "text": "Hello from golden test",
+                                "edit_history_tweet_ids": ["1346889436626259968"]
+                            }
+                        })),
+                ),
+        );
     }
 }
 
 /// Everything a case may need that exists only for the duration of a run.
 struct Scratch {
     dir: TempDir,
+    /// A loopback port held for the whole run, so a case can ask `xr` to
+    /// bind a port another listener holds.
+    held: std::net::TcpListener,
 }
 
 impl Scratch {
     fn new() -> Self {
         Self {
             dir: TempDir::new().expect("tempdir"),
+            held: std::net::TcpListener::bind("127.0.0.1:0").expect("a port to hold"),
         }
+    }
+
+    fn held_port(&self) -> String {
+        self.held
+            .local_addr()
+            .expect("the held address")
+            .port()
+            .to_string()
     }
 
     /// The seeded store, written on the first call and shared by every case
@@ -370,7 +422,7 @@ fn verbose_cases() -> Vec<Case> {
     vec![
         bearer(case(
             "verbose-plain",
-            &["--verbose", "--auth", "app", "search", "hi"],
+            &["--verbose", "search", "--auth", "app", "hi"],
         )),
         bearer(case(
             "verbose-color",
@@ -378,9 +430,9 @@ fn verbose_cases() -> Vec<Case> {
                 "--verbose",
                 "--color",
                 "always",
+                "search",
                 "--auth",
                 "app",
-                "search",
                 "hi",
             ],
         )),
@@ -400,7 +452,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
         reason_case("auth-required", &["--output", "json", "/2/users/me"]),
         bearer(reason_case(
             "auth-method-mismatch",
-            &["--output", "json", "--auth", "app", "whoami"],
+            &["--output", "json", "whoami"],
         )),
         reason_case(
             "client-credentials-missing",
@@ -408,31 +460,31 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
         ),
         bearer(reason_case(
             "rate-limited",
-            &["--output", "json", "--auth", "app", "search", "q429"],
+            &["--output", "json", "search", "--auth", "app", "q429"],
         )),
         bearer(case(
             "rate-limited-with-reset",
-            &["--output", "json", "--auth", "app", "search", "q429reset"],
+            &["--output", "json", "search", "--auth", "app", "q429reset"],
         )),
         bearer(reason_case(
             "not-found",
-            &["--output", "json", "--auth", "app", "search", "q404"],
+            &["--output", "json", "search", "--auth", "app", "q404"],
         )),
         bearer(reason_case(
             "server-error",
-            &["--output", "json", "--auth", "app", "search", "q500"],
+            &["--output", "json", "search", "--auth", "app", "q500"],
         )),
         bearer(reason_case(
             "forbidden",
-            &["--output", "json", "--auth", "app", "search", "q403"],
+            &["--output", "json", "search", "--auth", "app", "q403"],
         )),
         bearer(reason_case(
             "invalid-request",
-            &["--output", "json", "--auth", "app", "search", "q400"],
+            &["--output", "json", "search", "--auth", "app", "q400"],
         )),
         bearer(reason_case(
             "api-error",
-            &["--output", "json", "--auth", "app", "search", "q409"],
+            &["--output", "json", "search", "--auth", "app", "q409"],
         )),
         bearer(reason_case(
             "invalid-method",
@@ -476,6 +528,20 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
                 "/nonexistent/xr-golden.json",
             ],
         ),
+        Case {
+            env: vec![("CLIENT_SECRET", "GOLDEN-CLIENT-SECRET".to_string())],
+            ..reason_case(
+                "address-in-use",
+                &[
+                    "--output",
+                    "json",
+                    "webhooks",
+                    "listen",
+                    "--port",
+                    HELD_PORT_PLACEHOLDER,
+                ],
+            )
+        },
         reason_case(
             "token-store",
             &[
@@ -577,10 +643,48 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
     ]
 }
 
-/// The dry-run refusals a shortcut's validator raises before any request.
+/// What `--dry-run` answers: the refusals a shortcut's validator raises
+/// before any request, and the credential report of a command whose inputs
+/// pass.
 fn dry_run_cases() -> Vec<Case> {
+    let signed_in = |c: Case| Case {
+        store: Store::OAuth2,
+        ..c
+    };
     let long_body = "x".repeat(281);
     let long_alt_text = "x".repeat(1001);
+    let long_webhook_url = format!("https://example.com/{}", "a".repeat(181));
+    let call_with = |extra: &[&str]| -> Vec<String> {
+        [
+            "--output",
+            "json",
+            "--dry-run",
+            "calls",
+            "scheduled",
+            "add",
+            "--start",
+            "2026-11-02T16:00:00Z",
+        ]
+        .iter()
+        .chain(extra)
+        .map(|a| (*a).to_string())
+        .collect()
+    };
+    let call_case = |name: &str, extra: &[&str]| Case {
+        name: name.to_string(),
+        args: call_with(extra),
+        ..Case::default()
+    };
+    let long_title = "x".repeat(101);
+    let article_fixtures = common::workspace_root().join("crates/xurl-cli/tests/fixtures/articles");
+    let long_description = "x".repeat(1001);
+    let long_recurrence = "x".repeat(501);
+    let long_time_zone = "x".repeat(65);
+    let invitees: Vec<String> = (1..=26).map(|n| n.to_string()).collect();
+    let mut many_invites: Vec<&str> = Vec::new();
+    for id in &invitees {
+        many_invites.extend(["--invite", id.as_str()]);
+    }
     let mut too_many: Vec<String> = ["--output", "json", "--dry-run", "post", "hi"]
         .iter()
         .map(|a| (*a).to_string())
@@ -591,10 +695,76 @@ fn dry_run_cases() -> Vec<Case> {
             "dry-run-empty-body",
             &["--output", "json", "--dry-run", "post", ""],
         ),
-        case(
-            "dry-run-body-too-long",
+        signed_in(case(
+            "dry-run-long-body",
             &["--output", "json", "--dry-run", "post", &long_body],
+        )),
+        case(
+            "dry-run-no-credential",
+            &["--output", "json", "--dry-run", "post", "hi"],
         ),
+        case(
+            "misplaced-login-flag",
+            &["--output", "json", "-u", "work", "whoami"],
+        ),
+        case("misplaced-login-flag-text", &["-u", "work", "whoami"]),
+        case(
+            "misplaced-raw-flag",
+            &["--output", "json", "-X", "POST", "whoami"],
+        ),
+        signed_in(case(
+            "dry-run-scheme-not-accepted",
+            &["--output", "json", "--dry-run", "usage"],
+        )),
+        signed_in(case(
+            "dry-run-delete-unconfirmed",
+            &["--output", "json", "--dry-run", "delete", "1234567890"],
+        )),
+        signed_in(case(
+            "dry-run-read",
+            &["--output", "json", "--dry-run", "timeline", "-n", "5"],
+        )),
+        signed_in(case(
+            "dry-run-raw-request",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "-X",
+                "POST",
+                "/2/tweets",
+                "-d",
+                r#"{"text":"hi"}"#,
+            ],
+        )),
+        signed_in(case("dry-run-text", &["--dry-run", "whoami"])),
+        case(
+            "dry-run-text-invalid",
+            &["--dry-run", "bookmark-folders", "add", ""],
+        ),
+        case("dry-run-text-no-credential", &["--dry-run", "whoami"]),
+        case("dry-run-text-quiet", &["--quiet", "--dry-run", "whoami"]),
+        signed_in(case(
+            "dry-run-text-delete",
+            &["--dry-run", "delete", "1234567890"],
+        )),
+        signed_in(case("dry-run-text-post", &["--dry-run", "post", "Hello"])),
+        signed_in(case("dry-run-text-raw", &["--dry-run", "/2/users/me"])),
+        signed_in(case(
+            "dry-run-text-invitees",
+            &[
+                "--dry-run",
+                "calls",
+                "scheduled",
+                "add",
+                "--start",
+                "2026-11-02T16:00:00Z",
+                "--invite",
+                "783214",
+                "--invite",
+                "2244994945",
+            ],
+        )),
         Case {
             name: "dry-run-too-many-attachments".to_string(),
             args: too_many,
@@ -605,8 +775,365 @@ fn dry_run_cases() -> Vec<Case> {
             &["--output", "json", "--dry-run", "like", ""],
         ),
         case(
+            "dry-run-invalid-time-window",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "search-counts",
+                "rustlang",
+                "--start",
+                "2026-10-26T00:00:00Z",
+                "--end",
+                "2026-10-25T00:00:00Z",
+            ],
+        ),
+        case(
+            "dry-run-invalid-conversation-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "conversations",
+                "history",
+                "abc",
+            ],
+        ),
+        case(
+            "dry-run-invalid-dm-event-id",
+            &["--output", "json", "--dry-run", "dm-events", "get", "dm-1"],
+        ),
+        case(
+            "dry-run-invalid-participant-count",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "conversations",
+                "start",
+                "@alice",
+                "--text",
+                "hi",
+            ],
+        ),
+        case(
+            "dry-run-invalid-article-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "articles",
+                "publish",
+                "draft-1",
+            ],
+        ),
+        Case {
+            cwd: Some(article_fixtures.clone()),
+            ..case(
+                "dry-run-empty-article-title",
+                &[
+                    "--output",
+                    "json",
+                    "--dry-run",
+                    "articles",
+                    "draft",
+                    "--title",
+                    "",
+                    "--body-file",
+                    "why-rust.md",
+                ],
+            )
+        },
+        Case {
+            cwd: Some(article_fixtures),
+            ..case(
+                "dry-run-empty-article-body",
+                &[
+                    "--output",
+                    "json",
+                    "--dry-run",
+                    "articles",
+                    "draft",
+                    "--title",
+                    "Why Rust",
+                    "--body-file",
+                    "blank.md",
+                ],
+            )
+        },
+        case(
+            "dry-run-invalid-note-id",
+            &["--output", "json", "--dry-run", "notes", "remove", "note-1"],
+        ),
+        case(
+            "dry-run-note-needs-source-url",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "notes",
+                "write",
+                "1585341984679469056",
+                "--text",
+                "No source here",
+                "--classification",
+                "not_misleading",
+            ],
+        ),
+        case(
+            "dry-run-invalid-broadcast-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "get",
+                "not-an-id!",
+            ],
+        ),
+        case(
+            "dry-run-invalid-scheduled-broadcast-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "scheduled",
+                "get",
+                "1YqKDqWqdPLGV",
+            ],
+        ),
+        case(
+            "dry-run-invalid-chat-message-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "chat",
+                "remove",
+                "1YqKDqWqdPLGV",
+                "msg-1",
+            ],
+        ),
+        Case {
+            name: "dry-run-chat-message-too-long".to_string(),
+            args: [
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "chat",
+                "send",
+                "1YqKDqWqdPLGV",
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .chain(["x".repeat(141)])
+            .collect(),
+            ..Case::default()
+        },
+        case(
+            "dry-run-invalid-list-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "lists",
+                "get",
+                "rustaceans",
+            ],
+        ),
+        case(
+            "dry-run-empty-list-name",
+            &["--output", "json", "--dry-run", "lists", "add", ""],
+        ),
+        Case {
+            name: "dry-run-list-name-too-long".to_string(),
+            args: ["--output", "json", "--dry-run", "lists", "add"]
+                .into_iter()
+                .map(str::to_string)
+                .chain(["x".repeat(26)])
+                .collect(),
+            ..Case::default()
+        },
+        Case {
+            name: "dry-run-list-description-too-long".to_string(),
+            args: [
+                "--output",
+                "json",
+                "--dry-run",
+                "lists",
+                "add",
+                "Rust",
+                "--description",
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .chain(["x".repeat(101)])
+            .collect(),
+            ..Case::default()
+        },
+        case(
+            "dry-run-no-list-changes",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "lists",
+                "update",
+                "1146654567674912769",
+            ],
+        ),
+        case(
+            "dry-run-invalid-community-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "communities",
+                "get",
+                "rustaceans",
+            ],
+        ),
+        case(
+            "dry-run-invalid-news-id",
+            &["--output", "json", "--dry-run", "news", "get", "story-1"],
+        ),
+        case(
+            "dry-run-invalid-user-query",
+            &["--output", "json", "--dry-run", "search-users", "rust-lang"],
+        ),
+        case(
+            "dry-run-invalid-media-key",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "media",
+                "get",
+                "1146654567674912769",
+            ],
+        ),
+        case(
+            "dry-run-invalid-space-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "spaces",
+                "get",
+                "1DXxyRYNejbKM-",
+            ],
+        ),
+        case(
+            "dry-run-invalid-rule-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "stream",
+                "rules",
+                "remove",
+                "rule-1",
+            ],
+        ),
+        case(
+            "dry-run-mixed-ids-and-handles",
+            &["--output", "json", "--dry-run", "users", "12", "@jack"],
+        ),
+        case(
+            "dry-run-invalid-username",
+            &["--output", "json", "--dry-run", "users", "@not-a-handle!"],
+        ),
+        Case {
+            name: "dry-run-too-many-ids".to_string(),
+            args: ["--output", "json", "--dry-run", "posts"]
+                .into_iter()
+                .map(str::to_string)
+                .chain((1..=101).map(|n| n.to_string()))
+                .collect(),
+            ..Case::default()
+        },
+        case(
             "dry-run-empty-username",
             &["--output", "json", "--dry-run", "follow", ""],
+        ),
+        case(
+            "dry-run-empty-webhook-url",
+            &["--output", "json", "--dry-run", "webhooks", "add", ""],
+        ),
+        case(
+            "dry-run-webhook-url-too-long",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                &long_webhook_url,
+            ],
+        ),
+        case(
+            "dry-run-webhook-url-not-https",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                "http://example.com/webhook",
+            ],
+        ),
+        case(
+            "dry-run-webhook-url-has-port",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "add",
+                "https://example.com:8443/webhook",
+            ],
+        ),
+        case(
+            "dry-run-invalid-webhook-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "validate",
+                "not-an-id",
+            ],
+        ),
+        case(
+            "dry-run-invalid-user-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "subscriptions",
+                "remove",
+                "1146654567674912769",
+                "@someone",
+            ],
+        ),
+        case(
+            "dry-run-invalid-replay-time",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "replay",
+                "1146654567674912769",
+                "--from",
+                "2026-01-15T00:00",
+                "--to",
+                "202601151200",
+            ],
         ),
         case(
             "dry-run-invalid-media-id",
@@ -658,6 +1185,123 @@ fn dry_run_cases() -> Vec<Case> {
                 "english",
             ],
         ),
+        case(
+            "dry-run-empty-folder-name",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "bookmark-folders",
+                "add",
+                "",
+            ],
+        ),
+        case(
+            "dry-run-folder-name-too-long",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "bookmark-folders",
+                "add",
+                "A name that runs past the limit",
+            ],
+        ),
+        case(
+            "dry-run-invalid-folder-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "bookmark-folders",
+                "get",
+                "rust",
+            ],
+        ),
+        case(
+            "dry-run-empty-source-name",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "sources",
+                "add",
+                "",
+                "--region",
+                "us-east-1",
+            ],
+        ),
+        case(
+            "dry-run-empty-source-region",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "sources",
+                "add",
+                "Studio A",
+                "--region",
+                "",
+            ],
+        ),
+        case(
+            "dry-run-invalid-call-time",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "calls",
+                "scheduled",
+                "add",
+                "--start",
+                "2026-11-02 16:00",
+            ],
+        ),
+        call_case("dry-run-call-title-too-long", &["--title", &long_title]),
+        call_case(
+            "dry-run-call-description-too-long",
+            &["--description", &long_description],
+        ),
+        call_case(
+            "dry-run-call-recurrence-too-long",
+            &["--recurrence", &long_recurrence],
+        ),
+        call_case(
+            "dry-run-call-time-zone-too-long",
+            &["--time-zone", &long_time_zone],
+        ),
+        call_case("dry-run-invalid-call-duration", &["--duration", "0"]),
+        call_case("dry-run-too-many-invitees", &many_invites),
+        case(
+            "dry-run-no-call-changes",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "calls",
+                "scheduled",
+                "update",
+                "1849302018273645",
+                "--scope",
+                "this",
+            ],
+        ),
+        case(
+            "dry-run-empty-call-recurrence",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "calls",
+                "scheduled",
+                "update",
+                "1849302018273645",
+                "--recurrence",
+                "",
+            ],
+        ),
     ]
 }
 
@@ -671,18 +1315,17 @@ fn text_cases() -> Vec<Case> {
     };
     vec![
         case("text-auth-required", &["/2/users/me"]),
-        bearer(case(
-            "text-auth-method-mismatch",
-            &["--auth", "app", "whoami"],
-        )),
+        case("text-validation", &["post", ""]),
+        case("validation-code-json", &["--output", "json", "post", ""]),
+        bearer(case("text-auth-method-mismatch", &["whoami"])),
         case("text-client-credentials-missing", &["auth", "oauth2"]),
         bearer(case(
             "text-rate-limited",
-            &["--auth", "app", "search", "q429"],
+            &["search", "--auth", "app", "q429"],
         )),
         bearer(case(
             "text-rate-limited-with-reset",
-            &["--auth", "app", "search", "q429reset"],
+            &["search", "--auth", "app", "q429reset"],
         )),
         Case {
             store: Store::OAuth2,
@@ -695,10 +1338,10 @@ fn text_cases() -> Vec<Case> {
             "skill-install-unknown-host",
             &["skill", "install", "bogus_host"],
         ),
-        case("text-unknown-command-help-flag", &["webhooks", "--help"]),
+        case("text-unknown-command-help-flag", &["bookmarsk", "--help"]),
         case(
             "text-unknown-command-version-flag",
-            &["webhooks", "--version"],
+            &["bookmarsk", "--version"],
         ),
     ]
 }
@@ -749,6 +1392,22 @@ fn help_cases(bin: &str) -> Vec<Case> {
     cases
 }
 
+/// What a shortcut prints when X answers it: the typed response, as a
+/// caller parsing `--output json` reads it.
+fn success_cases() -> Vec<Case> {
+    let signed_in = |c: Case| Case {
+        store: Store::OAuth2,
+        ..c
+    };
+    vec![
+        signed_in(case("success-whoami", &["--output", "json", "whoami"])),
+        signed_in(case(
+            "success-post",
+            &["--output", "json", "post", "Hello from golden test"],
+        )),
+    ]
+}
+
 fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
     let mut cases = help_cases(bin);
     cases.extend(static_cases());
@@ -756,6 +1415,7 @@ fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
     cases.extend(reason_cases(scratch));
     cases.extend(dry_run_cases());
     cases.extend(text_cases());
+    cases.extend(success_cases());
     let mut seen = BTreeSet::new();
     for c in &cases {
         assert!(
@@ -794,7 +1454,12 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     if let Some(cwd) = &case.cwd {
         cmd.current_dir(cwd);
     }
-    cmd.args(&case.args);
+    let held_port = scratch.held_port();
+    cmd.args(
+        case.args
+            .iter()
+            .map(|arg| arg.replace(HELD_PORT_PLACEHOLDER, &held_port)),
+    );
     cmd.stdin(if case.stdin.is_some() {
         Stdio::piped()
     } else {
@@ -813,6 +1478,10 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     let substitute = |bytes: Vec<u8>| {
         let mut text = String::from_utf8(bytes).expect("xr output is utf-8");
         text = text.replace(&api.uri, BASE_URL_PLACEHOLDER);
+        text = text.replace(
+            &format!("127.0.0.1:{held_port}"),
+            &format!("127.0.0.1:{HELD_PORT_PLACEHOLDER}"),
+        );
         if let Some(skill_home) = &case.skill_home {
             text = text.replace(
                 skill_home.to_str().expect("utf-8 path"),

@@ -49,6 +49,11 @@ fn next_step() -> impl Strategy<Value = Option<NextStep>> {
         NextAction::ShowHelp,
         NextAction::ResumeWait,
         NextAction::WaitAndRetry,
+        NextAction::Retry,
+        NextAction::FixInput,
+        NextAction::ReportIssue,
+        NextAction::Confirm,
+        NextAction::RunCommand,
     ]);
     prop::option::of((action, text(), text(), text()).prop_map(
         |(action, command, template, docs)| NextStep {

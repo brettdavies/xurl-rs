@@ -26,7 +26,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
-    DmEvent, MediaMetadataResult, MediaSubtitlesResult, Post, UsageData, User,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ArticleDraft, ArticlePublished,
+    BookmarkFolder, Broadcast, BroadcastChatMessage, ChatMutedResult, ChatSentResult, Community,
+    DmBlockResult, DmEvent, HiddenResult, List, ListMemberResult, ListUpdatedResult, Media,
+    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
+    StreamRuleCounts, StreamSource, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -182,6 +190,206 @@ fn typed_responses_match_vendored_spec() {
         (
             "CreateMediaSubtitlesResponseData",
             serde_json::to_value(schemars::schema_for!(MediaSubtitlesResult)).unwrap(),
+        ),
+        (
+            "ListSourcesResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSources)).unwrap(),
+        ),
+        (
+            "ListSourcesResponseDataSources",
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
+        ),
+        (
+            "GetSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+        ),
+        (
+            "CreateSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+        ),
+        (
+            "UpdateSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+        ),
+        (
+            "Call",
+            serde_json::to_value(schemars::schema_for!(XCall)).unwrap(),
+        ),
+        (
+            "ScheduledCall",
+            serde_json::to_value(schemars::schema_for!(ScheduledCall)).unwrap(),
+        ),
+        (
+            "ScheduleCallResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledCall)).unwrap(),
+        ),
+        (
+            "UpdateScheduledCallResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledCallUpdated)).unwrap(),
+        ),
+        (
+            "CancelScheduledCallResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledCallCancelled)).unwrap(),
+        ),
+        (
+            "RespondToScheduledCallResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledCallRsvp)).unwrap(),
+        ),
+        (
+            "GetUsersBookmarkFoldersResponseData",
+            serde_json::to_value(schemars::schema_for!(BookmarkFolder)).unwrap(),
+        ),
+        (
+            "CreateUsersBookmarkFolderResponseData",
+            serde_json::to_value(schemars::schema_for!(BookmarkFolder)).unwrap(),
+        ),
+        (
+            "WebhookConfig",
+            serde_json::to_value(schemars::schema_for!(Webhook)).unwrap(),
+        ),
+        (
+            "ValidateWebhooksResponseData",
+            serde_json::to_value(schemars::schema_for!(WebhookValidation)).unwrap(),
+        ),
+        (
+            "CreateWebhookReplayJobResponseData",
+            serde_json::to_value(schemars::schema_for!(WebhookReplayJob)).unwrap(),
+        ),
+        (
+            "GetAccountActivitySubscriptionCountResponseData",
+            serde_json::to_value(schemars::schema_for!(AccountActivitySubscriptionCount)).unwrap(),
+        ),
+        (
+            "GetAccountActivitySubscriptionsResponseData",
+            serde_json::to_value(schemars::schema_for!(AccountActivitySubscriptions)).unwrap(),
+        ),
+        (
+            "CreateAccountActivitySubscriptionResponseData",
+            serde_json::to_value(schemars::schema_for!(SubscribedResult)).unwrap(),
+        ),
+        (
+            "GetWebhooksStreamLinksResponseData",
+            serde_json::to_value(schemars::schema_for!(WebhookStreamLink)).unwrap(),
+        ),
+        (
+            "CreateWebhooksStreamLinkResponseData",
+            serde_json::to_value(schemars::schema_for!(ProvisionedResult)).unwrap(),
+        ),
+        (
+            "BlockUsersDmsResponseData",
+            serde_json::to_value(schemars::schema_for!(DmBlockResult)).unwrap(),
+        ),
+        (
+            "Media",
+            serde_json::to_value(schemars::schema_for!(Media)).unwrap(),
+        ),
+        (
+            "MediaAnalytics",
+            serde_json::to_value(schemars::schema_for!(MediaAnalytics)).unwrap(),
+        ),
+        (
+            "Space",
+            serde_json::to_value(schemars::schema_for!(Space)).unwrap(),
+        ),
+        (
+            "GetRulesResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamRule)).unwrap(),
+        ),
+        (
+            "GetRuleCountsResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamRuleCounts)).unwrap(),
+        ),
+        (
+            "GetRuleCountsResponseDataClientAppRulesCount",
+            serde_json::to_value(schemars::schema_for!(StreamRuleAppCount)).unwrap(),
+        ),
+        (
+            "ArticleCreateDraftResponseData",
+            serde_json::to_value(schemars::schema_for!(ArticleDraft)).unwrap(),
+        ),
+        (
+            "ArticlePublishResponseData",
+            serde_json::to_value(schemars::schema_for!(ArticlePublished)).unwrap(),
+        ),
+        (
+            "Note",
+            serde_json::to_value(schemars::schema_for!(Note)).unwrap(),
+        ),
+        (
+            "NoteInfo",
+            serde_json::to_value(schemars::schema_for!(NoteInfo)).unwrap(),
+        ),
+        (
+            "CreateCommunityNotesResponseData",
+            serde_json::to_value(schemars::schema_for!(NoteCreated)).unwrap(),
+        ),
+        (
+            "EvaluateCommunityNotesResponseData",
+            serde_json::to_value(schemars::schema_for!(NoteEvaluation)).unwrap(),
+        ),
+        (
+            "Broadcast",
+            serde_json::to_value(schemars::schema_for!(Broadcast)).unwrap(),
+        ),
+        (
+            "ListScheduledBroadcastsResponseData",
+            serde_json::to_value(schemars::schema_for!(ScheduledBroadcast)).unwrap(),
+        ),
+        (
+            "BroadcastChatMessage",
+            serde_json::to_value(schemars::schema_for!(BroadcastChatMessage)).unwrap(),
+        ),
+        (
+            "SendBroadcastChatResponseData",
+            serde_json::to_value(schemars::schema_for!(ChatSentResult)).unwrap(),
+        ),
+        (
+            "MuteBroadcastChatUserResponseData",
+            serde_json::to_value(schemars::schema_for!(ChatMutedResult)).unwrap(),
+        ),
+        (
+            "List",
+            serde_json::to_value(schemars::schema_for!(List)).unwrap(),
+        ),
+        (
+            "UpdateListsResponseData",
+            serde_json::to_value(schemars::schema_for!(ListUpdatedResult)).unwrap(),
+        ),
+        (
+            "AddListsMemberResponseData",
+            serde_json::to_value(schemars::schema_for!(ListMemberResult)).unwrap(),
+        ),
+        (
+            "PinListResponseData",
+            serde_json::to_value(schemars::schema_for!(PinnedResult)).unwrap(),
+        ),
+        (
+            "Community",
+            serde_json::to_value(schemars::schema_for!(Community)).unwrap(),
+        ),
+        (
+            "News",
+            serde_json::to_value(schemars::schema_for!(NewsStory)).unwrap(),
+        ),
+        (
+            "Trend",
+            serde_json::to_value(schemars::schema_for!(Trend)).unwrap(),
+        ),
+        (
+            "PersonalizedTrend",
+            serde_json::to_value(schemars::schema_for!(PersonalizedTrend)).unwrap(),
+        ),
+        (
+            "Analytics",
+            serde_json::to_value(schemars::schema_for!(PostAnalytics)).unwrap(),
+        ),
+        (
+            "GetPostsCountsRecentResponseData",
+            serde_json::to_value(schemars::schema_for!(PostCount)).unwrap(),
+        ),
+        (
+            "HidePostsReplyResponseData",
+            serde_json::to_value(schemars::schema_for!(HiddenResult)).unwrap(),
         ),
     ];
 

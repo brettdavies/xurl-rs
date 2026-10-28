@@ -1,0 +1,18 @@
+args: ["--output", "json", "--dry-run", "articles", "publish", "draft-1"]
+store: empty
+exit_code: 0
+stdout_len: 197
+stderr_len: 0
+--- stdout ---
+{
+  "article_id": "draft-1",
+  "command": "articles-publish",
+  "confirmation_required": true,
+  "exit_code": 1,
+  "reason": "invalid-article-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

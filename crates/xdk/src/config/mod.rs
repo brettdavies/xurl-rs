@@ -49,7 +49,7 @@ pub struct Config {
     /// `match` on the enum variant.
     pub(crate) redirect_uri_from_env: bool,
     /// Per-request HTTP timeout in seconds for all reqwest-backed paths
-    /// (API client, OAuth2 token exchange/refresh, `fetch_username`).
+    /// (API client, OAuth2 token exchange/refresh, the `/2/users/me` lookup).
     ///
     /// Sourced from `--timeout` / `XURL_TIMEOUT` via the CLI runner;
     /// `Config::new()` defaults to [`crate::api::DEFAULT_TIMEOUT_SECS`].
@@ -143,7 +143,7 @@ pub struct EnvOverrides {
     /// Consumed by the skill installer rather than by [`Config`].
     pub home: Option<String>,
     /// `XURL_TOKEN_STORE` — path of the token-store file the binary uses in
-    /// place of `~/.xurl`. The OAuth2 pending state sits beside it.
+    /// place of `~/.xurl/auth.yml`. The OAuth2 pending state sits beside it.
     ///
     /// Consumed by the CLI runner rather than by [`Config`]; the
     /// explicit-path entrypoints ignore it.
@@ -289,16 +289,15 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Returns the legacy default token-store path: `~/.xurl`.
+    /// Returns the default token-store path: `~/.xurl/auth.yml`.
     ///
-    /// Falls back to `./.xurl` when the home directory cannot be resolved.
-    /// This is the canonical legacy path resolver — the binary uses it when `XURL_TOKEN_STORE` is unset; tests
-    /// pass explicit tempdir paths to `Auth::new_with_store_path` instead.
+    /// Falls back to `./.xurl/auth.yml` when the home directory cannot be
+    /// resolved. The binary uses it when `XURL_TOKEN_STORE` is unset; tests pass
+    /// explicit tempdir paths to `Auth::new_with_store_path` instead. Same as
+    /// [`crate::store::default_store_path`].
     #[must_use]
     pub fn default_store_path() -> std::path::PathBuf {
-        dirs::home_dir()
-            .unwrap_or_else(|| std::path::PathBuf::from("."))
-            .join(".xurl")
+        crate::store::default_store_path()
     }
 
     /// Validates an `OAuth2` redirect URI.

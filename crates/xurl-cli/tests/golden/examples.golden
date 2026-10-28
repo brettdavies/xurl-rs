@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 5095
+stdout_len: 11984
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -33,19 +33,77 @@ POST AND READ:
   Quote-post:
     xr quote 1585341984679469056 "Worth a read." --output json
 
+  Hide a reply to your post, or show it again:
+    xr hide 1585341984679469056
+    xr unhide 1585341984679469056 --output json
+
   Delete a post by ID without a prompt (--force confirms it):
     xr delete 1585341984679469056 --force --no-interactive --output json
 
   Read a single post and pipe to jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'
 
+  Who liked or reposted a post, and the posts that quote it:
+    xr likers 1585341984679469056 --output json | jaq -r '.data[]?.username'
+    xr reposters 1585341984679469056 -n 100
+    xr quotes 1585341984679469056 --output json
+
+  Read up to 100 posts in one request:
+    xr posts 1585341984679469056 1346889436626259968 --output json
+
+  How many recent posts match a query, per day, before searching:
+    xr search-counts rustlang --granularity day --output json | jaq '.meta.total_post_count'
+
+  Impressions and engagement for your posts, per day over a week:
+    xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-08T00:00:00Z --granularity daily --output json
+
+  Communities about a topic, and one community by id:
+    xr communities search rust --output json | jaq -r '.data[]? | .name'
+    xr communities get 1146654567674912769 --output json
+
+  News stories from the last day, and one story by id:
+    xr news search "open source" --max-age-hours 24 --output json | jaq -r '.data[]?.name'
+    xr news get 1850000000000000000 --output json
+
+  Live Spaces about a topic, the Spaces two accounts created, and a Space's posts:
+    xr spaces search rust --state live --output json | jaq -r '.data[]? | .title'
+    xr spaces by-creator @XDevelopers @jack --output json
+    xr spaces posts 1DXxyRYNejbKM --output json
+
+  Have X check a filtered-stream rule, add it, and count your rules against the caps:
+    xr stream rules add "from:XDevelopers has:media" --validate-only --output json
+    xr stream rules add "from:XDevelopers has:media" --tag devs --output json
+    xr stream rules count --output json
+
+  Trends worldwide, and the trends X picks for you:
+    xr trends place 1 -n 10 --output json | jaq -r '.data[]?.trend_name'
+    xr trends personal --output json
+
   Search recent posts:
     xr search "rustlang" -n 25
     XURL_OUTPUT=json xr search "rustlang" -n 25
 
+  Community Notes in test mode: posts you could note, a draft's score, then the note:
+    xr notes eligible --test --output json | jaq -r '.data[]?.id'
+    xr notes evaluate 1585341984679469056 --text "The photo is from 2019: https://example.com/source"
+    xr notes write 1585341984679469056 --text "The photo is from 2019: https://example.com/source" --classification not_misleading --test --output json
+
+  Save an X Article from a text file, then publish it without a prompt:
+    xr articles draft --title "Why Rust" --body-file why-rust.md --output json
+    xr articles publish 1850000000000000003 --force --no-interactive --output json
+
 MANAGE SOCIAL GRAPH:
   Look up a user:
     xr user elonmusk --output json
+
+  Find accounts by keyword:
+    xr search-users rust -n 50 --output json | jaq -r '.data[]?.username'
+
+  Several accounts in one request, by handle or by id:
+    xr users @XDevelopers @jack --output json | jaq -r '.data[]?.id'
+
+  A user's posts, newest first:
+    xr user-posts @XDevelopers -n 50 --output json | jaq -r '.data[]?.text'
 
   Follow / unfollow:
     xr follow @elonmusk
@@ -63,6 +121,11 @@ MANAGE SOCIAL GRAPH:
     xr bookmark 1585341984679469056
     xr unbookmark 1585341984679469056 --output json
 
+  Lists: create one, add an account, read its posts:
+    xr lists add Rustaceans --private --output json
+    xr lists members add 1146654567674912769 @XDevelopers
+    xr lists posts 1146654567674912769 -n 50 --output json | jaq -r '.data[]?.text'
+
   Mute / unmute, block / unblock:
     xr mute @noisy
     xr unmute @noisy --output json
@@ -78,6 +141,8 @@ INSPECT YOUR ACCOUNT:
   Your bookmarks and liked posts:
     xr bookmarks -n 100 --output json | jaq -r '.data[]?.id'
     xr likes -n 100 --output jsonl
+    xr bookmark-folders list --output json
+    xr bookmark-folders posts 1146654567674912769 --output json | jaq -r '.data[]?.id'
 
   Users you have muted or blocked:
     xr muted -n 100 --output jsonl
@@ -93,6 +158,16 @@ DIRECT MESSAGES:
   Send a DM:
     xr dm @recipient "Hello"
 
+  Start a group, send into it, and read it back:
+    xr conversations start @alice @bob --text "Plans for Friday?" --output json
+    xr conversations send 1580705921830768643 "Running late"
+    xr conversations history 1580705921830768643 --output json | jaq -r '.data[]?.text'
+
+  Delete one message without a prompt; stop someone messaging you, or let them again:
+    xr dm-events remove 1580705921830768647 --force --no-interactive --output json
+    xr dm-block @spammer
+    xr dm-unblock @spammer --output json
+
   List recent DM events:
     xr dms -n 50 --output json
 
@@ -104,6 +179,65 @@ BROADCASTS:
     xr broadcasts moderators add @helper
     xr broadcasts moderators remove @helper --output json
 
+  Create a stream source, stream to its rtmps_url with its id as the key, and check it is live:
+    xr broadcasts sources add "Studio A" --region us-east-1 --output json
+    xr broadcasts sources get 1x2y3z4w5v6u --output json
+
+  Schedule a broadcast from a source, then welcome the chat once it is live:
+    xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --output json
+    xr broadcasts chat send 1YqKDqWqdPLGV "Welcome!" --output json
+
+  Your broadcasts, and one by id:
+    xr broadcasts list --output json
+    xr broadcasts get 1YqKDqWqdPLGV --output json
+
+CALLS:
+  The calls on your calendar in a week, then one with its invitees' answers:
+    xr calls scheduled list --start 2026-11-02T00:00:00Z --end 2026-11-09T00:00:00Z --output json
+    xr calls scheduled get 1849302018273645 --output json
+
+  Schedule a call, invite someone, and answer an invitation:
+    xr calls scheduled add --start 2026-11-02T16:00:00Z --title Standup --invite 2244994945 --output json
+    xr calls scheduled rsvp 1849302018273645 accepted
+
+  Who is in a call, and whether you may join:
+    xr calls get 8a6f1c2e --output json
+
+WEBHOOKS:
+  Which webhooks the app has registered:
+    xr webhooks list --output json
+
+  Register a URL (X sends its CRC check there first), then check it again:
+    xr webhooks add https://example.com/webhooks/x
+    xr webhooks validate 1146654567674912769 --output json
+
+  Replay twelve hours of past events / delete a webhook:
+    xr webhooks replay 1146654567674912769 --from 202601150000 --to 202601151200
+    xr webhooks remove 1146654567674912769 --force --no-interactive --output json
+
+  Subscribe your account's activity to a webhook, and see who is subscribed:
+    xr webhooks subscriptions add 1146654567674912769
+    xr webhooks subscriptions list 1146654567674912769 --output json
+
+  End a subscription:
+    xr webhooks subscriptions remove 1146654567674912769 2244994945 --force --no-interactive --output json
+
+  Deliver the posts your filtered-stream rules match to a webhook, and stop:
+    xr webhooks stream-links add 1146654567674912769
+    xr webhooks stream-links remove 1146654567674912769 --force --no-interactive --output json
+
+  Receive events: listen locally, expose that port at a public HTTPS URL, register the URL
+  (the listening line carries a signed test_command to prove the wiring before X sends anything):
+    xr webhooks listen --port 8080 --output json
+    xr webhooks add https://example.com/webhook
+
+  Forward each event to your app, and keep a checkpoint for restarts:
+    xr webhooks listen --forward http://127.0.0.1:3000/events --checkpoint listen.json
+
+  After a restart, see the window X would replay, then request it:
+    xr --dry-run webhooks replay 1146654567674912769 --from-checkpoint listen.json
+    xr webhooks replay 1146654567674912769 --from-checkpoint listen.json
+
 MEDIA UPLOAD:
   Upload an image (returns media_id):
     xr media upload ./photo.png --media-type image/png --category tweet_image
@@ -113,6 +247,10 @@ MEDIA UPLOAD:
 
   Check upload status:
     xr media status 1585341984679469056 --output json
+
+  Read uploads by media key, and a video's views over a day:
+    xr media get 3_1146654567674912769 --output json
+    xr media analytics 7_1146654567674912770 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z --output json
 
   Describe an uploaded image for screen readers:
     xr media alt-text 1585341984679469056 "A dog asleep on a beach towel"

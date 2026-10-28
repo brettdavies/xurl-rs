@@ -1,0 +1,14 @@
+args: ["--dry-run", "/2/users/me"]
+store: oauth2
+exit_code: 0
+stdout_len: 185
+stderr_len: 0
+--- stdout ---
+Dry run: nothing was sent.
+The real run would succeed, as far as an offline check can tell.
+  method: GET
+  url: /2/users/me
+  credential: oauth2, app myapp, login alice, token current
+
+--- stderr ---
+

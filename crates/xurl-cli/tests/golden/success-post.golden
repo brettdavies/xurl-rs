@@ -1,0 +1,18 @@
+args: ["--output", "json", "post", "Hello from golden test"]
+store: oauth2
+exit_code: 0
+stdout_len: 156
+stderr_len: 0
+--- stdout ---
+{
+  "data": {
+    "edit_history_post_ids": [
+      "1346889436626259968"
+    ],
+    "id": "1346889436626259968",
+    "text": "Hello from golden test"
+  }
+}
+
+--- stderr ---
+

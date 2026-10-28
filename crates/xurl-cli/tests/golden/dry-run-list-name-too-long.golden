@@ -1,0 +1,19 @@
+args: ["--output", "json", "--dry-run", "lists", "add", "xxxxxxxxxxxxxxxxxxxxxxxxxx"]
+store: empty
+exit_code: 0
+stdout_len: 188
+stderr_len: 0
+--- stdout ---
+{
+  "command": "lists-add",
+  "exit_code": 1,
+  "list": {
+    "name": "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  "reason": "list-name-too-long",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

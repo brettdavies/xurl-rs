@@ -13,7 +13,7 @@ rust-version = "1.94"
 # Versions shared by both members live here so the two manifests cannot drift
 # apart on a dependency they both compile.
 [workspace.dependencies]
-xdk-rs = { version = "0.2.0", path = "crates/xdk" }
+xdk-rs = { version = "0.3.0", path = "crates/xdk" }
 # No TLS backend on this entry: `xdk-rs` selects one through its own
 # `rustls` / `native-tls` features, and a backend named here would be on in
 # every configuration, including the ones meant to prove it absent.
@@ -23,7 +23,7 @@ tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.9"
+serde-saphyr = { version = "2.0.0", default-features = false, features = ["serialize", "deserialize"] }
 tracing = "0.1"
 schemars = "1"
 libc = "0.2"
