@@ -449,31 +449,61 @@ async fn a_word_after_a_mistyped_command_renders_in_every_format(
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// After a raw target, or with a raw-only flag anywhere in argv, the caller
-/// meant a request, so clap's rejection of the word after the target stands:
-/// the rendering names that word and never the target.
+/// meant a request, so a word after the target is an unexpected argument and
+/// never a command: `invalid-args`, rendered as clap renders a stray word it
+/// scores against no command (`qqqq`), whether or not clap scored this one.
 #[rstest::rstest]
-#[case::path(&["/2/users/me", "extra"], "/2/users/me", "extra")]
-#[case::url(&["https://api.x.com/2/users/me", "extra"], "https://api.x.com/2/users/me", "extra")]
-#[case::raw_only_flag_before_the_words(&["-X", "POST", "suth", "status"], "suth", "status")]
-#[case::raw_only_flag_after_the_words(&["suth", "status", "-X", "POST"], "suth", "status")]
+#[case::path(&["/2/users/me", "extra"])]
+#[case::url(&["https://api.x.com/2/users/me", "extra"])]
+#[case::dotted_host(&["example.com", "extra"])]
+#[case::raw_only_flag_before_the_words(&["-X", "POST", "suth", "status"])]
+#[case::raw_only_flag_after_the_words(&["suth", "status", "-X", "POST"])]
+#[case::raw_only_flag_and_a_path(&["-d", "{}", "/2/tweets", "status"])]
 #[tokio::test]
-async fn a_word_after_a_raw_target_stays_the_rejected_one(
-    #[case] rest: &[&str],
-    #[case] target: &str,
-    #[case] rejected: &str,
-) {
+async fn a_word_after_a_raw_target_is_an_unexpected_argument(#[case] rest: &[&str]) {
+    let stray = rest
+        .iter()
+        .copied()
+        .find(|word| matches!(*word, "extra" | "status"))
+        .expect("each case names its stray word");
     let mut args = vec!["xr"];
     args.extend(rest);
-    let (code, _stdout, stderr) = run_isolated(&args).await;
+    let (code, stdout, stderr) = run_isolated(&args).await;
     assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
-    let text = plain(&stderr);
-    assert!(
-        text.contains(&format!("'{rejected}'")),
-        "args {args:?}; stderr: {stderr}"
+    assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
+    let unscored: Vec<&str> = args
+        .iter()
+        .map(|word| if *word == stray { "qqqq" } else { word })
+        .collect();
+    let (_, _, unscored_stderr) = run_isolated(&unscored).await;
+    assert_eq!(
+        plain(&stderr),
+        plain(&unscored_stderr).replace("'qqqq'", &format!("'{stray}'")),
+        "args {args:?} render as clap's rejection of an unscored word"
     );
     assert!(
-        !text.contains(&format!("'{target}'")),
+        plain(&stderr).starts_with(&format!("Error: unexpected argument '{stray}' found")),
         "args {args:?}; stderr: {stderr}"
+    );
+
+    let mut json = vec!["xr", "--output", "json"];
+    json.extend(rest);
+    let (code, _stdout, stderr) = run_isolated(&json).await;
+    assert_eq!(code, 2, "args {json:?}; stderr: {stderr}");
+    let v = envelope(&stderr, "json");
+    assert_eq!(v["reason"], "invalid-args", "args {json:?}; got: {v}");
+    assert_eq!(v["exit_code"], 2, "args {json:?}; got: {v}");
+    assert_eq!(
+        v["next_step"],
+        serde_json::json!({"action": "show-help", "command": "xr --help"}),
+        "args {json:?}; got: {v}"
+    );
+    assert!(v.get("command").is_none(), "args {json:?}; got: {v}");
+    assert!(v.get("suggestion").is_none(), "args {json:?}; got: {v}");
+    let message = v["message"].as_str().expect("the message is a string");
+    assert!(
+        message.starts_with(&format!("unexpected argument '{stray}' found")),
+        "args {json:?}; got: {v}"
     );
 }
 

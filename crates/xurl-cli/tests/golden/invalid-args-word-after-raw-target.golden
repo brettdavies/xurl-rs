@@ -1,0 +1,19 @@
+args: ["--output", "json", "/2/users/me", "extra"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 255
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 2,
+  "message": "unexpected argument 'extra' found\n\nUsage: xr [OPTIONS] [URL] [COMMAND]\n\nTry 'xr --help'.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr --help"
+  },
+  "reason": "invalid-args",
+  "status": "error"
+}
+
