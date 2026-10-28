@@ -2813,7 +2813,7 @@ dependencies = [
 
 [[package]]
 name = "xdk-rs"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "base64 0.23.1",
  "bytes",
@@ -2851,7 +2851,7 @@ dependencies = [
 
 [[package]]
 name = "xurl-rs"
-version = "4.3.0"
+version = "4.4.0"
 dependencies = [
  "assert_cmd",
  "clap",
