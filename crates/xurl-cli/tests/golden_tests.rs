@@ -1307,7 +1307,7 @@ fn dry_run_cases() -> Vec<Case> {
 
 /// The text renderings of the errors that carry a recovery hint, plus the
 /// parser's rejection of an unknown skill host and a mistyped command under
-/// the help flag and the version flag.
+/// the help flag, under the version flag, and before a second word.
 fn text_cases() -> Vec<Case> {
     let bearer = |c: Case| Case {
         store: Store::BearerEnv,
@@ -1343,6 +1343,7 @@ fn text_cases() -> Vec<Case> {
             "text-unknown-command-version-flag",
             &["bookmarsk", "--version"],
         ),
+        case("text-unknown-command-second-word", &["suth", "status"]),
     ]
 }
 
