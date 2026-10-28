@@ -337,6 +337,15 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_STREAM_SOURCE", "GET", "/2/sources/{id}"),
     ("RENAME_STREAM_SOURCE", "PUT", "/2/sources/{id}"),
     ("DELETE_STREAM_SOURCE", "DELETE", "/2/sources/{id}"),
+    // profile
+    ("UPDATE_PROFILE", "PUT", "/2/users/me"),
+    ("UPDATE_PROFILE_IMAGE", "PUT", "/2/users/me/profile_image"),
+    ("UPDATE_PROFILE_BANNER", "PUT", "/2/users/me/profile_banner"),
+    (
+        "REMOVE_PROFILE_BANNER",
+        "DELETE",
+        "/2/users/me/profile_banner",
+    ),
     // calls
     ("GET_CALL", "GET", "/2/calls/{id}"),
     ("GET_SCHEDULED_CALLS", "GET", "/2/calls/scheduled"),

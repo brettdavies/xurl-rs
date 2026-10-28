@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "profile", "update", "--location", "lllllllllllllllllllllllllllllll"]
+store: empty
+exit_code: 0
+stdout_len: 191
+stderr_len: 0
+--- stdout ---
+{
+  "command": "profile-update",
+  "exit_code": 1,
+  "location": "lllllllllllllllllllllllllllllll",
+  "reason": "profile-location-too-long",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

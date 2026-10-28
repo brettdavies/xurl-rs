@@ -701,6 +701,26 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::UPDATE_PROFILE,
+        fixture: "updated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_PROFILE_IMAGE,
+        fixture: "updated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_PROFILE_BANNER,
+        fixture: "updated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::REMOVE_PROFILE_BANNER,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_CALL,
         fixture: "call",
         status: 200,

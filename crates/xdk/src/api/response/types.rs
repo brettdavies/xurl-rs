@@ -979,6 +979,17 @@ pub struct ListUpdatedResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// Whether X applied a change to the authenticated user's profile, profile
+/// image, banner, or account settings.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct UpdatedResult {
+    /// Whether the change was applied.
+    pub updated: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// Confirmation for adding an account to a list or removing it.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ListMemberResult {

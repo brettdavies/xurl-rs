@@ -163,6 +163,11 @@ INSPECT YOUR ACCOUNT:
     xr muted -n 100 --output jsonl
     xr blocked -n 100 --output jsonl
 
+  Change your bio, then set a profile image and banner from uploads:
+    xr profile update --description \"Building xr.\" --output json
+    xr profile image set 1146654567674912769 --output json
+    xr profile banner set 1146654567674912770 --crop 1500x500+0+120 --output json
+
   Your API usage (caps + daily breakdown):
     xr usage --output json
 

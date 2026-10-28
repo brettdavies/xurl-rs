@@ -20,6 +20,7 @@ mod news;
 mod notes;
 mod posts;
 mod process_tree;
+mod profile;
 mod program_output;
 mod reads;
 pub mod schema;
@@ -345,6 +346,18 @@ where
     Ok(())
 }
 
+/// The dry-run context of a write: `command`, with every field `request`
+/// would send.
+fn request_context(command: &str, request: &impl Serialize) -> serde_json::Value {
+    let mut ctx = json!({"command": command});
+    if let (Some(ctx), Ok(serde_json::Value::Object(fields))) =
+        (ctx.as_object_mut(), serde_json::to_value(request))
+    {
+        ctx.extend(fields);
+    }
+    ctx
+}
+
 /// Converts a typed response to Value and prints it.
 fn print_typed<T: Serialize>(
     out: &OutputConfig,
@@ -608,6 +621,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Conversations { action } => conversations::run(action, run).await,
         Commands::DmEvents { action } => conversations::dm_events(action, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,
+        Commands::Profile { action } => profile::run(action, run).await,
         Commands::Broadcasts { target } => broadcasts::run(target, run).await,
         Commands::Lists { action } => lists::run(action, run).await,
         Commands::Communities { action } => communities::run(action, run).await,

@@ -23,8 +23,8 @@ use super::response::types::{
     NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceDeleted, SubscribedResult, Trend, UpdatedResult, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -77,6 +77,14 @@ struct StreamSourceBody {
 #[derive(Serialize)]
 struct NameBody {
     name: String,
+}
+
+/// The body that sets a profile image or banner from an uploaded media id.
+#[derive(Serialize)]
+struct ProfileMediaBody {
+    media_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    crop: Option<BannerCrop>,
 }
 
 #[derive(Serialize)]
@@ -428,6 +436,50 @@ impl ScheduledCallChanges {
             && self.recurrence.is_none()
             && self.time_zone.is_none()
     }
+}
+
+/// What to change on the authenticated user's profile. A field left unset
+/// keeps its value; an empty `description`, `url`, or `location` clears it.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct ProfileChanges {
+    /// The display name, 1 to [`PROFILE_NAME_MAX_CHARS`] characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The bio, up to [`PROFILE_DESCRIPTION_MAX_CHARS`] characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// The website URL, up to [`PROFILE_URL_MAX_CHARS`] characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// The free-form location, up to [`PROFILE_LOCATION_MAX_CHARS`]
+    /// characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub location: Option<String>,
+}
+
+impl ProfileChanges {
+    /// Whether the change set names no field, so it would change nothing.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.name.is_none()
+            && self.description.is_none()
+            && self.url.is_none()
+            && self.location.is_none()
+    }
+}
+
+/// The region of an uploaded image to use as a profile banner, in pixels of
+/// that image.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct BannerCrop {
+    /// Width of the region, at least 1.
+    pub width: u32,
+    /// Height of the region, at least 1.
+    pub height: u32,
+    /// Distance of the region from the image's left edge.
+    pub offset_left: u32,
+    /// Distance of the region from the image's top edge.
+    pub offset_top: u32,
 }
 
 /// The upload category of a video that carries subtitles.
@@ -1485,6 +1537,66 @@ pub fn validate_language_code(code: &str) -> std::result::Result<(), &'static st
     let code = code.trim();
     if code.len() != 2 || !code.bytes().all(|b| b.is_ascii_alphabetic()) {
         return Err("invalid-language-code");
+    }
+    Ok(())
+}
+
+/// Longest display name X accepts, the spec's `maxLength`.
+pub const PROFILE_NAME_MAX_CHARS: usize = 50;
+
+/// Longest bio X accepts, the spec's `maxLength`.
+pub const PROFILE_DESCRIPTION_MAX_CHARS: usize = 160;
+
+/// Longest profile website URL X accepts, the spec's `maxLength`.
+pub const PROFILE_URL_MAX_CHARS: usize = 100;
+
+/// Longest profile location X accepts, the spec's `maxLength`.
+pub const PROFILE_LOCATION_MAX_CHARS: usize = 30;
+
+/// Validates a profile change against the spec's bounds: at least one
+/// field, a display name with a character that is not whitespace, and no
+/// field past its `maxLength`, counted in characters.
+///
+/// # Errors
+/// Returns `no-profile-changes` for a change that names no field,
+/// `empty-profile-name` for a blank name, and `profile-name-too-long`,
+/// `profile-description-too-long`, `profile-url-too-long`, or
+/// `profile-location-too-long` for a field past its bound.
+pub fn validate_profile_changes(changes: &ProfileChanges) -> std::result::Result<(), &'static str> {
+    if changes.is_empty() {
+        return Err("no-profile-changes");
+    }
+    let longer_than = |field: &Option<String>, max: usize| {
+        field.as_deref().is_some_and(|v| v.chars().count() > max)
+    };
+    if changes.name.as_deref().is_some_and(|n| n.trim().is_empty()) {
+        return Err("empty-profile-name");
+    }
+    if longer_than(&changes.name, PROFILE_NAME_MAX_CHARS) {
+        return Err("profile-name-too-long");
+    }
+    if longer_than(&changes.description, PROFILE_DESCRIPTION_MAX_CHARS) {
+        return Err("profile-description-too-long");
+    }
+    if longer_than(&changes.url, PROFILE_URL_MAX_CHARS) {
+        return Err("profile-url-too-long");
+    }
+    if longer_than(&changes.location, PROFILE_LOCATION_MAX_CHARS) {
+        return Err("profile-location-too-long");
+    }
+    Ok(())
+}
+
+/// Validates a banner crop against the spec's bounds: a width and height of
+/// at least 1, and every value within a signed 32-bit integer.
+///
+/// # Errors
+/// Returns `invalid-banner-crop` for a value outside them.
+pub fn validate_banner_crop(crop: &BannerCrop) -> std::result::Result<(), &'static str> {
+    let max = i32::MAX.unsigned_abs();
+    let values = [crop.width, crop.height, crop.offset_left, crop.offset_top];
+    if crop.width == 0 || crop.height == 0 || values.iter().any(|v| *v > max) {
+        return Err("invalid-banner-crop");
     }
     Ok(())
 }
@@ -3790,6 +3902,68 @@ impl Client {
             template(
                 endpoints::DELETE_STREAM_SOURCE.path,
                 id_param(source_id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    // ── Profile ─────────────────────────────────────────────────────
+
+    /// Changes the authenticated user's display name, bio, website, or
+    /// location; only the fields `changes` sets are sent.
+    pub fn update_profile(&self, changes: &ProfileChanges) -> Call<ApiResponse<UpdatedResult>> {
+        self.json_call(
+            endpoints::UPDATE_PROFILE.method,
+            template(endpoints::UPDATE_PROFILE.path, HashMap::new(), Vec::new()),
+            changes,
+        )
+    }
+
+    /// Sets the authenticated user's profile image from an uploaded media
+    /// id; X crops the image to a centered square.
+    pub fn update_profile_image(&self, media_id: &str) -> Call<ApiResponse<UpdatedResult>> {
+        self.json_call(
+            endpoints::UPDATE_PROFILE_IMAGE.method,
+            template(
+                endpoints::UPDATE_PROFILE_IMAGE.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &ProfileMediaBody {
+                media_id: media_id.trim().to_string(),
+                crop: None,
+            },
+        )
+    }
+
+    /// Sets the authenticated user's profile banner from an uploaded media
+    /// id, cropped to `crop` when given and the whole image otherwise.
+    pub fn update_profile_banner(
+        &self,
+        media_id: &str,
+        crop: Option<BannerCrop>,
+    ) -> Call<ApiResponse<UpdatedResult>> {
+        self.json_call(
+            endpoints::UPDATE_PROFILE_BANNER.method,
+            template(
+                endpoints::UPDATE_PROFILE_BANNER.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &ProfileMediaBody {
+                media_id: media_id.trim().to_string(),
+                crop,
+            },
+        )
+    }
+
+    /// Removes the authenticated user's profile banner.
+    pub fn remove_profile_banner(&self) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::REMOVE_PROFILE_BANNER.method,
+            template(
+                endpoints::REMOVE_PROFILE_BANNER.path,
+                HashMap::new(),
                 Vec::new(),
             ),
         )

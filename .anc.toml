@@ -27,5 +27,5 @@ domain_verbs = [
   "posts", "users", "user-posts", "search-users", "search-counts", "analytics",
   "bookmark-folders", "conversations", "dm-events", "dm-block", "dm-unblock",
   "lists", "communities", "news", "trends", "spaces", "stream",
-  "notes", "articles", "calls", "webhooks",
+  "notes", "articles", "calls", "webhooks", "profile",
 ]

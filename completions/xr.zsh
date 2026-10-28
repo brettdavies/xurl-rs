@@ -1866,6 +1866,428 @@ never\:"Never emit ANSI color escapes"))' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
+(profile)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__profile_commands" \
+"*::: :->profile" \
+&& ret=0
+
+    case $state in
+    (profile)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-profile-command-$line[1]:"
+        case $line[1] in
+            (update)
+_arguments "${_arguments_options[@]}" : \
+'--name=[Display name, 1 to 50 characters]:NAME:_default' \
+'--description=[Bio, up to 160 characters]:TEXT:_default' \
+'--url=[Website URL, up to 100 characters]:URL:_default' \
+'--location=[Location, up to 30 characters]:TEXT:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(image)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__profile__subcmd__image_commands" \
+"*::: :->image" \
+&& ret=0
+
+    case $state in
+    (image)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-profile-image-command-$line[1]:"
+        case $line[1] in
+            (set)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':media_id -- Media ID, as `xr media upload` prints it:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__profile__subcmd__image__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-profile-image-help-command-$line[1]:"
+        case $line[1] in
+            (set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(banner)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__profile__subcmd__banner_commands" \
+"*::: :->banner" \
+&& ret=0
+
+    case $state in
+    (banner)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-profile-banner-command-$line[1]:"
+        case $line[1] in
+            (set)
+_arguments "${_arguments_options[@]}" : \
+'--crop=[The region of the image to use, in pixels\: width x height + left offset + top offset, such as \`1500x500+0+120\`]:WxH+LEFT+TOP:_default' \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':media_id -- Media ID, as `xr media upload` prints it:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
+'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__profile__subcmd__banner__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-profile-banner-help-command-$line[1]:"
+        case $line[1] in
+            (set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__profile__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-profile-help-command-$line[1]:"
+        case $line[1] in
+            (update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(image)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__profile__subcmd__help__subcmd__image_commands" \
+"*::: :->image" \
+&& ret=0
+
+    case $state in
+    (image)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-profile-help-image-command-$line[1]:"
+        case $line[1] in
+            (set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(banner)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__profile__subcmd__help__subcmd__banner_commands" \
+"*::: :->banner" \
+&& ret=0
+
+    case $state in
+    (banner)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-profile-help-banner-command-$line[1]:"
+        case $line[1] in
+            (set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
 (usage)
 _arguments "${_arguments_options[@]}" : \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
@@ -9587,7 +10009,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-sent\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-deleted\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
+'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-sent\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-deleted\`, \`updated\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -9816,6 +10238,70 @@ _arguments "${_arguments_options[@]}" : \
 (blocked)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
+;;
+(profile)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__profile_commands" \
+"*::: :->profile" \
+&& ret=0
+
+    case $state in
+    (profile)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-profile-command-$line[1]:"
+        case $line[1] in
+            (update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(image)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__profile__subcmd__image_commands" \
+"*::: :->image" \
+&& ret=0
+
+    case $state in
+    (image)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-profile-image-command-$line[1]:"
+        case $line[1] in
+            (set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(banner)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__profile__subcmd__banner_commands" \
+"*::: :->banner" \
+&& ret=0
+
+    case $state in
+    (banner)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-profile-banner-command-$line[1]:"
+        case $line[1] in
+            (set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
 ;;
 (usage)
 _arguments "${_arguments_options[@]}" : \
@@ -10833,6 +11319,7 @@ _xr_commands() {
 'block:Block a user' \
 'unblock:Unblock a user' \
 'blocked:List users you have blocked' \
+'profile:Change your profile\: display name, bio, website, location, image, and banner' \
 'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'conversations:Start a group conversation, send into one, or read one' \
@@ -12244,6 +12731,7 @@ _xr__subcmd__help_commands() {
 'block:Block a user' \
 'unblock:Unblock a user' \
 'blocked:List users you have blocked' \
+'profile:Change your profile\: display name, bio, website, location, image, and banner' \
 'usage:Show API usage (post caps, daily breakdown)' \
 'dm:Send a direct message' \
 'conversations:Start a group conversation, send into one, or read one' \
@@ -13062,6 +13550,50 @@ _xr__subcmd__help__subcmd__post_commands() {
 _xr__subcmd__help__subcmd__posts_commands() {
     local commands; commands=()
     _describe -t commands 'xr help posts commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__profile_commands] )) ||
+_xr__subcmd__help__subcmd__profile_commands() {
+    local commands; commands=(
+'update:Change your display name, bio, website, or location' \
+'image:Set your profile image' \
+'banner:Set or remove your profile banner' \
+    )
+    _describe -t commands 'xr help profile commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__profile__subcmd__banner_commands] )) ||
+_xr__subcmd__help__subcmd__profile__subcmd__banner_commands() {
+    local commands; commands=(
+'set:Set your profile banner from an uploaded image' \
+'remove:Remove your profile banner' \
+    )
+    _describe -t commands 'xr help profile banner commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__profile__subcmd__banner__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__profile__subcmd__banner__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help profile banner remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__profile__subcmd__banner__subcmd__set_commands] )) ||
+_xr__subcmd__help__subcmd__profile__subcmd__banner__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help profile banner set commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__profile__subcmd__image_commands] )) ||
+_xr__subcmd__help__subcmd__profile__subcmd__image_commands() {
+    local commands; commands=(
+'set:Set your profile image from an uploaded image' \
+    )
+    _describe -t commands 'xr help profile image commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__profile__subcmd__image__subcmd__set_commands] )) ||
+_xr__subcmd__help__subcmd__profile__subcmd__image__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help profile image set commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__profile__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__profile__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help profile update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__quote_commands] )) ||
 _xr__subcmd__help__subcmd__quote_commands() {
@@ -13978,6 +14510,145 @@ _xr__subcmd__post_commands() {
 _xr__subcmd__posts_commands() {
     local commands; commands=()
     _describe -t commands 'xr posts commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile_commands] )) ||
+_xr__subcmd__profile_commands() {
+    local commands; commands=(
+'update:Change your display name, bio, website, or location' \
+'image:Set your profile image' \
+'banner:Set or remove your profile banner' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr profile commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__banner_commands] )) ||
+_xr__subcmd__profile__subcmd__banner_commands() {
+    local commands; commands=(
+'set:Set your profile banner from an uploaded image' \
+'remove:Remove your profile banner' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr profile banner commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__banner__subcmd__help_commands] )) ||
+_xr__subcmd__profile__subcmd__banner__subcmd__help_commands() {
+    local commands; commands=(
+'set:Set your profile banner from an uploaded image' \
+'remove:Remove your profile banner' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr profile banner help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__banner__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__profile__subcmd__banner__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile banner help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__banner__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__profile__subcmd__banner__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile banner help remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__banner__subcmd__help__subcmd__set_commands] )) ||
+_xr__subcmd__profile__subcmd__banner__subcmd__help__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile banner help set commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__banner__subcmd__remove_commands] )) ||
+_xr__subcmd__profile__subcmd__banner__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile banner remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__banner__subcmd__set_commands] )) ||
+_xr__subcmd__profile__subcmd__banner__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile banner set commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__help_commands] )) ||
+_xr__subcmd__profile__subcmd__help_commands() {
+    local commands; commands=(
+'update:Change your display name, bio, website, or location' \
+'image:Set your profile image' \
+'banner:Set or remove your profile banner' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr profile help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__help__subcmd__banner_commands] )) ||
+_xr__subcmd__profile__subcmd__help__subcmd__banner_commands() {
+    local commands; commands=(
+'set:Set your profile banner from an uploaded image' \
+'remove:Remove your profile banner' \
+    )
+    _describe -t commands 'xr profile help banner commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__help__subcmd__banner__subcmd__remove_commands] )) ||
+_xr__subcmd__profile__subcmd__help__subcmd__banner__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile help banner remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__help__subcmd__banner__subcmd__set_commands] )) ||
+_xr__subcmd__profile__subcmd__help__subcmd__banner__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile help banner set commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__profile__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__help__subcmd__image_commands] )) ||
+_xr__subcmd__profile__subcmd__help__subcmd__image_commands() {
+    local commands; commands=(
+'set:Set your profile image from an uploaded image' \
+    )
+    _describe -t commands 'xr profile help image commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__help__subcmd__image__subcmd__set_commands] )) ||
+_xr__subcmd__profile__subcmd__help__subcmd__image__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile help image set commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__profile__subcmd__help__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile help update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__image_commands] )) ||
+_xr__subcmd__profile__subcmd__image_commands() {
+    local commands; commands=(
+'set:Set your profile image from an uploaded image' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr profile image commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__image__subcmd__help_commands] )) ||
+_xr__subcmd__profile__subcmd__image__subcmd__help_commands() {
+    local commands; commands=(
+'set:Set your profile image from an uploaded image' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr profile image help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__image__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__profile__subcmd__image__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile image help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__image__subcmd__help__subcmd__set_commands] )) ||
+_xr__subcmd__profile__subcmd__image__subcmd__help__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile image help set commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__image__subcmd__set_commands] )) ||
+_xr__subcmd__profile__subcmd__image__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile image set commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__profile__subcmd__update_commands] )) ||
+_xr__subcmd__profile__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr profile update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__quote_commands] )) ||
 _xr__subcmd__quote_commands() {

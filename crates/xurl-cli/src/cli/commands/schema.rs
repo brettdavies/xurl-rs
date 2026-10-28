@@ -19,8 +19,8 @@ use xdk::api::{
     NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceDeleted, SubscribedResult, Trend, UpdatedResult, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -276,6 +276,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "media-subtitles-remove",
             "webhooks-remove",
             "webhooks-stream-links-remove",
+            "profile-banner-remove",
         ],
         type_name: "ApiResponse<DeletedResult>",
         schema: || schema_for!(ApiResponse<DeletedResult>).into(),
@@ -378,6 +379,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts-sources-remove"],
         type_name: "ApiResponse<StreamSourceDeleted>",
         schema: || schema_for!(ApiResponse<StreamSourceDeleted>).into(),
+    },
+    SchemaEntry {
+        commands: &["profile-update", "profile-image-set", "profile-banner-set"],
+        type_name: "ApiResponse<UpdatedResult>",
+        schema: || schema_for!(ApiResponse<UpdatedResult>).into(),
     },
     SchemaEntry {
         commands: &["calls-get"],
@@ -533,6 +539,9 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "media-upload",
     "news",
     "notes",
+    "profile",
+    "profile-banner",
+    "profile-image",
     "schema",
     "skill",
     "skill-update",

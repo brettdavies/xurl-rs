@@ -30,6 +30,7 @@ pub use output::OutputFormat;
 use skill_install::KNOWN_HOSTS;
 pub use skill_install::SkillHost;
 use xdk::api::VideoCategory;
+use xdk::api::shortcuts::BannerCrop;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
 /// and TTY detection.
@@ -1706,6 +1707,15 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Profile and account settings ──────────────────────────────────
+    /// Change your profile: display name, bio, website, location, image, and banner
+    #[command(after_help = family_help::profile::root_page())]
+    Profile {
+        /// `profile` verb to dispatch.
+        #[command(subcommand)]
+        action: ProfileCommands,
+    },
+
     // ── Usage ─────────────────────────────────────────────────────────
     /// Show API usage (post caps, daily breakdown)
     #[command(after_help = USAGE_HELP)]
@@ -3033,6 +3043,113 @@ pub enum ModeratorsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+}
+
+/// `xr profile` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ProfileCommands {
+    /// Change your display name, bio, website, or location
+    ///
+    /// Only the fields given change; an empty `--description`, `--url`, or
+    /// `--location` clears it.
+    #[command(after_help = family_help::profile::FAMILY.verb_page(&family_help::profile::UPDATE))]
+    Update {
+        /// Display name, 1 to 50 characters
+        #[arg(long, value_name = "NAME")]
+        name: Option<String>,
+        /// Bio, up to 160 characters
+        #[arg(long, value_name = "TEXT")]
+        description: Option<String>,
+        /// Website URL, up to 100 characters
+        #[arg(long, value_name = "URL")]
+        url: Option<String>,
+        /// Location, up to 30 characters
+        #[arg(long, value_name = "TEXT")]
+        location: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Set your profile image
+    #[command(after_help = family_help::profile_image::page())]
+    Image {
+        /// `image` verb to dispatch.
+        #[command(subcommand)]
+        action: ProfileImageCommands,
+    },
+    /// Set or remove your profile banner
+    #[command(after_help = family_help::profile_banner::page())]
+    Banner {
+        /// `banner` verb to dispatch.
+        #[command(subcommand)]
+        action: ProfileBannerCommands,
+    },
+}
+
+/// `xr profile image` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ProfileImageCommands {
+    /// Set your profile image from an uploaded image
+    ///
+    /// Upload the image with `xr media upload` first; X crops it to a
+    /// centered square.
+    #[command(after_help = family_help::profile_image::FAMILY.verb_page(&family_help::profile_image::SET))]
+    Set {
+        /// Media ID, as `xr media upload` prints it
+        #[arg(value_name = "MEDIA_ID")]
+        media_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr profile banner` verbs.
+#[derive(Subcommand, Debug)]
+pub enum ProfileBannerCommands {
+    /// Set your profile banner from an uploaded image
+    ///
+    /// Upload the image with `xr media upload` first. `--crop` picks the
+    /// region to use; without it X uses the whole image.
+    #[command(after_help = family_help::profile_banner::FAMILY.verb_page(&family_help::profile_banner::SET))]
+    Set {
+        /// Media ID, as `xr media upload` prints it
+        #[arg(value_name = "MEDIA_ID")]
+        media_id: String,
+        /// The region of the image to use, in pixels: width x height + left
+        /// offset + top offset, such as `1500x500+0+120`
+        #[arg(long, value_name = "WxH+LEFT+TOP", value_parser = parse_banner_crop)]
+        crop: Option<BannerCrop>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove your profile banner
+    #[command(after_help = family_help::profile_banner::FAMILY.verb_page(&family_help::profile_banner::REMOVE))]
+    Remove {
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// Parses a `--crop` geometry, `WIDTHxHEIGHT+LEFT+TOP` in pixels, such as
+/// `1500x500+0+120`. The bounds on each number are the library's to check.
+fn parse_banner_crop(geometry: &str) -> std::result::Result<BannerCrop, String> {
+    let invalid = || format!("`{geometry}` is not WIDTHxHEIGHT+LEFT+TOP, such as 1500x500+0+120");
+    let (size, offsets) = geometry.split_once('+').ok_or_else(invalid)?;
+    let (width, height) = size.split_once('x').ok_or_else(invalid)?;
+    let (left, top) = offsets.split_once('+').ok_or_else(invalid)?;
+    let number = |text: &str| text.parse::<u32>().map_err(|_| invalid());
+    Ok(BannerCrop {
+        width: number(width)?,
+        height: number(height)?,
+        offset_left: number(left)?,
+        offset_top: number(top)?,
+    })
 }
 
 /// `xr broadcasts mutes` verbs.

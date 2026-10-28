@@ -31,8 +31,8 @@ use xdk::api::response::types::{
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted,
-    SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation, XCall,
+    SubscribedResult, Trend, UpdatedResult, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -674,6 +674,14 @@ fn spec_bookmark_folder_posts() {
 }
 
 #[test]
+fn spec_updated() {
+    let examples = load_examples();
+    let resp: ApiResponse<UpdatedResult> =
+        serde_json::from_value(examples["updated"].clone()).unwrap();
+    assert!(resp.data.updated);
+}
+
+#[test]
 fn spec_stream_sources() {
     let examples = load_examples();
     let resp: ApiResponse<Vec<StreamSource>> =
@@ -1077,6 +1085,7 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         endpoints::DELETE_STREAM_SOURCE,
         ReplyKind::Success,
     ),
+    ("updated", endpoints::UPDATE_PROFILE, ReplyKind::Success),
     ("call", endpoints::GET_CALL, ReplyKind::Success),
     (
         "scheduled_calls",

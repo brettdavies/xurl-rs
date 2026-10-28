@@ -597,6 +597,11 @@
       "pending_follow": false
     }
   },
+  "updated": {
+    "data": {
+      "updated": true
+    }
+  },
   "action_deleted": {
     "data": {
       "deleted": true

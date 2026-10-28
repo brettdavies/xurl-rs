@@ -361,6 +361,25 @@ media id for 24 hours, so the envelope carries the id and the command that resum
 }
 ```
 
+### Profile
+
+```bash
+xr profile update --name "X Dev" --description "Building xr."
+xr profile update --location ""                    # An empty value clears the field
+xr media upload ./avatar.png                       # Prints the media id each `set` takes
+xr profile image set 1146654567674912769           # X crops it to a centered square
+xr profile banner set 1146654567674912770 --crop 1500x500+0+120
+xr profile banner remove                           # Asks first (--force skips)
+```
+
+`update` changes only the fields given: `--name` (1 to 50 characters), `--description` (the bio, up to 160), `--url`
+(up to 100), and `--location` (up to 30). An empty `--description`, `--url`, or `--location` clears it, and `update` with
+no field is refused with `no-profile-changes`. `--crop` takes `WIDTHxHEIGHT+LEFT+TOP` in pixels of the uploaded image;
+without it X uses the whole image.
+
+The profile endpoints take a user login with the `users.write` scope, which every `xr auth oauth2` sign-in requests. A
+login made before `xr` requested it lacks it, and X refuses the request until you sign in again with `xr auth oauth2`.
+
 ### Broadcasts
 
 ```bash

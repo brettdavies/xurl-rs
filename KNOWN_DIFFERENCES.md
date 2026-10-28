@@ -24,12 +24,13 @@ The management commands have no Go counterpart: `xr webhooks list`, `add`, `vali
 those endpoints are reached through raw requests.
 
 The commands below have no Go counterpart either. With Go, their endpoints are reached through raw requests, and a Go
-sign-in does not request the `calls.read` and `calls.write` scopes the calls endpoints take.
+sign-in does not request the `calls.read`, `calls.write`, and `users.write` scopes the calls and profile endpoints take.
 
 - `xr calls get` and `xr calls scheduled` (`list`, `get`, `add`, `update`, `cancel`, `rsvp`)
 - `xr broadcasts` (`list`, `get`), `xr broadcasts sources` (`list`, `get`, `add`, `rename`, `remove`),
   `xr broadcasts scheduled` (`list`, `get`, `add`, `update`, `remove`, `live`), `xr broadcasts chat` (`history`,
   `send`, `remove`, `mute`, `unmute`), and `xr broadcasts mutes` (`list`, `add`, `remove`)
+- `xr profile update`, `xr profile image set`, and `xr profile banner` (`set`, `remove`)
 - `xr bookmark-folders` (`list`, `posts`, `add`)
 - `xr hide` and `xr unhide`
 - `xr likers`, `xr reposters`, and `xr quotes`

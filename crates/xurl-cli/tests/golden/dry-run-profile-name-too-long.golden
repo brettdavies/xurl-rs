@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "profile", "update", "--name", "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"]
+store: empty
+exit_code: 0
+stdout_len: 203
+stderr_len: 0
+--- stdout ---
+{
+  "command": "profile-update",
+  "exit_code": 1,
+  "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+  "reason": "profile-name-too-long",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

@@ -1,0 +1,17 @@
+args: ["--output", "json", "--dry-run", "profile", "update", "--description", "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"]
+store: empty
+exit_code: 0
+stdout_len: 327
+stderr_len: 0
+--- stdout ---
+{
+  "command": "profile-update",
+  "description": "ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "exit_code": 1,
+  "reason": "profile-description-too-long",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

@@ -44,9 +44,9 @@ pub use response::types::{
     PostPublicMetrics, ProvisionedResult, ReferencedPost, RepostedResult, ResponseMeta,
     ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
-    StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData,
-    UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall, deserialize_response,
+    StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend, UpdatedResult,
+    UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]
