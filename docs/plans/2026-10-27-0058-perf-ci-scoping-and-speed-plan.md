@@ -387,7 +387,8 @@ precedes U5, which measures debug info on the merged layout. U11 lands before U3
 The PRs, by repository, in merge order:
 
 1. `brettdavies/.github`: the `warm_cache`, `test_runner`, and `jobs` inputs, each defaulting to today's behavior, and
-   every `dtolnay/rust-toolchain` use pinned to a commit SHA (T1 in the Decision ledger).
+   every toolchain install switched to `rustup toolchain install` behind a `toolchain` input defaulting to `stable`
+   (T1 in the Decision ledger), with the job-level debug-info setting that xurl-rs#431 measured.
 2. xurl-rs U1: push triggers and warm mode.
 3. xurl-rs U2: no code; its findings go to Brett, and each removal he approves lands as its own PR.
 4. xurl-rs U11: `.github/tool-versions` and `scripts/dev-setup.sh`.
@@ -549,11 +550,13 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 - **Goal:** the test compile phase gets shorter without losing file-and-line backtraces.
 - **Requirements:** R3; KTD7.
 - **Dependencies:** U6.
-- **Files:** `Cargo.toml` (`[profile.test]` and a dependency override for it), or the reusable's test step environment
-  if the profile cannot reach it.
-- **Approach:** on the merged layout and the same warm cache, measure the compile phase with each candidate alone:
-  line-tables-only debug info for the workspace's test builds, and no debug info for dependencies in test builds. Keep
-  each that shortens the phase by 5% or more.
+- **Files:** the shared workflow's job environment; `ci.yml`'s own jobs already build with
+  `CARGO_PROFILE_DEV_DEBUG=line-tables-only` (xurl-rs#431).
+- **Approach:** xurl-rs#431 measured debug info on cold builds (run 40780555611, medians of 3, Ubuntu / Windows): full
+  169 / 436 s and 15.2 GB; `line-tables-only` 109 / 252 s and 6.8 GB with file-and-line backtraces kept; `0` 134 /
+  268 s and 3.1 GB with them lost. `ci.yml` adopted `line-tables-only`. The setting does not reach the reusable's jobs
+  from `ci.yml`'s workflow env, so the shared-workflow PR carries it to `Fmt, clippy, test`; after U6, measure whether
+  no debug info for dependencies alone shortens the warm compile phase by 5% or more, and keep it only then.
 - **Test expectation:** none -- a build setting; the suite's pass state is the check.
 - **Verification:** each kept setting's measurement is recorded, and a panicking test still prints its file and line;
   each dropped setting has its measurement recorded.
@@ -1009,7 +1012,12 @@ Pin every dtolnay/rust-toolchain use in rust-ci.yml to a commit SHA with the ver
 - **Actual answer:** C) Build it now in the shared-workflow PR (D4, 2026-10-27)
 - **Accepted scope:** the D2 shared-workflow PR pins every `dtolnay/rust-toolchain` use in `rust-ci.yml` to a commit SHA
   with its version comment, passing the toolchain as an input (Sequencing, PR 1).
-- **History:** none
+- **History:** reopened 2026-10-28 on measured evidence. xurl-rs#431 replaced every `dtolnay/rust-toolchain` step in
+  `ci.yml` with `rustup`, after a 30-job benchmark (run 40777075643) showed setup time the same across every installer,
+  and showed that a SHA pin of `dtolnay/rust-toolchain@stable` goes stale: the maintainer rebuilds `stable` whenever
+  `master` moves, the pinned commit is orphaned within weeks, and Dependabot cannot follow it. The shared-workflow PR
+  therefore installs with `rustup toolchain install "${toolchain:-stable}"` (a repo without `rust-toolchain.toml` needs
+  the input) instead of a SHA pin, which removes the third-party action the D4 answer pinned.
 
 ### Corrections under existing approvals
 
