@@ -83,9 +83,18 @@ git log "$SINCE..origin/dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conv
 
 Every release squash-merges into `main`, so the tag shares no recent history with `dev`, and a log from the tag counts
 `dev`'s whole past. The window opens at the commit that synced the tag back into `dev`, whose subject reads
-`chore(release): sync dev after vX.Y.Z`: the boundary `generate-changelog.py` uses. The file list compares trees, so it
-reads from the tag directly, minus the guarded set `dev` carries but never ships. With no commit syncing the tag back,
-`preflight.sh surface` SKIPs, and the surface is `origin/main..origin/dev`.
+`chore(release): sync dev after vX.Y.Z`. The file list compares trees, so it reads from the tag directly, minus the
+guarded set `dev` carries but never ships. With no commit syncing the tag back, `preflight.sh surface` SKIPs, and the
+surface is `origin/main..origin/dev`.
+
+The previous release branch took `dev` before that sync commit merged, so a PR that merged between the cut and the sync
+went out in neither release, and the log above does not show it. `generate-changelog.py` reads it: it also reads the PRs
+between the sync commit before that one and this one, and leaves out every PR `CHANGELOG.md` already lists. When this
+sync commit is the first, it reads the PRs after the newest one the previous section cites instead, and a previous
+section that cites no PR, such as hand-written notes, carries nothing over. The generated section is the complete list,
+and a breaking PR merged in that gap appears in its `### Breaking changes` rather than in the tally. No section cites a
+PR the previous release left out of its notes on purpose either, so it comes back in this section; leave it out the same
+way.
 
 `cargo semver-checks` determines the required bump from the code itself, so the `!:` marker records a break rather than
 detecting one: a break reaches `dev` whether or not its commit carried the marker. Every `!:` commit still gets a row in
@@ -425,9 +434,23 @@ exercises it until the tag exists, which is the wrong moment to find a packaging
 - [ ] **Library version bumped and `crates/xdk/CHANGELOG.md` cut**, per `RELEASES.md` § Project specifics, together with
   the CLI's declared bound in the root `Cargo.toml`. The changelog beside the manifest is where `rust-ci.yml`'s
   per-crate `Changelog` check looks, and where `release-lib.yml` cuts release notes from.
-- [ ] **Rehearse the publish from the release branch**: `gh workflow run release-lib.yml --ref release/v<version>`, then
-  watch it to `success`. A manual dispatch always runs dry (the caller derives `dry_run` from `github.event_name`), so
-  this cannot publish. It runs the real audit and a real `cargo publish -p xdk-rs --dry-run`, and creates no release.
+- [ ] **Rehearse the publish from the release branch**: `cargo publish -p xdk-rs --dry-run` on the committed branch
+  packages the crate, builds it from the package, and stops before the upload, which is the step `release-lib.yml`
+  publishes with; `cargo package -p xdk-rs --list` shows the file set. The workflow's audit is the `cargo deny` pair the
+  release PR's `ci / Security audit` jobs run. When `release-lib.yml`, or the reusable `rust-lib-release.yml` it calls,
+  changed since the last `xdk-rs-v*` tag, the workflow needs a run of its own,
+  `gh workflow run release-lib.yml --ref release/v<version>`, watched to `success`. A manual dispatch always runs dry
+  (the caller derives `dry_run` from `github.event_name`), so it cannot publish and creates no release. These list the
+  changes, and print nothing when there are none:
+
+  ```bash
+  last=$(git tag -l 'xdk-rs-v*' --sort=-v:refname | head -1)
+  since=$(git log -1 --format=%cI "$last")
+  git log --oneline "$last..HEAD" -- .github/workflows/release-lib.yml
+  gh api "repos/brettdavies/.github/commits?path=.github/workflows/rust-lib-release.yml&since=$since" \
+    --jq '.[].commit.message | split("\n")[0]'
+  ```
+
 - [ ] **Tag order planned: library first, CLI second.** `cargo publish -p xurl-rs` resolves `xdk-rs` from crates.io, so
   the CLI cannot publish until the library is on the index at a version its bound accepts. The CLI's `check-version`
   refuses up front when it is not, which costs a full run to discover.
