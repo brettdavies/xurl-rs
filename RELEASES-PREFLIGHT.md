@@ -83,9 +83,18 @@ git log "$SINCE..origin/dev" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline   # Conv
 
 Every release squash-merges into `main`, so the tag shares no recent history with `dev`, and a log from the tag counts
 `dev`'s whole past. The window opens at the commit that synced the tag back into `dev`, whose subject reads
-`chore(release): sync dev after vX.Y.Z`: the boundary `generate-changelog.py` uses. The file list compares trees, so it
-reads from the tag directly, minus the guarded set `dev` carries but never ships. With no commit syncing the tag back,
-`preflight.sh surface` SKIPs, and the surface is `origin/main..origin/dev`.
+`chore(release): sync dev after vX.Y.Z`. The file list compares trees, so it reads from the tag directly, minus the
+guarded set `dev` carries but never ships. With no commit syncing the tag back, `preflight.sh surface` SKIPs, and the
+surface is `origin/main..origin/dev`.
+
+The previous release branch took `dev` before that sync commit merged, so a PR that merged between the cut and the sync
+went out in neither release, and the log above does not show it. `generate-changelog.py` reads it: it also reads the PRs
+between the sync commit before that one and this one, and leaves out every PR `CHANGELOG.md` already lists. When this
+sync commit is the first, it reads the PRs after the newest one the previous section cites instead, and a previous
+section that cites no PR, such as hand-written notes, carries nothing over. The generated section is the complete list,
+and a breaking PR merged in that gap appears in its `### Breaking changes` rather than in the tally. No section cites a
+PR the previous release left out of its notes on purpose either, so it comes back in this section; leave it out the same
+way.
 
 `cargo semver-checks` determines the required bump from the code itself, so the `!:` marker records a break rather than
 detecting one: a break reaches `dev` whether or not its commit carried the marker. Every `!:` commit still gets a row in
