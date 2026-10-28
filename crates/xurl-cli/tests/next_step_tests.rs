@@ -63,6 +63,8 @@ fn unloadable_store(tmp: &TempDir) -> std::path::PathBuf {
 #[rstest::rstest]
 #[case::root_flag(&["xr", "--output", "json", "--frobnicate"], "xr --help")]
 #[case::command_argument(&["xr", "--output", "json", "whoami", "extra"], "xr whoami --help")]
+#[case::word_after_a_raw_target(&["xr", "--output", "json", "/2/users/me", "extra"], "xr --help")]
+#[case::word_after_a_raw_only_flag(&["xr", "--output", "json", "-X", "POST", "suth", "status"], "xr --help")]
 #[case::family_flag(&["xr", "--output", "json", "auth", "--frob"], "xr auth --help")]
 #[case::invalid_value(&["xr", "--output", "json", "skill", "install", "bogus_host"], "xr skill install --help")]
 #[case::unsupported_format(&["xr", "--output", "toml", "whoami"], "xr whoami --help")]

@@ -179,16 +179,16 @@ pub(crate) fn help_command_precedes(args: &[OsString], word: &str) -> bool {
         .any(|a| a.to_string_lossy() == "help")
 }
 
-/// Whether clap stopped at a word it found no place for: an unrecognized
+/// The word clap stopped at when it found no place for it: an unrecognized
 /// subcommand or an unexpected argument, either one a word rather than a flag
 /// spelling.
-pub(crate) fn rejected_a_word(error: &clap::Error) -> bool {
+pub(crate) fn rejected_word(error: &clap::Error) -> Option<String> {
     let kind = match error.kind() {
         ErrorKind::InvalidSubcommand => ContextKind::InvalidSubcommand,
         ErrorKind::UnknownArgument => ContextKind::InvalidArg,
-        _ => return false,
+        _ => return None,
     };
-    context_string(error, kind).is_some_and(|word| !word.starts_with('-'))
+    context_string(error, kind).filter(|word| !word.starts_with('-'))
 }
 
 /// clap's own suggestion for an unrecognized subcommand, where it scored one.
