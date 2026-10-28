@@ -377,6 +377,9 @@ xr broadcasts chat mute 1YqKDqWqdPLGV @troll --until 2026-11-02T17:00:00Z
 xr broadcasts chat remove 1YqKDqWqdPLGV 1700000000001 # Remove a message (asks first)
 xr broadcasts moderators list                      # Who moderates your broadcast chats
 xr broadcasts moderators add @helper               # Add a chat moderator
+xr broadcasts mutes list                           # Who is muted in every chat of your broadcasts
+xr broadcasts mutes add @troll --until 2026-11-02T17:00:00Z
+xr broadcasts mutes remove @troll                  # Unmute
 xr broadcasts sources list                         # Your RTMP and RTMPS ingest points
 xr broadcasts sources add "Studio A" --region us-east-1
 xr broadcasts sources get 1x2y3z4w5v6u             # Whether the source is receiving video
@@ -386,6 +389,10 @@ xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force
 
 A scheduled broadcast takes its video from a stream source, so `add` names one with `--source`; its times are RFC 3339,
 and `xr` sends them as the milliseconds since the Unix epoch X takes. X takes both times on every `update`.
+
+`xr broadcasts chat mute` mutes someone in one broadcast's chat; `xr broadcasts mutes add` mutes them in every chat of
+your broadcasts, until `--until` or for good. A moderator adds `--broadcast` to mute or unmute someone in every chat of
+that broadcast's host, and `--message` to remove one of their messages from that broadcast's chat while muting them.
 
 A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `stream_key`,
 then poll `get` until `is_stream_active` is true. Whoever holds the stream key can stream to the source; keep it out of

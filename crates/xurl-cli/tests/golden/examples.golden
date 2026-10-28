@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 11981
+stdout_len: 12179
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -178,6 +178,10 @@ BROADCASTS:
   Add / remove a chat moderator:
     xr broadcasts moderators add @helper
     xr broadcasts moderators remove @helper --output json
+
+  Time someone out of every chat of your broadcasts, then see who is muted:
+    xr broadcasts mutes add @troll --until 2026-11-02T17:00:00Z --output json
+    xr broadcasts mutes list --output json
 
   Create a stream source, stream to its rtmps_url with its stream_key, and check it is live:
     xr broadcasts sources add "Studio A" --region us-east-1 --output json

@@ -2727,6 +2727,13 @@ pub enum BroadcastsCommands {
         #[command(subcommand)]
         action: ModeratorsCommands,
     },
+    /// Mute people in every chat of your broadcasts
+    #[command(after_help = family_help::broadcast_mutes::page())]
+    Mutes {
+        /// `mutes` verb to dispatch.
+        #[command(subcommand)]
+        action: MutesCommands,
+    },
     /// Manage the RTMP and RTMPS ingest points you stream to
     #[command(after_help = family_help::broadcast_sources::page())]
     Sources {
@@ -3022,6 +3029,56 @@ pub enum ModeratorsCommands {
         /// Username to remove
         #[arg(value_name = "USERNAME")]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr broadcasts mutes` verbs.
+#[derive(Subcommand, Debug)]
+pub enum MutesCommands {
+    /// List who is muted in your broadcast chats, and until when
+    #[command(after_help = family_help::broadcast_mutes::FAMILY.verb_page(&family_help::broadcast_mutes::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Mute someone in every chat of your broadcasts
+    ///
+    /// A moderator passes `--broadcast` to mute them in every chat of that
+    /// broadcast's host instead.
+    #[command(after_help = family_help::broadcast_mutes::FAMILY.verb_page(&family_help::broadcast_mutes::ADD))]
+    Add {
+        /// Username to mute
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// When the mute ends (RFC 3339 with a zone); for good when unset
+        #[arg(long, value_name = "TIME")]
+        until: Option<String>,
+        /// A broadcast you moderate: mute them in its host's chats
+        #[arg(long, value_name = "BROADCAST_ID")]
+        broadcast: Option<String>,
+        /// A message of theirs in that broadcast's chat to remove, by id
+        #[arg(long, value_name = "MESSAGE_ID", requires = "broadcast")]
+        message: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Unmute someone in your broadcast chats
+    #[command(after_help = family_help::broadcast_mutes::FAMILY.verb_page(&family_help::broadcast_mutes::REMOVE))]
+    Remove {
+        /// Username to unmute
+        #[arg(value_name = "USERNAME")]
+        target_username: String,
+        /// A broadcast you moderate: unmute them in its host's chats
+        #[arg(long, value_name = "BROADCAST_ID")]
+        broadcast: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

@@ -937,8 +937,8 @@ pub mod broadcast_chat {
 /// The `xr broadcasts` family.
 pub mod broadcasts {
     use super::{
-        Example, Family, Section, Verb, broadcast_chat, broadcast_sources, broadcasts_own,
-        broadcasts_scheduled, page_of,
+        Example, Family, Section, Verb, broadcast_chat, broadcast_mutes, broadcast_sources,
+        broadcasts_own, broadcasts_scheduled, page_of,
     };
 
     /// The family every page below belongs to.
@@ -983,6 +983,10 @@ pub mod broadcasts {
                 &[Example::json(&ADD), Example::json(&REMOVE)],
             ),
         ];
+        const MUTES: &[Section<'static>] = &[(
+            "Time someone out of every chat of your broadcasts, JSON envelope",
+            &[Example::json(&broadcast_mutes::ADD)],
+        )];
         const SOURCES: &[Section<'static>] = &[
             (
                 "The ingest points you stream to (text)",
@@ -1009,6 +1013,7 @@ pub mod broadcasts {
             (&broadcasts_own::FAMILY, YOURS),
             (&broadcasts_scheduled::FAMILY, SCHEDULED),
             (&FAMILY, MODERATORS),
+            (&broadcast_mutes::FAMILY, MUTES),
             (&broadcast_sources::FAMILY, SOURCES),
             (&broadcast_chat::FAMILY, CHAT),
         ])
@@ -1023,6 +1028,56 @@ pub mod broadcasts {
                 &[Example::text(&LIST)],
             ),
             ("Add a moderator (JSON envelope)", &[Example::json(&ADD)]),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
+/// The `xr broadcasts mutes` family.
+pub mod broadcast_mutes {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "broadcasts mutes",
+    };
+
+    /// `xr broadcasts mutes list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "Who is muted in your broadcast chats, and until when (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr broadcasts mutes add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "@troll --until 2026-11-02T17:00:00Z",
+        text_caption: "Time someone out of every chat of your broadcasts (text)",
+        json_caption: "Time out (JSON envelope)",
+    };
+
+    /// `xr broadcasts mutes remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "@troll",
+        text_caption: "Unmute someone (text)",
+        json_caption: "Unmute (JSON envelope)",
+    };
+
+    /// The page under `xr broadcasts mutes --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Who is muted in your broadcast chats (text)",
+                &[Example::text(&LIST)],
+            ),
+            (
+                "Time someone out, then let them back, JSON envelope",
+                &[Example::json(&ADD), Example::json(&REMOVE)],
+            ),
         ];
         FAMILY.page(SECTIONS)
     }

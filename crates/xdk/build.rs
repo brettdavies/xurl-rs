@@ -283,6 +283,13 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/broadcasts/chat/moderators/{user_id}",
     ),
+    ("GET_CHAT_MUTES", "GET", "/2/broadcasts/chat/mutes"),
+    ("ADD_CHAT_MUTE", "POST", "/2/broadcasts/chat/mutes"),
+    (
+        "REMOVE_CHAT_MUTE",
+        "DELETE",
+        "/2/broadcasts/chat/mutes/{user_id}",
+    ),
     // broadcast stream sources
     ("LIST_BROADCASTS", "GET", "/2/broadcasts"),
     ("GET_BROADCAST", "GET", "/2/broadcasts/{id}"),

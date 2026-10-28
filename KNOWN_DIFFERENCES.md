@@ -28,8 +28,8 @@ sign-in does not request the `calls.read` and `calls.write` scopes the calls end
 
 - `xr calls get` and `xr calls scheduled` (`list`, `get`, `add`, `update`, `cancel`, `rsvp`)
 - `xr broadcasts` (`list`, `get`), `xr broadcasts sources` (`list`, `get`, `add`, `rename`, `remove`),
-  `xr broadcasts scheduled` (`list`, `get`, `add`, `update`, `remove`, `live`), and `xr broadcasts chat` (`history`,
-  `send`, `remove`, `mute`, `unmute`)
+  `xr broadcasts scheduled` (`list`, `get`, `add`, `update`, `remove`, `live`), `xr broadcasts chat` (`history`,
+  `send`, `remove`, `mute`, `unmute`), and `xr broadcasts mutes` (`list`, `add`, `remove`)
 - `xr bookmark-folders` (`list`, `posts`, `add`)
 - `xr hide` and `xr unhide`
 - `xr likers`, `xr reposters`, and `xr quotes`

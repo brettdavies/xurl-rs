@@ -516,6 +516,21 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_CHAT_MUTES,
+        fixture: "chat_mutes",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::ADD_CHAT_MUTE,
+        fixture: "broadcast_chat_muted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::REMOVE_CHAT_MUTE,
+        fixture: "broadcast_chat_muted",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_MEDIA,
         fixture: "media_list",
         status: 200,

@@ -16,11 +16,11 @@ use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
-    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
-    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
-    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute, ChatMutedResult,
+    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
+    FollowingResult, HiddenResult, LikedResult, List, ListMemberResult, ListUpdatedResult, Media,
+    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
+    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
     StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
@@ -1293,6 +1293,25 @@ fn epoch_millis(time: &str) -> Option<String> {
     Some((seconds * 1000 + i64::from(nanos / 1_000_000)).to_string())
 }
 
+/// The body that mutes `user_id` in a broadcast chat: the expiry as the
+/// epoch milliseconds X takes, and a message of theirs to remove. `None`
+/// for an expiry outside RFC 3339.
+fn chat_mute_body(
+    user_id: &str,
+    until: Option<&str>,
+    message_id: Option<&str>,
+) -> Option<serde_json::Map<String, serde_json::Value>> {
+    let mut body = serde_json::Map::new();
+    body.insert("user_id".into(), user_id.into());
+    if let Some(until) = until {
+        body.insert("end_at_ms".into(), epoch_millis(until)?.into());
+    }
+    if let Some(message_id) = message_id {
+        body.insert("message_id".into(), message_id.into());
+    }
+    Some(body)
+}
+
 /// Whether `id` matches `^[0-9]{1,19}$`, the pattern the spec gives every
 /// numeric id: one to nineteen ASCII digits.
 fn is_numeric_id(id: &str) -> bool {
@@ -2403,22 +2422,9 @@ impl Client {
         until: Option<&str>,
         message_id: Option<&str>,
     ) -> Call<ApiResponse<ChatMutedResult>> {
-        let mut body = serde_json::Map::new();
-        body.insert("user_id".into(), user_id.into());
-        if let Some(until) = until {
-            match epoch_millis(until) {
-                Some(ms) => body.insert("end_at_ms".into(), ms.into()),
-                None => {
-                    return Call::failed(
-                        self,
-                        crate::error::Error::validation("invalid-time-window"),
-                    );
-                }
-            };
-        }
-        if let Some(message_id) = message_id {
-            body.insert("message_id".into(), message_id.into());
-        }
+        let Some(body) = chat_mute_body(user_id, until, message_id) else {
+            return Call::failed(self, crate::error::Error::validation("invalid-time-window"));
+        };
         self.post_json(
             template(endpoints::MUTE_CHAT_USER.path, id_param(id), Vec::new()),
             &body,
@@ -3631,6 +3637,82 @@ impl Client {
                 endpoints::REMOVE_CHAT_MODERATOR.path,
                 HashMap::from([("user_id".to_string(), user_id.to_string())]),
                 Vec::new(),
+            ),
+        )
+    }
+
+    /// Lists the users muted in every chat of the authenticated user's
+    /// broadcasts, with when each timed mute ends and the muted users
+    /// expanded. X accepts 1 to 100 results; `max_results` is brought into
+    /// that range.
+    pub fn get_chat_mutes(&self, max_results: i32) -> Call<ApiResponse<Vec<ChatMute>>> {
+        self.call(
+            endpoints::GET_CHAT_MUTES.method,
+            template(
+                endpoints::GET_CHAT_MUTES.path,
+                HashMap::new(),
+                vec![
+                    (
+                        "max_results".to_string(),
+                        max_results.clamp(1, 100).to_string(),
+                    ),
+                    (
+                        "broadcast_chat_mute.fields".to_string(),
+                        "end_at_ms".to_string(),
+                    ),
+                    ("expansions".to_string(), "user_id".to_string()),
+                    (
+                        "user.fields".to_string(),
+                        "created_at,description,public_metrics,verified".to_string(),
+                    ),
+                ],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Mutes a user, by id, in every chat of the authenticated user's
+    /// broadcasts until `until` (RFC 3339), or for good. A moderator names
+    /// `broadcast_id` to mute them in every chat of that broadcast's host
+    /// instead, and `message_id` to remove one of their messages from that
+    /// broadcast's chat. A time outside RFC 3339 fails the call with
+    /// `invalid-time-window` before anything is sent.
+    pub fn add_chat_mute(
+        &self,
+        user_id: &str,
+        broadcast_id: Option<&str>,
+        until: Option<&str>,
+        message_id: Option<&str>,
+    ) -> Call<ApiResponse<ChatMutedResult>> {
+        let Some(mut body) = chat_mute_body(user_id, until, message_id) else {
+            return Call::failed(self, crate::error::Error::validation("invalid-time-window"));
+        };
+        if let Some(broadcast_id) = broadcast_id {
+            body.insert("broadcast_id".into(), broadcast_id.into());
+        }
+        self.post_json(
+            template(endpoints::ADD_CHAT_MUTE.path, HashMap::new(), Vec::new()),
+            &body,
+        )
+    }
+
+    /// Unmutes a user, by id, in every chat of the authenticated user's
+    /// broadcasts, or with `broadcast_id`, in every chat of that broadcast's
+    /// host.
+    pub fn remove_chat_mute(
+        &self,
+        user_id: &str,
+        broadcast_id: Option<&str>,
+    ) -> Call<ApiResponse<ChatMutedResult>> {
+        let query = broadcast_id
+            .map(|id| vec![("broadcast_id".to_string(), id.to_string())])
+            .unwrap_or_default();
+        self.call(
+            endpoints::REMOVE_CHAT_MUTE.method,
+            template(
+                endpoints::REMOVE_CHAT_MUTE.path,
+                HashMap::from([("user_id".to_string(), user_id.to_string())]),
+                query,
             ),
         )
     }

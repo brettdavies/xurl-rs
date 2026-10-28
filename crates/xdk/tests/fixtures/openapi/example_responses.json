@@ -354,6 +354,34 @@
       "muted": true
     }
   },
+  "chat_mutes": {
+    "data": [
+      {
+        "user_id": "2244994945",
+        "end_at_ms": "1793638800000"
+      },
+      {
+        "user_id": "783214"
+      }
+    ],
+    "includes": {
+      "users": [
+        {
+          "id": "2244994945",
+          "name": "X Developers",
+          "username": "XDevelopers"
+        },
+        {
+          "id": "783214",
+          "name": "X",
+          "username": "X"
+        }
+      ]
+    },
+    "meta": {
+      "result_count": 2
+    }
+  },
   "note_created": {
     "data": {
       "id": "1850000000000000002"

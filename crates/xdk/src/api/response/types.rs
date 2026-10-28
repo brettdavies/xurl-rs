@@ -1022,6 +1022,22 @@ pub struct ChatMutedResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// A user muted in every chat of the authenticated user's broadcasts.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ChatMute {
+    /// The muted user's id; `includes.users` carries the user when the
+    /// request expands it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// When a timed mute ends, in milliseconds since the Unix epoch, as a
+    /// decimal string. Absent for a mute with no end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_at_ms: Option<String>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// A draft X Article just saved.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ArticleDraft {
