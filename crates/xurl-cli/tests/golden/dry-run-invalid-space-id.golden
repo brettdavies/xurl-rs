@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "spaces", "get", "1DXxyRYNejbKM-"]
 store: empty
 exit_code: 0
-stdout_len: 172
+stdout_len: 316
 stderr_len: 0
 --- stdout ---
 {
   "command": "spaces-get",
   "exit_code": 1,
+  "message": "A Space id is 1 to 13 letters or digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr spaces get --help"
+  },
   "reason": "invalid-space-id",
   "space_ids": [
     "1DXxyRYNejbKM-"

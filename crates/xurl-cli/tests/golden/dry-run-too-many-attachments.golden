@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "post", "hi", "--media-id=1", "--media-id=2", "--media-id=3", "--media-id=4", "--media-id=5"]
 store: empty
 exit_code: 0
-stdout_len: 209
+stdout_len: 340
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,11 @@ stderr_len: 0
     "4",
     "5"
   ],
+  "message": "A post takes at most 4 media ids.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr post --help"
+  },
   "reason": "too-many-attachments",
   "status": "dry_run",
   "would_succeed": false

@@ -742,6 +742,22 @@ fn dry_run_cases() -> Vec<Case> {
             "dry-run-text-invalid",
             &["--dry-run", "bookmark-folders", "add", ""],
         ),
+        case(
+            "dry-run-text-invalid-quiet",
+            &["--quiet", "--dry-run", "bookmark-folders", "add", ""],
+        ),
+        case(
+            "dry-run-forward-url-not-http",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "listen",
+                "--forward",
+                "ftp://example.com/hook",
+            ],
+        ),
         case("dry-run-text-no-credential", &["--dry-run", "whoami"]),
         case("dry-run-text-quiet", &["--quiet", "--dry-run", "whoami"]),
         signed_in(case(
@@ -1214,7 +1230,7 @@ fn dry_run_cases() -> Vec<Case> {
                 "json",
                 "--dry-run",
                 "bookmark-folders",
-                "get",
+                "posts",
                 "rust",
             ],
         ),
@@ -1677,6 +1693,7 @@ fn xr_output_matches_the_golden_fixtures() {
     std::fs::create_dir_all(&dir).expect("golden dir");
 
     let cases = all_cases(&bin, &scratch);
+    let validators = validator_reasons();
     let mut failures = Vec::new();
     let mut expected_files = BTreeSet::new();
 
@@ -1685,7 +1702,14 @@ fn xr_output_matches_the_golden_fixtures() {
         expected_files.insert(file.clone());
         let actual = capture(case, &bin, &api, &scratch);
 
-        if let Some(reason) = case.reason {
+        // A `dry-run-<code>` case exists to pin that validator's refusal, so
+        // its envelope must still name the code: a bless would otherwise
+        // re-capture whatever a renamed verb or a widened input now prints.
+        let pinned = case
+            .name
+            .strip_prefix("dry-run-")
+            .filter(|code| validators.contains(*code));
+        if let Some(reason) = case.reason.or(pinned) {
             let found = envelope_reason(&actual);
             if found.as_deref() != Some(reason) {
                 failures.push(format!(
@@ -1975,5 +1999,115 @@ fn every_reason_the_source_emits_is_documented_and_pinned() {
     assert!(
         unpinned.is_empty(),
         "validator refusals without a dry-run fixture: {unpinned:?}"
+    );
+}
+
+/// The step a dry run's envelope names, as the real run would name it: a
+/// step that reruns the invocation keeps `--dry-run`, which the real run's
+/// invocation lacks.
+fn step_without_dry_run(step: &serde_json::Value) -> serde_json::Value {
+    let mut step = step.clone();
+    for key in ["command", "template"] {
+        if let Some(text) = step[key].as_str() {
+            step[key] = text.replacen(" --dry-run", "", 1).into();
+        }
+    }
+    step
+}
+
+/// A dry run that refuses answers as its real run's error does: every
+/// refusing JSON case in [`dry_run_cases`] carries a `message`, and the
+/// `next_step` and `exit_code` the same invocation gets without
+/// `--dry-run` (with `--force` when it would stop to ask). Every validator
+/// code has a case there, so a validator added later is held here too.
+#[test]
+fn a_refusing_dry_run_carries_the_message_and_step_of_its_real_run() {
+    let bin = common::xr_bin().to_string();
+    let api = MockApi::start();
+    let scratch = Scratch::new();
+    let mut checked = 0;
+    let mut failures = Vec::new();
+    for case in dry_run_cases() {
+        let is_json_dry_run = case.args.iter().any(|a| a == "--dry-run")
+            && case
+                .args
+                .windows(2)
+                .any(|w| w[0] == "--output" && w[1] == "json");
+        if !is_json_dry_run {
+            continue;
+        }
+        let dry = capture(&case, &bin, &api, &scratch);
+        let answer: serde_json::Value = match serde_json::from_str(dry.stdout.trim()) {
+            Ok(answer) => answer,
+            Err(e) => {
+                failures.push(format!(
+                    "{}: no dry-run envelope ({e}): {}",
+                    case.name, dry.stdout
+                ));
+                continue;
+            }
+        };
+        if answer["would_succeed"] != false {
+            continue;
+        }
+        checked += 1;
+        if answer["message"].as_str().is_none_or(str::is_empty) {
+            failures.push(format!("{}: no message: {answer}", case.name));
+        }
+        let mut args: Vec<String> = case
+            .args
+            .iter()
+            .filter(|a| *a != "--dry-run")
+            .cloned()
+            .collect();
+        if answer["confirmation_required"] == true {
+            args.push("--force".to_string());
+        }
+        let real_case = Case {
+            name: case.name.clone(),
+            args,
+            env: case.env.clone(),
+            unset_home: case.unset_home,
+            skill_home: case.skill_home.clone(),
+            stdin: case.stdin,
+            cwd: case.cwd.clone(),
+            reason: None,
+            store: case.store,
+        };
+        let real = capture(&real_case, &bin, &api, &scratch);
+        let error: serde_json::Value = match serde_json::from_str(real.stderr.trim()) {
+            Ok(error) => error,
+            Err(e) => {
+                failures.push(format!(
+                    "{}: the real run printed no envelope ({e}): {}",
+                    case.name, real.stderr
+                ));
+                continue;
+            }
+        };
+        if answer["exit_code"] != real.exit_code {
+            failures.push(format!(
+                "{}: the dry run says exit {}, the real run exited {}",
+                case.name, answer["exit_code"], real.exit_code
+            ));
+        }
+        let step = step_without_dry_run(&answer["next_step"]);
+        if step != error["next_step"] {
+            failures.push(format!(
+                "{}: the dry run's step {} differs from the real run's {}",
+                case.name, answer["next_step"], error["next_step"]
+            ));
+        }
+    }
+    let validators = validator_reasons().len();
+    assert!(
+        checked >= validators,
+        "checked {checked} refusing dry runs, fewer than the {validators} validator codes; the case filter is broken"
+    );
+    assert!(
+        failures.is_empty(),
+        "{} refusing dry run(s) do not answer as their real run does:\n{}",
+        failures.len(),
+        failures.join("\n")
     );
 }

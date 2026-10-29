@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "webhooks", "replay", "1146654567674912769", "--from", "2026-01-15T00:00", "--to", "202601151200"]
 store: empty
 exit_code: 0
-stdout_len: 230
+stdout_len: 387
 stderr_len: 0
 --- stdout ---
 {
   "command": "webhooks-replay",
   "exit_code": 1,
   "from": "2026-01-15T00:00",
+  "message": "A replay time is 12 digits, yyyymmddhhmm in UTC.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr webhooks replay --help"
+  },
   "reason": "invalid-replay-time",
   "status": "dry_run",
   "to": "202601151200",

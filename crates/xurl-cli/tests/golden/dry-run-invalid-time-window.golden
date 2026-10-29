@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "search-counts", "rustlang", "--start", "2026-10-26T00:00:00Z", "--end", "2026-10-25T00:00:00Z"]
 store: empty
 exit_code: 0
-stdout_len: 249
+stdout_len: 465
 stderr_len: 0
 --- stdout ---
 {
@@ -9,6 +9,11 @@ stderr_len: 0
   "end": "2026-10-25T00:00:00Z",
   "exit_code": 1,
   "granularity": null,
+  "message": "A time is RFC 3339 with seconds and a zone, such as 2026-11-02T15:00:00Z, and the start comes before the end.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr search-counts --help"
+  },
   "query": "rustlang",
   "reason": "invalid-time-window",
   "start": "2026-10-26T00:00:00Z",

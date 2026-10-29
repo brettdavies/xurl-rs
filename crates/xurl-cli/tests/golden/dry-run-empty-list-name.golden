@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "lists", "add", ""]
 store: empty
 exit_code: 0
-stdout_len: 159
+stdout_len: 285
 stderr_len: 0
 --- stdout ---
 {
@@ -9,6 +9,11 @@ stderr_len: 0
   "exit_code": 1,
   "list": {
     "name": ""
+  },
+  "message": "The list name is empty.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr lists add --help"
   },
   "reason": "empty-list-name",
   "status": "dry_run",

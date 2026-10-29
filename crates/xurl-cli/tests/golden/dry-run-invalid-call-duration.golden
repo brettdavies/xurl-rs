@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02T16:00:00Z", "--duration", "0"]
 store: empty
 exit_code: 0
-stdout_len: 208
+stdout_len: 353
 stderr_len: 0
 --- stdout ---
 {
   "command": "calls-scheduled-add",
   "duration_minutes": 0,
   "exit_code": 1,
+  "message": "A call lasts 1 to 44640 minutes.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr calls scheduled add --help"
+  },
   "reason": "invalid-call-duration",
   "start_time": "2026-11-02T16:00:00Z",
   "status": "dry_run",

@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "lists", "add", "Rust", "--description", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 297
+stdout_len: 445
 stderr_len: 0
 --- stdout ---
 {
@@ -10,6 +10,11 @@ stderr_len: 0
   "list": {
     "description": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     "name": "Rust"
+  },
+  "message": "A list description is at most 100 characters.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr lists add --help"
   },
   "reason": "list-description-too-long",
   "status": "dry_run",

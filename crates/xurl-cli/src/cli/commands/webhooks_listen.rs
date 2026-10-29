@@ -93,7 +93,11 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     }
     if flags.dry_run {
         if let Err(error) = targets {
-            return Err(Failure::DryRunRefusal { ctx, error });
+            return Err(if error.is_validation() {
+                Failure::DryRunInvalid { ctx, error }
+            } else {
+                Failure::DryRunRefusal { ctx, error }
+            });
         }
         if signs_with.is_some() {
             out.print_dry_run(stdout, true, 0, &ctx);

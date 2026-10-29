@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "scheduled", "get", "1YqKDqWqdPLGV"]
 store: empty
 exit_code: 0
-stdout_len: 192
+stdout_len: 353
 stderr_len: 0
 --- stdout ---
 {
   "command": "broadcasts-scheduled-get",
   "exit_code": 1,
+  "message": "A scheduled broadcast id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts scheduled get --help"
+  },
   "reason": "invalid-scheduled-broadcast-id",
   "scheduled_id": "1YqKDqWqdPLGV",
   "status": "dry_run",

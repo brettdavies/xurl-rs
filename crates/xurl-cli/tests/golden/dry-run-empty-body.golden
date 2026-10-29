@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "post", ""]
 store: empty
 exit_code: 0
-stdout_len: 150
+stdout_len: 295
 stderr_len: 0
 --- stdout ---
 {
@@ -9,6 +9,11 @@ stderr_len: 0
   "command": "post",
   "exit_code": 1,
   "media_ids": [],
+  "message": "The text is empty; give at least one character.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr post --help"
+  },
   "reason": "empty-body",
   "status": "dry_run",
   "would_succeed": false

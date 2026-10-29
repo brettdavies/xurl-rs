@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "media", "get", "1146654567674912769"]
 store: empty
 exit_code: 0
-stdout_len: 178
+stdout_len: 363
 stderr_len: 0
 --- stdout ---
 {
@@ -10,6 +10,11 @@ stderr_len: 0
   "media_keys": [
     "1146654567674912769"
   ],
+  "message": "A media key is two numbers joined by an underscore, such as 3_1146654567674912769.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr media get --help"
+  },
   "reason": "invalid-media-key",
   "status": "dry_run",
   "would_succeed": false

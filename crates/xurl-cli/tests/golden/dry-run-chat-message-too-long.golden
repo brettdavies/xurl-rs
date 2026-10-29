@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "chat", "send", "1YqKDqWqdPLGV", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 354
+stdout_len: 509
 stderr_len: 0
 --- stdout ---
 {
@@ -9,6 +9,11 @@ stderr_len: 0
   "broadcast_id": "1YqKDqWqdPLGV",
   "command": "broadcasts-chat-send",
   "exit_code": 1,
+  "message": "A chat message is at most 140 characters.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts chat send --help"
+  },
   "reason": "chat-message-too-long",
   "reply_to": null,
   "status": "dry_run",

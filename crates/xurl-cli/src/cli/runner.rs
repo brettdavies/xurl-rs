@@ -368,6 +368,11 @@ where
             out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
             EXIT_SUCCESS
         }
+        Err(Failure::DryRunInvalid { ctx, error }) => {
+            let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
+            out.print_dry_run_refusal(stdout, &ctx, &error, Some(&hint));
+            EXIT_SUCCESS
+        }
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
             match recovery_hint(&e, &snapshot, &args_vec, structured) {
