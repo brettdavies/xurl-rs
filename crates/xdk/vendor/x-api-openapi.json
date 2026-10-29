@@ -1166,39 +1166,6 @@
         },
         "style": "form"
       },
-      "UserSettingsFieldsParameter": {
-        "description": "A comma separated list of UserSettings fields to display.",
-        "explode": false,
-        "in": "query",
-        "name": "user_settings.fields",
-        "required": false,
-        "schema": {
-          "description": "The fields available for a UserSettings object.",
-          "items": {
-            "enum": [
-              "allow_dms_from",
-              "allow_media_tagging",
-              "always_allow_dms_from_subscribers",
-              "discoverable_by_email",
-              "discoverable_by_phone",
-              "display_sensitive_media",
-              "id",
-              "language",
-              "location_tagging_enabled",
-              "personalized_trends",
-              "protected",
-              "quiet_hours",
-              "time_zone",
-              "use_cookie_personalization"
-            ],
-            "type": "string"
-          },
-          "minItems": 1,
-          "type": "array",
-          "uniqueItems": true
-        },
-        "style": "form"
-      },
       "WebhookConfigFieldsParameter": {
         "description": "A comma separated list of WebhookConfig fields to display.",
         "explode": false,
@@ -5961,6 +5928,176 @@
         ],
         "type": "object"
       },
+      "CreateUserBroadcastRequest": {
+        "properties": {
+          "is_low_latency": {
+            "description": "Ignored.",
+            "type": "boolean"
+          },
+          "region": {
+            "description": "Ignored: the source sets the region.",
+            "type": "string"
+          },
+          "source_id": {
+            "description": "The source's `rtmp_stream_key`.",
+            "pattern": "^[a-zA-Z0-9]{1,32}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id"
+        ],
+        "type": "object"
+      },
+      "CreateUserBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateUserBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateUserBroadcastResponseData": {
+        "properties": {
+          "broadcast": {
+            "$ref": "#/components/schemas/CreateUserBroadcastResponseDataBroadcast"
+          },
+          "share_url": {
+            "description": "The broadcast's watch page.",
+            "type": "string"
+          },
+          "video_access": {
+            "$ref": "#/components/schemas/CreateUserBroadcastResponseDataVideoAccess",
+            "description": "Always empty."
+          }
+        },
+        "required": [
+          "broadcast",
+          "video_access",
+          "share_url"
+        ],
+        "type": "object"
+      },
+      "CreateUserBroadcastResponseDataBroadcast": {
+        "additionalProperties": false,
+        "properties": {
+          "available_for_replay": {
+            "description": "Whether a replay is available.",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "end_ms": {
+            "description": "End time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "height": {
+            "description": "Video height in pixels.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id; equal to `broadcast_id`.",
+            "type": "string"
+          },
+          "image_url": {
+            "description": "Thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_medium": {
+            "description": "Medium thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_small": {
+            "description": "Small thumbnail URL.",
+            "type": "string"
+          },
+          "is_high_latency": {
+            "description": "Whether the broadcast is high latency.",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_id": {
+            "description": "Numeric media id from `media_key`.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast's video.",
+            "type": "string"
+          },
+          "scheduled_end_ms": {
+            "description": "Scheduled end time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "scheduled_start_ms": {
+            "description": "Scheduled start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "`NOT_STARTED`, `RUNNING`, `TIMED_OUT`, `ENDED`, `PRE_PUBLISHED` or `CANCELED`.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "total_watched": {
+            "description": "Total viewers (decimal string).",
+            "type": "string"
+          },
+          "total_watching": {
+            "description": "Current viewers (decimal string).",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast.",
+            "type": "string"
+          },
+          "twitter_user_id": {
+            "description": "Owner's user id.",
+            "type": "string"
+          },
+          "updated_at_ms": {
+            "description": "Last update time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "width": {
+            "description": "Video width in pixels.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "CreateUserBroadcastResponseDataVideoAccess": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
       "CreateUserSourceRequest": {
         "additionalProperties": false,
         "properties": {
@@ -6037,7 +6174,7 @@
             "type": "integer"
           },
           "rtmp_region": {
-            "description": "Ingest region: `atla` or `pdxa` for on-prem sources, the AWS region (e.g. `us-east-1`) for sources created before the move to on-prem.",
+            "description": "Ingest region as an AWS region name, e.g. `us-east-1` or `us-west-2`. Accepted as `region` when creating a source.",
             "type": "string"
           },
           "rtmp_stream_key": {
@@ -6589,6 +6726,32 @@
         "properties": {
           "deleted": {
             "description": "Whether the chat message was removed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteBroadcastResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the broadcast was deleted.",
             "type": "boolean"
           }
         },
@@ -7338,6 +7501,32 @@
         ],
         "type": "object"
       },
+      "DeleteUserBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteUserBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteUserBroadcastResponseData": {
+        "properties": {
+          "success": {
+            "description": "Always `true` on success.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "type": "object"
+      },
       "DeleteUserSourceResponse": {
         "properties": {
           "data": {
@@ -7379,32 +7568,6 @@
         },
         "required": [
           "bookmarked"
-        ],
-        "type": "object"
-      },
-      "DeleteUsersMeProfileBannerResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/DeleteUsersMeProfileBannerResponseData"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/Problem"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "DeleteUsersMeProfileBannerResponseData": {
-        "properties": {
-          "deleted": {
-            "description": "Indicates whether the profile banner was removed.",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "deleted"
         ],
         "type": "object"
       },
@@ -10924,6 +11087,22 @@
         },
         "type": "object"
       },
+      "GetRegionResponse": {
+        "properties": {
+          "region": {
+            "description": "Ingest region. Pass it as `region` when creating a stream source.",
+            "enum": [
+              "us-east-1",
+              "us-west-2"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "region"
+        ],
+        "type": "object"
+      },
       "GetRuleCountsResponse": {
         "properties": {
           "data": {
@@ -11456,6 +11635,140 @@
         },
         "type": "object"
       },
+      "GetUserBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetUserBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetUserBroadcastResponseData": {
+        "properties": {
+          "broadcast": {
+            "$ref": "#/components/schemas/GetUserBroadcastResponseDataBroadcast"
+          }
+        },
+        "required": [
+          "broadcast"
+        ],
+        "type": "object"
+      },
+      "GetUserBroadcastResponseDataBroadcast": {
+        "additionalProperties": false,
+        "properties": {
+          "available_for_replay": {
+            "description": "Whether a replay is available.",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "end_ms": {
+            "description": "End time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "height": {
+            "description": "Video height in pixels.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id; equal to `broadcast_id`.",
+            "type": "string"
+          },
+          "image_url": {
+            "description": "Thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_medium": {
+            "description": "Medium thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_small": {
+            "description": "Small thumbnail URL.",
+            "type": "string"
+          },
+          "is_high_latency": {
+            "description": "Whether the broadcast is high latency.",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_id": {
+            "description": "Numeric media id from `media_key`.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast's video.",
+            "type": "string"
+          },
+          "scheduled_end_ms": {
+            "description": "Scheduled end time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "scheduled_start_ms": {
+            "description": "Scheduled start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "`NOT_STARTED`, `RUNNING`, `TIMED_OUT`, `ENDED`, `PRE_PUBLISHED` or `CANCELED`.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "total_watched": {
+            "description": "Total viewers (decimal string).",
+            "type": "string"
+          },
+          "total_watching": {
+            "description": "Current viewers (decimal string).",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast.",
+            "type": "string"
+          },
+          "twitter_user_id": {
+            "description": "Owner's user id.",
+            "type": "string"
+          },
+          "updated_at_ms": {
+            "description": "Last update time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "width": {
+            "description": "Video width in pixels.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "GetUserSourceResponse": {
         "properties": {
           "data": {
@@ -11513,7 +11826,7 @@
             "type": "integer"
           },
           "rtmp_region": {
-            "description": "Ingest region: `atla` or `pdxa` for on-prem sources, the AWS region (e.g. `us-east-1`) for sources created before the move to on-prem.",
+            "description": "Ingest region as an AWS region name, e.g. `us-east-1` or `us-west-2`. Accepted as `region` when creating a source.",
             "type": "string"
           },
           "rtmp_stream_key": {
@@ -12101,20 +12414,6 @@
           },
           "includes": {
             "$ref": "#/components/schemas/Expansions"
-          }
-        },
-        "type": "object"
-      },
-      "GetUsersMeSettingsResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/UserSettings"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/Problem"
-            },
-            "type": "array"
           }
         },
         "type": "object"
@@ -13340,6 +13639,159 @@
         ],
         "type": "object"
       },
+      "ListUserBroadcastsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ListUserBroadcastsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ListUserBroadcastsResponseData": {
+        "properties": {
+          "broadcasts": {
+            "items": {
+              "$ref": "#/components/schemas/ListUserBroadcastsResponseDataBroadcasts"
+            },
+            "type": "array"
+          },
+          "next_token": {
+            "$ref": "#/components/schemas/ListUserBroadcastsResponseDataNextToken"
+          }
+        },
+        "required": [
+          "broadcasts"
+        ],
+        "type": "object"
+      },
+      "ListUserBroadcastsResponseDataBroadcasts": {
+        "additionalProperties": false,
+        "properties": {
+          "available_for_replay": {
+            "description": "Whether a replay is available.",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "end_ms": {
+            "description": "End time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "height": {
+            "description": "Video height in pixels.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id; equal to `broadcast_id`.",
+            "type": "string"
+          },
+          "image_url": {
+            "description": "Thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_medium": {
+            "description": "Medium thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_small": {
+            "description": "Small thumbnail URL.",
+            "type": "string"
+          },
+          "is_high_latency": {
+            "description": "Whether the broadcast is high latency.",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_id": {
+            "description": "Numeric media id from `media_key`.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast's video.",
+            "type": "string"
+          },
+          "scheduled_end_ms": {
+            "description": "Scheduled end time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "scheduled_start_ms": {
+            "description": "Scheduled start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "`NOT_STARTED`, `RUNNING`, `TIMED_OUT`, `ENDED`, `PRE_PUBLISHED` or `CANCELED`.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "total_watched": {
+            "description": "Total viewers (decimal string).",
+            "type": "string"
+          },
+          "total_watching": {
+            "description": "Current viewers (decimal string).",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast.",
+            "type": "string"
+          },
+          "twitter_user_id": {
+            "description": "Owner's user id.",
+            "type": "string"
+          },
+          "updated_at_ms": {
+            "description": "Last update time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "width": {
+            "description": "Video width in pixels.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "ListUserBroadcastsResponseDataNextToken": {
+        "additionalProperties": false,
+        "properties": {
+          "offset": {
+            "description": "Pass as `pagination_token` to read the next page.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "type": "object"
+      },
       "ListUserSourcesResponse": {
         "properties": {
           "data": {
@@ -13400,7 +13852,7 @@
             "type": "integer"
           },
           "rtmp_region": {
-            "description": "Ingest region: `atla` or `pdxa` for on-prem sources, the AWS region (e.g. `us-east-1`) for sources created before the move to on-prem.",
+            "description": "Ingest region as an AWS region name, e.g. `us-east-1` or `us-west-2`. Accepted as `region` when creating a source.",
             "type": "string"
           },
           "rtmp_stream_key": {
@@ -19237,6 +19689,65 @@
         ],
         "type": "object"
       },
+      "UpdateBroadcastStateRequest": {
+        "properties": {
+          "chat_option": {
+            "description": "Not allowed with `END`.",
+            "type": "integer"
+          },
+          "locale": {
+            "description": "Not allowed with `END`.",
+            "type": "string"
+          },
+          "should_not_tweet": {
+            "description": "Not allowed with `END`.",
+            "type": "boolean"
+          },
+          "state": {
+            "description": "`END`. `PUBLISH` is not supported.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Not allowed with `END`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "UpdateBroadcastStateResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateBroadcastStateResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateBroadcastStateResponseData": {
+        "properties": {
+          "id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "state": {
+            "description": "Always `ENDED`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ],
+        "type": "object"
+      },
       "UpdateChatConversationMessageTtlActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
@@ -20692,6 +21203,174 @@
         ],
         "type": "object"
       },
+      "UpdateUserBroadcastStateRequest": {
+        "properties": {
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows. `PUBLISH` only.",
+            "type": "integer"
+          },
+          "locale": {
+            "description": "Broadcast language. `PUBLISH` only.",
+            "type": "string"
+          },
+          "should_not_tweet": {
+            "description": "Skip the announcing Post. Unset keeps the broadcast's setting, which defaults to posting. `PUBLISH` only.",
+            "type": "boolean"
+          },
+          "state": {
+            "description": "`PUBLISH` or `END`.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Broadcast title. `PUBLISH` only.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "UpdateUserBroadcastStateResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateUserBroadcastStateResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateUserBroadcastStateResponseData": {
+        "properties": {
+          "broadcast": {
+            "$ref": "#/components/schemas/UpdateUserBroadcastStateResponseDataBroadcast",
+            "description": "The published broadcast, on `PUBLISH`."
+          },
+          "success": {
+            "description": "`true` once `END` succeeds.",
+            "type": "boolean"
+          },
+          "tweet_error": {
+            "description": "Why the announcing Post failed, on `PUBLISH`. Omitted when the Post went out or `should_not_tweet` was true.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateUserBroadcastStateResponseDataBroadcast": {
+        "additionalProperties": false,
+        "properties": {
+          "available_for_replay": {
+            "description": "Whether a replay is available.",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "end_ms": {
+            "description": "End time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "height": {
+            "description": "Video height in pixels.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id; equal to `broadcast_id`.",
+            "type": "string"
+          },
+          "image_url": {
+            "description": "Thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_medium": {
+            "description": "Medium thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_small": {
+            "description": "Small thumbnail URL.",
+            "type": "string"
+          },
+          "is_high_latency": {
+            "description": "Whether the broadcast is high latency.",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_id": {
+            "description": "Numeric media id from `media_key`.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast's video.",
+            "type": "string"
+          },
+          "scheduled_end_ms": {
+            "description": "Scheduled end time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "scheduled_start_ms": {
+            "description": "Scheduled start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "`NOT_STARTED`, `RUNNING`, `TIMED_OUT`, `ENDED`, `PRE_PUBLISHED` or `CANCELED`.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "total_watched": {
+            "description": "Total viewers (decimal string).",
+            "type": "string"
+          },
+          "total_watching": {
+            "description": "Current viewers (decimal string).",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast.",
+            "type": "string"
+          },
+          "twitter_user_id": {
+            "description": "Owner's user id.",
+            "type": "string"
+          },
+          "updated_at_ms": {
+            "description": "Last update time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "width": {
+            "description": "Video width in pixels.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
       "UpdateUserSourceRequest": {
         "additionalProperties": false,
         "properties": {
@@ -20763,7 +21442,7 @@
             "type": "integer"
           },
           "rtmp_region": {
-            "description": "Ingest region: `atla` or `pdxa` for on-prem sources, the AWS region (e.g. `us-east-1`) for sources created before the move to on-prem.",
+            "description": "Ingest region as an AWS region name, e.g. `us-east-1` or `us-west-2`. Accepted as `region` when creating a source.",
             "type": "string"
           },
           "rtmp_stream_key": {
@@ -20822,308 +21501,6 @@
             "type": "integer"
           }
         },
-        "type": "object"
-      },
-      "UpdateUsersMeProfileBannerCrop": {
-        "additionalProperties": false,
-        "properties": {
-          "height": {
-            "description": "Height of the region to use, in pixels of the source image.",
-            "maximum": 2147483647,
-            "minimum": 1,
-            "type": "integer"
-          },
-          "offset_left": {
-            "description": "Distance of the region from the left edge of the source image, in pixels.",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "offset_top": {
-            "description": "Distance of the region from the top edge of the source image, in pixels.",
-            "maximum": 2147483647,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "width": {
-            "description": "Width of the region to use, in pixels of the source image.",
-            "maximum": 2147483647,
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "width",
-          "height",
-          "offset_left",
-          "offset_top"
-        ],
-        "type": "object"
-      },
-      "UpdateUsersMeProfileBannerRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "crop": {
-            "$ref": "#/components/schemas/UpdateUsersMeProfileBannerCrop",
-            "description": "The region of the image to use as the banner. The whole image is used when omitted."
-          },
-          "media_id": {
-            "description": "The ID of the uploaded media to use as the profile banner.",
-            "pattern": "^[0-9]{1,19}$",
-            "type": "string"
-          }
-        },
-        "required": [
-          "media_id"
-        ],
-        "type": "object"
-      },
-      "UpdateUsersMeProfileBannerResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/UpdateUsersMeProfileBannerResponseData"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/Problem"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "UpdateUsersMeProfileBannerResponseData": {
-        "properties": {
-          "updated": {
-            "description": "Indicates whether the profile banner was updated.",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "updated"
-        ],
-        "type": "object"
-      },
-      "UpdateUsersMeProfileImageRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "media_id": {
-            "description": "The ID of the uploaded media to use as the profile image.",
-            "pattern": "^[0-9]{1,19}$",
-            "type": "string"
-          }
-        },
-        "required": [
-          "media_id"
-        ],
-        "type": "object"
-      },
-      "UpdateUsersMeProfileImageResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/UpdateUsersMeProfileImageResponseData"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/Problem"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "UpdateUsersMeProfileImageResponseData": {
-        "properties": {
-          "updated": {
-            "description": "Indicates whether the profile image was updated.",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "updated"
-        ],
-        "type": "object"
-      },
-      "UpdateUsersMeRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "description": {
-            "description": "The bio (up to 160 characters). An empty string clears it.",
-            "maxLength": 160,
-            "type": "string"
-          },
-          "location": {
-            "description": "The free-form location (up to 30 characters). An empty string clears it.",
-            "maxLength": 30,
-            "type": "string"
-          },
-          "name": {
-            "description": "The display name (1–50 characters).",
-            "maxLength": 50,
-            "minLength": 1,
-            "type": "string"
-          },
-          "url": {
-            "description": "The website URL (up to 100 characters). An empty string clears it.",
-            "maxLength": 100,
-            "type": "string"
-          }
-        },
-        "type": "object"
-      },
-      "UpdateUsersMeResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/UpdateUsersMeResponseData"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/Problem"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "UpdateUsersMeResponseData": {
-        "properties": {
-          "updated": {
-            "description": "Indicates whether the profile was updated.",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "updated"
-        ],
-        "type": "object"
-      },
-      "UpdateUsersMeSettingsQuietHours": {
-        "additionalProperties": false,
-        "properties": {
-          "enabled": {
-            "description": "Whether quiet hours are on.",
-            "type": "boolean"
-          },
-          "end_hour": {
-            "description": "The hour quiet hours end (0–23, in the user's time zone).",
-            "maximum": 23,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "start_hour": {
-            "description": "The hour quiet hours begin (0–23, in the user's time zone).",
-            "maximum": 23,
-            "minimum": 0,
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
-      "UpdateUsersMeSettingsRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "allow_dms_from": {
-            "description": "Who can send the user direct messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
-            "enum": [
-              "all",
-              "following",
-              "verified"
-            ],
-            "type": "string"
-          },
-          "allow_media_tagging": {
-            "description": "Who may tag the user in media: `all` (anyone), `following` (accounts the user follows), or `none`.",
-            "enum": [
-              "all",
-              "following",
-              "none"
-            ],
-            "type": "string"
-          },
-          "always_allow_dms_from_subscribers": {
-            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
-            "type": "boolean"
-          },
-          "discoverable_by_email": {
-            "description": "Whether people who have the user's email address can find them on X.",
-            "type": "boolean"
-          },
-          "discoverable_by_phone": {
-            "description": "Whether people who have the user's phone number can find them on X.",
-            "type": "boolean"
-          },
-          "display_sensitive_media": {
-            "description": "Whether media that may contain sensitive content is displayed to the user.",
-            "type": "boolean"
-          },
-          "language": {
-            "description": "The language of the account, as a BCP 47 tag (for example `en`, `pt-BR`).",
-            "maxLength": 35,
-            "minLength": 2,
-            "type": "string"
-          },
-          "location_tagging_enabled": {
-            "description": "Whether a precise location may be attached to the user's posts.",
-            "type": "boolean"
-          },
-          "protected": {
-            "description": "Whether the user's posts are protected (visible only to approved followers).",
-            "type": "boolean"
-          },
-          "quiet_hours": {
-            "$ref": "#/components/schemas/UpdateUsersMeSettingsQuietHours",
-            "description": "The daily window during which the user does not receive push and SMS notifications."
-          },
-          "time_zone": {
-            "$ref": "#/components/schemas/UpdateUsersMeSettingsTimeZone",
-            "description": "The time zone of the account."
-          },
-          "use_cookie_personalization": {
-            "description": "Whether X may use the user's off-X web activity to personalize their experience.",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "UpdateUsersMeSettingsResponse": {
-        "properties": {
-          "data": {
-            "$ref": "#/components/schemas/UpdateUsersMeSettingsResponseData"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/Problem"
-            },
-            "type": "array"
-          }
-        },
-        "type": "object"
-      },
-      "UpdateUsersMeSettingsResponseData": {
-        "properties": {
-          "updated": {
-            "description": "Indicates whether the settings were updated.",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "updated"
-        ],
-        "type": "object"
-      },
-      "UpdateUsersMeSettingsTimeZone": {
-        "additionalProperties": false,
-        "properties": {
-          "name": {
-            "description": "The time zone, as an IANA name (`America/Los_Angeles`) or one of the legacy display names (`Pacific Time (US & Canada)`).",
-            "maxLength": 100,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ],
         "type": "object"
       },
       "UploadComplianceJobSubmissionRequest": {
@@ -21910,110 +22287,6 @@
         ],
         "type": "object"
       },
-      "UserSettings": {
-        "properties": {
-          "allow_dms_from": {
-            "description": "Who can send the user direct messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
-            "type": "string"
-          },
-          "allow_media_tagging": {
-            "description": "Who may tag the user in media: `all` (anyone), `following` (accounts the user follows), or `none`.",
-            "type": "string"
-          },
-          "always_allow_dms_from_subscribers": {
-            "description": "Whether the user's subscribers can always message them regardless of allow_dms_from.",
-            "type": "boolean"
-          },
-          "discoverable_by_email": {
-            "description": "Whether people who have the user's email address can find them on X.",
-            "type": "boolean"
-          },
-          "discoverable_by_phone": {
-            "description": "Whether people who have the user's phone number can find them on X.",
-            "type": "boolean"
-          },
-          "display_sensitive_media": {
-            "description": "Whether media that may contain sensitive content is displayed to the user.",
-            "type": "boolean"
-          },
-          "id": {
-            "description": "Unique identifier of the user these settings belong to.",
-            "type": "string"
-          },
-          "language": {
-            "description": "The language of the user's account, as a BCP 47 tag (for example `en`, `pt-BR`).",
-            "type": "string"
-          },
-          "location_tagging_enabled": {
-            "description": "Whether the user allows a precise location to be attached to their posts.",
-            "type": "boolean"
-          },
-          "personalized_trends": {
-            "description": "Whether trends shown to the user are personalized. Read-only.",
-            "type": "boolean"
-          },
-          "protected": {
-            "description": "Whether the user's posts are protected (visible only to approved followers).",
-            "type": "boolean"
-          },
-          "quiet_hours": {
-            "$ref": "#/components/schemas/UserSettingsQuietHours"
-          },
-          "time_zone": {
-            "$ref": "#/components/schemas/UserSettingsTimeZone"
-          },
-          "use_cookie_personalization": {
-            "description": "Whether X may use the user's off-X web activity to personalize their experience.",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "UserSettingsQuietHours": {
-        "description": "The daily window during which the user does not receive push and SMS\nnotifications.",
-        "properties": {
-          "enabled": {
-            "description": "Whether quiet hours are on.",
-            "nullable": true,
-            "type": "boolean"
-          },
-          "end_hour": {
-            "description": "The hour quiet hours end (0–23, in the user's time zone).",
-            "format": "int64",
-            "nullable": true,
-            "type": "integer"
-          },
-          "start_hour": {
-            "description": "The hour quiet hours begin (0–23, in the user's time zone).",
-            "format": "int64",
-            "nullable": true,
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
-      "UserSettingsTimeZone": {
-        "description": "The time zone the user's account is set to.",
-        "properties": {
-          "name": {
-            "description": "The name the time zone was set with; either an IANA name\n(`America/Los_Angeles`) or one of the legacy display names\n(`Pacific Time (US & Canada)`).",
-            "nullable": true,
-            "type": "string"
-          },
-          "tz_name": {
-            "description": "The IANA name of the time zone.",
-            "nullable": true,
-            "type": "string"
-          },
-          "utc_offset_seconds": {
-            "description": "The current offset from UTC, in seconds.",
-            "format": "int64",
-            "nullable": true,
-            "type": "integer"
-          }
-        },
-        "type": "object"
-      },
       "UserSubscription": {
         "description": "The subscription relationship between this User and you.",
         "properties": {
@@ -22307,6 +22580,8 @@
               "like.write": "Like and unlike Posts on your behalf.",
               "list.read": "View Lists, members, and followers of Lists you created or are a member of, including private Lists.",
               "list.write": "Create and manage Lists on your behalf.",
+              "media.library.read": "View your media library, its analytics, and its monetization settings.",
+              "media.library.write": "Add media to your media library and manage its monetization settings.",
               "media.write": "Upload media, such as photos and videos, on your behalf.",
               "mute.read": "View accounts you have muted.",
               "mute.write": "Mute and unmute accounts on your behalf.",
@@ -24483,6 +24758,64 @@
       }
     },
     "/2/broadcasts/{id}": {
+      "delete": {
+        "description": "Deletes one of the authenticated user's broadcasts, scheduled or ended, including its replay. A running broadcast must be ended first.",
+        "operationId": "deleteBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete a broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
       "get": {
         "description": "Returns a broadcast owned by the authenticated user.",
         "operationId": "getBroadcast",
@@ -24909,6 +25242,76 @@
           }
         ],
         "summary": "Remove a chat message from a live broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/broadcasts/{id}/state": {
+      "put": {
+        "description": "Ends one of the authenticated user's broadcasts. Only `state: END` is supported.",
+        "operationId": "updateBroadcastState",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBroadcastStateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBroadcastStateResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "End a broadcast",
         "tags": [
           "Broadcasts"
         ]
@@ -33149,6 +33552,53 @@
         ]
       }
     },
+    "/2/region": {
+      "get": {
+        "description": "Returns the ingest region nearest the server handling the request. Pass it as `region` when creating a stream source to ingest there.",
+        "operationId": "getRegion",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetRegionResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get the ingest region",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
     "/2/sources": {
       "get": {
         "description": "Returns the authenticated user's RTMP/RTMPS stream sources. A source's `id` is the `source_id` a scheduled broadcast binds to.",
@@ -38917,62 +39367,6 @@
         "tags": [
           "Users"
         ]
-      },
-      "put": {
-        "description": "Updates the profile of the authenticated user: display name, bio, website URL, and location. Only the fields present in the request are changed.",
-        "operationId": "updateUsersMe",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUsersMeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateUsersMeResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "users.read",
-              "users.write"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Update profile",
-        "tags": [
-          "Users"
-        ]
       }
     },
     "/2/users/me/followers": {
@@ -39138,277 +39532,6 @@
           }
         ],
         "summary": "Get the users the authenticated user follows",
-        "tags": [
-          "Users"
-        ]
-      }
-    },
-    "/2/users/me/profile_banner": {
-      "delete": {
-        "description": "Removes the profile banner of the authenticated user.",
-        "operationId": "deleteUsersMeProfileBanner",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeleteUsersMeProfileBannerResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "users.read",
-              "users.write"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Delete profile banner",
-        "tags": [
-          "Users"
-        ]
-      },
-      "put": {
-        "description": "Sets the profile banner of the authenticated user from an uploaded media ID, optionally cropped to a region of the image.",
-        "operationId": "updateUsersMeProfileBanner",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUsersMeProfileBannerRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateUsersMeProfileBannerResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "users.read",
-              "users.write"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Update profile banner",
-        "tags": [
-          "Users"
-        ]
-      }
-    },
-    "/2/users/me/profile_image": {
-      "put": {
-        "description": "Sets the profile image of the authenticated user from an uploaded media ID. The image is cropped to a centered square.",
-        "operationId": "updateUsersMeProfileImage",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUsersMeProfileImageRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateUsersMeProfileImageResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "users.read",
-              "users.write"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Update profile image",
-        "tags": [
-          "Users"
-        ]
-      }
-    },
-    "/2/users/me/settings": {
-      "get": {
-        "description": "Returns the account settings of the authenticated user: language, time zone, protected status, location tagging, discoverability, sensitive media, quiet hours, personalization, and who may tag or message them.",
-        "operationId": "getUsersMeSettings",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/UserSettingsFieldsParameter"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetUsersMeSettingsResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "settings.read",
-              "users.read"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Get account settings",
-        "tags": [
-          "Users"
-        ]
-      },
-      "put": {
-        "description": "Updates the account settings of the authenticated user. Only the settings present in the request are changed. allow_media_tagging and allow_dms_from accept only their listed values, matched exactly; quiet_hours hours are 0–23 in the user's time zone; time_zone.name and language are checked by the account store.",
-        "operationId": "updateUsersMeSettings",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUsersMeSettingsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UpdateUsersMeSettingsResponse"
-                }
-              }
-            },
-            "description": "The request has succeeded."
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              },
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
-              }
-            },
-            "description": "The request has failed."
-          }
-        },
-        "security": [
-          {
-            "OAuth2UserToken": [
-              "settings.write",
-              "users.read"
-            ]
-          },
-          {
-            "UserToken": []
-          }
-        ],
-        "summary": "Update account settings",
         "tags": [
           "Users"
         ]
@@ -40508,6 +40631,356 @@
         "summary": "Delete Bookmark",
         "tags": [
           "Users"
+        ]
+      }
+    },
+    "/2/users/{id}/broadcasts": {
+      "get": {
+        "description": "Returns the authenticated user's broadcasts, 100 per page. `id` must be the authenticated user. Deprecated: use GET /2/broadcasts.",
+        "operationId": "listUserBroadcasts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "`next_token.offset` from the previous page.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListUserBroadcastsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "List a user's broadcasts",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "post": {
+        "description": "Creates a broadcast on one of the authenticated user's sources. `id` must be the authenticated user. The broadcast is `NOT_STARTED` and posts nothing until it is published with PUT /2/users/:id/broadcasts/:broadcast_id/state; one that is never published is deleted after 7 days. When the source already has a running broadcast, that broadcast is returned.",
+        "operationId": "createUserBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserBroadcastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Create a broadcast on a user's source",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/users/{id}/broadcasts/{broadcast_id}": {
+      "delete": {
+        "description": "Deletes one of the authenticated user's broadcasts. `id` must be the authenticated user. Deprecated: use DELETE /2/broadcasts/:id.",
+        "operationId": "deleteUserBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteUserBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete a user's broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "get": {
+        "description": "Returns one of the authenticated user's broadcasts. `id` must be the authenticated user. Deprecated: use GET /2/broadcasts/:id.",
+        "operationId": "getUserBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get a user's broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/users/{id}/broadcasts/{broadcast_id}/state": {
+      "put": {
+        "description": "Publishes or ends one of the authenticated user's broadcasts. `id` must be the authenticated user. `PUBLISH` takes a broadcast created with POST /2/users/:id/broadcasts live once its source is receiving video, and posts it unless `should_not_tweet` is true. `END` ends the broadcast. Deprecated: use PUT /2/broadcasts/:id/state to end a broadcast.",
+        "operationId": "updateUserBroadcastState",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserBroadcastStateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateUserBroadcastStateResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Publish or end a user's broadcast",
+        "tags": [
+          "Broadcasts"
         ]
       }
     },
