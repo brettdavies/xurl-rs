@@ -112,10 +112,11 @@ noticing. #414, #416, #417, and #418 have the same shape: a hand-written stateme
   that other commands and raw requests ignore it. Every command with `-n` honors it.
 - R8. `--cursor` help states that it applies to every command whose endpoint pages, whose response carries
   `meta.next_token`, and that other commands and raw requests ignore it; a raw request carries its token in its URL.
+- R10. The first line of the `--limit` and `--cursor` help, the only line `-h` prints, carries each rule on its own.
 
 **Drift**
 
-- R9. A test fails when R1, R3, R4, R5, R6, R7, or R8 stops matching the binary.
+- R9. A test fails when R1, R3, R4, R5, R6, R7, R8, or R10 stops matching the binary.
 
 ### Success Criteria
 
@@ -192,12 +193,14 @@ noticing. #414, #416, #417, and #418 have the same shape: a hand-written stateme
   clap's own `try_parse_from` help path would skip.
 - KTD7. **The accepted set is an intersection, in preference order.** A command accepts a scheme when every endpoint in
   its row accepts it (`supported_auth`, deduplicated by wire scheme). The list follows `WireScheme::ALL_BY_PREFERENCE`
-  (oauth2, oauth1, app), which is also the order `xr` picks a stored credential in, and reads
-  `Authentication type (this command accepts: oauth2, oauth1)`; a command whose `--of` set differs adds
-  `; with --of: oauth2, oauth1, app`. The root raw-mode line lists `WireScheme::ALL_BY_PREFERENCE` whole, because raw
-  mode bypasses the matrix, and so does the `CommonFlags` doc default, built by the same function in `accepted_auth.rs`.
-  The order is the one `detect_scheme` in `crates/xdk/src/api/request/auth_header.rs` walks; the mismatch envelope's
-  `supported` keeps the spec's order and does not change.
+  (oauth2, oauth1, app), which is also the order `xr` picks a stored credential in, and reads "Authentication type (this
+  command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for"; a command whose `--of`
+  set differs adds `; with --of: oauth2, oauth1, app` inside the parentheses. The second sentence states what
+  `detect_scheme` does, in the house style of the "Unset, 30" that `--forward-timeout` prints. The root raw-mode line
+  lists `WireScheme::ALL_BY_PREFERENCE` whole, because raw mode bypasses the matrix, and so does the `CommonFlags` doc
+  default, built by the same function in `accepted_auth.rs`. The order is the one `detect_scheme` in
+  `crates/xdk/src/api/request/auth_header.rs` walks; the mismatch envelope's `supported` keeps the spec's order and does
+  not change.
 - KTD8. **The dry run, with every credential kind stored, is the oracle.** The accepted-auth walk dry-runs each command
   once per scheme over a store holding a live `OAuth2` login, an `OAuth1` pair, and a bearer, and counts a scheme
   accepted unless the answer is `auth-method-mismatch`. An empty store would stop on the first request's `auth-required`
@@ -265,6 +268,17 @@ flowchart LR
 | `issues-dry-run-envelopes` (#437, #438, #439) | #439 adds a handle lookup to `calls scheduled add`/`update --invite` and `webhooks subscriptions remove` and edits `calls.rs` and `calls_tests.rs`; #438 adds an `OVERRIDES` row | The lookup endpoint accepts all three schemes, so those commands' accepted sets hold; rows should still list it. KTD5 edits another arm of `calls.rs`. KTD9 covers the row |
 | #409 spec refresh                             | Adds commands and an `OVERRIDES` row                                                                                                                                             | Each new `--auth` command needs a row; the walk says so. KTD9 covers the row                                                                                               |
 | `xr` 4.4.1 cut from `dev`                     | `dev` moves under the stack                                                                                                                                                      | Rebase the bottom PR; restack the rest                                                                                                                                     |
+
+### Changelog per PR
+
+Each PR body's `## Changelog` carries the user-visible change, so the generated changelog says what moved:
+
+| PR       | Section | Entry                                                                                                   |
+| -------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| U1       | Changed | Help pages list global flags under their own `Global Options` heading                                   |
+| U2       | Fixed   | `webhooks add`, `search-users`, `webhooks replay`, and `webhooks listen` help state their input rules   |
+| U4 (+U3) | Fixed   | `--limit` and `--cursor` help describe every command that pages; `calls scheduled list` takes `--limit` |
+| U5       | Added   | Each command's `--auth` help lists the schemes that command accepts                                     |
 
 ---
 
@@ -350,7 +364,7 @@ flowchart LR
 
 - **Goal:** `--limit` and `--cursor` describe exactly the commands that honor them, now and after the next family lands
   (#425).
-- **Requirements:** R7, R8, R9
+- **Requirements:** R7, R8, R9, R10
 - **Dependencies:** U1, U3
 - **Files:**
   - Modify: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/commands/calls.rs`
@@ -383,6 +397,7 @@ flowchart LR
     its dry run reports the same values.
   - `--limit` long help mentions `-n/--max-results`, `--cursor` long help mentions `meta.next_token`, and neither names
     a command.
+  - `xr search -h` prints, for each flag, a first line that states its rule and names raw requests (R10).
 - **Verification:** The walk passes at `dev` plus this unit, and it fails, naming `calls scheduled list`, when KTD5 is
   reverted.
 
@@ -411,7 +426,8 @@ flowchart LR
   - A command that takes `--auth` with no row fails with a `Cause:` line naming the command and `accepted_auth.rs`; a
     row naming no such command fails the same way.
   - For each command, the schemes its help lists equal the schemes its dry run does not refuse with
-    `auth-method-mismatch` over a store holding every kind.
+    `auth-method-mismatch` over a store holding every kind. A failure prints both sets and the endpoint the dry run
+    refused, so the contributor sees which row to change.
   - For each command that takes `--of`, the `with --of` list equals the dry-run-accepted set with `--of 1234567890`; a
     command whose `--of` set matches its default set prints no suffix.
   - `xr webhooks replay --help` reads `(this command accepts: app)`; `xr notes write --help` reads
@@ -574,18 +590,139 @@ score baseline of 98. Critical gaps: 0.
 **Parallelization.** Sequential implementation, no parallelization opportunity: the units share `cli/mod.rs` and the
 golden fixtures, and the slot runs no worktrees.
 
+### Developer-experience review (2026-10-29)
+
+Product type: CLI tool, from the plan's subject (`xr` help pages). Mode: DX POLISH, the default for an enhancement to an
+existing product, with the six issues as the fixed scope. Web research did not run (Aside unavailable); the benchmark
+uses help pages observed on this machine and labels the rest.
+
+**Persona.** The issues, `AGENTS.md`, and the repo's earlier DX reviews all name the same primary reader.
+
+```text
+TARGET DEVELOPER PERSONA
+Who:       An AI coding agent driving xr in a shell, unattended; a human X API developer second
+Context:   Reads `xr <command> --help` (often `-h`) before building an invocation
+Tolerance: One help read and one call; every refused call costs a turn and tokens
+Expects:   Help that names the accepted values, the scope of each flag, and the input rules
+```
+
+**Empathy narrative (observed on `xr` 4.4.0).** I need to replay a webhook's missed window. `xr webhooks replay --help`
+lists `--auth <AUTH_TYPE>` as `(oauth1, oauth2, app)`, so I pass `--auth oauth2`, the login I have. The run exits 2 with
+`auth-method-mismatch` and `supported: ["app"]`; only now do I learn this command takes the bearer alone. Next I want
+the window from a checkpoint, but the help never says what the file holds, so I learn the shape from an `io` error.
+Paging `xr user-posts`, I read that `--limit` applies to ten other commands and "other commands ignore it", so I either
+skip it or try it and wonder whether it worked. On `xr webhooks listen --help`, `--verbose` and `--app` sit between the
+listener's own flags, and I cannot tell which flags are this command's.
+
+**Benchmark.** Equivalent boundary: one help page read to one correct invocation.
+
+| Tool                   | Start to result                         | Evidence                                   | DX choice                                         |
+| ---------------------- | --------------------------------------- | ------------------------------------------ | ------------------------------------------------- |
+| `gh pr list --help`    | help read to call                       | observed on this machine                   | Inherited flags under their own `INHERITED FLAGS` |
+| `cargo build --help`   | help read to call                       | observed on this machine                   | Options grouped under named headings              |
+| `kubectl <cmd> --help` | help read to call                       | reported, not verified here                | Globals moved to `kubectl options`                |
+| `xr` 4.4.0             | help read, refused call, corrected call | observed (`webhooks replay --auth oauth2`) | One generic `--auth` line; globals interleaved    |
+| `xr` after this plan   | help read to call                       | estimated until U5 is built                | Per-command schemes; `Global Options` heading     |
+
+Target, decided from evidence: Champion, one help read and one correct call. The plan's own measurement is the
+Reproduction row of the Verification Contract.
+
+**Magical moment.** `xr webhooks replay -h` answers "which `--auth`?" in the line the agent already reads:
+`(this command accepts: app)`. Vehicle: the existing help page; nothing new to install or call.
+
+**Journey map.**
+
+```text
+STAGE           | DEVELOPER DOES                    | FRICTION POINT                         | STATUS
+1. Discover     | xr --help, xr <cmd> --help        | globals split command options (#415)   | fixed (U1)
+2. Install      | brew / cargo install              | none in scope                          | ok
+3. Hello World  | first call with --auth            | generic scheme list (#414)             | fixed (U5)
+4. Real Usage   | page a list; replay from a file   | stale paging scope; no file shape      | fixed (U4, U2)
+5. Debug        | read a refusal                    | rule only in the refusal (#416, #417)  | fixed (U2)
+6. Upgrade      | read the changelog                | none; entries planned per PR           | ok
+```
+
+**Confusion report (agent, on 4.4.0).** T+0:00 reads `webhooks replay --help`, sees three schemes. T+0:05 calls with
+`--auth oauth2`, exit 2. T+0:10 rereads the envelope's `supported`, calls with `--auth app`. T+0:20 writes a checkpoint
+by guessing its shape, exit 5, learns it from the message. T+0:40 pages `user-posts` and cannot tell whether `--limit`
+took effect. All four points are planned fixes; none is left for this review to decide.
+
+**Findings, decided from evidence and folded in.**
+
+- DX1. `-h` prints only the first line of a flag's help: `xr search -h` shows
+  `Global result-set limit, clamped to 1..=100` and nothing of the scope. The rule must sit on that line. Added R10 and
+  a U4 scenario.
+- DX2. The `--auth` line did not say what happens without the flag. `detect_scheme` takes the first scheme in list order
+  that the store holds, so the line now says so (KTD7), in the "Unset, 30" style `--forward-timeout` uses.
+- DX3. A contributor who trips the accepted-auth walk needs the two sets and the refused endpoint to fix the row. Added
+  to the U5 scenario.
+- DX4. The help moves on every page, so each PR's changelog says what moved. Added "Changelog per PR".
+
+**Error paths touched (agent-ready-v1).**
+
+```text
+Path                              | Class   | what | fix  | recovery | code | context | trace | redaction | channel | Cap
+auth-method-mismatch (real, dry)  | usage   | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | -
+checkpoint not readable (io)      | runtime | pass | pass | pass     | pass | pass    | N/A   | pass      | pass    | -
+invalid-user-query (dry run)      | usage   | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | -
+help_claims_guard walk failure    | test    | pass | pass | N/A      | N/A  | pass    | N/A   | pass      | pass    | -
+```
+
+The mismatch's message names the fix (`Use --auth app.`); its envelope carries no `next_step` by the documented design
+in `crates/xurl-cli/README.md` ("none otherwise"). Pull request #437 adds the `message` that the dry-run JSON lacks for
+an input refusal today.
+
+**NOT in scope.** A `next_step` on `auth-method-mismatch` (an envelope change outside these issues); a paging example in
+`xr examples` (new content); a per-command paging note (Scope Boundaries).
+
+**What already exists.** `family_help.rs` assembles help from declarations; `validation.rs` holds the refusal sentences
+with their constants; `detect_scheme` already walks the preference order; the README's comparison row already documents
+`--cursor`.
+
+## DX Review Scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW: SCORECARD                              |
++====================================================================+
+| Dimension            | Score  | Prior  | Trend                      |
+|----------------------|--------|--------|----------------------------|
+| Getting Started      |  8/10  |  7/10  | up                         |
+| API/CLI/SDK          |  8/10  |  6/10  | up                         |
+| Error Messages       |  7/10  |  7/10  | flat                       |
+| Documentation        |  8/10  |  5/10  | up                         |
+| Upgrade Path         |  8/10  |  8/10  | flat                       |
+| Dev Environment      |  8/10  |  7/10  | up                         |
+| Community            |  7/10  |  7/10  | flat                       |
+| DX Measurement       |  8/10  |  6/10  | up                         |
++--------------------------------------------------------------------+
+| TTHW                 | 1 read + 1 call | was 1 read + 2 calls      |
+| Competitive Rank     | Champion (target, estimated)                 |
+| Magical Moment       | designed, via the existing help page         |
+| Product Type         | CLI tool                                     |
+| Mode                 | POLISH                                       |
+| Overall DX           |  8/10  |  6/10  | up                         |
++====================================================================+
+| Zero Friction covered | Learn by Doing covered | Fight Uncertainty covered |
+| Opinionated + Escape Hatches covered | Code in Context covered        |
+| Magical Moments covered | Agents Are Users covered                  |
++====================================================================+
+```
+
+"Prior" scores the plan as first written; the rubric is agent-ready-v1. No dimension is below 6.
+
 ## GSTACK REVIEW REPORT
 
 | Review         | Trigger               | Why                             | Runs | Status      | Findings                                 |
 | -------------- | --------------------- | ------------------------------- | ---- | ----------- | ---------------------------------------- |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                        |
-| Outside Review | codex (plan review)   | Independent 2nd opinion         | 1    | disabled    | —                                        |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | -           | -                                        |
+| Outside Review | codex (plan review)   | Independent 2nd opinion         | 2    | disabled    | -                                        |
 | Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | issues_open | 7 issues, 0 critical gaps, all folded in |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | —                                        |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | —           | —                                        |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | -           | -                                        |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | issues_open | score: 6/10 to 8/10, TTHW: 2 calls to 1  |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config; no findings.
-- **VERDICT:** Eng review run once; its 7 findings are folded into the plan with evidence. DX review and document review
-  follow.
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config for both reviews; no findings.
+- **VERDICT:** Eng and DX reviews ran once each; every finding is folded into the plan with evidence. Document review
+  follows.
 
 NO UNRESOLVED DECISIONS
