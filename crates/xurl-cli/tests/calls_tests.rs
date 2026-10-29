@@ -101,6 +101,43 @@ async fn scheduled_list_sends_the_window_and_the_count() {
     assert_eq!(json_out(&stdout)["data"][0]["id"], SCHEDULED_ID);
 }
 
+/// The page size comes from `-n`, then the global `--limit`, then 20, and a
+/// dry run reports the size the real run sends.
+#[rstest::rstest]
+#[case::neither(&[], 20)]
+#[case::limit(&["--limit", "50"], 50)]
+#[case::n_over_limit(&["-n", "30", "--limit", "50"], 30)]
+#[tokio::test]
+async fn scheduled_list_takes_its_page_size_from_n_then_limit(
+    #[case] flags: &[&str],
+    #[case] size: i32,
+) {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/calls/scheduled"))
+        .and(query_param("max_results", size.to_string()))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": [scheduled_call()]})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let mut args = vec!["calls", "scheduled", "list", "--output", "json"];
+    args.extend_from_slice(flags);
+
+    let (code, _stdout, stderr) = run(&store, &server.uri(), &args).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+
+    let mut dry = vec!["--dry-run"];
+    dry.extend_from_slice(&args);
+    let (code, stdout, stderr) = run(&store, &server.uri(), &dry).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(json_out(&stdout)["max_results"], size, "{stdout}");
+}
+
 #[tokio::test]
 async fn scheduled_add_posts_the_call_with_its_invitees() {
     let server = MockServer::start().await;

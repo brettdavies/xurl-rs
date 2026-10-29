@@ -918,6 +918,10 @@ Examples:
     xr post \"Beach day\" --media-id <media_id>
 ";
 
+/// The page size `xr calls scheduled list` asks for when neither `-n` nor
+/// `--limit` names one.
+pub(crate) const SCHEDULED_CALLS_PAGE_SIZE: i32 = 20;
+
 /// The heading every global flag sits under. clap copies a global flag into
 /// each subcommand at the place it holds on the root, so without a heading of
 /// its own it lands between that command's options.
@@ -1180,24 +1184,23 @@ pub struct Cli {
     )]
     pub dry_run: bool,
 
-    /// Global result-set limit, clamped to 1..=100.
+    /// Page size for every command that takes `-n/--max-results`, when `-n` is not given; other
+    /// commands and raw requests ignore it
     ///
-    /// Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`,
-    /// `following`, `followers`, `muted`, `blocked`, and `dms`; other commands
-    /// ignore it. The per-command `-n/--max-results` flag takes precedence when
-    /// both are set.
+    /// It takes the values that command's `-n` takes and is clamped the same
+    /// way, and `-n` wins when both are given. A raw request carries its page
+    /// size in its own query string.
     #[arg(long = "limit", global = true, help_heading = GLOBAL_OPTIONS, env = "XURL_LIMIT")]
     pub limit: Option<i32>,
 
-    /// Pagination cursor / `pagination_token` for list endpoints.
+    /// The `meta.next_token` of the previous page, for every command whose endpoint pages; other
+    /// commands and raw requests ignore it
     ///
-    /// The X API uses cursor-based pagination: each list response carries a
-    /// `meta.next_token` field, and the next page is fetched by re-running
-    /// the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`).
-    /// Threads through to the `pagination_token` query parameter on every
-    /// `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`,
-    /// `followers`, `muted`, `blocked`, and `dms` invocation; other commands
-    /// ignore it.
+    /// A command whose endpoint pages answers with `meta.next_token` while
+    /// more results remain; run the same command again with `--cursor <token>`
+    /// (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the
+    /// endpoint's page token, `pagination_token` or `next_token`. A raw
+    /// request carries its page token in its own URL.
     #[arg(
         long = "cursor",
         global = true, help_heading = GLOBAL_OPTIONS,
@@ -3072,9 +3075,15 @@ pub enum ScheduledCallsCommands {
         /// after `--start`
         #[arg(long, value_name = "TIME")]
         end: Option<String>,
-        /// Number of calls (1-100)
-        #[arg(short = 'n', long = "max-results", default_value_t = 20)]
-        max_results: i32,
+        #[arg(
+            short = 'n',
+            long = "max-results",
+            help = format!(
+                "Number of calls (1-100); {SCHEDULED_CALLS_PAGE_SIZE} when neither this nor \
+                 `--limit` is given. Overrides global `--limit` when set"
+            )
+        )]
+        max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
