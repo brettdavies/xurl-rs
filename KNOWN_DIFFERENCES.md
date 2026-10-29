@@ -53,12 +53,11 @@ URL of the caller's, a program after `--` runs once per event, and `--checkpoint
 
 ## Exit code mapping for HTTP errors (intentional improvement)
 
-The Go version maps HTTP errors to exit codes by string-matching the error message body (e.g., checking if the body
-contains "404"). This fails for API responses where the JSON body doesn't contain the literal status code string,
-causing 404 responses to return `EXIT_GENERAL_ERROR` (1) instead of `EXIT_NOT_FOUND` (4).
+Go `xurl` exits 1 on every failure: each `os.Exit` in its source passes 1, and `main.go` exits 1 when Cobra returns an
+error. A 404, a 401, and a 429 all end at exit 1.
 
-The Rust version uses structured pattern matching on `xdk::Error::Api { status, .. }`, which correctly maps HTTP status
-codes to exit codes regardless of response body content. This means some edge-case exit codes differ:
+The Rust version maps the HTTP status itself, through `xdk::Error::Api { status, .. }`, to an exit code, so these exit
+codes differ:
 
 | Scenario                                      | Go exit code | Rust exit code     | Rust is more correct |
 | --------------------------------------------- | ------------ | ------------------ | -------------------- |
