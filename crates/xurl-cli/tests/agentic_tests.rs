@@ -611,7 +611,7 @@ fn test_raw_with_output_json_emits_compact_json() {
     // --raw under JSON mode produces compact JSON (no whitespace) on stderr
     // for the envelope path. Schema lookup is a clean stdout-emitting verb.
     let output = common::xr()
-        .args(["schema", "envelope", "--output", "json", "--raw"])
+        .args(["schema", "--envelope", "--output", "json", "--raw"])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -626,7 +626,7 @@ fn test_raw_with_output_json_emits_compact_json() {
 #[test]
 fn test_raw_without_flag_pretty_prints() {
     let output = common::xr()
-        .args(["schema", "envelope", "--output", "json"])
+        .args(["schema", "--envelope", "--output", "json"])
         .output()
         .unwrap();
     assert!(output.status.success());

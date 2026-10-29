@@ -244,20 +244,10 @@ where
                 envelope,
             } => {
                 return match crate::cli::commands::schema::run_schema(
-                    command.as_deref(),
-                    *list,
-                    *all,
-                    *envelope,
-                    &out,
-                    stdout,
+                    command, *list, *all, *envelope, &out, stdout,
                 ) {
                     Ok(()) => EXIT_SUCCESS,
-                    // What `schema` refuses is the name it was given.
-                    Err(e) => {
-                        let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
-                        out.print_refusal(stderr, &e, None, &hint);
-                        EXIT_GENERAL_ERROR
-                    }
+                    Err(refusal) => render_schema_refusal(refusal, &args_vec, &out, stderr),
                 };
             }
             Commands::Skill { .. } => {
@@ -654,6 +644,75 @@ fn render_misplaced_flags(
             reason: Reason::InvalidArgs,
             exit_code: EXIT_USAGE_ERROR,
             message: Some(message),
+            next_step: Some(next_step),
+            ..ErrorBody::default()
+        },
+    );
+    EXIT_USAGE_ERROR
+}
+
+/// Renders what `xr schema` refused. A word that names no command takes
+/// the refusal `xr help` gives it; an old name or a scope word is
+/// `invalid-args` with the invocation that works as its step, when one
+/// exists; anything else is the value refusal every command gives.
+fn render_schema_refusal(
+    refusal: crate::cli::commands::schema::Refusal,
+    args: &[OsString],
+    out: &OutputConfig,
+    stderr: &mut dyn Write,
+) -> i32 {
+    use crate::cli::commands::schema::{Refusal, invocation};
+    let (given, problem, run) = match refusal {
+        Refusal::UnknownCommand {
+            word,
+            suggestion,
+            under,
+        } => {
+            return render_unknown_command(
+                &word,
+                Suggestion::nearest(suggestion.as_deref()),
+                &under,
+                out,
+                stderr,
+            );
+        }
+        Refusal::Invalid(error) => {
+            let hint = crate::cli::hints::show_help_hint(&invoked_help(args));
+            out.print_refusal(stderr, &error, None, &hint);
+            return EXIT_GENERAL_ERROR;
+        }
+        Refusal::OldName { given, command } => {
+            let problem = format!(
+                "'{given}' is a name `xr schema` no longer takes; it takes the command's words."
+            );
+            (given, problem, Some(invocation(command)))
+        }
+        Refusal::ScopeWord(word) => {
+            let flag = format!("--{word}");
+            let alone = Cli::try_parse_from(["xr", "schema", flag.as_str()]).is_ok();
+            let problem = format!(
+                "'{word}' names a scope of `xr schema`, not a command; it is the flag {flag}."
+            );
+            (word, problem, alone.then(|| format!("xr schema {flag}")))
+        }
+    };
+    let (message, next_step) = match run {
+        Some(run) => (
+            format!("{problem} Run: {run}"),
+            NextStep::fix_input_with(run),
+        ),
+        None => (
+            format!("{problem} Try 'xr schema --help'."),
+            NextStep::show_help("xr schema --help".to_string()),
+        ),
+    };
+    out.emit_error_envelope(
+        stderr,
+        ErrorBody {
+            reason: Reason::InvalidArgs,
+            exit_code: EXIT_USAGE_ERROR,
+            message: Some(message),
+            command: Some(given),
             next_step: Some(next_step),
             ..ErrorBody::default()
         },

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Generate per-command response schemas to schema/responses/<cmd>.schema.json.
+# Generate per-command response schemas to schema/responses/<file>.
 #
 # Source of truth is SCHEMA_ENTRIES in crates/xurl-cli/src/cli/commands/schema.rs. This script
-# enumerates commands via `xr schema --list`, dumps each one, and skips the
-# envelope (which lives separately at schema/output.schema.json).
+# reads the records `xr schema --list --output tsv` prints, one per registered command, and dumps
+# each command's schema into the file its record names. The envelope lives separately at
+# schema/output.schema.json.
 #
 # Drift guard: crates/xurl-cli/tests/schema_tests.rs asserts byte-equality between the
 # committed files and the runtime emitter; regenerate via this script after
@@ -19,13 +20,23 @@ XR="./target/release/xr"
 out="schema/responses"
 mkdir -p "$out"
 
-# Enumerate commands via the canonical list (text mode is one-cmd-per-line).
-while IFS= read -r line; do
-  cmd=$(awk '{print $1}' <<<"$line")
-  [ -z "$cmd" ] && continue
-  [ "$cmd" = "envelope" ] && continue
-  "$XR" schema "$cmd" --output json > "$out/${cmd}.schema.json"
-  echo "Generated: $out/${cmd}.schema.json"
-done < <("$XR" schema --list --output text)
+# Command names hold spaces, so columns are read by header name, never split on whitespace.
+"$XR" schema --list --output tsv | {
+  IFS=$'\t' read -r -a header
+  for i in "${!header[@]}"; do
+    case "${header[$i]}" in
+      command) command_col=$i ;;
+      file) file_col=$i ;;
+    esac
+  done
+  while IFS=$'\t' read -r -a row; do
+    command="${row[$command_col]}"
+    file="${row[$file_col]}"
+    read -r -a words <<<"$command"
+    # `--` lets a flag form's flag (`skill install --all`) reach xr schema as a word.
+    "$XR" schema --output json -- "${words[@]}" >"$out/$file"
+    echo "Generated: $out/$file"
+  done
+}
 
 echo "Done. Commit schema/responses/ when ready."

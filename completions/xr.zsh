@@ -9197,7 +9197,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'::command -- Command name to get the schema for (e.g. "post", "whoami", "envelope"):_default' \
+'*::command -- The command'\''s words, as `xr help` takes them (e.g. `post`, `webhooks subscriptions count`):_default' \
 && ret=0
 ;;
 (completions)

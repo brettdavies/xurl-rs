@@ -1,16 +1,16 @@
 args: ["schema", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7033
+stdout_len: 7467
 stderr_len: 0
 --- stdout ---
 Show JSON Schema for a command's response type
 
-Usage: xr schema [OPTIONS] [COMMAND]
+Usage: xr schema [OPTIONS] [COMMAND]...
 
 Arguments:
-  [COMMAND]
-          Command name to get the schema for (e.g. "post", "whoami", "envelope")
+  [COMMAND]...
+          The command's words, as `xr help` takes them (e.g. `post`, `webhooks subscriptions count`)
 
 Options:
       --list
@@ -159,14 +159,21 @@ Global Options:
           [env: XURL_AFTER=]
 
 Examples:
-  List all command schemas (text):
-    xr schema --list
-  List all command schemas (JSON):
-    xr schema --list --output json
-  Dump a single command's schema:
+  A command's schema, named by the words you run it with:
     xr schema post --output json
-  Dump every schema as one JSON document:
+    xr schema webhooks subscriptions count --output json
+  Then filter that command's output by the fields it names:
+    xr schema search
+    xr search "from:jack" --output json | jaq -r '.data[].text'
+  The --all form of skill install, after -- so it reads as a word:
+    xr schema skill install -- --all
+  List every command with a schema (text, or one record per command):
+    xr schema --list
+    xr schema --list --output json
+  Every schema as one JSON document:
     xr schema --all --output json
+  The output envelope every command prints:
+    xr schema --envelope --output json
 
 --- stderr ---
 

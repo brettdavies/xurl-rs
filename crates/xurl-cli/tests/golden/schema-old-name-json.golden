@@ -1,0 +1,20 @@
+args: ["--output", "json", "schema", "webhooks-subscriptions-count"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 380
+--- stdout ---
+
+--- stderr ---
+{
+  "command": "webhooks-subscriptions-count",
+  "exit_code": 2,
+  "message": "'webhooks-subscriptions-count' is a name `xr schema` no longer takes; it takes the command's words. Run: xr schema webhooks subscriptions count",
+  "next_step": {
+    "action": "fix-input",
+    "command": "xr schema webhooks subscriptions count"
+  },
+  "reason": "invalid-args",
+  "status": "error"
+}
+

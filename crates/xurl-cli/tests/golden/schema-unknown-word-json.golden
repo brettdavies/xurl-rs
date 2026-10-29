@@ -1,0 +1,21 @@
+args: ["--output", "json", "schema", "webhooks", "subscriptoins", "count"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 354
+--- stdout ---
+
+--- stderr ---
+{
+  "command": "subscriptoins",
+  "exit_code": 2,
+  "message": "unknown command 'subscriptoins'. Did you mean 'subscriptions'? Try 'xr webhooks subscriptions --help'.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr webhooks subscriptions --help"
+  },
+  "reason": "unknown-command",
+  "status": "error",
+  "suggestion": "subscriptions"
+}
+

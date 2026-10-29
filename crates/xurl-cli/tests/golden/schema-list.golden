@@ -1,59 +1,61 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8323
+stdout_len: 8283
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
-articles-draft                 ApiResponse<ArticleDraft>
-articles-publish               ApiResponse<ArticlePublished>
-auth-apps-list                 Vec<AppStatusEntry>
-auth-status                    Vec<AppStatusEntry>
+articles draft                 ApiResponse<ArticleDraft>
+articles publish               ApiResponse<ArticlePublished>
+auth apps list                 Vec<AppStatusEntry>
+auth apps redirect-uri get     RedirectUriGetResponse
+auth apps redirect-uri set     RedirectUriSetResponse
+auth status                    Vec<AppStatusEntry>
 block                          ApiResponse<BlockingResult>
 blocked                        ApiResponse<Vec<User>>
 bookmark                       ApiResponse<BookmarkedResult>
-bookmark-folders-add           ApiResponse<BookmarkFolder>
-bookmark-folders-list          ApiResponse<Vec<BookmarkFolder>>
-bookmark-folders-posts         ApiResponse<Vec<BookmarkFolderPost>>
+bookmark-folders add           ApiResponse<BookmarkFolder>
+bookmark-folders list          ApiResponse<Vec<BookmarkFolder>>
+bookmark-folders posts         ApiResponse<Vec<BookmarkFolderPost>>
 bookmarks                      ApiResponse<Vec<Post>>
-broadcasts-chat-history        ApiResponse<Vec<BroadcastChatMessage>>
-broadcasts-chat-mute           ApiResponse<ChatMutedResult>
-broadcasts-chat-remove         ApiResponse<DeletedResult>
-broadcasts-chat-send           ApiResponse<ChatSentResult>
-broadcasts-chat-unmute         ApiResponse<ChatMutedResult>
-broadcasts-get                 ApiResponse<Broadcast>
-broadcasts-list                ApiResponse<Vec<Broadcast>>
-broadcasts-moderators-add      ApiResponse<ChatModeratorsResult>
-broadcasts-moderators-list     ApiResponse<Vec<User>>
-broadcasts-moderators-remove   ApiResponse<ChatModeratorsResult>
-broadcasts-scheduled-add       ApiResponse<ScheduledBroadcast>
-broadcasts-scheduled-cancel    ApiResponse<DeletedResult>
-broadcasts-scheduled-get       ApiResponse<ScheduledBroadcast>
-broadcasts-scheduled-list      ApiResponse<Vec<ScheduledBroadcast>>
-broadcasts-scheduled-update    ApiResponse<ScheduledBroadcast>
-broadcasts-sources-add         ApiResponse<StreamSourceResult>
-broadcasts-sources-get         ApiResponse<StreamSourceResult>
-broadcasts-sources-list        ApiResponse<StreamSources>
-broadcasts-sources-remove      ApiResponse<StreamSourceDeleted>
-broadcasts-sources-rename      ApiResponse<StreamSourceResult>
-calls-get                      ApiResponse<XCall>
-calls-scheduled-add            ApiResponse<ScheduledCall>
-calls-scheduled-cancel         ApiResponse<ScheduledCallCancelled>
-calls-scheduled-get            ApiResponse<ScheduledCall>
-calls-scheduled-list           ApiResponse<Vec<ScheduledCall>>
-calls-scheduled-rsvp           ApiResponse<ScheduledCallRsvp>
-calls-scheduled-update         ApiResponse<ScheduledCallUpdated>
-communities-get                ApiResponse<Community>
-communities-search             ApiResponse<Vec<Community>>
-conversations-history          ApiResponse<Vec<DmEvent>>
-conversations-send             ApiResponse<DmSentResult>
-conversations-start            ApiResponse<DmSentResult>
-conversations-with             ApiResponse<Vec<DmEvent>>
+broadcasts chat history        ApiResponse<Vec<BroadcastChatMessage>>
+broadcasts chat mute           ApiResponse<ChatMutedResult>
+broadcasts chat remove         ApiResponse<DeletedResult>
+broadcasts chat send           ApiResponse<ChatSentResult>
+broadcasts chat unmute         ApiResponse<ChatMutedResult>
+broadcasts get                 ApiResponse<Broadcast>
+broadcasts list                ApiResponse<Vec<Broadcast>>
+broadcasts moderators add      ApiResponse<ChatModeratorsResult>
+broadcasts moderators list     ApiResponse<Vec<User>>
+broadcasts moderators remove   ApiResponse<ChatModeratorsResult>
+broadcasts scheduled add       ApiResponse<ScheduledBroadcast>
+broadcasts scheduled cancel    ApiResponse<DeletedResult>
+broadcasts scheduled get       ApiResponse<ScheduledBroadcast>
+broadcasts scheduled list      ApiResponse<Vec<ScheduledBroadcast>>
+broadcasts scheduled update    ApiResponse<ScheduledBroadcast>
+broadcasts sources add         ApiResponse<StreamSourceResult>
+broadcasts sources get         ApiResponse<StreamSourceResult>
+broadcasts sources list        ApiResponse<StreamSources>
+broadcasts sources remove      ApiResponse<StreamSourceDeleted>
+broadcasts sources rename      ApiResponse<StreamSourceResult>
+calls get                      ApiResponse<XCall>
+calls scheduled add            ApiResponse<ScheduledCall>
+calls scheduled cancel         ApiResponse<ScheduledCallCancelled>
+calls scheduled get            ApiResponse<ScheduledCall>
+calls scheduled list           ApiResponse<Vec<ScheduledCall>>
+calls scheduled rsvp           ApiResponse<ScheduledCallRsvp>
+calls scheduled update         ApiResponse<ScheduledCallUpdated>
+communities get                ApiResponse<Community>
+communities search             ApiResponse<Vec<Community>>
+conversations history          ApiResponse<Vec<DmEvent>>
+conversations send             ApiResponse<DmSentResult>
+conversations start            ApiResponse<DmSentResult>
+conversations with             ApiResponse<Vec<DmEvent>>
 delete                         ApiResponse<DeletedResult>
 dm                             ApiResponse<DmSentResult>
 dm-block                       ApiResponse<DmBlockResult>
-dm-events-get                  ApiResponse<DmEvent>
-dm-events-remove               ApiResponse<DeletedResult>
+dm-events get                  ApiResponse<DmEvent>
+dm-events remove               ApiResponse<DeletedResult>
 dm-unblock                     ApiResponse<DmBlockResult>
 dms                            ApiResponse<Vec<DmEvent>>
 follow                         ApiResponse<FollowingResult>
@@ -63,64 +65,62 @@ hide                           ApiResponse<HiddenResult>
 like                           ApiResponse<LikedResult>
 likers                         ApiResponse<Vec<User>>
 likes                          ApiResponse<Vec<Post>>
-lists-add                      ApiResponse<List>
-lists-follow                   ApiResponse<FollowingResult>
-lists-followed                 ApiResponse<Vec<List>>
-lists-followers                ApiResponse<Vec<User>>
-lists-get                      ApiResponse<List>
-lists-list                     ApiResponse<Vec<List>>
-lists-members-add              ApiResponse<ListMemberResult>
-lists-members-list             ApiResponse<Vec<User>>
-lists-members-remove           ApiResponse<ListMemberResult>
-lists-memberships              ApiResponse<Vec<List>>
-lists-pin                      ApiResponse<PinnedResult>
-lists-pinned                   ApiResponse<Vec<List>>
-lists-posts                    ApiResponse<Vec<Post>>
-lists-remove                   ApiResponse<DeletedResult>
-lists-unfollow                 ApiResponse<FollowingResult>
-lists-unpin                    ApiResponse<PinnedResult>
-lists-update                   ApiResponse<ListUpdatedResult>
-media-alt-text                 ApiResponse<MediaMetadataResult>
-media-analytics                ApiResponse<Vec<MediaAnalytics>>
-media-get                      ApiResponse<Vec<Media>>
-media-subtitles-add            ApiResponse<MediaSubtitlesResult>
-media-subtitles-remove         ApiResponse<DeletedResult>
+lists add                      ApiResponse<List>
+lists follow                   ApiResponse<FollowingResult>
+lists followed                 ApiResponse<Vec<List>>
+lists followers                ApiResponse<Vec<User>>
+lists get                      ApiResponse<List>
+lists list                     ApiResponse<Vec<List>>
+lists members add              ApiResponse<ListMemberResult>
+lists members list             ApiResponse<Vec<User>>
+lists members remove           ApiResponse<ListMemberResult>
+lists memberships              ApiResponse<Vec<List>>
+lists pin                      ApiResponse<PinnedResult>
+lists pinned                   ApiResponse<Vec<List>>
+lists posts                    ApiResponse<Vec<Post>>
+lists remove                   ApiResponse<DeletedResult>
+lists unfollow                 ApiResponse<FollowingResult>
+lists unpin                    ApiResponse<PinnedResult>
+lists update                   ApiResponse<ListUpdatedResult>
+media alt-text                 ApiResponse<MediaMetadataResult>
+media analytics                ApiResponse<Vec<MediaAnalytics>>
+media get                      ApiResponse<Vec<Media>>
+media subtitles add            ApiResponse<MediaSubtitlesResult>
+media subtitles remove         ApiResponse<DeletedResult>
 mentions                       ApiResponse<Vec<Post>>
 mute                           ApiResponse<MutingResult>
 muted                          ApiResponse<Vec<User>>
-news-get                       ApiResponse<NewsStory>
-news-search                    ApiResponse<Vec<NewsStory>>
-notes-eligible                 ApiResponse<Vec<Post>>
-notes-evaluate                 ApiResponse<NoteEvaluation>
-notes-remove                   ApiResponse<DeletedResult>
-notes-write                    ApiResponse<NoteCreated>
-notes-written                  ApiResponse<Vec<Note>>
+news get                       ApiResponse<NewsStory>
+news search                    ApiResponse<Vec<NewsStory>>
+notes eligible                 ApiResponse<Vec<Post>>
+notes evaluate                 ApiResponse<NoteEvaluation>
+notes remove                   ApiResponse<DeletedResult>
+notes write                    ApiResponse<NoteCreated>
+notes written                  ApiResponse<Vec<Note>>
 post                           ApiResponse<Post>
 posts                          ApiResponse<Vec<Post>>
 quote                          ApiResponse<Post>
 quotes                         ApiResponse<Vec<Post>>
 read                           ApiResponse<Post>
-redirect-uri-get               RedirectUriGetResponse
-redirect-uri-set               RedirectUriSetResponse
 reply                          ApiResponse<Post>
 repost                         ApiResponse<RepostedResult>
 reposters                      ApiResponse<Vec<User>>
 search                         ApiResponse<Vec<Post>>
 search-counts                  ApiResponse<Vec<PostCount>>
 search-users                   ApiResponse<Vec<User>>
-skill-install                  InstallEnvelope
-skill-install-all              InstallMultiEnvelope
-spaces-by-creator              ApiResponse<Vec<Space>>
-spaces-get                     ApiResponse<Vec<Space>>
-spaces-posts                   ApiResponse<Vec<Post>>
-spaces-search                  ApiResponse<Vec<Space>>
-stream-rules-add               ApiResponse<Option<Vec<StreamRule>>>
-stream-rules-count             ApiResponse<StreamRuleCounts>
-stream-rules-list              ApiResponse<Vec<StreamRule>>
-stream-rules-remove            ApiResponse<Option<Vec<StreamRule>>>
+skill install                  InstallEnvelope
+skill install --all            InstallMultiEnvelope
+spaces by-creator              ApiResponse<Vec<Space>>
+spaces get                     ApiResponse<Vec<Space>>
+spaces posts                   ApiResponse<Vec<Post>>
+spaces search                  ApiResponse<Vec<Space>>
+stream rules add               ApiResponse<Option<Vec<StreamRule>>>
+stream rules count             ApiResponse<StreamRuleCounts>
+stream rules list              ApiResponse<Vec<StreamRule>>
+stream rules remove            ApiResponse<Option<Vec<StreamRule>>>
 timeline                       ApiResponse<Vec<Post>>
-trends-personal                ApiResponse<Vec<PersonalizedTrend>>
-trends-place                   ApiResponse<Vec<Trend>>
+trends personal                ApiResponse<Vec<PersonalizedTrend>>
+trends place                   ApiResponse<Vec<Trend>>
 unblock                        ApiResponse<BlockingResult>
 unbookmark                     ApiResponse<BookmarkedResult>
 unfollow                       ApiResponse<FollowingResult>
@@ -129,25 +129,24 @@ unlike                         ApiResponse<LikedResult>
 unmute                         ApiResponse<MutingResult>
 unrepost                       ApiResponse<RepostedResult>
 usage                          ApiResponse<UsageData>
-usage-credits                  ApiResponse<UsageCreditsData>
+usage credits                  ApiResponse<UsageCreditsData>
 user                           ApiResponse<User>
 user-posts                     ApiResponse<Vec<Post>>
 users                          ApiResponse<Vec<User>>
-webhooks-add                   ApiResponse<Webhook>
-webhooks-list                  ApiResponse<Vec<Webhook>>
-webhooks-remove                ApiResponse<DeletedResult>
-webhooks-replay                ApiResponse<WebhookReplayJob>
-webhooks-stream-links-add      ApiResponse<ProvisionedResult>
-webhooks-stream-links-list     ApiResponse<Vec<WebhookStreamLink>>
-webhooks-stream-links-remove   ApiResponse<DeletedResult>
-webhooks-subscriptions-add     ApiResponse<SubscribedResult>
-webhooks-subscriptions-check   ApiResponse<SubscribedResult>
-webhooks-subscriptions-count   ApiResponse<AccountActivitySubscriptionCount>
-webhooks-subscriptions-list    ApiResponse<AccountActivitySubscriptions>
-webhooks-subscriptions-remove  ApiResponse<SubscribedResult>
-webhooks-validate              ApiResponse<WebhookValidation>
+webhooks add                   ApiResponse<Webhook>
+webhooks list                  ApiResponse<Vec<Webhook>>
+webhooks remove                ApiResponse<DeletedResult>
+webhooks replay                ApiResponse<WebhookReplayJob>
+webhooks stream-links add      ApiResponse<ProvisionedResult>
+webhooks stream-links list     ApiResponse<Vec<WebhookStreamLink>>
+webhooks stream-links remove   ApiResponse<DeletedResult>
+webhooks subscriptions add     ApiResponse<SubscribedResult>
+webhooks subscriptions check   ApiResponse<SubscribedResult>
+webhooks subscriptions count   ApiResponse<AccountActivitySubscriptionCount>
+webhooks subscriptions list    ApiResponse<AccountActivitySubscriptions>
+webhooks subscriptions remove  ApiResponse<SubscribedResult>
+webhooks validate              ApiResponse<WebhookValidation>
 whoami                         ApiResponse<User>
-envelope                       Envelope
 
 --- stderr ---
 

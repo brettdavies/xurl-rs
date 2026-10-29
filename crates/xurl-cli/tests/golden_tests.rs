@@ -410,6 +410,26 @@ fn static_cases() -> Vec<Case> {
         case("version-flag", &["--version"]),
         case("version-subcommand", &["version"]),
         case("schema-list", &["schema", "--list"]),
+        case(
+            "schema-old-name-json",
+            &["--output", "json", "schema", "webhooks-subscriptions-count"],
+        ),
+        case(
+            "schema-scope-word-json",
+            &["--output", "json", "schema", "envelope"],
+        ),
+        case(
+            "schema-unknown-word-json",
+            &[
+                "--output",
+                "json",
+                "schema",
+                "webhooks",
+                "subscriptoins",
+                "count",
+            ],
+        ),
+        case("schema-no-typed-response", &["schema", "webhooks"]),
         case("examples", &["examples"]),
     ]
 }
