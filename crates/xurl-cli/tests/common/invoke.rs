@@ -74,6 +74,10 @@ pub const OVERRIDES: &[(&str, &[&str])] = &[
         ],
     ),
     (
+        "notes evaluate",
+        &[SAMPLE, "--text", "https://example.com/source"],
+    ),
+    (
         "broadcasts scheduled add",
         &["--source", SAMPLE, "--start", "2026-11-02T16:00:00Z"],
     ),
