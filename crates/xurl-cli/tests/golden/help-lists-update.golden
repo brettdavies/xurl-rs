@@ -1,7 +1,7 @@
 args: ["lists", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7310
+stdout_len: 7326
 stderr_len: 0
 --- stdout ---
 Rename a list, or change its description or privacy
@@ -33,15 +33,19 @@ Options:
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
 
+  -t, --trace
+          Add X-B3-Flags trace header
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]
           [possible values: true, false]
-
-  -t, --trace
-          Add X-B3-Flags trace header
 
       --app <APP>
           Use a specific registered app (overrides default)
@@ -167,9 +171,6 @@ Options:
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
           [env: XURL_AFTER=]
-
-  -h, --help
-          Print help (see a summary with '-h')
 
 Examples:
   Rename a list and make it public (text):

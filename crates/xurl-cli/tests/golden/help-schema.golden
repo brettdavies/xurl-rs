@@ -1,7 +1,7 @@
 args: ["schema", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7046
+stdout_len: 7062
 stderr_len: 0
 --- stdout ---
 Show JSON Schema for a command's response type
@@ -22,6 +22,10 @@ Options:
       --envelope
           Output the canonical agent-native output envelope schema
 
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -153,9 +157,6 @@ Options:
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
           [env: XURL_AFTER=]
-
-  -h, --help
-          Print help (see a summary with '-h')
 
 Examples:
   List all command schemas (text):

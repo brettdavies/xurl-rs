@@ -3597,6 +3597,78 @@ async fn test_limit_help_advertised_globally() {
     );
 }
 
+/// The heading every global flag carries on every help page.
+const GLOBAL_HEADING: &str = "Global Options";
+
+/// A root argument is global exactly when it sits under the global heading,
+/// so a flag added later as global cannot land among a command's own options.
+#[test]
+fn every_global_flag_and_only_a_global_flag_carries_the_global_heading() {
+    use clap::CommandFactory;
+    let root = cli::Cli::command();
+    let misplaced: Vec<String> = root
+        .get_arguments()
+        .filter(|arg| arg.is_global_set() != (arg.get_help_heading() == Some(GLOBAL_HEADING)))
+        .map(|arg| arg.get_id().to_string())
+        .collect();
+    assert!(
+        misplaced.is_empty(),
+        "these root arguments are global without the {GLOBAL_HEADING:?} heading, or carry it \
+         without being global: {misplaced:?}"
+    );
+}
+
+/// No help page lists a global flag among the command's own options: clap
+/// copies each global flag into a subcommand with the place it holds on the
+/// root, which would put it between the command's flags.
+#[test]
+fn no_help_page_lists_a_global_flag_under_options() {
+    use clap::CommandFactory;
+    let mut root = cli::Cli::command();
+    root.build();
+    let flag_line = regex::Regex::new(r"^\s{2,}(?:-\w, )?--([a-z][a-z-]*)").unwrap();
+
+    let mut paths = common::command_paths();
+    paths.push(Vec::new());
+    let mut found = Vec::new();
+    for path in paths {
+        let cmd = path.iter().fold(&mut root, |cmd, name| {
+            cmd.find_subcommand_mut(name)
+                .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+        });
+        // A command's own flag of the same name, such as `skill install
+        // --dry-run`, keeps clap from copying the global one in.
+        let globals: Vec<String> = cmd
+            .get_arguments()
+            .filter(|arg| arg.is_global_set())
+            .filter_map(|arg| arg.get_long().map(str::to_string))
+            .collect();
+        assert!(
+            !globals.is_empty(),
+            "xr {}: no global flag reached it",
+            path.join(" ")
+        );
+        let help = cmd.render_long_help().to_string();
+        let own_options = help
+            .lines()
+            .skip_while(|line| *line != "Options:")
+            .skip(1)
+            .take_while(|line| line.starts_with(' ') || line.is_empty());
+        for line in own_options {
+            if let Some(flag) = flag_line.captures(line).map(|c| c[1].to_string())
+                && globals.contains(&flag)
+            {
+                found.push(format!("xr {}: --{flag}", path.join(" ")));
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "global flags listed under Options instead of {GLOBAL_HEADING:?}:\n{}",
+        found.join("\n")
+    );
+}
+
 /// The authenticated user the paging requests below are made for.
 const PAGING_USER_ID: &str = "2244994945";
 

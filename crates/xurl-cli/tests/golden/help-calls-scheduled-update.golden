@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8382
+stdout_len: 8398
 stderr_len: 0
 --- stdout ---
 Move, rename, or re-invite a call you organize
@@ -33,13 +33,6 @@ Options:
       --recurrence <RRULE>
           The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO
 
-  -v, --verbose[=<VERBOSE>]
-          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
-          
-          [env: XURL_VERBOSE=]
-          [default: false]
-          [possible values: true, false]
-
       --time-zone <ZONE>
           The IANA time zone the recurrence follows, such as America/Chicago
 
@@ -54,16 +47,33 @@ Options:
           - this:               The named occurrence alone
           - this-and-following: The named occurrence and every one after it
 
-      --app <APP>
-          Use a specific registered app (overrides default)
-          
-          [env: XURL_APP=]
-
       --occurrence <TIME>
           The occurrence's original start (RFC 3339), as a listed call's `occurrence_start_time` gives it
 
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)
+
+  -u, --username <USERNAME>
+          `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
+
+  -t, --trace
+          Add X-B3-Flags trace header
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
+  -v, --verbose[=<VERBOSE>]
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
+          
+          [env: XURL_VERBOSE=]
+          [default: false]
+          [possible values: true, false]
+
+      --app <APP>
+          Use a specific registered app (overrides default)
+          
+          [env: XURL_APP=]
 
       --output <OUTPUT>
           Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`
@@ -85,16 +95,10 @@ Options:
           
           [env: XURL_JSON=]
 
-  -u, --username <USERNAME>
-          `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
-
       --jsonl
           Shorthand for `--output jsonl` (P2 alias)
           
           [env: XURL_JSONL=]
-
-  -t, --trace
-          Add X-B3-Flags trace header
 
       --raw[=<RAW>]
           Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are
@@ -190,9 +194,6 @@ Options:
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
           [env: XURL_AFTER=]
-
-  -h, --help
-          Print help (see a summary with '-h')
 
 Examples:
   Move a call an hour later (text):
