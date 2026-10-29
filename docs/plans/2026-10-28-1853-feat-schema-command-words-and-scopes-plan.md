@@ -16,8 +16,8 @@ execution: code
 - **Objective:** An agent or a person can go from any typed `xr` command to the shape of its `data` in one offline call.
   They name the command with the same words they run it with and read its help with, and they get that command's fields,
   about 60 lines, instead of 416 lines of shared wrapper definitions.
-- **Means:** a schema registry keyed by command words, scope flags over one runtime schema resolver, and schema pointers
-  in help and dry runs that are derived from the registry (KTD1, KTD3, KTD7, KTD8).
+- **Means:** a schema registry keyed by command words, scope flags over schemars' own inlined generation, and schema
+  pointers in help and dry runs that are derived from the registry (KTD1, KTD3, KTD7, KTD8).
 - **Authority:** R-IDs win on behavior, KTDs on mechanism, and a unit overrides neither. Brett's answers to D1–D3 (Open
   Questions) replace the recommended defaults recorded here. `AGENTS.md` § "Where a change goes" places every change in
   the binary crate.
@@ -46,6 +46,7 @@ carries `response_schema`, both naming the `xr schema` call that describes its o
 
 Reproduced on `dev` at `b50850d` (`xr 4.4.0`, a debug build, with `XURL_TOKEN_STORE` at a scratch path and
 `API_BASE_URL` at a closed port). Every claim in both issues holds against the binary, with one exception noted below.
+Every figure here was measured on that build and on the committed `schema/responses/`.
 
 - **Naming.** `xr schema webhooks subscriptions count` exits 2 with `invalid-args` ("unexpected argument
   'subscriptions'"). `xr schema` takes one hyphen-joined token, while `xr help` takes words. Of the 144 registry names,
@@ -79,9 +80,9 @@ Reproduced on `dev` at `b50850d` (`xr 4.4.0`, a debug build, with `XURL_TOKEN_ST
   naming the command by its words.
 - R5. A name from before this change, meaning a hyphen-joined slug or the `envelope` positional, is handled as D1
   decides.
-- R6. A bare word that names a scope (`common`, `envelope`, `full`, `list`, `all`, `path`) is refused with
-  `invalid-args`, exit 2. For a scope that takes no value, the step is `fix-input` carrying `xr schema --<word>`;
-  otherwise it is `show-help`.
+- R6. A bare word that names one of `xr schema`'s scope flags (today `common`, `envelope`, `full`, `list`, `all`,
+  `path`) is refused with `invalid-args`, exit 2. For a scope that takes no value, the step is `fix-input` carrying
+  `xr schema --<word>`; otherwise it is `show-help`.
 
 **Scopes**
 
@@ -153,6 +154,11 @@ Reproduced on `dev` at `b50850d` (`xr 4.4.0`, a debug build, with `XURL_TOKEN_ST
   first-party consumer that cannot move.
 - Considered and not built: a footer string written into each command's `after_help`. It would copy each registry name a
   second time, and the registry already owns them (KTD7).
+- Considered and not built: a hand-written `$ref` inliner. schemars' `inline_subschemas` setting does the same job
+  (KTD3). Evidence that would change this: a view that schemars cannot produce, such as a recursive type that needs
+  partial inlining.
+- Considered and not built: a test that bounds the mean view length. A large type added later would fail it with no
+  defect present. The structural walk in U2 catches the real regression, which is the wrapper leaking into the view.
 
 #### Deferred to Follow-Up Work
 
@@ -180,32 +186,46 @@ Reproduced on `dev` at `b50850d` (`xr 4.4.0`, a debug build, with `XURL_TOKEN_ST
   `docs/solutions/design-patterns/unknown-command-needs-two-detectors-one-renderer-and-the-scorer-that-saw-the-word.md`:
   one renderer, and the suggestion comes from whoever scored the word. Once #421 adds
   `crates/xurl-cli/src/cli/retired_verbs.rs`, the resolver consults it the way the unknown-command path does.
-- KTD3. **One runtime resolver derives every non-full scope from the schemars output.** It starts from `properties.data`
-  for an API-response row or from the root for a CLI-built row, and inlines each `$ref` from `$defs`. A `$ref` that
-  would recurse stays a `$ref`, and its definition is kept under a local `$defs`; no schema recurses today, and a walk
-  test proves that. `data_cardinality`, `data_type`, and `data_nullable` are read from the same schema (array `items`,
-  the element's `$ref` name or `title`, a `null` in `type` or `anyOf`), so no second table exists. The resolver renders
-  output, so it lives in `crates/xurl-cli` (`AGENTS.md` § "Where a change goes"). The metadata keys sit at the document
-  root. JSON Schema 2020-12 Core treats unknown keywords as annotations, so the document stays a valid schema.
+- KTD3. **The default view and `--path` read a second generation of the row's type with schemars' `inline_subschemas`
+  setting.** schemars 1.2.3 inlines every subschema under that setting and keeps a `$ref` only for a recursive type
+  (`SchemaSettings::inline_subschemas`, `schemars-1.2.3/src/generate.rs`), so `xr` writes no inliner. Each registry row
+  builds its schema from a `SchemaSettings` it is handed rather than calling `schema_for!`, so one row serves both
+  generations: default settings for `--full`, which stays byte-equal to the committed files, and inlined settings for
+  the view. The view takes `properties.data` for an API-response row or the root for a CLI-built row, and unwraps array
+  `items` and a nullable `anyOf` to the element. `data_cardinality` and `data_nullable` come from that unwrap.
+  `data_type` is the element's `$ref` name in the default generation, because an inlined body carries no type name. A
+  recursive type would leave `$defs` in the inlined root; the view then keeps those definitions, and a walk test shows
+  none exists today. The metadata keys sit at the document root, and the document stays a valid schema because JSON
+  Schema 2020-12 Core § 4.3.1 says unknown keywords "SHOULD be treated as annotations". The view only renders output: it
+  computes no API response, touches no store, and classifies no failure, so it belongs in `crates/xurl-cli` (`AGENTS.md`
+  § "Where a change goes").
 - KTD4. **`--common` is the schema of the wrapper over an untyped payload.** It is generated from `ApiResponse`
   instantiated with `serde_json::Value`, so `data` reads as any value and the shared definitions appear once.
-- KTD5. **`--path` reuses the KTD3 dereferencer, and its refusal adds two error keys.** `path` holds the given dot path
+- KTD5. **`--path` walks the KTD3 inlined schema, and its refusal adds two error keys.** `path` holds the given dot path
   and `known_properties` the names at the last resolved node. They are named after `schema`/`known_schemas` and
   `host`/`known_hosts` on `ErrorBody` in `crates/xurl-cli/src/cli/envelope.rs`. `schema/output.schema.json` is
   regenerated. The error variant has `additionalProperties: false`, so it must declare both keys.
 - KTD6. **Scope rules are clap declarations.** An `ArgGroup` holds command words and the four no-command modes, with
   `requires` and `conflicts_with` for `--full` and `--path`. A violation then takes the existing parse-error path
-  (`invalid-args`, exit 2, a `show-help` step) with no new code.
+  (`invalid-args`, exit 2, a `show-help` step) with no new code. The R6 scope-word set is read from the `schema`
+  subcommand's long flags in the clap tree, not written out, so a new scope flag is covered when it is declared.
 - KTD7. **The help footer is added to the command tree once, from the registry, in the one constructor every parse and
   help render uses.** Each registered path gets `Response schema:` and the indented `xr schema <words>` appended to its
-  `after_help`, and to its `after_long_help` when one is set. Every `Cli::command()` and `Cli::try_parse_from` call that
-  can render help goes through that constructor. The mechanism is the implementer's choice: a `clap` raw-method
-  attribute on `Cli`, or a constructor function that call sites adopt.
-- KTD8. **The dry-run pointer is set in one place.** The runner reads the matched subcommand path from the parse and
-  asks the registry for the pointer, and `OutputConfig` carries it. `OutputConfig::print_dry_run` in
-  `crates/xurl-cli/src/cli/output/mod.rs` inserts `response_schema`; the credential-refusal variant reaches it through
-  that call. `crates/xurl-cli/src/cli/output/dry_run.rs` adds the key to `WORDED` and prints
-  `response schema: <pointer>` after the credential line. Raw mode matches no subcommand, so it carries no pointer.
+  `after_help`, and to its `after_long_help` when one is set. The decorating function and `pointer_for` live beside the
+  registry in `crates/xurl-cli/src/cli/commands/schema.rs`, which owns the names, so no new module is needed. Try a
+  `clap` raw-method attribute on `Cli` first: it puts the footer on every `Cli::command()` and `Cli::try_parse_from`
+  call, including completions and the tests' `common::command_paths()`, with no call site to remember. If the derive
+  applies struct-level methods before the subcommands exist, fall back to one constructor function that every
+  help-rendering call site adopts. The help walk (U3) proves whichever one ships.
+- KTD8. **The dry-run pointer is set in one place.** The runner parses with `try_get_matches_from` on the decorated
+  command, then builds `Cli` with `from_arg_matches`, formatting a failure the way `Cli::try_parse_from` does (clap
+  formats the error against the command), so the golden suite pins any change in error text. It keeps the matches so it
+  can read the matched subcommand path, asks the registry for the pointer, and hands it to `OutputConfig`. One
+  `OutputConfig` helper inserts `response_schema` into the context. `print_dry_run` and `print_dry_run_refusal` in
+  `crates/xurl-cli/src/cli/output/mod.rs` both call it first. That matters because the text branch of
+  `print_dry_run_refusal` calls `dry_run::summary` directly and never reaches `print_dry_run`.
+  `crates/xurl-cli/src/cli/output/dry_run.rs` adds the key to `WORDED` and prints `response schema: <pointer>` after the
+  credential line. Raw mode matches no subcommand, so it carries no pointer.
 - KTD9. **Structured `--list` output is an array of `{command, type, file}` records.** `file` is the derived stem plus
   `.schema.json`, and text output keeps aligned rows. `scripts/generate-response-schemas.sh` and the drift tests read
   the structured form, because command names now contain spaces and splitting a text row on whitespace cannot recover
@@ -272,7 +292,9 @@ These are bets made without a person to confirm them. Each can be revised in rev
 ### Sequencing and Overlap with Other Work
 
 The stack is U1 → U2 → U3. U2 and U3 both need U1's words. U3 comes last because it re-blesses the help and dry-run
-fixtures that other slots move, so its re-bless runs on the newest `dev`.
+fixtures that other slots move, so its re-bless runs on the newest `dev`. Each PR starts about 25 CI jobs against the
+account's 20-job concurrency cap, so a push of the whole stack queues about 75 jobs. Push the stack once per round and
+land it with `gh stack merge` on the top PR, which skips the per-merge restack runs.
 
 | Other work                                                 | Overlap                                                                                                                                                                     | Handling                                                                                                                                                                                               |
 | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -344,14 +366,21 @@ fixtures that other slots move, so its re-bless runs on the newest `dev`.
     `xr schema auth apps redirect-uri get`. Under D1-B, both resolve and text mode writes a deprecation note to stderr.
   - `xr --output json schema envelope` exits 2 with `invalid-args` and `fix-input` carrying `xr schema --envelope`;
     `xr schema path` gets a `show-help` step.
-  - `xr schema skill install -- --all` prints the `InstallMultiEnvelope` schema (D2-a).
+  - `xr schema skill install -- --all` prints the `InstallMultiEnvelope` schema (D2-a). Without `--`,
+    `xr schema skill install --all` exits 2 with `invalid-args`, because clap reads `--all` as the catalog flag, and
+    `xr schema --help` documents the `--` form.
   - `xr schema --list --output json` parses as one JSON array of `{command, type, file}`, one per row, with no
     `envelope` entry. `--output tsv` has a header and one row per command.
   - `xr schema --all --output json` keys are exactly the registry's words.
   - Walk: every clap path joined with a space is in exactly one of the registry or the schema-less set, and every
     registry key except a flag form is a clap path.
   - Walk: no two rows derive the same file stem, every row has its committed file, and no committed file is orphaned.
-  - Walk: no top-level command is named after a scope word.
+  - Walk: no top-level command is named after a scope word, with the words read from the `schema` subcommand's flags.
+  - Tests this unit retires or rewrites on purpose: `envelope_schema_via_flag_equals_positional` and
+    `schema_all_takes_precedence_over_list` (U2 makes both refusals),
+    `schema_list_advertises_every_registered_command_plus_envelope` (no `envelope` row), and the slug-keyed walks
+    `every_clap_command_is_in_exactly_one_schema_set` and `declared_schema_sets_name_only_commands_clap_parses` (rekeyed
+    by words).
   - Walk: every registry `type_name` keeps its validate alias or exemption (R16, the existing test, unchanged).
 - **Verification:** `scripts/generate-response-schemas.sh` leaves only the two renames as changes under
   `schema/responses/`. `schema_tests`, `golden_tests`, `next_step_tests`, `cli_run_tests`, `agentic_tests`, and
@@ -364,8 +393,10 @@ fixtures that other slots move, so its re-bless runs on the newest `dev`.
 - **Dependencies:** U1. Under D1-B, split into an additive PR (the flags, default unchanged) and a held PR for the major
   that flips the default.
 - **Files:**
-  - `crates/xurl-cli/src/cli/commands/schema_resolve.rs` (new: dereference, inline, metadata, dot-path walk)
-  - `crates/xurl-cli/src/cli/commands/schema.rs` (dispatch per scope; `--common` source per KTD4)
+  - `crates/xurl-cli/src/cli/commands/schema_resolve.rs` (new: select `data`, unwrap to the element, read the metadata,
+    walk a dot path)
+  - `crates/xurl-cli/src/cli/commands/schema.rs` (rows build from a `SchemaSettings`; dispatch per scope; `--common`
+    source per KTD4)
   - `crates/xurl-cli/src/cli/commands/mod.rs` (module declaration)
   - `crates/xurl-cli/src/cli/mod.rs` (flags `--full`, `--common`, `--path`; the scope `ArgGroup`; the `envelope`
     positional removed)
@@ -382,8 +413,8 @@ fixtures that other slots move, so its re-bless runs on the newest `dev`.
     `crates/xurl-cli/tests/agentic_tests.rs` (its `schema envelope` calls become `--envelope`),
     `crates/xurl-cli/tests/next_step_tests.rs`
 - **Approach:**
-  1. Build the resolver (KTD3) as pure functions over a `serde_json::Value` schema, with unit tests against small
-     literal schemas before the registry uses it.
+  1. Change each row to build from a `SchemaSettings` it is handed (KTD3), and build the resolver as pure functions over
+     a `serde_json::Value` schema, with unit tests against small literal schemas before the registry uses it.
   2. Wire the scopes: the default view, `--full` (today's document), `--common` (KTD4), `--envelope`, and `--path`
      (KTD5).
   3. Declare the scope rules in clap (KTD6) and remove the `envelope` positional branch from `run_schema`.
@@ -412,13 +443,19 @@ fixtures that other slots move, so its re-bless runs on the newest `dev`.
   - `xr schema post --path text.length` (through a string) exits 2 with an empty `known_properties`.
   - Clap refusals: `xr schema post --common`, `xr schema --full`, `xr schema --list --all`, and
     `xr schema --envelope --path x` each exit 2 with `invalid-args`.
-  - Walk: no row's default view contains a `$ref`. This proves the recursion fallback is unused today, and a future
-    recursive type fails with a `Cause:` line.
-  - Walk: the mean default-view line count over API-response rows is at most 75 (the Success Criteria bound).
-  - Resolver unit tests: a nullable `anyOf` unwraps to its single non-null branch; a recursive `$ref` stays a `$ref`
-    with its definition kept in a local `$defs`; `items` unwraps on array steps.
+  - Walk: no row's default view contains a `$ref` or `$defs`, or `includes`, `meta`, or `errors` at its root. This
+    catches the wrapper leaking back into the view, and a future recursive type fails with a `Cause:` line naming the
+    row. The walk lives in `schema_tests.rs`, a file the recipe already names, so `recipe_guard` stays green.
+  - Resolver unit tests:
+    - A nullable `anyOf` unwraps to its single non-null branch and sets `data_nullable`.
+    - `items` unwraps on an array step.
+    - A root with leftover `$defs` keeps them in the view.
+    - `data_type` reads the element's `$ref` name from the default generation.
 - **Verification:** the drift walk passes against `--full`, and `scripts/generate-response-schemas.sh` changes no file.
-  `schema/output.schema.json` differs only by the two keys. The line-count bound passes.
+  `schema/output.schema.json` differs only by the two keys. Measured on the built binary,
+  `xr schema webhooks subscriptions count` prints at most 35 lines and the mean view over the API-response rows is at
+  most 75 lines. That is a check made at build time, not a test, because a large type added later would move the mean
+  without any defect.
 
 ### U3. Schema pointers in help and dry runs
 
@@ -426,12 +463,14 @@ fixtures that other slots move, so its re-bless runs on the newest `dev`.
 - **Requirements:** R13, R14, R17.
 - **Dependencies:** U1. U2 is not needed, but the stack order puts U3 last.
 - **Files:**
-  - `crates/xurl-cli/src/cli/commands/schema.rs` (`pointer_for(path)` over the registry)
-  - `crates/xurl-cli/src/cli/mod.rs` or a new `crates/xurl-cli/src/cli/schema_pointer.rs` (the tree decoration, KTD7)
-  - `crates/xurl-cli/src/cli/runner.rs` (parse through the decorated tree; the matched path reaches `OutputConfig`)
-  - The other `Cli::command()` call sites that render help: `crates/xurl-cli/src/cli/reparse.rs`,
-    `crates/xurl-cli/src/cli/classify.rs`, `crates/xurl-cli/src/cli/misplaced_flags.rs`
-  - `crates/xurl-cli/src/cli/output/mod.rs` (`OutputConfig` field, `print_dry_run`)
+  - `crates/xurl-cli/src/cli/commands/schema.rs` (`pointer_for(path)` and the tree decoration, beside the registry)
+  - `crates/xurl-cli/src/cli/mod.rs` (the raw-method attribute on `Cli`, KTD7)
+  - `crates/xurl-cli/src/cli/runner.rs` (parse keeping the matches; the matched path reaches `OutputConfig`, KTD8)
+  - Only under KTD7's fallback, the other `Cli::command()` call sites that render help:
+    `crates/xurl-cli/src/cli/reparse.rs`, `crates/xurl-cli/src/cli/classify.rs`,
+    `crates/xurl-cli/src/cli/misplaced_flags.rs`
+  - `crates/xurl-cli/src/cli/output/mod.rs` (`OutputConfig` field, the pointer helper, `print_dry_run`,
+    `print_dry_run_refusal`)
   - `crates/xurl-cli/src/cli/output/dry_run.rs` (`WORDED`, the summary line, unit tests)
   - `crates/xurl-cli/src/cli/envelope.rs` or wherever the dry-run variant of the envelope schema is declared (document
     `response_schema`), and `schema/output.schema.json`
@@ -439,9 +478,9 @@ fixtures that other slots move, so its re-bless runs on the newest `dev`.
   - Tests: `crates/xurl-cli/tests/dry_run_guard.rs`, `crates/xurl-cli/tests/golden_tests.rs` and the re-blessed
     `help-*.golden` and `dry-run-*.golden`
 - **Approach:**
-  1. Add `pointer_for` and decorate the tree in one constructor (KTD7). Move every help-rendering parse onto it.
-  2. Capture the matched path in the runner, compute the pointer, and hand it to `OutputConfig` (KTD8).
-  3. Insert the key in `print_dry_run` and render the text line.
+  1. Add `pointer_for` and decorate the tree once (KTD7).
+  2. Parse keeping the matches, compute the pointer from the matched path, and hand it to `OutputConfig` (KTD8).
+  3. Insert the key through the one helper both dry-run printers call, and render the text line.
   4. Re-bless the help and dry-run fixtures only after rebasing on the newest `dev`.
 - **Execution note:** add the two walks first (help footer iff registered; dry-run pointer iff registered) and watch
   them fail before decorating anything.
@@ -459,11 +498,17 @@ fixtures that other slots move, so its re-bless runs on the newest `dev`.
     `response_schema: "xr schema webhooks subscriptions count"` next to `auth` and `command`. In text output a
     `response schema: xr schema webhooks subscriptions count` line follows the credential line.
   - With an empty store, the same dry run (a credential refusal, exit 77 in the envelope) also carries
-    `response_schema`.
+    `response_schema`. In text output the refusal's lines include `response schema:`, which proves the text branch of
+    `print_dry_run_refusal` goes through the helper.
   - `xr --dry-run --output json /2/users/me` carries no `response_schema`.
-  - Walk (help): for every clap path, the help ends with the footer iff the path has a registry row.
-  - Walk (dry run): for every command `dry_run_guard` runs that answers with the shared envelope, `response_schema` is
-    present iff the path has a row and equals `xr schema <path>`.
+  - A parse failure that the golden suite pins (an unknown flag, a missing value) renders byte-identical to `dev` after
+    the runner moves to `try_get_matches_from`.
+  - Walk (help), in `golden_tests.rs`: for every clap path, the help ends with the footer iff the path has a registry
+    row.
+  - Walk (dry run), in `dry_run_guard.rs`: for every command it runs that answers with the shared envelope,
+    `response_schema` is present iff the path has a row, and equals `xr schema <path>`. `skill install` and
+    `skill update` print the installer's own report under `--dry-run`, not the shared envelope, so the walk names them
+    as exempt with that reason.
   - Unit (`dry_run.rs`): `response_schema` is never printed as an input line, and the `response schema:` line comes
     after `credential:`.
 - **Verification:** the help and dry-run walks pass. The re-blessed fixtures differ from `dev` only by the footer and
@@ -473,19 +518,19 @@ fixtures that other slots move, so its re-bless runs on the newest `dev`.
 
 ## Verification Contract
 
-| Gate                    | Command                                                                                                                       | Applies to              |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| Schema walks and drift  | `cargo test -p xurl-rs --test schema_tests`                                                                                   | U1, U2                  |
-| Golden fixtures         | `cargo test -p xurl-rs --test golden_tests`; re-bless only moved fixtures with `XURL_GOLDEN_BLESS=1`                          | U1, U2, U3              |
-| Dry-run guard           | `cargo test -p xurl-rs --test dry_run_guard`                                                                                  | U3                      |
-| Step table and reasons  | `cargo test -p xurl-rs --test next_step_tests`                                                                                | U1, U2                  |
-| Recipe and agentic docs | `cargo test -p xurl-rs --test recipe_guard --test agentic_tests --test cli_run_tests`                                         | every unit              |
-| Full suite              | `cargo test --workspace --no-fail-fast`                                                                                       | every unit, before push |
-| Lint and format         | `cargo clippy --workspace --all-targets -- -D warnings`; `cargo fmt --check`                                                  | every unit              |
-| Generated artifacts     | `scripts/generate-response-schemas.sh`, `scripts/generate-completions.sh`; then `git status` shows only intended changes      | U1, U2                  |
-| Local CI mirror         | `scripts/hooks/pre-push`, run in the background                                                                               | every unit, before push |
-| Changelog bump          | `scripts/check-surface-bump.sh check <base> <head> <pr-body>` passes with the D1 section                                      | every PR                |
-| Measured size           | the line-count walk in `schema_tests.rs`, and a by-hand `xr schema webhooks subscriptions count \| wc -l` on the built binary | U2                      |
+| Gate                    | Command                                                                                                                             | Applies to              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| Schema walks and drift  | `cargo test -p xurl-rs --test schema_tests`                                                                                         | U1, U2                  |
+| Golden fixtures         | `cargo test -p xurl-rs --test golden_tests`; re-bless only moved fixtures with `XURL_GOLDEN_BLESS=1`                                | U1, U2, U3              |
+| Dry-run guard           | `cargo test -p xurl-rs --test dry_run_guard`                                                                                        | U3                      |
+| Step table and reasons  | `cargo test -p xurl-rs --test next_step_tests`                                                                                      | U1, U2                  |
+| Recipe and agentic docs | `cargo test -p xurl-rs --test recipe_guard --test agentic_tests --test cli_run_tests`                                               | every unit              |
+| Full suite              | `cargo test --workspace --no-fail-fast`                                                                                             | every unit, before push |
+| Lint and format         | `cargo clippy --workspace --all-targets -- -D warnings`; `cargo fmt --check`                                                        | every unit              |
+| Generated artifacts     | `scripts/generate-response-schemas.sh`, `scripts/generate-completions.sh`; then `git status` shows only intended changes            | U1, U2                  |
+| Local CI mirror         | `scripts/hooks/pre-push`, run in the background                                                                                     | every unit, before push |
+| Changelog bump          | `scripts/check-surface-bump.sh check <base> <head> <pr-body>` passes with the D1 section                                            | every PR                |
+| Measured size           | by hand on the built binary: `xr schema webhooks subscriptions count \| wc -l`, and the mean view length over the API-response rows | U2                      |
 
 No gate sends a request to X. Tests use the in-crate mock and wiremock, and every by-hand run sets `XURL_TOKEN_STORE` to
 a scratch path and `API_BASE_URL` to a closed port.
@@ -534,3 +579,187 @@ question does not block.
   and #420 split in `output/`).
 - `docs/plans/2026-10-28-1849-feat-sibling-verb-alignment-plan.md` (#421's renames and `retired_verbs.rs`).
 - `docs/migrating/v3.0.0.md` (the shape of a migration page for a major).
+- JSON Schema 2020-12 Core § 4.3.1 (unknown keywords are annotations), and `schemars-1.2.3/src/generate.rs`
+  (`inline_subschemas`).
+
+---
+
+## Review Record
+
+Every review ran inline in this session. Brett's standing rule for this repo forbids subagents, so no reviewer agent and
+no outside model was dispatched. Nobody watched this session, so each choice below was settled from the evidence named
+beside it, and only the decisions that are Brett's (D1–D3) stay open.
+
+### Engineering review (2026-10-28, `/plan-eng-review`, plan at `6b5fa41`)
+
+Target: this plan. Mode: FULL_REVIEW, with scope accepted as-is. Prior learning applied:
+`unit-ordering-breaks-zero-broken-tests` (confidence 10/10, 2026-04-02). Each unit already carries its own test changes.
+
+**Scope Challenge.** The plan proposes 2 new modules and about 25 changed source, script, and doc files, plus about 160
+re-blessed fixtures, so the complexity gate tripped. No feature was cut, because both issues are in scope by the brief.
+The smaller arrangement drops a separate pointer module: decoration and `pointer_for` live beside the registry, which
+owns the names (KTD7).
+
+- S1. [INFORMATIONAL] (9/10) `schemars-1.2.3/src/generate.rs:46-51`, "Inline all subschemas instead of using references.
+  Some references may still be generated in schemas for recursive types." The draft hand-wrote an inliner. Folded into
+  KTD3 [Layer 1].
+- S2. [INFORMATIONAL] (8/10) Structure: no `schema_pointer.rs`. Folded into KTD7 and U3's files.
+
+**1. Architecture.**
+
+- A1. [CRITICAL] (9/10) `crates/xurl-cli/src/cli/output/mod.rs:533-541`: the text branch of `print_dry_run_refusal`
+  calls `dry_run::summary(false, exit_code, ctx, Some(&refusal))` and returns, so it never reaches the
+  `self.print_dry_run(...)` at :554. The draft's KTD8 claimed the refusal path "reaches it through that call", which is
+  true only for structured output, so a text credential refusal would drop the `response schema:` line. Folded: one
+  helper inserts the key, both printers call it first, and U3 adds the text-refusal scenario.
+- A2. [INFORMATIONAL] (8/10) `crates/xurl-cli/src/cli/runner.rs:177`, `Cli::try_parse_from(args_vec.iter())`, discards
+  the matches that KTD8 needs. Folded: parse with `try_get_matches_from` plus `from_arg_matches`, keep clap's error
+  formatting, and U3 adds a golden parity scenario.
+- A3. [INFORMATIONAL] (8/10) R6's scope words would be a hand-synced copy of the flag names (red flag 8). Folded: read
+  them from the `schema` subcommand's long flags (KTD6).
+- Design twice, for `schema_resolve.rs`. Shape A is free functions over a schema `Value`. Shape B is scope methods on a
+  registry row, which hide the two generations and the metadata behind one call. Pick: B's interface (the row answers a
+  scope), with A's pure helpers inside it, because the caller then never chooses generation settings. Red-flag screen:
+  flag 8 (hand-synced list) is fixed by A3, and no other flag applies.
+- Production failure per new path:
+  - #421 renames a word → the resolver consults `retired_verbs.rs` (KTD2).
+  - A recursive type arrives → the U2 walk fails, naming the row.
+  - A help path misses the decoration → the U3 help walk fails.
+  - A command prints its own dry-run report → the U3 walk names it exempt.
+
+**2. Code quality.**
+
+- Q1. [INFORMATIONAL] (8/10) The draft's mean-line-count walk would fail when a large type is added, with no defect
+  present. Folded: a structural walk (no `$ref`, no `$defs`, no wrapper keys), and the 75-line mean becomes a check at
+  build time.
+- Q2. [INFORMATIONAL] (9/10) `crates/xurl-cli/tests/recipe_guard.rs:65` treats any test file containing `Cause:` as a
+  walk that `AGENTS.md` must name. Folded: the new walks live in `schema_tests.rs`, `dry_run_guard.rs`, and
+  `golden_tests.rs`, which the recipe already names.
+- Q3. [INFORMATIONAL] (7/10) Under D2-a, `xr schema skill install --all` without `--` is a clap conflict. Folded: U1
+  adds that scenario, and `xr schema --help` documents `--`.
+
+**3. Tests.** Framework: Rust (`cargo test`, `rstest`, `assert_cmd`, golden fixtures, wiremock).
+
+```text
+CODE PATHS                                         USER FLOWS
+[+] commands/schema.rs (U1, U2)                    [+] agent: command -> its data shape
+  ├── word resolver                                  ├── [★★★ PLANNED] words -> view (U2 scenarios)
+  │   ├── [★★★ PLANNED] hit, alias, hyphen word      ├── [★★★ PLANNED] help footer -> xr schema (U3 walk)
+  │   ├── [★★★ PLANNED] unknown word + suggestion    └── [★★★ PLANNED] dry run -> response_schema (U3 walk)
+  │   └── [★★★ PLANNED] path without a row         [+] refusals an agent recovers from
+  ├── old-name recognizer (D1)                       ├── [★★★ PLANNED] old slug -> fix-input (U1)
+  │   └── [★★★ PLANNED] stem, 3 irregulars           ├── [★★★ PLANNED] scope word -> fix-input (U1)
+  ├── scopes                                         └── [★★★ PLANNED] bad --path -> known_properties (U2)
+  │   ├── [★★★ PLANNED] view, nullable, CLI-built
+  │   ├── [★★★ PLANNED] --full = file (drift walk)
+  │   ├── [★★  PLANNED] --common, --envelope
+  │   └── [★★★ PLANNED] --path hit, miss, scalar
+  └── --list / --all records [★★ PLANNED]
+[+] output/ (U3)
+  ├── [★★★ PLANNED] pointer in success + refusal, json and text
+  └── [★★★ PLANNED] raw mode carries none
+[+] runner.rs parse change
+  └── [★★★ PLANNED] golden parity of parse errors (existing suite)
+COVERAGE: 17/17 planned paths have a scenario | GAPS closed in review: 3 (A1 text refusal, A2 parse parity, Q3 flag form)
+```
+
+Regression: single-word names (44) and every `--full` document stay byte-identical, held by the drift walk. U1 lists the
+intentional changes: the retired and rewritten tests. Value card for the one critical path: `Value: protects=a text
+credential refusal names the schema; fails_when=print_dry_run_refusal's text branch skips the helper; why_new=no dry-run
+test checks text refusals for a context key; seam=none; no_claim=X accepting the credential`.
+
+**4. Performance.** No issues found. `xr schema` makes two schema generations per call, and `--all` makes 288
+[estimated: microseconds each, the same order as today's 144]. Decorating the clap tree adds about 144 string appends to
+each `Cli::command()` build [estimated: under a millisecond], on a path that already builds the whole tree.
+
+**Outside voice:** disabled (`codex_reviews` is `disabled`), so it was skipped, and no native replacement ran, under the
+no-subagents rule.
+
+**Reality rows.**
+
+| Premise                                          | Receipt                                                               | Verdict   |
+| ------------------------------------------------ | --------------------------------------------------------------------- | --------- |
+| `xr schema <words>` exits 2 today                | repro run on `b50850d`                                                | true      |
+| 144 names: 97 multi-word, 44 single, 3 irregular | `crates/xurl-cli/src/cli/commands/schema.rs:40-487` and the clap walk | true      |
+| Mean 416.0 lines, 8 identical wrapper defs       | `schema/responses/*.schema.json`, measured                            | true      |
+| Dry-run `command` is hand-written per arm        | `crates/xurl-cli/src/cli/commands/lists.rs:74` and siblings           | true      |
+| `--all` beats `--list`                           | `crates/xurl-cli/src/cli/commands/schema.rs:614-623`                  | true      |
+| The text refusal skips `print_dry_run`           | `crates/xurl-cli/src/cli/output/mod.rs:533-541`                       | true (A1) |
+| The error variant is closed                      | `schema/output.schema.json`, `additionalProperties: false`            | true      |
+| schemars inlines all but recursive types         | `schemars-1.2.3/src/generate.rs:46-51`                                | true      |
+| Unknown keywords are annotations                 | JSON Schema 2020-12 Core § 4.3.1                                      | true      |
+
+```text
+REALITY: premise-table pass 9 premises, unverified=0 crates/xurl-cli/src/cli/output/mod.rs:533
+REALITY: already-done pass no commit on origin/dev touches schema words or response_schema crates/xurl-cli/src/cli/commands/schema.rs:606
+REALITY: surface-check pass every named command, script, test file, and fixture exists; new flags are proposals crates/xurl-cli/src/cli/mod.rs:1922
+REALITY: binding-decisions pass no branch decision conflicts; library-first check passes (KTD3) AGENTS.md:1
+REALITY: numbers pass figures measured on b50850d; 35- and 75-line bounds are estimates checked at build schema/responses/webhooks-subscriptions-count.schema.json:1
+REALITY: deferred-asks finding #424's dry-run example implies words in command; held as D3 crates/xurl-cli/src/cli/commands/lists.rs:74
+REALITY: pr-count pass 3 PRs as the brief directs; about 25 jobs per PR against a 20-job cap .github/workflows/ci.yml:1
+```
+
+**Decision ledger.** Every remedy above was approved by an evidence-settled auto-decision, under the brief's instruction
+to answer review questions from evidence: S1, S2, A1, A2, A3, Q1, Q2, Q3. D1, D2, and D3 are Brett's and remain open
+(Open Questions). Approval readiness: PASS for S1–S2, A1–A3, Q1–Q3. D1–D3 are pending with the owner.
+
+**NOT in scope:** the `auth status` schema mismatch and validate's stdin ordering (separate issues), the `xurl-rs-skill`
+edits (another repo, at release), and the dry-run `command` value (D3).
+
+**What already exists:** `render_unknown_command` and `render_misplaced_flags` (`runner.rs`), the Jaro scorer
+(`classify.rs`), the clap-driven walk (`dry_run_guard.rs`), `print_response` and `write_flattened` for every format, and
+schemars' inlining. The plan reuses each one and builds none of them again.
+
+**Failure modes:** 0 critical gaps. Every new path has a planned test and a visible error.
+
+**Parallelization:** sequential implementation, no parallelization opportunity. U2 and U3 both start from U1, and the
+repo forbids worktrees.
+
+## Implementation Tasks
+
+- [ ] **T1 (P1, human: ~2h / CC: ~10min)**: output: a pointer helper called by both dry-run printers
+  - Surfaced by: Architecture, A1, `output/mod.rs:533-541`
+  - Files: `crates/xurl-cli/src/cli/output/mod.rs`, `crates/xurl-cli/src/cli/output/dry_run.rs`
+  - Verify: the U3 text-refusal scenario
+- [ ] **T2 (P1, human: ~3h / CC: ~15min)**: runner: parse keeping the matches, with clap's error formatting
+  - Surfaced by: Architecture, A2, `runner.rs:177`
+  - Files: `crates/xurl-cli/src/cli/runner.rs`
+  - Verify: `cargo test -p xurl-rs --test golden_tests` unchanged before any re-bless
+- [ ] **T3 (P1, human: ~4h / CC: ~15min)**: schema: rows build from `SchemaSettings`; the view uses `inline_subschemas`
+  - Surfaced by: Scope Challenge, S1
+  - Files: `crates/xurl-cli/src/cli/commands/schema.rs`, `crates/xurl-cli/src/cli/commands/schema_resolve.rs`
+  - Verify: the U2 resolver unit tests and the structural walk
+- [ ] **T4 (P2, human: ~1h / CC: ~5min)**: schema: derive the R6 scope words from the clap flags
+  - Surfaced by: Architecture, A3
+  - Files: `crates/xurl-cli/src/cli/commands/schema.rs`
+  - Verify: the U1 scope-word walk
+- [ ] **T5 (P2, human: ~1h / CC: ~5min)**: tests: a structural walk instead of a line-count walk, kept in files the
+  recipe names
+  - Surfaced by: Code quality, Q1 and Q2
+  - Files: `crates/xurl-cli/tests/schema_tests.rs`
+  - Verify: `cargo test -p xurl-rs --test schema_tests --test recipe_guard`
+- [ ] **T6 (P2, human: ~30min / CC: ~5min)**: schema: document `--` for the flag form and test the refusal without it
+  - Surfaced by: Code quality, Q3
+  - Files: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/tests/schema_tests.rs`
+  - Verify: the U1 flag-form scenarios
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                                                        |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | --------------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                                               |
+| Outside Review | codex, plan review    | Independent 2nd opinion         | 1    | disabled    | not run: `codex_reviews` disabled                               |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 9 issues, 0 critical gaps; all 9 folded, 3 owner decisions open |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | —                                                               |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | —           | —                                                               |
+
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled; no findings. The other entries in this log belong to other
+  plans on `dev`.
+- **VERDICT:** no review is CLEAR yet. Eng review: all findings are folded, and the remaining open items are owner
+  decisions, so eng review is required again after D1–D3 settle only if an answer changes a unit.
+
+**UNRESOLVED DECISIONS:**
+
+- D1: the version call and how old names are handled (Brett)
+- D2: how the `skill install --all` schema is named (Brett)
+- D3: whether the dry-run `command` value changes (Brett)
