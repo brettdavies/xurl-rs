@@ -211,7 +211,8 @@ impl NextStep {
     }
 
     /// Run `command`, the invocation with its input corrected: a raw-only
-    /// flag moved after the command word that reads it.
+    /// flag moved after the command word that reads it, or the `xr schema`
+    /// invocation that works for an old name or a scope word.
     #[must_use]
     pub fn fix_input_with(command: String) -> Self {
         Self {
