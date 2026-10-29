@@ -80,9 +80,9 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
 **Sibling alignment**
 
 - R1. `xr calls scheduled` and `xr broadcasts scheduled` take a scheduled event off the calendar with the same verb.
-- R2. `xr broadcasts sources` changes a source's label with the same verb, and the same argument shape, as every other
-  subtree that changes a resource (`lists update`, `broadcasts scheduled update`, `calls scheduled update`,
-  `auth apps update`).
+- R2. `xr broadcasts sources` changes a source's label with the same verb as every other subtree that changes a resource
+  (`lists update`, `broadcasts scheduled update`, `calls scheduled update`, `auth apps update`); its argument shape is
+  D1's.
 - R3. Every action word under `xr broadcasts scheduled` is a verb; the one that starts a scheduled broadcast now names
   that action.
 - R4. `xr conversations history` and `xr broadcasts chat history` keep their names.
@@ -105,8 +105,7 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
 
 ### Key Decisions
 
-- **`history` stays.** Governs R4. The evidence in the Problem Frame settles it; see the Decision Record for the full
-  case.
+- **`history` stays.** Governs R4. Recommended from the evidence in the Problem Frame; Brett may override (D1).
 - **Old names refuse with the new name; they never alias.** Governs R5, R6. Recommended, pending Brett (Decision Record
   D2).
 - **The names below are recommendations.** Governs R1, R2, R3. Spot 1 `cancel`, spot 2 `update --name`, spot 4 `start`,
@@ -143,8 +142,8 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
   `crates/xurl-cli/tests/golden/schema-list.golden`. Proposed order: this stack merges first and #424 rekeys the names
   it finds; if #424 is ready first, this stack rebases and edits three space-separated keys instead. Either way the
   conflict is three lines plus a re-bless.
-- **Issues #415 and #425 (`issues-help-accuracy`)** re-bless most `help-*.golden` fixtures, including the six this plan
-  moves. The PR that lands second re-blesses only the fixtures its own change moves.
+- **Issues #415 and #425 (`issues-help-accuracy`)** re-bless most `help-*.golden` fixtures, including the seven this
+  plan moves or replaces. The PR that lands second re-blesses only the fixtures its own change moves.
 - **Issues #419, #420, #422 (`issues-dry-run-envelopes`)** touch dry-run envelopes and `calls scheduled` user-id input.
   No overlap with the renamed arms: R4 keeps `conversations history`, whose dry-run fixture
   (`dry-run-invalid-conversation-id.golden`) stays, and spot 1 renames the broadcast command, not
@@ -198,6 +197,12 @@ before any build; D4 to D7 are settled from evidence.
 
 **Spot 3, `history`.** No rename (Key Decisions). Brett may still override; the evidence is in the Problem Frame.
 
+**Across spots 1, 2, and 4, a no-break alternative.** Keep every name and add hint rows to the same table, mapping a
+sibling's verb to this family's: `cancel` to `remove` under `broadcasts scheduled`, `start` to `live` there, and
+`update` to `rename` under `broadcasts sources`. Nothing breaks and no major is needed, and an agent's first guess from
+a sibling gets a one-step pointer. The tree stays inconsistent for a person reading `--help`, and the issue asks for the
+alignment itself.
+
 ### D2. What a retired name does (Brett)
 
 - **Refuses with the new name. Recommended.** The `unknown-command` envelope as today, with `suggestion` the new word
@@ -225,8 +230,9 @@ contract (§ "What the contract is").
 ### D4. Retired names reuse `unknown-command` (settled)
 
 The renderer, reason, exit code, and step stay those of `render_unknown_command` in `crates/xurl-cli/src/cli/runner.rs`;
-only the `suggestion` source changes. Evidence: `AGENTS.md` § "Output formats" ("A new error picks an existing action
-where one fits"), `RELEASES.md` § "Closed sets" (a new member is a minor and needs a consumer default), and
+the `suggestion` source and the text sentence change. Evidence: `AGENTS.md` § "Output formats" ("A new error picks an
+existing action where one fits"), `RELEASES.md` § "Closed sets" (a new member is a minor and needs a consumer default),
+and
 `docs/solutions/design-patterns/unknown-command-needs-two-detectors-one-renderer-and-the-scorer-that-saw-the-word.md`
 (one renderer for every unknown-command path). The text names the rename instead of guessing at a typo:
 `Error: unknown command 'live': 'start' replaced it. Try 'xr broadcasts scheduled start --help'.`, and the JSON
@@ -714,6 +720,35 @@ the completions and help goldens; `--dry-run`.
 **Implementation tasks.** T1 gains the `suggestion` doc comment, the regenerated `schema/output.schema.json`, the
 AGENTS.md sentence, and the replacement sentence with its typo-path test (P1). No other new tasks.
 
+## Document Review Record
+
+`/ce-doc-review` of this plan on 2026-10-28 in non-interactive mode, classified `unified-plan`. Every lens ran inline in
+this session, with no subagent and no cross-model pass (session rule), so no agreement promotion applies.
+
+| Lens        | Why it ran                                                 | Findings                                        |
+| ----------- | ---------------------------------------------------------- | ----------------------------------------------- |
+| coherence   | always on                                                  | 3 applied                                       |
+| feasibility | always on                                                  | 0 retained; 1 FYI                               |
+| scope       | every plan (mechanism sizing)                              | 0 retained: the table and R9 each pass the test |
+| adversarial | `product_contract_source: ce-plan-bootstrap`, new module   | 1 applied                                       |
+| product     | the plan stakes positions on names and on keeping one      | 1 decision for Brett                            |
+
+**Applied.**
+
+- R2 required "the same argument shape" as the other `update` verbs, which pre-decided D1 spot 2 against Brett's option
+  (b). R2 now leaves the shape to D1.
+- The Key Decision on `history` read as settled, while command names are Brett's and D1 says he may override. It now
+  reads as recommended, pending him.
+- D4 said only the `suggestion` source changes, while the same paragraph changes the text sentence. It now names both.
+- The help-fixture count in Dependencies said six; U1 to U3 move or replace seven (`-scheduled-remove`, `-scheduled`,
+  `-sources-rename`, `-sources`, `-scheduled-live`, `-scheduled-add`, `-scheduled-update`).
+
+**Decision for Brett.** A no-break alternative to the renames: keep every name and add sibling-verb hint rows to the
+same table (D1, "Across spots 1, 2, and 4"). It trades the alignment the issue asks for against no major release.
+
+**FYI.** U1 regenerates `schema/output.schema.json` with `xr schema envelope`, the positional #426 replaces with
+`--envelope`; use whichever form `dev` has when U1 is built.
+
 ## GSTACK REVIEW REPORT
 
 | Review         | Trigger               | Why                             | Runs | Status      | Findings                                        |
@@ -725,7 +760,7 @@ AGENTS.md sentence, and the replacement sentence with its typo-path test (P1). N
 | DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | ISSUES OPEN | score: 6/10 → 8/10, TTHW: 2-3 retries → 1 retry |
 
 - **OUTSIDE COVERAGE:** codex, plan-review phase, skipped under the session rule for both reviews; no findings.
-- **VERDICT:** Eng and DX reviews done; every finding folded into the plan. Build waits on D1 to D3.
+- **VERDICT:** Eng, DX, and document reviews done; every finding folded into the plan. Build waits on D1 to D3.
 
 **UNRESOLVED DECISIONS:**
 
