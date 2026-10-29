@@ -6,8 +6,8 @@ use serde_json::json;
 
 use super::webhooks_listen::{Listener, listen};
 use super::{
-    DryRun, Gate, Run, destructive_dry_run_context, dry_run_or_validate, gate_destructive,
-    make_client, send_or_report, send_to_accounts, with_flags,
+    DryRun, Run, confirmed_context, dry_run_or_validate, make_client, send_confirmed,
+    send_or_report, send_to_accounts, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{
@@ -200,20 +200,10 @@ async fn unsubscribe(
     let remove = |client: &Client, ids: &[String]| {
         client.delete_account_activity_subscription(webhook_id, &ids.concat())
     };
-    if run.flags.dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        return send_to_accounts(run, ctx, valid, &accounts, common, remove).await;
-    }
-    match gate_destructive(
-        force,
-        run.flags.no_interactive,
-        run.flags.quiet,
-        &format!("End user {account}'s subscription to webhook {webhook_id}?"),
-    )? {
-        Gate::Proceed => {}
-        Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
-    }
+    let prompt = format!("End user {account}'s subscription to webhook {webhook_id}?");
+    let Some(ctx) = confirmed_context(&run.flags, ctx, force, &prompt)? else {
+        return Ok(());
+    };
     send_to_accounts(run, ctx, valid, &accounts, common, remove).await
 }
 
@@ -277,37 +267,13 @@ async fn remove(
     force: bool,
     common: &CommonFlags,
 ) -> CommandResult<()> {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     let ctx = json!({"command": "webhooks-remove", "webhook_id": webhook_id});
-    let client = make_client(cfg, auth)?;
-    let call = with_flags(client.delete_webhook(webhook_id), common, None);
-    if flags.dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        let dry_run =
-            dry_run_or_validate(true, ctx, || shortcuts::validate_webhook_id(webhook_id))?;
-        send_or_report(out, stdout, dry_run, call).await?;
-        return Ok(());
-    }
-    match gate_destructive(
-        force,
-        flags.no_interactive,
-        flags.quiet,
-        &format!("Delete webhook {webhook_id}?"),
-    )? {
-        Gate::Proceed => {}
-        Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
-    }
-    let dry_run = dry_run_or_validate(false, ctx, || shortcuts::validate_webhook_id(webhook_id))?;
-    send_or_report(out, stdout, dry_run, call).await?;
-    Ok(())
+    let prompt = format!("Delete webhook {webhook_id}?");
+    let validate = || shortcuts::validate_webhook_id(webhook_id);
+    send_confirmed(run, ctx, &prompt, force, validate, common, |client| {
+        client.delete_webhook(webhook_id)
+    })
+    .await
 }
 
 async fn replay(
@@ -477,35 +443,11 @@ async fn unlink_stream(
     force: bool,
     common: &CommonFlags,
 ) -> CommandResult<()> {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     let ctx = json!({"command": "webhooks-stream-links-remove", "webhook_id": webhook_id});
-    let client = make_client(cfg, auth)?;
-    let call = with_flags(client.delete_webhook_stream_link(webhook_id), common, None);
-    if flags.dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        let dry_run =
-            dry_run_or_validate(true, ctx, || shortcuts::validate_webhook_id(webhook_id))?;
-        send_or_report(out, stdout, dry_run, call).await?;
-        return Ok(());
-    }
-    match gate_destructive(
-        force,
-        flags.no_interactive,
-        flags.quiet,
-        &format!("Stop delivering the filtered stream to webhook {webhook_id}?"),
-    )? {
-        Gate::Proceed => {}
-        Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
-    }
-    let dry_run = dry_run_or_validate(false, ctx, || shortcuts::validate_webhook_id(webhook_id))?;
-    send_or_report(out, stdout, dry_run, call).await?;
-    Ok(())
+    let prompt = format!("Stop delivering the filtered stream to webhook {webhook_id}?");
+    let validate = || shortcuts::validate_webhook_id(webhook_id);
+    send_confirmed(run, ctx, &prompt, force, validate, common, |client| {
+        client.delete_webhook_stream_link(webhook_id)
+    })
+    .await
 }

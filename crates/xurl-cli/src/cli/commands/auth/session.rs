@@ -6,7 +6,7 @@ use std::io::Write;
 use serde_json::json;
 
 use super::{
-    AuthCtx, AuthGlobalFlags, Gate, StoredAccountEntry, build_app_status_entries,
+    AuthCtx, AuthGlobalFlags, StoredAccountEntry, build_app_status_entries,
     destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
 };
 use crate::cli::envelope::{ErrorBody, Reason};
@@ -167,10 +167,9 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         ""
     };
     if !target.is_empty() {
-        match gate_destructive(force, no_interactive, quiet, &format!("Clear {target}?"))? {
-            Gate::Proceed => {}
-            Gate::Declined => return Ok(()),
-            Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
+        let prompt = format!("Clear {target}?");
+        if !gate_destructive(force, no_interactive, quiet, &prompt, &ctx)? {
+            return Ok(());
         }
     }
 

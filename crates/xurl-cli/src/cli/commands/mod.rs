@@ -104,17 +104,6 @@ fn confirm_destructive(prompt: &str) -> Result<bool> {
     Ok(matches!(answer.as_str(), "y" | "yes"))
 }
 
-/// Outcome of the force/confirmation gate for a destructive op.
-pub(super) enum Gate {
-    /// User confirmed (or supplied `--force`); proceed with the op.
-    Proceed,
-    /// User declined / unable to prompt: emit nothing further, return Ok(()).
-    Declined,
-    /// `--no-interactive` set without `--force`: caller must emit a
-    /// `confirmation-required` envelope on stderr and return an error code.
-    ConfirmationRequired,
-}
-
 /// The dry-run context of a destructive command: `ctx`, with
 /// `confirmation_required` set when the invocation carries no `--force`.
 ///
@@ -131,34 +120,47 @@ pub(super) fn destructive_dry_run_context(
     ctx
 }
 
-/// Gates a destructive op on `--force` / TTY confirmation.
+/// Gates a destructive op on `--force` / TTY confirmation: `true` to go
+/// ahead, `false` when the person declined, and the `confirmation-required`
+/// refusal, carrying `ctx`, when nobody can be asked.
 ///
 /// Callers answer `--dry-run` before they reach this gate.
 ///
 /// Rules:
 /// - `--force` → proceed.
-/// - `--no-interactive` without `--force` → ConfirmationRequired.
+/// - `--no-interactive` without `--force` → confirmation required.
 /// - Interactive terminal without `--force` → dialoguer confirm.
 pub(super) fn gate_destructive(
     force: bool,
     no_interactive: bool,
     quiet: bool,
     prompt: &str,
-) -> Result<Gate> {
+    ctx: &serde_json::Value,
+) -> CommandResult<bool> {
     if force {
-        return Ok(Gate::Proceed);
+        return Ok(true);
     }
-    if no_interactive {
-        return Ok(Gate::ConfirmationRequired);
+    if no_interactive || !is_interactive(no_interactive, quiet) {
+        return Err(Failure::Unconfirmed(ctx.clone()));
     }
-    if !is_interactive(no_interactive, quiet) {
-        return Ok(Gate::ConfirmationRequired);
+    Ok(confirm_destructive(prompt)?)
+}
+
+/// The context a destructive command goes on with: under `--dry-run`, `ctx`
+/// marked with whether the real run would ask; otherwise `ctx` once
+/// [`gate_destructive`] lets the run go ahead, or `None` when the person
+/// declined.
+fn confirmed_context(
+    flags: &GlobalFlags,
+    ctx: serde_json::Value,
+    force: bool,
+    prompt: &str,
+) -> CommandResult<Option<serde_json::Value>> {
+    if flags.dry_run {
+        return Ok(Some(destructive_dry_run_context(ctx, force)));
     }
-    if confirm_destructive(prompt)? {
-        Ok(Gate::Proceed)
-    } else {
-        Ok(Gate::Declined)
-    }
+    let proceed = gate_destructive(force, flags.no_interactive, flags.quiet, prompt, &ctx)?;
+    Ok(proceed.then_some(ctx))
 }
 
 /// The id a dry run puts where the real run would have looked one up.
@@ -320,30 +322,10 @@ async fn send_confirmed<T>(
 where
     T: Serialize + DeserializeOwned,
 {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
-    let client = make_client(cfg, auth)?;
-    let call = with_flags(build(&client), common, None);
-    if flags.dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        let dry_run = dry_run_or_validate(true, ctx, validator)?;
-        send_or_report(out, stdout, dry_run, call).await?;
+    let Some(ctx) = confirmed_context(&run.flags, ctx, force, prompt)? else {
         return Ok(());
-    }
-    match gate_destructive(force, flags.no_interactive, flags.quiet, prompt)? {
-        Gate::Proceed => {}
-        Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
-    }
-    let dry_run = dry_run_or_validate(false, ctx, validator)?;
-    send_or_report(out, stdout, dry_run, call).await?;
-    Ok(())
+    };
+    send_validated(run, ctx, validator, common, build).await
 }
 
 /// Converts a typed response to Value and prints it.
