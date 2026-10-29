@@ -21,7 +21,8 @@ execution: code
   with its evidence. `AGENTS.md` conventions govern placement, walks, and fixtures. Brett alone decides a command or
   flag name, a breaking change to the CLI surface, an envelope, or a schema file, a version call, and a scope cut.
 - **Execution profile:** Four units ship as a stack of four PRs, bottom PR to `dev`: U1 (#415), U2 (#416, #417, #418),
-  U4 with U3 (#425), U5 (#414). Each PR re-blesses the golden fixtures and completions it moves.
+  U4 with U3 (#425), U5 (#414). Each PR re-blesses the golden fixtures and completions it moves. Each PR runs about 25
+  CI jobs against a 20-job account cap, so the stack lands in one `gh stack merge`, which restacks nothing.
 - **Stop conditions:** Stop and report when the local `anc audit` score falls below the CI floor (98) or a MUST row
   fails; when a golden diff touches a line its unit does not name; when a change would alter an envelope's keys,
   `reason`, or `exit_code`; when the walk finds a command whose dry run accepts no scheme.
@@ -88,8 +89,8 @@ noticing. #414, #416, #417, and #418 have the same shape: a hand-written stateme
 
 - R1. Each command's `--auth` help lists exactly the schemes its requests accept, read from the auth matrix, and states
   the second set where `--of` changes it.
-- R2. The root raw-mode `--auth` help lists every scheme value `xr` accepts, read from the wire-scheme type rather than
-  written out.
+- R2. The root raw-mode `--auth` help, and the `CommonFlags` default a command without a row would show, list every
+  scheme value `xr` accepts, read from the wire-scheme type rather than written out.
 
 **Layout (#415)**
 
@@ -108,9 +109,9 @@ noticing. #414, #416, #417, and #418 have the same shape: a hand-written stateme
 **Paging flags (#425)**
 
 - R7. `--limit` help states that it is the page size of every command with `-n/--max-results` when `-n` is absent, and
-  that other commands ignore it. Every command with `-n` honors it.
+  that other commands and raw requests ignore it. Every command with `-n` honors it.
 - R8. `--cursor` help states that it applies to every command whose endpoint pages, whose response carries
-  `meta.next_token`, and that other commands ignore it.
+  `meta.next_token`, and that other commands and raw requests ignore it; a raw request carries its token in its URL.
 
 **Drift**
 
@@ -174,7 +175,9 @@ noticing. #414, #416, #417, and #418 have the same shape: a hand-written stateme
   `-n/--max-results` when `-n` is absent; `--cursor` applies to every command whose endpoint declares a page token
   (`pagination_token`, or `next_token` on `/2/users/search`). Both rules already hold for every command but
   `calls scheduled list` (KTD5), measured over all 140 commands against the vendored spec. A list of nearly 40 names on
-  all 190 help pages would bury the flags, and a hand list is what drifted.
+  all 190 help pages would bury the flags, and a hand list is what drifted. Raw mode reads neither flag (`run_raw_mode`
+  in `crates/xurl-cli/src/cli/commands/mod.rs` never touches `cli.limit` or the cursor), so both texts say a raw request
+  ignores them, and the walk pins that with one raw invocation.
 - KTD5. **`calls scheduled list` honors `--limit`.** Its `-n` becomes optional and resolves as `-n`, then `--limit`,
   then 20, clamped to 1..=100. A run with neither flag still sends `max_results=20`, and the dry-run context reports the
   resolved value, so no existing invocation changes. The command gains a behavior: `--limit` now reaches it. Its
@@ -192,17 +195,21 @@ noticing. #414, #416, #417, and #418 have the same shape: a hand-written stateme
   (oauth2, oauth1, app), which is also the order `xr` picks a stored credential in, and reads
   `Authentication type (this command accepts: oauth2, oauth1)`; a command whose `--of` set differs adds
   `; with --of: oauth2, oauth1, app`. The root raw-mode line lists `WireScheme::ALL_BY_PREFERENCE` whole, because raw
-  mode bypasses the matrix.
+  mode bypasses the matrix, and so does the `CommonFlags` doc default, built by the same function in `accepted_auth.rs`.
+  The order is the one `detect_scheme` in `crates/xdk/src/api/request/auth_header.rs` walks; the mismatch envelope's
+  `supported` keeps the spec's order and does not change.
 - KTD8. **The dry run, with every credential kind stored, is the oracle.** The accepted-auth walk dry-runs each command
   once per scheme over a store holding a live `OAuth2` login, an `OAuth1` pair, and a bearer, and counts a scheme
   accepted unless the answer is `auth-method-mismatch`. An empty store would stop on the first request's `auth-required`
-  and hide a later request's mismatch (Problem Frame). The walk lives in its own test file with `Cause:` lines and is
-  named in the AGENTS.md recipe, per `crates/xurl-cli/tests/recipe_guard.rs`.
+  and hide a later request's mismatch (Problem Frame). This walk and the paging walk (U4) share one test file,
+  `crates/xurl-cli/tests/help_claims_guard.rs`, with `Cause:` lines, named in the AGENTS.md recipe per
+  `crates/xurl-cli/tests/recipe_guard.rs`. One file is one more test binary to link in each CI job instead of two.
 - KTD9. **Shared invocation helpers move to `crates/xurl-cli/tests/common/invoke.rs`.** `SAMPLE`, `OVERRIDES`,
   `arguments_for`, `runnable_paths`, `takes_a_credential`, `run_xr`, and the store fills leave
   `crates/xurl-cli/tests/dry_run_guard.rs` unchanged in content, so the dry-run guard and both new walks synthesize
-  invocations one way. The move is its own commit, so a rebase over another slot's `OVERRIDES` row resolves by
-  re-applying the row in the new file.
+  invocations one way. The move is its own commit, made on a fresh rebase of `dev` when U4 is built. #438 and #409, open
+  now, each add an `OVERRIDES` row; if either is still open when the stack goes up, its row conflicts with the move, and
+  the resolution is to re-apply the row in the new file. The PR body says so.
 
 ### High-Level Technical Design
 
@@ -251,13 +258,13 @@ flowchart LR
 
 ### Dependencies and Collisions
 
-| Other work                                    | Overlap                                                                                                                                           | Handling                                                                                                                                               |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `issues-schema-ergonomics` (#424, #426)       | Adds a schema pointer to help pages; every `help-*.golden` moves                                                                                  | Rebase on `dev` before each push; re-bless only what this stack moves                                                                                  |
-| `issues-verb-alignment` (#421)                | Renames commands keyed in the accepted-auth table                                                                                                 | Whichever lands second updates the rows; the walk names each stale or missing row                                                                      |
-| `issues-dry-run-envelopes` (#419, #420, #422) | #422 adds a handle lookup to `calls scheduled add`/`update --invite` and `webhooks subscriptions remove`; edits `OVERRIDES` in `dry_run_guard.rs` | The lookup endpoint accepts all three schemes, so those commands' accepted sets hold; rows should still list it. KTD9 keeps the helper move resolvable |
-| #409 spec refresh                             | Adds commands                                                                                                                                     | Each new `--auth` command needs a row; the walk says so                                                                                                |
-| `xr` 4.4.1 cut from `dev`                     | `dev` moves under the stack                                                                                                                       | Rebase the bottom PR; restack the rest                                                                                                                 |
+| Other work                                    | Overlap                                                                                                                                                                          | Handling                                                                                                                                                                   |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `issues-schema-ergonomics` (#424, #426)       | Adds a schema pointer to help pages; every `help-*.golden` moves                                                                                                                 | Rebase on `dev` before each push; re-bless only what this stack moves                                                                                                      |
+| `issues-verb-alignment` (#421)                | Renames commands keyed in the accepted-auth table                                                                                                                                | Whichever lands second updates the rows; the walk names each stale or missing row                                                                                          |
+| `issues-dry-run-envelopes` (#437, #438, #439) | #439 adds a handle lookup to `calls scheduled add`/`update --invite` and `webhooks subscriptions remove` and edits `calls.rs` and `calls_tests.rs`; #438 adds an `OVERRIDES` row | The lookup endpoint accepts all three schemes, so those commands' accepted sets hold; rows should still list it. KTD5 edits another arm of `calls.rs`. KTD9 covers the row |
+| #409 spec refresh                             | Adds commands and an `OVERRIDES` row                                                                                                                                             | Each new `--auth` command needs a row; the walk says so. KTD9 covers the row                                                                                               |
+| `xr` 4.4.1 cut from `dev`                     | `dev` moves under the stack                                                                                                                                                      | Rebase the bottom PR; restack the rest                                                                                                                                     |
 
 ---
 
@@ -279,8 +286,8 @@ flowchart LR
 - **Test scenarios:**
   - On the root command, an argument is global exactly when it carries the heading; a new global without it fails with
     the flag's name.
-  - For every command path from `common::command_paths()`, the rendered long help has no global flag between `Options:`
-    and `Global Options:`.
+  - For every command path from `common::command_paths()`, the rendered long help of the built command (global flags
+    propagate only at build) has no global flag between `Options:` and `Global Options:`.
   - `xr webhooks listen --help` lists `--port` through `--checkpoint` contiguously under `Options:`, and `-v`, `--app`,
     `--output` under `Global Options:`.
   - `xr calls scheduled add --help` lists `--start` through `--no-notify`, then `--auth`, `-u`, `-t`, `-h`, before
@@ -329,7 +336,7 @@ flowchart LR
 
 ### U3. Shared invocation helpers for the walks
 
-- **Goal:** One way to synthesize and run any command in-process, for the dry-run guard and both new walks.
+- **Goal:** One way to synthesize and run any command in-process, for the dry-run guard and the help-claims walks.
 - **Requirements:** R9
 - **Dependencies:** none (lands in U4's PR)
 - **Files:**
@@ -347,7 +354,7 @@ flowchart LR
 - **Dependencies:** U1, U3
 - **Files:**
   - Modify: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/commands/calls.rs`
-  - Create: `crates/xurl-cli/tests/paging_flags_guard.rs`
+  - Create: `crates/xurl-cli/tests/help_claims_guard.rs`
   - Modify: `crates/xurl-cli/tests/cli_tests.rs`, `crates/xurl-cli/tests/calls_tests.rs`, `AGENTS.md`
   - Modify: every `help-*.golden` (the two paragraphs), `help-calls-scheduled-list.golden`, `completions/*`
 - **Approach:**
@@ -355,7 +362,8 @@ flowchart LR
   2. Make `calls scheduled list` resolve its page size per KTD5.
   3. Add the paging walk: for every runnable command that takes `--auth`, a real run against `MockX` with
      `--limit 37 --cursor CURSOR-TOKEN`. Each request is matched to its vendored-spec path template, read from
-     `crates/xdk/vendor/x-api-openapi.json`, and failures carry `Cause:` lines.
+     `crates/xdk/vendor/x-api-openapi.json`, and failures carry `Cause:` lines. One raw invocation to a paged path with
+     both flags is the raw-mode row.
   4. Delete `every_paging_command_sends_the_limit_and_cursor` and
      `the_limit_and_cursor_help_name_exactly_the_commands_that_page`, which the walk supersedes. `PAGING_COMMANDS` stays
      for the empty-page test, with its doc comment saying it samples paged commands.
@@ -363,10 +371,12 @@ flowchart LR
 - **Patterns to follow:** `a_dry_run_reports_the_credential_the_real_run_uses` in
   `crates/xurl-cli/tests/dry_run_guard.rs`; `Cause:` walks such as `crates/xurl-cli/tests/dispatch_guard.rs`.
 - **Test scenarios:**
-  - A command that declares `max_results` sends 37 as its page size under `--limit 37`; one that does not sends no 37.
-    Every range admits 37: 1-50, 5-100, 10-100, 1-100.
-  - A request whose endpoint declares `pagination_token` or `next_token` carries `CURSOR-TOKEN`; a request to any other
-    endpoint does not.
+  - A command that declares `max_results` sends 37 under `--limit 37`, in the size parameter its endpoint declares
+    (`max_results`, or `max_trends` for `trends place`); one that does not sends no 37. Every range admits 37: 1-50,
+    5-100, 10-100, 1-100.
+  - A request whose endpoint declares `pagination_token` or `next_token` carries `CURSOR-TOKEN` in that parameter; a
+    request to any other endpoint does not.
+  - `xr --limit 37 --cursor CURSOR-TOKEN /2/users/me/followers` sends neither value.
   - `search-users` carries the token as `next_token`; `search-counts`, with no `-n`, carries it.
   - `spaces search`, `news search`, and `trends place` take `--limit` and send no cursor.
   - `calls scheduled list` sends `max_results=50` under `--limit 50`, 20 with no flag, and 30 under `-n 30 --limit 50`;
@@ -385,14 +395,14 @@ flowchart LR
   - Create: `crates/xurl-cli/src/cli/accepted_auth.rs`
   - Modify: `crates/xurl-cli/src/cli/mod.rs`, `crates/xdk/src/api/auth_matrix.rs` (the `endpoints` comment names the
     `xr` path that reads it)
-  - Create: `crates/xurl-cli/tests/accepted_auth_guard.rs`
+  - Modify: `crates/xurl-cli/tests/help_claims_guard.rs` (the accepted-auth walk)
   - Modify: `AGENTS.md` (a new "Accepted auth" surface in "Adding a command family")
   - Modify: about 140 `help-*.golden` fixtures, `help.golden` (the root page), `completions/*`
 - **Approach:**
   1. Per KTD6, the table with one row per command, and the walk applied through `mut_subcommands` on `Cli`.
   2. Per KTD7, the set computed by intersection and the line formatted from it; the root `--auth` built from
      `WireScheme`.
-  3. Per KTD8, the walk in its own file.
+  3. Per KTD8, the walk beside the paging walk.
 - **Execution note:** Generate the first draft of the table from a run of the walk's oracle, then review each row
   against the dispatch arm it describes.
 - **Patterns to follow:** `crates/xurl-cli/src/cli/family_help.rs` for help assembled from declarations;
@@ -419,7 +429,8 @@ flowchart LR
 | Gate                       | Command                                                                                                                                                                                   | Applies to                   |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
 | Unit and integration suite | `cargo test --workspace --no-fail-fast`                                                                                                                                                   | every PR                     |
-| One walk while iterating   | `cargo test -p xurl-rs --test accepted_auth_guard`, `--test paging_flags_guard`                                                                                                           | U4, U5                       |
+| One walk while iterating   | `cargo test -p xurl-rs --test help_claims_guard`                                                                                                                                          | U4, U5                       |
+| Startup cost               | `gtime -f '%e s %M KB' target/release/xr version`, before and after U5; no visible change                                                                                                 | U5                           |
 | Golden fixtures            | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests`, then the same without the variable; review `git diff --stat crates/xurl-cli/tests/golden` against the unit's named lines | every PR                     |
 | Completions                | `scripts/generate-completions.sh`                                                                                                                                                         | every PR                     |
 | Lint and format            | `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --check`                                                                                                              | every PR                     |
@@ -437,7 +448,7 @@ No test sends a request to the X API; the walks run against `MockX` in-process.
 - Every requirement R1 to R9 holds, shown by the tests each unit names, and each new walk was observed failing against
   the unfixed code before it passed.
 - Every golden fixture diff in each PR is limited to the lines its unit names.
-- AGENTS.md names both new walks; `recipe_guard.rs` passes.
+- AGENTS.md names the help-claims walks; `recipe_guard.rs` passes.
 - Each PR names its issues under Related Issues and carries a Changelog section.
 - No scratch tests, experiment files, or abandoned approaches remain in the diff.
 
@@ -453,3 +464,128 @@ No test sends a request to the X API; the walks run against `MockX` in-process.
 - `docs/plans/2026-09-20-0924-refactor-scope-help-to-consumed-flags-plan.md`: the de-globalizing alternative and the
   history of `PAGING_COMMANDS`.
 - `docs/solutions/best-practices/cli-env-vars-must-appear-in-help-2026-04-20.md`: help as the agent's contract.
+
+---
+
+## Review Record
+
+Questions in this record were answered from evidence, not by a person: nobody answers questions in the slot that ran
+these reviews. Each choice names its evidence. Reviewer passes ran inline, with no subagents.
+
+### Engineering review (2026-10-29)
+
+**Scope Challenge.** The plan touches 8 or more files and adds two modules, so the complexity gate applied.
+
+- S1. One test file for both walks instead of two (`help_claims_guard.rs`): the smaller arrangement keeps every
+  requirement and test and saves one test binary link per CI job. Accepted; folded into KTD8, U4, U5.
+- S2. Four PRs: each runs about 25 CI jobs against the account's 20-job cap. Kept. The brief asks for a stack, and
+  `gh stack merge` lands it without restacking. The queue cost is in the Goal Capsule.
+- Already done: nothing on `origin/dev` since 2026-10-27 touches the planned help text. Surface check: every named
+  command, flag, file, and script exists.
+
+**Premises.** Each factual claim the plan rests on, with its receipt; unverified=0.
+
+| Premise                                                   | Receipt                                                                          | Verdict |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------- | ------- |
+| `--auth` help is one hand-written line on every command   | `crates/xurl-cli/src/cli/mod.rs:3600`, `:980`                                    | true    |
+| Global flags keep their root display order in subcommands | clap_builder 4.6.7 `Command::_propagate_global_args`; reproduced `#415` pages    | true    |
+| `--limit`/`--cursor` name ten commands from a hand list   | `crates/xurl-cli/src/cli/mod.rs:1183`; `crates/xurl-cli/tests/cli_tests.rs:3605` | true    |
+| `calls scheduled list` ignores `--limit`                  | `crates/xurl-cli/src/cli/mod.rs:3070`; measured request `max_results=20`         | true    |
+| Raw mode reads neither paging flag                        | `crates/xurl-cli/src/cli/commands/mod.rs:477`                                    | true    |
+| Auto-detect walks oauth2, oauth1, app                     | `crates/xdk/src/api/request/auth_header.rs:261`                                  | true    |
+| The user-search rule excludes `@` and operators           | `crates/xdk/src/api/shortcuts.rs:632`                                            | true    |
+| An empty-store dry run hides a later request's mismatch   | measured: `dm @jack hi --auth app` with and without a stored bearer              | true    |
+
+```text
+REALITY: premise-table pass 8 premises, unverified=0 crates/xurl-cli/src/cli/mod.rs:3600
+REALITY: already-done pass nothing on origin/dev since 2026-10-27 changes this help crates/xurl-cli/src/cli/mod.rs:980
+REALITY: surface-check pass every named command, flag, file, script exists scripts/generate-completions.sh:1
+REALITY: binding-decisions pass try_get_matches_from still sees KTD6 crates/xurl-cli/src/cli/runner.rs:289
+REALITY: numbers pass 140/37/36/34/18/190 [measured: runs, ls, rg] crates/xurl-cli/src/cli/mod.rs:1183
+REALITY: deferred-asks finding #417 "no @ or operators" implied by the rule crates/xdk/src/api/shortcuts.rs:632
+REALITY: pr-count finding 4 PRs x ~25 jobs vs a 20-job cap; one gh stack merge .github/workflows/ci.yml:491
+```
+
+**Section 1, Architecture.**
+
+- A1 [INFORMATIONAL] (confidence: 9/10) `crates/xurl-cli/src/cli/commands/mod.rs` `run_raw_mode`: reads neither
+  `cli.limit` nor the cursor, so a rule that says "every command whose endpoint pages" could be read as covering
+  `xr --cursor T /2/users/me/followers`. Accepted: R7, R8, KTD4, and U4 now say raw requests ignore both, and the walk
+  pins it.
+- A2 [INFORMATIONAL] (confidence: 8/10) `crates/xurl-cli/src/cli/mod.rs` `CommonFlags`:
+  `/// Authentication type (oauth1, oauth2, app)` spells the same list as the root `--auth`. Accepted: both come from
+  one `WireScheme` function (R2, KTD7).
+- A3 [INFORMATIONAL] (confidence: 9/10) Open PRs #438 and #409 add `OVERRIDES` rows to
+  `crates/xurl-cli/tests/dry_run_guard.rs`, and #439 edits `calls.rs` and `calls_tests.rs`. Accepted: KTD9 and the
+  collisions table name them and the resolution.
+- Design twice. Shape A, chosen: one table and one `annotate` function at the root, which hides the matrix lookup, the
+  intersection, the formatting, and the tree walk behind one call in the derive. Shape B: a `mut_arg` attribute on each
+  of about 140 variants, which leaves the same command-to-endpoint fact in the same file as the other slots' edits.
+  Shape C: a wrapper around `Cli::command()`, which `try_parse_from`'s help path skips. Red flags: a hand-synced list
+  (table against clap's tree) and leakage (endpoints named both in dispatch and the table). The walk closes both: it
+  fails on a missing or stale row and on any scheme disagreement. An endpoint swapped for one with the same schemes goes
+  unseen, and the help stays true.
+
+**Section 2, Code quality.**
+
+- C1 [INFORMATIONAL] (confidence: 8/10) `crates/xdk/src/api/auth_matrix.rs` `schemes_to_wire_list`: the mismatch
+  envelope's `supported` keeps the spec's order, while the help uses preference order. Accepted as documentation in
+  KTD7. No envelope changes, and the help order is the order `detect_scheme` picks in.
+
+**Section 3, Tests.** Every new statement has a test that fails when the code stops matching it: the rendered-help guard
+(R3), the U2 refusal and round-trip tests (R4 to R6), and the two walks (R1, R7, R8). The Definition of Done requires
+each walk to be seen failing first.
+
+- T1 [INFORMATIONAL] (confidence: 8/10) The planned "any query value 37" check is weaker than the test it replaces,
+  which named `max_results` and `pagination_token`. Accepted: the walk asserts the parameter names the spec declares
+  (U4).
+- T2 [INFORMATIONAL] (confidence: 8/10) clap propagates global flags only when a command is built, so the layout guard
+  renders built commands. Accepted (U1).
+- Tests made obsolete: `every_paging_command_sends_the_limit_and_cursor` and
+  `the_limit_and_cursor_help_name_exactly_the_commands_that_page` in `crates/xurl-cli/tests/cli_tests.rs` (U4).
+
+```text
+CODE PATHS                                           USER FLOWS
+[+] accepted_auth::annotate (U5)                     [+] Agent reads `xr <cmd> --help`, picks --auth
+  ├── row found, one endpoint      [walk]              ├── [walk] scheme listed == dry run accepts
+  ├── row found, several endpoints [walk]              └── [walk] `--of` variant suffix
+  ├── row with --of variant        [walk]            [+] Agent pages a list
+  └── no row (generic default)     [walk: Cause:]      ├── [walk] --limit reaches size param
+[+] --limit / --cursor rule (U4)                       ├── [walk] --cursor reaches token param
+  ├── command with -n              [walk]              └── [walk] raw request ignores both
+  ├── paged endpoint               [walk vs spec]    [+] Agent writes a checkpoint by hand
+  └── calls scheduled list         [calls_tests]       └── [U2] shape from help is accepted
+[+] Global Options heading (U1)    [layout guard]
+COVERAGE: every planned path has a planned test
+```
+
+**Section 4, Performance.**
+
+- P1 [INFORMATIONAL] (confidence: 6/10) `Cli::command()` is built several times per run (`classify.rs`, `reparse.rs`,
+  `misplaced_flags.rs`, `runner.rs`), and KTD6 adds a tree walk with about 140 short strings to each build. The estimate
+  is microseconds, unmeasured. Accepted: a `gtime` check before and after U5 in the Verification Contract.
+
+**Failure modes.** A missing or stale row, a paged arm that drops the cursor, a global flag without the heading, and
+checkpoint drift each fail a test that names the cause. `anc` reading the new heading is checked locally against the
+score baseline of 98. Critical gaps: 0.
+
+**Outside voice.** Disabled by `codex_reviews: disabled`. No outside or native challenge ran.
+
+**Parallelization.** Sequential implementation, no parallelization opportunity: the units share `cli/mod.rs` and the
+golden fixtures, and the slot runs no worktrees.
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                                 |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ---------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                        |
+| Outside Review | codex (plan review)   | Independent 2nd opinion         | 1    | disabled    | —                                        |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | issues_open | 7 issues, 0 critical gaps, all folded in |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | —                                        |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | —           | —                                        |
+
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config; no findings.
+- **VERDICT:** Eng review run once; its 7 findings are folded into the plan with evidence. DX review and document review
+  follow.
+
+NO UNRESOLVED DECISIONS
