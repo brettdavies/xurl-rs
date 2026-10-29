@@ -229,7 +229,7 @@ never the tests.
   `--auth` with no row, for a row naming no such command, and for a row whose schemes differ from the ones the
   command's dry run accepts.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
-  `crates/xurl-cli/src/cli/commands/schema.rs`, named by the command's words as `xr help` takes them, then
+  `crates/xurl-cli/src/cli/commands/schema/mod.rs`, named by the command's words as `xr help` takes them, then
   `scripts/generate-response-schemas.sh`, which writes the words joined with `-` as the file name.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that
   drifted.

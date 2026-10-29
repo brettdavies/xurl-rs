@@ -12,7 +12,8 @@ use xurl::cli::commands::schema::{
 };
 use xurl::cli::commands::validate::{UNVALIDATED_TYPES, validated_types};
 
-const SCHEMA_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema.rs";
+const SCHEMA_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema/mod.rs";
+const RUN_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema/run.rs";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Single command schema
@@ -96,7 +97,7 @@ fn schema_list_records_every_registered_command_and_nothing_else() {
     assert!(
         missing.is_empty(),
         "`xr schema --list` omits registered commands: {missing:?}\n\
-         Cause: print_schema_list in {SCHEMA_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
+         Cause: print_schema_list in {RUN_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
          Fix: make the listing read SCHEMA_ENTRIES in full; a command reaches `--list` by \
          being in the registry, never by being listed again."
     );
@@ -104,7 +105,7 @@ fn schema_list_records_every_registered_command_and_nothing_else() {
     assert!(
         extra.is_empty(),
         "`xr schema --list` advertises commands with no registry row: {extra:?}\n\
-         Cause: print_schema_list in {SCHEMA_SOURCE} prints a name that is not in SCHEMA_ENTRIES.\n\
+         Cause: print_schema_list in {RUN_SOURCE} prints a name that is not in SCHEMA_ENTRIES.\n\
          Fix: add the command's row to SCHEMA_ENTRIES or drop it from the listing."
     );
     assert_eq!(
@@ -209,7 +210,7 @@ fn schema_all_emits_one_schema_per_registered_command() {
     assert!(
         missing.is_empty(),
         "`xr schema --all` omits registered commands: {missing:?}\n\
-         Cause: print_all_schemas in {SCHEMA_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
+         Cause: print_all_schemas in {RUN_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
          Fix: make `--all` read SCHEMA_ENTRIES in full; a command reaches `--all` by being in \
          the registry, never by being listed again."
     );
@@ -217,7 +218,7 @@ fn schema_all_emits_one_schema_per_registered_command() {
     assert!(
         extra.is_empty(),
         "`xr schema --all` emits schemas for commands with no registry row: {extra:?}\n\
-         Cause: print_all_schemas in {SCHEMA_SOURCE} emits a key that is not in SCHEMA_ENTRIES.\n\
+         Cause: print_all_schemas in {RUN_SOURCE} emits a key that is not in SCHEMA_ENTRIES.\n\
          Fix: add the command's row to SCHEMA_ENTRIES or drop it from `--all`."
     );
     // Each value should be a valid schema object — either an object schema

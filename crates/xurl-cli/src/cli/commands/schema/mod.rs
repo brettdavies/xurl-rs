@@ -1,16 +1,19 @@
-//! Schema subcommand — outputs JSON Schema for command response types.
+//! Schema subcommand: JSON Schema for each command's response type.
+//!
+//! This module holds the registry, which names every command with a typed
+//! response by its words. `words` turns the words a caller gives into a row,
+//! and `run` prints what `xr schema` is asked for.
 
-use std::collections::BTreeMap;
-use std::io::Write;
+mod run;
+mod words;
 
-use clap::CommandFactory;
+pub use run::run_schema;
+pub use words::{Refusal, scope_words};
+
 use schemars::schema_for;
 use serde_json::Value;
 
-use crate::cli::Cli;
-use crate::cli::classify::{ROOT_COMMAND, nearest};
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
-use crate::cli::output::OutputConfig;
 use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
@@ -26,7 +29,6 @@ use xdk::api::{
     UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
     WebhookValidation, XCall,
 };
-use xdk::error::{Error, Result};
 
 /// Command-to-response-type mapping entry.
 struct SchemaEntry {
@@ -545,13 +547,6 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
 /// reaches `xr schema` after `--`, where clap reads it as a word.
 pub const FLAG_FORMS: &[(&str, &str)] = &[("skill install --all", "skill install")];
 
-/// Names `xr schema` took before it took command words, which no row's
-/// words joined with `-` reproduce: the old name, then the row it meant.
-const IRREGULAR_OLD_NAMES: &[(&str, &str)] = &[
-    ("redirect-uri-get", "auth apps redirect-uri get"),
-    ("redirect-uri-set", "auth apps redirect-uri set"),
-];
-
 /// Every response type the registry names, one per row, in table order.
 pub fn registered_types() -> impl Iterator<Item = &'static str> {
     SCHEMA_ENTRIES.iter().map(|entry| entry.type_name)
@@ -602,204 +597,4 @@ pub fn invocation(command: &str) -> String {
         parts.push(word);
     }
     parts.join(" ")
-}
-
-/// The long flags `xr schema` declares, which name its scopes. A bare word
-/// spelled like one is refused rather than read as a command.
-#[must_use]
-pub fn scope_words() -> Vec<String> {
-    Cli::command()
-        .find_subcommand("schema")
-        .map(|schema| {
-            schema
-                .get_arguments()
-                .filter_map(|arg| arg.get_long().map(str::to_string))
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
-/// Why `xr schema` refused the words it was given.
-#[derive(Debug)]
-pub enum Refusal {
-    /// A word names no command at its depth, as `xr help` reports it.
-    UnknownCommand {
-        /// The word that named nothing.
-        word: String,
-        /// The nearest command at that depth, when one scored close enough.
-        suggestion: Option<String>,
-        /// The command the word was typed under, `xr` at the root.
-        under: String,
-    },
-    /// A name `xr schema` took before it took command words.
-    OldName {
-        /// The name as given.
-        given: String,
-        /// The registry row it meant.
-        command: &'static str,
-    },
-    /// A bare word spelled like one of `xr schema`'s scope flags.
-    ScopeWord(String),
-    /// Anything else, refused as a value: no typed response, no arguments.
-    Invalid(Error),
-}
-
-/// The registry row the words name.
-fn resolve(words: &[String]) -> std::result::Result<&'static str, Refusal> {
-    if let [word] = words
-        && scope_words().iter().any(|scope| scope == word)
-    {
-        return Err(Refusal::ScopeWord(word.clone()));
-    }
-    let joined = words.join(" ");
-    if let Some(command) = registered_commands().find(|command| *command == joined) {
-        return Ok(command);
-    }
-    let root = Cli::command();
-    let mut current = &root;
-    let mut path: Vec<&str> = Vec::new();
-    for word in words {
-        let found = current
-            .get_subcommands()
-            .find(|sub| sub.get_name() == word || sub.get_all_aliases().any(|alias| alias == word));
-        let Some(sub) = found else {
-            if let [only] = words
-                && let Some(command) = old_name(only)
-            {
-                return Err(Refusal::OldName {
-                    given: only.clone(),
-                    command,
-                });
-            }
-            let candidates: Vec<String> = current
-                .get_subcommands()
-                .flat_map(|sub| {
-                    std::iter::once(sub.get_name().to_string())
-                        .chain(sub.get_all_aliases().map(String::from))
-                })
-                .collect();
-            let under = std::iter::once(ROOT_COMMAND)
-                .chain(path.iter().copied())
-                .collect::<Vec<_>>()
-                .join(" ");
-            return Err(Refusal::UnknownCommand {
-                word: word.clone(),
-                suggestion: nearest(word, &candidates),
-                under,
-            });
-        };
-        path.push(sub.get_name());
-        current = sub;
-    }
-    let named = path.join(" ");
-    if let Some(command) = registered_commands().find(|command| *command == named) {
-        return Ok(command);
-    }
-    Err(Refusal::Invalid(Error::validation_of(
-        "no-typed-response",
-        named,
-    )))
-}
-
-/// The row an old hyphen-joined name meant, when `token` is one.
-fn old_name(token: &str) -> Option<&'static str> {
-    IRREGULAR_OLD_NAMES
-        .iter()
-        .find(|(old, _)| *old == token)
-        .map(|(_, command)| *command)
-        .or_else(|| {
-            registered_commands()
-                .find(|command| command.contains(' ') && file_stem(command) == token)
-        })
-}
-
-/// Returns the JSON Schema for a registry row.
-fn schema_for_command(command: &str) -> Result<Value> {
-    SCHEMA_ENTRIES
-        .iter()
-        .find(|entry| entry.commands.contains(&command))
-        .map(|entry| (entry.schema)())
-        .ok_or_else(|| Error::Internal(format!("no schema registered for '{command}'")))
-}
-
-/// Runs the schema subcommand.
-///
-/// JSON-emitting paths route through `OutputConfig::print_response` so a
-/// schema body is not double-wrapped in `{"message": "..."}` under
-/// `--output json`. The `envelope` flag dumps the canonical output envelope
-/// schema instead of a response-type schema.
-///
-/// # Errors
-///
-/// Returns a [`Refusal`] when the words name no command, name one with no
-/// typed response, use an old name or a scope word, or nothing was asked.
-pub fn run_schema(
-    command: &[String],
-    list: bool,
-    all: bool,
-    envelope: bool,
-    out: &OutputConfig,
-    stdout: &mut dyn Write,
-) -> std::result::Result<(), Refusal> {
-    if all {
-        return print_all_schemas(out, stdout).map_err(Refusal::Invalid);
-    }
-    if envelope {
-        let schema = crate::cli::envelope::envelope_schema();
-        out.print_response(stdout, &schema);
-        return Ok(());
-    }
-    if list {
-        print_schema_list(out, stdout);
-        return Ok(());
-    }
-    if command.is_empty() {
-        return Err(Refusal::Invalid(Error::validation("missing-command")));
-    }
-    let row = resolve(command)?;
-    let schema = schema_for_command(row).map_err(Refusal::Invalid)?;
-    out.print_response(stdout, &schema);
-    Ok(())
-}
-
-/// Writes every registered command with its response type and its file.
-///
-/// Text output aligns one row per command; the structured formats get one
-/// record per command, which `scripts/generate-response-schemas.sh` reads.
-fn print_schema_list(out: &OutputConfig, stdout: &mut dyn Write) {
-    let mut entries: Vec<(&str, &str)> = SCHEMA_ENTRIES
-        .iter()
-        .flat_map(|entry| entry.commands.iter().map(|cmd| (*cmd, entry.type_name)))
-        .collect();
-    entries.sort_by_key(|(cmd, _)| *cmd);
-
-    if out.format.is_structured() {
-        let records: Vec<Value> = entries
-            .iter()
-            .map(|(cmd, type_name)| {
-                serde_json::json!({
-                    "command": cmd,
-                    "type": type_name,
-                    "file": format!("{}.schema.json", file_stem(cmd)),
-                })
-            })
-            .collect();
-        out.print_response(stdout, &Value::Array(records));
-        return;
-    }
-    let max_cmd_len = entries.iter().map(|(cmd, _)| cmd.len()).max().unwrap_or(0);
-    for (cmd, type_name) in &entries {
-        out.print_message(stdout, &format!("{cmd:<max_cmd_len$}  {type_name}"));
-    }
-}
-
-/// Writes all schemas as a single JSON object keyed by command name to `stdout`.
-fn print_all_schemas(out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
-    let mut all: BTreeMap<String, Value> = BTreeMap::new();
-    for command in registered_commands() {
-        all.insert(command.to_string(), schema_for_command(command)?);
-    }
-    let value = serde_json::to_value(&all)?;
-    out.print_response(stdout, &value);
-    Ok(())
 }

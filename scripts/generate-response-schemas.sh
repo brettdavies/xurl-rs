@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Generate per-command response schemas to schema/responses/<file>.
 #
-# Source of truth is SCHEMA_ENTRIES in crates/xurl-cli/src/cli/commands/schema.rs. This script
+# Source of truth is SCHEMA_ENTRIES in crates/xurl-cli/src/cli/commands/schema/mod.rs. This script
 # reads the records `xr schema --list --output tsv` prints, one per registered command, and dumps
 # each command's schema into the file its record names. The envelope lives separately at
 # schema/output.schema.json.
