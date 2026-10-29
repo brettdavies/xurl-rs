@@ -1044,7 +1044,7 @@ sections.
 | `--quiet`                                  | No                                  | Yes                                                |
 | `--no-interactive`                         | No                                  | Yes                                                |
 | Structured exit codes                      | No, every failure exits 1           | Yes                                                |
-| API errors                                 | Body on stdout                      | Envelope on stderr                                 |
+| API errors                                 | Body on stdout                      | On stderr; an envelope under `--output json`       |
 | Mistyped command                           | Sent as a path, later words dropped | Exit 2, names the word and any close command       |
 | `NO_COLOR` support                         | No                                  | Yes                                                |
 | `XURL_OUTPUT` env var                      | No                                  | Yes                                                |
