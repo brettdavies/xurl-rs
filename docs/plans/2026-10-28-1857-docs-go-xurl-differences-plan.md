@@ -49,9 +49,9 @@ likely to break a migrated script.
 issue was drafted from a side-by-side sandbox run, and reproduction against both binaries shows the docs and the issue
 each carry claims the binaries do not back:
 
-- The doc's list of `xr` commands with no Go counterpart omits at least eleven: `usage`, `usage credits`, `muted`,
-  `blocked`, `media alt-text`, `media subtitles`, `broadcasts moderators`, `lists members`, `schema`, `validate`,
-  `examples`, and `skill`. The issue noticed seven of them. A hand list goes stale with each new family.
+- The doc's list of `xr` commands with no Go counterpart omits fifteen runnable commands under eleven names: `usage`,
+  `usage credits`, `muted`, `blocked`, `media alt-text`, `media subtitles`, `broadcasts moderators`, `schema`,
+  `validate`, `examples`, and `skill`. The issue names eight of the eleven. A hand list goes stale with each new family.
 - The exit-code section says Go "maps HTTP errors to exit codes by string-matching the error message body". At 1.3.4
   every `os.Exit` in the Go source passes `1`, and `main.go` exits 1 on any Cobra error. The section's table already
   shows 1; its narrative does not match.
@@ -87,14 +87,16 @@ each carry claims the binaries do not back:
   command's answer and writes every failure to stderr, as text or as an envelope carrying `reason`, `exit_code`, and
   `next_step` where a step exists, with `retry_after_secs` and `retry_at` on a 429 that names its reset.
 - R8. The exit-code section states that Go exits 1 on every failure, with its table unchanged.
-- R9. Go refuses `--dry-run` as an unknown flag and sends nothing; `xr` answers `--dry-run` on every command, raw
-  requests included, offline and at exit 0.
-- R10. Go runs `delete`, `auth clear`, and `auth apps remove` at once and has no `--force`; `xr` asks first on a
-  terminal, refuses with `confirmation-required` (exit 1) where it cannot ask, and proceeds under `--force`.
+- R9. Go refuses `--dry-run` as an unknown flag and sends nothing; `xr` takes `--dry-run` on every command, raw requests
+  included, sends and stores nothing, and answers a dry run that reaches its checks with `would_succeed` at exit 0.
+- R10. Go runs `delete`, `auth clear`, and `auth apps remove` at once and has no `--force`; `xr` asks before each of
+  them when stdin and stderr are terminals, refuses with `confirmation-required` (exit 1) under `--no-interactive`,
+  `--quiet`, or no terminal, and proceeds under `--force`. A dry run reports `confirmation_required: true` for every
+  command that asks.
 - R11. Go picks a credential by kind (OAuth2, then OAuth1, then bearer) whatever the endpoint accepts; `xr` checks the
   endpoint's accepted schemes before sending and refuses a mismatch at exit 2, reason `auth-method-mismatch`.
-- R12. Go's list commands take `-n/--max-results` for one page and no page token; `xr`'s take the same `-n` plus
-  `--cursor` (alias `--after`), which carries X's `pagination_token`, and `--page` refuses with
+- R12. Go's list commands take `-n/--max-results` for one page and no page token; `xr`'s take the same `-n`, and on a
+  list command whose endpoint pages, `--cursor` (alias `--after`) carries X's `pagination_token`; `--page` refuses with
   `unsupported-pagination`.
 - R13. Go requests `tweet.fields` and prints X's body as sent; `xr` shortcuts request the spec's `post.fields` and print
   legacy post-vocabulary keys under the spec's names, while a raw `xr` request prints X's keys as sent.
@@ -125,7 +127,7 @@ each carry claims the binaries do not back:
   does, and the Appendix records the disagreement. Governs R2 to R14.
 - KD2. **A rule replaces the `xr`-only list.** Go 1.3.4's command set is fixed at the pin, so mapping it to `xr` names
   is a list that changes only when the pin does; `xr`'s set grows with each family, and the hand list has already fallen
-  eleven commands behind. `crates/xurl-cli/tests/recipe_guard.rs` holds the same rule for shortcut function lists ("a
+  fifteen commands behind. `crates/xurl-cli/tests/recipe_guard.rs` holds the same rule for shortcut function lists ("a
   hand-maintained registry that goes stale the day a shortcut is added"). It also removes the subcommand names #421
   renames (`broadcasts scheduled live`, `broadcasts sources rename`, `calls scheduled cancel`) from this file. Governs
   R5.
@@ -161,6 +163,8 @@ Each item below is a defect or gap reproduction surfaced outside this change's s
 - A 401 from the API answers `reason: auth-required` with no `next_step`.
 - `crates/xurl-cli/tests/conformance/test_cases.toml` line 300's `skip_reason` repeats the string-matching account R8
   corrects.
+- `xr schema --dry-run` and `xr auth apps update 123 --dry-run` answer `status: error`, `reason: validation`, exit 1,
+  where `AGENTS.md` § "Output formats" says `--dry-run` answers at exit 0 on any command.
 - A guard holding the README's `xr` command count to `common::command_paths()`, if Brett widens the scope past docs.
 
 ---
@@ -194,6 +198,10 @@ Each item below is a defect or gap reproduction surfaced outside this change's s
   `recipe_guard` counts (`repost`, `unrepost`, `bookmark`, `unbookmark` collide with command words). No README line puts
   a secret flag before a value (`agentic_tests::secret_on_argv` matches `--client-secret` followed by a space and a
   non-dash character).
+- KTD9. **The diff carries only the edited text.** None of the three files is in the edit hook's wrapped shape at `HEAD`
+  (`git show HEAD:<file> | md-wrap.py -w 120` differs by 18, 20, and 75 lines), so an edit that lets the hook reflow the
+  whole file rewraps paragraphs no unit touches. Each unit wraps its own new text at 120 by hand and leaves every other
+  line byte-identical to `HEAD`.
 
 ### High-Level Technical Design
 
@@ -214,9 +222,9 @@ Each item below is a defect or gap reproduction surfaced outside this change's s
 ## A waited `media upload` answers one document
 ## The caller's id is asked for once per login
 ## `--dry-run` checks any command offline                                [new]                (R9)
-## A command that destroys something asks first                          [new]                (R10)
+## `delete` and the store commands ask first                             [new]                (R10)
 ## A credential the endpoint does not accept is refused before sending   [new]                (R11)
-## List commands take a page token                                       [new]                (R12)
+## `--cursor` asks for the next page                                     [new]                (R12)
 ## Shortcut output uses the spec's post vocabulary                       [new]                (R13)
 ## Every secret can come from a file or stdin                            [new]                (R14)
 ```
@@ -263,6 +271,8 @@ New heading wording is directional; the implementer may tighten it while keeping
   6. Append the dry-run, confirmation, auth-preflight, pagination, post-vocabulary, and secret-input sections (R9 to
      R14).
   7. Land the corrections (steps 3 and 4) and the additions as two commits, so a reviewer sees each kind apart.
+- **Execution note:** KTD9 applies; after each edit, read the diff hunk by hunk and restore any line the edit did not
+  mean to change.
 - **Patterns to follow:** the existing sections' Go-then-`xr`-then-table shape and their Go source citations
   (`cli/root.go`, `api/media.go`); `crates/xurl-cli/README.md` § "Machine-Readable Output" for the post-vocabulary key
   list R13 cites rather than restates.
@@ -288,6 +298,21 @@ New heading wording is directional; the implementer may tighten it while keeping
   2. Correct the binary-size row (KTD6) and add the command-count row (KD3, KTD5).
   3. Add a row per difference R15 lists, in KTD3's order; keep the existing rows.
   4. Point the paragraph above the table at `KNOWN_DIFFERENCES.md` for the detail behind each row.
+- **Execution note:** KTD9 applies, and this file differs most from the hook's shape.
+- **Technical design:** the rows R15 adds, directionally (cell wording is the implementer's within each claim):
+  - Binary size, Linux x86_64 release: `~26 MB` (bundles `chat`) and `~13 MB`.
+  - Commands in `--help`: `60, 29 of them shortcuts` and `160`.
+  - `xurl posts USER`: `xr user-posts USER`; `xr posts` reads posts by id.
+  - `--dry-run`: `No` and `Every command, offline`.
+  - Mistyped command: `Sent as a path, later words dropped` and `Exit 2, names the nearest command`.
+  - `delete`, `auth clear`, `auth apps remove`: `Run at once` and `Ask first; --force skips`.
+  - Credential the endpoint does not accept: `Sent anyway` and `Exit 2 before sending`.
+  - Caller's user id: `Asked of /2/users/me every run` and `Stored per login; whoami --cached`.
+  - API errors: `Body on stdout, exit 1` and `Envelope on stderr, exit by status`.
+  - Next page of a list: `Raw request with pagination_token` and `--cursor`.
+  - Secrets from a file or stdin: `Bearer token only` and `Every secret, --<name>-file`.
+  - Post vocabulary in shortcut output: `As X sends it` and `The spec's names`.
+  - `chat`, `mcp`, `token`: `Yes` and `No`.
 - **Patterns to follow:** the existing table's short cells; KTD8's wording limits.
 - **Test scenarios:**
   - Re-running KTD5's walk on the PR's base gives the count the row states.
@@ -303,7 +328,9 @@ New heading wording is directional; the implementer may tighten it while keeping
 - **Dependencies:** U1, U2.
 - **Files:** `README.md`.
 - **Approach:** replace the "Relationship to xurl" bullet under "The CLI: xr" with a paragraph of at most five lines
-  naming R2, R7, R9, and R10 in a clause each, linking `KNOWN_DIFFERENCES.md` and the CLI README's table.
+  naming R2, R7, R9, and R10 in a clause each, linking `KNOWN_DIFFERENCES.md` and the CLI README's table. R10's clause
+  names `xr delete`, not every destructive command, since `media subtitles remove` does not ask.
+- **Execution note:** KTD9 applies.
 - **Patterns to follow:** the surrounding section's link style (relative links into `crates/xurl-cli/README.md`).
 - **Test scenarios:**
   - `crates/xurl-cli/tests/recipe_guard.rs` passes, so the paragraph names fewer than three shortcut function names.
@@ -348,20 +375,159 @@ with `XURL_TOKEN_STORE` at a scratch path holding the same. Both pointed `API_BA
 Python server answering 200, 401, 404, or 429 and logging each request's method, path, and auth scheme. Nothing reached
 X.
 
-| Claim            | Issue says                                                                                | Observed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `posts`          | Go `posts USERNAME` is `xr user-posts`                                                    | Holds. Go `posts jack` sent `GET /2/users/by/username/jack`; `xr posts jack` sent `GET /2/tweets?ids=jack`; `xr posts --help`: "Read 1 to 100 posts by id or URL in one request"                                                                                                                                                                                                                                                                                                                                    |
-| Stray words      | Go drops words after an unknown command                                                   | Holds. Go `lists list` sent `GET /lists`, `likers 1585341984679469056` sent `GET /likers`, `zzzzzz extra words` sent `GET /zzzzzz`; each exit 1                                                                                                                                                                                                                                                                                                                                                                     |
-| `--dry-run`      | Go: `unknown flag: --dry-run`                                                             | Holds. Go exit 1 on `--dry-run /2/users/me`, `read --dry-run`, `delete --dry-run`; mock saw no request. Every `xr` leaf answered `--dry-run` without an unknown-flag refusal                                                                                                                                                                                                                                                                                                                                        |
-| Confirmation     | `xr` gates with `--force --no-interactive`                                                | Go `delete 1585341984679469056` sent `DELETE /2/tweets/1585341984679469056` at once; `auth apps remove scratch` and `auth clear --all` acted at once. `xr auth apps remove default` with stdin not a terminal: exit 1, `confirmation-required`, `next_step.action: confirm`, `template: xr auth apps remove default --output json --force`. `--force` alone proceeds. 16 commands report `confirmation_required: true` under `--dry-run`, matching `CONFIRMED_COMMANDS` in `crates/xurl-cli/tests/agentic_tests.rs` |
-| Auth preflight   | `auth-method-mismatch` at exit 2 before sending                                           | Holds. Bearer-only store: `xr like 1585341984679469056` and `xr delete ... --force` exit 2, `auth-method-mismatch`, mock saw nothing. Go `like` sent `GET /2/users/me` with the bearer; `api/client.go` `getAuthHeader` falls back OAuth2, OAuth1, bearer                                                                                                                                                                                                                                                           |
-| Caller id        | Go asks `/2/users/me` every run                                                           | Holds. Go `like` sent `/2/users/me` first; `cli/shortcuts.go` `resolveMyUserID`                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Pagination       | Go has no `--cursor`; `xr` has `--cursor` / `--limit` / `-n`                              | Partly. Go `search x --cursor T`: `unknown flag: --cursor`; no `pagination_token` anywhere in Go's CLI. Go has `-n/--max-results` on list commands. `xr` sent `pagination_token=TOKEN1` on `search`, `quotes`, `lists posts`, not on `spaces search`. `xr search x --page 2`: exit 1, `unsupported-pagination`                                                                                                                                                                                                      |
-| Error streams    | Go writes 401/404/429 bodies to stdout; flag errors twice                                 | Holds. Go `read` against 404, 401, 429: body on stdout, stderr empty, exit 1 each; raw `/2/users/me`: body on stdout plus `Error: request failed` on stderr. `--bogus`: `unknown flag: --bogus` on stdout, `Error: unknown flag: --bogus` and usage on stderr (`main.go` prints the error a second time). `xr read`: stdout empty, envelope on stderr, exit 4 `not-found`, 77 `auth-required`, 3 `rate-limited` with `retry_after_secs` and `retry_at`                                                              |
-| Exit codes       | (doc) Go string-matches the body                                                          | Not backed. Every `os.Exit` in the Go source passes 1; 404, 401, 429 each exit 1                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Secrets          | Go takes secrets only on argv                                                             | Not backed. Go `auth app-only -` reads the token from stdin, and Go reads `CLIENT_SECRET` from the environment. `--client-secret`, `--consumer-secret`, `--access-token`, `--token-secret` are flag values only. `xr` has `--client-secret-file`, `--consumer-secret-file`, `--access-token-file`, `--token-secret-file`, `--bearer-token-file`; `printf 'S\n' \| xr auth apps add scratch --client-id CID --client-secret-file -` stored it                                                                        |
-| Post vocabulary  | `xr` normalizes `post_count`, `repost_count`, `referenced_posts`, `edit_history_post_ids` | Holds for shortcuts. Same body to both: Go `read` printed `retweet_count`, `referenced_tweets`, `edit_history_tweet_ids`; `xr read` printed `repost_count`, `referenced_posts`, `edit_history_post_ids`; raw `xr /2/tweets/<id>` printed X's keys. Go requested `tweet.fields=...&expansions=author_id,referenced_tweets.id`; `xr` requested `post.fields=...&expansions=...referenced_posts`                                                                                                                       |
-| Go-only commands | `chat`, `mcp`                                                                             | Plus `token`. `xr token`, `xr mcp`: exit 2 `unknown-command`, no suggestion. `xr webhook start` suggests `webhooks`; `xr completion` suggests `completions`                                                                                                                                                                                                                                                                                                                                                         |
-| Counts           | "29 endpoints"; "101 commands across 26 families"                                         | Not backed. Go: 60 commands (KTD5), 29 shortcuts over 27 distinct method and path pairs in `api/shortcuts.go`. `xr`: 160 commands, 66 top-level words, 18 families, 100 declared endpoints (`SHORTCUT_TEMPLATES` rows in `crates/xdk/build.rs`)                                                                                                                                                                                                                                                                     |
-| Binary size      | (README) Go ~15 MB, `xr` ~13 MB                                                           | Go 1.3.4 Linux x86_64 25.8 MB, arm64 12.5 MB, macOS arm64 21.3 MB; `xr` 4.4.0 Linux x86_64 12.6 MB, aarch64 9.7 MB, macOS arm64 9.2 MB                                                                                                                                                                                                                                                                                                                                                                              |
-| `NO_COLOR`       | (README) Go: no                                                                           | Holds. `NO_COLOR=1` Go `auth app` still printed `\e[32m`; error lines still `\e[31m`                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Claim                  | Issue says                                                                                | Observed                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `posts`                | Go `posts USERNAME` is `xr user-posts`                                                    | Holds. Go `posts jack` sent `GET /2/users/by/username/jack`; `xr posts jack` sent `GET /2/tweets?ids=jack`; `xr posts --help`: "Read 1 to 100 posts by id or URL in one request"                                                                                                                                                                                                                                                                                                                                    |
+| Stray words            | Go drops words after an unknown command                                                   | Holds. Go `lists list` sent `GET /lists`, `likers 1585341984679469056` sent `GET /likers`, `zzzzzz extra words` sent `GET /zzzzzz`; each exit 1                                                                                                                                                                                                                                                                                                                                                                     |
+| `--dry-run`            | Go: `unknown flag: --dry-run`                                                             | Holds. Go exit 1 on `--dry-run /2/users/me`, `read --dry-run`, `delete --dry-run`; mock saw no request. Every `xr` leaf answered `--dry-run` without an unknown-flag refusal                                                                                                                                                                                                                                                                                                                                        |
+| Confirmation           | `xr` gates with `--force --no-interactive`                                                | Go `delete 1585341984679469056` sent `DELETE /2/tweets/1585341984679469056` at once; `auth apps remove scratch` and `auth clear --all` acted at once. `xr auth apps remove default` with stdin not a terminal: exit 1, `confirmation-required`, `next_step.action: confirm`, `template: xr auth apps remove default --output json --force`. `--force` alone proceeds. 16 commands report `confirmation_required: true` under `--dry-run`, matching `CONFIRMED_COMMANDS` in `crates/xurl-cli/tests/agentic_tests.rs` |
+| Auth preflight         | `auth-method-mismatch` at exit 2 before sending                                           | Holds. Bearer-only store: `xr like 1585341984679469056` and `xr delete ... --force` exit 2, `auth-method-mismatch`, mock saw nothing. Go `like` sent `GET /2/users/me` with the bearer; `api/client.go` `getAuthHeader` falls back OAuth2, OAuth1, bearer                                                                                                                                                                                                                                                           |
+| Caller id              | Go asks `/2/users/me` every run                                                           | Holds. Go `like` sent `/2/users/me` first; `cli/shortcuts.go` `resolveMyUserID`                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Pagination             | Go has no `--cursor`; `xr` has `--cursor` / `--limit` / `-n`                              | Partly. Go `search x --cursor T`: `unknown flag: --cursor`; no `pagination_token` anywhere in Go's CLI. Go has `-n/--max-results` on list commands. `xr` sent `pagination_token=TOKEN1` on `search`, `quotes`, `lists posts`, not on `spaces search`. `xr search x --page 2`: exit 1, `unsupported-pagination`                                                                                                                                                                                                      |
+| Error streams          | Go writes 401/404/429 bodies to stdout; flag errors twice                                 | Holds. Go `read` against 404, 401, 429: body on stdout, stderr empty, exit 1 each; raw `/2/users/me`: body on stdout plus `Error: request failed` on stderr. `--bogus`: `unknown flag: --bogus` on stdout, `Error: unknown flag: --bogus` and usage on stderr (`main.go` prints the error a second time). `xr read`: stdout empty, envelope on stderr, exit 4 `not-found`, 77 `auth-required`, 3 `rate-limited` with `retry_after_secs` and `retry_at`                                                              |
+| Exit codes             | (doc) Go string-matches the body                                                          | Not backed. Every `os.Exit` in the Go source passes 1; 404, 401, 429 each exit 1                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Secrets                | Go takes secrets only on argv                                                             | Not backed. Go `auth app-only -` reads the token from stdin, and Go reads `CLIENT_SECRET` from the environment. `--client-secret`, `--consumer-secret`, `--access-token`, `--token-secret` are flag values only. `xr` has `--client-secret-file`, `--consumer-secret-file`, `--access-token-file`, `--token-secret-file`, `--bearer-token-file`; `printf 'S\n' \| xr auth apps add scratch --client-id CID --client-secret-file -` stored it                                                                        |
+| Post vocabulary        | `xr` normalizes `post_count`, `repost_count`, `referenced_posts`, `edit_history_post_ids` | Holds for shortcuts. Same body to both: Go `read` printed `retweet_count`, `referenced_tweets`, `edit_history_tweet_ids`; `xr read` printed `repost_count`, `referenced_posts`, `edit_history_post_ids`; raw `xr /2/tweets/<id>` printed X's keys. Go requested `tweet.fields=...&expansions=author_id,referenced_tweets.id`; `xr` requested `post.fields=...&expansions=...referenced_posts`                                                                                                                       |
+| Go-only commands       | `chat`, `mcp`                                                                             | Plus `token`. `xr token`, `xr mcp`: exit 2 `unknown-command`, no suggestion. `xr webhook start` suggests `webhooks`; `xr completion` suggests `completions`                                                                                                                                                                                                                                                                                                                                                         |
+| Counts                 | "29 endpoints"; "101 commands across 26 families"                                         | Not backed. Go: 60 commands (KTD5), 29 shortcuts over 27 distinct method and path pairs in `api/shortcuts.go`. `xr`: 160 commands, 66 top-level words, 18 families, 100 declared endpoints (`SHORTCUT_TEMPLATES` rows in `crates/xdk/build.rs`)                                                                                                                                                                                                                                                                     |
+| Binary size            | (README) Go ~15 MB, `xr` ~13 MB                                                           | Go 1.3.4 Linux x86_64 25.8 MB, arm64 12.5 MB, macOS arm64 21.3 MB; `xr` 4.4.0 Linux x86_64 12.6 MB, aarch64 9.7 MB, macOS arm64 9.2 MB                                                                                                                                                                                                                                                                                                                                                                              |
+| `NO_COLOR`             | (README) Go: no                                                                           | Holds. `NO_COLOR=1` Go `auth app` still printed `\e[32m`; error lines still `\e[31m`                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Dry-run exits (review) | (`AGENTS.md`) answers at exit 0 on any command                                            | Not on every one. `xr schema --dry-run` and `xr auth apps update 123 --dry-run`: `status: error`, `reason: validation`, exit 1                                                                                                                                                                                                                                                                                                                                                                                      |
+| Page token (review)    | n/a                                                                                       | `/2/spaces/search` declares `query`, `state`, `max_results`, and field parameters, no `pagination_token`; `xr spaces search x --cursor TOKEN1` sent none                                                                                                                                                                                                                                                                                                                                                            |
+| Gate coverage (review) | n/a                                                                                       | `xr media subtitles remove 123 --language en --dry-run` reports no `confirmation_required`; it is absent from `CONFIRMED_COMMANDS`                                                                                                                                                                                                                                                                                                                                                                                  |
+
+---
+
+## Engineering Review Record
+
+`/plan-eng-review` of this plan on 2026-10-28, run inline in one session with no subagent and no outside model (Brett's
+standing rule for this repo; `codex_reviews` is also disabled). Nobody watches the session, so each choice below was
+settled from the cited evidence, and the one choice that widens the brief went to Brett instead.
+
+**Scope Challenge.** Three files change and nothing new is built, so the complexity gate did not trip. Scope accepted
+as-is.
+
+**Reality rows.**
+
+- REALITY: premise-table pass. Each claim carries an Appendix row or a Go source receipt at `18dcb447`
+  (`cli/shortcuts.go` `printResult` and `resolveMyUserID`, `api/client.go` `getAuthHeader`, `main.go`,
+  `cli/chat_unsupported.go:1` build tag). unverified=0; KTD5's count and the 4.4.1 assumption are tagged [re-measure
+  before gate].
+- REALITY: already-done pass. `git log origin/dev --since=2026-10-27` over the three files shows #427 and #428, both in
+  the base and both extending the bare-word section KTD4 builds on.
+- REALITY: surface-check pass. Every command and flag the plan names exists in the walked `--help` of the binary it
+  names; the Go words `xr` lacks were observed refused.
+- REALITY: binding-decisions pass. The 2026-09-22 wire-vocabulary decision (normalize in `decode()`, raw mode untouched)
+  is what R13 describes.
+- REALITY: numbers finding, fixed. The Problem Frame named twelve omitted commands including `lists members`, which the
+  list covers as `members`; recomputed from the tree walk, fifteen runnable commands under eleven names [measured: tree
+  walk against the list]. Every other count is [measured]: 60 and 160 commands, 29 shortcuts, 27 endpoints, 100 declared
+  endpoints, 16 gated commands, binary bytes.
+- REALITY: deferred-asks pass. The issue's completed `xr`-only list becomes KD2's rule (named in the PR body for Brett
+  to reverse); its `-H` redaction mention stays out (Scope Boundaries: no Go contrast); its "101 commands" figure
+  becomes KTD5's count.
+- REALITY: pr-count finding, kept. Two PRs, one more than the default. `scripts/cargo-inputs.sh` classes
+  `KNOWN_DIFFERENCES.md` as inert, so PR1 skips the Rust jobs; both READMEs are cargo inputs, so PR2 runs the full
+  battery once. The split costs one short run, and `gh stack merge` lands both without a restack.
+
+**Section 1, Architecture.**
+
+- [INFORMATIONAL] (confidence: 8/10) `crates/xurl-cli/tests/agentic_tests.rs:822`,
+  `const CONFIRMED_COMMANDS: &[&str] = &[` lists sixteen commands and not `media subtitles remove`, which sends
+  `DELETE /2/media/subtitles` unasked. R10's heading claimed every destructive command asks. Accepted: R10 names Go's
+  three counterparts plus the `confirmation_required` discovery rule, the heading narrows, and U3's clause names
+  `xr delete`. R10 also states the refusal conditions from `crates/xurl-cli/src/cli/commands/mod.rs:76`,
+  `!no_interactive && !quiet && std::io::stdin().is_terminal() && std::io::stderr().is_terminal()`.
+- [INFORMATIONAL] (confidence: 8/10) R9 claimed exit 0 on every dry run; `xr schema --dry-run` exits 1 with `validation`
+  (Appendix). Accepted: R9 promises exit 0 only for a dry run that reaches its checks, and the mismatch with `AGENTS.md`
+  went to follow-ups.
+- [INFORMATIONAL] (confidence: 8/10) `crates/xdk/vendor/x-api-openapi.json`, `/2/spaces/search` declares no
+  `pagination_token`. R12 said every list command takes `--cursor`. Accepted: R12 covers list commands whose endpoint
+  pages, and the heading narrows.
+- Design-twice: no new module or boundary. Red flag 8 (hand-synced list): the README rows project `KNOWN_DIFFERENCES.md`
+  sections (accepted under KTD1, one short line per row), and R15's `xr` count tracks the clap tree by hand (the guard
+  is Brett's call, KTD7).
+
+**Section 2, Code quality.**
+
+- [INFORMATIONAL] (confidence: 9/10) `git show HEAD:<file> | python3 ~/.claude/md-wrap.py -w 120` differs from `HEAD` by
+  18 lines for `KNOWN_DIFFERENCES.md`, 20 for `README.md`, 75 for `crates/xurl-cli/README.md`. An edit the hook reflows
+  would rewrap untouched paragraphs. Accepted: KTD9 and an execution note on each unit.
+- [INFORMATIONAL] (confidence: 7/10) R15's "a row for each difference that has a two-cell shape" left the row set to the
+  implementer. Accepted: U2 lists the rows directionally.
+- No shared-code extraction proposed.
+
+**Section 3, Tests.**
+
+```text
+DOC CLAIMS                                       READER FLOWS
+[+] KNOWN_DIFFERENCES.md (U1)                    [+] Migrating a Go xurl script
+  ├── [MANUAL] Go claims: scratch HOME, mock       ├── [MANUAL] each Go command found in R3's map
+  ├── [MANUAL] xr claims: scratch store, mock      └── [MANUAL] posts -> user-posts reached first (KTD3)
+  └── [GAP] no test reads this file (inert)      [+] Reading the README table (U2)
+[+] crates/xurl-cli/README.md (U2)                 ├── [★★ TESTED] secret-on-argv guard  agentic_tests.rs:1033
+  ├── [MANUAL] KTD5 count re-walk at the base      ├── [★★ TESTED] .id filter guard      agentic_tests.rs:1058
+  └── [GAP] count drifts after the next family     └── [★★ TESTED] steps table           next_step_tests.rs:342
+[+] README.md (U3)                               [+] Root README summary
+  ├── [★★ TESTED] function-list guard  recipe_guard.rs:95
+  └── [★★ TESTED] landing program      readme_landing_tests.rs:20
+
+COVERAGE: 5/10 paths by existing tests | 5 by the Verification Contract's manual reproduction
+GAPS: 2 (both accepted: no test reads KNOWN_DIFFERENCES.md; the count guard is Brett's call)
+```
+
+- Test review: no new test proposed. The brief keeps the change to docs, and `Go parity` already runs the differential
+  suite on behavior. Test Plan artifact written to the gstack project directory.
+
+**Section 4, Performance.** No issues found. The only cost is CI time, counted under pr-count.
+
+**Failure modes.** One critical gap: after the next family lands, R15's `xr` count goes stale with no test, no error,
+and no reader noticing. KTD5's re-walk catches it only at authoring time. Disposition: a guard over
+`common::command_paths()` is Brett's call (KTD7).
+
+**Outside voice.** Disabled (`codex_reviews`); no reviewer dispatched.
+
+**NOT in scope.** The defects under Deferred to Follow-Up Work; a committed evidence harness; documenting `xr`-only
+features with no Go contrast.
+
+**What already exists.** `Go parity` (`.github/workflows/ci.yml`, `GO_XURL_REV`) and
+`crates/xurl-cli/tests/conformance_runner.rs` test behavior differentially; `CONFIRMED_COMMANDS` and `dry_run_guard.rs`
+pin the gate and the dry-run rule; `crates/xurl-cli/README.md` § "Machine-Readable Output" already lists the renamed
+post keys, which R13 cites.
+
+**Parallelization.** Sequential implementation, no parallelization opportunity.
+
+## Implementation Tasks
+
+- [ ] **T1 (P1, human: ~3h / CC: ~30min)** `KNOWN_DIFFERENCES.md`: write U1 with R9, R10, and R12 as amended
+  - Surfaced by: Section 1 findings on R9, R10, R12
+  - Files: `KNOWN_DIFFERENCES.md`
+  - Verify: each claim re-run against both binaries; doc-reading tests; markdownlint
+- [ ] **T2 (P1, human: ~1h / CC: ~15min)** CLI README: write U2's rows from its technical design
+  - Surfaced by: Section 2, R15 row set
+  - Files: `crates/xurl-cli/README.md`
+  - Verify: KTD5 re-walk; `agentic_tests`, `next_step_tests`
+- [ ] **T3 (P2, human: ~30min / CC: ~5min)** all three files: keep each diff to the edited text (KTD9)
+  - Surfaced by: Section 2, edit-hook shape
+  - Files: `KNOWN_DIFFERENCES.md`, `README.md`, `crates/xurl-cli/README.md`
+  - Verify: `git diff` shows no hunk outside the edited paragraphs
+
+---
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                             |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ------------------------------------ |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | not run     | n/a                                  |
+| Outside Review | codex (plan review)   | Independent 2nd opinion         | 0    | disabled    | `codex_reviews` disabled             |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 7 issues, 1 critical gap, all folded |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | not run     | n/a                                  |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | not run     | n/a                                  |
+
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config; no findings.
+- **VERDICT:** Eng review done; every finding folded into the plan. Build does not wait on the open item below.
+
+**UNRESOLVED DECISIONS:**
+
+- The count guard (Brett): widen the change past docs to hold R15's `xr` count to the clap tree, or accept the hand
+  count.
