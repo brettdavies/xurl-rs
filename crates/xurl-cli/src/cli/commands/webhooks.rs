@@ -7,7 +7,7 @@ use serde_json::json;
 use super::webhooks_listen::{Listener, listen};
 use super::{
     DryRun, Run, confirmed_context, dry_run_or_validate, make_client, send_confirmed,
-    send_or_report, send_to_accounts, with_flags,
+    send_or_report, send_to_account, validate_account, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{
@@ -17,7 +17,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::time::SystemTime;
 
-use xdk::api::{Client, shortcuts};
+use xdk::api::shortcuts;
 use xdk::error::Error;
 use xdk::webhooks::{read_checkpoint, replay_window};
 
@@ -191,20 +191,18 @@ async fn unsubscribe(
         "webhook_id": webhook_id,
         "user_id": account,
     });
-    let accounts = [account.to_string()];
     let valid = || {
         shortcuts::validate_webhook_id(webhook_id)?;
-        shortcuts::validate_accounts(&accounts)
-    };
-    // One account, so the lookup answers with one id.
-    let remove = |client: &Client, ids: &[String]| {
-        client.delete_account_activity_subscription(webhook_id, &ids.concat())
+        validate_account(account)
     };
     let prompt = format!("End user {account}'s subscription to webhook {webhook_id}?");
     let Some(ctx) = confirmed_context(&run.flags, ctx, force, &prompt)? else {
         return Ok(());
     };
-    send_to_accounts(run, ctx, valid, &accounts, common, remove).await
+    send_to_account(run, ctx, valid, account, common, |client, id| {
+        client.delete_account_activity_subscription(webhook_id, id)
+    })
+    .await
 }
 
 async fn list(run: Run<'_>, common: &CommonFlags) -> CommandResult<()> {

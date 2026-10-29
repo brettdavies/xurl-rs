@@ -1380,8 +1380,8 @@ pub enum Commands {
     /// List the posts a user wrote
     #[command(after_help = USER_POSTS_HELP)]
     UserPosts {
-        /// Username, with or without the leading @
-        #[arg(value_name = "USERNAME")]
+        /// The account whose posts to read: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Number of results (5-100; a lower value is raised to 5, X's
         /// minimum). Overrides global `--limit` when set.
@@ -1613,8 +1613,8 @@ pub enum Commands {
     /// Follow a user
     #[command(after_help = FOLLOW_HELP)]
     Follow {
-        /// Username to follow
-        #[arg(value_name = "USERNAME")]
+        /// The account to follow: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1623,8 +1623,8 @@ pub enum Commands {
     /// Unfollow a user
     #[command(after_help = UNFOLLOW_HELP)]
     Unfollow {
-        /// Username to unfollow
-        #[arg(value_name = "USERNAME")]
+        /// The account to unfollow: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1636,8 +1636,9 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username to list following for (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        /// The account to list following for, a handle (@jack or jack) or a numeric user ID
+        /// (default: you)
+        #[arg(long = "of", value_name = "ACCOUNT")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1649,8 +1650,9 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username to list followers for (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        /// The account to list followers for, a handle (@jack or jack) or a numeric user ID
+        /// (default: you)
+        #[arg(long = "of", value_name = "ACCOUNT")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1659,8 +1661,8 @@ pub enum Commands {
     /// Mute a user
     #[command(after_help = MUTE_HELP)]
     Mute {
-        /// Username to mute
-        #[arg(value_name = "USERNAME")]
+        /// The account to mute: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1669,8 +1671,8 @@ pub enum Commands {
     /// Unmute a user
     #[command(after_help = UNMUTE_HELP)]
     Unmute {
-        /// Username to unmute
-        #[arg(value_name = "USERNAME")]
+        /// The account to unmute: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1689,8 +1691,8 @@ pub enum Commands {
     /// Block a user
     #[command(after_help = BLOCK_HELP)]
     Block {
-        /// Username to block
-        #[arg(value_name = "USERNAME")]
+        /// The account to block: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1699,8 +1701,8 @@ pub enum Commands {
     /// Unblock a user
     #[command(after_help = UNBLOCK_HELP)]
     Unblock {
-        /// Username to unblock
-        #[arg(value_name = "USERNAME")]
+        /// The account to unblock: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1734,8 +1736,8 @@ pub enum Commands {
     /// Send a direct message
     #[command(after_help = DM_HELP)]
     Dm {
-        /// Username to DM
-        #[arg(value_name = "USERNAME")]
+        /// The account to message: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Message text
         text: String,
@@ -1760,8 +1762,9 @@ pub enum Commands {
     /// Stop a user sending you direct messages
     #[command(after_help = DM_BLOCK_HELP)]
     DmBlock {
-        /// Username to block from sending you direct messages
-        #[arg(value_name = "USERNAME")]
+        /// The account to block from sending you direct messages: a handle (@jack or jack) or a
+        /// numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1770,8 +1773,8 @@ pub enum Commands {
     /// Let a user send you direct messages again
     #[command(after_help = DM_UNBLOCK_HELP)]
     DmUnblock {
-        /// Username to unblock
-        #[arg(value_name = "USERNAME")]
+        /// The account to unblock: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2049,8 +2052,9 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username whose own lists to read (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        /// The account whose own lists to read, a handle (@jack or jack) or a numeric user ID
+        /// (default: you)
+        #[arg(long = "of", value_name = "ACCOUNT")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2062,8 +2066,9 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username whose followed lists to read (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        /// The account whose followed lists to read, a handle (@jack or jack) or a numeric user ID
+        /// (default: you)
+        #[arg(long = "of", value_name = "ACCOUNT")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2075,8 +2080,9 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username whose list memberships to read (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        /// The account whose list memberships to read, a handle (@jack or jack) or a numeric user
+        /// ID (default: you)
+        #[arg(long = "of", value_name = "ACCOUNT")]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2249,8 +2255,8 @@ pub enum ListMembersCommands {
         /// List ID, as `xr lists list` prints it
         #[arg(value_name = "LIST_ID")]
         list_id: String,
-        /// Username of the account
-        #[arg(value_name = "USERNAME")]
+        /// The account: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2262,8 +2268,8 @@ pub enum ListMembersCommands {
         /// List ID, as `xr lists list` prints it
         #[arg(value_name = "LIST_ID")]
         list_id: String,
-        /// Username of the account
-        #[arg(value_name = "USERNAME")]
+        /// The account: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2316,8 +2322,8 @@ pub enum ConversationsCommands {
     /// List the messages between you and one person
     #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::WITH))]
     With {
-        /// Username of the other person
-        #[arg(value_name = "USERNAME")]
+        /// The other person: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
@@ -2894,8 +2900,8 @@ pub enum BroadcastChatCommands {
         /// Broadcast ID, as `xr broadcasts list` prints it
         #[arg(value_name = "BROADCAST_ID")]
         broadcast_id: String,
-        /// Username to mute
-        #[arg(value_name = "USERNAME")]
+        /// The account to mute: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// When the mute ends (RFC 3339 with a zone); for good when unset
         #[arg(long, value_name = "TIME")]
@@ -2913,8 +2919,8 @@ pub enum BroadcastChatCommands {
         /// Broadcast ID, as `xr broadcasts list` prints it
         #[arg(value_name = "BROADCAST_ID")]
         broadcast_id: String,
-        /// Username to unmute
-        #[arg(value_name = "USERNAME")]
+        /// The account to unmute: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -3002,8 +3008,8 @@ pub enum ModeratorsCommands {
     /// Add a broadcast chat moderator
     #[command(after_help = family_help::broadcasts::FAMILY.verb_page(&family_help::broadcasts::ADD))]
     Add {
-        /// Username to add
-        #[arg(value_name = "USERNAME")]
+        /// The account to add: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -3012,8 +3018,8 @@ pub enum ModeratorsCommands {
     /// Remove a broadcast chat moderator
     #[command(after_help = family_help::broadcasts::FAMILY.verb_page(&family_help::broadcasts::REMOVE))]
     Remove {
-        /// Username to remove
-        #[arg(value_name = "USERNAME")]
+        /// The account to remove: a handle (@jack or jack) or a numeric user ID
+        #[arg(value_name = "ACCOUNT")]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]

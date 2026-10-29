@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, list_owned_by, list_paged, send_confirmed, send_to_accounts, send_validated};
+use super::{Run, list_for_user, list_paged, send_confirmed, send_to_accounts, send_validated};
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, ConversationsCommands, DmEventsCommands};
 use xdk::api::{Client, shortcuts};
@@ -54,11 +54,17 @@ pub(super) async fn run(action: ConversationsCommands, run: Run<'_>) -> CommandR
             max_results,
             common,
         } => {
-            let ctx = json!({"command": "conversations-with"});
-            let validate = || shortcuts::validate_target_username(&target_username);
             let of = Some(target_username.as_str());
             let shortcut = Client::get_dm_events_with;
-            list_owned_by(run, ctx, validate, max_results, of, &common, shortcut).await
+            list_for_user(
+                run,
+                "conversations-with",
+                max_results,
+                of,
+                &common,
+                shortcut,
+            )
+            .await
         }
     }
 }

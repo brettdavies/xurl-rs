@@ -789,24 +789,32 @@ where
     if let Some(target) = of {
         ctx["of"] = json!(target);
     }
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+        of.map_or(Ok(()), validate_account)?;
+        validator()
+    })?;
     let n = effective_limit(max_results, flags.global_limit);
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {
-        let owner = match of {
-            Some(target) => user_id_call(&client, target, common),
-            None => my_id_call(&client, common),
-        };
+        let mut credentials = Vec::new();
+        match of {
+            Some(target) => {
+                if let Some(lookup) = account_lookup_call(&client, target, common) {
+                    credentials.push(lookup.auth_preflight().await);
+                }
+            }
+            None => credentials.push(my_id_call(&client, common).auth_preflight().await),
+        }
         let list = with_flags(
             shortcut(&client, UNRESOLVED_ID, n),
             common,
             flags.cursor.as_deref(),
         );
-        let credentials = [owner.auth_preflight().await, list.auth_preflight().await];
+        credentials.push(list.auth_preflight().await);
         return dry_run.answer(out, stdout, credentials);
     }
     let user_id = match of {
-        Some(target) => resolve_user_id(&client, target, common).await?,
+        Some(target) => resolve_account_id(&client, target, common).await?,
         None => resolve_my_user_id(&client, common).await?,
     };
     let call = shortcut(&client, &user_id, n);
@@ -818,8 +826,8 @@ where
 }
 
 /// A verb that acts on another user from the caller's account: gate on the
-/// handle, resolve the caller's id and the target's, call one shortcut with
-/// both, and print the typed response.
+/// account, a handle or a numeric user id, resolve the caller's id and the
+/// target's, call one shortcut with both, and print the typed response.
 async fn act_from_me_on_user<T>(
     run: Run<'_>,
     command: &str,
@@ -839,23 +847,17 @@ where
         ..
     } = run;
     let ctx = json!({"command": command, "target_username": target_username});
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_target_username(target_username)
-    })?;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || validate_account(target_username))?;
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {
         let act = shortcut(&client, UNRESOLVED_ID, UNRESOLVED_ID);
-        let credentials = [
-            my_id_call(&client, common).auth_preflight().await,
-            user_id_call(&client, target_username, common)
-                .auth_preflight()
-                .await,
-            with_flags(act, common, None).auth_preflight().await,
-        ];
+        let target = [target_username.to_string()];
+        let mut credentials = vec![my_id_call(&client, common).auth_preflight().await];
+        credentials.extend(account_credentials(&client, &target, common, act).await);
         return dry_run.answer(out, stdout, credentials);
     }
     let my_id = resolve_my_user_id(&client, common).await?;
-    let target_id = resolve_user_id(&client, target_username, common).await?;
+    let target_id = resolve_account_id(&client, target_username, common).await?;
     let response = with_flags(shortcut(&client, &my_id, &target_id), common, None)
         .send()
         .await?;
@@ -864,7 +866,8 @@ where
 }
 
 /// A verb that acts on another user without naming the caller: gate on the
-/// handle, resolve it, call one shortcut, and print the typed response.
+/// account, a handle or a numeric user id, resolve it, call one shortcut,
+/// and print the typed response.
 async fn act_on_user<T>(
     run: Run<'_>,
     command: &str,
@@ -881,7 +884,7 @@ where
 
 /// [`act_on_user`] for a verb whose other inputs ride along, such as the
 /// list a member joins: `ctx` names them in a dry run's answer, and
-/// `validator` checks them, after the handle, before any request.
+/// `validator` checks them, after the account, before any request.
 async fn act_on_user_with<T>(
     run: Run<'_>,
     mut ctx: serde_json::Value,
@@ -893,36 +896,12 @@ async fn act_on_user_with<T>(
 where
     T: Serialize + DeserializeOwned + Default,
 {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     ctx["target_username"] = json!(target_username);
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_target_username(target_username)?;
+    let validate = || {
+        validate_account(target_username)?;
         validator()
-    })?;
-    let client = make_client(cfg, auth)?;
-    if let Some(dry_run) = dry_run {
-        let act = shortcut(&client, UNRESOLVED_ID);
-        let credentials = [
-            user_id_call(&client, target_username, common)
-                .auth_preflight()
-                .await,
-            with_flags(act, common, None).auth_preflight().await,
-        ];
-        return dry_run.answer(out, stdout, credentials);
-    }
-    let target_id = resolve_user_id(&client, target_username, common).await?;
-    let response = with_flags(shortcut(&client, &target_id), common, None)
-        .send()
-        .await?;
-    print_typed(out, stdout, &response)?;
-    Ok(())
+    };
+    send_to_account(run, ctx, validate, target_username, common, shortcut).await
 }
 
 /// A verb that acts on a post from the caller's account: gate on the post
@@ -985,13 +964,11 @@ where
     Ok(())
 }
 
-/// The request that resolves a username to a user id.
-fn user_id_call(
-    client: &Client,
-    username: &str,
-    common: &CommonFlags,
-) -> Call<api::ApiResponse<api::User>> {
-    with_flags(client.lookup_user(username), common, None)
+/// Validates the one account a command names, a numeric user id or a
+/// handle, each in its spec form; an empty handle is `empty-username`.
+fn validate_account(account: &str) -> std::result::Result<(), &'static str> {
+    shortcuts::validate_target_username(account)?;
+    shortcuts::validate_accounts(&[account])
 }
 
 /// The request that resolves every handle among `accounts` at once, or
@@ -1021,6 +998,27 @@ async fn resolve_account_ids(
         None => Vec::new(),
     };
     shortcuts::user_ids_for_accounts(accounts, &found)
+}
+
+/// The request that looks `account` up when it is a handle, or `None` when
+/// it is a numeric user id.
+fn account_lookup_call(
+    client: &Client,
+    account: &str,
+    common: &CommonFlags,
+) -> Option<Call<api::ApiResponse<Vec<api::User>>>> {
+    handles_lookup_call(client, &[account.to_string()], common)
+}
+
+/// Resolves one account, a numeric user id or a handle, to a user id.
+async fn resolve_account_id(
+    client: &Client,
+    account: &str,
+    common: &CommonFlags,
+) -> Result<String> {
+    let ids = resolve_account_ids(client, &[account.to_string()], common).await?;
+    // One account, so the lookup answers with one id.
+    Ok(ids.concat())
 }
 
 /// The ids a dry run puts in a request that names `accounts`: a numeric id
@@ -1096,13 +1094,22 @@ where
     Ok(())
 }
 
-/// Resolves a username to a user ID.
-async fn resolve_user_id(client: &Client, username: &str, common: &CommonFlags) -> Result<String> {
-    let resp = user_id_call(client, username, common).send().await?;
-    let id = &resp.data.id;
-    if id.is_empty() {
-        let clean = username.trim_start_matches('@');
-        return Err(Error::validation(format!("user @{clean} not found")));
-    }
-    Ok(id.clone())
+/// [`send_to_accounts`] for a request that names one account.
+async fn send_to_account<T>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    account: &str,
+    common: &CommonFlags,
+    build: impl FnOnce(&Client, &str) -> Call<T>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let accounts = [account.to_string()];
+    // One account, so the lookup answers with one id.
+    send_to_accounts(run, ctx, validator, &accounts, common, |client, ids| {
+        build(client, &ids.concat())
+    })
+    .await
 }

@@ -721,7 +721,7 @@ async fn subscriptions_remove_refuses_an_account_in_neither_form() {
     let store = bearer_store(tmp.path());
 
     for (account, reason) in [
-        ("@", "invalid-username"),
+        ("jack.smith", "invalid-username"),
         ("12345678901234567890", "invalid-user-id"),
     ] {
         let (code, _stdout, stderr) = run(

@@ -262,6 +262,10 @@ xr unblock @user                               # Unblock
 xr blocked                                     # Users you have blocked
 ```
 
+Every command that names one account, here and in the sections below, takes a handle (`@jack` or `jack`) or a numeric
+user ID. An argument made only of digits is read as an ID and sent as it is, so an all-digit handle takes its `@`
+(`xr follow @1234`). A handle is looked up in one request before the command's own.
+
 ### Direct Messages
 
 ```bash

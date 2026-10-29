@@ -14,7 +14,7 @@ mod common;
 use std::path::Path;
 
 use tempfile::TempDir;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::cli;
@@ -3729,9 +3729,10 @@ async fn followers_and_following_read_the_callers_own_list_without_an_id_lookup(
         .await;
         ts.mount(
             Mock::given(method("GET"))
-                .and(path("/2/users/by/username/jack"))
+                .and(path("/2/users/by"))
+                .and(query_param("usernames", "jack"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "data": {"id": "783214", "name": "jack", "username": "jack"}
+                    "data": [{"id": "783214", "name": "jack", "username": "jack"}]
                 })))
                 .expect(1),
         )
