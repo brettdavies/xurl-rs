@@ -1,0 +1,10 @@
+args: ["suth", "status"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 74
+--- stdout ---
+
+--- stderr ---
+Error: unknown command 'suth'. Did you mean 'auth'? Try 'xr auth --help'.
+
