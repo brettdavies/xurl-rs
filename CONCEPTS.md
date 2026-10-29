@@ -20,13 +20,17 @@ order. Drift is informational, never build-blocking: it triggers the refresh pro
 
 ### Refresh PR
 
-The automation-owned draft pull request that carries a new vendored spec revision toward the integration branch. Its
+The automation-owned pull request that carries a new vendored spec revision toward the integration branch. Its
 head branch belongs to the workflow: the branch is regenerated rather than manually maintained, and at most one refresh
 PR is open at a time — a human-owned refresh PR takes precedence and the automation stands down.
 
 The body starts workflow-owned (an agent runbook, rewritten with fresh drift detail whenever the vendored content
 changes) and becomes agent-owned once the reconciling agent rewrites it to the repository's PR template; a no-change
 pass updates only the run reference so agent-authored sections survive.
+
+The workflow recognizes its open refresh PR by a fixed phrase in the title, so a reconciling agent that retitles the PR
+for what it adds keeps that phrase. A refresh PR without it is invisible to the next run, which regenerates the head
+branch from the integration branch, and that closes the PR.
 
 ### Agent runbook
 
@@ -38,7 +42,8 @@ calls are proposed with a recommendation and precedent-based reasoning for a hum
 ### Reconciling agent
 
 The agent invoked against an open refresh PR to bring the codebase in line with the new vendored spec: renames the spec
-mandates, retirements the spec forces, derived-artifact regeneration, and the final rewrite of the PR body to the
+mandates, retirements the spec forces, commands for the added endpoints that fit the tool with an endpoint decision
+proposed for each one that does not, derived-artifact regeneration, and the final rewrite of the PR body to the
 repository template. Invocation phrasing matters: a review-shaped prompt routes agents into report-only behavior before
 the runbook is read.
 
