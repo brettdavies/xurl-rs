@@ -9,7 +9,7 @@ mod common;
 use std::path::{Path, PathBuf};
 
 use tempfile::TempDir;
-use wiremock::matchers::{body_json, method, path};
+use wiremock::matchers::{body_json, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::listen::{
@@ -534,8 +534,10 @@ async fn subscriptions_add_with_only_a_bearer_is_an_auth_mismatch() {
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
+/// Asking comes first, so a handle is not looked up for a removal the
+/// caller has not confirmed.
 #[tokio::test]
-async fn subscriptions_remove_without_force_asks_first_and_deletes_nothing() {
+async fn subscriptions_remove_without_force_asks_first_and_looks_nothing_up() {
     let server = MockServer::start().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = bearer_store(tmp.path());
@@ -551,7 +553,7 @@ async fn subscriptions_remove_without_force_asks_first_and_deletes_nothing() {
             "subscriptions",
             "remove",
             WEBHOOK_ID,
-            USER_ID,
+            "@jack",
         ],
     )
     .await;
@@ -559,6 +561,116 @@ async fn subscriptions_remove_without_force_asks_first_and_deletes_nothing() {
     assert_eq!(code, 1, "stderr: {stderr}");
     let envelope = error_envelope(&stderr);
     assert_eq!(envelope["reason"], "confirmation-required");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn subscriptions_remove_looks_a_handle_up_and_unsubscribes_its_id() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "jack"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [{"id": "12", "name": "Jack", "username": "jack"}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("DELETE"))
+        .and(path(format!(
+            "/2/account_activity/webhooks/{WEBHOOK_ID}/subscriptions/12/all"
+        )))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"subscribed": false}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "subscriptions",
+            "remove",
+            WEBHOOK_ID,
+            "@jack",
+            "--force",
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+#[tokio::test]
+async fn subscriptions_remove_of_a_handle_x_does_not_know_deletes_nothing() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "errors": [{"value": "nobody_here", "detail": "Could not find user with usernames: [nobody_here].", "title": "Not Found Error", "resource_type": "user", "parameter": "usernames", "resource_id": "nobody_here", "type": "https://api.x.com/2/problems/resource-not-found"}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--output",
+            "json",
+            "webhooks",
+            "subscriptions",
+            "remove",
+            WEBHOOK_ID,
+            "@nobody_here",
+            "--force",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert!(stderr.contains("nobody_here"), "{stderr}");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 1);
+}
+
+#[tokio::test]
+async fn subscriptions_remove_of_a_handle_under_dry_run_sends_nothing() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "webhooks",
+            "subscriptions",
+            "remove",
+            WEBHOOK_ID,
+            "@jack",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("an envelope");
+    assert_eq!(answer["would_succeed"], true, "{answer}");
+    assert_eq!(answer["confirmation_required"], true, "{answer}");
+    assert_eq!(answer["user_id"], "@jack", "{answer}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
@@ -600,37 +712,39 @@ async fn subscriptions_remove_with_force_unsubscribes_the_user() {
     assert_eq!(body["data"]["subscribed"], false);
 }
 
+/// An account is a handle or a numeric user id; one in neither form is
+/// refused before any request, a lookup included.
 #[tokio::test]
-async fn subscriptions_remove_refuses_a_user_id_that_is_not_digits() {
+async fn subscriptions_remove_refuses_an_account_in_neither_form() {
     let server = MockServer::start().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = bearer_store(tmp.path());
 
-    let (code, _stdout, stderr) = run(
-        &store,
-        &server.uri(),
-        &[
-            "--output",
-            "json",
-            "webhooks",
-            "subscriptions",
-            "remove",
-            WEBHOOK_ID,
-            "@someone",
-            "--force",
-        ],
-    )
-    .await;
+    for (account, reason) in [
+        ("@", "invalid-username"),
+        ("12345678901234567890", "invalid-user-id"),
+    ] {
+        let (code, _stdout, stderr) = run(
+            &store,
+            &server.uri(),
+            &[
+                "--output",
+                "json",
+                "webhooks",
+                "subscriptions",
+                "remove",
+                WEBHOOK_ID,
+                account,
+                "--force",
+            ],
+        )
+        .await;
 
-    assert_eq!(code, 1, "stderr: {stderr}");
-    let envelope = error_envelope(&stderr);
-    assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("invalid-user-id")),
-        "{envelope}"
-    );
+        assert_eq!(code, 1, "{account}: {stderr}");
+        let envelope = error_envelope(&stderr);
+        assert_eq!(envelope["reason"], "validation", "{envelope}");
+        assert_eq!(envelope["message"], reason, "{envelope}");
+    }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 

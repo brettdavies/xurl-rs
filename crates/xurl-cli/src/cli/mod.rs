@@ -3465,9 +3465,10 @@ pub enum WebhookSubscriptionsCommands {
         /// Webhook ID, as `xr webhooks list` prints it
         #[arg(value_name = "WEBHOOK_ID")]
         webhook_id: String,
-        /// Numeric user ID of the subscribed account, as `subscriptions list` prints it
-        #[arg(value_name = "USER_ID")]
-        user_id: String,
+        /// The subscribed account: a handle (@jack or jack), or the numeric user ID
+        /// `subscriptions list` prints
+        #[arg(value_name = "ACCOUNT")]
+        account: String,
         /// Skip the confirmation prompt; required under `--no-interactive`
         #[arg(long)]
         force: bool,

@@ -7315,7 +7315,7 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':webhook_id -- Webhook ID, as `xr webhooks list` prints it:_default' \
-':user_id -- Numeric user ID of the subscribed account, as `subscriptions list` prints it:_default' \
+':account -- The subscribed account\: a handle (@jack or jack), or the numeric user ID `subscriptions list` prints:_default' \
 && ret=0
 ;;
 (help)

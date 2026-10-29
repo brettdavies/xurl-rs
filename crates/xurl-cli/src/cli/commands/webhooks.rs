@@ -7,7 +7,7 @@ use serde_json::json;
 use super::webhooks_listen::{Listener, listen};
 use super::{
     DryRun, Gate, Run, destructive_dry_run_context, dry_run_or_validate, gate_destructive,
-    make_client, send_or_report, with_flags,
+    make_client, send_or_report, send_to_accounts, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{
@@ -17,7 +17,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::time::SystemTime;
 
-use xdk::api::shortcuts;
+use xdk::api::{Client, shortcuts};
 use xdk::error::Error;
 use xdk::webhooks::{read_checkpoint, replay_window};
 
@@ -172,62 +172,49 @@ async fn subscriptions(action: WebhookSubscriptionsCommands, run: Run<'_>) -> Co
         }
         WebhookSubscriptionsCommands::Remove {
             webhook_id,
-            user_id,
+            account,
             force,
             common,
-        } => unsubscribe(run, &webhook_id, &user_id, force, &common).await,
+        } => unsubscribe(run, &webhook_id, &account, force, &common).await,
     }
 }
 
 async fn unsubscribe(
     run: Run<'_>,
     webhook_id: &str,
-    user_id: &str,
+    account: &str,
     force: bool,
     common: &CommonFlags,
 ) -> CommandResult<()> {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     let ctx = json!({
         "command": "webhooks-subscriptions-remove",
         "webhook_id": webhook_id,
-        "user_id": user_id,
+        "user_id": account,
     });
+    let accounts = [account.to_string()];
     let valid = || {
         shortcuts::validate_webhook_id(webhook_id)?;
-        shortcuts::validate_user_id(user_id)
+        shortcuts::validate_accounts(&accounts)
     };
-    let client = make_client(cfg, auth)?;
-    let call = with_flags(
-        client.delete_account_activity_subscription(webhook_id, user_id),
-        common,
-        None,
-    );
-    if flags.dry_run {
+    // One account, so the lookup answers with one id.
+    let remove = |client: &Client, ids: &[String]| {
+        client.delete_account_activity_subscription(webhook_id, &ids.concat())
+    };
+    if run.flags.dry_run {
         let ctx = destructive_dry_run_context(ctx, force);
-        let dry_run = dry_run_or_validate(true, ctx, valid)?;
-        send_or_report(out, stdout, dry_run, call).await?;
-        return Ok(());
+        return send_to_accounts(run, ctx, valid, &accounts, common, remove).await;
     }
     match gate_destructive(
         force,
-        flags.no_interactive,
-        flags.quiet,
-        &format!("End user {user_id}'s subscription to webhook {webhook_id}?"),
+        run.flags.no_interactive,
+        run.flags.quiet,
+        &format!("End user {account}'s subscription to webhook {webhook_id}?"),
     )? {
         Gate::Proceed => {}
         Gate::Declined => return Ok(()),
         Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
     }
-    let dry_run = dry_run_or_validate(false, ctx, valid)?;
-    send_or_report(out, stdout, dry_run, call).await?;
-    Ok(())
+    send_to_accounts(run, ctx, valid, &accounts, common, remove).await
 }
 
 async fn list(run: Run<'_>, common: &CommonFlags) -> CommandResult<()> {

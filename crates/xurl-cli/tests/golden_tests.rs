@@ -1133,7 +1133,7 @@ fn dry_run_cases() -> Vec<Case> {
                 "subscriptions",
                 "remove",
                 "1146654567674912769",
-                "@someone",
+                "12345678901234567890",
             ],
         ),
         case(
