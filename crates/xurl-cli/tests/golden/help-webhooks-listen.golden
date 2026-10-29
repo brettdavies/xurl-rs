@@ -1,7 +1,7 @@
 args: ["webhooks", "listen", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 9326
+stdout_len: 9376
 stderr_len: 0
 --- stdout ---
 Receive webhook deliveries on a local address
@@ -55,7 +55,7 @@ Options:
           Seconds one forward attempt may take before it is tried again (four attempts, 1, 2, then 4 seconds apart). Unset, 30
 
       --checkpoint <FILE>
-          Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed
+          Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed. The file holds {"last_event_at": <Unix seconds>}
 
   -h, --help
           Print help (see a summary with '-h')

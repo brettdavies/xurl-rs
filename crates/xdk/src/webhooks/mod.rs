@@ -41,6 +41,8 @@ mod forward;
 mod signing;
 
 pub use budget::{Attempt, AttemptTimedOut, Outcome, RetryBudget};
+#[doc(hidden)]
+pub use checkpoint::CHECKPOINT_SHAPE;
 pub use checkpoint::{CheckpointWriter, ReplayWindow, read_checkpoint, replay_window};
 pub use forward::{ForwardFailure, UrlTarget, validate_forward_url};
 use signing::verified;

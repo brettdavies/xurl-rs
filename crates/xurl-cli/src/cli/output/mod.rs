@@ -19,6 +19,7 @@ mod message;
 mod validation;
 
 pub(crate) use diagnostics::Diagnostics;
+pub(crate) use validation::user_search_rule;
 
 use std::io::{IsTerminal, Write};
 

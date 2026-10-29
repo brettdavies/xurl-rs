@@ -14,6 +14,16 @@ use xdk::api::shortcuts::{
     USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
 };
 
+/// The rule `validate_user_search_query` enforces, as text output prints it
+/// for `invalid-user-query` and `xr search-users --help` prints it on
+/// `<QUERY>`.
+pub(crate) fn user_search_rule() -> String {
+    format!(
+        "A user search is 1 to {USER_SEARCH_QUERY_MAX_CHARS} letters, digits, underscores, \
+         apostrophes, or spaces."
+    )
+}
+
 /// The sentence for the validator code `code`; `None` for a message that is
 /// not one, which prints as it is.
 pub(crate) fn sentence(code: &str) -> Option<String> {
@@ -35,10 +45,7 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "invalid-time-window" => "A time is RFC 3339 with seconds and a zone, such as \
              2026-11-02T15:00:00Z, and the start comes before the end."
             .to_string(),
-        "invalid-user-query" => format!(
-            "A user search is 1 to {USER_SEARCH_QUERY_MAX_CHARS} letters, digits, underscores, \
-             apostrophes, or spaces."
-        ),
+        "invalid-user-query" => user_search_rule(),
         "invalid-media-key" => {
             "A media key is two numbers joined by an underscore, such as 3_1146654567674912769."
                 .to_string()
