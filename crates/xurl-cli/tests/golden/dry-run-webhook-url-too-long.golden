@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "webhooks", "add", "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]
 store: empty
 exit_code: 0
-stdout_len: 349
+stdout_len: 501
 stderr_len: 0
 --- stdout ---
 {
   "command": "webhooks-add",
   "exit_code": 1,
+  "message": "The webhook URL is longer than 200 characters.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr webhooks add --help"
+  },
   "reason": "webhook-url-too-long",
   "status": "dry_run",
   "url": "https://example.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",

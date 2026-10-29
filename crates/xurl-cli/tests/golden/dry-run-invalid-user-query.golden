@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "search-users", "rust-lang"]
 store: empty
 exit_code: 0
-stdout_len: 157
+stdout_len: 341
 stderr_len: 0
 --- stdout ---
 {
   "command": "search-users",
   "exit_code": 1,
+  "message": "A user search is 1 to 50 letters, digits, underscores, apostrophes, or spaces.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr search-users --help"
+  },
   "query": "rust-lang",
   "reason": "invalid-user-query",
   "status": "dry_run",

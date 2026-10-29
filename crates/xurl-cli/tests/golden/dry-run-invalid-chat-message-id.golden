@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "chat", "remove", "1YqKDqWqdPLGV", "msg-1"]
 store: empty
 exit_code: 0
-stdout_len: 241
+stdout_len: 393
 stderr_len: 0
 --- stdout ---
 {
@@ -9,7 +9,12 @@ stderr_len: 0
   "command": "broadcasts-chat-remove",
   "confirmation_required": true,
   "exit_code": 1,
+  "message": "A chat message id is 1 to 19 digits.",
   "message_id": "msg-1",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts chat remove --help"
+  },
   "reason": "invalid-chat-message-id",
   "status": "dry_run",
   "would_succeed": false

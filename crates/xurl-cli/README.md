@@ -765,9 +765,11 @@ xr --output json --dry-run post "Hello"
 ```
 
 - `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
-  send. `reason` says which, and `exit_code` is the code the real run would end on. A credential refusal also carries
-  the keys of its error envelope (`message`, `endpoint`, `supported`, `available_in_app`) and the `next_step` the real
-  run would name. A step that reruns the invocation keeps `--dry-run`, so following it sends nothing either.
+  send. `reason` says which, and `exit_code` is the code the real run would end on. Either refusal also carries the keys
+  of the real run's error envelope: `message` and the `next_step` the real run would name, plus, for a credential,
+  `endpoint`, `supported`, and `available_in_app`. An invalid input's `message` is the rule it broke and its `reason`
+  the validator's code, such as `webhook-url-has-port`. A step that reruns the invocation keeps `--dry-run`, so
+  following it sends nothing either.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
@@ -778,12 +780,13 @@ xr --output json --dry-run post "Hello"
 A command that only reads local state, such as `auth status`, `schema`, or `version`, has nothing to hold back and
 answers as it always does. Text output summarizes the same facts in lines: that nothing was sent, whether the real run
 would succeed and, when it would not, the exit code and why, then the command's inputs, the credential, and whether it
-would stop to ask. A refusal for credentials prints the advice the real run's error prints, which `--quiet` leaves out.
+would stop to ask. A refusal prints the advice the real run's error prints, which `--quiet` leaves out.
 
 ```text
 $ xr --dry-run bookmark-folders add ""
 Dry run of `bookmark-folders-add`: nothing was sent.
 The real run would fail with exit code 1: The folder name is empty.
+Try 'xr bookmark-folders add --help'.
   name: ""
 ```
 

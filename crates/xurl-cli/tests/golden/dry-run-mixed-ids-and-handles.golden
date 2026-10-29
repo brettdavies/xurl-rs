@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "users", "12", "@jack"]
 store: empty
 exit_code: 0
-stdout_len: 172
+stdout_len: 357
 stderr_len: 0
 --- stdout ---
 {
@@ -11,6 +11,11 @@ stderr_len: 0
   ],
   "command": "users",
   "exit_code": 1,
+  "message": "Give every account as a handle or every one as an id; X looks up each form separately.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr users --help"
+  },
   "reason": "mixed-ids-and-handles",
   "status": "dry_run",
   "would_succeed": false

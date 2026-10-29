@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02 16:00"]
 store: empty
 exit_code: 0
-stdout_len: 175
+stdout_len: 366
 stderr_len: 0
 --- stdout ---
 {
   "command": "calls-scheduled-add",
   "exit_code": 1,
+  "message": "A call time is RFC 3339 with seconds and a zone, such as 2026-11-02T15:00:00Z.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr calls scheduled add --help"
+  },
   "reason": "invalid-call-time",
   "start_time": "2026-11-02 16:00",
   "status": "dry_run",

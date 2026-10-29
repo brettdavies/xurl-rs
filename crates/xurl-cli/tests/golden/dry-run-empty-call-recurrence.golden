@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "update", "1849302018273645", "--recurrence", ""]
 store: empty
 exit_code: 0
-stdout_len: 209
+stdout_len: 354
 stderr_len: 0
 --- stdout ---
 {
   "command": "calls-scheduled-update",
   "exit_code": 1,
+  "message": "The recurrence rule is empty.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr calls scheduled update --help"
+  },
   "reason": "empty-call-recurrence",
   "recurrence": "",
   "scheduled_call_id": "1849302018273645",

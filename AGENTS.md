@@ -154,8 +154,9 @@ additive envelope changes: add keys rather than renaming or retyping existing on
 `--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
 invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
-would end on, and a credential refusal carries the keys of its error envelope, `next_step` among them; a step that
-reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
+would end on, and either refusal carries the keys of the real run's error envelope, `message` and `next_step` among
+them. An invalid input's `message` is the rule it broke, as text output words it; a step that reruns the invocation
+keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
 stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
 and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
 confirmation prompt; `confirmation_required: true` marks a destructive command that would stop to ask. Text output

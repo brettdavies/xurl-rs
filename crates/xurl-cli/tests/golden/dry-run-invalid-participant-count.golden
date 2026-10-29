@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "conversations", "start", "@alice", "--text", "hi"]
 store: empty
 exit_code: 0
-stdout_len: 201
+stdout_len: 374
 stderr_len: 0
 --- stdout ---
 {
   "body": "hi",
   "command": "conversations-start",
   "exit_code": 1,
+  "message": "A group conversation starts with 2 to 49 people besides you.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr conversations start --help"
+  },
   "participants": [
     "@alice"
   ],

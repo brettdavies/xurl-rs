@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "lists", "add", "xxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 188
+stdout_len: 328
 stderr_len: 0
 --- stdout ---
 {
@@ -9,6 +9,11 @@ stderr_len: 0
   "exit_code": 1,
   "list": {
     "name": "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  "message": "A list name is at most 25 characters.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr lists add --help"
   },
   "reason": "list-name-too-long",
   "status": "dry_run",

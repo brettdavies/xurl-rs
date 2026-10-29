@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "get", "not-an-id!"]
 store: empty
 exit_code: 0
-stdout_len: 169
+stdout_len: 322
 stderr_len: 0
 --- stdout ---
 {
   "broadcast_id": "not-an-id!",
   "command": "broadcasts-get",
   "exit_code": 1,
+  "message": "A broadcast id is 1 to 24 letters and digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts get --help"
+  },
   "reason": "invalid-broadcast-id",
   "status": "dry_run",
   "would_succeed": false

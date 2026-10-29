@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "media", "subtitles", "remove", "1585341984679469056", "--language", "english"]
 store: empty
 exit_code: 0
-stdout_len: 239
+stdout_len: 398
 stderr_len: 0
 --- stdout ---
 {
@@ -9,6 +9,11 @@ stderr_len: 0
   "command": "media-subtitles-remove",
   "exit_code": 1,
   "language": "english",
+  "message": "A language code is two letters, such as en.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr media subtitles remove --help"
+  },
   "reason": "invalid-language-code",
   "status": "dry_run",
   "video_id": "1585341984679469056",

@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02T16:00:00Z", "--invite", "1", "--invite", "2", "--invite", "3", "--invite", "4", "--invite", "5", "--invite", "6", "--invite", "7", "--invite", "8", "--invite", "9", "--invite", "10", "--invite", "11", "--invite", "12", "--invite", "13", "--invite", "14", "--invite", "15", "--invite", "16", "--invite", "17", "--invite", "18", "--invite", "19", "--invite", "20", "--invite", "21", "--invite", "22", "--invite", "23", "--invite", "24", "--invite", "25", "--invite", "26"]
 store: empty
 exit_code: 0
-stdout_len: 453
+stdout_len: 643
 stderr_len: 0
 --- stdout ---
 {
@@ -35,6 +35,11 @@ stderr_len: 0
     "25",
     "26"
   ],
+  "message": "A call takes at most 25 invitees when it is scheduled, and 100 in one change.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr calls scheduled add --help"
+  },
   "reason": "too-many-invitees",
   "start_time": "2026-11-02T16:00:00Z",
   "status": "dry_run",

@@ -500,10 +500,11 @@ impl OutputConfig {
         self.write_structured(out, &envelope);
     }
 
-    /// Emits the dry-run envelope of a command the credentials at hand
-    /// cannot serve: `would_succeed: false`, the exit code the real run
+    /// Emits the dry-run envelope of a command its inputs or the credentials
+    /// at hand refuse: `would_succeed: false`, the exit code the real run
     /// would end on, and the keys its error envelope would carry, its
-    /// `next_step` among them.
+    /// `next_step` among them. A validator's code stays the `reason`, and
+    /// the rule it names is the `message`.
     pub(crate) fn print_dry_run_refusal(
         &self,
         out: &mut dyn Write,
@@ -511,17 +512,26 @@ impl OutputConfig {
         error: &Error,
         hint: Option<&crate::cli::hints::Hint>,
     ) {
-        // A dry run looks no id up, so a path it rendered would carry a
-        // stand-in. Without one the message names the endpoint's template.
-        let templated;
+        let reworded;
+        let mut code = None;
         let error = match error {
+            // A dry run looks no id up, so a path it rendered would carry a
+            // stand-in. Without one the message names the endpoint's template.
             Error::AuthMethodMismatch(mismatch) if mismatch.rendered_url.is_some() => {
-                templated = Error::from(xdk::error::AuthMismatch {
+                reworded = Error::from(xdk::error::AuthMismatch {
                     rendered_url: None,
                     ..(**mismatch).clone()
                 });
-                &templated
+                &reworded
             }
+            Error::Validation(text) => match validation::sentence(text) {
+                Some(sentence) => {
+                    code = Some(text.as_str());
+                    reworded = Error::validation(sentence);
+                    &reworded
+                }
+                None => error,
+            },
             other => other,
         };
         let exit_code = error.exit_code();
@@ -531,7 +541,7 @@ impl OutputConfig {
                 Some(hint) if !self.quiet => hint.text_lines.as_slice(),
                 _ => &[],
             };
-            let refusal = dry_run::CredentialRefusal {
+            let refusal = dry_run::Refusal {
                 message: &message,
                 advice,
             };
@@ -550,6 +560,9 @@ impl OutputConfig {
                 body.into_iter()
                     .filter(|(key, _)| key != "status" && key != "exit_code"),
             );
+        }
+        if let Some(code) = code {
+            merged.insert("reason".into(), Value::String(code.to_string()));
         }
         self.print_dry_run(out, false, exit_code, &Value::Object(merged));
     }

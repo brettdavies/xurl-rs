@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "update", "1849302018273645", "--scope", "this"]
 store: empty
 exit_code: 0
-stdout_len: 202
+stdout_len: 374
 stderr_len: 0
 --- stdout ---
 {
   "command": "calls-scheduled-update",
   "exit_code": 1,
+  "message": "Nothing would change; give at least one field to update.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr calls scheduled update --help"
+  },
   "reason": "no-call-changes",
   "scheduled_call_id": "1849302018273645",
   "scope": "this",
