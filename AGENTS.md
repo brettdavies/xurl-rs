@@ -376,7 +376,16 @@ PR to `main` (squash) → annotated tag push triggers `release.yml`.
 ### Spec-refresh PRs
 
 The spec-drift workflow opens PRs to `dev` (head `spec-refresh`) whose body is an agent runbook. Invoke the reconciling
-agent as "Triage and fix PR #N".
+agent as "Triage and fix PR #N". The workflow finds the open refresh PR by the phrase "refresh vendored X API spec" in
+its title, so a retitled PR keeps that phrase.
+
+A refresh adds a command only where one fits `xr`: the endpoint belongs to a family `xr` has or a domain it serves, uses
+a credential `xr` holds, and is a read or an action a user or agent would run from a CLI. `xr` supports an API feature
+fully, in part, or not at all. Full support is a command for every operation. Partial support is a family where some
+operations have commands and others stay raw by decision, as `xr calls` leaves the live-call endpoints. No support is a
+feature with no command at all, such as XChat, whose encryption needs keys `xr` does not hold. Raw mode reaches every
+endpoint in each case. The reconciling agent builds the commands that fit and proposes an `endpoint-decisions.json`
+entry for each endpoint that does not; only a person adds it.
 
 `endpoint-decisions.json` records what was decided for every spec operation without a shortcut command: the
 operations, the status, the reason, and who decided and when. `raw-only` and `not-supported` mean no command until
