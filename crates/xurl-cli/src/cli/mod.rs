@@ -1187,9 +1187,9 @@ pub struct Cli {
     /// Page size for every command that takes `-n/--max-results`, when `-n` is not given; other
     /// commands and raw requests ignore it
     ///
-    /// It takes the values that command's `-n` takes and is clamped the same
-    /// way, and `-n` wins when both are given. A raw request carries its page
-    /// size in its own query string.
+    /// It is clamped to the range that command's `-n` takes, and `-n` wins
+    /// when both are given. A raw request carries its page size in its own
+    /// query string.
     #[arg(long = "limit", global = true, help_heading = GLOBAL_OPTIONS, env = "XURL_LIMIT")]
     pub limit: Option<i32>,
 

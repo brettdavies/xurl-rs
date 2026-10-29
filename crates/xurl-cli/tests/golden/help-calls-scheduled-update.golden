@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8390
+stdout_len: 8369
 stderr_len: 0
 --- stdout ---
 Move, rename, or re-invite a call you organize
@@ -170,7 +170,7 @@ Global Options:
       --limit <LIMIT>
           Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it
           
-          It takes the values that command's `-n` takes and is clamped the same way, and `-n` wins when both are given. A raw request carries its page size in its own query string.
+          It is clamped to the range that command's `-n` takes, and `-n` wins when both are given. A raw request carries its page size in its own query string.
           
           [env: XURL_LIMIT=]
 

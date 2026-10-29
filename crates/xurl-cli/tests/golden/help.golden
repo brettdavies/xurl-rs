@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 16395
+stdout_len: 16374
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -258,7 +258,7 @@ Global Options:
       --limit <LIMIT>
           Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it
           
-          It takes the values that command's `-n` takes and is clamped the same way, and `-n` wins when both are given. A raw request carries its page size in its own query string.
+          It is clamped to the range that command's `-n` takes, and `-n` wins when both are given. A raw request carries its page size in its own query string.
           
           [env: XURL_LIMIT=]
 
