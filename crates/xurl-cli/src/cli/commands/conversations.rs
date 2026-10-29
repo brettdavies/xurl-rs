@@ -3,10 +3,7 @@
 
 use serde_json::json;
 
-use super::{
-    Run, dry_run_or_validate, handles_lookup_call, list_owned_by, list_paged, make_client,
-    print_typed, resolve_account_ids, send_confirmed, send_validated, with_flags,
-};
+use super::{Run, list_owned_by, list_paged, send_confirmed, send_to_accounts, send_validated};
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, ConversationsCommands, DmEventsCommands};
 use xdk::api::{Client, shortcuts};
@@ -100,38 +97,18 @@ async fn start(
     text: &str,
     common: &CommonFlags,
 ) -> CommandResult<()> {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     let ctx = json!({
         "command": "conversations-start",
         "participants": participants,
         "body": text,
     });
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+    let validate = || {
         shortcuts::validate_participant_count(participants.len())?;
         shortcuts::validate_accounts(participants)?;
         shortcuts::validate_dm_body(text)
-    })?;
-    let client = make_client(cfg, auth)?;
-    if let Some(dry_run) = dry_run {
-        let mut credentials = Vec::new();
-        if let Some(lookup) = handles_lookup_call(&client, participants, common) {
-            credentials.push(lookup.auth_preflight().await);
-        }
-        let create = client.create_dm_conversation(participants, text);
-        credentials.push(with_flags(create, common, None).auth_preflight().await);
-        return dry_run.answer(out, stdout, credentials);
-    }
-    let ids = resolve_account_ids(&client, participants, common).await?;
-    let response = with_flags(client.create_dm_conversation(&ids, text), common, None)
-        .send()
-        .await?;
-    print_typed(out, stdout, &response)?;
-    Ok(())
+    };
+    send_to_accounts(run, ctx, validate, participants, common, |client, ids| {
+        client.create_dm_conversation(ids, text)
+    })
+    .await
 }

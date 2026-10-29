@@ -1041,6 +1041,79 @@ async fn resolve_account_ids(
     shortcuts::user_ids_for_accounts(accounts, &found)
 }
 
+/// The ids a dry run puts in a request that names `accounts`: a numeric id
+/// as it is, and [`UNRESOLVED_ID`] where the real run looks a handle up.
+fn stand_in_ids(accounts: &[String]) -> Vec<String> {
+    accounts
+        .iter()
+        .map(|account| {
+            if shortcuts::is_user_id_form(account) {
+                account.clone()
+            } else {
+                UNRESOLVED_ID.to_string()
+            }
+        })
+        .collect()
+}
+
+/// The credentials a dry run checks for `request`, which names `accounts`:
+/// the lookup's when a handle is among them, then the request's.
+async fn account_credentials<T>(
+    client: &Client,
+    accounts: &[String],
+    common: &CommonFlags,
+    request: Call<T>,
+) -> Vec<Credential>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let mut credentials = Vec::new();
+    if let Some(lookup) = handles_lookup_call(client, accounts, common) {
+        credentials.push(lookup.auth_preflight().await);
+    }
+    credentials.push(with_flags(request, common, None).auth_preflight().await);
+    credentials
+}
+
+/// Sends the one request `build` makes for `accounts`, numeric ids and
+/// handles in any mix, once `validator` passes the inputs: every handle is
+/// resolved first, all in one lookup, and an id goes out as it is. Under
+/// `--dry-run` nothing is sent, and the answer names the credentials the
+/// lookup and the request would go out with.
+async fn send_to_accounts<T>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    accounts: &[String],
+    common: &CommonFlags,
+    build: impl FnOnce(&Client, &[String]) -> Call<T>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
+    let client = make_client(cfg, auth)?;
+    if let Some(dry_run) = dry_run {
+        let request = build(&client, &stand_in_ids(accounts));
+        let credentials = account_credentials(&client, accounts, common, request).await;
+        return dry_run.answer(out, stdout, credentials);
+    }
+    let ids = resolve_account_ids(&client, accounts, common).await?;
+    let response = with_flags(build(&client, &ids), common, None)
+        .send()
+        .await?;
+    print_typed(out, stdout, &response)?;
+    Ok(())
+}
+
 /// Resolves a username to a user ID.
 async fn resolve_user_id(client: &Client, username: &str, common: &CommonFlags) -> Result<String> {
     let resp = user_id_call(client, username, common).send().await?;
