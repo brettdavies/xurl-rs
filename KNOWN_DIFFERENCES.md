@@ -308,8 +308,8 @@ Go `xurl`'s list commands take `-n`/`--max-results` for the size of one page and
 `pagination_token`.
 
 `xr`'s list commands take the same `-n`. On a list command whose endpoint pages, `--cursor TOKEN`, or `--after TOKEN`,
-sends the token as X's `pagination_token`; each command's `--help` says whether it reads `--cursor`. `--page` exits 1
-with reason `unsupported-pagination`, since X pages by token rather than by number.
+sends the token as X's `pagination_token`; an endpoint X does not page, such as Spaces search, takes none. `--page`
+exits 1 with reason `unsupported-pagination`, since X pages by token rather than by number.
 
 A script that paged with a raw request passes the token to the command instead:
 
