@@ -77,7 +77,8 @@ Every figure here was measured on that build and on the committed `schema/respon
 - R3. A word that names no command is refused the way `xr help` refuses it: `unknown-command`, exit 2, the word in
   `command`, the nearest sibling in `suggestion`, and a `show-help` step.
 - R4. A real command with no typed response keeps today's refusal (`validation`, exit 1, "no typed response"), now
-  naming the command by its words.
+  naming the command by its words. When commands beneath that path have rows, the message names them, so
+  `xr schema webhooks` points at `webhooks list`, `webhooks add`, and the rest.
 - R5. A name from before this change, meaning a hyphen-joined slug or the `envelope` positional, is handled as D1
   decides.
 - R6. A bare word that names one of `xr schema`'s scope flags (today `common`, `envelope`, `full`, `list`, `all`,
@@ -97,7 +98,9 @@ Every figure here was measured on that build and on the committed `schema/respon
 - R11. `--path <DOT_PATH>` prints one resolved node. With command words the path starts inside `data`, and a leading
   `data.` is accepted; with `--common` it starts at the wrapper. Each step unwraps a nullable `anyOf` and array `items`.
   A segment that does not exist is refused with `invalid-args`, exit 2, the given path in `path`, and the names
-  available at the last resolved node in `known_properties`.
+  available at the last resolved node in `known_properties`. Its `next_step` is `fix-input` with a `template` that keeps
+  the resolved prefix and leaves the last segment as `<property>`, such as
+  `xr schema post --path public_metrics.<property>`.
 - R12. Exactly one of command words, `--common`, `--envelope`, `--list`, or `--all` is given. `--full` needs command
   words and excludes `--path`. `--path` needs command words or `--common`.
 
@@ -235,8 +238,10 @@ Every figure here was measured on that build and on the committed `schema/respon
 - KTD11. **Old names are recognized in one function, and D1 decides what it does.** A single token matches a row when it
   equals that row's derived stem, or one of the three irregular names (`redirect-uri-get`, `redirect-uri-set`,
   `skill-install-all`). Under D1-A the caller refuses with `invalid-args`, exit 2, and `fix-input` carrying
-  `xr schema <words>`. The precedent is `render_misplaced_flags` in `crates/xurl-cli/src/cli/runner.rs`. Under D1-B it
-  resolves and writes a deprecation note to stderr in text mode.
+  `xr schema <words>`. The precedent is `render_misplaced_flags` in `crates/xurl-cli/src/cli/runner.rs`: one line that
+  names the problem and ends `Run: <command>`. Under D1-B it resolves and writes a one-line deprecation note naming the
+  words form to stderr, in every output format. stdout still carries the schema untouched, and an agent reading JSON
+  learns about the rename before the major removes the slug.
 
 ### High-Level Technical Design
 
@@ -344,7 +349,10 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
      `--all` key its values by words.
   5. Rename the two files, rewrite the generator to read `--list --output tsv` and call with `--`, then regenerate the
      completions.
-  6. Update the docs and examples that name slugs.
+  6. Update the docs and examples that name slugs. `SCHEMA_HELP` and the examples page show a multi-word command, the
+     `-- --all` form, and one paired example: `xr schema search` and then
+     `xr search "from:jack" --output json | jaq -r '.data[].text'`, so the step from schema to filter is shown in
+     context.
 - **Execution note:** rewrite the walks in `schema_tests.rs` first, so that every clap path joined with a space is in
   exactly one set, and watch them fail against the slug registry before changing it.
 - **Patterns to follow:** `render_misplaced_flags` for an `invalid-args` refusal with a `fix-input` invocation;
@@ -359,11 +367,13 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
   - `xr --output json schema webhooks subscriptoins count` exits 2 with `reason: unknown-command`,
     `command: "subscriptoins"`, `suggestion: "subscriptions"`, and a `show-help` step for `xr webhooks --help`.
   - `xr --output json schema post extra` exits 2 with `unknown-command` and `command: "extra"`.
-  - `xr --output json schema webhooks` exits 1 with `validation` and a message naming `webhooks` as having no typed
-    response.
+  - `xr --output json schema webhooks` exits 1 with `validation`, and a message naming `webhooks` as having no typed
+    response that lists the `webhooks` commands that do.
   - Under D1-A, `xr --output json schema webhooks-subscriptions-count` exits 2 with `invalid-args` and
     `next_step: {action: fix-input, command: "xr schema webhooks subscriptions count"}`, and `redirect-uri-get` yields
-    `xr schema auth apps redirect-uri get`. Under D1-B, both resolve and text mode writes a deprecation note to stderr.
+    `xr schema auth apps redirect-uri get`. The test then runs that `command` and asserts exit 0 and the same document
+    as the words form, which proves Success Criteria item 3 for this refusal. Under D1-B, both resolve, and stderr
+    carries the deprecation note in text and in JSON output alike.
   - `xr --output json schema envelope` exits 2 with `invalid-args` and `fix-input` carrying `xr schema --envelope`;
     `xr schema path` gets a `show-help` step.
   - `xr schema skill install -- --all` prints the `InstallMultiEnvelope` schema (D2-a). Without `--`,
@@ -407,7 +417,13 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
   - `scripts/generate-response-schemas.sh` (calls `--full`)
   - `crates/xurl-cli/src/cli/commands/examples.rs`, `crates/xurl-cli/README.md`, `AGENTS.md` (§ Output formats, if it
     names the schema scopes)
-  - `docs/migrating/v5.0.0.md` (new, under D1-A only; shaped like `docs/migrating/v3.0.0.md`)
+  - `docs/migrating/v5.0.0.md` (new, under D1-A only; shaped like `docs/migrating/v3.0.0.md`). It is an old → new table:
+    - slug → words;
+    - `xr schema envelope` → `--envelope`;
+    - `jq '.properties.data'` → `.properties` on the default view, or `--full` to keep `.properties.data`;
+    - `xr schema --list | awk '{print $1}'` → `--list --output tsv`;
+    - `--all` keys → words. It warns that `jq '.properties.data'` on the new default prints `null` and exits 0, so a
+      pipeline using it fails silently.
   - Tests: `crates/xurl-cli/tests/schema_tests.rs`, unit tests in `schema_resolve.rs`, `crates/xurl-cli/tests/golden/`
     (`help-schema`, `examples`, a new `reason-invalid-args-schema-path` fixture),
     `crates/xurl-cli/tests/agentic_tests.rs` (its `schema envelope` calls become `--envelope`),
@@ -419,7 +435,9 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
      (KTD5).
   3. Declare the scope rules in clap (KTD6) and remove the `envelope` positional branch from `run_schema`.
   4. Point the drift tests and the generator at `--full`. `--all` emits the default view per row.
-  5. Add the two `ErrorBody` keys and regenerate `schema/output.schema.json`.
+  5. Add the two `ErrorBody` keys and regenerate `schema/output.schema.json`. Then add the `--path` case to the
+     `invalid-args` row of "Which Errors Carry a Step" in `crates/xurl-cli/README.md`: `fix-input` with a template.
+     `next_step_tests.rs` holds that table to the golden fixture.
 - **Patterns to follow:** `typed_alias` and `SCHEMA_ALIASES` in `crates/xurl-cli/src/cli/commands/validate.rs` for the
   `known_*` list shape; `print_response` for every format.
 - **Test scenarios:**
@@ -439,7 +457,9 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
   - `xr schema search --path entities` unwraps the array of posts and resolves `entities`.
   - `xr schema --common --path includes.users` prints the resolved `User`.
   - `xr --output json schema post --path public_metrics.nope` exits 2 with `invalid-args`,
-    `path: "public_metrics.nope"`, and a `known_properties` list containing `like_count`.
+    `path: "public_metrics.nope"`, a `known_properties` list containing `like_count`, and
+    `next_step: {action: fix-input, template: "xr schema post --path public_metrics.<property>"}`. Filling the template
+    with `like_count` exits 0.
   - `xr schema post --path text.length` (through a string) exits 2 with an empty `known_properties`.
   - Clap refusals: `xr schema post --common`, `xr schema --full`, `xr schema --list --all`, and
     `xr schema --envelope --path x` each exit 2 with `invalid-args`.
@@ -563,7 +583,8 @@ question does not block.
   so B still needs a major for #426's main point.
 - **D2, the `skill install --all` row. Blocks U1's flag-form row.** Option a: `xr schema skill install -- --all`, with
   the file unchanged. Option b: one `skill install` schema with `anyOf` both reports, and the file removed. Option c:
-  drop it. Recommended: a.
+  drop it. Recommended: a. Caveat: Windows PowerShell 5.1 may strip a bare `--` before a native command sees it (medium
+  confidence, unverified here), so that form needs `'--'` quoted there.
 - **D3, the dry-run `command` value. Blocks nothing.** Recommended: unchanged; changing it would be a separate issue.
 
 ---
@@ -743,20 +764,221 @@ repo forbids worktrees.
   - Files: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/tests/schema_tests.rs`
   - Verify: the U1 flag-form scenarios
 
+## Developer Experience Review
+
+`/plan-devex-review`, 2026-10-28, plan at `2300d0f`, mode DX POLISH (an improvement to a product already in use). Run
+inline, with no subagent and no outside model. Each gate was settled from evidence because nobody watched the session.
+Product type: CLI tool (`xr`, with the `xdk` library downstream).
+
+### Developer Persona Card
+
+```text
+TARGET DEVELOPER PERSONA
+========================
+Who:       an AI coding agent driving xr from a shell; second, a human X API developer at a terminal
+Context:   about to write a jq or jaq filter over a typed command's --output json, or to check what a command returns
+Tolerance: one failed call; it reads errors literally, cannot ask, and pays per token for every line it reads
+Expects:   the words it runs the command with also name the schema; refusals carry the corrected command
+```
+
+### Developer Empathy Narrative
+
+Observed on `b50850d` unless marked predicted. I have just run `xr webhooks subscriptions count -h` and want the shape
+of `.data` before I write a filter. Nothing in the help mentions a schema. I know `xr schema` exists from
+`xr --help`, so I try `xr schema webhooks subscriptions count`. It exits 2 with "unexpected argument 'subscriptions'".
+I run `xr schema --list` and scan 145 rows until I find `webhooks-subscriptions-count`. That works and prints 426
+lines: the full `Post` and `User` schemas, which this endpoint never returns. `.properties.data` is a `$ref`, so I
+chase it into `$defs` to find four string fields. Predicted: on `xr schema search` I would have had to notice that
+`data` is an array by reading `type` beside the `$ref`. That is three calls and more than 400 lines to learn four
+field names, and the dry run I ran earlier gave no hint that any of this existed.
+
+### Competitive DX Benchmark
+
+Clock: from "I want the shape of this command's output" to "I know the field names and whether `data` is an array",
+for the agent persona, with `xr` installed. The time column is an estimate from the call and line counts.
+
+| Tool | Start → result | Calls and evidence type | DX choice | Source |
+| --- | --- | --- | --- | --- |
+| `kubectl explain` | resource and dot path → field docs | 1 call, reported | dot path into a resource (`pod.spec.containers`), `--recursive` | in-distribution knowledge, not re-checked here |
+| AWS CLI | operation → output skeleton | 1 call, reported | `--generate-cli-skeleton output` on the operation itself | in-distribution knowledge, not re-checked here |
+| `gh` | command → JSON fields | 1 call, reported | `--json` with no value lists the field names | in-distribution knowledge, not re-checked here |
+| `xr` 4.4.0 | words → fields | 3 calls, 400+ lines, observed | slug positional, full wrapper, `$ref` chasing | repro on `b50850d` |
+| `xr` with this plan | words → fields | 1 call, about 30 lines, estimated | words positional, resolved `data` view, `--path` | this plan |
+
+Target: Champion (one call, well under 2 minutes). The plan reaches that: the help footer or the dry-run pointer
+names the call, and that call answers. Measuring the line count is a build-time check under U2.
+
+### Magical Moment Specification
+
+The moment is when the agent reads `Response schema: xr schema webhooks subscriptions count` under a command's help or
+in its dry run, runs exactly that, and sees the four fields `jq '.data.<field>'` will meet, with no `$ref` to chase.
+Vehicle: the U3 footer and pointer, plus the U2 default view. Both are already planned. The review added the paired
+example in `SCHEMA_HELP` and on the examples page, so the step from schema to filter is shown, not inferred.
+
+### Developer Journey Map
+
+```text
+STAGE           | DEVELOPER DOES                               | FRICTION POINTS                         | STATUS
+----------------|----------------------------------------------|-----------------------------------------|---------
+1. Discover     | reads -h or a dry run of a typed command     | no pointer today                        | fixed (U3)
+2. Install      | already has xr                               | none                                    | ok
+3. Hello World  | xr schema <the words it ran>                 | slug translation, 426 lines             | fixed (U1, U2)
+4. Real Usage   | xr schema <words> --path a.b, writes a filter| array cardinality must be noticed       | ok (data_cardinality; paired example added)
+5. Debug        | follows a refusal's next_step                | --path miss had no step; R4 named none  | fixed (R11 template, R4 lists commands)
+6. Upgrade      | moves scripts from 4.4 forms                 | jq '.properties.data' turns null, exit 0| fixed in docs (migration table); D1 open
+```
+
+### First-Time Developer Confusion Report
+
+```text
+FIRST-TIME DEVELOPER REPORT
+============================
+Persona: AI coding agent
+Attempting: learn the output shape of `xr search` after this plan ships
+
+T+0:00  Runs `xr search -h`; the last lines read "Response schema:  xr schema search".          [addressed: U3]
+T+0:05  Runs `xr schema search`; sees data_cardinality "array", data_type "Post", Post's fields. [addressed: U2]
+T+0:10  Tries `xr schema search --path public_metrics.likes`; refused with known_properties and
+        a template ending `public_metrics.<property>`; fills it with like_count; succeeds.    [addressed: R11 step]
+T+0:20  Tries `xr schema webhooks` (a family); the message lists the webhooks commands with a
+        schema.                                                                              [addressed: R4]
+T+0:30  A script from 4.4 runs `xr schema post | jq '.properties.data'` and gets null.         [addressed in docs: migration table]
+```
+
+### Pass Summary
+
+| Pass | Before | After | Finding and disposition |
+| --- | --- | --- | --- |
+| 1. Getting Started | 7 | 8 | X3: paired schema-to-filter example in `SCHEMA_HELP` and the examples page. Folded into U1. |
+| 2. API/CLI design | 8 | 8 | No issues. Words match `xr help`, the default is the useful view, and every escape hatch is a flag. |
+| 3. Error messages | 6 | 8 | X1 (CAP6 cleared): `--path` miss had no `fix`; now `fix-input` with a template (R11). X2: R4 names the commands with rows. |
+| 4. Documentation | 6 | 8 | X4: the migration page is an old → new table with the silent-`null` warning. Folded into U2. |
+| 5. Upgrade path | 5 | 7 | X5: under D1-B the deprecation note reaches stderr in every format (KTD11). The residual is D1 itself, Brett's. |
+| 6. Dev environment | 7 | 7 | X7: Windows PowerShell 5.1 may strip a bare `--`; noted on D2 (medium confidence, unverified). |
+| 7. Community | 7 | 7 | No issues. `xurl-rs-skill` edits are a deferred follow-up. |
+| 8. DX measurement | 6 | 7 | X6: U1 runs the fix-input command an old slug returns and asserts it succeeds. Line counts are measured at build. |
+
+Error path matrix (agent-ready-v1; CLI channel = stderr, distinct exit, JSON envelope):
+
+```text
+Path                          | Class      | what | fix  | recovery | code | context | trace | redaction | channel | Cap
+unknown word (R3)             | usage      | pass | pass | implied  | pass | N/A     | N/A   | pass      | pass    | none
+old slug, D1-A (R5)           | usage      | pass | pass | implied  | pass | N/A     | N/A   | pass      | pass    | none
+scope word (R6)               | usage      | pass | pass | implied  | pass | N/A     | N/A   | pass      | pass    | none
+--path miss (R11), as drafted | usage      | pass | fail | implied  | pass | N/A     | N/A   | pass      | pass    | CAP6:--path-miss:fix
+--path miss (R11), amended    | usage      | pass | pass | implied  | pass | N/A     | N/A   | pass      | pass    | none
+schema generation failure     | unexpected | pass | pass | pass     | pass | pass    | pass  | pass      | pass    | none (existing report-issue path)
+```
+
+N/A reasons: context and trace do not apply to a usage error rejected before any work begins. The corrected
+`--path` line in text output is
+`no property 'nope' under 'public_metrics'; it has like_count, reply_count, ... Run: xr schema post --path public_metrics.<property>`.
+
+### NOT in scope (DX)
+
+- Shell completion of command words after `xr schema` (`[COMMAND]...` is free text to clap). A DX expansion, not polish.
+- A `data_path` hint such as `.data[]` in the view: `data_cardinality` already says it, and the paired example shows it.
+- `data_type` and `data_cardinality` in `--list` records: #426 asks for the response type there, and the view carries
+  both.
+
+### What already exists (DX)
+
+The unknown-command renderer and its suggestion scorer, `render_misplaced_flags`'s `Run: <command>` shape, the
+`next_step` contract with `template` for placeholders (`register-app`), `print_response` for every format, the dry-run
+text summary, and `family_help.rs` for example layout.
+
+### DX Implementation Checklist
+
+```text
+DX IMPLEMENTATION CHECKLIST
+============================
+[ ] One call from a command's words to its fields (U1, U2)
+[ ] Every typed command's help and dry run names that call (U3)
+[ ] Every new refusal carries what, fix, code and channel; --path miss carries a template (R11)
+[ ] xr schema --help and the examples page show the schema-to-filter pair (U1)
+[ ] Migration table covers slug, envelope, .properties.data, --list parsing, --all keys (U2, D1-A)
+[ ] The old-slug refusal's command runs green in a test (U1)
+[ ] Works with no terminal: no prompt anywhere in xr schema (existing)
+[ ] Changelog entries filed under the section D1 decides (every PR)
+```
+
+### DX Implementation Tasks
+
+- [ ] **T7 (P1, human: ~1h / CC: ~5min)**: schema: `--path` refusal carries `fix-input` with a template
+  - Surfaced by: Pass 3, X1 (CAP6:--path-miss:fix)
+  - Files: `crates/xurl-cli/src/cli/commands/schema.rs`, `crates/xurl-cli/README.md`,
+    `crates/xurl-cli/tests/next_step_tests.rs`
+  - Verify: the U2 `--path` miss scenario, including the filled template exiting 0
+- [ ] **T8 (P2, human: ~30min / CC: ~5min)**: schema: the R4 refusal names the commands beneath the path that have rows
+  - Surfaced by: Pass 3, X2
+  - Files: `crates/xurl-cli/src/cli/commands/schema.rs`
+  - Verify: the U1 `xr schema webhooks` scenario
+- [ ] **T9 (P2, human: ~1h / CC: ~10min)**: docs: paired example in `SCHEMA_HELP` and the examples page; migration table
+  - Surfaced by: Passes 1 and 4, X3 and X4
+  - Files: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/commands/examples.rs`, `docs/migrating/v5.0.0.md`
+  - Verify: `help-schema.golden` and `examples.golden` re-blessed with the new lines; `agentic_tests` green
+- [ ] **T10 (P2, human: ~30min / CC: ~5min)**: tests: run the old-slug refusal's `command` and assert it succeeds
+  - Surfaced by: Pass 8, X6
+  - Files: `crates/xurl-cli/tests/schema_tests.rs`
+  - Verify: `cargo test -p xurl-rs --test schema_tests`
+
+**Decision record (DX).** Each gate was settled from evidence: product type CLI (AGENTS.md § Running xr), persona agent
+plus human (the brief), target Champion (the plan's one-call path), vehicle footer plus pointer (in plan), mode POLISH
+(enhancement). X1–X7 were all within the accepted scope, as routine work or follow-through of R3–R11, and were folded
+in. No DX choice is Brett's beyond D1–D3.
+
+## DX Review Scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW — SCORECARD                             |
++====================================================================+
+| Dimension            | Score  | Prior  | Trend  |
+|----------------------|--------|--------|--------|
+| Getting Started      |  8/10  |  7/10  |   ↑    |
+| API/CLI/SDK          |  8/10  |  8/10  |   =    |
+| Error Messages       |  8/10  |  6/10  |   ↑    |
+| Documentation        |  8/10  |  6/10  |   ↑    |
+| Upgrade Path         |  7/10  |  5/10  |   ↑    |
+| Dev Environment      |  7/10  |  7/10  |   =    |
+| Community            |  7/10  |  7/10  |   =    |
+| DX Measurement       |  7/10  |  6/10  |   ↑    |
++--------------------------------------------------------------------+
+| TTHW                 | 1 call | 3 calls| ↑ (estimated) |
+| Competitive Rank     | Champion                                    |
+| Magical Moment       | designed via help footer + dry-run pointer  |
+| Product Type         | CLI tool                                    |
+| Mode                 | POLISH                                      |
+| Overall DX           |  8/10  |  6/10  |   ↑    |
++====================================================================+
+| DX PRINCIPLE COVERAGE                                               |
+| Zero Friction      | covered                                        |
+| Learn by Doing     | covered (paired example)                       |
+| Fight Uncertainty  | covered (every refusal carries a step)         |
+| Opinionated + Escape Hatches | covered (default view; --full, --path) |
+| Code in Context    | covered                                        |
+| Magical Moments    | covered                                        |
+| Agents Are Users   | covered                                        |
++====================================================================+
+```
+
+"Prior" is this plan as drafted before the review, not an earlier release. The Upgrade Path residual is D1, which is
+Brett's to decide.
+
 ## GSTACK REVIEW REPORT
 
 | Review         | Trigger               | Why                             | Runs | Status      | Findings                                                        |
 | -------------- | --------------------- | ------------------------------- | ---- | ----------- | --------------------------------------------------------------- |
 | CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                                               |
-| Outside Review | codex, plan review    | Independent 2nd opinion         | 1    | disabled    | not run: `codex_reviews` disabled                               |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 9 issues, 0 critical gaps; all 9 folded, 3 owner decisions open |
+| Outside Review | codex, plan review    | Independent 2nd opinion         | 2    | disabled    | not run in either review: `codex_reviews` disabled              |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 9 issues, 0 critical gaps; all folded, 3 owner decisions open   |
 | Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | —                                                               |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | —           | —                                                               |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | ISSUES OPEN | score: 6/10 → 8/10, TTHW: 3 calls → 1 call                      |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled; no findings. The other entries in this log belong to other
-  plans on `dev`.
-- **VERDICT:** no review is CLEAR yet. Eng review: all findings are folded, and the remaining open items are owner
-  decisions, so eng review is required again after D1–D3 settle only if an answer changes a unit.
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled for both the eng and DX reviews; no findings. The other
+  entries in this log belong to other plans on `dev`.
+- **VERDICT:** no review is CLEAR. Every finding from the eng and DX reviews is folded into the plan. What stays open
+  is three owner decisions, so eng review is required again only if an answer to D1–D3 changes a unit.
 
 **UNRESOLVED DECISIONS:**
 
