@@ -104,6 +104,13 @@ a key the API sent in its legacy post vocabulary under its current name. It is t
 spec naming a field the API does not send. It never runs under the default suite, refuses without an explicit opt-in
 because each run spends paid reads, and is the named exception the store isolation guard permits.
 
+### Go parity gate
+
+The CI check that runs the differential conformance suite: each case runs against `xr` and against the Go original,
+built at a pinned commit, and their results are compared. Without the original named, the suite skips rather than
+passing, so this gate is the only run that compares the two; cases that need the live API stay skipped there as well.
+The pinned commit is also the version every known difference is stated against.
+
 ## Command surface
 
 ### Raw mode
@@ -126,6 +133,14 @@ The structured error object every machine-readable output mode emits on stderr: 
 from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error fields such as `next_step`, `command`,
 and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints
 that never appear in the envelope.
+
+### Known difference
+
+A deliberate divergence of `xr` from the Go original it ports, stated against the version the Go parity gate pins and
+verified by running both binaries rather than by reading either one's documentation. Each is written up with what the
+original does, what `xr` does, and why. A differential case that would fail only because of one is skipped with a reason
+that names the write-up, never left failing. A command or flag the original spells differently is a known difference
+too, so a reader migrating a Go invocation finds its `xr` form among them.
 
 ## Skill install
 
