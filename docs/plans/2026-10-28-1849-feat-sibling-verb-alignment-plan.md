@@ -100,6 +100,8 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
   apart from the command name, and the `xdk-rs` public API does not change.
 - R8. The release notes name each rename and its replacement; `AGENTS.md` § "Command grammar" states the verb rule the
   renames follow.
+- R9. Every document that defines `suggestion` says it also names the command that replaced a retired word: the field's
+  description in `schema/output.schema.json` and `AGENTS.md` § "Running xr".
 
 ### Key Decisions
 
@@ -176,7 +178,10 @@ before any build; D4 to D7 are settled from evidence.
   change verb is `update` with the changed fields as flags (`lists update --name`, `calls scheduled update --title`);
   `broadcasts scheduled update` already requires flags (`--start`, `--end`). Survives X adding a field to
   `UpdateSourceRequest`.
-- `update <ID> <NAME>`. Same verb, keeps the positional, but no other `update` takes a positional value.
+- `update <ID> <NAME>`. Same verb and the same argument shape, so a script that changes only the word keeps working. No
+  other `update` takes a positional value. With option (a), a script that changes only the word fails once more: the
+  same shape on `lists update` answers `unexpected argument 'Rust' found` (`invalid-args`, exit 2) with its help page as
+  the step, observed for `xr lists update 123 Rust`.
 - Keep `rename`. X's request takes only `name` (required, `additionalProperties: false`) and its summary says "Rename a
   stream source", so the word is exact; it stays the one `rename` in the tree.
 
@@ -212,7 +217,9 @@ contract (§ "What the contract is").
   contract breaks, so one major can carry all three, which is the "major that batches removals" `RELEASES.md` describes.
   Each PR files its entry under `### Breaking changes`.
 - `xr` 4.5.0 on blast radius: the renamed commands are hours old and no first-party consumer names them. Departs from
-  the written rule; each PR would file under `### Changed` and its body would state the minor call.
+  the written rule. The required check `Surface growth needs a minor section` (`scripts/check-surface-bump.sh`) fails a
+  PR that adds a command without a bullet under `### Added`, `### Deprecated`, or `### Breaking changes`, so each PR
+  would file the new name under `### Added` and its body would state the minor call.
 - `xdk-rs`: no release; nothing in the library changes (R7).
 
 ### D4. Retired names reuse `unknown-command` (settled)
@@ -221,8 +228,11 @@ The renderer, reason, exit code, and step stay those of `render_unknown_command`
 only the `suggestion` source changes. Evidence: `AGENTS.md` § "Output formats" ("A new error picks an existing action
 where one fits"), `RELEASES.md` § "Closed sets" (a new member is a minor and needs a consumer default), and
 `docs/solutions/design-patterns/unknown-command-needs-two-detectors-one-renderer-and-the-scorer-that-saw-the-word.md`
-(one renderer for every unknown-command path). The text keeps the "Did you mean" sentence; suggestion wording is not
-contract (`RELEASES.md` § "What the contract is").
+(one renderer for every unknown-command path). The text names the rename instead of guessing at a typo:
+`Error: unknown command 'live': 'start' replaced it. Try 'xr broadcasts scheduled start --help'.`, and the JSON
+`message` carries the same sentence. The renderer stays one function and learns which source gave the suggestion.
+Suggestion wording is not contract (`RELEASES.md` § "What the contract is"); `suggestion` keeps its key and type, and
+its description gains the replacement case (R9).
 
 ### D5. The library keeps X's names (settled)
 
@@ -299,7 +309,7 @@ flowchart TB
 ### U1. `broadcasts scheduled remove` becomes `cancel`, with the retired-verb table
 
 - **Goal:** The two scheduled subtrees cancel with one verb, and `remove` under `broadcasts scheduled` names `cancel`.
-- **Requirements:** R1, R5, R6, R7.
+- **Requirements:** R1, R5, R6, R7, R9.
 - **Dependencies:** Brett's D1 to D3 answers.
 - **Files:**
   - Create `crates/xurl-cli/src/cli/retired_verbs.rs`; modify `crates/xurl-cli/src/cli/mod.rs` (module declaration,
@@ -317,8 +327,12 @@ flowchart TB
     `crates/xurl-cli/tests/unknown_command_tests.rs` (retired-name cases and the KTD4 guard).
   - Regenerate `completions/` through `scripts/generate-completions.sh`; modify `crates/xurl-cli/README.md` §
     "Broadcasts".
+  - Modify the `suggestion` doc comment on `ErrorBody` in `crates/xurl-cli/src/cli/envelope.rs` and regenerate
+    `schema/output.schema.json` (its drift guard is in `crates/xurl-cli/tests/schema_tests.rs`); modify `AGENTS.md` §
+    "Running xr" (R9).
 - **Approach:**
-  1. Add the module and its lookup per KTD1, with the row (`broadcasts scheduled`, `remove`, `cancel`).
+  1. Add the module and its lookup per KTD1, with the row (`broadcasts scheduled`, `remove`, `cancel`), and the
+     replacement sentence in `render_unknown_command` (D4).
   2. Rename the variant per KTD2; the prompt, help, and about line already say "cancel" and stay.
   3. Regenerate the schema file and completions, then bless only the fixtures named above.
 - **Patterns to follow:** `calls scheduled cancel` in `crates/xurl-cli/src/cli/commands/calls.rs` for a confirmed
@@ -336,7 +350,8 @@ flowchart TB
   - The same holds for `xr broadcasts scheduled remove --help`, `xr help broadcasts scheduled remove`, and
     `xr --dry-run broadcasts scheduled remove 1`.
   - Text mode: `xr broadcasts scheduled remove 1` prints
-    `Error: unknown command 'remove'. Did you mean 'cancel'? Try 'xr broadcasts scheduled cancel --help'.`
+    `Error: unknown command 'remove': 'cancel' replaced it. Try 'xr broadcasts scheduled cancel --help'.`
+  - A plain typo keeps its sentence: `xr broadcasts scheduled cancle 1` still prints `Did you mean 'cancel'?`.
   - `xr lists remove 1 --force --no-interactive` still runs: a row keyed by family does not touch another family's
     `remove`.
   - Guard: a row whose replacing word is not a subcommand of its family, or whose retired word is one, fails the walk.
@@ -597,18 +612,120 @@ issue. Code quality: 2 issues. Tests: diagram produced, 3 gaps planned. Performa
 already exists: written. TODOS.md: 0 proposed. Failure modes: 0 critical gaps. Unresolved decisions: 3 (D1 to D3,
 Brett's). Outside voice: codex, skipped (session rule). Parallelization: 1 lane, sequential. Lake Score: N/A.
 
+## Developer Experience Review Record
+
+`/plan-devex-review` of this plan on 2026-10-28, inline in one session with no subagent and no outside model. Each
+choice below was settled from the cited evidence; D1 to D3 stay with Brett. Mode: DX POLISH, the default for an
+enhancement to an existing product.
+
+**Persona.** Primary: an AI coding agent that scripts `xr` (AGENTS.md § "Output formats": structured errors exist so an
+agent branches on stable fields; issue #421 § "Agent-native considerations"). It reads the envelope literally, cannot
+ask, and pays per retry. Secondary: a person whose shell script names a 4.4.0 command.
+
+**Empathy narrative.** I upgraded `xr`, and my nightly job that starts a scheduled broadcast fails at exit 2. In JSON I
+get `unknown-command` with `command: live`. With a plain rename that is all: no `suggestion`, and a pointer to the
+family help, so I read the page, find `start`, and retry, two extra calls. If my job renamed a stream source, I get
+`suggestion: remove` and the delete verb's help page, which reads like the fix. With the plan, the same failure carries
+`suggestion: start` and `xr broadcasts scheduled start --help`; one help read and one retry and the job runs.
+
+**Competitive benchmark.** Endpoint: a caller with a call to an old name reaches a working call.
+
+| Tool               | Start to result               | Evidence                      | DX choice                                                   |
+| ------------------ | ----------------------------- | ----------------------------- | ----------------------------------------------------------- |
+| `gh`               | `gh pr lsit` to a pointer     | observed locally              | `Did you mean this? edit`: a scored guess, here a wrong one |
+| cargo              | `cargo biuld` to a pointer    | observed locally              | `a command with a similar name exists: build`               |
+| git                | `git comit` to a pointer      | observed locally              | `The most similar command is commit`                        |
+| git, docker        | a renamed workflow            | in-distribution, not verified | keep the old command beside the new one                     |
+| `xr` today         | `rename` after a plain rename | predicted from clap's score   | `Did you mean 'remove'?`, the delete verb                   |
+| `xr` with the plan | any retired word              | planned (U1 to U3)            | the replacing word, its help, and the reason it moved       |
+
+Target: Champion, one retry. Chosen because the issue rules out an alias, so the refusal is the whole migration path.
+
+**Magical moment.** The failure names its fix: the old call's error carries the new word and its help, so an agent
+repairs it without opening a changelog. Vehicle: the retired-verb table (KTD1) with the replacement sentence (D4).
+
+**Journey map.**
+
+| Stage       | Developer does                      | Friction                                               | Status                   |
+| ----------- | ----------------------------------- | ------------------------------------------------------ | ------------------------ |
+| Discover    | reads `--help`, completions, README | old names in help and completions                      | fixed (U1 to U3)         |
+| Install     | upgrades through Homebrew or cargo  | nothing warns before the first run                     | ok: refusal is immediate |
+| Hello world | first run of an old script          | no pointer, or the `remove` pointer                    | fixed (KTD1, D4)         |
+| Real usage  | runs the new names                  | `rename` to `update --name` changes the argument shape | with Brett (D1 spot 2)   |
+| Debug       | reads the envelope                  | `suggestion`'s documented meaning omits replacements   | fixed (R9)               |
+| Upgrade     | reads release notes                 | none once each PR names old and new                    | ok (R8)                  |
+
+**First-time report.** T+0:00 the agent runs `xr --output json broadcasts sources rename 1x2y3z4w5v6u "Studio B"`.
+T+0:01 exit 2, `suggestion: update`, `next_step.command: xr broadcasts sources update --help`. T+0:02 it reads the help
+and sees `--name`. T+0:03 `xr broadcasts sources update 1x2y3z4w5v6u --name "Studio B"` succeeds. An agent that skips
+the help and keeps the positional takes one more refusal (`invalid-args`), the cost D1 spot 2 option (b) avoids.
+
+**Pass scores (initial to amended).**
+
+| Pass               | Score  | Evidence and gap                                                                                     |
+| ------------------ | ------ | ---------------------------------------------------------------------------------------------------- |
+| 1. Getting started | 7 to 8 | Endpoint is the first working call after an upgrade; one retry once the table exists                 |
+| 2. CLI design      | 6 to 8 | Siblings share verbs after U1 to U3; spot 2's argument shape stays with Brett                        |
+| 3. Errors          | 7 to 8 | Matrix below; no cap; the text names the rename instead of a typo guess                              |
+| 4. Docs            | 6 to 8 | `suggestion`'s description and AGENTS.md now cover replacements (R9); README examples move           |
+| 5. Upgrade         | 5 to 7 | No alias by the issue's choice; the refusal and the changelog line carry the migration               |
+| 6. Environment     | 8 to 8 | Completions regenerate; `--dry-run` of an old name refuses the same way at exit 2                    |
+| 7. Community       | 7 to 7 | Release notes and the issue thread; nothing new needed                                               |
+| 8. Measurement     | 6 to 7 | The offline reproduction script measures the endpoint per retired word; `/devex-review` can rerun it |
+
+**Error path matrix (agent-ready-v1).**
+
+```text
+Path                                  | Class | what | fix  | recovery | code | context | trace | redaction | channel | Cap
+retired word (live, remove, rename)   | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+update without --name                 | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+update ID NAME (positional kept)      | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+cancel or start without --force       | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+unexpected failure on these paths     | n/a   | no new path: a table lookup on the error branch; panics keep the run_argv hook (reason internal)
+```
+
+Every usage path exits 2 or 1 with a stable `reason`, echoes the offending word, and names a help page or a `--force`
+template as its fix. No path prompts without a TTY alternative, and none carries a secret.
+
+**Findings and dispositions.**
+
+- [INFORMATIONAL] (confidence: 9/10) `crates/xurl-cli/src/cli/envelope.rs:214`,
+  `/// The nearest real command, when one is within the threshold.` The field's documented meaning, also in
+  `schema/output.schema.json:361` and `AGENTS.md:50`, would not cover a replacement. Accepted as review work: R9 and
+  U1's files.
+- [INFORMATIONAL] (confidence: 8/10) `crates/xurl-cli/src/cli/runner.rs:672`,
+  `format!("unknown command '{word}'. Did you mean '{nearest}'? Try '{target} --help'.")`. For a rename the sentence
+  guesses at a typo the caller did not make. Accepted: D4's replacement sentence, text and `message` only.
+- [INFORMATIONAL] (confidence: 9/10) `.github/workflows/changelog-bump.yml:47`,
+  `bash scripts/check-surface-bump.sh check ...`. The required check fails a renamed command filed under `### Changed`,
+  so D3's 4.5.0 option was misstated. Accepted: D3 corrected; the correction goes to Brett.
+- [INFORMATIONAL] (confidence: 8/10) observed `xr lists update 123 Rust` answers `unexpected argument 'Rust' found`.
+  Spot 2 option (a) costs a positional caller one more retry. Recorded under D1 for Brett.
+- Outside this plan, observed: `xr --output json lists update 123` answers `"message": "no-list-changes"`, the bare code
+  where text mode prints a sentence (`crates/xurl-cli/src/cli/output/validation.rs:77`). Reported to the coordinating
+  session for the slot that owns validation messages; not built here.
+
+**NOT in scope.** A deprecation alias, a `docs` URL on `show-help`, an additive key marking a replacement, and telemetry
+on old-name use: the issue rules out aliases, and an agent's next action is the same with or without a marker.
+
+**What already exists.** The `unknown-command` envelope and its single renderer; the `--force` confirmation template;
+the completions and help goldens; `--dry-run`.
+
+**Implementation tasks.** T1 gains the `suggestion` doc comment, the regenerated `schema/output.schema.json`, the
+AGENTS.md sentence, and the replacement sentence with its typo-path test (P1). No other new tasks.
+
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger               | Why                             | Runs | Status      | Findings                              |
-| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ------------------------------------- |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | not run     | n/a                                   |
-| Outside Review | codex (plan review)   | Independent 2nd opinion         | 0    | skipped     | session rule: no outside model        |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 6 issues, 0 critical gaps, all folded |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | not run     | n/a                                   |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | pending     | runs next                             |
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                                        |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ----------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | not run     | n/a                                             |
+| Outside Review | codex (plan review)   | Independent 2nd opinion         | 0    | skipped     | session rule: no outside model                  |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 6 issues, 0 critical gaps, all folded           |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | not run     | n/a                                             |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | ISSUES OPEN | score: 6/10 → 8/10, TTHW: 2-3 retries → 1 retry |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, skipped under the session rule; no findings.
-- **VERDICT:** Eng review done; every finding folded into the plan. Build waits on D1 to D3.
+- **OUTSIDE COVERAGE:** codex, plan-review phase, skipped under the session rule for both reviews; no findings.
+- **VERDICT:** Eng and DX reviews done; every finding folded into the plan. Build waits on D1 to D3.
 
 **UNRESOLVED DECISIONS:**
 
