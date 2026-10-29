@@ -208,7 +208,8 @@ Each item below is a defect or gap reproduction surfaced outside this change's s
 - KTD9. **The diff carries only the edited text.** None of the three files is in the edit hook's wrapped shape at `HEAD`
   (`git show HEAD:<file> | md-wrap.py -w 120` differs by 18, 20, and 75 lines), so an edit that lets the hook reflow the
   whole file rewraps paragraphs no unit touches. Each unit wraps its own new text at 120 by hand and leaves every other
-  line byte-identical to `HEAD`.
+  line byte-identical to `HEAD`. The formatter hook (`~/.claude/auto-format.sh`) runs on the Write and Edit tools only,
+  so each unit makes its edits through a script run from the shell and checks `git diff` hunk by hunk after it.
 
 ### High-Level Technical Design
 
@@ -263,7 +264,7 @@ New heading wording is directional; the implementer may tighten it while keeping
 
 ### U1. Compare against Go xurl 1.3.4 in KNOWN_DIFFERENCES.md
 
-- **Goal:** `KNOWN_DIFFERENCES.md` carries R1 to R14 in the order KTD3 sets.
+- **Goal:** `KNOWN_DIFFERENCES.md` carries R1 to R14 and R18 in the order KTD3 sets.
 - **Requirements:** R1 to R14, R17, R18.
 - **Dependencies:** none.
 - **Files:** `KNOWN_DIFFERENCES.md`.
@@ -314,7 +315,7 @@ New heading wording is directional; the implementer may tighten it while keeping
   - Commands in `--help`: `60, 29 of them shortcuts` and `160`.
   - `xurl posts USER`: `xr user-posts USER`; `xr posts` reads posts by id.
   - `--dry-run`: `No` and `Every command, offline`.
-  - Mistyped command: `Sent as a path, later words dropped` and `Exit 2, names the nearest command`.
+  - Mistyped command: `Sent as a path, later words dropped` and `Exit 2, names the word and any close command`.
   - `delete`, `auth clear`, `auth apps remove`: `Run at once` and `Ask first; --force skips`.
   - Credential the endpoint does not accept: `Sent anyway` and `Exit 2 before sending`.
   - Caller's user id: `Asked of /2/users/me every run` and `Stored per login; whoami --cached`.
@@ -353,8 +354,8 @@ New heading wording is directional; the implementer may tighten it while keeping
 
 | Gate              | How                                                                                                                                                                                                                                         | Proves                                                       |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Go claims         | Go `xurl` from `go install github.com/xdevplatform/xurl@18dcb447f090667171ff23666a05d6d387e2aa73` into a scratch `GOPATH`, run under `env -i` with a scratch `HOME`, `API_BASE_URL` at `127.0.0.1:9` or a local mock that logs each request | R2 to R14's Go side, offline                                 |
-| `xr` claims       | `cargo build -p xurl-rs` at the PR base; the same mock and closed port; `XURL_TOKEN_STORE` at a scratch path                                                                                                                                | R2 to R14's `xr` side                                        |
+| Go claims         | Go `xurl` from `go install github.com/xdevplatform/xurl@18dcb447f090667171ff23666a05d6d387e2aa73` into a scratch `GOPATH`, run under `env -i` with a scratch `HOME`, `API_BASE_URL` at `127.0.0.1:9` or a local mock that logs each request | R2 to R14 and R18's Go side, offline                         |
+| `xr` claims       | `cargo build -p xurl-rs` at the PR base; the same mock and closed port; `XURL_TOKEN_STORE` at a scratch path                                                                                                                                | R2 to R14 and R18's `xr` side                                |
 | Counts            | KTD5's help-tree walk on both binaries                                                                                                                                                                                                      | R15's count row                                              |
 | Go command map    | walk Go 1.3.4's 60 commands from KTD5 against the command-names section                                                                                                                                                                     | each is mapped, shares its name in `xr`, or is named Go-only |
 | Doc-reading tests | `cargo test -p xurl-rs --test recipe_guard --test agentic_tests --test next_step_tests` and `cargo test -p xdk-rs --test readme_stability_tests --test readme_landing_tests`                                                                | R17                                                          |
@@ -366,7 +367,7 @@ No test runs against X. No golden fixture is re-blessed.
 
 ## Definition of Done
 
-- R1 to R17 hold in the merged text, each traceable to an Appendix row or a Go source citation.
+- R1 to R18 hold in the merged text, each traceable to an Appendix row or a Go source citation.
 - `git diff` across the stack touches only `KNOWN_DIFFERENCES.md`, `crates/xurl-cli/README.md`, and `README.md`.
 - Each PR names #423 under Related Issues and files its user-visible doc changes under `### Documentation` in
   `## Changelog (xurl-rs)`.
@@ -406,6 +407,7 @@ X.
 | Dry-run exits (review) | (`AGENTS.md`) answers at exit 0 on any command                                            | Not on every one. `xr schema --dry-run` and `xr auth apps update 123 --dry-run`: `status: error`, `reason: validation`, exit 1                                                                                                                                                                                                                                                                                                                                                                                      |
 | Page token (review)    | n/a                                                                                       | `/2/spaces/search` declares `query`, `state`, `max_results`, and field parameters, no `pagination_token`; `xr spaces search x --cursor TOKEN1` sent none                                                                                                                                                                                                                                                                                                                                                            |
 | Gate coverage (review) | n/a                                                                                       | `xr media subtitles remove 123 --language en --dry-run` reports no `confirmation_required`; it is absent from `CONFIRMED_COMMANDS`                                                                                                                                                                                                                                                                                                                                                                                  |
+| Store carry-over (DX)  | n/a                                                                                       | `xr --output json auth status` on a store Go 1.3.4 wrote listed `{"name":"default","bearer":true,"bearer_source":"store","default":true}`. Go's YAML tags in `store/tokens.go` (`apps`, `default_app`, `oauth2_tokens`, `oauth1_token`, `bearer_token`, `access_token`, `refresh_token`, `expiration_time`, `consumer_key`, `token_secret`) match the field names in `crates/xdk/src/store/types.rs`                                                                                                                |
 
 ---
 
@@ -693,6 +695,30 @@ measured reading-time study.
 ```
 
 No dimension is below 6, and TTHW is under 10 minutes. Unresolved decisions in this review: none.
+
+---
+
+## Document Review Record
+
+`/compound-engineering:ce-doc-review mode:non-interactive` on 2026-10-28, with edit authority over the implementation
+and verification sections. The coherence, feasibility, scope-guardian, adversarial, and product-lens lenses ran inline
+in this session; no subagent and no cross-model peer ran (Brett's standing rule for this repo).
+
+Applied, each checked against the plan or the project:
+
+- Definition of Done, U1's goal, and the Verification Contract's claim rows now cover R18 (coherence).
+- U2's mistyped-command row says `xr` names the word and any close command, as the bare-word section does: `xr zzzzzz`
+  gets no suggestion (coherence).
+- KTD9 names how to keep a diff to the edited text: `~/.claude/auto-format.sh` runs on the Write and Edit tools only,
+  per `~/.claude/settings.json`, so the units edit through a shell-run script and read `git diff` after (feasibility).
+- The Appendix backs R18 with the observed `auth status` answer and the matching store field names, since only a bearer
+  login was observed (adversarial).
+
+Checked and dropped: Go's `xurl auth oauth1` saves fake values with no request (`cli/auth.go`,
+`SaveOAuth1TokensForApp`), so U1's OAuth1 store check runs offline.
+
+FYI: KD2 departs from the issue's literal request for a completed list; the Assumptions already require the PR body to
+name it for Brett.
 
 ---
 
