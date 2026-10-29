@@ -127,12 +127,25 @@ A noun that owns several operations and groups them as subcommands, such as `xr 
 domain gets a top-level word instead. Adding one touches the surfaces AGENTS.md § "Adding a command family" lists, each
 guarded by a walk.
 
+### Dry-run envelope
+
+The answer any command gives under `--dry-run`, on stdout at exit 0 with nothing sent to X or stored:
+`status: dry_run`, whether the real run would succeed, the exit code it would end on, and the command's inputs. When
+the real run would fail, `reason` names why; a command that would stop to ask for confirmation says so rather than
+asking.
+
 ### Error envelope
 
 The structured error object every machine-readable output mode emits on stderr: `status`, a typed kebab-case `reason`
 from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error fields such as `next_step`, `command`,
 and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints
 that never appear in the envelope.
+
+### Walk
+
+A test that reads a live declaration, such as the command tree, a registry, or the declared endpoints, and fails naming
+each entry a required surface lacks, so that adding to the declaration without the matching surface fails a test
+rather than a review. A walk checks against the declaration itself, never against a list written into the test.
 
 ### Known difference
 
