@@ -1,5 +1,35 @@
 # Known Differences from Go xurl
 
+Each difference below holds against Go `xurl` 1.3.4, the release the `Go parity` CI job runs the differential suite
+against.
+
+## Command names that differ, and commands only one tool has (intentional difference)
+
+`xr` reads the token store Go `xurl` 1.3.4 writes, `~/.xurl/auth.yml`, so the apps and credentials stored with Go are
+there on the first `xr` run.
+
+Every Go command not named below has an `xr` command of the same name. These differ:
+
+| Go `xurl` 1.3.4                          | `xr`                                                                      | `xr` given the Go form                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `xurl posts USERNAME`                    | `xr user-posts USERNAME`                                                  | `xr posts` reads 1 to 100 posts by id or URL, so `xr posts USERNAME` asks for a post whose id is the username |
+| `xurl auth app-only`, `xurl auth bearer` | `xr auth app` (`xurl auth app` works in both)                             | Exit 2, `unknown-command`                                                                                     |
+| `xurl auth oauth2 --headless`            | `xr auth oauth2 --no-browser`, in two steps (`--step 1`, then `--step 2`) | Exit 2, `invalid-args`                                                                                        |
+| `xurl auth clear --app-only`             | `xr auth clear --bearer` (`--bearer` works in both)                       | Exit 2, `invalid-args`                                                                                        |
+| `xurl completion SHELL`                  | `xr completions SHELL`                                                    | Exit 2, `unknown-command`, suggests `completions`                                                             |
+| `xurl webhook start`                     | `xr webhooks listen` (next section)                                       | Exit 2, `unknown-command`, suggests `webhooks`                                                                |
+
+Three Go commands have no `xr` counterpart, and `xr chat`, `xr mcp`, and `xr token` exit 2 with reason
+`unknown-command`:
+
+- `xurl chat`, an end-to-end encrypted XChat client, built into Go's release binaries for macOS and Linux x86_64.
+- `xurl mcp`, a stdio bridge from an MCP client to X's MCP server.
+- `xurl token`, which prints the active app's OAuth2 access token.
+
+Every other `xr` command has no Go counterpart, and `xr --help` lists them all. With Go, their endpoints are reached
+through raw requests, and a Go sign-in does not request the `calls.read` and `calls.write` scopes the `xr calls`
+endpoints take.
+
 ## Webhooks: no built-in tunnel, verified events, and management commands (intentional difference)
 
 Go `xurl` has one webhook command, `xurl webhook start`. It opens an ngrok tunnel itself (prompting for an authtoken or
@@ -23,42 +53,17 @@ The management commands have no Go counterpart: `xr webhooks list`, `add`, `vali
 `xr webhooks subscriptions` for Account Activity, and `xr webhooks stream-links` for filtered-stream delivery. With Go,
 those endpoints are reached through raw requests.
 
-The commands below have no Go counterpart either. With Go, their endpoints are reached through raw requests, and a Go
-sign-in does not request the `calls.read` and `calls.write` scopes the calls endpoints take.
-
-- `xr calls get` and `xr calls scheduled` (`list`, `get`, `add`, `update`, `cancel`, `rsvp`)
-- `xr broadcasts` (`list`, `get`), `xr broadcasts sources` (`list`, `get`, `add`, `rename`, `remove`),
-  `xr broadcasts scheduled` (`list`, `get`, `add`, `update`, `remove`, `live`), and `xr broadcasts chat` (`history`,
-  `send`, `remove`, `mute`, `unmute`)
-- `xr bookmark-folders` (`list`, `posts`, `add`)
-- `xr hide` and `xr unhide`
-- `xr likers`, `xr reposters`, and `xr quotes`
-- `xr posts`, `xr users`, `xr user-posts`, `xr search-users`, `xr search-counts`, and `xr analytics`
-- `xr trends` (`place`, `personal`)
-- `xr notes` (`write`, `evaluate`, `eligible`, `written`, `remove`)
-- `xr articles` (`draft`, `publish`)
-- `xr media get` and `xr media analytics`
-- `xr spaces` (`search`, `get`, `by-creator`, `posts`)
-- `xr stream rules` (`list`, `add`, `remove`, `count`)
-- `xr news` (`search`, `get`)
-- `xr communities` (`search`, `get`)
-- `xr lists` (`list`, `followed`, `memberships`, `pinned`, `get`, `posts`, `followers`, `members`, `add`, `update`,
-  `remove`, `follow`, `unfollow`, `pin`, `unpin`)
-- `xr conversations` (`start`, `send`, `history`, `with`), `xr dm-events` (`get`, `remove`), `xr dm-block`, and
-  `xr dm-unblock`
-
 Go neither forwards events nor recovers from a restart. `xr webhooks listen --forward` POSTs each verified event to a
 URL of the caller's, a program after `--` runs once per event, and `--checkpoint` records how far `listen` got, which
 `xr webhooks replay --from-checkpoint` turns into the window X can replay.
 
 ## Exit code mapping for HTTP errors (intentional improvement)
 
-The Go version maps HTTP errors to exit codes by string-matching the error message body (e.g., checking if the body
-contains "404"). This fails for API responses where the JSON body doesn't contain the literal status code string,
-causing 404 responses to return `EXIT_GENERAL_ERROR` (1) instead of `EXIT_NOT_FOUND` (4).
+Go `xurl` exits 1 on every failure: each `os.Exit` in its source passes 1, and `main.go` exits 1 when Cobra returns an
+error. A 404, a 401, and a 429 all end at exit 1.
 
-The Rust version uses structured pattern matching on `xdk::Error::Api { status, .. }`, which correctly maps HTTP status
-codes to exit codes regardless of response body content. This means some edge-case exit codes differ:
+The Rust version maps the HTTP status itself, through `xdk::Error::Api { status, .. }`, to an exit code, so these exit
+codes differ:
 
 | Scenario                                      | Go exit code | Rust exit code     | Rust is more correct |
 | --------------------------------------------- | ------------ | ------------------ | -------------------- |
@@ -68,21 +73,49 @@ codes to exit codes regardless of response body content. This means some edge-ca
 
 The structural mapping is intentional.
 
+## API errors go to stderr, never stdout (intentional improvement)
+
+Go `xurl` prints an API error's body on stdout and exits 1 (`printResult` in `cli/shortcuts.go`, whose comment says
+error bodies go to stdout "so they can be piped/parsed the same way as a successful response"). A raw request adds
+`Error: request failed` on stderr. A flag error prints twice: Cobra writes `Error: unknown flag: --bogus` and the usage
+to stderr, and `main.go` prints the error again on stdout.
+
+`xr` keeps stdout for the command's answer and writes every failure to stderr: a line of text by default, or under
+`--output json` an envelope carrying `reason`, `exit_code`, `message`, and a `next_step` where one exists. A 429 that
+names its reset also carries `retry_after_secs` and `retry_at`.
+
+| Request                      | Go `xurl`                                                 | `xr`                                                                                  |
+| ---------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `read ID`, X answers 404     | Body on stdout, stderr empty, exit 1                      | stdout empty, `not-found` on stderr, exit 4                                           |
+| `/2/users/me`, X answers 401 | Body on stdout, `Error: request failed` on stderr, exit 1 | stdout empty, `auth-required` on stderr, exit 77                                      |
+| `read ID`, X answers 429     | Body on stdout, exit 1                                    | stdout empty, `rate-limited` with `retry_after_secs` and `retry_at` on stderr, exit 3 |
+| `--bogus`                    | `unknown flag: --bogus` on stdout and on stderr, exit 1   | stdout empty, `invalid-args` on stderr, exit 2                                        |
+
+A script that read Go's error body from stdout reads the envelope from stderr instead, and branches on its `reason` or
+on the exit code:
+
+```bash
+xr --output json read 1585341984679469056 2>err.json || jaq -r '.reason' err.json
+```
+
 ## A bare word is a command, not an endpoint (intentional improvement)
 
 Go `xurl` accepts any positional and sends it as the endpoint (`cli/root.go`), so a mistyped command name becomes a
-request against a path that does not exist and the caller reads an API error instead of a spelling correction.
+request against a path that does not exist and the caller reads an API error instead of a spelling correction. Go reads
+only the first positional and drops every word after it, so `xurl lists list` requests `/lists`.
 
 The Rust version classifies the positional after the parse and before anything is loaded or sent. A token that reads as
 a command name and matches none of them is a usage error at exit `2` with reason `unknown-command`, carrying the
 offending word in `command` and the nearest real name in `suggestion` when one is close enough:
 
-| Invocation       | Go behavior                     | Rust behavior                                         |
-| ---------------- | ------------------------------- | ----------------------------------------------------- |
-| `xr whoam`       | Request to `/whoam`, API error  | Exit 2, `unknown-command`, suggests `whoami`          |
-| `xr zzzzzz`      | Request to `/zzzzzz`, API error | Exit 2, `unknown-command`, no suggestion              |
-| `xr example.com` | Request to `/example.com`       | Exit 1, `validation` — a URL, and not an absolute one |
-| `xr`             | Usage error                     | Exit 0, root help on stdout                           |
+| Invocation                      | Go behavior                          | Rust behavior                                         |
+| ------------------------------- | ------------------------------------ | ----------------------------------------------------- |
+| `xr whoam`                      | Request to `/whoam`, API error       | Exit 2, `unknown-command`, suggests `whoami`          |
+| `xr zzzzzz`                     | Request to `/zzzzzz`, API error      | Exit 2, `unknown-command`, no suggestion              |
+| `xr lists list`                 | Request to `/lists`, `list` dropped  | Lists your lists                                      |
+| `xr likers 1585341984679469056` | Request to `/likers`, the id dropped | Lists the users who liked the post                    |
+| `xr example.com`                | Request to `/example.com`            | Exit 1, `validation` — a URL, and not an absolute one |
+| `xr`                            | Usage error                          | Exit 0, root help on stdout                           |
 
 A help or version flag does not change that outcome: `xr whoam --help`, `xr whoam -h`, and `xr whoam --version` fail
 exactly as `xr whoam` does. Neither does a word after it: `xr suth status` fails as `xr suth` does, naming `suth` and
@@ -224,3 +257,96 @@ The id is written only from an answer given under that same credential, and a cr
 without one, so it cannot name a different account. The username and display name of each answer are written beside
 every login the store holds for that id, in every app, so a rename seen through one login shows through all of them.
 Another user's handle is looked up on every run in both tools.
+
+## `--dry-run` checks any command offline (intentional improvement)
+
+Go `xurl` has no `--dry-run`: `xurl --dry-run /2/users/me` and `xurl delete --dry-run ID` exit 1 with
+`unknown flag: --dry-run`, and nothing is sent.
+
+`xr` takes `--dry-run` on every command, raw requests included. It checks the inputs and the stored credential offline
+and sends and stores nothing. A dry run that reaches its checks answers on stdout at exit 0 with `status: dry_run`,
+`would_succeed`, the credential the request would go out under, and, when the real run would fail, the `reason` and
+`exit_code` it would end on.
+
+`XURL_DRY_RUN=1` makes every `xr` call in a process a dry run, so a migrated script can be checked whole before it
+spends anything:
+
+```bash
+XURL_DRY_RUN=1 ./migrated-script.sh
+```
+
+## `delete` and the store commands ask first (intentional improvement)
+
+Go's `xurl delete ID` sends the `DELETE` at once, and `xurl auth clear --all` and `xurl auth apps remove NAME` change
+the store at once. Go asks nothing and has no `--force`.
+
+`xr` asks before each of these. On a terminal it prompts on stderr and proceeds on `y`. Under `--no-interactive` or
+`--quiet`, or when stdin or stderr is not a terminal, it refuses at exit 1 with reason `confirmation-required` and a
+`next_step` of `confirm`, whose `template` is the invocation with `--force`. `--force` proceeds without asking. A dry
+run reports `confirmation_required: true` for every `xr` command that asks, including the ones with no Go counterpart.
+
+A script that deleted with Go adds `--force`:
+
+```bash
+xr delete 1585341984679469056 --force
+```
+
+## A credential the endpoint does not accept is refused before sending (intentional improvement)
+
+Go `xurl` picks a credential by kind, whatever the endpoint accepts: the first OAuth2 token, then OAuth1, then the
+bearer token (`getAuthHeader` in `api/client.go`). With only a bearer token stored, `xurl like ID` sends
+`GET /2/users/me` with it and reports X's refusal.
+
+`xr` reads the schemes each endpoint accepts from the vendored X OpenAPI spec and checks them against the stored
+credentials before sending. With only a bearer token stored, `xr like ID` exits 2 with reason `auth-method-mismatch` and
+sends nothing, and its `next_step` says how to add a credential the endpoint accepts.
+
+## `--cursor` asks for the next page (intentional improvement)
+
+Go `xurl`'s list commands take `-n`/`--max-results` for the size of one page and nothing for the next;
+`xurl search QUERY --cursor TOKEN` exits 1 with `unknown flag: --cursor`. The next page is a raw request with
+`pagination_token`.
+
+`xr`'s list commands take the same `-n`. On a list command whose endpoint pages, `--cursor TOKEN`, or `--after TOKEN`,
+sends the token as X's `pagination_token`; an endpoint X does not page, such as Spaces search, takes none. `--page`
+exits 1 with reason `unsupported-pagination`, since X pages by token rather than by number.
+
+A script that paged with a raw request passes the token to the command instead:
+
+```bash
+xr search "from:XDevelopers" --cursor TOKEN
+```
+
+## Shortcut output uses the spec's post vocabulary (intentional difference)
+
+Go `xurl` requests fields under X's legacy names (`tweet.fields`, `expansions=referenced_tweets.id`) and prints X's body
+as sent (`api/shortcuts.go`, `printResult` in `cli/shortcuts.go`). Where X answers in its legacy post vocabulary, Go's
+output carries those keys.
+
+`xr` requests fields under the names the vendored spec gives them (`post.fields`, `referenced_posts`), and a shortcut
+prints each legacy key under the spec's name with its value unchanged; the CLI README's "Machine-Readable Output"
+section lists the renamed keys. A raw `xr` request prints X's keys as sent.
+
+| Key in X's answer        | `xurl read`              | `xr read`               | `xr /2/tweets/ID`        |
+| ------------------------ | ------------------------ | ----------------------- | ------------------------ |
+| `retweet_count`          | `retweet_count`          | `repost_count`          | `retweet_count`          |
+| `referenced_tweets`      | `referenced_tweets`      | `referenced_posts`      | `referenced_tweets`      |
+| `edit_history_tweet_ids` | `edit_history_tweet_ids` | `edit_history_post_ids` | `edit_history_tweet_ids` |
+
+A filter written against Go's output reads the spec's names from an `xr` shortcut: `.public_metrics.retweet_count`
+becomes `.public_metrics.repost_count`.
+
+## Every secret can come from a file or stdin (intentional improvement)
+
+Go `xurl` takes the bearer token as an argument, through `--bearer-token`, or from stdin when the argument is `-`
+(`auth app-only` in `cli/auth.go`). The client secret of `auth apps add` and `auth apps update`, and the OAuth1 consumer
+secret, access token, and token secret of `auth oauth1`, are flag values only, apart from the `CLIENT_SECRET` Go also
+reads from the environment. A flag value shows in the shell history and in any process listing.
+
+`xr` gives each of these a flag that reads the secret from a path, or from stdin as `-`: `--client-secret-file`,
+`--consumer-secret-file`, `--access-token-file`, `--token-secret-file`, and `--bearer-token-file`. The flag-value forms
+work too.
+
+```bash
+<secret-command> | xr auth apps add my-app --client-id <client-id> --client-secret-file -
+```
