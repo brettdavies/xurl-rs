@@ -3171,8 +3171,9 @@ pub struct CallDetailsArgs {
     /// assumes 30
     #[arg(long, value_name = "MINUTES")]
     pub duration: Option<u32>,
-    /// Numeric user ID of someone to invite; repeat for each person
-    #[arg(long = "invite", value_name = "USER_ID")]
+    /// A handle (@jack or jack) or numeric user ID of someone to invite;
+    /// repeat for each person
+    #[arg(long = "invite", value_name = "ACCOUNT")]
     pub invite: Vec<String>,
     /// The RFC 5545 RRULE to repeat the call by, such as
     /// FREQ=WEEKLY;BYDAY=MO

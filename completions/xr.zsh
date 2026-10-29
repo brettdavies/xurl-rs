@@ -6571,7 +6571,7 @@ _arguments "${_arguments_options[@]}" : \
 '--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
 '--description=[What the call is about (1000 characters at most)]:DESCRIPTION:_default' \
 '--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
-'*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
+'*--invite=[A handle (@jack or jack) or numeric user ID of someone to invite; repeat for each person]:ACCOUNT:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
 '--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
@@ -6618,7 +6618,7 @@ _arguments "${_arguments_options[@]}" : \
 '--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
 '--description=[What the call is about (1000 characters at most)]:DESCRIPTION:_default' \
 '--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
-'*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
+'*--invite=[A handle (@jack or jack) or numeric user ID of someone to invite; repeat for each person]:ACCOUNT:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
 '--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
 '--scope=[Which occurrences, counted from \`--occurrence\`\: X assumes \`all\` without it and \`this\` with it]:SCOPE:((all\:"Every occurrence"

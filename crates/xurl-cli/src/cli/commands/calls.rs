@@ -3,7 +3,7 @@
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use super::{Run, send_confirmed, send_validated};
+use super::{Run, send_confirmed, send_to_accounts, send_validated, stand_in_ids};
 use crate::cli::failure::CommandResult;
 use crate::cli::{
     CallAnswer, CallDetailsArgs, CallScope, CallsCommands, OccurrenceArgs,
@@ -82,13 +82,18 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
         } => {
             let call = new_call(start, details);
             let ctx = context("calls-scheduled-add", None, &call);
-            send_validated(
-                run,
-                ctx,
-                || shortcuts::validate_new_scheduled_call(&call),
-                &common,
-                |client| client.schedule_call(&call),
-            )
+            let invitees = call.invitee_ids.clone();
+            let inviting = |ids: &[String]| NewScheduledCall {
+                invitee_ids: ids.to_vec(),
+                ..call.clone()
+            };
+            let validate = || {
+                shortcuts::validate_new_scheduled_call(&inviting(&stand_in_ids(&invitees)))?;
+                validate_invitees(&invitees)
+            };
+            send_to_accounts(run, ctx, validate, &invitees, &common, |client, ids| {
+                client.schedule_call(&inviting(ids))
+            })
             .await
         }
         ScheduledCallsCommands::Update {
@@ -100,13 +105,18 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
         } => {
             let changes = changes(start, details, occurrences);
             let ctx = context("calls-scheduled-update", Some(&scheduled_call_id), &changes);
-            send_validated(
-                run,
-                ctx,
-                || shortcuts::validate_scheduled_call_changes(&changes),
-                &common,
-                |client| client.update_scheduled_call(&scheduled_call_id, &changes),
-            )
+            let invitees = changes.invitee_ids.clone().unwrap_or_default();
+            let inviting = |ids: &[String]| ScheduledCallChanges {
+                invitee_ids: changes.invitee_ids.as_ref().map(|_| ids.to_vec()),
+                ..changes.clone()
+            };
+            let validate = || {
+                shortcuts::validate_scheduled_call_changes(&inviting(&stand_in_ids(&invitees)))?;
+                validate_invitees(&invitees)
+            };
+            send_to_accounts(run, ctx, validate, &invitees, &common, |client, ids| {
+                client.update_scheduled_call(&scheduled_call_id, &inviting(ids))
+            })
             .await
         }
         ScheduledCallsCommands::Cancel {
@@ -162,6 +172,16 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
             .await
         }
     }
+}
+
+/// Checks the form of each invitee, a handle or a numeric user id; the
+/// call's own validator checks how many there are and each id, with every
+/// handle standing in for the id its lookup returns.
+fn validate_invitees(invitees: &[String]) -> Result<(), &'static str> {
+    if invitees.is_empty() {
+        return Ok(());
+    }
+    shortcuts::validate_accounts(invitees)
 }
 
 /// A dry run's context: the command, the scheduled call it names, and each
