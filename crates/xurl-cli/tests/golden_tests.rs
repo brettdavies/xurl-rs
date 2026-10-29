@@ -1693,6 +1693,7 @@ fn xr_output_matches_the_golden_fixtures() {
     std::fs::create_dir_all(&dir).expect("golden dir");
 
     let cases = all_cases(&bin, &scratch);
+    let validators = validator_reasons();
     let mut failures = Vec::new();
     let mut expected_files = BTreeSet::new();
 
@@ -1701,7 +1702,14 @@ fn xr_output_matches_the_golden_fixtures() {
         expected_files.insert(file.clone());
         let actual = capture(case, &bin, &api, &scratch);
 
-        if let Some(reason) = case.reason {
+        // A `dry-run-<code>` case exists to pin that validator's refusal, so
+        // its envelope must still name the code: a bless would otherwise
+        // re-capture whatever a renamed verb or a widened input now prints.
+        let pinned = case
+            .name
+            .strip_prefix("dry-run-")
+            .filter(|code| validators.contains(*code));
+        if let Some(reason) = case.reason.or(pinned) {
             let found = envelope_reason(&actual);
             if found.as_deref() != Some(reason) {
                 failures.push(format!(
