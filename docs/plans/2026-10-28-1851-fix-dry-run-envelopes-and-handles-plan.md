@@ -167,6 +167,14 @@ Considered and not built:
   options: leave it; make `message` the sentence and add a key carrying the code, which changes a value agents may match
   on today; or make `message` the sentence alone, which drops the code. Recommendation: a separate issue, since every
   option changes an envelope agents read.
+- OQ2 (Brett's, does not block this plan). `webhooks listen` with no signing secret dry-runs to
+  `reason: "no-signing-secret"`, `exit_code: 77`, and no `message`, while its real run fails `reason: "auth-required"`
+  with `message: "Auth Error: No signing secret: ..."` (`crates/xurl-cli/src/cli/commands/webhooks_listen.rs:101`). That
+  path writes its own envelope rather than going through `DryRun::answer`, so U1 does not reach it. The `README` already
+  promises that a credential refusal's dry run carries the real run's keys, and `no-signing-secret` is documented and
+  tested nowhere. The options: send it through `Failure::DryRunRefusal` in U1, which changes its `reason` to
+  `auth-required` and adds `message`; keep `reason` and add only `message`; or leave it. Recommendation: the first, in
+  U1, since it makes the dry run match the real run as the `README` says.
 
 ---
 
@@ -301,8 +309,8 @@ into `CHANGELOG.md`:
   - `crates/xurl-cli/src/cli/output/mod.rs`
   - `crates/xurl-cli/src/cli/output/dry_run.rs`
   - `crates/xurl-cli/tests/golden_tests.rs`
-  - `crates/xurl-cli/tests/golden/dry-run-*.golden` (re-blessed), and a new fixture for the `webhooks listen --forward`
-    case
+  - `crates/xurl-cli/tests/golden/dry-run-*.golden` (re-blessed), and new fixtures for the `webhooks listen --forward`
+    case and for `dry-run-text-invalid-quiet`
   - `crates/xurl-cli/README.md` (§ "Dry Runs")
   - `AGENTS.md` (§ "Output formats", the `--dry-run` paragraph)
 - **Approach:**
@@ -523,7 +531,7 @@ them; the decisions that are Brett's alone stay in Open Questions.
 - `REALITY: binding-decisions pass none covers this work crates/xurl-cli/src/cli/failure.rs:32`
 - `REALITY: numbers pass bounds read from constants crates/xdk/src/api/shortcuts.rs:1190`
 - `REALITY: deferred-asks pass resolve-handle not built, KD1 crates/xurl-cli/src/cli/commands/mod.rs:1031`
-- `REALITY: pr-count finding 3 PRs docs/plans/2026-10-28-1851-fix-dry-run-envelopes-and-handles-plan.md:267`
+- `REALITY: pr-count finding 3 PRs docs/plans/2026-10-28-1851-fix-dry-run-envelopes-and-handles-plan.md:278`
 
 ### Findings
 
@@ -689,7 +697,7 @@ Sequential implementation, no parallelization opportunity: the brief rules out w
 - Failure modes: 0 critical gaps flagged
 - Unresolved decisions: 1 (OQ1, Brett's; it blocks no unit)
 - Outside voice: codex, disabled
-- Parallelization: 0 lanes, 0 parallel / 4 sequential
+- Parallelization: 0 lanes, 0 parallel / 5 sequential
 - Lake Score: 2/2
 
 ---
@@ -917,6 +925,20 @@ below 6. TTHW is one envelope, under the 10-minute flag.
 
 Unresolved decisions: OQ1 (Brett's), carried from the plan.
 
+## Document Review
+
+Review at `83bb958` with five lenses (coherence, feasibility, scope-guardian, adversarial, product-lens), each run inline
+in this session; no reviewer agent was dispatched. The cross-model pass did not run: the brief keeps every lens inline,
+and outside-model reviews are disabled for this repo's plan reviews.
+
+- **Applied:** U1's file list names the new `dry-run-text-invalid-quiet` fixture its test scenarios create; the Eng
+  review's `pr-count` receipt points at the CI queue note again; the Eng review's sequential count is five, one per
+  unit.
+- **Decision for Brett:** OQ2, the `webhooks listen` dry run without a signing secret (Open Questions).
+- **Checked, no change:** no integration test compares a whole refusing dry-run envelope or asserts its `message` or
+  `next_step` absent, so the golden fixtures are the only tests U1 moves; `--invite` and the `subscriptions remove`
+  account are the only numeric-only account arguments, so the Objective holds once U3 and U4 land.
+
 ## GSTACK REVIEW REPORT
 
 | Review         | Trigger                                        | Why                             | Runs | Status      | Findings                                   |
@@ -933,3 +955,4 @@ Unresolved decisions: OQ1 (Brett's), carried from the plan.
 **UNRESOLVED DECISIONS:**
 
 - OQ1 (Brett's): whether the real run's validation envelope keeps the validator code in `message`
+- OQ2 (Brett's): whether the `webhooks listen` dry run without a signing secret takes the real run's keys
