@@ -296,8 +296,8 @@ fn annotate_under(cmd: Command, parent: &str) -> Command {
     let Some(row) = ROWS.iter().find(|row| row.path == path) else {
         return cmd;
     };
-    // `mut_args` keeps each argument in place, where `mut_arg` would move
-    // `--auth` to the end of the list the shell completions follow.
+    // `mut_args` keeps each argument in its place, so the shell completions
+    // list `--auth` where the command declares it.
     cmd.mut_args(|arg| {
         if arg.get_id() == "auth_type" {
             arg.help(help_for(row))
