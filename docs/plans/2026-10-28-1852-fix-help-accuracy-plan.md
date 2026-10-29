@@ -373,7 +373,8 @@ Each PR body's `## Changelog` carries the user-visible change, so the generated 
   - Modify: every `help-*.golden` (the two paragraphs), `help-calls-scheduled-list.golden`, `completions/*`
 - **Approach:**
   1. Rewrite the `--limit` and `--cursor` doc comments to the KTD4 rules, naming no command.
-  2. Make `calls scheduled list` resolve its page size per KTD5.
+  2. Make `calls scheduled list` resolve its page size per KTD5. Its `-n` help says what every other `-n` says, that it
+     overrides `--limit`, and that the page size is 20 when neither is given.
   3. Add the paging walk: for every runnable command that takes `--auth`, a real run against `MockX` with
      `--limit 37 --cursor CURSOR-TOKEN`. Each request is matched to its vendored-spec path template, read from
      `crates/xdk/vendor/x-api-openapi.json`, and failures carry `Cause:` lines. One raw invocation to a paged path with
@@ -414,7 +415,9 @@ Each PR body's `## Changelog` carries the user-visible change, so the generated 
   - Modify: `AGENTS.md` (a new "Accepted auth" surface in "Adding a command family")
   - Modify: about 140 `help-*.golden` fixtures, `help.golden` (the root page), `completions/*`
 - **Approach:**
-  1. Per KTD6, the table with one row per command, and the walk applied through `mut_subcommands` on `Cli`.
+  1. Per KTD6, the table with one row per command, and the walk applied through `mut_subcommands` on `Cli`. clap's
+     `mut_arg` panics on an argument the command does not declare, so the walk sets `--auth` help only where the
+     command declares `auth_type`; a row for any other command fails the guard test, never `Cli::command()`.
   2. Per KTD7, the set computed by intersection and the line formatted from it; the root `--auth` built from
      `WireScheme`.
   3. Per KTD8, the walk beside the paging walk.
@@ -424,7 +427,7 @@ Each PR body's `## Changelog` carries the user-visible change, so the generated 
   `crates/xurl-cli/tests/dry_run_guard.rs` for walking clap's tree.
 - **Test scenarios:**
   - A command that takes `--auth` with no row fails with a `Cause:` line naming the command and `accepted_auth.rs`; a
-    row naming no such command fails the same way.
+    row naming no such command, or a command without `--auth`, fails the same way.
   - For each command, the schemes its help lists equal the schemes its dry run does not refuse with
     `auth-method-mismatch` over a store holding every kind. A failure prints both sets and the endpoint the dry run
     refused, so the contributor sees which row to change.
@@ -679,6 +682,30 @@ an input refusal today.
 with their constants; `detect_scheme` already walks the preference order; the README's comparison row already documents
 `--cursor`.
 
+### Document review (2026-10-29)
+
+Lenses: coherence and feasibility (always on), scope-guardian (every plan), adversarial (a bootstrap plan that adds a
+new table and walk). Each ran inline in this session, with no subagents. The cross-model pass did not run: the slot's
+standing rule allows no subagents, and gstack's outside reviews are disabled in this checkout.
+
+Applied, as corrections the plan's own decisions require:
+
+- U5: clap 4.6.7's `Command::mut_arg` panics with "Argument `{id}` is undefined" when the command lacks the argument,
+  and `AGENTS.md` allows no panicking production path. The walk now sets `--auth` help only where `auth_type` exists,
+  and a row for any other command fails the guard test (feasibility).
+- U4: KTD5 makes `calls scheduled list` honor `--limit`, but its `-n` help still read "Number of calls (1-100)". It now
+  says what every other `-n` says, and names the default of 20 (coherence).
+
+FYI, no change made:
+
+- Where a help string becomes an expression, a field that keeps a multi-paragraph doc comment would still show that
+  comment's long help under `--help`; the implementer drops the doc comment on those fields (feasibility).
+- The U2 changelog entry could also name the reworded checkpoint error; the Scope Boundaries already record it
+  (coherence).
+
+Not retained: the premise (helpful help for agents) holds against the issues and `AGENTS.md`; each new mechanism is
+asked for by the brief or required by a stated rule (scope-guardian, adversarial).
+
 ## DX Review Scorecard
 
 ```text
@@ -722,7 +749,7 @@ with their constants; `detect_scheme` already walks the preference order; the RE
 | DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | issues_open | score: 6/10 to 8/10, TTHW: 2 calls to 1  |
 
 - **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config for both reviews; no findings.
-- **VERDICT:** Eng and DX reviews ran once each; every finding is folded into the plan with evidence. Document review
-  follows.
+- **VERDICT:** Eng, DX, and document reviews ran once each; every finding is folded into the plan with evidence or
+  recorded as FYI. Ready to build.
 
 NO UNRESOLVED DECISIONS
