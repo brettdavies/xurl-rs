@@ -78,6 +78,8 @@ each carry claims the binaries do not back:
   X's MCP server), and `token` (prints the active OAuth2 access token).
 - R5. The doc tells a reader which `xr` commands have no Go counterpart by a rule that stays true as families are added:
   every `xr` command outside R3's map and Go's matching names (KD2).
+- R18. The command-names section opens with what carries over: `xr` reads the `~/.xurl/auth.yml` Go `xurl` 1.3.4 writes,
+  so the apps and credentials stored with Go are there on the first `xr` run.
 
 **Behavior**
 
@@ -88,7 +90,8 @@ each carry claims the binaries do not back:
   `next_step` where a step exists, with `retry_after_secs` and `retry_at` on a 429 that names its reset.
 - R8. The exit-code section states that Go exits 1 on every failure, with its table unchanged.
 - R9. Go refuses `--dry-run` as an unknown flag and sends nothing; `xr` takes `--dry-run` on every command, raw requests
-  included, sends and stores nothing, and answers a dry run that reaches its checks with `would_succeed` at exit 0.
+  included, sends and stores nothing, and answers a dry run that reaches its checks with `would_succeed` at exit 0. The
+  section shows a migrated script run whole under `XURL_DRY_RUN=1`, which turns each of its `xr` calls into a dry run.
 - R10. Go runs `delete`, `auth clear`, and `auth apps remove` at once and has no `--force`; `xr` asks before each of
   them when stdin and stderr are terminals, refuses with `confirmation-required` (exit 1) under `--no-interactive`,
   `--quiet`, or no terminal, and proceeds under `--force`. A dry run reports `confirmation_required: true` for every
@@ -110,7 +113,8 @@ each carry claims the binaries do not back:
   shape, and for the stored caller id, binary size, and command count; each cell is short and the detail lives in
   `KNOWN_DIFFERENCES.md`.
 - R16. The root README carries a paragraph of at most five lines naming the differences most likely to break a migrated
-  script (R2, R7, R9, R10) and linking `KNOWN_DIFFERENCES.md` and the CLI README's table.
+  script (R2, R7, R9, R10) and linking `KNOWN_DIFFERENCES.md` and the CLI README's table; R9's clause names
+  `XURL_DRY_RUN=1`.
 - R17. All three files describe present behavior with no history narration, and every test that reads them keeps
   passing.
 
@@ -119,7 +123,8 @@ each carry claims the binaries do not back:
 - Each claim in the three files reproduces offline against Go `xurl` at `18dcb447` and `xr` at the PR's base, by the
   method in the Verification Contract.
 - A reader holding a Go `xurl` script can find each command it calls in R3's map or among Go's matching names without
-  reading `xr --help`.
+  reading `xr --help`: each of Go 1.3.4's 60 commands from KTD5's walk is in the map, has the same name in `xr`, or is
+  named among R4's.
 
 ### Key Decisions
 
@@ -176,10 +181,11 @@ Each item below is a defect or gap reproduction surfaced outside this change's s
 - KTD1. **One owner per difference.** Each difference is stated in full once, in a `KNOWN_DIFFERENCES.md` section; a
   README row is a short projection of it. The README table links the file, not each section, so a heading edit cannot
   break a dozen anchors.
-- KTD2. **New sections follow the existing shape.** A heading `## <claim> (intentional improvement)` or
-  `(intentional difference)`; a paragraph on Go citing its source file at the pin (`cli/root.go`, `api/client.go`); a
-  paragraph on `xr`; a Go-versus-`xr` table when three or more invocations differ. Observations live in this plan, not
-  the doc.
+- KTD2. **New sections follow the existing shape, and show the script change.** A heading
+  `## <claim> (intentional improvement)` or `(intentional difference)`; a paragraph on Go citing its source file at the
+  pin (`cli/root.go`, `api/client.go`); a paragraph on `xr`; a Go-versus-`xr` table when three or more invocations
+  differ. A section whose difference makes a Go-era script change (R7, R10, R12, R14) shows the `xr` invocation the
+  script needs, as `docs/migrating` does for each major. Observations live in this plan, not the doc.
 - KTD3. **Migration order.** The new command-names section goes first, since a migrated script fails there before
   anything else. New behavior sections follow the existing ones they extend: error streams after "Exit code mapping for
   HTTP errors"; the others after "The caller's id is asked for once per login", in R order.
@@ -197,7 +203,8 @@ Each item below is a defect or gap reproduction surfaced outside this change's s
 - KTD8. **The guards on the READMEs shape the wording.** Root `README.md` names no three of the shortcut function names
   `recipe_guard` counts (`repost`, `unrepost`, `bookmark`, `unbookmark` collide with command words). No README line puts
   a secret flag before a value (`agentic_tests::secret_on_argv` matches `--client-secret` followed by a space and a
-  non-dash character).
+  non-dash character). Go's argv form of a secret is described in prose, never shown as an invocation, in all three
+  files.
 - KTD9. **The diff carries only the edited text.** None of the three files is in the edit hook's wrapped shape at `HEAD`
   (`git show HEAD:<file> | md-wrap.py -w 120` differs by 18, 20, and 75 lines), so an edit that lets the hook reflow the
   whole file rewraps paragraphs no unit touches. Each unit wraps its own new text at 120 by hand and leaves every other
@@ -210,7 +217,7 @@ Each item below is a defect or gap reproduction surfaced outside this change's s
 ```text
 # Known Differences from Go xurl
   intro: compared against Go xurl 1.3.4, the release `Go parity` runs                      (R1)
-## Command names that differ, and commands only one tool has           [new]                (R2-R5)
+## Command names that differ, and commands only one tool has           [new]                (R2-R5, R18)
 ## Webhooks: no built-in tunnel, ...                                     [xr-only list removed] (R5)
 ## Exit code mapping for HTTP errors                                     [narrative corrected] (R8)
 ## API errors go to stderr, never stdout                                 [new]                (R7)
@@ -257,13 +264,14 @@ New heading wording is directional; the implementer may tighten it while keeping
 ### U1. Compare against Go xurl 1.3.4 in KNOWN_DIFFERENCES.md
 
 - **Goal:** `KNOWN_DIFFERENCES.md` carries R1 to R14 in the order KTD3 sets.
-- **Requirements:** R1 to R14, R17.
+- **Requirements:** R1 to R14, R17, R18.
 - **Dependencies:** none.
 - **Files:** `KNOWN_DIFFERENCES.md`.
 - **Approach:**
   1. Add the intro sentence naming Go `xurl` 1.3.4 and the `Go parity` job (R1).
   2. Add the command-names section: a table of Go name, `xr` name, and what `xr` does with the Go name (R2, R3); the
-     three Go-only commands (R4); the rule for `xr`-only commands, pointing at `xr --help` (R5, KD2).
+     three Go-only commands (R4); the rule for `xr`-only commands, pointing at `xr --help` (R5, KD2); its opening line
+     on the shared store (R18).
   3. In the webhooks section, delete the `xr`-only bullet list and keep its sentence that a Go sign-in does not request
      `calls.read` and `calls.write`.
   4. Correct the exit-code section's opening paragraph (R8); keep its table.
@@ -281,6 +289,8 @@ New heading wording is directional; the implementer may tighten it while keeping
     a local mock, with the output the Appendix records.
   - Every `xr` claim reproduces against `xr` built at the PR's base with `XURL_TOKEN_STORE` at a scratch path and
     `API_BASE_URL` at a closed port or the local mock.
+  - A store Go `xurl` 1.3.4 wrote under a scratch `HOME` (a bearer token, and fake OAuth1 values through
+    `xurl auth oauth1`) lists the same app and credential kinds in `xr --output json auth status`.
   - The section headings that existed before U1 are byte-identical after it.
   - No line describes a past state ("previously", "now", "used to").
 - **Verification:** the doc-reading tests and markdownlint pass; each claim has its Appendix row or a Go source
@@ -341,15 +351,16 @@ New heading wording is directional; the implementer may tighten it while keeping
 
 ## Verification Contract
 
-| Gate              | How                                                                                                                                                                                                                                         | Proves                       |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| Go claims         | Go `xurl` from `go install github.com/xdevplatform/xurl@18dcb447f090667171ff23666a05d6d387e2aa73` into a scratch `GOPATH`, run under `env -i` with a scratch `HOME`, `API_BASE_URL` at `127.0.0.1:9` or a local mock that logs each request | R2 to R14's Go side, offline |
-| `xr` claims       | `cargo build -p xurl-rs` at the PR base; the same mock and closed port; `XURL_TOKEN_STORE` at a scratch path                                                                                                                                | R2 to R14's `xr` side        |
-| Counts            | KTD5's help-tree walk on both binaries                                                                                                                                                                                                      | R15's count row              |
-| Doc-reading tests | `cargo test -p xurl-rs --test recipe_guard --test agentic_tests --test next_step_tests` and `cargo test -p xdk-rs --test readme_stability_tests --test readme_landing_tests`                                                                | R17                          |
-| Markdown          | `markdownlint-cli2` on the three files, through `scripts/hooks/pre-commit`                                                                                                                                                                  | lint clean                   |
-| Local CI mirror   | `scripts/hooks/pre-push`, in the background                                                                                                                                                                                                 | the gates CI runs            |
-| CI                | every check on each PR reads `SUCCESS` in the rollup, `Go parity` included                                                                                                                                                                  | the stack is green           |
+| Gate              | How                                                                                                                                                                                                                                         | Proves                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Go claims         | Go `xurl` from `go install github.com/xdevplatform/xurl@18dcb447f090667171ff23666a05d6d387e2aa73` into a scratch `GOPATH`, run under `env -i` with a scratch `HOME`, `API_BASE_URL` at `127.0.0.1:9` or a local mock that logs each request | R2 to R14's Go side, offline                                 |
+| `xr` claims       | `cargo build -p xurl-rs` at the PR base; the same mock and closed port; `XURL_TOKEN_STORE` at a scratch path                                                                                                                                | R2 to R14's `xr` side                                        |
+| Counts            | KTD5's help-tree walk on both binaries                                                                                                                                                                                                      | R15's count row                                              |
+| Go command map    | walk Go 1.3.4's 60 commands from KTD5 against the command-names section                                                                                                                                                                     | each is mapped, shares its name in `xr`, or is named Go-only |
+| Doc-reading tests | `cargo test -p xurl-rs --test recipe_guard --test agentic_tests --test next_step_tests` and `cargo test -p xdk-rs --test readme_stability_tests --test readme_landing_tests`                                                                | R17                                                          |
+| Markdown          | `markdownlint-cli2` on the three files, through `scripts/hooks/pre-commit`                                                                                                                                                                  | lint clean                                                   |
+| Local CI mirror   | `scripts/hooks/pre-push`, in the background                                                                                                                                                                                                 | the gates CI runs                                            |
+| CI                | every check on each PR reads `SUCCESS` in the rollup, `Go parity` included                                                                                                                                                                  | the stack is green                                           |
 
 No test runs against X. No golden fixture is re-blessed.
 
@@ -514,18 +525,189 @@ post keys, which R13 cites.
 
 ---
 
+## Developer Experience Review Record
+
+`/plan-devex-review` of this plan on 2026-10-28, run inline in one session with no subagent and no outside model. Nobody
+watches the session, so every Step 0 question and pass decision below was settled from the cited evidence; none needed
+Brett.
+
+**Product type.** Documentation for a CLI tool: the plan changes three Markdown files and no command.
+
+**Persona** (from #423 § "Agent-native considerations": "Agents and developers ... migrating existing `xurl` skills and
+scripts").
+
+```text
+TARGET DEVELOPER PERSONA
+========================
+Who:       a script or skill author with working Go xurl 1.3.4 invocations, or the agent rewriting them
+Context:   swapping `xurl` for `xr` in an existing script, CI job, or agent skill
+Tolerance: one screen of README, then a few minutes in KNOWN_DIFFERENCES.md; every X call is billed
+Expects:   a Go-to-xr command map first, then what changes in output, errors, and prompts
+```
+
+**Developer perspective.** I have a skill that calls `xurl posts`, `xurl delete`, and `xurl read`, and parses whatever
+lands on stdout. The README's CLI section links "Relationship to xurl" and `KNOWN_DIFFERENCES.md`. The doc opens on
+webhooks and ngrok, which my skill never touches. Further down, a list says `xr posts` has no Go counterpart, so I take
+`posts` to be a new command and keep my `xr posts jack`. It sends `GET /2/tweets?ids=jack`, and its dry run had said
+`would_succeed: true`. My error branch reads stdout and finds it empty, because `xr` writes the envelope to stderr. My
+cleanup step's `xr delete` stops with `confirmation-required`. Each lesson costs a run, and against the live API each
+run is billed. (Observed: the doc's order, the list's wording, the `posts` request, the empty stdout, the refusal.
+Predicted: the reader's conclusions and the elapsed time.)
+
+**Competitive benchmark.** Clock: from landing on `README.md` with a Go `xurl` script to knowing every change the script
+needs.
+
+| Tool                 | Start to result                     | Time and evidence                        | DX choice                                                       | Source                        |
+| -------------------- | ----------------------------------- | ---------------------------------------- | --------------------------------------------------------------- | ----------------------------- |
+| `gh` replacing `hub` | README to knowing what changes      | unknown                                  | Prose comparison, no command map                                | `cli/cli` `docs/gh-vs-hub.md` |
+| `xr` today           | README to the script's four changes | ~10 min, several failed runs [estimated] | Divergence list, no map, `posts` misread                        | this plan's Problem Frame     |
+| `xr` after this plan | README to the script's four changes | under 2 min to read them [estimated]     | Four hazards on the README, map first in `KNOWN_DIFFERENCES.md` | R16, KTD3                     |
+
+Target: Champion (under 2 minutes) to see the four hazards, which the README paragraph (R16) reaches in one screen. The
+full map is a few minutes' read. Measuring it needs a reader, so the target stays estimated.
+
+**Magical moment.** The migrated script run whole under `XURL_DRY_RUN=1`: every `xr` call answers offline with
+`would_succeed`, the credential it would use, and `confirmation_required`, and nothing reaches X. Observed: `whoami`,
+`user-posts jack`, `delete <id>`, and a raw `/2/users/me` each answered `status: dry_run`, and the logging mock saw 0
+requests. Vehicle: R9's section and R16's clause, both existing behavior.
+
+**Mode.** DX POLISH: an enhancement whose scope #423 sets.
+
+**Journey.**
+
+```text
+STAGE           | READER DOES                                 | FRICTION POINT                           | STATUS
+----------------|---------------------------------------------|------------------------------------------|--------
+1. Discover     | reads README "The CLI: xr"                  | hazards one link away                    | fixed (R16)
+2. Install      | brew or cargo install                       | none for this doc                        | ok
+3. First result | finds `xurl posts` in the map               | map absent; `posts` reads as new         | fixed (R2, R3, KTD3)
+4. Real usage   | rewrites each call                          | no invocation for the changed calls      | fixed (KTD2)
+5. Debug        | runs the script                             | each failure costs a paid run            | fixed (R9's XURL_DRY_RUN=1)
+6. Upgrade      | keeps the Go store and logins               | unstated whether the store carries over  | fixed (R18)
+```
+
+**First-time developer report.**
+
+```text
+T+0:00  README "The CLI: xr": a bullet links Relationship to xurl and KNOWN_DIFFERENCES.md.
+T+0:30  KNOWN_DIFFERENCES.md opens on webhooks and ngrok; the script has no webhook.
+T+1:30  The list says `xr posts` has no Go counterpart; the reader keeps `posts`.
+T+2:30  `xr posts jack` sends ids=jack; the dry run had said would_succeed: true.
+T+4:00  The error branch reads stdout and finds nothing; the envelope is on stderr.
+T+6:00  `xr delete` refuses with confirmation-required; the reader adds --force after reading the template.
+```
+
+Addressed: T+0:30 and T+1:30 by KTD3 and R2; T+4:00 by R7 and KTD2; T+6:00 by R10 and KTD2; T+2:30's dry-run answer is a
+defect under Deferred to Follow-Up Work.
+
+**Decisions** (each settled from evidence; none crosses the docs-only boundary).
+
+- DX-1. Show the script change. A section whose difference forces a change shows the `xr` invocation the script needs
+  (KTD2). Evidence: `README.md` § "Stability" says each major's breaks are written up "with before-and-after invocations
+  under `docs/migrating`", and the existing sections already tabulate invocations.
+- DX-2. State what carries over (R18). Evidence: `xr --output json auth status`, run on a store Go 1.3.4 wrote, listed
+  `{"name":"default","bearer":true,"bearer_source":"store"}`; U1 extends the check to an OAuth1 entry.
+- DX-3. Name `XURL_DRY_RUN=1` as the way to check a migrated script (R9, R16). Evidence: the magical-moment observation
+  above.
+- DX-4. Measure success criterion 2 by walking Go's 60 commands against the map (Verification Contract).
+- DX-5. Describe Go's argv form of a secret in prose (KTD8), so no doc shows a secret as an argument.
+
+**Passes.**
+
+| Pass               | Before | After | Finding                                                                                                       |
+| ------------------ | ------ | ----- | ------------------------------------------------------------------------------------------------------------- |
+| 1. Getting started | 6      | 8     | The four hazards sit one link deep; R16 lifts them onto the README                                            |
+| 2. CLI design      | 7      | 8     | No Go-to-`xr` map; R3 adds it. Command names are fixed contract, out of scope                                 |
+| 3. Error messages  | 7      | 7     | Docs explain the envelope; `xr token` exits `unknown-command` with only `xr --help`, a code gap outside scope |
+| 4. Documentation   | 6      | 8     | No invocation for a changed call; KTD2 adds them                                                              |
+| 5. Upgrade path    | 6      | 8     | Comparison version unstated (R1) and store carry-over unstated (R18)                                          |
+| 6. Dev environment | 7      | 8     | `XURL_DRY_RUN=1` exists but goes unmentioned for migration (R9)                                               |
+| 7. Community       | 7      | 7     | `.github/ISSUE_TEMPLATE/config.yml` already routes Go `xurl` bugs upstream; no gap in scope                   |
+| 8. DX measurement  | 5      | 6     | Success criterion 2 is now walked (DX-4); reading time stays an estimate                                      |
+
+**Error paths the docs describe** (agent-ready-v1, existing `xr` behavior).
+
+```text
+Path                              | Class   | what | fix  | recovery | code | context | trace | redaction | channel | Cap
+xr token (a Go word)              | usage   | pass | fail | N/A      | pass | N/A     | N/A   | pass      | pass    | CAP6:fix
+xr delete <id>, no terminal       | usage   | pass | pass | pass     | pass | N/A     | N/A   | pass      | pass    | none
+xr read <id> -> 404               | api     | pass | pass | pass     | pass | pass    | N/A   | pass      | pass    | none
+xr posts jack (a Go habit)        | usage   | fail | fail | N/A      | N/A  | N/A     | N/A   | pass      | fail    | CAP6:fix
+```
+
+`xr token` today: `unknown-command`, `next_step: show-help xr --help`, with nothing saying the command is Go-only. A
+corrected line would name `KNOWN_DIFFERENCES.md`. `xr posts jack` dry-runs as `would_succeed: true`, where a corrected
+answer would refuse a non-numeric id and point at `user-posts`. Both are code, outside this plan; they reach release
+with the other follow-ups. There is no CAP4 finding: no secret leaks and no prompt blocks, since a refused `delete`
+names `--force`.
+
+**NOT in scope.** A `docs` link on `unknown-command` for Go-only words and Go spellings; id validation on `xr posts`; a
+measured reading-time study.
+
+**What already exists.** `docs/migrating` (the before-and-after convention), `XURL_DRY_RUN`, the `confirm` step's
+`--force` template, `xr auth status`, and `.github/ISSUE_TEMPLATE/config.yml`'s link to Go `xurl`'s tracker.
+
+### Implementation Tasks (DX review)
+
+- [ ] **T4 (P1, human: ~1h / CC: ~10min)** `KNOWN_DIFFERENCES.md`: write R18 and the `XURL_DRY_RUN=1` paragraph, and the
+  invocation lines KTD2 asks for
+  - Surfaced by: DX-1 to DX-3
+  - Files: `KNOWN_DIFFERENCES.md`, `README.md`
+  - Verify: the shared-store and dry-run checks re-run at the PR base; the Go command map gate
+
+---
+
+## DX Review Scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW — SCORECARD                             |
++====================================================================+
+| Dimension            | Score  | Prior  | Trend  |
+|----------------------|--------|--------|--------|
+| Getting Started      |  8/10  |  6/10  |  +2 ↑  |
+| API/CLI/SDK          |  8/10  |  7/10  |  +1 ↑  |
+| Error Messages       |  7/10  |  7/10  |   0    |
+| Documentation        |  8/10  |  6/10  |  +2 ↑  |
+| Upgrade Path         |  8/10  |  6/10  |  +2 ↑  |
+| Dev Environment      |  8/10  |  7/10  |  +1 ↑  |
+| Community            |  7/10  |  7/10  |   0    |
+| DX Measurement       |  6/10  |  5/10  |  +1 ↑  |
++--------------------------------------------------------------------+
+| TTHW                 | <2 min | ~10 min| est.   |
+| Competitive Rank     | Champion (estimated)                        |
+| Magical Moment       | designed via XURL_DRY_RUN=1 over the script |
+| Product Type         | Documentation (CLI tool)                    |
+| Mode                 | POLISH                                      |
+| Overall DX           |  8/10  |  6/10  |  +2 ↑  |
++====================================================================+
+| DX PRINCIPLE COVERAGE                                               |
+| Zero Friction      | covered (R16)                                  |
+| Learn by Doing     | covered (KTD2 invocations)                     |
+| Fight Uncertainty  | covered (R7, R10, R18)                         |
+| Opinionated + Escape Hatches | covered (--force, --dry-run)         |
+| Code in Context    | covered (the script change per section)        |
+| Magical Moments    | covered (XURL_DRY_RUN=1)                       |
+| Agents Are Users   | gap: unknown-command for Go words, code only   |
++====================================================================+
+```
+
+No dimension is below 6, and TTHW is under 10 minutes. Unresolved decisions in this review: none.
+
+---
+
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger               | Why                             | Runs | Status      | Findings                             |
-| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ------------------------------------ |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | not run     | n/a                                  |
-| Outside Review | codex (plan review)   | Independent 2nd opinion         | 0    | disabled    | `codex_reviews` disabled             |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 7 issues, 1 critical gap, all folded |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | not run     | n/a                                  |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 0    | not run     | n/a                                  |
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                                        |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ----------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | not run     | n/a                                             |
+| Outside Review | codex (plan review)   | Independent 2nd opinion         | 0    | disabled    | `codex_reviews` disabled                        |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 1    | ISSUES OPEN | 7 issues, 1 critical gap, all folded            |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | not run     | n/a                                             |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | ISSUES OPEN | score: 6/10 → 8/10, TTHW: ~10 min → under 2 min |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config; no findings.
-- **VERDICT:** Eng review done; every finding folded into the plan. Build does not wait on the open item below.
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config for both reviews; no findings.
+- **VERDICT:** Eng and DX reviews done; every finding folded into the plan. Build does not wait on the open item below.
 
 **UNRESOLVED DECISIONS:**
 
