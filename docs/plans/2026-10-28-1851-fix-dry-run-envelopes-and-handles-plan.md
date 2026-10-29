@@ -28,9 +28,10 @@ execution: code
   - Stop and send a decision brief before renaming or retyping any key an envelope carries today, before changing a
     command or flag name, and before touching the real run's validation envelope (Open Questions).
   - Stop if a dry run would send a request or a lookup to make any requirement pass.
-- **Execution profile:** a stack of three PRs, bottom PR to `dev`; no subagents or worktrees; jobs over about 30 seconds
-  run in the background; no request to the X API (tests use the in-crate mock and wiremock; manual runs use a scratch
-  `XURL_TOKEN_STORE` and `API_BASE_URL=http://127.0.0.1:9`).
+- **Execution profile:** a stack of three PRs, bottom PR to `dev`: U1 (#420), then U2 (#419), then U5, U3, and U4
+  (#422), one commit per unit; no subagents or worktrees; jobs over about 30 seconds run in the background; no request
+  to the X API (tests use the in-crate mock and wiremock; manual runs use a scratch `XURL_TOKEN_STORE` and
+  `API_BASE_URL=http://127.0.0.1:9`).
 - **Who finishes:** the executing agent opens every PR and verifies each rollup green. Brett merges.
 
 ---
@@ -187,8 +188,8 @@ Considered and not built:
   `show-help`. Other target errors (`io`) keep `DryRunRefusal`.
 - KTD4. **The walk lives in `crates/xurl-cli/tests/golden_tests.rs`, over `dry_run_cases()`.** For each JSON case whose
   envelope says `would_succeed: false`, it spawns the real run with `--dry-run` removed and `--force` added when the
-  envelope says `confirmation_required`, then compares `message`, `exit_code`, and `next_step` with `--dry-run`
-  stripped from a step's command. Every validator code already has a case there
+  envelope says `confirmation_required`, then compares `message`, `exit_code`, and `next_step` with `--dry-run` stripped
+  from a step's command. Every validator code already has a case there
   (`every_reason_the_source_emits_is_documented_and_pinned`), so the walk covers each one; a `webhooks listen --forward`
   case joins the matrix. Its failure message is a plain sentence with no `Cause:` line, since
   `crates/xurl-cli/tests/recipe_guard.rs` reserves that marker for command-family walks.
@@ -263,6 +264,9 @@ flowchart TB
 - **#421 (`issues-verb-alignment`)** may rename verbs in `crates/xurl-cli/src/cli/commands/calls.rs`; that is a textual
   conflict only, since none of the renamed verbs is one this plan changes.
 - **#409 (spec refresh)** may change `crates/xdk/src/api/shortcuts.rs` and the auth matrix; rebase before each push.
+- **CI queue.** Each xurl-rs PR starts about 25 jobs against the account's 20-job concurrency cap, so three PRs queue
+  behind each other and a restack runs them again. Push the stack once every unit is built, and land it with one
+  `gh stack merge`, so each head runs CI once.
 
 ---
 
@@ -293,7 +297,8 @@ flowchart TB
   4. Re-bless, then confirm with `git status` that only `dry-run-*` fixtures moved, and that each moved fixture gained
      `message` and `next_step` and lost nothing.
   5. State in both docs that an input refusal carries `message` and the real run's `next_step`, and that text prints the
-     real run's advice for either refusal.
+     real run's advice for either refusal. The README's text example (`xr --dry-run bookmark-folders add ""`) gains its
+     `Try 'xr bookmark-folders add --help'.` line.
 - **Execution note:** the walk must be observed failing against unfixed code before the fix lands; quote that output in
   the PR.
 - **Patterns to follow:** `Failure::DryRunRefusal` and its runner arm; `print_refusal`, which attaches the `show-help`
@@ -308,11 +313,14 @@ flowchart TB
   - `xr --dry-run --output json webhooks listen --forward ftp://example.com/x` carries `reason: "validation"`,
     `message: "--forward takes an http or https URL"`, and `show-help` with `xr webhooks listen --help`.
   - `xr --dry-run --output yaml webhooks add https://example.com:8443/hook` carries `message` and `next_step` too.
-  - `xr --dry-run webhooks add https://example.com:8443/hook` prints the summary, then `Try 'xr webhooks add --help'.`;
-    with `--quiet` the summary prints without that line.
+  - `xr --dry-run webhooks add https://example.com:8443/hook` prints the summary, then `Try 'xr webhooks add --help'.`
+    (the moved `dry-run-text-invalid` fixture pins it).
+  - With `--quiet` the same summary prints without that line, pinned by a new `dry-run-text-invalid-quiet` golden case;
+    `dry-run-text-quiet` covers only a credential refusal.
   - The credential-refusal fixtures (`dry-run-no-credential`, `dry-run-scheme-not-accepted`) do not move.
   - A unit test in `crates/xurl-cli/src/cli/output/dry_run.rs` covers an input refusal with advice lines.
-  - The walk passes over every JSON case in `dry_run_cases()`.
+  - The walk passes over every JSON case in `dry_run_cases()`, and fails when it checked fewer refusing cases than
+    `validator_reasons()` names, so a broken filter cannot pass it empty.
 - **Verification:** the walk fails on `dev` for a missing `message` and for the listen step, and passes after the
   change; the golden suite passes with only `dry-run-*` fixtures moved.
 
@@ -338,17 +346,34 @@ flowchart TB
   - The `notes write` tests pass unchanged.
 - **Verification:** both arms call one function, and the notes tests pass.
 
-### U3. `--invite` takes handles, through one helper for requests that name accounts
+### U5. One helper for requests that name accounts
 
-- **Goal:** `calls scheduled add` and `update --invite` take handles and ids in any mix, through a helper
-  `spaces by-creator` and `conversations start` share.
-- **Requirements:** R8, R10, R11, R12, R13.
+- **Goal:** `spaces by-creator` and `conversations start` send through one helper that owns account resolution, with no
+  change to what either command does.
+- **Requirements:** R10, R11 (as the shared path U3 and U4 build on).
 - **Dependencies:** U2, for the stack order.
 - **Files:**
   - `crates/xurl-cli/src/cli/commands/mod.rs`
-  - `crates/xurl-cli/src/cli/commands/calls.rs`
   - `crates/xurl-cli/src/cli/commands/spaces.rs`
   - `crates/xurl-cli/src/cli/commands/conversations.rs`
+- **Approach:** extract the helper (KTD6) from `spaces::by_creator` and `conversations::start` and move both onto it, in
+  its own commit, so the behavior change in U3 lands on a path whose existing tests already pass.
+- **Patterns to follow:** `act_on_user_with`, a helper over one request that takes a validator and a context.
+- **Test expectation:** no new tests; the change preserves behavior, and the existing tests hold it:
+  `by_creator_resolves_every_handle_in_one_lookup`, `by_creator_takes_ids_and_handles_together`,
+  `by_creator_sends_ids_alone_without_a_lookup`, and `by_creator_names_a_handle_x_could_not_find` in
+  `crates/xurl-cli/tests/spaces_tests.rs`; `start_resolves_every_handle_in_one_lookup_and_creates_a_group` in
+  `crates/xurl-cli/tests/dm_conversations_tests.rs`; and `crates/xurl-cli/tests/dry_run_guard.rs`.
+- **Verification:** those tests pass unchanged, no fixture moves, and the dry-run and resolution code for account lists
+  exists once.
+
+### U3. `--invite` takes handles
+
+- **Goal:** `calls scheduled add` and `update --invite` take handles and ids in any mix, through the U5 helper.
+- **Requirements:** R8, R10, R11, R12, R13.
+- **Dependencies:** U5.
+- **Files:**
+  - `crates/xurl-cli/src/cli/commands/calls.rs`
   - `crates/xurl-cli/src/cli/mod.rs` (the `--invite` value name and help)
   - `crates/xurl-cli/src/cli/family_help.rs` and `crates/xurl-cli/src/cli/commands/examples.rs`, if an example gains a
     handle
@@ -359,13 +384,14 @@ flowchart TB
   - `AGENTS.md` (§ "Adding a command family", the dispatch-arm helper list)
   - `crates/xurl-cli/tests/calls_tests.rs`
 - **Approach:**
-  1. Extract the helper (KTD6) from `spaces::by_creator` and `conversations::start`, and move both onto it.
-  2. Route `add` and `update` through it, validating with stand-ins (KTD7) while the context keeps the accounts as given
-     (KTD8).
-  3. Rename the value name (KTD9), re-bless the two help fixtures, and regenerate completions.
-  4. Replace the README's "`--invite` takes a numeric user ID (`xr user @handle` prints one)" with the new rule, and
+  1. Route `add` and `update` through the U5 helper, validating with stand-ins (KTD7) while the context keeps the
+     accounts as given (KTD8). Build the call once from the flags, then derive the validated and the sent call from it
+     by substituting `invitee_ids` alone, so the context, the check, and the request cannot differ in any other field.
+  2. Rename the value name (KTD9), re-bless the two help fixtures, and regenerate completions.
+  3. Replace the README's "`--invite` takes a numeric user ID (`xr user @handle` prints one)" with the new rule, and
      name the helper in the `AGENTS.md` recipe.
-- **Patterns to follow:** `spaces::by_creator`; `handles_lookup_call` and `resolve_account_ids`; `UNRESOLVED_ID`.
+- **Patterns to follow:** `spaces::by_creator` after U5; `handles_lookup_call` and `resolve_account_ids`;
+  `UNRESOLVED_ID`.
 - **Test scenarios:**
   - `calls scheduled add --start <T> --invite @jack --invite 2244994945` sends one `GET /2/users/by` with
     `usernames=jack`, then `POST /2/calls/scheduled` whose `invitee_ids` are jack's id and `2244994945`, in that order.
@@ -378,7 +404,8 @@ flowchart TB
   - 26 invitees on `add`, mixed handles and ids, are refused offline as `too-many-invitees`.
   - `update <ID> --invite @jack` sends the lookup, then `PUT /2/calls/scheduled/<ID>` with the resolved list;
     `update <ID> --title x` sends no lookup.
-  - The existing `spaces by-creator` and `conversations start` tests pass unchanged.
+  - `add --start <T> --invite @jack --no-notify` sends `notify_invitees: false` with jack's id, so the derived call
+    keeps every field but `invitee_ids`.
   - `crates/xurl-cli/tests/dry_run_guard.rs` passes, so no new path sends under `--dry-run`.
 - **Verification:** the calls tests and the dry-run guard pass, the two help fixtures and completions move only by the
   value name and help line, and the pattern exists once.
@@ -396,7 +423,7 @@ flowchart TB
   - `crates/xurl-cli/tests/webhooks_tests.rs`
 - **Approach:** validate the account's form with the webhook id, gate, then resolve with the helper's parts (KTD6) and
   send; the dry run builds its credentials from the lookup and the delete. The prompt names the account as given.
-- **Patterns to follow:** `unsubscribe` in `webhooks.rs`; the helper from U3.
+- **Patterns to follow:** `unsubscribe` in `webhooks.rs`; the helper from U5.
 - **Test scenarios:**
   - `webhooks subscriptions remove <WEBHOOK_ID> @jack --force` sends the lookup, then
     `DELETE /2/account_activity/webhooks/<WEBHOOK_ID>/subscriptions/<jack's id>/all`.
@@ -412,19 +439,19 @@ flowchart TB
 
 ## Verification Contract
 
-| Gate                         | Command                                                                                                                                           | Applies to |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| Golden fixtures and the walk | `cargo test -p xurl-rs --test golden_tests`                                                                                                       | U1, U3, U4 |
-| Re-bless, local only         | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests`, then `git status` lists only the intended fixtures                               | U1, U3, U4 |
-| Step parity                  | `cargo test -p xurl-rs --test next_step_tests`                                                                                                    | U1         |
-| Dry runs send nothing        | `cargo test -p xurl-rs --test dry_run_guard`                                                                                                      | U1, U3, U4 |
-| Family tests                 | `cargo test -p xurl-rs --test notes_tests`, `--test calls_tests`, `--test webhooks_tests`, `--test spaces_tests`, `--test dm_conversations_tests` | U2, U3, U4 |
-| Recipe and examples walks    | `cargo test -p xurl-rs --test recipe_guard --test agentic_tests`                                                                                  | U3         |
-| Whole suite                  | `cargo test --workspace --no-fail-fast`, in the background                                                                                        | each PR    |
-| Lints                        | `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`                                                                                  | each PR    |
-| Completions freshness        | `scripts/generate-completions.sh`, then an empty `git diff` on a second run                                                                       | U3, U4     |
-| Local CI mirror              | `scripts/hooks/pre-push`, in the background                                                                                                       | each PR    |
-| Manual repro                 | the commands under "Reproduction" against `target/debug/xr`, scratch store, closed port                                                           | each PR    |
+| Gate                         | Command                                                                                                                                           | Applies to     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Golden fixtures and the walk | `cargo test -p xurl-rs --test golden_tests`                                                                                                       | U1, U3, U4     |
+| Re-bless, local only         | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests`, then `git status` lists only the intended fixtures                               | U1, U3, U4     |
+| Step parity                  | `cargo test -p xurl-rs --test next_step_tests`                                                                                                    | U1             |
+| Dry runs send nothing        | `cargo test -p xurl-rs --test dry_run_guard`                                                                                                      | U1, U3, U4     |
+| Family tests                 | `cargo test -p xurl-rs --test notes_tests`, `--test calls_tests`, `--test webhooks_tests`, `--test spaces_tests`, `--test dm_conversations_tests` | U2, U5, U3, U4 |
+| Recipe and examples walks    | `cargo test -p xurl-rs --test recipe_guard --test agentic_tests`                                                                                  | U3             |
+| Whole suite                  | `cargo test --workspace --no-fail-fast`, in the background                                                                                        | each PR        |
+| Lints                        | `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`                                                                                  | each PR        |
+| Completions freshness        | `scripts/generate-completions.sh`, then an empty `git diff` on a second run                                                                       | U3, U4         |
+| Local CI mirror              | `scripts/hooks/pre-push`, in the background                                                                                                       | each PR        |
+| Manual repro                 | the commands under "Reproduction" against `target/debug/xr`, scratch store, closed port                                                           | each PR        |
 
 ---
 
@@ -437,3 +464,233 @@ flowchart TB
 - No dry run sends a request; no test or manual run reached the X API or the real token store.
 - Three PRs stacked, bottom on `dev`; each names its issues under Related Issues and has every rollup check `SUCCESS`.
 - No dead-end or experimental code is left in the diff.
+
+---
+
+## Eng Review
+
+Review of this plan at `396e4d1`, run inline with no subagents. Nobody watches the session, so each choice below was
+decided from the evidence it cites, under the brief's instruction to answer review questions where the evidence settles
+them; the decisions that are Brett's alone stay in Open Questions.
+
+### Scope record
+
+- **Complexity gate:** tripped. The plan changes about 22 files (source, tests, two docs, help and dry-run fixtures,
+  completions) and adds one `Failure` variant and one helper.
+- **Feature cuts:** none. Each requirement answers one of the three issues, and the brief asks for all three.
+- **Structure (D2):** original arrangement kept. The smaller one leaves `spaces by-creator` and `conversations start` on
+  their own copies of account resolution, so the repo would hold two ways to do one task.
+- **Accepted scope:** the plan as written plus the amendments below; **pending remedies:** none.
+- **Result:** scope accepted as-is.
+
+### Reality rows
+
+| Premise                                                                          | Receipt                                                                           | Verdict |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------- |
+| A dry run's input refusal writes the code into `reason` and prints, with no step | `crates/xurl-cli/src/cli/commands/mod.rs:204` `ctx["reason"] = json!(reason);`    | true    |
+| A real run's refusal takes `show-help` from the runner                           | `crates/xurl-cli/src/cli/runner.rs:356-359` `Failure::Refused` → `show_help_hint` | true    |
+| `recovery_hint` gives a validation error `fix-input`                             | `crates/xurl-cli/src/cli/hints.rs:636-660` `general_hint`, `NextAction::FixInput` | true    |
+| The listen dry run sends target errors as `DryRunRefusal`                        | `crates/xurl-cli/src/cli/commands/webhooks_listen.rs:95-97`                       | true    |
+| The listen real run maps `is_validation()` to `Failure::refused`                 | `crates/xurl-cli/src/cli/commands/webhooks_listen.rs:106-111`                     | true    |
+| `notes evaluate` validates only the post id                                      | `crates/xurl-cli/src/cli/commands/notes.rs:49-50`                                 | true    |
+| The evaluate request declares no URL pattern                                     | `crates/xdk/vendor/x-api-openapi.json`, `EvaluateCommunityNotesRequest.note_text` | true    |
+| Invitees validate as numeric ids                                                 | `crates/xdk/src/api/shortcuts.rs:1378-1383` `check_invitees`                      | true    |
+| Mixed accounts resolve in one lookup                                             | `crates/xurl-cli/src/cli/commands/mod.rs:1016-1041`                               | true    |
+| Every validator code has a dry-run case                                          | `crates/xurl-cli/tests/golden_tests.rs:1962-1979`                                 | true    |
+| The dry-run schema variant admits any key                                        | `schema/output.schema.json:127` `"additionalProperties": true`                    | true    |
+| Invitee bounds are 25 new and 100 changed                                        | `crates/xdk/src/api/shortcuts.rs:1190`, `:1193`                                   | true    |
+
+`unverified=0`.
+
+- `REALITY: premise-table pass 12 premises, unverified=0 crates/xurl-cli/src/cli/commands/mod.rs:204`
+- `REALITY: already-done pass dev since 2026-10-27 has only #427, #428 crates/xurl-cli/src/cli/runner.rs:356`
+- `REALITY: surface-check pass 16 named commands answer --help crates/xurl-cli/src/cli/mod.rs:3177`
+- `REALITY: binding-decisions pass none covers this work crates/xurl-cli/src/cli/failure.rs:32`
+- `REALITY: numbers pass bounds read from constants crates/xdk/src/api/shortcuts.rs:1190`
+- `REALITY: deferred-asks pass resolve-handle not built, KD1 crates/xurl-cli/src/cli/commands/mod.rs:1031`
+- `REALITY: pr-count finding 3 PRs docs/plans/2026-10-28-1851-fix-dry-run-envelopes-and-handles-plan.md:267`
+
+### Findings
+
+Scope Challenge:
+
+- S1. `[INFORMATIONAL] (confidence: 9/10)` plan U3 Approach step 1, "Extract the helper (KTD6) from `spaces::by_creator`
+  and `conversations::start`, and move both onto it" — a behavior-preserving extraction shared a unit with the
+  `--invite` behavior change. Disposition: accepted (D1); the extraction is U5, its own commit ahead of U3.
+- S2. Complexity gate (see Scope record). Disposition: original arrangement kept (D2).
+- S3. `[INFORMATIONAL] (confidence: 8/10)` plan Goal Capsule, "a stack of three PRs" — each PR starts about 25 jobs
+  against a 20-job cap (learning `free-plan-20-job-cap-queues-prs`). Disposition: accepted as a recorded process note;
+  push the stack once and land it with `gh stack merge`.
+
+Section 1, Architecture:
+
+- A1. `[INFORMATIONAL] (confidence: 7/10)` `crates/xurl-cli/src/cli/commands/calls.rs:165`
+  `fn context(command: &str, scheduled_call_id: Option<&str>, request: &impl Serialize)` — the context is serialized
+  from the request, so a plan that builds one call with handles for the context and another with ids for the request can
+  let them differ. Disposition: accepted as a correction to U3: build the call once and derive the others by
+  substituting `invitee_ids`, with a `--no-notify` test.
+- The plan adds no public surface (the helper and the variant are crate-private), so no second shape is required. Red
+  flags screened: two ways to do one task (resolved by U5), hand-synced lists (the walk reads `dry_run_cases()`, which
+  `every_reason_the_source_emits_is_documented_and_pinned` already ties to the validator codes).
+- The three `forward-url-*` codes live in `crates/xdk/src/webhooks/forward.rs`, outside `validator_reasons()`, but all
+  reach the dry run through one mapping (`url_target` in `webhooks_listen.rs`), so the plan's one listen case holds that
+  route. No change.
+
+Section 2, Code quality:
+
+- C1. `[INFORMATIONAL] (confidence: 9/10)` `crates/xurl-cli/README.md:784` `$ xr --dry-run bookmark-folders add ""` —
+  the README's text example would go stale once text dry runs print the help line. Disposition: accepted as a correction
+  to U1 step 5.
+- Shared-code rubric for the U5 helper: existing callers `spaces::by_creator` (`spaces.rs:64-93`) and
+  `conversations::start` (`conversations.rs:97-138`); proposed callers `calls scheduled add`, `update`, and
+  `unsubscribe` (U3, U4). About 24 lines removed and 36 avoided, against about 30 for the helper and 6 per call site,
+  for roughly even line counts `[estimated]`; the gain is one place for the rule that a dry run checks the lookup's
+  credential. Blast radius: a helper bug breaks five commands at once, held by the spaces, conversations, calls,
+  webhooks, and dry-run guard tests.
+
+Section 3, Tests:
+
+```text
+CODE PATHS                                              USER FLOWS
+[+] DryRun::answer, input refused (commands/mod.rs)      [+] Agent dry-runs a refused input (JSON)
+  ├── [GAP→U1] new Failure variant to runner               ├── [GAP→U1] message present: walk
+  ├── [GAP→U1] show_help_hint(invoked_help)                ├── [GAP→U1] next_step == real run: walk
+  └── [GAP→U1] printer: code→sentence, prose→validation    └── [GAP→U1] exit_code == real run: walk
+[+] webhooks listen target error (dry run)               [+] Person dry-runs a refused input (text)
+  └── [GAP→U1] validation→input variant, io→unchanged      ├── [GAP→U1] help line: dry-run-text-invalid
+[+] print_dry_run_refusal, credential refusal              └── [GAP→U1] --quiet: dry-run-text-invalid-quiet
+  └── [★★★ TESTED] next_step_tests.rs:282, goldens       [+] notes evaluate
+[+] notes Evaluate arm                                     ├── [GAP→U2] no URL: refused, nothing sent
+  └── [GAP→U2] shared draft validator                     └── [GAP→U2] URL: sent once
+[+] account helper (U5)                                  [+] --invite / subscriptions remove with a handle
+  ├── [★★★ TESTED] spaces_tests.rs:74, :103, :129, :146   ├── [GAP→U3] one lookup, ids in order
+  └── [★★  TESTED] dm_conversations_tests.rs:44           ├── [GAP→U3] unknown handle: no POST
+[+] calls add/update with accounts                         ├── [GAP→U4] gate before lookup
+  ├── [GAP→U3] stand-in validation, offline refusals      └── [GAP→U4] dry run sends nothing
+  └── [GAP→U3] derived call keeps other fields
+[+] unsubscribe with an account
+  └── [GAP→U4] resolve after gate
+
+COVERAGE: 4/24 paths tested today; every gap has a planned test in its unit.
+QUALITY: ★★★:2 ★★:1  |  GAPS: 21, each mapped to U1-U4
+```
+
+- T1. `[INFORMATIONAL] (confidence: 8/10)` plan U1 Test scenarios, "The walk passes over every JSON case in
+  `dry_run_cases()`" — a walk whose filter broke would pass with nothing checked. Disposition: accepted; the walk fails
+  when it checked fewer refusing cases than `validator_reasons()` names.
+- T2. `[INFORMATIONAL] (confidence: 8/10)` plan U1 Test scenarios, "with `--quiet` the summary prints without that line"
+  — no test was named, and `dry-run-text-quiet` covers a credential refusal only. Disposition: accepted; a new
+  `dry-run-text-invalid-quiet` golden case.
+- Regression rule: U5 moves two existing commands onto a new helper. The behavior to preserve is the one their existing
+  tests hold (one lookup for every handle, ids without a lookup, an unknown handle named in the error, nothing sent
+  under `--dry-run`); no difference is intended. The real run's validation envelope must not move;
+  `validation-code-json.golden` pins it.
+- Test plan artifact: `~/.gstack/projects/brettdavies-xurl-rs/brett-dev-eng-review-test-plan-20261028-190017.md`.
+
+Section 4, Performance: no issues. A handle costs one lookup per invocation whatever the count (at most 100 per
+`GET /2/users/by`), and an id costs none. The walk adds one process spawn per refusing dry-run case, about 65 spawns of
+the debug binary, a few seconds `[estimated]`.
+
+Outside voice: disabled in gstack config (`codex_reviews: disabled`); no outside or native fallback reviewer ran.
+
+### Decision ledger
+
+- D1, S1. Split the extraction into U5? A) separate unit and commit before U3 (recommended); B) keep it in U3. Answer:
+  A, decided under the brief from Beck's "make the change easy first" and the learning
+  `unit-ordering-breaks-zero-broken-tests`. Accepted scope: U5 added; U3 depends on U5.
+- D2, S2. Arrangement? A) original, with U5 migrating both existing callers (recommended); B) smaller, leaving their
+  copies. Answer: A, decided under the brief from the two-ways-to-do-one-task red flag. Accepted scope: unchanged.
+- Corrections recorded without a choice, since each only fixes how an approved behavior is built or proved: A1 (derived
+  call), C1 (README example), T1 (non-empty walk), T2 (quiet golden), S3 (stack push and merge).
+
+Approval readiness: PASS (D1 and D2, decided under the brief's instruction to settle review questions from evidence).
+
+### NOT in scope
+
+- The real run's validation envelope: Brett's call (OQ1).
+- Per-code dry-run cases for the three `forward-url-*` codes: one route, held by one case.
+- Reordering confirmation and validation in `send_confirmed`: listed under Deferred to Follow-Up Work.
+
+### What already exists
+
+- `Failure::DryRunRefusal`, `print_dry_run_refusal`, `show_help_hint`, and `invoked_help` carry the dry-run refusal
+  path; U1 reuses all four and adds one variant.
+- `validate_note_text` already holds the URL rule; U2 only calls it.
+- `handles_lookup_call`, `resolve_account_ids`, `validate_accounts`, `user_ids_for_accounts`, and `UNRESOLVED_ID`
+  already resolve mixed accounts; U5 gathers their use into one helper, and U3 and U4 build on it.
+
+### Failure modes
+
+- A refusing dry run whose runner route picks the wrong help: the walk compares it with the real run. Visible.
+- A lookup that fails on the network or a 429: the existing transport error, before the command's request. Visible.
+- A handle X does not know: a validation error naming it, with no request sent. Tested in U3 and U4.
+- A dry run that sends the lookup: `dry_run_guard.rs` fails. Tested.
+
+No failure mode is silent and untested: 0 critical gaps.
+
+### Parallelization
+
+Sequential implementation, no parallelization opportunity: the brief rules out worktrees, and U1, U5, U3, and U4 share
+`crates/xurl-cli/src/cli/commands/mod.rs`.
+
+### Implementation Tasks
+
+- [ ] **T1 (P2, human: ~2h / CC: ~15min)** — commands — Extract the account helper in its own commit (U5)
+  - Surfaced by: Scope Challenge, S1
+  - Files: `crates/xurl-cli/src/cli/commands/mod.rs`, `spaces.rs`, `conversations.rs`
+  - Verify: `cargo test -p xurl-rs --test spaces_tests --test dm_conversations_tests --test dry_run_guard`
+- [ ] **T2 (P2, human: ~1h / CC: ~10min)** — calls — Derive the validated and sent call from one built call (U3)
+  - Surfaced by: Architecture, A1
+  - Files: `crates/xurl-cli/src/cli/commands/calls.rs`, `crates/xurl-cli/tests/calls_tests.rs`
+  - Verify: the `--no-notify` scenario in `calls_tests.rs`
+- [ ] **T3 (P2, human: ~30min / CC: ~5min)** — golden tests — Fail the walk when it checked too few cases (U1)
+  - Surfaced by: Tests, T1
+  - Files: `crates/xurl-cli/tests/golden_tests.rs`
+  - Verify: `cargo test -p xurl-rs --test golden_tests`
+- [ ] **T4 (P2, human: ~30min / CC: ~5min)** — golden tests — Add the `dry-run-text-invalid-quiet` case (U1)
+  - Surfaced by: Tests, T2
+  - Files: `crates/xurl-cli/tests/golden_tests.rs`, the new fixture
+  - Verify: `cargo test -p xurl-rs --test golden_tests`
+- [ ] **T5 (P3, human: ~10min / CC: ~2min)** — docs — Update the README's text dry-run example (U1)
+  - Surfaced by: Code quality, C1
+  - Files: `crates/xurl-cli/README.md`
+  - Verify: the example matches `xr --dry-run bookmark-folders add ""`
+- [ ] **T6 (P3, human: ~15min / CC: ~2min)** — process — Push the stack once and land it with `gh stack merge`
+  - Surfaced by: Scope Challenge, S3
+  - Files: none
+  - Verify: each PR head runs CI once before review
+
+### Completion summary
+
+- Step 0: Scope Challenge — scope accepted as-is
+- Reality rows: 7/7 applicable rows emitted, 0 unverified premises
+- Architecture Review: 1 issue found
+- Code Quality Review: 1 issue found
+- Test Review: diagram produced, 2 gaps identified
+- Performance Review: 0 issues found
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 0 items proposed (the repo keeps no `TODOS.md`)
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 1 (OQ1, Brett's; it blocks no unit)
+- Outside voice: codex, disabled
+- Parallelization: 0 lanes, 0 parallel / 4 sequential
+- Lake Score: 2/2
+
+## GSTACK REVIEW REPORT
+
+| Review         | Trigger                                 | Why                             | Runs | Status      | Findings                  |
+| -------------- | --------------------------------------- | ------------------------------- | ---- | ----------- | ------------------------- |
+| CEO Review     | `/plan-ceo-review`                      | Scope & strategy                | 0    | —           | —                         |
+| Outside Review | codex, `/plan-eng-review` outside voice | Independent 2nd opinion         | 1    | disabled    | —                         |
+| Eng Review     | `/plan-eng-review`                      | Architecture & tests (required) | 1    | issues_open | 4 issues, 0 critical gaps |
+| Design Review  | `/plan-design-review`                   | UI/UX gaps                      | 0    | —           | —                         |
+| DX Review      | `/plan-devex-review`                    | Developer experience gaps       | 0    | —           | —                         |
+
+- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config; no findings.
+- **VERDICT:** no review CLEAR; the four Eng findings are accepted into the plan, so the plan is ready for the DX
+  review.
+
+**UNRESOLVED DECISIONS:**
+
+- OQ1 (Brett's): whether the real run's validation envelope keeps the validator code in `message`
