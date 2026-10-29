@@ -157,7 +157,8 @@ Considered and not built:
   `--no-interactive` without `--force` reports `confirmation-required` for an input its dry run refuses. Both answers
   are correct for their run; aligning the order is a separate change.
 - The xurl-rs-skill bundle's account of the dry-run envelope can name the new keys once this ships; the keys are
-  additive, so its scripts keep working.
+  additive, so its scripts keep working. Its `scripts/dry-run-gate.sh` prints only `reason` when a dry run refuses
+  (lines 186-188); printing `message` and `next_step.command` there would hand the agent the rule and the step.
 
 ### Open Questions
 
@@ -207,8 +208,10 @@ Considered and not built:
 - KTD8. **Context keys stay as they are.** `invitee_ids` and `user_id` echo the accounts as given, as the dry run
   already echoes `@jack` today; renaming them would be an envelope change.
 - KTD9. **The value names become `ACCOUNT`.** `--invite <USER_ID>` and the `subscriptions remove` positional take the
-  name `users` and `spaces by-creator` use, with help that says a handle or a numeric id; the flag and command names do
-  not change.
+  name `users` and `spaces by-creator` use; the flag and command names do not change. The help lines follow
+  `spaces by-creator`'s wording: "A handle (@jack or jack) or numeric user id of someone to invite; repeat for each
+  person" and "The subscribed account: a handle (@jack or jack), or the numeric user id `subscriptions list` prints".
+  The help examples keep their numeric ids, which stay valid.
 - KTD10. **`schema/output.schema.json` does not change.** The dry-run variant admits any key, and leaving it alone
   avoids a collision with #424, which adds a key to the same variant.
 
@@ -267,6 +270,18 @@ flowchart TB
 - **CI queue.** Each xurl-rs PR starts about 25 jobs against the account's 20-job concurrency cap, so three PRs queue
   behind each other and a restack runs them again. Push the stack once every unit is built, and land it with one
   `gh stack merge`, so each head runs CI once.
+
+### Changelog Entries
+
+Each PR's `## Changelog` names what a caller of `xr` sees change, since `generate-changelog.sh` copies those bullets
+into `CHANGELOG.md`:
+
+- **U1:** under Fixed, a dry run that refuses an input carries `message` and the real run's `next_step` in every
+  structured format, and text dry runs print the real run's help line. Under Changed, the `webhooks listen --forward`
+  dry run's `next_step` becomes `show-help`, as its real run's is, in place of `fix-input`.
+- **U2:** under Fixed, `notes evaluate` refuses text without a source URL before sending, as `notes write` does.
+- **U5, U3, U4:** under Added, `calls scheduled add` and `update --invite`, and `webhooks subscriptions remove`, take a
+  handle as well as a numeric user id, resolved in one lookup. U5 is a refactor and adds no entry.
 
 ---
 
@@ -677,19 +692,243 @@ Sequential implementation, no parallelization opportunity: the brief rules out w
 - Parallelization: 0 lanes, 0 parallel / 4 sequential
 - Lake Score: 2/2
 
+---
+
+## DX Review
+
+Review of this plan at `93eebc3`, run inline with no subagents, in DX POLISH mode. Each Step 0 choice below was decided
+from the evidence it cites, under the brief's instruction to settle review questions where the evidence does; none was
+asked. Product type: CLI tool (`xr`), with the `xdk` library behind it. Web research was unavailable (no Aside, no
+search tool loaded), so peer behavior below is from in-distribution knowledge and marked unverified.
+
+### Developer persona
+
+```text
+TARGET DEVELOPER PERSONA
+========================
+Who:       an AI coding agent driving xr unattended, often through the xurl-rs skill bundle's dry-run gate
+Context:   it dry-runs a write before sending it, and acts on the envelope it gets back
+Tolerance: one envelope; it cannot ask what a code means, and every extra xr call can cost a paid request
+Expects:   a human message, a stable reason, and a next_step on every refusal, as AGENTS.md promises
+```
+
+Evidence: `AGENTS.md` § "Output formats" writes structured output "for agents"; #422's "Agent-native considerations";
+the skill bundle's `scripts/dry-run-gate.sh` runs every write as `--dry-run --output json` first. Second lens: a
+contributor adding a validator, who should get the message and step without writing any.
+
+### Developer perspective
+
+I am an agent about to register a webhook. I run `xr --dry-run --output json webhooks add https://example.com:8443/hook`
+and get `reason: "webhook-url-has-port"`, `would_succeed: false`, and nothing else. I can guess this one. For
+`webhooks replay ... --from 2026-10-27` the code is `invalid-replay-time`, and the envelope does not say what a replay
+time looks like, so I run the real command to learn more: it answers `reason: "validation"` with the same code as its
+`message`, plus `show-help`. I read the help to find "12 digits, yyyymmddhhmm". Three calls for a format the text mode
+prints on the first one. Then I try to invite `@jack` to a call: the dry run refuses `invalid-user-id` with no step, and
+the help says a numeric id, so I run `xr user @jack --output json`, which costs a paid read, pull the id, and retry.
+`spaces by-creator` took `@jack` an hour ago. After this plan, the first dry run carries the sentence and the step, and
+`--invite @jack` works, with one lookup inside the real run.
+
+### Competitive DX benchmark
+
+Clock: from the agent's first refused dry run to its next invocation being the corrected one.
+
+| Tool                               | Start → result                   | Time + evidence type         | DX choice                                           | Source                    |
+| ---------------------------------- | -------------------------------- | ---------------------------- | --------------------------------------------------- | ------------------------- |
+| `xr` today                         | refused dry run → corrected call | 3 calls, one paid; estimated | code only on a dry run                              | reproduction in this plan |
+| `xr` after this plan               | refused dry run → corrected call | 1 call; estimated            | message and step in the envelope                    | R1, R2                    |
+| `kubectl --dry-run=server -o json` | refused apply → fix              | 1 call; reported, unverified | `Status` with `message`, `reason`, `details.causes` | in-distribution knowledge |
+| `aws ... --dry-run`                | refused call → fix               | 1 call; reported, unverified | every outcome is an error code with a message       | in-distribution knowledge |
+| `terraform validate -json`         | invalid config → fix             | 1 call; reported, unverified | diagnostics with `summary`, `detail`, range         | in-distribution knowledge |
+
+Target: Champion (under 2 minutes, one envelope). Decided because the peers above answer in one call and the fix needs
+no new capability, only the keys the real run already computes.
+
+### Magical moment
+
+`xr --dry-run --output json calls scheduled add --start 2026-11-02T16:00:00Z --invite @jack` answers
+`would_succeed: true` without sending anything, and the real run invites jack with one lookup. Vehicle: the existing dry
+run and the existing batched lookup (R8, R11); nothing new is built for it.
+
+### Developer journey
+
+```text
+STAGE           | DEVELOPER DOES                                  | FRICTION POINTS                 | STATUS
+----------------|-------------------------------------------------|---------------------------------|---------
+1. Discover     | reads `--help` for --invite / subscriptions rm  | help said numeric id only       | fixed (KTD9)
+2. Install      | already has xr                                  | none                            | ok
+3. Hello World  | dry-runs a write with --output json             | refusal had no message or step  | fixed (U1)
+4. Real Usage   | invites @jack, removes a subscription by handle | handle refused                  | fixed (U3, U4)
+5. Debug        | follows next_step after a refusal               | listen step disagreed with real | fixed (U1)
+6. Upgrade      | reads the changelog for the new keys            | entries were unspecified        | fixed (Changelog Entries)
+```
+
+### First-time developer confusion report
+
+```text
+FIRST-TIME DEVELOPER REPORT
+============================
+Persona: AI coding agent
+Attempting: a guarded write through --dry-run --output json
+
+CONFUSION LOG:
+T+0:00  Dry-runs webhooks replay with --from 2026-10-27; gets reason invalid-replay-time, no message. [addressed: U1]
+T+0:30  Runs the real command to learn more; its message is the same code. [not addressed: OQ1, Brett's]
+T+1:00  Reads xr webhooks replay --help, finds yyyymmddhhmm, retries. [addressed: the dry run's step names that help]
+T+2:00  Dry-runs calls scheduled add --invite @jack; invalid-user-id, no step. [addressed: U3]
+T+3:00  Looks jack up with xr user, a paid read, and retries with the id. [addressed: U3 resolves inside the run]
+```
+
+### Pass scores and findings
+
+| Pass               | Before | After | Evidence and remaining gap                                                                              |
+| ------------------ | ------ | ----- | ------------------------------------------------------------------------------------------------------- |
+| 1. Getting Started | 6      | 8     | the first refused dry run now says what to change; the help still opens on numeric-id examples          |
+| 2. API/CLI design  | 6      | 8     | handles match `users` and `spaces by-creator`; `follow` and its siblings stay handle-only, out of scope |
+| 3. Error messages  | 5      | 7     | dry-run refusals meet the contract; the real run's `message` is still the code (OQ1)                    |
+| 4. Documentation   | 7      | 8     | README, `AGENTS.md`, help, and changelog entries now named per unit                                     |
+| 5. Upgrade path    | 6      | 8     | additive keys; the one changed value (the listen step) is named in the changelog                        |
+| 6. Dev environment | 8      | 8     | offline dry runs, wiremock tests, a walk that needs no fixture edits for a new validator                |
+| 7. Community       | 7      | 7     | issues referenced from each PR; no change needed                                                        |
+| 8. Measurement     | 6      | 7     | the walk is a standing check on the contract; the repro commands rerun the clock                        |
+
+Pass 3 error path matrix (agent-ready-v1, after the plan):
+
+```text
+Path                                   | Class      | what | fix  | recovery | code | context | trace | redaction | channel | Cap
+dry run, validator refusal (JSON)      | validation | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+dry run, listen --forward refusal      | validation | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+real run, handle X does not know       | validation | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+real run, lookup fails on the network  | dependency | pass | pass | pass     | pass | pass    | N/A   | pass      | pass    | none
+```
+
+- Fix: the dry run's `message` states the rule and `next_step.command` names the help that documents it.
+- Channel: a dry run exits 0 by its documented contract and signals refusal with `would_succeed: false` and the real
+  run's `exit_code`.
+- Recovery: the lookup failure keeps today's `retry` step. The command's own request is not sent, so a retry is safe.
+- Unexpected failures (a panic) keep today's `internal` envelope with `report-issue`; the plan adds no new crash path.
+
+Findings and dispositions:
+
+- DX-F1, Upgrade. The plan named no changelog entries, and one existing value changes (the listen dry run's step).
+  Disposition: accepted as documentation work for the declared contract; § "Changelog Entries" names each unit's
+  entries.
+- DX-F2, Discover. The help lines for the two value names were unspecified. Disposition: accepted; KTD9 gives the
+  wording, following `spaces by-creator`. The examples keep numeric ids, which stay valid and leave the help fixtures
+  the help-accuracy slot also moves smaller.
+- DX-F3, Debug, cross-repo. The skill bundle's dry-run gate prints only `reason` on a refusal. Disposition: deferred to
+  the xurl-rs-skill repo (§ "Deferred to Follow-Up Work"); it is outside this repo and this plan's issues.
+- DX-F4, Error messages. The real run's validation envelope puts the code in `message`. Disposition: existing behavior,
+  Brett's call (OQ1).
+
+### Decision record
+
+- Product type CLI tool; persona AI coding agent; empathy narrative as written; target Champion; vehicle the existing
+  dry run and lookup; mode DX POLISH (an enhancement to a shipped CLI, scope fixed by the brief). Each decided from the
+  evidence cited in its section.
+- DX-F2's examples: keep the numeric-id examples. Chosen over adding a handle example because a numeric id stays valid,
+  the help line already says a handle works, and new example lines would move more fixtures that another slot also
+  moves.
+
+### NOT in scope
+
+- Letting `follow`, `block`, `mute`, and `lists members add` take numeric ids: no issue asks for it.
+- The real run's validation envelope: OQ1.
+- Printing `message` in the skill bundle's gate: another repo, deferred.
+
+### What already exists
+
+- `validation::sentence` already words every validator code for text output; U1 reuses it for the dry run's `message`.
+- `show_help_hint` already builds the real run's step and its text line; the dry run takes the same hint.
+- `spaces by-creator` already documents the handle-or-id wording KTD9 copies.
+
+### TODOS.md updates
+
+None proposed: the repo keeps no `TODOS.md`, and the one follow-up (DX-F3) is recorded under Deferred to Follow-Up Work.
+
+### DX Implementation Checklist
+
+```text
+[x] Time to a corrected call under the Champion target: one envelope
+[x] Installation is one command: unchanged, already shipped
+[x] First run produces meaningful output: the refused dry run carries the rule
+[x] Magical moment delivered via the existing dry run and lookup
+[ ] Every error message meets the agent-ready error contract: the real run's message is the code (OQ1)
+[x] CLI naming is guessable without docs: ACCOUNT, as users and spaces by-creator use
+[x] Every parameter has a sensible default: no new parameters
+[x] Docs have copy-paste examples that work: existing examples stay valid
+[x] Upgrade path documented: changelog entries per unit
+[x] Works in CI without special configuration: dry runs are offline
+```
+
+### DX Implementation Tasks
+
+- [ ] **T1 (P2, human: ~20min / CC: ~3min)** — PR bodies — Write each PR's Changelog from § "Changelog Entries"
+  - Surfaced by: Pass 5, DX-F1
+  - Files: the three PR bodies
+  - Verify: each entry names the user-visible change, including the listen step
+- [ ] **T2 (P2, human: ~15min / CC: ~3min)** — CLI help — Use KTD9's help lines for the two value names
+  - Surfaced by: Pass 1, DX-F2
+  - Files: `crates/xurl-cli/src/cli/mod.rs`, the two help fixtures
+  - Verify: the re-blessed help fixtures show the wording and nothing else moved
+- [ ] **T3 (P3, human: ~30min / CC: ~5min)** — xurl-rs-skill — Print `message` and `next_step.command` in the gate
+  - Surfaced by: Pass 3, DX-F3
+  - Files: `scripts/dry-run-gate.sh` in xurl-rs-skill
+  - Verify: a refused dry run through the gate prints the rule and the step
+
+---
+
+## DX Review Scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW — SCORECARD                             |
++====================================================================+
+| Dimension            | Score  | Prior  | Trend  |
+|----------------------|--------|--------|--------|
+| Getting Started      |  8/10  |  6/10  |   ↑    |
+| API/CLI/SDK          |  8/10  |  6/10  |   ↑    |
+| Error Messages       |  7/10  |  5/10  |   ↑    |
+| Documentation        |  8/10  |  7/10  |   ↑    |
+| Upgrade Path         |  8/10  |  6/10  |   ↑    |
+| Dev Environment      |  8/10  |  8/10  |   =    |
+| Community            |  7/10  |  7/10  |   =    |
+| DX Measurement       |  7/10  |  6/10  |   ↑    |
++--------------------------------------------------------------------+
+| TTHW                 | 1 call | 3 calls|   ↑    |
+| Competitive Rank     | Champion                                    |
+| Magical Moment       | designed via the existing dry run + lookup  |
+| Product Type         | CLI tool                                    |
+| Mode                 | POLISH                                      |
+| Overall DX           |  8/10  |  6/10  |   ↑    |
++====================================================================+
+| DX PRINCIPLE COVERAGE                                               |
+| Zero Friction      | covered                                        |
+| Learn by Doing     | covered                                        |
+| Fight Uncertainty  | covered, except the real run's message (OQ1)   |
+| Opinionated + Escape Hatches | covered: ids still work              |
+| Code in Context    | covered                                        |
+| Magical Moments    | covered                                        |
+| Agents Are Users   | covered                                        |
++====================================================================+
+```
+
+"Prior" is this plan before the DX review; the earlier DX rows in the review log belong to other plans. No dimension is
+below 6. TTHW is one envelope, under the 10-minute flag.
+
+Unresolved decisions: OQ1 (Brett's), carried from the plan.
+
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger                                 | Why                             | Runs | Status      | Findings                  |
-| -------------- | --------------------------------------- | ------------------------------- | ---- | ----------- | ------------------------- |
-| CEO Review     | `/plan-ceo-review`                      | Scope & strategy                | 0    | —           | —                         |
-| Outside Review | codex, `/plan-eng-review` outside voice | Independent 2nd opinion         | 1    | disabled    | —                         |
-| Eng Review     | `/plan-eng-review`                      | Architecture & tests (required) | 1    | issues_open | 4 issues, 0 critical gaps |
-| Design Review  | `/plan-design-review`                   | UI/UX gaps                      | 0    | —           | —                         |
-| DX Review      | `/plan-devex-review`                    | Developer experience gaps       | 0    | —           | —                         |
+| Review         | Trigger                                        | Why                             | Runs | Status      | Findings                                   |
+| -------------- | ---------------------------------------------- | ------------------------------- | ---- | ----------- | ------------------------------------------ |
+| CEO Review     | `/plan-ceo-review`                             | Scope & strategy                | 0    | —           | —                                          |
+| Outside Review | codex, outside voice of the Eng and DX reviews | Independent 2nd opinion         | 2    | disabled    | —                                          |
+| Eng Review     | `/plan-eng-review`                             | Architecture & tests (required) | 1    | issues_open | 4 issues, 0 critical gaps                  |
+| Design Review  | `/plan-design-review`                          | UI/UX gaps                      | 0    | —           | —                                          |
+| DX Review      | `/plan-devex-review`                           | Developer experience gaps       | 1    | issues_open | score: 6/10 → 8/10, TTHW: 3 calls → 1 call |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, disabled by config; no findings.
-- **VERDICT:** no review CLEAR; the four Eng findings are accepted into the plan, so the plan is ready for the DX
-  review.
+- **OUTSIDE COVERAGE:** codex, plan-review phase of both reviews, disabled by config; no findings.
+- **VERDICT:** no review CLEAR; every Eng and DX finding is folded into the plan or recorded as deferred.
 
 **UNRESOLVED DECISIONS:**
 
