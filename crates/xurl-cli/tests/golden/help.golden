@@ -130,7 +130,7 @@ Options:
           Request body data
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (oauth2, oauth1, app)
 
   -u, --username <USERNAME>
           `OAuth2` login to send the request as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

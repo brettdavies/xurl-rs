@@ -21,7 +21,7 @@ _xr() {
 '*--header=[Request headers]:HEADERS:_default' \
 '-d+[Request body data]:DATA:_default' \
 '--data=[Request body data]:DATA:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (oauth2, oauth1, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to send the request as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to send the request as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -75,7 +75,7 @@ never\:"Never emit ANSI color escapes"))' \
             (post)
 _arguments "${_arguments_options[@]}" : \
 '*--media-id=[Media ID(s) to attach (repeatable)]:MEDIA_IDS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -116,7 +116,7 @@ never\:"Never emit ANSI color escapes"))' \
 (reply)
 _arguments "${_arguments_options[@]}" : \
 '*--media-id=[Media ID(s) to attach (repeatable)]:MEDIA_IDS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -157,7 +157,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (quote)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -198,7 +198,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (delete)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -239,7 +239,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (read)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -282,7 +282,7 @@ _arguments "${_arguments_options[@]}" : \
 '--start=[Start of the window (RFC 3339 with a zone, such as 2026-10-01T00\:00\:00Z)]:TIME:_default' \
 '--end=[End of the window (RFC 3339 with a zone); after the start]:TIME:_default' \
 '--granularity=[Bucket size (X'\''s default is total, one bucket for the window)]:GRANULARITY:(hourly daily weekly total)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -325,7 +325,7 @@ _arguments "${_arguments_options[@]}" : \
 '--granularity=[Bucket size (X'\''s default is hour)]:GRANULARITY:(minute hour day)' \
 '--start=[Oldest moment counted (RFC 3339 with a zone, such as 2026-10-25T00\:00\:00Z); within the last seven days]:TIME:_default' \
 '--end=[Moment the count stops, exclusive (RFC 3339 with a zone)]:TIME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -367,7 +367,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -407,7 +407,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (users)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -449,7 +449,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -489,7 +489,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (posts)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -531,7 +531,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -573,7 +573,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -615,7 +615,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -657,7 +657,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -697,7 +697,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (whoami)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -737,7 +737,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (user)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -779,7 +779,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -820,7 +820,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -859,7 +859,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (like)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -899,7 +899,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unlike)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -939,7 +939,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (hide)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -979,7 +979,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unhide)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1019,7 +1019,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (repost)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1059,7 +1059,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unrepost)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1099,7 +1099,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (bookmark)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1139,7 +1139,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unbookmark)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1181,7 +1181,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1264,7 +1264,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1305,7 +1305,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1345,7 +1345,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1423,7 +1423,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1462,7 +1462,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (follow)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1502,7 +1502,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unfollow)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1545,7 +1545,7 @@ _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username to list following for (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1587,7 +1587,7 @@ _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username to list followers for (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1626,7 +1626,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (mute)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1666,7 +1666,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unmute)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1708,7 +1708,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1747,7 +1747,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (block)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1787,7 +1787,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unblock)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1829,7 +1829,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1868,7 +1868,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (usage)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1915,7 +1915,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (credits)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1982,7 +1982,7 @@ esac
 ;;
 (dm)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2066,7 +2066,7 @@ never\:"Never emit ANSI color escapes"))' \
             (start)
 _arguments "${_arguments_options[@]}" : \
 '--text=[The first message]:TEXT:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2106,7 +2106,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (send)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2149,7 +2149,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2191,7 +2191,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2313,7 +2313,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2353,7 +2353,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2426,7 +2426,7 @@ esac
 ;;
 (dm-block)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2466,7 +2466,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (dm-unblock)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2508,7 +2508,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2592,7 +2592,7 @@ _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username whose own lists to read (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2634,7 +2634,7 @@ _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username whose followed lists to read (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2676,7 +2676,7 @@ _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--of=[Username whose list memberships to read (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2715,7 +2715,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (pinned)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2754,7 +2754,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2796,7 +2796,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2838,7 +2838,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2922,7 +2922,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2962,7 +2962,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3003,7 +3003,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3081,7 +3081,7 @@ esac
 (add)
 _arguments "${_arguments_options[@]}" : \
 '--description=[What the list is for, at most 100 characters]:DESCRIPTION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3124,7 +3124,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--name=[New name, 1 to 25 characters]:NAME:_default' \
 '--description=[New description, at most 100 characters]:DESCRIPTION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3166,7 +3166,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3207,7 +3207,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (follow)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3247,7 +3247,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unfollow)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3287,7 +3287,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (pin)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3327,7 +3327,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unpin)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3519,7 +3519,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3559,7 +3559,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3676,7 +3676,7 @@ _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-age-hours=[Only stories updated within this many hours, 1 to 720 (X'\''s default is 168, one week)]:MAX_AGE_HOURS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3716,7 +3716,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3833,7 +3833,7 @@ _arguments "${_arguments_options[@]}" : \
 '--state=[Only Spaces in this state (X'\''s default is all)]:STATE:(live scheduled all)' \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3873,7 +3873,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3913,7 +3913,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (by-creator)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3955,7 +3955,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4121,7 +4121,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4161,7 +4161,7 @@ never\:"Never emit ANSI color escapes"))' \
 (add)
 _arguments "${_arguments_options[@]}" : \
 '--tag=[A label for the rule; the stream marks each post with the tags of the rules it matched]:TAG:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4202,7 +4202,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4244,7 +4244,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (count)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4424,7 +4424,7 @@ _arguments "${_arguments_options[@]}" : \
 '--title=[The article'\''s title]:TITLE:_default' \
 '--body-file=[The file holding the body, or \`-\` to read it from stdin]:PATH:_default' \
 '--cover=[The media id of an uploaded image to show above the article]:MEDIA_ID:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4463,7 +4463,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (publish)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4581,7 +4581,7 @@ _arguments "${_arguments_options[@]}" : \
 '--text=[The note'\''s text; X requires a source URL in it]:TEXT:_default' \
 '--classification=[How the note classifies the post]:CLASSIFICATION:(misinformed_or_potentially_misleading not_misleading)' \
 '*--tag=[Why the post may be misleading; repeat for several]:TAG:(disputed_claim_as_fact factual_error manipulated_media misinterpreted_satire missing_important_context other outdated_information)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4625,7 +4625,7 @@ never\:"Never emit ANSI color escapes"))' \
 (evaluate)
 _arguments "${_arguments_options[@]}" : \
 '--text=[The note'\''s text; X requires a source URL in it]:TEXT:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4667,7 +4667,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4709,7 +4709,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4749,7 +4749,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4878,7 +4878,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of trends (1-50; X'\''s default is 20). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of trends (1-50; X'\''s default is 20). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4918,7 +4918,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (personal)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5033,7 +5033,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5072,7 +5072,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5156,7 +5156,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5195,7 +5195,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5240,7 +5240,7 @@ _arguments "${_arguments_options[@]}" : \
 '--end=[When the broadcast ends (RFC 3339); open-ended when unset]:TIME:_default' \
 '--title=[The broadcast'\''s title]:TITLE:_default' \
 '--description=[What the broadcast is about]:DESCRIPTION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5286,7 +5286,7 @@ _arguments "${_arguments_options[@]}" : \
 '--source=[Stream source ID to take video from instead]:SOURCE_ID:_default' \
 '--title=[The broadcast'\''s title]:TITLE:_default' \
 '--description=[What the broadcast is about]:DESCRIPTION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5328,7 +5328,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5369,7 +5369,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (live)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5502,7 +5502,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5543,7 +5543,7 @@ never\:"Never emit ANSI color escapes"))' \
 (send)
 _arguments "${_arguments_options[@]}" : \
 '--reply-to=[The chat message to reply to, by id]:MESSAGE_ID:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5584,7 +5584,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5628,7 +5628,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--until=[When the mute ends (RFC 3339 with a zone); for good when unset]:TIME:_default' \
 '--message=[A chat message of theirs to remove while muting, by id]:MESSAGE_ID:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5669,7 +5669,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unmute)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5796,7 +5796,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5835,7 +5835,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5875,7 +5875,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5993,7 +5993,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6032,7 +6032,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6073,7 +6073,7 @@ never\:"Never emit ANSI color escapes"))' \
 (add)
 _arguments "${_arguments_options[@]}" : \
 '--region=[Ingest region\: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2]:REGION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6113,7 +6113,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (rename)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6154,7 +6154,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6453,7 +6453,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6539,7 +6539,7 @@ _arguments "${_arguments_options[@]}" : \
 '--end=[Calls starting before this time (RFC 3339); X assumes 24 hours after \`--start\`]:TIME:_default' \
 '-n+[Number of calls (1-100); 20 when neither this nor \`--limit\` is given. Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of calls (1-100); 20 when neither this nor \`--limit\` is given. Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6578,7 +6578,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6625,7 +6625,7 @@ _arguments "${_arguments_options[@]}" : \
 '*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
 '--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6676,7 +6676,7 @@ _arguments "${_arguments_options[@]}" : \
 this\:"The named occurrence alone"
 this-and-following\:"The named occurrence and every one after it"))' \
 '--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6721,7 +6721,7 @@ _arguments "${_arguments_options[@]}" : \
 this\:"The named occurrence alone"
 this-and-following\:"The named occurrence and every one after it"))' \
 '--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6767,7 +6767,7 @@ _arguments "${_arguments_options[@]}" : \
 this\:"The named occurrence alone"
 this-and-following\:"The named occurrence and every one after it"))' \
 '--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6968,7 +6968,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7007,7 +7007,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7047,7 +7047,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7087,7 +7087,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7170,7 +7170,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (count)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7209,7 +7209,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7249,7 +7249,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7289,7 +7289,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (check)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7329,7 +7329,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7457,7 +7457,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7496,7 +7496,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7536,7 +7536,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7664,7 +7664,7 @@ _arguments "${_arguments_options[@]}" : \
 '--from=[Start of the window\: twelve digits, \`yyyymmddhhmm\` in UTC]:YYYYMMDDHHMM:_default' \
 '--to=[End of the window\: twelve digits, \`yyyymmddhhmm\` in UTC]:YYYYMMDDHHMM:_default' \
 '(--from --to)--from-checkpoint=[Request the window from the minute \`xr webhooks listen --checkpoint\` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included. The file holds {"last_event_at"\: <Unix seconds>}]:FILE:_files' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8631,7 +8631,7 @@ _arguments "${_arguments_options[@]}" : \
 '--media-type=[Media type (e.g., video/mp4)]:MEDIA_TYPE:_default' \
 '--category=[Media category (e.g., \`amplify_video\`)]:CATEGORY:_default' \
 '--wait=[Wait for X to finish processing the upload before returning]::SECS:_default' \
-'--auth=[Authentication type]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '*-H+[Request headers]:HEADERS:_default' \
@@ -8673,7 +8673,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (status)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-w+[Wait for X to finish processing instead of reading the status once]::SECS:_default' \
@@ -8717,7 +8717,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8760,7 +8760,7 @@ _arguments "${_arguments_options[@]}" : \
 '--start=[Start of the window (RFC 3339 with a zone, such as 2026-10-01T00\:00\:00Z)]:TIME:_default' \
 '--end=[End of the window (RFC 3339 with a zone); after the start]:TIME:_default' \
 '--granularity=[Bucket size (X'\''s default is daily)]:GRANULARITY:(hourly daily total)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8800,7 +8800,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (alt-text)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8886,7 +8886,7 @@ _arguments "${_arguments_options[@]}" : \
 '--language=[Two-letter language code of the track (e.g. en)]:CODE:_default' \
 '--name=[Language name viewers pick the track by (e.g. English)]:NAME:_default' \
 '--category=[Category the video was uploaded with]:CATEGORY:(amplify_video tweet_video)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8929,7 +8929,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--language=[Two-letter language code of the track to remove (e.g. en)]:CODE:_default' \
 '--category=[Category the video was uploaded with]:CATEGORY:(amplify_video tweet_video)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \

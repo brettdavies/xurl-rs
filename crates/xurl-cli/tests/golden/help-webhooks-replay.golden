@@ -1,7 +1,7 @@
 args: ["webhooks", "replay", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7543
+stdout_len: 7610
 stderr_len: 0
 --- stdout ---
 Deliver a past window of events to a webhook again
@@ -23,7 +23,7 @@ Options:
           Request the window from the minute `xr webhooks listen --checkpoint` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included. The file holds {"last_event_at": <Unix seconds>}
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: app). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

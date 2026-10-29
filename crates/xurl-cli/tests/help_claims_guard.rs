@@ -1,5 +1,10 @@
-//! What the global help says about which commands a flag reaches, held to
-//! what each command sends.
+//! What help says about which commands a flag reaches, or which credentials
+//! a command takes, held to what each command does.
+//!
+//! Each command's `--auth` help lists the schemes it accepts. Every command
+//! that takes `--auth` is dry-run once per scheme over a store holding every
+//! kind of credential, and the schemes its dry run does not refuse with
+//! `auth-method-mismatch` must be the ones its help lists.
 //!
 //! `--limit` is the page size of every command with `-n/--max-results`, and
 //! `--cursor` reaches every command whose endpoint declares a page token in
@@ -18,7 +23,7 @@ use serde_json::{Value, json};
 use xdk::testing::{MockX, Received};
 
 use common::invoke::{
-    arguments_for, bearer_only, live_oauth2_only, oauth1_only, run_xr, runnable_paths,
+    Ran, SAMPLE, arguments_for, bearer_only, live_oauth2_only, oauth1_only, run_xr, runnable_paths,
     takes_a_credential,
 };
 
@@ -338,4 +343,145 @@ fn the_paging_flag_help_states_its_rule_on_its_first_line() {
             "--{flag} help names commands {named:?}: {long}"
         );
     }
+}
+
+/// The schemes, in wire spelling, a command's `--auth` help lists by default
+/// and with `--of`; `None` when the help names no set.
+fn listed_schemes(help: &str) -> Option<(Vec<String>, Option<Vec<String>>)> {
+    let pattern =
+        regex::Regex::new(r"this command accepts: ([a-z0-9, ]+?)(?:; with --of: ([a-z0-9, ]+))?\)")
+            .expect("a pattern");
+    let found = pattern.captures(help)?;
+    let split = |list: &str| list.split(", ").map(str::to_string).collect::<Vec<_>>();
+    Some((split(&found[1]), found.get(2).map(|m| split(m.as_str()))))
+}
+
+/// The `--auth` help of the command at `path`.
+fn auth_help(path: &str) -> String {
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+    });
+    cmd.get_arguments()
+        .find(|arg| arg.get_id() == "auth_type")
+        .and_then(|arg| arg.get_help())
+        .map(ToString::to_string)
+        .unwrap_or_default()
+}
+
+/// Whether the command at `path` takes `--of`.
+fn takes_of(path: &str) -> bool {
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+    });
+    cmd.get_arguments().any(|arg| arg.get_id() == "of")
+}
+
+/// The schemes a dry run of `path` with `args` accepts, in preference order,
+/// and the endpoint that refused each other scheme.
+async fn dry_run_accepts(origin: &str, path: &str, args: &[String]) -> (Vec<String>, Vec<String>) {
+    let mut accepted = Vec::new();
+    let mut refused = Vec::new();
+    for scheme in ["oauth2", "oauth1", "app"] {
+        let mut with_scheme = args.to_vec();
+        with_scheme.extend(["--auth".to_string(), scheme.to_string()]);
+        let ran = run_xr(origin, every_kind, path, &with_scheme, true).await;
+        let document = Ran::document(&ran.stdout);
+        if document["reason"] == "auth-method-mismatch" {
+            refused.push(format!(
+                "{scheme} at {} {}",
+                document["method"].as_str().unwrap_or("?"),
+                document["endpoint"].as_str().unwrap_or("?")
+            ));
+        } else {
+            accepted.push(scheme.to_string());
+        }
+    }
+    (accepted, refused)
+}
+
+#[tokio::test]
+async fn each_auth_help_lists_the_schemes_its_dry_run_accepts() {
+    let mock = answering_mock().await;
+    let origin = mock.base_url();
+    let mut found = Vec::new();
+
+    let commands: BTreeSet<String> = runnable_paths()
+        .into_iter()
+        .filter(|path| takes_a_credential(path))
+        .collect();
+    let rows: BTreeSet<String> = xurl::cli::accepted_auth::ROWS
+        .iter()
+        .map(|row| row.path.to_string())
+        .collect();
+    for stale in rows.difference(&commands) {
+        found.push(format!(
+            "{stale}: a row names no command that takes --auth.\n  \
+             Cause: the command was renamed or removed, or never took --auth.\n  \
+             Fix: rename or remove its row in crates/xurl-cli/src/cli/accepted_auth.rs."
+        ));
+    }
+
+    for path in &commands {
+        let help = auth_help(path);
+        let Some((listed, listed_of)) = listed_schemes(&help) else {
+            found.push(format!(
+                "{path}: its --auth help names no accepted schemes: {help}\n  \
+                 Cause: the command takes --auth and has no row.\n  \
+                 Fix: add a row in crates/xurl-cli/src/cli/accepted_auth.rs naming the \
+                 endpoints its requests reach."
+            ));
+            continue;
+        };
+        let args = arguments_for(path);
+        let (accepted, refused) = dry_run_accepts(&origin, path, &args).await;
+        if listed != accepted {
+            found.push(format!(
+                "{path}: --auth help lists {listed:?}, its dry run accepts {accepted:?} \
+                 (refused: {refused:?}).\n  \
+                 Cause: its row names endpoints other than the ones its requests reach.\n  \
+                 Fix: correct its row in crates/xurl-cli/src/cli/accepted_auth.rs."
+            ));
+        }
+        if takes_of(path) {
+            let mut with_of = args.clone();
+            with_of.extend(["--of".to_string(), SAMPLE.to_string()]);
+            let (accepted_of, refused_of) = dry_run_accepts(&origin, path, &with_of).await;
+            let expected = listed_of.clone().unwrap_or_else(|| listed.clone());
+            if expected != accepted_of {
+                found.push(format!(
+                    "{path} --of: --auth help lists {expected:?}, its dry run accepts \
+                     {accepted_of:?} (refused: {refused_of:?}).\n  \
+                     Cause: its row's --of endpoints are not the ones --of reaches.\n  \
+                     Fix: correct the row's with_of endpoints in \
+                     crates/xurl-cli/src/cli/accepted_auth.rs."
+                ));
+            }
+        }
+    }
+
+    assert!(
+        found.is_empty(),
+        "the --auth help no longer matches what these commands accept:\n{}",
+        found.join("\n")
+    );
+}
+
+/// Raw mode bypasses the auth matrix, so its `--auth` help lists every
+/// scheme, in the order `xr` picks a stored credential in.
+#[test]
+fn raw_mode_auth_help_lists_every_scheme() {
+    let root = xurl::cli::Cli::command();
+    let help = root
+        .get_arguments()
+        .find(|arg| arg.get_id() == "auth_type")
+        .and_then(|arg| arg.get_help())
+        .map(ToString::to_string)
+        .unwrap_or_default();
+    assert_eq!(help, "Authentication type (oauth2, oauth1, app)");
 }

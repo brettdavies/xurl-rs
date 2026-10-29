@@ -27,7 +27,7 @@ end
 complete -c xr -n "__fish_xr_needs_command" -s X -l method -d 'HTTP method (GET by default)' -r
 complete -c xr -n "__fish_xr_needs_command" -s H -l header -d 'Request headers' -r
 complete -c xr -n "__fish_xr_needs_command" -s d -l data -d 'Request body data' -r
-complete -c xr -n "__fish_xr_needs_command" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_needs_command" -l auth -d 'Authentication type (oauth2, oauth1, app)' -r
 complete -c xr -n "__fish_xr_needs_command" -s u -l username -d '`OAuth2` login to send the request as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_needs_command" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -134,7 +134,7 @@ complete -c xr -n "__fish_xr_needs_command" -a "examples" -d 'Print a curated ga
 complete -c xr -n "__fish_xr_needs_command" -a "validate" -d 'Validate a JSON document against a bundled response schema'
 complete -c xr -n "__fish_xr_needs_command" -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand post" -l media-id -d 'Media ID(s) to attach (repeatable)' -r
-complete -c xr -n "__fish_xr_using_subcommand post" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -171,7 +171,7 @@ complete -c xr -n "__fish_xr_using_subcommand post" -l jsonl -d 'Shorthand for `
 complete -c xr -n "__fish_xr_using_subcommand post" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand post" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand reply" -l media-id -d 'Media ID(s) to attach (repeatable)' -r
-complete -c xr -n "__fish_xr_using_subcommand reply" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -207,7 +207,7 @@ complete -c xr -n "__fish_xr_using_subcommand reply" -l json -d 'Shorthand for `
 complete -c xr -n "__fish_xr_using_subcommand reply" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand reply" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand reply" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand quote" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -243,7 +243,7 @@ complete -c xr -n "__fish_xr_using_subcommand quote" -l json -d 'Shorthand for `
 complete -c xr -n "__fish_xr_using_subcommand quote" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand quote" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand quote" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand delete" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -280,7 +280,7 @@ complete -c xr -n "__fish_xr_using_subcommand delete" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand delete" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand delete" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand delete" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand read" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -322,7 +322,7 @@ complete -c xr -n "__fish_xr_using_subcommand analytics" -l granularity -d 'Buck
 daily\t''
 weekly\t''
 total\t''"
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -363,7 +363,7 @@ hour\t''
 day\t''"
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l start -d 'Oldest moment counted (RFC 3339 with a zone, such as 2026-10-25T00:00:00Z); within the last seven days' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l end -d 'Moment the count stops, exclusive (RFC 3339 with a zone)' -r
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -400,7 +400,7 @@ complete -c xr -n "__fish_xr_using_subcommand search-counts" -l jsonl -d 'Shorth
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -436,7 +436,7 @@ complete -c xr -n "__fish_xr_using_subcommand search-users" -l json -d 'Shorthan
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand users" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand users" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -473,7 +473,7 @@ complete -c xr -n "__fish_xr_using_subcommand users" -l jsonl -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand users" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand users" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s n -l max-results -d 'Number of results (5-100; a lower value is raised to 5, X\'s minimum). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -509,7 +509,7 @@ complete -c xr -n "__fish_xr_using_subcommand user-posts" -l json -d 'Shorthand 
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand posts" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand posts" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -546,7 +546,7 @@ complete -c xr -n "__fish_xr_using_subcommand posts" -l jsonl -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand posts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand search" -s n -l max-results -d 'Number of results (10-100; a lower value is raised to 10, X\'s minimum). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand search" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -583,7 +583,7 @@ complete -c xr -n "__fish_xr_using_subcommand search" -l jsonl -d 'Shorthand for
 complete -c xr -n "__fish_xr_using_subcommand search" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand search" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand likers" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand likers" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand likers" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -620,7 +620,7 @@ complete -c xr -n "__fish_xr_using_subcommand likers" -l jsonl -d 'Shorthand for
 complete -c xr -n "__fish_xr_using_subcommand likers" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand likers" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -657,7 +657,7 @@ complete -c xr -n "__fish_xr_using_subcommand reposters" -l jsonl -d 'Shorthand 
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s n -l max-results -d 'Number of results (10-100; a lower value is raised to 10, X\'s minimum). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -693,7 +693,7 @@ complete -c xr -n "__fish_xr_using_subcommand quotes" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -730,7 +730,7 @@ complete -c xr -n "__fish_xr_using_subcommand whoami" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand whoami" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand user" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -767,7 +767,7 @@ complete -c xr -n "__fish_xr_using_subcommand user" -l jsonl -d 'Shorthand for `
 complete -c xr -n "__fish_xr_using_subcommand user" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand user" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -804,7 +804,7 @@ complete -c xr -n "__fish_xr_using_subcommand timeline" -l jsonl -d 'Shorthand f
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s n -l max-results -d 'Number of results (5-100; a lower value is raised to 5, X\'s minimum). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -840,7 +840,7 @@ complete -c xr -n "__fish_xr_using_subcommand mentions" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand like" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -876,7 +876,7 @@ complete -c xr -n "__fish_xr_using_subcommand like" -l json -d 'Shorthand for `-
 complete -c xr -n "__fish_xr_using_subcommand like" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand like" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand like" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -912,7 +912,7 @@ complete -c xr -n "__fish_xr_using_subcommand unlike" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand hide" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand hide" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -948,7 +948,7 @@ complete -c xr -n "__fish_xr_using_subcommand hide" -l json -d 'Shorthand for `-
 complete -c xr -n "__fish_xr_using_subcommand hide" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand hide" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand hide" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -984,7 +984,7 @@ complete -c xr -n "__fish_xr_using_subcommand unhide" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand repost" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1020,7 +1020,7 @@ complete -c xr -n "__fish_xr_using_subcommand repost" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand repost" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand repost" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand repost" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1056,7 +1056,7 @@ complete -c xr -n "__fish_xr_using_subcommand unrepost" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l auth -d 'Authentication type (this command accepts: oauth2). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1092,7 +1092,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l auth -d 'Authentication type (this command accepts: oauth2). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1129,7 +1129,7 @@ complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l jsonl -d 'Shorthand
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1203,7 +1203,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_s
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -f -a "add" -d 'Create a bookmark folder'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1240,7 +1240,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1276,7 +1276,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (this command accepts: oauth2). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1317,7 +1317,7 @@ complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from help" -f -a "add" -d 'Create a bookmark folder'
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand likes" -s n -l max-results -d 'Number of results (5-100; a lower value is raised to 5, X\'s minimum). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand likes" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1353,7 +1353,7 @@ complete -c xr -n "__fish_xr_using_subcommand likes" -l json -d 'Shorthand for `
 complete -c xr -n "__fish_xr_using_subcommand likes" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand likes" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand likes" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand follow" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1389,7 +1389,7 @@ complete -c xr -n "__fish_xr_using_subcommand follow" -l json -d 'Shorthand for 
 complete -c xr -n "__fish_xr_using_subcommand follow" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand follow" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand follow" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1427,7 +1427,7 @@ complete -c xr -n "__fish_xr_using_subcommand unfollow" -l no-pager -d 'Document
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand following" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l of -d 'Username to list following for (default: you)' -r
-complete -c xr -n "__fish_xr_using_subcommand following" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1465,7 +1465,7 @@ complete -c xr -n "__fish_xr_using_subcommand following" -l no-pager -d 'Documen
 complete -c xr -n "__fish_xr_using_subcommand following" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand followers" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l of -d 'Username to list followers for (default: you)' -r
-complete -c xr -n "__fish_xr_using_subcommand followers" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1501,7 +1501,7 @@ complete -c xr -n "__fish_xr_using_subcommand followers" -l json -d 'Shorthand f
 complete -c xr -n "__fish_xr_using_subcommand followers" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand followers" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand followers" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand mute" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1537,7 +1537,7 @@ complete -c xr -n "__fish_xr_using_subcommand mute" -l json -d 'Shorthand for `-
 complete -c xr -n "__fish_xr_using_subcommand mute" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand mute" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand mute" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1574,7 +1574,7 @@ complete -c xr -n "__fish_xr_using_subcommand unmute" -l jsonl -d 'Shorthand for
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand muted" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand muted" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1610,7 +1610,7 @@ complete -c xr -n "__fish_xr_using_subcommand muted" -l json -d 'Shorthand for `
 complete -c xr -n "__fish_xr_using_subcommand muted" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand muted" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand muted" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand block" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1646,7 +1646,7 @@ complete -c xr -n "__fish_xr_using_subcommand block" -l json -d 'Shorthand for `
 complete -c xr -n "__fish_xr_using_subcommand block" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand block" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand block" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1683,7 +1683,7 @@ complete -c xr -n "__fish_xr_using_subcommand unblock" -l jsonl -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1719,7 +1719,7 @@ complete -c xr -n "__fish_xr_using_subcommand blocked" -l json -d 'Shorthand for
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l auth -d 'Authentication type (this command accepts: app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1757,7 +1757,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -f -a "credits" -d 'Show credits-based usage for the project'
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1795,7 +1795,7 @@ complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from help" -f -a "credits" -d 'Show credits-based usage for the project'
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand dm" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1870,7 +1870,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -f -a "with" -d 'List the messages between you and one person'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l text -d 'The first message' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1906,7 +1906,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1943,7 +1943,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -1980,7 +1980,7 @@ complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2057,7 +2057,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_sub
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -f -a "get" -d 'Read one direct message, by event id'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -f -a "remove" -d 'Delete one of your direct messages, by event id'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2093,7 +2093,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2133,7 +2133,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from help" -f -a "get" -d 'Read one direct message, by event id'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from help" -f -a "remove" -d 'Delete one of your direct messages, by event id'
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2169,7 +2169,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-block" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2206,7 +2206,7 @@ complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l jsonl -d 'Shorthand
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand dms" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand dms" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2293,7 +2293,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l of -d 'Username whose own lists to read (default: you)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2331,7 +2331,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l of -d 'Username whose followed lists to read (default: you)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2369,7 +2369,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l of -d 'Username whose list memberships to read (default: you)' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2405,7 +2405,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2441,7 +2441,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2478,7 +2478,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2515,7 +2515,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2589,7 +2589,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -f -a "remove" -d 'Take an account off a list you own'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l description -d 'What the list is for, at most 100 characters' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2628,7 +2628,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l name -d 'New name, 1 to 25 characters' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l description -d 'New description, at most 100 characters' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2666,7 +2666,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2703,7 +2703,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2739,7 +2739,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2775,7 +2775,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2811,7 +2811,7 @@ complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2900,7 +2900,7 @@ complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_s
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -f -a "get" -d 'Read one community, by id'
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s n -l max-results -d 'Number of results (10-100; a lower value is raised to 10, X\'s minimum). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -2936,7 +2936,7 @@ complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subco
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3013,7 +3013,7 @@ complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l max-age-hours -d 'Only stories updated within this many hours, 1 to 720 (X\'s default is 168, one week)' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3049,7 +3049,7 @@ complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3130,7 +3130,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 scheduled\t''
 all\t''"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3166,7 +3166,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3202,7 +3202,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3239,7 +3239,7 @@ complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3394,7 +3394,7 @@ complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subc
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l title -d 'The article\'s title' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l body-file -d 'The file holding the body, or `-` to read it from stdin' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l cover -d 'The media id of an uploaded image to show above the article' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3430,7 +3430,7 @@ complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3519,7 +3519,7 @@ misinterpreted_satire\t''
 missing_important_context\t''
 other\t''
 outdated_information\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3559,7 +3559,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l text -d 'The note\'s text; X requires a source URL in it' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3596,7 +3596,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3634,7 +3634,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3671,7 +3671,7 @@ complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3751,7 +3751,7 @@ complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -f -a "personal" -d 'List the trends X picks for you'
 complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s n -l max-results -d 'Number of trends (1-50; X\'s default is 20). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l auth -d 'Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3787,7 +3787,7 @@ complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3867,7 +3867,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_su
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "sources" -d 'Manage the RTMP and RTMPS ingest points you stream to'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -3903,7 +3903,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -4137,7 +4137,7 @@ complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -f -a "get" -d 'Show an X call: its title, join policy, host, and who is in it'
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -f -a "scheduled" -d 'The calls on your calendar: schedule, change, cancel, and answer them'
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -4258,7 +4258,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subc
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -f -a "listen" -d 'Receive webhook deliveries on a local address'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -f -a "replay" -d 'Deliver a past window of events to a webhook again'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -4294,7 +4294,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -4330,7 +4330,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -4366,7 +4366,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -4526,7 +4526,7 @@ complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcomma
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l from -d 'Start of the window: twelve digits, `yyyymmddhhmm` in UTC' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l to -d 'End of the window: twelve digits, `yyyymmddhhmm` in UTC' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l from-checkpoint -d 'Request the window from the minute `xr webhooks listen --checkpoint` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included. The file holds {"last_event_at": <Unix seconds>}' -r -F
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l auth -d 'Authentication type (this command accepts: app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -4919,7 +4919,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcomm
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l media-type -d 'Media type (e.g., video/mp4)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l category -d 'Media category (e.g., `amplify_video`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l wait -d 'Wait for X to finish processing the upload before returning' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l auth -d 'Authentication type' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s H -l header -d 'Request headers' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
@@ -4956,7 +4956,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l auth -d 'Authentication type' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s w -l wait -d 'Wait for X to finish processing instead of reading the status once' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s H -l header -d 'Request headers' -r
@@ -4994,7 +4994,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -5035,7 +5035,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l granularity -d 'Bucket size (X\'s default is daily)' -r -f -a "hourly\t''
 daily\t''
 total\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
@@ -5071,7 +5071,7 @@ complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l auth -d 'Authentication type (oauth1, oauth2, app)' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"

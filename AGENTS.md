@@ -214,6 +214,11 @@ never the tests.
   global `--limit`, for one whose endpoint declares a page token in the vendored spec but whose request drops
   `--cursor`, and for one whose `-n` help states a larger page size than its request sends; a paged list through the
   list helpers passes all three.
+- **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
+  reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
+  schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes
+  `--auth` with no row, for a row naming no such command, and for a row whose schemes differ from the ones the
+  command's dry run accepts.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that

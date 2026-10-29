@@ -1,7 +1,7 @@
 args: ["broadcasts", "scheduled", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7779
+stdout_len: 7857
 stderr_len: 0
 --- stdout ---
 Move a scheduled broadcast, or change its details
@@ -37,7 +37,7 @@ Options:
           Wait for `xr broadcasts scheduled live` rather than starting on time
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

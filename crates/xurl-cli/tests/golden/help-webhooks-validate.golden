@@ -1,7 +1,7 @@
 args: ["webhooks", "validate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7006
+stdout_len: 7089
 stderr_len: 0
 --- stdout ---
 Ask X to send its CRC check to a webhook again
@@ -14,7 +14,7 @@ Arguments:
 
 Options:
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

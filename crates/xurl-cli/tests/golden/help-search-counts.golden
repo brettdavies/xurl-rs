@@ -1,7 +1,7 @@
 args: ["search-counts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7522
+stdout_len: 7597
 stderr_len: 0
 --- stdout ---
 Count the recent posts that match a query, per time bucket
@@ -25,7 +25,7 @@ Options:
           Moment the count stops, exclusive (RFC 3339 with a zone)
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, app). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

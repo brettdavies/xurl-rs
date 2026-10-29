@@ -3,6 +3,7 @@
 //! Mirrors the Go cobra command tree: root (raw mode) + shortcuts +
 //! auth/media/webhook/version subcommands.
 
+pub mod accepted_auth;
 mod classify;
 pub mod commands;
 mod failure;
@@ -972,7 +973,8 @@ Shell completions:
 
 Run 'xr --help' to see all available commands."#,
     after_help = ROOT_HELP,
-    version
+    version,
+    mut_subcommands(accepted_auth::annotate)
 )]
 pub struct Cli {
     /// HTTP method (GET by default)
@@ -987,8 +989,7 @@ pub struct Cli {
     #[arg(short = 'd', long = "data")]
     pub data: Option<String>,
 
-    /// Authentication type (oauth1, oauth2, app)
-    #[arg(long = "auth")]
+    #[arg(long = "auth", help = accepted_auth::every_scheme_help())]
     pub auth_type: Option<String>,
 
     /// `OAuth2` login to send the request as, by the name it is stored under: its username, or the
@@ -3627,8 +3628,7 @@ impl Cli {
 /// it without local duplication.
 #[derive(clap::Args, Debug, Clone)]
 pub struct CommonFlags {
-    /// Authentication type (oauth1, oauth2, app)
-    #[arg(long = "auth")]
+    #[arg(long = "auth", help = accepted_auth::every_scheme_help())]
     pub auth_type: Option<String>,
 
     /// `OAuth2` login to act as, by the name it is stored under: its username, or the name given to

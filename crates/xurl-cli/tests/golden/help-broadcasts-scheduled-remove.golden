@@ -1,7 +1,7 @@
 args: ["broadcasts", "scheduled", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7179
+stdout_len: 7257
 stderr_len: 0
 --- stdout ---
 Cancel a scheduled broadcast
@@ -17,7 +17,7 @@ Options:
           Skip the confirmation prompt; required under `--no-interactive`
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
