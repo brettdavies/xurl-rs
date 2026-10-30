@@ -13,7 +13,7 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::listen::{
-    EVENT, EVENT_UNDER_CLIENT_SECRET, OAUTH2_HEADER, crc_token_from, deliver, free_port, listen_as,
+    EVENT, EVENT_UNDER_CLIENT_SECRET, OAUTH2_HEADER, crc_token_from, deliver, held_port, listen_as,
     listen_while, post, stderr_records,
 };
 use common::{oauth1_store, run_in_process as run};
@@ -39,23 +39,17 @@ fn hook(server: &MockServer) -> String {
     format!("{}/hook", server.uri())
 }
 
-fn port_is_free(port: u16) -> bool {
-    std::net::TcpStream::connect(("127.0.0.1", port)).is_err()
-}
-
 #[tokio::test]
 async fn a_forward_delivers_the_signed_event_byte_for_byte_before_listen_exits() {
     let server = answering(200).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let url = hook(&server);
 
     let ((code, stdout, stderr), ()) = listen_while(
         &store,
-        port,
         &["--max-events", "1", "--forward", &url],
-        async {
+        async |port| {
             crc_token_from(port).await;
             let status = deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await;
             assert_eq!(status, 200);
@@ -100,11 +94,10 @@ async fn events_reach_the_target_in_the_order_x_delivered_them() {
     let server = answering(200).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let url = hook(&server);
     let flags = ["--allow-unsigned", "--max-events", "3", "--forward", &url];
 
-    let ((code, _stdout, stderr), ()) = listen_while(&store, port, &flags, async {
+    let ((code, _stdout, stderr), ()) = listen_while(&store, &flags, async |port| {
         crc_token_from(port).await;
         for n in 1..=3 {
             assert_eq!(post(port, &format!(r#"{{"n":{n}}}"#), &[]).await, 200);
@@ -131,12 +124,10 @@ async fn the_printed_test_command_reaches_the_target_signed() {
     let server = answering(200).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let url = hook(&server);
 
     let (code, stderr, ()) = listen_tapped(
         &store,
-        port,
         &["--max-events", "1", "--forward", &url],
         |mut lines| async move {
             let listening = next_record(&mut lines).await;
@@ -188,11 +179,10 @@ async fn a_failed_forward_is_reported_on_stderr_and_changes_nothing_else() {
         .await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let url = hook(&server);
     let flags = ["--allow-unsigned", "--max-events", "2", "--forward", &url];
 
-    let ((code, stdout, stderr), ()) = listen_as(&store, "jsonl", port, &flags, async {
+    let ((code, stdout, stderr), ()) = listen_as(&store, "jsonl", &flags, async |port| {
         crc_token_from(port).await;
         assert_eq!(
             deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await,
@@ -263,11 +253,10 @@ async fn an_unsigned_event_is_forwarded_with_no_signature_and_its_own_content_ty
     let server = answering(200).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let url = hook(&server);
     let flags = ["--allow-unsigned", "--max-events", "1", "--forward", &url];
 
-    let ((code, _stdout, stderr), ()) = listen_while(&store, port, &flags, async {
+    let ((code, _stdout, stderr), ()) = listen_while(&store, &flags, async |port| {
         crc_token_from(port).await;
         let status = post(
             port,
@@ -314,7 +303,7 @@ async fn a_header_without_a_forward_target_is_a_usage_error() {
 async fn a_forward_url_it_cannot_send_to_is_refused_before_anything_binds(#[case] url: &str) {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
+    let (_held, port) = held_port();
 
     let (code, stdout, stderr) = run(
         &store,
@@ -346,14 +335,13 @@ async fn a_forward_url_it_cannot_send_to_is_refused_before_anything_binds(#[case
             "the refusal names -H: {envelope}"
         );
     }
-    assert!(port_is_free(port));
 }
 
 #[tokio::test]
 async fn a_malformed_header_is_refused_by_position_and_never_echoed() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
+    let (_held, port) = held_port();
 
     let (code, stdout, stderr) = run(
         &store,
@@ -385,14 +373,13 @@ async fn a_malformed_header_is_refused_by_position_and_never_echoed() {
         !stdout.contains("abc") && !stderr.contains("abc"),
         "{stderr}"
     );
-    assert!(port_is_free(port));
 }
 
 #[tokio::test]
 async fn a_dry_run_names_the_target_and_the_header_names_and_binds_nothing() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
+    let (_held, port) = held_port();
 
     let (code, stdout, stderr) = run(
         &store,
@@ -427,7 +414,6 @@ async fn a_dry_run_names_the_target_and_the_header_names_and_binds_nothing() {
         !stdout.contains("abc") && !stderr.contains("abc"),
         "{stdout}"
     );
-    assert!(port_is_free(port));
 }
 
 // ── shutdown, in a real process ──────────────────────────────────────
@@ -470,9 +456,9 @@ mod shutdown {
             .await;
         let tmp = TempDir::new().expect("tempdir");
         let store = oauth1_store(tmp.path());
-        let port = free_port();
         let url = hook(&server);
-        let listen = ListenProcess::start(&store, port, &["--allow-unsigned", "--forward", &url]);
+        let listen = ListenProcess::start(&store, &["--allow-unsigned", "--forward", &url]);
+        let port = listen.port;
 
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
         assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
@@ -495,7 +481,6 @@ mod shutdown {
         let server = never_answering().await;
         let tmp = TempDir::new().expect("tempdir");
         let store = oauth1_store(tmp.path());
-        let port = free_port();
         let url = hook(&server);
         let flags = [
             "--allow-unsigned",
@@ -504,7 +489,8 @@ mod shutdown {
             "--forward-timeout",
             "1",
         ];
-        let listen = ListenProcess::start(&store, port, &flags);
+        let listen = ListenProcess::start(&store, &flags);
+        let port = listen.port;
 
         deliver_three(port).await;
         for _ in 0..3 {
@@ -530,7 +516,6 @@ mod shutdown {
         let server = never_answering().await;
         let tmp = TempDir::new().expect("tempdir");
         let store = oauth1_store(tmp.path());
-        let port = free_port();
         let url = hook(&server);
         let flags = [
             "--allow-unsigned",
@@ -539,7 +524,8 @@ mod shutdown {
             "--forward-timeout",
             "1",
         ];
-        let listen = ListenProcess::start(&store, port, &flags);
+        let listen = ListenProcess::start(&store, &flags);
+        let port = listen.port;
 
         deliver_three(port).await;
         for _ in 0..3 {
@@ -581,7 +567,6 @@ fn checkpoint_minute(path: &std::path::Path) -> u64 {
 async fn with_no_target_the_checkpoint_names_the_newest_events_minute() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let checkpoint = tmp.path().join("checkpoint.json");
     let path = checkpoint.to_str().expect("utf-8 path");
     let flags = [
@@ -592,7 +577,7 @@ async fn with_no_target_the_checkpoint_names_the_newest_events_minute() {
         path,
     ];
 
-    let ((code, _stdout, stderr), (before, after)) = listen_while(&store, port, &flags, async {
+    let ((code, _stdout, stderr), (before, after)) = listen_while(&store, &flags, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
         let before = now_secs();
@@ -618,7 +603,6 @@ async fn at_the_drain_deadline_the_checkpoint_names_the_first_undelivered_minute
         .await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let checkpoint = tmp.path().join("checkpoint.json");
     let url = hook(&server);
     let flags = [
@@ -633,7 +617,7 @@ async fn at_the_drain_deadline_the_checkpoint_names_the_first_undelivered_minute
         checkpoint.to_str().expect("utf-8 path"),
     ];
 
-    let ((code, _stdout, stderr), (before, after)) = listen_while(&store, port, &flags, async {
+    let ((code, _stdout, stderr), (before, after)) = listen_while(&store, &flags, async |port| {
         crc_token_from(port).await;
         let before = now_secs();
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
@@ -660,7 +644,7 @@ async fn at_the_drain_deadline_the_checkpoint_names_the_first_undelivered_minute
 async fn a_dry_run_names_the_checkpoint_and_writes_nothing() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
+    let (_held, port) = held_port();
     let checkpoint = tmp.path().join("checkpoint.json");
 
     let (code, stdout, stderr) = run(
@@ -694,7 +678,6 @@ async fn a_checkpoint_that_cannot_be_written_is_reported_and_listen_goes_on() {
     let server = answering(200).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let locked = tmp.path().join("locked");
     std::fs::create_dir(&locked).expect("mkdir");
     std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).expect("chmod");
@@ -710,7 +693,7 @@ async fn a_checkpoint_that_cannot_be_written_is_reported_and_listen_goes_on() {
         checkpoint.to_str().expect("utf-8 path"),
     ];
 
-    let ((code, stdout, stderr), ()) = listen_while(&store, port, &flags, async {
+    let ((code, stdout, stderr), ()) = listen_while(&store, &flags, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
         assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
@@ -751,7 +734,6 @@ async fn a_hard_stop_leaves_the_checkpoint_at_the_oldest_undelivered_minute() {
         .await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let checkpoint = tmp.path().join("checkpoint.json");
     let url = hook(&server);
     let flags = [
@@ -763,7 +745,8 @@ async fn a_hard_stop_leaves_the_checkpoint_at_the_oldest_undelivered_minute() {
         "--checkpoint",
         checkpoint.to_str().expect("utf-8 path"),
     ];
-    let listen = ListenProcess::start(&store, port, &flags);
+    let listen = ListenProcess::start(&store, &flags);
+    let port = listen.port;
 
     let before = now_secs();
     assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);

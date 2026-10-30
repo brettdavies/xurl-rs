@@ -14,8 +14,8 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::listen::{
     CRC_UNDER_CLIENT_SECRET, CRC_UNDER_CONSUMER_SECRET, EVENT, EVENT_UNDER_CLIENT_SECRET,
-    EVENT_UNDER_CONSUMER_SECRET, LEGACY_HEADER, OAUTH2_HEADER, crc_token_from, deliver, free_port,
-    listen_tapped, listen_while, next_record,
+    EVENT_UNDER_CONSUMER_SECRET, LEGACY_HEADER, OAUTH2_HEADER, crc_token_from, deliver, held_port,
+    listen_as, listen_tapped, listen_while, next_record,
 };
 use common::{oauth1_store, oauth2_store, run_in_process as run};
 
@@ -900,14 +900,15 @@ async fn stream_links_need_a_bearer() {
 async fn listen_answers_the_crc_check_and_prints_a_signed_event() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
 
-    let ((code, stdout, stderr), ()) = listen_while(&store, port, &["--max-events", "1"], async {
-        assert_eq!(crc_token_from(port).await, CRC_UNDER_CLIENT_SECRET);
-        let status = deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await;
-        assert_eq!(status, 200);
-    })
-    .await;
+    let ((code, stdout, stderr), port) =
+        listen_while(&store, &["--max-events", "1"], async |port| {
+            assert_eq!(crc_token_from(port).await, CRC_UNDER_CLIENT_SECRET);
+            let status = deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await;
+            assert_eq!(status, 200);
+            port
+        })
+        .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let lines: Vec<serde_json::Value> = stdout
@@ -929,10 +930,9 @@ async fn listen_answers_the_crc_check_and_prints_a_signed_event() {
 async fn listen_prints_every_body_on_one_line_that_parses() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let flags = ["--allow-unsigned", "--max-events", "2"];
 
-    let ((code, stdout, stderr), ()) = listen_while(&store, port, &flags, async {
+    let ((code, stdout, stderr), ()) = listen_while(&store, &flags, async |port| {
         crc_token_from(port).await;
         let client = reqwest::Client::new();
         let url = format!("http://127.0.0.1:{port}/webhook");
@@ -967,9 +967,8 @@ async fn listen_prints_every_body_on_one_line_that_parses() {
 async fn listen_refuses_an_event_whose_signature_is_wrong() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
 
-    let ((code, stdout, stderr), ()) = listen_while(&store, port, &["--max-events", "1"], async {
+    let ((code, stdout, stderr), ()) = listen_while(&store, &["--max-events", "1"], async |port| {
         crc_token_from(port).await;
         assert_eq!(
             deliver(port, Some((OAUTH2_HEADER, "sha256=AAAA"))).await,
@@ -993,10 +992,9 @@ async fn listen_refuses_an_event_whose_signature_is_wrong() {
 async fn listen_with_secret_oauth1_signs_with_the_consumer_secret() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let flags = ["--secret", "oauth1", "--max-events", "1"];
 
-    let ((code, stdout, stderr), ()) = listen_while(&store, port, &flags, async {
+    let ((code, stdout, stderr), ()) = listen_while(&store, &flags, async |port| {
         assert_eq!(crc_token_from(port).await, CRC_UNDER_CONSUMER_SECRET);
         let status = deliver(port, Some((LEGACY_HEADER, EVENT_UNDER_CONSUMER_SECRET))).await;
         assert_eq!(status, 200);
@@ -1013,10 +1011,9 @@ async fn listen_with_secret_oauth1_signs_with_the_consumer_secret() {
 async fn listen_with_allow_unsigned_prints_an_unsigned_event() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let flags = ["--allow-unsigned", "--max-events", "1"];
 
-    let ((code, stdout, stderr), ()) = listen_while(&store, port, &flags, async {
+    let ((code, stdout, stderr), ()) = listen_while(&store, &flags, async |port| {
         crc_token_from(port).await;
         assert_eq!(deliver(port, None).await, 200);
     })
@@ -1030,7 +1027,7 @@ async fn listen_with_allow_unsigned_prints_an_unsigned_event() {
 async fn listen_under_dry_run_binds_nothing_and_names_the_secret() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
+    let (_held, port) = held_port();
 
     let (code, stdout, stderr) = run(
         &store,
@@ -1053,23 +1050,15 @@ async fn listen_under_dry_run_binds_nothing_and_names_the_secret() {
     assert_eq!(body["command"], "webhooks-listen");
     assert_eq!(body["would_succeed"], true);
     assert_eq!(body["secret"], "oauth2");
-    assert!(
-        std::net::TcpStream::connect(("127.0.0.1", port)).is_err(),
-        "a dry run must not bind the port"
-    );
 }
 
 #[tokio::test]
 async fn listen_hands_out_a_signed_test_request_that_verifies() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
 
-    let (code, stderr, (listening, event)) = listen_tapped(
-        &store,
-        port,
-        &["--max-events", "1"],
-        |mut lines| async move {
+    let (code, stderr, (listening, event)) =
+        listen_tapped(&store, &["--max-events", "1"], |mut lines| async move {
             let listening = next_record(&mut lines).await;
             let request = &listening["test_request"];
             assert_eq!(request["method"], "POST", "{listening}");
@@ -1082,9 +1071,8 @@ async fn listen_hands_out_a_signed_test_request_that_verifies() {
             let status = post.send().await.expect("the listener answers").status();
             assert_eq!(status, 200, "the sample verifies");
             (listening, next_record(&mut lines).await)
-        },
-    )
-    .await;
+        })
+        .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     assert_eq!(listening["status"], "listening");
@@ -1101,13 +1089,9 @@ async fn listen_hands_out_a_signed_test_request_that_verifies() {
 async fn listen_hands_out_a_test_command_a_posix_shell_runs() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
 
-    let (code, stderr, (shell, event)) = listen_tapped(
-        &store,
-        port,
-        &["--max-events", "1"],
-        |mut lines| async move {
+    let (code, stderr, (shell, event)) =
+        listen_tapped(&store, &["--max-events", "1"], |mut lines| async move {
             let listening = next_record(&mut lines).await;
             let command = listening["test_command"]
                 .as_str()
@@ -1123,9 +1107,8 @@ async fn listen_hands_out_a_test_command_a_posix_shell_runs() {
             .await
             .expect("the shell finishes");
             (shell, next_record(&mut lines).await)
-        },
-    )
-    .await;
+        })
+        .await;
 
     assert!(
         shell.status.success(),
@@ -1141,24 +1124,12 @@ async fn listen_hands_out_a_test_command_a_posix_shell_runs() {
 async fn listen_in_text_prints_the_test_command_on_stderr() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let held = std::net::TcpListener::bind("127.0.0.1:0").expect("a free port");
-    let port = held.local_addr().expect("its address").port();
-    drop(held);
-
-    let port_arg = port.to_string();
-    let args = [
-        "webhooks",
-        "listen",
-        "--port",
-        &port_arg,
-        "--max-events",
-        "1",
-    ];
     let ((code, stdout, stderr), ()) =
-        tokio::join!(run(&store, "http://127.0.0.1:9", &args), async {
+        listen_as(&store, "text", &["--max-events", "1"], async |port| {
             crc_token_from(port).await;
             deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await;
-        });
+        })
+        .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     assert_eq!(
@@ -1175,8 +1146,8 @@ async fn listen_in_text_prints_the_test_command_on_stderr() {
 async fn listen_on_a_held_port_names_it_and_reruns_on_a_free_port() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let held = std::net::TcpListener::bind("127.0.0.1:0").expect("a port to hold");
-    let port = held.local_addr().expect("its address").port().to_string();
+    let (_held, port) = held_port();
+    let port = port.to_string();
 
     let (code, stdout, stderr) = run(
         &store,
@@ -1218,8 +1189,8 @@ async fn listen_on_a_held_port_names_it_and_reruns_on_a_free_port() {
 async fn listen_on_a_held_port_in_text_suggests_a_free_port_or_stopping_the_holder() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let held = std::net::TcpListener::bind("127.0.0.1:0").expect("a port to hold");
-    let port = held.local_addr().expect("its address").port().to_string();
+    let (_held, port) = held_port();
+    let port = port.to_string();
 
     let (code, _stdout, stderr) = run(
         &store,
