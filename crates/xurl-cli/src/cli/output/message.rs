@@ -19,8 +19,10 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Api { .. }
         | Error::ProcessingTimeout { .. }
         | Error::AddressInUse { .. }
-        | Error::MediaProcessingFailed { .. }
-        | Error::AccountNotFound { .. } => error.to_string(),
+        | Error::MediaProcessingFailed { .. } => error.to_string(),
+        Error::AccountNotFound { account } => {
+            format!("X found no account for the handle @{account}.")
+        }
         Error::InvalidUrl { message, .. } => format!("Invalid URL: {message}"),
         Error::InvalidPathParam { name, value } => {
             format!(
@@ -178,6 +180,12 @@ mod tests {
             ),
             (Error::api(400, "bad request"), "bad request"),
             (Error::validation("bad input"), "bad input"),
+            (
+                Error::AccountNotFound {
+                    account: "ghost".into(),
+                },
+                "X found no account for the handle @ghost.",
+            ),
         ];
         for (error, expected) in cases {
             assert_eq!(render(&error), expected, "{error:?}");

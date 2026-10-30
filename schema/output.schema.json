@@ -160,7 +160,7 @@
       "description": "Error envelope. Every field the runtime emits is declared on\n[`ErrorBody`], so an undeclared key cannot reach a caller. Boxed\nbecause that body is much larger than the other two variants.",
       "properties": {
         "account": {
-          "description": "The handle a lookup found no account for, under `not-found`.",
+          "description": "The handle, without its `@`, a lookup found no account for, under\n`not-found`: the first such handle when the lookup named several.",
           "type": [
             "string",
             "null"

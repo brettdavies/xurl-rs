@@ -98,9 +98,9 @@ async fn inputs_outside_the_spec_are_refused_before_any_request() {
 
 /// X refuses a lookup of one account with a 200 that carries `errors` and no
 /// `data`. The refusal reads by X's problem `type`, never as `xr`'s own bug:
-/// no `rule`, X's body in `message`, and no `report-issue` step.
+/// no `rule`, X's body in `message`, and no `report-issue` step. A handle X
+/// finds no account for is the one answer named otherwise, in `account`.
 #[rstest::rstest]
-#[case::not_found("resource-not-found", "not-found", 4, Some("fix-input"))]
 #[case::not_authorized("not-authorized-for-resource", "forbidden", 1, None)]
 #[case::other("invalid-request", "invalid-request", 1, Some("fix-input"))]
 #[tokio::test]
@@ -143,6 +143,43 @@ async fn an_errors_only_answer_reads_as_its_problem_type(
         envelope["message"]
             .as_str()
             .is_some_and(|m| m.contains("Could not find user")),
+        "{envelope}"
+    );
+}
+
+/// An id lookup that finds nothing keeps X's reading: `not-found` with X's
+/// body in `message` and no `account`, which names handles alone.
+#[tokio::test]
+async fn an_id_lookup_that_finds_nothing_reads_as_not_found() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users"))
+        .and(query_param("ids", "12"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "errors": [{
+                "value": "12",
+                "detail": "Could not find user with ids: [12].",
+                "title": "Not Found Error",
+                "resource_type": "user",
+                "parameter": "ids",
+                "type": "https://api.x.com/2/problems/resource-not-found"
+            }]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let (code, _stdout, stderr) = run_json(&server, &["users", "12"]).await;
+
+    assert_eq!(code, 4, "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
+    assert_eq!(envelope["reason"], "not-found", "{envelope}");
+    assert!(envelope.get("account").is_none(), "{envelope}");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .is_some_and(|m| m.contains("Could not find user with ids")),
         "{envelope}"
     );
 }
