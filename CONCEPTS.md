@@ -222,9 +222,10 @@ never something a consumer could depend on.
 A breaking change to the published library surface that the project chooses to ship below a major version, recorded so
 the Public API gate reclassifies it instead of refusing the release.
 
-The record names the item it covers and is scoped to one release: once that release moves the baseline past the change,
-the record matches nothing and has to be removed, or it understates the next break of the same kind. Recording a break
-is not silencing it. The gate still names the item and still refuses any release below the recorded level.
+The record is keyed by the kind of break, and a note beside it names the item it was taken for. It is scoped to one
+release: once that release moves the baseline past the change, the break it was taken for no longer registers, yet the
+record stands and would reclassify the next break of the same kind, so the release's backport removes it. Recording a
+break is not silencing it. The gate still names the item and still refuses any release below the recorded level.
 
 ## Release flow
 
@@ -232,8 +233,8 @@ is not silencing it. The gate still names the item and still refuses any release
 
 The pull request that carries a release's bookkeeping from `main` back to the integration branch once the release has
 published: version numbers, the lockfile's workspace-member versions, each crate's new changelog section, and any other
-file the release branch edited. It lets the next release start from the released baseline instead of reverting what the
-last one shipped.
+file the release branch edited. When the release moved the library, it also removes each accepted break the new tag
+made stale. It lets the next release start from the released baseline instead of reverting what the last one shipped.
 
 A backport is always a pull request, never a merge of `main` into the integration branch or a direct push. It adopts a
 file from `main` on its own only when the integration branch has not touched it since the previous release (a
