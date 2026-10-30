@@ -244,20 +244,10 @@ where
                 envelope,
             } => {
                 return match crate::cli::commands::schema::run_schema(
-                    command.as_deref(),
-                    *list,
-                    *all,
-                    *envelope,
-                    &out,
-                    stdout,
+                    command, *list, *all, *envelope, &out, stdout,
                 ) {
                     Ok(()) => EXIT_SUCCESS,
-                    // What `schema` refuses is the name it was given.
-                    Err(e) => {
-                        let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
-                        out.print_refusal(stderr, &e, None, &hint);
-                        EXIT_GENERAL_ERROR
-                    }
+                    Err(refusal) => render_schema_refusal(refusal, &args_vec, &out, stderr),
                 };
             }
             Commands::Skill { .. } => {
@@ -527,10 +517,7 @@ fn render_parse_error(
         if !word.starts_with('-') {
             let command = failing_command(error, args);
             let nearest = suggestion_for_rejected(error, args, &word);
-            let suggestion = match retired_verbs::replacement(&command, &word) {
-                Some(replacement) => Suggestion::Replacement(replacement),
-                None => Suggestion::nearest(nearest.as_deref()),
-            };
+            let suggestion = Suggestion::for_word(&command, &word, nearest.as_deref());
             return render_unknown_command(&word, suggestion, &command, &out, stderr);
         }
         if matches!(word.as_str(), "-h" | "--help") && help_command_precedes(args, &word) {
@@ -661,6 +648,80 @@ fn render_misplaced_flags(
     EXIT_USAGE_ERROR
 }
 
+/// Renders what `xr schema` refused. A word that names no command takes
+/// the refusal `xr help` gives it; an old name or a scope word is
+/// `invalid-args` with the invocation that works as its step, when one
+/// exists; a fault in the registry names the issue tracker; anything else is
+/// the value refusal every command gives.
+fn render_schema_refusal(
+    refusal: crate::cli::commands::schema::Refusal,
+    args: &[OsString],
+    out: &OutputConfig,
+    stderr: &mut dyn Write,
+) -> i32 {
+    use crate::cli::commands::schema::{Refusal, invocation};
+    let (given, problem, run) = match refusal {
+        Refusal::UnknownCommand {
+            word,
+            suggestion,
+            under,
+        } => {
+            return render_unknown_command(
+                &word,
+                Suggestion::for_word(&under, &word, suggestion.as_deref()),
+                &under,
+                out,
+                stderr,
+            );
+        }
+        Refusal::Invalid(error) => {
+            let hint = match error {
+                xdk::error::Error::Internal(_) => crate::cli::hints::general_hint(&error, ""),
+                _ => None,
+            }
+            .unwrap_or_else(|| crate::cli::hints::show_help_hint(&invoked_help(args)));
+            out.print_refusal(stderr, &error, None, &hint);
+            return EXIT_GENERAL_ERROR;
+        }
+        Refusal::OldName { given, command } => {
+            let problem = format!(
+                "'{given}' is a name `xr schema` no longer takes; it takes the command's words."
+            );
+            (given, problem, Some(invocation(command)))
+        }
+        Refusal::ScopeWord(word) => {
+            let flag = format!("--{word}");
+            let alone = Cli::try_parse_from(["xr", "schema", flag.as_str()]).is_ok();
+            let problem = format!(
+                "'{word}' names a scope of `xr schema`, not a command; it is the flag {flag}."
+            );
+            (word, problem, alone.then(|| format!("xr schema {flag}")))
+        }
+    };
+    let (message, next_step) = match run {
+        Some(run) => (
+            format!("{problem} Run: {run}"),
+            NextStep::fix_input_with(run),
+        ),
+        None => (
+            format!("{problem} Try 'xr schema --help'."),
+            NextStep::show_help("xr schema --help".to_string()),
+        ),
+    };
+    out.emit_error_envelope(
+        stderr,
+        ErrorBody {
+            reason: Reason::InvalidArgs,
+            exit_code: EXIT_USAGE_ERROR,
+            message: Some(message),
+            command: Some(given),
+            next_step: Some(next_step),
+            ..ErrorBody::default()
+        },
+    );
+    EXIT_USAGE_ERROR
+}
+
 /// The command an unknown word's pointer names, and why it names it.
 #[derive(Clone, Copy)]
 enum Suggestion<'a> {
@@ -675,6 +736,15 @@ enum Suggestion<'a> {
 impl<'a> Suggestion<'a> {
     fn nearest(name: Option<&'a str>) -> Self {
         name.map_or(Self::Nothing, Self::Nearest)
+    }
+
+    /// The word that replaced `word` when `command`'s family retired it, and
+    /// the nearest name by spelling otherwise.
+    fn for_word(command: &str, word: &str, nearest: Option<&'a str>) -> Self {
+        match retired_verbs::replacement(command, word) {
+            Some(replacement) => Self::Replacement(replacement),
+            None => Self::nearest(nearest),
+        }
     }
 
     fn name(self) -> Option<&'a str> {
@@ -736,3 +806,31 @@ fn render_unknown_command(
 // `Send` by themselves, but the function-pointer type below is, which is
 // what library consumers need to dispatch the runner from a thread pool.
 xdk::assert_send_sync!(fn() -> i32);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::ColorChoice;
+
+    /// A command the registry resolves but holds no schema for is a fault in
+    /// xr, so its refusal points at the issue tracker rather than at a help
+    /// page the caller can do nothing with.
+    #[test]
+    fn a_broken_schema_registry_reports_an_internal_fault() {
+        let out = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+        let mut stderr = Vec::new();
+        let code = render_schema_refusal(
+            crate::cli::commands::schema::Refusal::Invalid(xdk::error::Error::Internal(
+                "no schema registered for 'post'".into(),
+            )),
+            &["xr", "schema", "post"].map(OsString::from),
+            &out,
+            &mut stderr,
+        );
+        let envelope: serde_json::Value =
+            serde_json::from_slice(&stderr).expect("a JSON error envelope");
+        assert_eq!(code, EXIT_GENERAL_ERROR);
+        assert_eq!(envelope["reason"], "internal");
+        assert_eq!(envelope["next_step"]["action"], "report-issue");
+    }
+}

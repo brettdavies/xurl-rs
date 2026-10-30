@@ -200,14 +200,19 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
              OAuth2 client secret or OAuth1 consumer secret."
             .to_string(),
         "no-typed-response" => {
-            format!("schema not available for '{given}': it has no typed response.")
+            let beneath = crate::cli::commands::schema::commands_beneath(given);
+            if beneath.is_empty() {
+                format!("schema not available for '{given}': it has no typed response.")
+            } else {
+                format!(
+                    "schema not available for '{given}': it has no typed response; these \
+                     commands beneath it have one: {}.",
+                    beneath.join(", ")
+                )
+            }
         }
-        "unknown-schema-command" => format!(
-            "unknown command '{given}': it names no command with a schema; `xr schema --list` \
-             lists them."
-        ),
-        "missing-command" => "usage: xr schema <COMMAND> | xr schema envelope | xr schema --list \
-             | xr schema --all"
+        "missing-command" => "usage: xr schema <COMMAND>... | xr schema --envelope | xr schema \
+             --list | xr schema --all"
             .to_string(),
         _ => return None,
     };

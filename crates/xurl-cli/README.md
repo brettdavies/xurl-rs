@@ -294,10 +294,16 @@ xr examples                                    # Curated invocation examples
 
 ```bash
 xr schema post                                 # JSON Schema for post response
-xr schema whoami                               # JSON Schema for whoami response
+xr schema webhooks subscriptions count         # a command's schema, named by the words you run it with
 xr schema --list                               # All commands and response types
+xr schema --list --output json                 # one record per command: command, type, file
 xr schema --all                                # All schemas as one JSON document
+xr schema --envelope                           # the output envelope every command prints
 ```
+
+`xr schema` names a command by the same words `xr` and `xr help` take. A word that names no command is refused the way
+`xr help` refuses it (`unknown-command`). A hyphen-joined name from before, such as `webhooks-subscriptions-count`, and
+a bare `envelope`, are refused with `invalid-args` and a `fix-input` step that carries the invocation that works.
 
 Generate typed clients from schema output:
 
@@ -684,6 +690,7 @@ as `XDG_CONFIG_HOME` for OpenCode) relocates its part of the path. Codex's desti
 ```bash
 xr schema --list                               # Discover all commands + response types
 xr schema post                                 # Get JSON Schema for any command's output
+xr schema webhooks subscriptions count         # Same, for a command of several words
 xr schema --all                                # All schemas for MCP tool definitions
 ```
 
@@ -874,7 +881,8 @@ fill, or, under `confirm`, the invocation that destroys once it runs. One whose 
 carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
 and `inspect-store` when a store command is what failed. Three `fix-input` steps carry an invocation: `listen` again on
 a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
-before, under `invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen`
+before, and the `xr schema` invocation that works for an old name or a scope word, both under `invalid-args`;
+and, under `auth-required`, a template that stores the signing secret `webhooks listen`
 lacks. A `validation` refusal names the input rule it broke in `rule`, the validator's kebab-case code
 (`invalid-username`, `no-list-changes`, ...), with the sentence for it in `message`, and `value` carries the offending
 input when the rule names one: an app name, a redirect URI, or a header's position among the `-H` headers. Branch on
@@ -891,7 +899,7 @@ input when the rule names one: an app name, a redirect URI, or a header's positi
 | `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
 | `processing-timeout`         | `resume-wait`                                                                                                                                    |
-| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it                                                   |
+| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, or for an old `xr schema` name                   |
 | `unknown-command`            | `show-help`                                                                                                                                      |
 | `invalid-method`             | `show-help`                                                                                                                                      |
 | `invalid-url`                | `show-help`                                                                                                                                      |

@@ -1066,6 +1066,7 @@ const SCHEDULED: &str = "1850000000000000001";
 #[case::help_command(&["xr", "--output", "json", "help", "broadcasts", "scheduled", "remove"])]
 #[case::dry_run(&["xr", "--output", "json", "--dry-run", "broadcasts", "scheduled", "remove", SCHEDULED])]
 #[case::alias_binary(&["xurl-rs", "--output", "json", "broadcasts", "scheduled", "remove", SCHEDULED])]
+#[case::schema(&["xr", "--output", "json", "schema", "broadcasts", "scheduled", "remove"])]
 #[tokio::test]
 async fn a_retired_word_names_its_replacement(#[case] args: &[&str]) {
     let (code, stdout, stderr) = run_isolated(args).await;

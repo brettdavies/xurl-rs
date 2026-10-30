@@ -626,14 +626,19 @@ Examples:
 /// `xr schema` examples — paired text + JSON, list, all.
 const SCHEMA_HELP: &str = "\
 Examples:
-  List all command schemas (text):
-    xr schema --list
-  List all command schemas (JSON):
-    xr schema --list --output json
-  Dump a single command's schema:
+  A command's schema, named by the words you run it with:
     xr schema post --output json
-  Dump every schema as one JSON document:
+    xr schema webhooks subscriptions count --output json
+  Then filter that command's output by the fields it names:
+    xr schema search
+    xr search \"from:jack\" --output json | jaq -r '.data[].text'
+  List every command with a schema (text, or one record per command):
+    xr schema --list
+    xr schema --list --output json
+  Every schema as one JSON document:
     xr schema --all --output json
+  The output envelope every command prints:
+    xr schema --envelope --output json
 ";
 
 /// `xr completions` examples.
@@ -1926,8 +1931,9 @@ pub enum Commands {
     /// Show JSON Schema for a command's response type
     #[command(after_help = SCHEMA_HELP)]
     Schema {
-        /// Command name to get the schema for (e.g. "post", "whoami", "envelope")
-        command: Option<String>,
+        /// The command's words, as `xr help` takes them (e.g. `post`, `webhooks subscriptions count`)
+        #[arg(value_name = "COMMAND", conflicts_with_all = ["list", "all", "envelope"])]
+        command: Vec<String>,
         /// List all commands and their response types
         #[arg(long)]
         list: bool,
