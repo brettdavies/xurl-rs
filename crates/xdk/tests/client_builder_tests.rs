@@ -230,7 +230,16 @@ async fn an_explicit_scheme_on_the_call_overrides_the_preference_order() {
 #[tokio::test]
 async fn a_builder_with_no_credential_is_a_validation_error() {
     let err = Client::builder().build().expect_err("nothing to send as");
-    assert!(matches!(err, Error::Validation(_)), "{err:?}");
+    assert!(
+        matches!(
+            err,
+            Error::Validation {
+                rule: "no-credential",
+                ..
+            }
+        ),
+        "{err:?}"
+    );
 }
 
 // ── Refresh and the hook ───────────────────────────────────────────────

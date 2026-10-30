@@ -629,7 +629,8 @@ async fn subscriptions_remove_of_a_handle_x_does_not_know_deletes_nothing() {
     )
     .await;
 
-    assert_eq!(code, 1, "stderr: {stderr}");
+    assert_eq!(code, 4, "stderr: {stderr}");
+    assert_eq!(error_envelope(&stderr)["reason"], "not-found", "{stderr}");
     assert!(stderr.contains("nobody_here"), "{stderr}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 1);
 }

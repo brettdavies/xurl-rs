@@ -89,10 +89,10 @@ fn confirm_destructive(prompt: &str) -> Result<bool> {
     let stderr = std::io::stderr();
     let mut handle = stderr.lock();
     write!(handle, "{prompt} [y/N]: ")
-        .map_err(|e| Error::validation(format!("confirmation prompt failed: {e}")))?;
+        .map_err(|e| Error::io(format!("confirmation prompt failed: {e}")))?;
     handle
         .flush()
-        .map_err(|e| Error::validation(format!("confirmation prompt failed: {e}")))?;
+        .map_err(|e| Error::io(format!("confirmation prompt failed: {e}")))?;
     drop(handle);
 
     let stdin = std::io::stdin();
@@ -257,7 +257,7 @@ fn dry_run_or_validate(
         return Ok(Some(DryRun { ctx, invalid }));
     }
     match invalid {
-        Some(reason) => Err(Failure::refused(Error::validation(reason.to_string()))),
+        Some(reason) => Err(Failure::refused(Error::validation(reason))),
         None => Ok(None),
     }
 }
@@ -395,9 +395,7 @@ pub(crate) async fn run(
     // because the X API does not offer offset-style pagination.
     if cli.page.is_some() {
         return Err(Failure::Refused {
-            error: Error::validation(
-                "X API does not support offset-style pagination; pass --cursor <token> from the previous response's meta.next_token instead.",
-            ),
+            error: Error::validation("unsupported-pagination"),
             reason: Some(Reason::UnsupportedPagination),
         });
     }
@@ -468,9 +466,15 @@ async fn run_raw_mode(
     let url = if let Some(u) = &cli.url {
         u.clone()
     } else {
-        return Err(Failure::refused(Error::validation(
+        out.print_invalid_args(
+            stderr,
             "No URL provided. Usage: xr [OPTIONS] [URL] [COMMAND].",
-        )));
+            " ",
+            crate::cli::classify::ROOT_COMMAND,
+        );
+        return Err(Failure::Emitted {
+            exit_code: xdk::error::EXIT_USAGE_ERROR,
+        });
     };
 
     let method = cli.method.clone().unwrap_or_else(|| "GET".to_string());
@@ -487,8 +491,8 @@ async fn run_raw_mode(
     } else if url.starts_with('/') {
         format!("{}{}", cfg.api_base_url, url)
     } else {
-        return Err(Failure::refused(Error::validation(format!(
-            "URL {url:?} must be an absolute http(s) URL or an absolute path starting with `/`."
+        return Err(Failure::refused(Error::invalid_url(format!(
+            "{url:?} is neither an absolute http(s) URL nor an absolute path starting with `/`"
         ))));
     };
     // Raw mode threads the (now absolute) URL through as a `RawUrl` target.

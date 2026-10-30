@@ -316,7 +316,7 @@ impl Config {
     /// not satisfy the https-or-loopback rule.
     pub fn validate_redirect_uri(uri: &str) -> crate::error::Result<Url> {
         let parsed =
-            Url::parse(uri).map_err(|e| Error::validation(format!("invalid redirect URI: {e}")))?;
+            Url::parse(uri).map_err(|_| Error::validation_of("invalid-redirect-uri", uri))?;
 
         let scheme = parsed.scheme();
         if scheme == "https" {
@@ -330,9 +330,7 @@ impl Config {
             return Ok(parsed);
         }
 
-        Err(Error::validation(format!(
-            "redirect URI must be https, or http on loopback (localhost / 127.0.0.1 / [::1]); got: {uri}"
-        )))
+        Err(Error::validation_of("invalid-redirect-uri", uri))
     }
 }
 

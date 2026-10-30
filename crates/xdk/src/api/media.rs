@@ -431,7 +431,12 @@ async fn wait_for_media_processing(
                 tracing::info!(target: MEDIA_TARGET, "Media processing complete!");
                 return Ok(response);
             }
-            "failed" => return Err(Error::validation("media processing failed")),
+            "failed" => {
+                return Err(Error::MediaProcessingFailed {
+                    media_id: media_id.to_string(),
+                    detail: failure_detail(info.error.as_ref()),
+                });
+            }
             _ => {}
         }
 
@@ -454,6 +459,18 @@ async fn wait_for_media_processing(
     }
 }
 
+/// What X said about a failed processing job: the error's `message` when it
+/// has one, its JSON otherwise.
+fn failure_detail(error: Option<&serde_json::Value>) -> String {
+    match error {
+        Some(error) => error
+            .get("message")
+            .and_then(serde_json::Value::as_str)
+            .map_or_else(|| error.to_string(), str::to_string),
+        None => "X gave no detail".to_string(),
+    }
+}
+
 /// Handles a media append request with a file (raw mode).
 ///
 /// # Errors
@@ -473,16 +490,14 @@ pub async fn handle_media_append_request(
     let url_for_id = match &options.target {
         RequestTarget::RawUrl(u) => u.clone(),
         RequestTarget::Template { path, .. } => {
-            return Err(Error::validation(format!(
+            return Err(Error::Internal(format!(
                 "handle_media_append_request requires a RawUrl target; got Template {{ path: {path:?} }} — call this only from the raw-mode path"
             )));
         }
     };
     let media_id = extract_media_id(&url_for_id);
     if media_id.is_empty() {
-        return Err(Error::validation(
-            "media_id is required for append endpoint",
-        ));
+        return Err(Error::validation("missing-media-id"));
     }
 
     let segment_index = if options.data.is_empty() {

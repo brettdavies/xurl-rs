@@ -564,8 +564,10 @@ async fn a_handle_invitee_x_does_not_know_fails_before_the_call_is_scheduled() {
     )
     .await;
 
-    assert_eq!(code, 1, "stderr: {stderr}");
-    assert!(stderr.contains("nobody_here"), "{stderr}");
+    assert_eq!(code, 4, "stderr: {stderr}");
+    let envelope = error_envelope(&stderr);
+    assert_eq!(envelope["reason"], "not-found", "{envelope}");
+    assert_eq!(envelope["account"], "nobody_here", "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 1);
 }
 

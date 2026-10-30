@@ -186,10 +186,7 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         auth.token_store.clear_bearer_token()?;
         out.print_ok_message(stdout, "Bearer token cleared!");
     } else {
-        return Err(Error::validation(
-            "No authentication cleared! Use --all to clear all authentication.",
-        )
-        .into());
+        return Err(Error::validation("nothing-to-clear").into());
     }
     Ok(())
 }
@@ -311,16 +308,16 @@ fn prompt_select(label: &str, items: &[String]) -> Result<Option<String>> {
     use std::io::BufRead;
     let stderr = std::io::stderr();
     let mut handle = stderr.lock();
-    writeln!(handle, "{label}:").map_err(|e| Error::validation(format!("prompt failed: {e}")))?;
+    writeln!(handle, "{label}:").map_err(|e| Error::io(format!("prompt failed: {e}")))?;
     for (idx, item) in items.iter().enumerate() {
         writeln!(handle, "  {}) {item}", idx + 1)
-            .map_err(|e| Error::validation(format!("prompt failed: {e}")))?;
+            .map_err(|e| Error::io(format!("prompt failed: {e}")))?;
     }
     write!(handle, "Choice [1-{}]: ", items.len())
-        .map_err(|e| Error::validation(format!("prompt failed: {e}")))?;
+        .map_err(|e| Error::io(format!("prompt failed: {e}")))?;
     handle
         .flush()
-        .map_err(|e| Error::validation(format!("prompt failed: {e}")))?;
+        .map_err(|e| Error::io(format!("prompt failed: {e}")))?;
     drop(handle);
 
     let stdin = std::io::stdin();

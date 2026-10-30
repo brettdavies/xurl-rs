@@ -152,6 +152,13 @@
       "additionalProperties": false,
       "description": "Error envelope. Every field the runtime emits is declared on\n[`ErrorBody`], so an undeclared key cannot reach a caller. Boxed\nbecause that body is much larger than the other two variants.",
       "properties": {
+        "account": {
+          "description": "The handle a lookup found no account for, under `not-found`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "action": {
           "description": "Skill verb the envelope reports on.",
           "type": [
@@ -251,7 +258,7 @@
           ]
         },
         "media_id": {
-          "description": "Media id whose processing a wait gave up on; the upload is intact.",
+          "description": "Media id whose processing a wait gave up on, under\n`processing-timeout`, where the upload is intact; or the one X\nrefused after processing it, under `invalid-request`.",
           "type": [
             "string",
             "null"
@@ -385,6 +392,13 @@
           "description": "Whether the document validated.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "The offending input, as it was given, when the broken `rule` names\none: an app name, a redirect URI, a header's position among the `-H`\nheaders (counted from 1), the seconds a checkpoint runs ahead. Always\na string; a number goes in as its decimal digits.",
+          "type": [
+            "string",
             "null"
           ]
         },

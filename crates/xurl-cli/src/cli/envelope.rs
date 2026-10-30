@@ -193,6 +193,12 @@ pub struct ErrorBody {
     /// a dry run that refuses its input.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rule: Option<String>,
+    /// The offending input, as it was given, when the broken `rule` names
+    /// one: an app name, a redirect URI, a header's position among the `-H`
+    /// headers (counted from 1), the seconds a checkpoint runs ahead. Always
+    /// a string; a number goes in as its decimal digits.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 
     /// What the caller should do next, when a recovery step exists.
     ///
@@ -251,9 +257,15 @@ pub struct ErrorBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub other_apps_with_creds: Option<Vec<String>>,
 
-    /// Media id whose processing a wait gave up on; the upload is intact.
+    /// Media id whose processing a wait gave up on, under
+    /// `processing-timeout`, where the upload is intact; or the one X
+    /// refused after processing it, under `invalid-request`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub media_id: Option<String>,
+
+    /// The handle a lookup found no account for, under `not-found`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account: Option<String>,
 
     /// Seconds until the rate limit resets, zero once it has; present on a
     /// `rate-limited` error whose own response named the reset.

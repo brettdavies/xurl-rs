@@ -222,10 +222,7 @@ fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
 /// `--forward` with its `-H` headers.
 fn url_target(url: &str, headers: &[String]) -> Result<UrlTarget, Error> {
     validate_forward_url(url).map_err(Error::validation)?;
-    UrlTarget::new(url, headers).map_err(|error| match error {
-        Error::Validation(message) => Error::validation(format!("-H: {message}")),
-        other => other,
-    })
+    UrlTarget::new(url, headers)
 }
 
 /// The name of each `-H` header, for a dry run: never a value.

@@ -114,10 +114,7 @@ fn update(
         ..
     } = ctx;
     if client_id.is_none() && client_secret.is_none() && redirect_uri.is_none() {
-        return Err(Error::validation(
-            "Nothing to update. Provide --client-id, --client-secret, and/or --redirect-uri.",
-        )
-        .into());
+        return Err(Error::validation("no-app-changes").into());
     }
     if flags.dry_run {
         let ctx = json!({
@@ -249,7 +246,7 @@ fn run_redirect_uri_command(
                 None => {
                     let default = auth.token_store.get_default_app();
                     if default.is_empty() {
-                        return Err(Error::validation("no default app set; specify NAME"));
+                        return Err(Error::validation("no-default-app"));
                     }
                     default.to_string()
                 }

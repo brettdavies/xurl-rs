@@ -67,7 +67,7 @@ pub async fn deliver_signed_sample(
     }
     let request = request
         .body(Full::new(Bytes::from_static(sample.body.as_bytes())))
-        .map_err(|e| Error::validation(format!("{path} is not a request path: {e}")))?;
+        .map_err(|_| Error::validation_of("invalid-request-path", path))?;
     let response = sender
         .send_request(request)
         .await

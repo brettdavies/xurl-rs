@@ -281,16 +281,24 @@ fn a_header_the_forward_sets_itself_is_refused(#[case] given: &str) {
 }
 
 #[rstest::rstest]
-#[case::no_colon("X-Token abc")]
-#[case::empty_name(": abc")]
-#[case::space_in_name("X Token: abc")]
-#[case::control_in_value("X-Token: a\u{7}bc")]
-fn a_malformed_header_is_refused_by_position_never_by_value(#[case] given: &str) {
+#[case::no_colon("X-Token abc", "header-not-name-value")]
+#[case::empty_name(": abc", "empty-header-name")]
+#[case::space_in_name("X Token: abc", "invalid-header-name")]
+#[case::control_in_value("X-Token: a\u{7}bc", "invalid-header-value")]
+fn a_malformed_header_is_refused_by_position_never_by_value(
+    #[case] given: &str,
+    #[case] expected: &str,
+) {
     let err = UrlTarget::new("http://127.0.0.1:9/hook", &["X-Ok: 1", given]).expect_err("refused");
-    assert_eq!(err.kind(), "validation", "{err}");
-    let message = err.to_string();
-    assert!(message.contains("header 2"), "{message}");
-    assert!(!message.contains("abc"), "{message}");
+    assert!(
+        matches!(
+            &err,
+            xdk::Error::Validation { rule, value: Some(position) }
+                if *rule == expected && position == "2"
+        ),
+        "{err:?}"
+    );
+    assert!(!err.to_string().contains("abc"), "{err}");
 }
 
 /// A server that answers 200 and then streams a chunked body that never

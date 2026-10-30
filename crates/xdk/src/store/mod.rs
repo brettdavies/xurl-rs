@@ -771,9 +771,7 @@ pub fn is_app_name_char(c: char) -> bool {
 /// registration validates.
 fn validate_app_name(name: &str) -> Result<()> {
     if name.is_empty() || !name.chars().all(is_app_name_char) {
-        return Err(Error::validation(format!(
-            "invalid app name {name:?}: use letters, digits, '_', '.', and '-' only"
-        )));
+        return Err(Error::validation_of("invalid-app-name", name));
     }
     Ok(())
 }

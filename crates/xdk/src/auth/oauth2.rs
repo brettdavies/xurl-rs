@@ -63,8 +63,9 @@ pub fn get_oauth2_scopes() -> Vec<&'static str> {
 ///
 /// # Errors
 ///
-/// Returns a validation error naming the valid scopes when `requested`
-/// carries a name outside [`get_oauth2_scopes`].
+/// Returns [`Error::Validation`] with rule `unknown-scope` when `requested`
+/// carries a name outside [`get_oauth2_scopes`], the unknown names, joined
+/// by `, `, in `value`.
 pub fn narrow_oauth2_scopes<S: AsRef<str>>(requested: &[S]) -> Result<Vec<&'static str>> {
     let known = get_oauth2_scopes();
     let unknown: Vec<&str> = requested
@@ -73,15 +74,7 @@ pub fn narrow_oauth2_scopes<S: AsRef<str>>(requested: &[S]) -> Result<Vec<&'stat
         .filter(|name| !known.contains(name))
         .collect();
     if !unknown.is_empty() {
-        return Err(Error::validation(format!(
-            "unknown OAuth2 scope {}. Valid scopes: {}",
-            unknown
-                .iter()
-                .map(|name| format!("{name:?}"))
-                .collect::<Vec<_>>()
-                .join(", "),
-            known.join(", ")
-        )));
+        return Err(Error::validation_of("unknown-scope", unknown.join(", ")));
     }
     Ok(known
         .into_iter()

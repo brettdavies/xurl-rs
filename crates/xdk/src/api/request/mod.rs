@@ -429,9 +429,8 @@ impl Client {
     /// credentials held in code: there is no store behind it.
     pub async fn auth(&self) -> Result<MappedMutexGuard<'_, Auth>> {
         let credentials = self.credentials().await;
-        MutexGuard::try_map(credentials, CredentialSource::store).map_err(|_| {
-            Error::validation("this client was built from credentials, not a token store")
-        })
+        MutexGuard::try_map(credentials, CredentialSource::store)
+            .map_err(|_| Error::validation("no-token-store"))
     }
 
     /// Creates a store-backed client from the process environment and the
