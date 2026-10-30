@@ -361,45 +361,6 @@ media id for 24 hours, so the envelope carries the id and the command that resum
 }
 ```
 
-### Profile
-
-```bash
-xr profile update --name "X Dev" --description "Building xr."
-xr profile update --location ""                    # An empty value clears the field
-xr media upload ./avatar.png                       # Prints the media id each `set` takes
-xr profile image set 1146654567674912769           # X crops it to a centered square
-xr profile banner set 1146654567674912770 --crop 1500x500+0+120
-xr profile banner remove                           # Asks first (--force skips)
-```
-
-`update` changes only the fields given: `--name` (1 to 50 characters), `--description` (the bio, up to 160), `--url`
-(up to 100), and `--location` (up to 30). An empty `--description`, `--url`, or `--location` clears it, and `update` with
-no field is refused with `no-profile-changes`. `--crop` takes `WIDTHxHEIGHT+LEFT+TOP` in pixels of the uploaded image;
-without it X uses the whole image.
-
-The profile endpoints take a user login with the `users.write` scope, which every `xr auth oauth2` sign-in requests. A
-login made before `xr` requested it lacks it, and X refuses the request until you sign in again with `xr auth oauth2`.
-
-### Settings
-
-```bash
-xr settings get                                    # Privacy, messages, discoverability, notifications
-xr settings update --allow-dms-from following      # Or all, verified
-xr settings update --protected true --discoverable-by-email false
-xr settings update --quiet-hours-enabled true --quiet-hours-start 22 --quiet-hours-end 7
-xr settings update --time-zone America/Chicago --language en
-```
-
-`update` changes only the settings given, one flag per field the API takes; a yes-or-no setting takes `true` or
-`false`, and `update` with no setting is refused with `no-settings-changes`. `--allow-media-tagging` takes `all`,
-`following`, or `none`. `--language` is a BCP 47 tag of 2 to 35 characters, `--time-zone` an IANA name or a display
-name such as `Central Time (US & Canada)`, and the quiet hours run 0 to 23 in your time zone. `personalized_trends`
-reads in `get` but no flag changes it: X sets it.
-
-The settings endpoints take a user login with the `settings.read` and `settings.write` scopes, which every
-`xr auth oauth2` sign-in requests. A login made before `xr` requested them lacks them, and X refuses the request until
-you sign in again with `xr auth oauth2`.
-
 ### Broadcasts
 
 ```bash

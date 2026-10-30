@@ -3,7 +3,7 @@
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use super::{Run, request_context, send_confirmed, send_validated};
+use super::{Run, send_confirmed, send_validated};
 use crate::cli::failure::CommandResult;
 use crate::cli::{
     CallAnswer, CallDetailsArgs, CallScope, CallsCommands, OccurrenceArgs, ScheduledCallsCommands,
@@ -163,9 +163,14 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
 /// A dry run's context: the command, the scheduled call it names, and each
 /// field the request sends, as the request sends it.
 fn context(command: &str, scheduled_call_id: Option<&str>, request: &impl Serialize) -> Value {
-    let mut ctx = request_context(command, request);
+    let mut ctx = json!({"command": command});
     if let Some(id) = scheduled_call_id {
         ctx["scheduled_call_id"] = json!(id);
+    }
+    if let (Some(ctx), Ok(Value::Object(fields))) =
+        (ctx.as_object_mut(), serde_json::to_value(request))
+    {
+        ctx.extend(fields);
     }
     ctx
 }

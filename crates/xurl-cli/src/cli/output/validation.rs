@@ -11,10 +11,7 @@ use xdk::api::shortcuts::{
     CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX,
     DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
-    PROFILE_DESCRIPTION_MAX_CHARS, PROFILE_LOCATION_MAX_CHARS, PROFILE_NAME_MAX_CHARS,
-    PROFILE_URL_MAX_CHARS, QUIET_HOUR_MAX, SETTINGS_LANGUAGE_MAX_CHARS,
-    SETTINGS_LANGUAGE_MIN_CHARS, SETTINGS_TIME_ZONE_MAX_CHARS, USER_SEARCH_QUERY_MAX_CHARS,
-    WEBHOOK_URL_MAX_CHARS,
+    USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
 };
 
 /// The sentence for the validator code `code`; `None` for a message that is
@@ -97,39 +94,6 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
             "The webhook URL names a port; X takes one without a port.".to_string()
         }
         "invalid-replay-time" => "A replay time is 12 digits, yyyymmddhhmm in UTC.".to_string(),
-        "no-settings-changes" => {
-            "Nothing would change; give at least one setting to update.".to_string()
-        }
-        "invalid-settings-language" => format!(
-            "A language is a BCP 47 tag of {SETTINGS_LANGUAGE_MIN_CHARS} to \
-             {SETTINGS_LANGUAGE_MAX_CHARS} characters, such as en or pt-BR."
-        ),
-        "invalid-settings-time-zone" => format!(
-            "A time zone is 1 to {SETTINGS_TIME_ZONE_MAX_CHARS} characters, such as \
-             America/Chicago."
-        ),
-        "invalid-quiet-hour" => {
-            format!("A quiet hour is 0 to {QUIET_HOUR_MAX}, in your time zone.")
-        }
-        "no-profile-changes" => {
-            "Nothing would change; give at least one field to update.".to_string()
-        }
-        "empty-profile-name" => "The display name is empty.".to_string(),
-        "profile-name-too-long" => {
-            format!("A display name is at most {PROFILE_NAME_MAX_CHARS} characters.")
-        }
-        "profile-description-too-long" => {
-            format!("A bio is at most {PROFILE_DESCRIPTION_MAX_CHARS} characters.")
-        }
-        "profile-url-too-long" => {
-            format!("A profile website URL is at most {PROFILE_URL_MAX_CHARS} characters.")
-        }
-        "profile-location-too-long" => {
-            format!("A profile location is at most {PROFILE_LOCATION_MAX_CHARS} characters.")
-        }
-        "invalid-banner-crop" => {
-            "A banner crop has a width and height of at least 1 pixel.".to_string()
-        }
         "empty-source-name" => "The source name is empty.".to_string(),
         "empty-source-region" => "The source region is empty.".to_string(),
         "empty-folder-name" => "The folder name is empty.".to_string(),

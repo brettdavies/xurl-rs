@@ -597,37 +597,6 @@
       "pending_follow": false
     }
   },
-  "user_settings": {
-    "data": {
-      "id": "2244994945",
-      "allow_dms_from": "following",
-      "allow_media_tagging": "all",
-      "always_allow_dms_from_subscribers": true,
-      "discoverable_by_email": false,
-      "discoverable_by_phone": false,
-      "display_sensitive_media": false,
-      "language": "en",
-      "location_tagging_enabled": false,
-      "personalized_trends": true,
-      "protected": false,
-      "quiet_hours": {
-        "enabled": true,
-        "start_hour": 22,
-        "end_hour": 7
-      },
-      "time_zone": {
-        "name": "Pacific Time (US & Canada)",
-        "tz_name": "America/Los_Angeles",
-        "utc_offset_seconds": -25200
-      },
-      "use_cookie_personalization": false
-    }
-  },
-  "updated": {
-    "data": {
-      "updated": true
-    }
-  },
   "action_deleted": {
     "data": {
       "deleted": true
