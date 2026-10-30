@@ -1,7 +1,7 @@
 args: ["stream", "rules", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6939
+stdout_len: 6938
 stderr_len: 0
 --- stdout ---
 List the filtered stream's rules
@@ -10,7 +10,7 @@ Usage: xr stream rules list [OPTIONS]
 
 Options:
   -n, --max-results <MAX_RESULTS>
-          Number of results (1-1000). Overrides global `--limit` when set
+          Number of results (1-100). Overrides global `--limit` when set
 
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)

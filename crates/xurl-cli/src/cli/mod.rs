@@ -2453,7 +2453,7 @@ pub enum StreamRulesCommands {
     /// List the filtered stream's rules
     #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::LIST))]
     List {
-        /// Number of results (1-1000). Overrides global `--limit` when set.
+        /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -2867,7 +2867,7 @@ pub enum BroadcastChatCommands {
         /// Broadcast ID, as `xr broadcasts list` prints it
         #[arg(value_name = "BROADCAST_ID")]
         broadcast_id: String,
-        /// Number of results (1-200). Overrides global `--limit` when set.
+        /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.

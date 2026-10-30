@@ -211,8 +211,9 @@ never the tests.
   `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command that sends a request or changes stored state under
   `--dry-run`, or whose dry run and real run disagree on the credential, and the dry-run golden fixtures pin the
   envelope. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command with `--max-results` that ignores the
-  global `--limit`, and for one whose endpoint declares a page token in the vendored spec but whose request drops
-  `--cursor`; a paged list through the list helpers passes both.
+  global `--limit`, for one whose endpoint declares a page token in the vendored spec but whose request drops
+  `--cursor`, and for one whose `-n` help states a larger page size than its request sends; a paged list through the
+  list helpers passes all three.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema.rs`, then `scripts/generate-response-schemas.sh`.
   `crates/xurl-cli/tests/schema_tests.rs` fails for a command in neither set or in both, and for a committed schema that

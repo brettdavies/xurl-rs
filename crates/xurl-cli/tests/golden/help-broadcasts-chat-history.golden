@@ -14,7 +14,7 @@ Arguments:
 
 Options:
   -n, --max-results <MAX_RESULTS>
-          Number of results (1-200). Overrides global `--limit` when set
+          Number of results (1-100). Overrides global `--limit` when set
 
       --auth <AUTH_TYPE>
           Authentication type (oauth1, oauth2, app)

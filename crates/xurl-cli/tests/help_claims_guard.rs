@@ -233,6 +233,73 @@ async fn the_paging_flags_reach_exactly_the_commands_their_help_names() {
     );
 }
 
+/// The largest page size a command's `-n/--max-results` help states, read
+/// from its `(min-max` range; `None` for a command without `-n`.
+fn stated_page_size_max(path: &str) -> Option<u32> {
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+    });
+    let help = cmd
+        .get_arguments()
+        .find(|arg| arg.get_id() == "max_results")?
+        .get_help()?
+        .to_string();
+    let range = regex::Regex::new(r"\((\d+)-(\d+)").expect("a pattern");
+    let found = range.captures(&help)?;
+    found[2].parse().ok()
+}
+
+#[tokio::test]
+async fn each_page_size_help_states_the_largest_size_the_command_sends() {
+    let mock = answering_mock().await;
+    let origin = mock.base_url();
+    let operations = operations();
+    let mut found = Vec::new();
+
+    for path in runnable_paths()
+        .into_iter()
+        .filter(|path| takes_a_credential(path))
+    {
+        let Some(max) = stated_page_size_max(&path) else {
+            continue;
+        };
+        let mut args = arguments_for(&path);
+        args.extend(["-n".to_string(), max.to_string()]);
+        let seen = mock.requests().await.len();
+        let ran = run_xr(&origin, every_kind, &path, &args, false).await;
+        let sent = mock.requests().await.split_off(seen);
+        let sizes: Vec<String> = sent
+            .iter()
+            .filter_map(|request| {
+                let operation = operation_of(&operations, request)?;
+                operation
+                    .size_params
+                    .iter()
+                    .find_map(|name| query_value(request, name))
+            })
+            .collect();
+        if sizes != [max.to_string()] {
+            found.push(format!(
+                "{path}: its -n help states sizes up to {max}, but -n {max} sent {sizes:?} \
+                 (exit {:?}).\n  \
+                 Cause: the command clamps the size below the range its help states.\n  \
+                 Fix: state the range the command sends in its -n help in \
+                 crates/xurl-cli/src/cli/mod.rs, or lift the clamp.",
+                ran.code
+            ));
+        }
+    }
+
+    assert!(
+        found.is_empty(),
+        "the -n/--max-results help states a range the command does not send:\n{}",
+        found.join("\n")
+    );
+}
+
 /// Each paging flag's first line, the only line `-h` prints, states its rule;
 /// neither help names a command, since a list of names is what went stale.
 #[test]

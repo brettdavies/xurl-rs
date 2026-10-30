@@ -2955,8 +2955,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;stream;rules;list'= {
-            cand -n 'Number of results (1-1000). Overrides global `--limit` when set'
-            cand --max-results 'Number of results (1-1000). Overrides global `--limit` when set'
+            cand -n 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
@@ -3888,8 +3888,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;broadcasts;chat;history'= {
-            cand -n 'Number of results (1-200). Overrides global `--limit` when set'
-            cand --max-results 'Number of results (1-200). Overrides global `--limit` when set'
+            cand -n 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
