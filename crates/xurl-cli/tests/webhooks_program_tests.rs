@@ -20,7 +20,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::listen::{
     EVENT, EVENT_UNDER_CLIENT_SECRET, ListenProcess, OAUTH2_HEADER, crc_token_from, deliver,
-    free_port, listen_while, post, stderr_records,
+    held_port, listen_while, post, stderr_records,
 };
 use common::{oauth1_store, run_in_process as run};
 
@@ -251,13 +251,12 @@ async fn a_program_and_a_url_each_receive_the_event_byte_for_byte() {
     let server = answering(200, Duration::ZERO).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let out = tmp.path().join("events.jsonl");
     let program = probe("echo", &[out.to_str().expect("utf-8 path")]);
     let url = format!("{}/hook", server.uri());
     let args = listen_args(&["--max-events", "1", "--forward", &url], &program);
 
-    let ((code, _stdout, stderr), ()) = listen_while(&store, port, &args, async {
+    let ((code, _stdout, stderr), ()) = listen_while(&store, &args, async |port| {
         crc_token_from(port).await;
         let status = deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await;
         assert_eq!(status, 200);
@@ -297,12 +296,11 @@ async fn a_program_and_a_url_each_receive_the_event_byte_for_byte() {
 async fn events_reach_the_program_in_order_one_process_each() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let out = tmp.path().join("events.jsonl");
     let program = probe("echo", &[out.to_str().expect("utf-8 path")]);
     let args = listen_args(&["--allow-unsigned", "--max-events", "3"], &program);
 
-    let ((code, _stdout, stderr), ()) = listen_while(&store, port, &args, async {
+    let ((code, _stdout, stderr), ()) = listen_while(&store, &args, async |port| {
         crc_token_from(port).await;
         for n in 1..=3 {
             assert_eq!(post(port, &format!(r#"{{"n":{n}}}"#), &[]).await, 200);
@@ -323,11 +321,11 @@ async fn events_reach_the_program_in_order_one_process_each() {
 async fn the_programs_output_goes_to_stderr_and_stdout_keeps_one_line_per_event() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let out = tmp.path().join("events.jsonl");
     let program = probe("echo", &[out.to_str().expect("utf-8 path")]);
     let args = listen_args(&["--allow-unsigned", "--max-events", "1"], &program);
-    let listen = ListenProcess::start(&store, port, &args);
+    let listen = ListenProcess::start(&store, &args);
+    let port = listen.port;
 
     assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
     let (status, rest, stderr) = listen.wait_for_all(Duration::from_secs(20));
@@ -347,10 +345,10 @@ async fn the_programs_output_goes_to_stderr_and_stdout_keeps_one_line_per_event(
 async fn a_programs_unfinished_output_never_shares_a_line_with_a_record() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let program = probe("unfinished_output", &[]);
     let args = listen_args(&["--allow-unsigned", "--max-events", "1"], &program);
-    let listen = ListenProcess::start(&store, port, &args);
+    let listen = ListenProcess::start(&store, &args);
+    let port = listen.port;
 
     assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
     let (status, _rest, stderr) = listen.wait_for_all(Duration::from_secs(20));
@@ -372,11 +370,10 @@ async fn a_programs_unfinished_output_never_shares_a_line_with_a_record() {
 async fn a_program_that_fails_is_reported_after_four_attempts_and_the_next_event_runs() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let program = probe("exit", &[]);
     let args = listen_args(&["--allow-unsigned", "--max-events", "2"], &program);
 
-    let ((code, stdout, stderr), ()) = listen_while(&store, port, &args, async {
+    let ((code, stdout, stderr), ()) = listen_while(&store, &args, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"exit":3}"#, &[]).await, 200);
         assert_eq!(post(port, r#"{"exit":0}"#, &[]).await, 200);
@@ -407,7 +404,6 @@ async fn a_program_that_fails_is_reported_after_four_attempts_and_the_next_event
 async fn a_program_past_the_timeout_is_stopped_and_leaves_nothing_running() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let pids = tmp.path().join("pids");
     let program = probe("hang", &[pids.to_str().expect("utf-8 path")]);
     let flags = [
@@ -420,7 +416,7 @@ async fn a_program_past_the_timeout_is_stopped_and_leaves_nothing_running() {
     let args = listen_args(&flags, &program);
 
     let started = Instant::now();
-    let ((code, _stdout, stderr), ()) = listen_while(&store, port, &args, async {
+    let ((code, _stdout, stderr), ()) = listen_while(&store, &args, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
     })
@@ -439,7 +435,6 @@ async fn a_program_past_the_timeout_is_stopped_and_leaves_nothing_running() {
 async fn a_program_is_stopped_with_the_children_it_started() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let children = tmp.path().join("children");
     let program = probe("spawn_and_hang", &[children.to_str().expect("utf-8 path")]);
     let flags = [
@@ -451,7 +446,7 @@ async fn a_program_is_stopped_with_the_children_it_started() {
     ];
     let args = listen_args(&flags, &program);
 
-    let ((code, _stdout, stderr), ()) = listen_while(&store, port, &args, async {
+    let ((code, _stdout, stderr), ()) = listen_while(&store, &args, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
     })
@@ -469,7 +464,6 @@ async fn a_program_is_stopped_with_the_children_it_started() {
 async fn a_program_that_never_reads_a_large_body_is_stopped_at_the_timeout() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let pids = tmp.path().join("pids");
     let program = probe("never_read", &[pids.to_str().expect("utf-8 path")]);
     let flags = [
@@ -483,7 +477,7 @@ async fn a_program_that_never_reads_a_large_body_is_stopped_at_the_timeout() {
     let large = format!(r#"{{"pad":"{}"}}"#, "x".repeat(200 * 1024));
 
     let started = Instant::now();
-    let ((code, stdout, stderr), ()) = listen_while(&store, port, &args, async {
+    let ((code, stdout, stderr), ()) = listen_while(&store, &args, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, &large, &[]).await, 200);
         assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
@@ -508,10 +502,10 @@ async fn a_program_that_never_reads_a_large_body_is_stopped_at_the_timeout() {
 async fn a_program_that_exits_without_reading_its_stdin_leaves_listen_running() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let program = probe("exit_unread", &[]);
     let args = listen_args(&["--allow-unsigned", "--max-events", "1"], &program);
-    let listen = ListenProcess::start(&store, port, &args);
+    let listen = ListenProcess::start(&store, &args);
+    let port = listen.port;
     let large = format!(r#"{{"pad":"{}"}}"#, "x".repeat(200 * 1024));
 
     assert_eq!(post(port, &large, &[]).await, 200);
@@ -537,13 +531,12 @@ async fn a_program_that_exits_without_reading_its_stdin_leaves_listen_running() 
 async fn an_event_reaches_the_program_as_bytes_and_runs_nothing() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let out = tmp.path().join("events.jsonl");
     let program = probe("echo", &[out.to_str().expect("utf-8 path")]);
     let args = listen_args(&["--allow-unsigned", "--max-events", "1"], &program);
     let hostile = r#"{"a":"$(touch pwned)","b":"; rm -rf pwned-too"}"#;
 
-    let ((code, _stdout, stderr), ()) = listen_while(&store, port, &args, async {
+    let ((code, _stdout, stderr), ()) = listen_while(&store, &args, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, hostile, &[]).await, 200);
     })
@@ -560,7 +553,6 @@ async fn a_stalled_url_target_never_delays_the_program() {
     let server = answering(200, Duration::from_secs(30)).await;
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
     let out = tmp.path().join("events.jsonl");
     let program = probe("echo", &[out.to_str().expect("utf-8 path")]);
     let url = format!("{}/hook", server.uri());
@@ -575,7 +567,7 @@ async fn a_stalled_url_target_never_delays_the_program() {
     ];
     let args = listen_args(&flags, &program);
 
-    let ((code, _stdout, stderr), both_within) = listen_while(&store, port, &args, async {
+    let ((code, _stdout, stderr), both_within) = listen_while(&store, &args, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
         assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
@@ -601,7 +593,7 @@ async fn a_stalled_url_target_never_delays_the_program() {
 async fn a_program_that_does_not_resolve_is_refused_before_anything_binds() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
+    let (_held, port) = held_port();
 
     let (code, stdout, stderr) = run(
         &store,
@@ -624,14 +616,13 @@ async fn a_program_that_does_not_resolve_is_refused_before_anything_binds() {
     let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("an envelope");
     assert_eq!(envelope["reason"], "validation", "{envelope}");
     assert_eq!(envelope["next_step"]["action"], "show-help");
-    assert!(std::net::TcpStream::connect(("127.0.0.1", port)).is_err());
 }
 
 #[tokio::test]
 async fn a_dry_run_names_the_program_and_runs_nothing() {
     let tmp = TempDir::new().expect("tempdir");
     let store = oauth1_store(tmp.path());
-    let port = free_port();
+    let (_held, port) = held_port();
 
     let (code, stdout, stderr) = run(
         &store,
@@ -658,5 +649,4 @@ async fn a_dry_run_names_the_program_and_runs_nothing() {
         body["program"],
         serde_json::json!(["./handle.sh", "--verbose"])
     );
-    assert!(std::net::TcpStream::connect(("127.0.0.1", port)).is_err());
 }
