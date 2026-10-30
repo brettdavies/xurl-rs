@@ -173,13 +173,20 @@ fn probe_never_read() {
 fn alive(pid: u32) -> bool {
     #[cfg(unix)]
     {
-        let output = std::process::Command::new("ps")
-            .args(["-o", "stat=", "-p", &pid.to_string()])
-            .output()
-            .expect("ps runs");
-        let stat = String::from_utf8_lossy(&output.stdout);
-        let stat = stat.trim();
+        let stat = ps_stat(pid);
         !stat.is_empty() && !stat.starts_with('Z')
+    }
+    #[cfg(windows)]
+    {
+        listed(pid)
+    }
+}
+
+/// Whether any process has `pid`, a zombie not yet reaped included.
+fn listed(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        !ps_stat(pid).is_empty()
     }
     #[cfg(windows)]
     {
@@ -189,6 +196,16 @@ fn alive(pid: u32) -> bool {
             .expect("tasklist runs");
         String::from_utf8_lossy(&output.stdout).contains(&format!("\"{pid}\""))
     }
+}
+
+/// The state `ps` gives process `pid`, empty when no process has it.
+#[cfg(unix)]
+fn ps_stat(pid: u32) -> String {
+    let output = std::process::Command::new("ps")
+        .args(["-o", "stat=", "-p", &pid.to_string()])
+        .output()
+        .expect("ps runs");
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
 
 /// Every pid listed in `path`, one per line.
@@ -523,6 +540,23 @@ async fn a_program_that_exits_without_reading_its_stdin_leaves_listen_running() 
         .unwrap_or_else(|| panic!("no program record: {stderr}"));
     assert_eq!(record["status"], "forwarded", "{stderr}");
     assert_eq!(record["exit_status"], 0);
+}
+
+/// A test that panics before it stops its `ListenProcess` drops it instead,
+/// and a listener with no `--max-events` runs until something stops it.
+#[test]
+fn a_listen_process_dropped_unstopped_leaves_nothing_running() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let listen = ListenProcess::start(&store, &[]);
+    let pid = listen.id();
+
+    drop(listen);
+
+    assert!(
+        !listed(pid),
+        "xr webhooks listen (pid {pid}) outlived its ListenProcess"
+    );
 }
 
 // ── isolation and refusals ────────────────────────────────────────────
