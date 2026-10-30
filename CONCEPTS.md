@@ -146,6 +146,12 @@ from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error
 and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints
 that never appear in the envelope.
 
+### Retired word
+
+A command word a command family no longer takes because it was renamed: typed anyway, it refuses as an unknown command
+whose suggestion names the word that replaced it, never the sibling nearest by spelling, and it never runs as an alias.
+A command dropped with no replacement is not a retired word; it refuses as any unknown command does.
+
 ### Walk
 
 A test that reads a live declaration, such as the command tree, a registry, or the declared endpoints, and fails naming
