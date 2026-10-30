@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "users", "@not-a-handle!"]
 store: empty
 exit_code: 0
-stdout_len: 166
+stdout_len: 348
 stderr_len: 0
 --- stdout ---
 {
@@ -10,6 +10,11 @@ stderr_len: 0
   ],
   "command": "users",
   "exit_code": 1,
+  "message": "A username is 1 to 15 letters, digits, or underscores, with or without a leading @.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr users --help"
+  },
   "reason": "invalid-username",
   "status": "dry_run",
   "would_succeed": false

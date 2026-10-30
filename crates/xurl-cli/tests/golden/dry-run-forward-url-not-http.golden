@@ -1,0 +1,29 @@
+args: ["--output", "json", "--dry-run", "webhooks", "listen", "--forward", "ftp://example.com/hook"]
+store: empty
+exit_code: 0
+stdout_len: 440
+stderr_len: 0
+--- stdout ---
+{
+  "bind": "127.0.0.1:8080",
+  "command": "webhooks-listen",
+  "exit_code": 1,
+  "forward": {
+    "headers": [],
+    "timeout_secs": 30,
+    "url": "ftp://example.com/hook"
+  },
+  "message": "--forward takes an http or https URL",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr webhooks listen --help"
+  },
+  "path": "/webhook",
+  "reason": "validation",
+  "secret": null,
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

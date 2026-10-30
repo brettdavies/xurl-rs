@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02T16:00:00Z", "--time-zone", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 269
+stdout_len: 419
 stderr_len: 0
 --- stdout ---
 {
   "command": "calls-scheduled-add",
   "exit_code": 1,
+  "message": "A time zone is at most 64 characters.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr calls scheduled add --help"
+  },
   "reason": "call-time-zone-too-long",
   "start_time": "2026-11-02T16:00:00Z",
   "status": "dry_run",

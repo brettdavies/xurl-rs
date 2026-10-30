@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.4.1] - 2026-10-28
+
+### Fixed
+
+- Fix a mistyped command followed by another word (`xr suth status`) reporting the second word as unknown and suggesting an unrelated command. The error now names the mistyped word and its nearest command (`unknown command 'suth'. Did you mean 'auth'?`), with `command`, `suggestion`, and the `show-help` `next_step` to match. by @brettdavies in [#427](https://github.com/brettdavies/xurl-rs/pull/427)
+- Fix a word after a raw request's target (`xr /2/users/me extra`, `xr -X POST suth status`) being reported as a mistyped command with an unrelated suggestion. It is now refused as an unexpected argument: reason `invalid-args`, exit 2, with a `show-help` step for `xr --help`. by @brettdavies in [#428](https://github.com/brettdavies/xurl-rs/pull/428)
+
+**Full Changelog**: [v4.4.0...v4.4.1](https://github.com/brettdavies/xurl-rs/compare/v4.4.0...v4.4.1)
+
 ## [4.4.0] - 2026-10-27
 
 ### Added

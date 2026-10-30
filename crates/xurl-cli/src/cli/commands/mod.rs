@@ -53,7 +53,7 @@ use xdk::api::shortcuts;
 use xdk::api::{self, AuthPreflight, Call, Client, RequestOptions, RequestTarget};
 use xdk::auth::Auth;
 use xdk::config::Config;
-use xdk::error::{EXIT_GENERAL_ERROR, Error, Result};
+use xdk::error::{Error, Result};
 
 /// Default page size when neither `--max-results` nor `--limit` is supplied.
 const DEFAULT_PAGE_SIZE: i32 = 10;
@@ -192,9 +192,9 @@ impl DryRun {
     /// and its credential is the one the `auth` key reports. Whether X
     /// still honors that credential is left to a real request.
     ///
-    /// A credential refusal goes back to the runner as
-    /// [`Failure::DryRunRefusal`], which prints it with the step the real
-    /// run would carry.
+    /// A refusal goes back to the runner, which prints it with the step the
+    /// real run would carry: invalid inputs as [`Failure::DryRunInvalid`],
+    /// a credential refusal as [`Failure::DryRunRefusal`].
     fn answer(
         self,
         out: &OutputConfig,
@@ -203,9 +203,10 @@ impl DryRun {
     ) -> CommandResult<()> {
         let Self { mut ctx, invalid } = self;
         if let Some(reason) = invalid {
-            ctx["reason"] = json!(reason);
-            out.print_dry_run(stdout, false, EXIT_GENERAL_ERROR, &ctx);
-            return Ok(());
+            return Err(Failure::DryRunInvalid {
+                ctx,
+                error: Error::validation(reason),
+            });
         }
         let mut reported = None;
         for credential in credentials {

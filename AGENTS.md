@@ -154,8 +154,9 @@ additive envelope changes: add keys rather than renaming or retyping existing on
 `--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
 invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
-would end on, and a credential refusal carries the keys of its error envelope, `next_step` among them; a step that
-reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
+would end on, and either refusal carries the keys of the real run's error envelope, `message` and `next_step` among
+them. An invalid input's `message` is the rule it broke, as text output words it; a step that reruns the invocation
+keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
 stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
 and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
 confirmation prompt; `confirmation_required: true` marks a destructive command that would stop to ask. Text output
@@ -376,7 +377,16 @@ PR to `main` (squash) → annotated tag push triggers `release.yml`.
 ### Spec-refresh PRs
 
 The spec-drift workflow opens PRs to `dev` (head `spec-refresh`) whose body is an agent runbook. Invoke the reconciling
-agent as "Triage and fix PR #N".
+agent as "Triage and fix PR #N". The workflow finds the open refresh PR by the phrase "refresh vendored X API spec" in
+its title, so a retitled PR keeps that phrase.
+
+A refresh adds a command only where one fits `xr`: the endpoint belongs to a family `xr` has or a domain it serves, uses
+a credential `xr` holds, and is a read or an action a user or agent would run from a CLI. `xr` supports an API feature
+fully, in part, or not at all. Full support is a command for every operation. Partial support is a family where some
+operations have commands and others stay raw by decision, as `xr calls` leaves the live-call endpoints. No support is a
+feature with no command at all, such as XChat, whose encryption needs keys `xr` does not hold. Raw mode reaches every
+endpoint in each case. The reconciling agent builds the commands that fit and proposes an `endpoint-decisions.json`
+entry for each endpoint that does not; only a person adds it.
 
 `endpoint-decisions.json` records what was decided for every spec operation without a shortcut command: the
 operations, the status, the reason, and who decided and when. `raw-only` and `not-supported` mean no command until

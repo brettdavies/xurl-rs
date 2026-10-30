@@ -1,12 +1,17 @@
 args: ["--output", "json", "--dry-run", "notes", "write", "1585341984679469056", "--text", "No source here", "--classification", "not_misleading"]
 store: empty
 exit_code: 0
-stdout_len: 337
+stdout_len: 508
 stderr_len: 0
 --- stdout ---
 {
   "command": "notes-write",
   "exit_code": 1,
+  "message": "A Community Note's text carries a source URL, http:// or https://.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr notes write --help"
+  },
   "note": {
     "classification": "not_misleading",
     "misleading_tags": [],

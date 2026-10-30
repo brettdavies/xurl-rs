@@ -20,13 +20,17 @@ order. Drift is informational, never build-blocking: it triggers the refresh pro
 
 ### Refresh PR
 
-The automation-owned draft pull request that carries a new vendored spec revision toward the integration branch. Its
+The automation-owned pull request that carries a new vendored spec revision toward the integration branch. Its
 head branch belongs to the workflow: the branch is regenerated rather than manually maintained, and at most one refresh
 PR is open at a time — a human-owned refresh PR takes precedence and the automation stands down.
 
 The body starts workflow-owned (an agent runbook, rewritten with fresh drift detail whenever the vendored content
 changes) and becomes agent-owned once the reconciling agent rewrites it to the repository's PR template; a no-change
 pass updates only the run reference so agent-authored sections survive.
+
+The workflow recognizes its open refresh PR by a fixed phrase in the title, so a reconciling agent that retitles the PR
+for what it adds keeps that phrase. A refresh PR without it is invisible to the next run, which regenerates the head
+branch from the integration branch, and that closes the PR.
 
 ### Agent runbook
 
@@ -38,7 +42,8 @@ calls are proposed with a recommendation and precedent-based reasoning for a hum
 ### Reconciling agent
 
 The agent invoked against an open refresh PR to bring the codebase in line with the new vendored spec: renames the spec
-mandates, retirements the spec forces, derived-artifact regeneration, and the final rewrite of the PR body to the
+mandates, retirements the spec forces, commands for the added endpoints that fit the tool with an endpoint decision
+proposed for each one that does not, derived-artifact regeneration, and the final rewrite of the PR body to the
 repository template. Invocation phrasing matters: a review-shaped prompt routes agents into report-only behavior before
 the runbook is read.
 
@@ -104,6 +109,13 @@ a key the API sent in its legacy post vocabulary under its current name. It is t
 spec naming a field the API does not send. It never runs under the default suite, refuses without an explicit opt-in
 because each run spends paid reads, and is the named exception the store isolation guard permits.
 
+### Go parity gate
+
+The CI check that runs the differential conformance suite: each case runs against `xr` and against the Go original,
+built at a pinned commit, and their results are compared. Without the original named, the suite skips rather than
+passing, so this gate is the only run that compares the two; cases that need the live API stay skipped there as well.
+The pinned commit is also the version every known difference is stated against.
+
 ## Command surface
 
 ### Raw mode
@@ -120,12 +132,33 @@ A noun that owns several operations and groups them as subcommands, such as `xr 
 domain gets a top-level word instead. Adding one touches the surfaces AGENTS.md § "Adding a command family" lists, each
 guarded by a walk.
 
+### Dry-run envelope
+
+The answer any command gives under `--dry-run`, on stdout at exit 0 with nothing sent to X or stored:
+`status: dry_run`, whether the real run would succeed, the exit code it would end on, and the command's inputs. When
+the real run would fail, `reason` names why; a command that would stop to ask for confirmation says so rather than
+asking.
+
 ### Error envelope
 
 The structured error object every machine-readable output mode emits on stderr: `status`, a typed kebab-case `reason`
 from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error fields such as `next_step`, `command`,
 and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints
 that never appear in the envelope.
+
+### Walk
+
+A test that reads a live declaration, such as the command tree, a registry, or the declared endpoints, and fails naming
+each entry a required surface lacks, so that adding to the declaration without the matching surface fails a test
+rather than a review. A walk checks against the declaration itself, never against a list written into the test.
+
+### Known difference
+
+A deliberate divergence of `xr` from the Go original it ports, stated against the version the Go parity gate pins and
+verified by running both binaries rather than by reading either one's documentation. Each is written up with what the
+original does, what `xr` does, and why. A differential case that would fail only because of one is skipped with a reason
+that names the write-up, never left failing. A command or flag the original spells differently is a known difference
+too, so a reader migrating a Go invocation finds its `xr` form among them.
 
 ## Skill install
 

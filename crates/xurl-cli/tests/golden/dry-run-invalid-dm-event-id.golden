@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "dm-events", "get", "dm-1"]
 store: empty
 exit_code: 0
-stdout_len: 157
+stdout_len: 308
 stderr_len: 0
 --- stdout ---
 {
   "command": "dm-events-get",
   "event_id": "dm-1",
   "exit_code": 1,
+  "message": "A direct message event id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr dm-events get --help"
+  },
   "reason": "invalid-dm-event-id",
   "status": "dry_run",
   "would_succeed": false

@@ -64,8 +64,12 @@ codes. It installs with `brew install brettdavies/tap/xurl-rs` or `cargo install
 - [Agent-native features](crates/xurl-cli/README.md#agent-native-features): the skill bundle, response schemas,
   machine-readable output, quiet and non-interactive modes, and structured exit codes
 - [Shell completions](crates/xurl-cli/README.md#shell-completions)
-- [Relationship to xurl](crates/xurl-cli/README.md#relationship-to-xurl), with
-  [KNOWN_DIFFERENCES.md](KNOWN_DIFFERENCES.md) naming each deliberate divergence from the Go tool
+
+Coming from Go `xurl` 1.3.4: `xurl posts USER` is `xr user-posts USER`, an error goes to stderr rather than to stdout
+(as an envelope under `--output json`), `xr delete` asks before it deletes (`--force` skips the question), and
+`XURL_DRY_RUN=1` checks a migrated script offline. [KNOWN_DIFFERENCES.md](KNOWN_DIFFERENCES.md) names each deliberate
+divergence, and the CLI README's [Relationship to xurl](crates/xurl-cli/README.md#relationship-to-xurl) table compares
+the two tools.
 
 ## Before you start: an X app
 

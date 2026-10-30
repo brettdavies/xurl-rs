@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "webhooks", "subscriptions", "remove", "1146654567674912769", "@someone"]
 store: empty
 exit_code: 0
-stdout_len: 244
+stdout_len: 416
 stderr_len: 0
 --- stdout ---
 {
   "command": "webhooks-subscriptions-remove",
   "confirmation_required": true,
   "exit_code": 1,
+  "message": "A user id is 1 to 19 digits; a handle is not one.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr webhooks subscriptions remove --help"
+  },
   "reason": "invalid-user-id",
   "status": "dry_run",
   "user_id": "@someone",

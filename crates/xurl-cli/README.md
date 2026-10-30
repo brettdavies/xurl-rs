@@ -810,9 +810,11 @@ xr --output json --dry-run post "Hello"
 ```
 
 - `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
-  send. `reason` says which, and `exit_code` is the code the real run would end on. A credential refusal also carries
-  the keys of its error envelope (`message`, `endpoint`, `supported`, `available_in_app`) and the `next_step` the real
-  run would name. A step that reruns the invocation keeps `--dry-run`, so following it sends nothing either.
+  send. `reason` says which, and `exit_code` is the code the real run would end on. Either refusal also carries the keys
+  of the real run's error envelope: `message` and the `next_step` the real run would name, plus, for a credential,
+  `endpoint`, `supported`, and `available_in_app`. An invalid input's `message` is the rule it broke and its `reason`
+  the validator's code, such as `webhook-url-has-port`. A step that reruns the invocation keeps `--dry-run`, so
+  following it sends nothing either.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
@@ -823,12 +825,13 @@ xr --output json --dry-run post "Hello"
 A command that only reads local state, such as `auth status`, `schema`, or `version`, has nothing to hold back and
 answers as it always does. Text output summarizes the same facts in lines: that nothing was sent, whether the real run
 would succeed and, when it would not, the exit code and why, then the command's inputs, the credential, and whether it
-would stop to ask. A refusal for credentials prints the advice the real run's error prints, which `--quiet` leaves out.
+would stop to ask. A refusal prints the advice the real run's error prints, which `--quiet` leaves out.
 
 ```text
 $ xr --dry-run bookmark-folders add ""
 Dry run of `bookmark-folders-add`: nothing was sent.
 The real run would fail with exit code 1: The folder name is empty.
+Try 'xr bookmark-folders add --help'.
   name: ""
 ```
 
@@ -1072,22 +1075,36 @@ codes, and `xr schema` for response types. Its webhook receiver opens no `ngrok`
 URL, and `xr` adds the commands that register and subscribe a webhook.
 
 Where behavior diverges on purpose,
-[`KNOWN_DIFFERENCES.md`](https://github.com/brettdavies/xurl-rs/blob/main/KNOWN_DIFFERENCES.md) names each case and why.
+[`KNOWN_DIFFERENCES.md`](https://github.com/brettdavies/xurl-rs/blob/main/KNOWN_DIFFERENCES.md) names each case and why,
+against Go `xurl` 1.3.4, and maps the Go commands `xr` names differently. The table's behavior rows summarize its
+sections.
 
-| Feature                   | Go xurl          | xurl-rs                  |
-| ------------------------- | ---------------- | ------------------------ |
-| Language                  | Go               | Rust                     |
-| Memory safety             | GC               | Compile-time             |
-| Binary size               | ~15 MB           | ~13 MB                   |
-| Shell completions         | Built-in (cobra) | Built-in (clap_complete) |
-| `--output json`           | No               | Yes                      |
-| `--quiet`                 | No               | Yes                      |
-| `--no-interactive`        | No               | Yes                      |
-| Structured exit codes     | No               | Yes                      |
-| `NO_COLOR` support        | No               | Yes                      |
-| `XURL_OUTPUT` env var     | No               | Yes                      |
-| Typed response structs    | No               | Yes                      |
-| `xr schema` (JSON Schema) | No               | Yes                      |
+| Feature                                    | Go xurl 1.3.4                       | xurl-rs                                            |
+| ------------------------------------------ | ----------------------------------- | -------------------------------------------------- |
+| Language                                   | Go                                  | Rust                                               |
+| Memory safety                              | GC                                  | Compile-time                                       |
+| Binary size, Linux x86_64 release          | ~26 MB, with `chat`                 | ~13 MB                                             |
+| Commands in `--help`                       | 60, 29 of them shortcuts            | 160                                                |
+| `xurl posts USER`                          | Lists the user's posts              | `xr user-posts USER`; `xr posts` reads posts by id |
+| `chat`, `mcp`, `token`                     | Yes                                 | No                                                 |
+| Shell completions                          | Built-in (cobra)                    | Built-in (clap_complete)                           |
+| `--output json`                            | No                                  | Yes                                                |
+| `--quiet`                                  | No                                  | Yes                                                |
+| `--no-interactive`                         | No                                  | Yes                                                |
+| Structured exit codes                      | No, every failure exits 1           | Yes                                                |
+| API errors                                 | Body on stdout                      | On stderr; an envelope under `--output json`       |
+| Mistyped command                           | Sent as a path, later words dropped | Exit 2, names the word and any close command       |
+| `NO_COLOR` support                         | No                                  | Yes                                                |
+| `XURL_OUTPUT` env var                      | No                                  | Yes                                                |
+| Typed response structs                     | No                                  | Yes                                                |
+| `xr schema` (JSON Schema)                  | No                                  | Yes                                                |
+| Caller's user id                           | Asked of `/2/users/me` every run    | Stored per login; `whoami --cached`                |
+| `--dry-run`                                | No                                  | Every command, offline                             |
+| `delete`, `auth clear`, `auth apps remove` | Run at once                         | Ask first; `--force` skips                         |
+| Credential the endpoint does not accept    | Sent anyway                         | Exit 2 before sending                              |
+| Next page of a list                        | Raw request with `pagination_token` | `--cursor`                                         |
+| Post vocabulary in shortcut output         | As X sends it                       | The spec's names                                   |
+| Secrets from a file or stdin               | Bearer token only                   | Every secret, `--<name>-file`                      |
 
 ## Contributing
 

@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "bookmark-folders", "add", ""]
 store: empty
 exit_code: 0
-stdout_len: 154
+stdout_len: 293
 stderr_len: 0
 --- stdout ---
 {
   "command": "bookmark-folders-add",
   "exit_code": 1,
+  "message": "The folder name is empty.",
   "name": "",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr bookmark-folders add --help"
+  },
   "reason": "empty-folder-name",
   "status": "dry_run",
   "would_succeed": false

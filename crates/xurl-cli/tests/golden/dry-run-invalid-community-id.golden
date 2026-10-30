@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "communities", "get", "rustaceans"]
 store: empty
 exit_code: 0
-stdout_len: 170
+stdout_len: 312
 stderr_len: 0
 --- stdout ---
 {
   "command": "communities-get",
   "community_id": "rustaceans",
   "exit_code": 1,
+  "message": "A community id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr communities get --help"
+  },
   "reason": "invalid-community-id",
   "status": "dry_run",
   "would_succeed": false

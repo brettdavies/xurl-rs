@@ -1,13 +1,18 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "sources", "add", "", "--region", "us-east-1"]
 store: empty
 exit_code: 0
-stdout_len: 181
+stdout_len: 322
 stderr_len: 0
 --- stdout ---
 {
   "command": "broadcasts-sources-add",
   "exit_code": 1,
+  "message": "The source name is empty.",
   "name": "",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts sources add --help"
+  },
   "reason": "empty-source-name",
   "region": "us-east-1",
   "status": "dry_run",
