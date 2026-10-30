@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8447
+stdout_len: 8625
 stderr_len: 0
 --- stdout ---
 Move, rename, or re-invite a call you organize
@@ -27,8 +27,8 @@ Options:
       --duration <MINUTES>
           How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30
 
-      --invite <USER_ID>
-          Numeric user ID of someone to invite; repeat for each person
+      --invite <ACCOUNT>
+          Someone to invite; repeat for each person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
       --recurrence <RRULE>
           The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO

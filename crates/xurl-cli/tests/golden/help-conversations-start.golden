@@ -1,7 +1,7 @@
 args: ["conversations", "start", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7252
+stdout_len: 7412
 stderr_len: 0
 --- stdout ---
 Start a group conversation and send its first message
@@ -10,7 +10,7 @@ Usage: xr conversations start [OPTIONS] --text <TEXT> <PARTICIPANT>...
 
 Arguments:
   <PARTICIPANT>...
-          The people to start it with besides you, 2 to 49: each a handle, or a numeric user id
+          The people to start it with besides you, 2 to 49. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
       --text <TEXT>

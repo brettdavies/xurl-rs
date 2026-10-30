@@ -1,16 +1,16 @@
 args: ["broadcasts", "moderators", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7002
+stdout_len: 7200
 stderr_len: 0
 --- stdout ---
 Add a broadcast chat moderator
 
-Usage: xr broadcasts moderators add [OPTIONS] <USERNAME>
+Usage: xr broadcasts moderators add [OPTIONS] <ACCOUNT>
 
 Arguments:
-  <USERNAME>
-          Username to add
+  <ACCOUNT>
+          The account to add. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
       --auth <AUTH_TYPE>

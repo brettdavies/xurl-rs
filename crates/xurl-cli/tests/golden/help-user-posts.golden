@@ -1,16 +1,16 @@
 args: ["user-posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7275
+stdout_len: 7462
 stderr_len: 0
 --- stdout ---
 List the posts a user wrote
 
-Usage: xr user-posts [OPTIONS] <USERNAME>
+Usage: xr user-posts [OPTIONS] <ACCOUNT>
 
 Arguments:
-  <USERNAME>
-          Username, with or without the leading @
+  <ACCOUNT>
+          The account whose posts to read. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
   -n, --max-results <MAX_RESULTS>

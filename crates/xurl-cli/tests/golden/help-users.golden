@@ -1,7 +1,7 @@
 args: ["users", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7281
+stdout_len: 7479
 stderr_len: 0
 --- stdout ---
 Look up 1 to 100 accounts by handle or by id in one request
@@ -10,7 +10,7 @@ Usage: xr users [OPTIONS] <ACCOUNT>...
 
 Arguments:
   <ACCOUNT>...
-          Handles (@jack or jack) or numeric user ids, 1 to 100; not both
+          The accounts to look up, 1 to 100: all usernames or all user ids. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
       --auth <AUTH_TYPE>

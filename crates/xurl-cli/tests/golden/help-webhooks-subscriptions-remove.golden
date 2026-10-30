@@ -1,19 +1,19 @@
 args: ["webhooks", "subscriptions", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7392
+stdout_len: 7594
 stderr_len: 0
 --- stdout ---
 End an account's subscription to a webhook
 
-Usage: xr webhooks subscriptions remove [OPTIONS] <WEBHOOK_ID> <USER_ID>
+Usage: xr webhooks subscriptions remove [OPTIONS] <WEBHOOK_ID> <ACCOUNT>
 
 Arguments:
   <WEBHOOK_ID>
           Webhook ID, as `xr webhooks list` prints it
 
-  <USER_ID>
-          Numeric user ID of the subscribed account, as `subscriptions list` prints it
+  <ACCOUNT>
+          The subscribed account, by username or by the user id `subscriptions list` prints. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
       --force
