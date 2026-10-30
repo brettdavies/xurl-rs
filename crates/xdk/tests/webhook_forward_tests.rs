@@ -235,16 +235,22 @@ async fn a_target_that_never_answers_is_cut_at_the_timeout_on_every_attempt() {
     );
 }
 
-fn closed_port() -> SocketAddr {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a port");
-    let address = listener.local_addr().expect("its address");
-    drop(listener);
-    address
+/// An address that refuses connections while the returned socket lives:
+/// bound, so no test running beside this one can take the port, and never
+/// listening. A port bound and released can be taken by such a test, which
+/// then answers.
+fn closed_port() -> (tokio::net::TcpSocket, SocketAddr) {
+    let socket = tokio::net::TcpSocket::new_v4().expect("a socket");
+    socket
+        .bind("127.0.0.1:0".parse().expect("an address"))
+        .expect("a port");
+    let address = socket.local_addr().expect("its address");
+    (socket, address)
 }
 
 #[tokio::test]
 async fn a_closed_port_is_retried_and_its_cause_never_names_the_url() {
-    let address = closed_port();
+    let (_socket, address) = closed_port();
     let url = format!("http://{address}/hook");
     let event = signed_event().await;
     let target = UrlTarget::new(&url, &[] as &[&str]).expect("a valid target");
