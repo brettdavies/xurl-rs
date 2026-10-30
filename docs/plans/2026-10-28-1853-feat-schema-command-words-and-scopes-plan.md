@@ -19,8 +19,8 @@ execution: code
 - **Means:** a schema registry keyed by command words, scope flags over schemars' own inlined generation, and schema
   pointers in help and dry runs that are derived from the registry (KTD1, KTD3, KTD7, KTD8).
 - **Authority:** R-IDs win on behavior, KTDs on mechanism, and a unit overrides neither. Brett's answers to D1–D3 (Open
-  Questions) replace the recommended defaults recorded here. `AGENTS.md` § "Where a change goes" places every change in
-  the binary crate.
+  Questions) replace the recommended defaults recorded here; D1 is answered and recorded. `AGENTS.md` § "Where a change
+  goes" places every change in the binary crate.
 - **Execution profile:** inline in one session, with no subagents and no worktrees. A stack of three PRs, one per unit;
   the bottom PR targets `dev`.
 - **Stop conditions:**
@@ -80,12 +80,12 @@ Every figure here was measured on that build and on the committed `schema/respon
 - R4. A real command with no typed response keeps today's refusal (`validation`, exit 1, "no typed response"), now
   naming the command by its words. When commands beneath that path have rows, the message names them, so
   `xr schema webhooks` points at `webhooks list`, `webhooks add`, and the rest.
-- R5. A name from before this change, meaning a hyphen-joined slug or the `envelope` positional, is handled as D1
-  decides.
+- R5. A name from before this change, meaning a hyphen-joined slug or the `envelope` positional, is refused with
+  `invalid-args`, exit 2, and a `fix-input` step carrying the corrected command (D1).
 - R6. A bare word that names one of `xr schema`'s scope flags (today `common`, `envelope`, `full`, `list`, `all`,
   `path`) is refused with `invalid-args`, exit 2. For a scope that takes no value, the step is `fix-input` carrying
   `xr schema --<word>`; otherwise it is `show-help`. `envelope` is also a name from before this change, so R5 governs
-  it: under D1-A this same refusal applies, and under D1-B it resolves with the deprecation note.
+  it, and this same refusal applies.
 
 **Scopes**
 
@@ -126,8 +126,9 @@ Every figure here was measured on that build and on the committed `schema/respon
 
 ### Key Decisions
 
-- **Version call and old names: pending Brett (D1).** Recommended: one major, with old names refused through a
-  `fix-input` step. Governs R5.
+- **Version call and old names: a minor, xr 4.5.0 (D1, Brett chose C).** The whole reshape ships in 4.5.0 alongside
+  #421's renames, on blast-radius grounds. Old slugs and the `envelope` positional refuse at exit 2 with a `fix-input`
+  step carrying the corrected command. Governs R5.
 - **How the `skill install --all` schema is named: pending Brett (D2).** Recommended: reachable as
   `xr schema skill install -- --all`, with its file unchanged. Governs R1, R15.
 - **The dry-run `command` value stays as it is: pending Brett (D3).** Recommended default; `response_schema` is the only
@@ -242,13 +243,11 @@ Every figure here was measured on that build and on the committed `schema/respon
   The `--` also covers the D2 flag form.
 - KTD10. **The flag form, under D2's recommended option.** The row key is `skill install --all`. `[COMMAND]...` accepts
   `--all` only after `--`, and the stem is `skill-install-all`.
-- KTD11. **Old names are recognized in one function, and D1 decides what it does.** A single token matches a row when it
+- KTD11. **Old names are recognized in one function, and refused (D1).** A single token matches a row when it
   equals that row's derived stem, or one of the three irregular names (`redirect-uri-get`, `redirect-uri-set`,
-  `skill-install-all`). Under D1-A the caller refuses with `invalid-args`, exit 2, and `fix-input` carrying
-  `xr schema <words>`. The precedent is `render_misplaced_flags` in `crates/xurl-cli/src/cli/runner.rs`: one line that
-  names the problem and ends `Run: <command>`. Under D1-B it resolves and writes a one-line deprecation note naming the
-  words form to stderr, in every output format. stdout still carries the schema untouched, and an agent reading JSON
-  learns about the rename before the major removes the slug.
+  `skill-install-all`). The caller refuses with `invalid-args`, exit 2, and `fix-input` carrying `xr schema <words>`.
+  The precedent is `render_misplaced_flags` in `crates/xurl-cli/src/cli/runner.rs`: one line that names the problem and
+  ends `Run: <command>`.
 
 ### High-Level Technical Design
 
@@ -265,9 +264,7 @@ flowchart TD
     C -- --common --> P{--path?}
     C -- words --> W{single token?}
     W -- scope word --> E2[invalid-args, fix-input xr schema --word]
-    W -- old slug --> D1{D1}
-    D1 -- A --> E3[invalid-args, fix-input xr schema words]
-    D1 -- B --> R
+    W -- old slug --> E3[invalid-args, fix-input xr schema words]
     W -- otherwise --> R[walk clap tree by words]
     R -- word fails --> E4[unknown-command, exit 2, suggestion]
     R -- path, no row --> E5[validation, exit 1, no typed response]
@@ -325,9 +322,8 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
 - **Goal:** every registry row is reached by its command words, and `--list`, `--all`, the committed files, and the
   generator all name commands that way.
 - **Requirements:** R1, R2, R3, R4, R5, R6, R15, R16, R17.
-- **Dependencies:** none. D1 and D2 block opening U1's PR, not building it. Build on the recommended defaults, keep the
-  code that depends on them in KTD10's row and KTD11's one function, and swap that code before the PR opens if an answer
-  differs.
+- **Dependencies:** none. D2 blocks opening U1's PR, not building it. Build on its recommended default, keep the code
+  that depends on it in KTD10's row, and swap that code before the PR opens if the answer differs.
 - **Files:**
   - `crates/xurl-cli/src/cli/commands/schema.rs`
   - `crates/xurl-cli/src/cli/mod.rs` (the `Schema` variant: `command: Vec<String>`, its help, `SCHEMA_HELP`)
@@ -377,11 +373,10 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
   - `xr --output json schema post extra` exits 2 with `unknown-command` and `command: "extra"`.
   - `xr --output json schema webhooks` exits 1 with `validation`, and a message naming `webhooks` as having no typed
     response that lists the `webhooks` commands that do.
-  - Under D1-A, `xr --output json schema webhooks-subscriptions-count` exits 2 with `invalid-args` and
+  - `xr --output json schema webhooks-subscriptions-count` exits 2 with `invalid-args` and
     `next_step: {action: fix-input, command: "xr schema webhooks subscriptions count"}`, and `redirect-uri-get` yields
     `xr schema auth apps redirect-uri get`. The test then runs that `command` and asserts exit 0 and the same document
-    as the words form, which proves Success Criteria item 3 for this refusal. Under D1-B, both resolve, and stderr
-    carries the deprecation note in text and in JSON output alike.
+    as the words form, which proves Success Criteria item 3 for this refusal.
   - `xr --output json schema envelope` exits 2 with `invalid-args` and `fix-input` carrying `xr schema --envelope`;
     `xr schema path` gets a `show-help` step.
   - `xr schema skill install -- --all` prints the `InstallMultiEnvelope` schema (D2-a). Without `--`,
@@ -408,8 +403,7 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
 
 - **Goal:** `xr schema <words>` prints the resolved `data` view by default, and the scope flags select every other view.
 - **Requirements:** R7, R8, R9, R10, R11, R12, R15, R17.
-- **Dependencies:** U1. Under D1-B, split into an additive PR (the flags, default unchanged) and a held PR for the major
-  that flips the default.
+- **Dependencies:** U1. One PR: D1 puts the default flip in the same minor as the flags.
 - **Files:**
   - `crates/xurl-cli/src/cli/commands/schema_resolve.rs` (new: select `data`, unwrap to the element, read the metadata,
     walk a dot path)
@@ -427,7 +421,7 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
     (`json-schema-to-typescript`, `datamodel-codegen`) pass `--full`, so the generated types keep the wrapper. Its "All
     schemas for MCP tool definitions" line for `--all` points at `schema/responses/` for the wire schemas, because
     `--all` now prints the default view.
-  - `docs/migrating/v5.0.0.md` (new, under D1-A only; shaped like `docs/migrating/v3.0.0.md`). It is an old → new table:
+  - `docs/migrating/v4.5.0.md` (new; shaped like `docs/migrating/v3.0.0.md`). It is an old → new table:
     - slug → words;
     - `xr schema envelope` → `--envelope`;
     - `jq '.properties.data'` → `.properties` on the default view, or `--full` to keep `.properties.data`;
@@ -562,7 +556,7 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
 | Lint and format         | `cargo clippy --workspace --all-targets -- -D warnings`; `cargo fmt --check`                                                        | every unit              |
 | Generated artifacts     | `scripts/generate-response-schemas.sh`, `scripts/generate-completions.sh`; then `git status` shows only intended changes            | U1, U2                  |
 | Local CI mirror         | `scripts/hooks/pre-push`, run in the background                                                                                     | every unit, before push |
-| Changelog bump          | `scripts/check-surface-bump.sh check <base> <head> <pr-body>` passes with the D1 section                                            | every PR                |
+| Changelog bump          | `scripts/check-surface-bump.sh check <base> <head> <pr-body>` passes with the `### Added` entries                                   | every PR                |
 | Measured size           | by hand on the built binary: `xr schema webhooks subscriptions count \| wc -l`, and the mean view length over the API-response rows | U2                      |
 
 No gate sends a request to X. Tests use the in-crate mock and wiremock, and every by-hand run sets `XURL_TOKEN_STORE` to
@@ -576,8 +570,9 @@ a scratch path and `API_BASE_URL` to a closed port.
 - Every gate in the Verification Contract passes for the PR's head, and every CI check on each PR reads `SUCCESS` in the
   rollup.
 - `schema/responses/` changes only as R15 names, and `schema/output.schema.json` only by the keys KTD5 and KTD8 add.
-- Each PR's `## Changelog (xurl-rs)` files its entries under the section D1 decides (`### Breaking changes` for a
-  major), and each PR's Related Issues names #424, #426, or both.
+- Each PR's `## Changelog (xurl-rs)` files its entries under `### Added`, the section `check-surface-bump.sh` accepts
+  for a minor's surface growth (the #315 precedent), and states plainly what an old invocation gets. Each PR's body
+  states the minor call and its reason, and its Related Issues names #424, #426, or both.
 - Re-blessed fixtures are only those this work moves, re-blessed after the last rebase on `dev`.
 - No code from abandoned approaches is left in the diff, and no new comment breaks the repo's comment policy.
 
@@ -588,12 +583,10 @@ a scratch path and `API_BASE_URL` to a closed port.
 Sent to Brett through the release session. Each one has a recommended default that the build uses for any unit the
 question does not block.
 
-- **D1, version call and old names. Blocks U1's KTD11 branch and U2's split.** Option A: one major (5.0.0), with old
-  slugs and the `envelope` positional refused through `fix-input`. Option B: a minor that adds the new forms and
-  deprecates the old, and a later major that flips the default. Option C: everything in a minor by decision.
-  Recommended: A, in the same major as #421 if #421 also renames without aliases. RELEASES.md § Versioning lists
-  positional forms and `xr schema` output as contract, so this is a major. The default flip cannot be made compatible,
-  so B still needs a major for #426's main point.
+- **D1, version call and old names: answered, C.** Everything ships in the minor xr 4.5.0 by Brett's decision, on
+  blast-radius grounds, with #421's renames in the same release; #421 merges first, and U1 rekeys the rows for whatever
+  names it leaves. Old slugs and the `envelope` positional refuse through `fix-input`. RELEASES.md § Versioning lists
+  positional forms and `xr schema` output as contract, so each PR body states the call and its reason.
 - **D2, the `skill install --all` row. Blocks U1's flag-form row.** Option a: `xr schema skill install -- --all`, with
   the file unchanged. Option b: one `skill install` schema with `anyOf` both reports, and the file removed. Option c:
   drop it. Recommended: a. Caveat: Windows PowerShell 5.1 may strip a bare `--` before a native command sees it (medium
@@ -622,7 +615,7 @@ question does not block.
 
 Every review ran inline in this session. Brett's standing rule for this repo forbids subagents, so no reviewer agent and
 no outside model was dispatched. Nobody watched this session, so each choice below was settled from the evidence named
-beside it, and only the decisions that are Brett's (D1–D3) stay open.
+beside it, and only the decisions that are Brett's (D1–D3) stayed open. D1 is answered (Open Questions).
 
 ### Engineering review (2026-10-28, `/plan-eng-review`, plan at `6b5fa41`)
 
@@ -940,10 +933,10 @@ DX IMPLEMENTATION CHECKLIST
 [ ] Every typed command's help and dry run names that call (U3)
 [ ] Every new refusal carries what, fix, code and channel; --path miss carries a template (R11)
 [ ] xr schema --help and the examples page show the schema-to-filter pair (U1)
-[ ] Migration table covers slug, envelope, .properties.data, --list parsing, --all keys (U2, D1-A)
+[ ] Migration table covers slug, envelope, .properties.data, --list parsing, --all keys (U2)
 [ ] The old-slug refusal's command runs green in a test (U1)
 [ ] Works with no terminal: no prompt anywhere in xr schema (existing)
-[ ] Changelog entries filed under the section D1 decides (every PR)
+[ ] Changelog entries filed under ### Added, with the minor call stated in the body (every PR)
 ```
 
 ### DX Implementation Tasks
@@ -959,7 +952,7 @@ DX IMPLEMENTATION CHECKLIST
   - Verify: the U1 `xr schema webhooks` scenario
 - [ ] **T9 (P2, human: ~1h / CC: ~10min)**: docs: paired example in `SCHEMA_HELP` and the examples page; migration table
   - Surfaced by: Passes 1 and 4, X3 and X4
-  - Files: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/commands/examples.rs`, `docs/migrating/v5.0.0.md`
+  - Files: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/commands/examples.rs`, `docs/migrating/v4.5.0.md`
   - Verify: `help-schema.golden` and `examples.golden` re-blessed with the new lines; `agentic_tests` green
 - [ ] **T10 (P2, human: ~30min / CC: ~5min)**: tests: run the old-slug refusal's `command` and assert it succeeds
   - Surfaced by: Pass 8, X6
@@ -1026,6 +1019,6 @@ Brett's to decide.
 
 **UNRESOLVED DECISIONS:**
 
-- D1: the version call and how old names are handled (Brett)
+- D1: answered, C (a minor, xr 4.5.0; old names refused through `fix-input`)
 - D2: how the `skill install --all` schema is named (Brett)
 - D3: whether the dry-run `command` value changes (Brett)
