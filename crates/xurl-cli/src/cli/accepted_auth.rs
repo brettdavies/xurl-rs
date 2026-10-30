@@ -58,17 +58,6 @@ pub const ROWS: &[Row] = &[
     ),
     row("bookmarks", &[ep::GET_ME, ep::GET_BOOKMARKS]),
     row("broadcasts chat history", &[ep::GET_BROADCAST_CHAT]),
-    row(
-        "broadcasts chat mute",
-        &[ep::LOOKUP_USERS_BY_USERNAME, ep::MUTE_CHAT_USER],
-    ),
-    row("broadcasts chat remove", &[ep::DELETE_CHAT_MESSAGE]),
-    row("broadcasts chat send", &[ep::SEND_BROADCAST_CHAT]),
-    row(
-        "broadcasts chat unmute",
-        &[ep::LOOKUP_USERS_BY_USERNAME, ep::UNMUTE_CHAT_USER],
-    ),
-    row("broadcasts end", &[ep::END_BROADCAST]),
     row("broadcasts get", &[ep::GET_BROADCAST]),
     row("broadcasts list", &[ep::LIST_BROADCASTS]),
     row(

@@ -98,15 +98,14 @@ async fn add_resolves_the_user_and_sends_the_expiry_in_milliseconds() {
 }
 
 #[tokio::test]
-async fn a_moderator_names_the_hosts_broadcast_and_the_message_to_remove() {
+async fn a_moderator_names_the_hosts_broadcast() {
     let server = MockServer::start().await;
     mount_troll(&server, 2).await;
     Mock::given(method("POST"))
         .and(path("/2/broadcasts/chat/mutes"))
         .and(body_json(serde_json::json!({
             "user_id": "99",
-            "broadcast_id": BROADCAST,
-            "message_id": "1850000000000000077"
+            "broadcast_id": BROADCAST
         })))
         .respond_with(
             ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": {"muted": true}})),
@@ -133,8 +132,6 @@ async fn a_moderator_names_the_hosts_broadcast_and_the_message_to_remove() {
             "@troll",
             "--broadcast",
             BROADCAST,
-            "--message",
-            "1850000000000000077",
         ],
     )
     .await;
@@ -212,19 +209,6 @@ async fn inputs_outside_the_spec_bounds_are_refused_before_any_request() {
             vec![
                 "broadcasts",
                 "mutes",
-                "add",
-                "@troll",
-                "--broadcast",
-                BROADCAST,
-                "--message",
-                "msg-1",
-            ],
-            "invalid-chat-message-id",
-        ),
-        (
-            vec![
-                "broadcasts",
-                "mutes",
                 "remove",
                 "@troll",
                 "--broadcast",
@@ -247,7 +231,7 @@ async fn inputs_outside_the_spec_bounds_are_refused_before_any_request() {
 }
 
 #[tokio::test]
-async fn a_message_to_remove_needs_the_broadcast_it_is_in() {
+async fn a_mute_removes_no_chat_message() {
     let server = MockServer::start().await;
 
     let (code, _stdout, stderr) = run_json(
@@ -257,6 +241,8 @@ async fn a_message_to_remove_needs_the_broadcast_it_is_in() {
             "mutes",
             "add",
             "@troll",
+            "--broadcast",
+            BROADCAST,
             "--message",
             "1850000000000000077",
         ],
@@ -264,6 +250,8 @@ async fn a_message_to_remove_needs_the_broadcast_it_is_in() {
     .await;
 
     assert_eq!(code, 2, "stderr: {stderr}");
-    assert!(stderr.contains("--broadcast"), "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
+    assert_eq!(envelope["reason"], "invalid-args", "stderr: {stderr}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

@@ -22,16 +22,15 @@ use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, Redirec
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult, ChatMute,
-    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
-    DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
-    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
-    StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute, ChatMutedResult, Community,
+    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    IngestRegion, LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
+    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
+    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Command-to-response-type mapping entry.
@@ -141,11 +140,6 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<Broadcast>>,
     },
     SchemaEntry {
-        commands: &["broadcasts end"],
-        type_name: "ApiResponse<BroadcastEnded>",
-        schema: generate::<ApiResponse<BroadcastEnded>>,
-    },
-    SchemaEntry {
         commands: &["broadcasts scheduled list"],
         type_name: "ApiResponse<Vec<ScheduledBroadcast>>",
         schema: generate::<ApiResponse<Vec<ScheduledBroadcast>>>,
@@ -165,17 +159,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<Vec<BroadcastChatMessage>>>,
     },
     SchemaEntry {
-        commands: &["broadcasts chat send"],
-        type_name: "ApiResponse<ChatSentResult>",
-        schema: generate::<ApiResponse<ChatSentResult>>,
-    },
-    SchemaEntry {
-        commands: &[
-            "broadcasts chat mute",
-            "broadcasts chat unmute",
-            "broadcasts mutes add",
-            "broadcasts mutes remove",
-        ],
+        commands: &["broadcasts mutes add", "broadcasts mutes remove"],
         type_name: "ApiResponse<ChatMutedResult>",
         schema: generate::<ApiResponse<ChatMutedResult>>,
     },
@@ -291,7 +275,6 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "lists remove",
             "broadcasts remove",
             "broadcasts scheduled cancel",
-            "broadcasts chat remove",
             "notes remove",
             "media subtitles remove",
             "webhooks remove",

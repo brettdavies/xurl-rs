@@ -227,7 +227,7 @@
         "PUT /2/users/{id}/broadcasts/{broadcast_id}/state"
       ],
       "status": "not-supported",
-      "reason": "Going live from a source: the create call makes a broadcast that posts nothing until the state call publishes it, once the source is receiving video. Going live belongs to the app that drives the encoder, as for xr broadcasts scheduled live. The state call's END is xr broadcasts end, through the PUT /2/broadcasts/{id}/state X names in its place. Raw mode still reaches both.",
+      "reason": "Going live from a source: the create call makes a broadcast that posts nothing until the state call publishes it, once the source is receiving video. Going live belongs to the app that drives the encoder; xr's commands stay out of a live session (AGENTS.md § \"Command grammar\"). Raw mode still reaches both.",
       "decided": "2026-10-30",
       "by": "Brett, on #409",
       "revisit_when": {

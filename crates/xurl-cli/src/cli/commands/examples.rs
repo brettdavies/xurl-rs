@@ -203,16 +203,15 @@ BROADCASTS:
     xr broadcasts sources add \"Studio A\" --region us-east-1 --output json
     xr broadcasts sources get 1x2y3z4w5v6u --output json
 
-  Schedule a broadcast from a source, then welcome the chat once it is live:
+  Schedule a broadcast from a source:
     xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --output json
-    xr broadcasts chat send 1YqKDqWqdPLGV \"Welcome!\" --output json
 
-  Your broadcasts, and one by id:
+  Your broadcasts, one by id, and its chat:
     xr broadcasts list --output json
     xr broadcasts get 1YqKDqWqdPLGV --output json
+    xr broadcasts chat history 1YqKDqWqdPLGV --output json
 
-  End a broadcast, then delete it and its replay:
-    xr broadcasts end 1YqKDqWqdPLGV --force --output json
+  Delete a broadcast and its replay:
     xr broadcasts remove 1YqKDqWqdPLGV --force --output json
 
 CALLS:

@@ -2732,23 +2732,9 @@ pub enum BroadcastsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// End one of your broadcasts
-    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::END))]
-    End {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        /// Skip the confirmation prompt; required under `--no-interactive`
-        #[arg(long)]
-        force: bool,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
     /// Delete one of your broadcasts and its replay
     ///
-    /// X deletes a scheduled or ended broadcast; end a running one first
-    /// with `xr broadcasts end`.
+    /// X deletes a scheduled or ended broadcast, and refuses a running one.
     #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::REMOVE))]
     Remove {
         /// Broadcast ID, as `xr broadcasts list` prints it
@@ -2768,7 +2754,7 @@ pub enum BroadcastsCommands {
         #[command(subcommand)]
         action: ScheduledBroadcastsCommands,
     },
-    /// Read and moderate a broadcast's chat
+    /// Read a broadcast's chat
     #[command(after_help = family_help::broadcast_chat::page())]
     Chat {
         /// `chat` verb to dispatch.
@@ -2908,67 +2894,6 @@ pub enum BroadcastChatCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// Send a message into a broadcast's chat
-    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::SEND))]
-    Send {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        /// Message text, 1 to 140 characters
-        text: String,
-        /// The chat message to reply to, by id
-        #[arg(long, value_name = "MESSAGE_ID")]
-        reply_to: Option<String>,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Remove a message from a broadcast's chat
-    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::REMOVE))]
-    Remove {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        /// Chat message ID, as `xr broadcasts chat history` prints it
-        #[arg(value_name = "MESSAGE_ID")]
-        message_id: String,
-        /// Skip the confirmation prompt; required under `--no-interactive`
-        #[arg(long)]
-        force: bool,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Mute someone in a broadcast's chat
-    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::MUTE))]
-    Mute {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        #[arg(value_name = "ACCOUNT", help = format!("The account to mute. {}", output::account_rule()))]
-        target_username: String,
-        /// When the mute ends (RFC 3339 with a zone); for good when unset
-        #[arg(long, value_name = "TIME")]
-        until: Option<String>,
-        /// A chat message of theirs to remove while muting, by id
-        #[arg(long, value_name = "MESSAGE_ID")]
-        message: Option<String>,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Unmute someone in a broadcast's chat
-    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::UNMUTE))]
-    Unmute {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        #[arg(value_name = "ACCOUNT", help = format!("The account to unmute. {}", output::account_rule()))]
-        target_username: String,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
 }
 
 /// `xr broadcasts sources` verbs.
@@ -3103,9 +3028,6 @@ pub enum MutesCommands {
         /// A broadcast you moderate: mute them in its host's chats
         #[arg(long, value_name = "BROADCAST_ID")]
         broadcast: Option<String>,
-        /// A message of theirs in that broadcast's chat to remove, by id
-        #[arg(long, value_name = "MESSAGE_ID", requires = "broadcast")]
-        message: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

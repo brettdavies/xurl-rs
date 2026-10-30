@@ -1,7 +1,7 @@
 args: ["broadcasts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8105
+stdout_len: 7951
 stderr_len: 0
 --- stdout ---
 Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources
@@ -11,10 +11,9 @@ Usage: xr broadcasts [OPTIONS] <COMMAND>
 Commands:
   list        List your broadcasts
   get         Read one broadcast, by id
-  end         End one of your broadcasts
   remove      Delete one of your broadcasts and its replay
   scheduled   Schedule broadcasts and change or cancel them
-  chat        Read and moderate a broadcast's chat
+  chat        Read a broadcast's chat
   moderators  Manage who moderates your broadcast chats
   mutes       Mute people in every chat of your broadcasts
   sources     Manage the RTMP and RTMPS ingest points you stream to
@@ -160,8 +159,7 @@ Global Options:
 Examples:
   Your broadcasts (text):
     xr broadcasts list
-  End one, then delete it and its replay, JSON envelope:
-    xr broadcasts end 1YqKDqWqdPLGV --force --no-interactive --output json
+  Delete one and its replay, JSON envelope:
     xr broadcasts remove 1YqKDqWqdPLGV --force --no-interactive --output json
   Schedule one, JSON envelope:
     xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --title "Launch day" --output json
@@ -176,8 +174,8 @@ Examples:
     xr broadcasts sources list
   Create one, JSON envelope:
     xr broadcasts sources add "Studio A" --region us-east-1 --output json
-  Send into a broadcast's chat, JSON envelope:
-    xr broadcasts chat send 1YqKDqWqdPLGV "Welcome!" --output json
+  A broadcast's chat, JSON envelope:
+    xr broadcasts chat history 1YqKDqWqdPLGV -n 50 --output json
 
 --- stderr ---
 

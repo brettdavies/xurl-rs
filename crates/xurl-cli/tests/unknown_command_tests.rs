@@ -1137,6 +1137,47 @@ async fn a_dropped_word_is_an_unknown_command() {
     assert_unknown_command_under(&stderr, "json", "live", None, "xr broadcasts scheduled");
 }
 
+/// Ending a broadcast and taking part in its chat belong to the app that
+/// drives the live session, so no command answers those verbs and none
+/// replaces them.
+#[tokio::test]
+async fn a_live_session_verb_is_an_unknown_command() {
+    const BROADCAST: &str = "1YqKDqWqdPLGV";
+    let closed_port = EnvOverrides {
+        api_base_url: Some("http://127.0.0.1:9".into()),
+        ..EnvOverrides::default()
+    };
+    for (args, word, parent) in [
+        (&["end", BROADCAST][..], "end", "xr broadcasts"),
+        (
+            &["chat", "send", BROADCAST, "Welcome!"][..],
+            "send",
+            "xr broadcasts chat",
+        ),
+        (
+            &["chat", "remove", BROADCAST, "1700000000001"][..],
+            "remove",
+            "xr broadcasts chat",
+        ),
+        (
+            &["chat", "mute", BROADCAST, "@troll"][..],
+            "mute",
+            "xr broadcasts chat",
+        ),
+        (
+            &["chat", "unmute", BROADCAST, "@troll"][..],
+            "unmute",
+            "xr broadcasts chat",
+        ),
+    ] {
+        let mut argv = vec!["xr", "--output", "json", "--dry-run", "broadcasts"];
+        argv.extend(args);
+        let (code, _stdout, stderr) = run_with_overrides(&argv, &closed_port).await;
+        assert_eq!(code, 2, "{argv:?}: {stderr}");
+        assert_unknown_command_under(&stderr, "json", word, None, parent);
+    }
+}
+
 /// A row belongs to one family: `remove` elsewhere is still a command.
 #[tokio::test]
 async fn a_retired_word_stays_a_command_in_other_families() {
