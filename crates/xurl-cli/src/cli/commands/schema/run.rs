@@ -101,3 +101,18 @@ fn print_all_schemas(out: &OutputConfig, stdout: &mut dyn Write) -> Result<()> {
     out.print_response(stdout, &value);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use xdk::error::Error;
+
+    use super::schema_for_command;
+
+    #[test]
+    fn a_command_with_no_row_is_a_fault_in_the_registry() {
+        assert!(matches!(
+            schema_for_command("no such command"),
+            Err(Error::Internal(_))
+        ));
+    }
+}

@@ -654,7 +654,8 @@ fn render_misplaced_flags(
 /// Renders what `xr schema` refused. A word that names no command takes
 /// the refusal `xr help` gives it; an old name or a scope word is
 /// `invalid-args` with the invocation that works as its step, when one
-/// exists; anything else is the value refusal every command gives.
+/// exists; a fault in the registry names the issue tracker; anything else is
+/// the value refusal every command gives.
 fn render_schema_refusal(
     refusal: crate::cli::commands::schema::Refusal,
     args: &[OsString],
@@ -677,7 +678,11 @@ fn render_schema_refusal(
             );
         }
         Refusal::Invalid(error) => {
-            let hint = crate::cli::hints::show_help_hint(&invoked_help(args));
+            let hint = match error {
+                xdk::error::Error::Internal(_) => crate::cli::hints::general_hint(&error, ""),
+                _ => None,
+            }
+            .unwrap_or_else(|| crate::cli::hints::show_help_hint(&invoked_help(args)));
             out.print_refusal(stderr, &error, None, &hint);
             return EXIT_GENERAL_ERROR;
         }
@@ -795,3 +800,31 @@ fn render_unknown_command(
 // `Send` by themselves, but the function-pointer type below is, which is
 // what library consumers need to dispatch the runner from a thread pool.
 xdk::assert_send_sync!(fn() -> i32);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::ColorChoice;
+
+    /// A command the registry resolves but holds no schema for is a fault in
+    /// xr, so its refusal points at the issue tracker rather than at a help
+    /// page the caller can do nothing with.
+    #[test]
+    fn a_broken_schema_registry_reports_an_internal_fault() {
+        let out = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+        let mut stderr = Vec::new();
+        let code = render_schema_refusal(
+            crate::cli::commands::schema::Refusal::Invalid(xdk::error::Error::Internal(
+                "no schema registered for 'post'".into(),
+            )),
+            &["xr", "schema", "post"].map(OsString::from),
+            &out,
+            &mut stderr,
+        );
+        let envelope: serde_json::Value =
+            serde_json::from_slice(&stderr).expect("a JSON error envelope");
+        assert_eq!(code, EXIT_GENERAL_ERROR);
+        assert_eq!(envelope["reason"], "internal");
+        assert_eq!(envelope["next_step"]["action"], "report-issue");
+    }
+}
