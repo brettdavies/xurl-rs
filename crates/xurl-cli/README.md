@@ -871,9 +871,10 @@ a value you do not recognize as your default branch. A step carries a `command`,
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
 fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
 carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
-and `inspect-store` when a store command is what failed. Two `fix-input` steps carry an invocation: `listen` again on a
-free port, under `address-in-use`, and the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
-before, under `invalid-args`. Text mode prints the same advice as prose instead; the two need not match word for word.
+and `inspect-store` when a store command is what failed. Three `fix-input` steps carry an invocation: `listen` again on
+a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
+before, under `invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen`
+lacks. Text mode prints the same advice as prose instead; the two need not match word for word.
 
 ### Which Errors Carry a Step
 
