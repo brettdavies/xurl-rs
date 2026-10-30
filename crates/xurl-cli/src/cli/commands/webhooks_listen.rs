@@ -221,17 +221,7 @@ fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
 
 /// `--forward` with its `-H` headers.
 fn url_target(url: &str, headers: &[String]) -> Result<UrlTarget, Error> {
-    validate_forward_url(url).map_err(|reason| {
-        Error::validation(match reason {
-            "forward-url-has-credentials" => {
-                "--forward takes a URL with no username or password, which every record of a \
-                 failed forward would repeat; pass the credential with -H 'Authorization: ...' \
-                 instead"
-            }
-            "forward-url-not-http" => "--forward takes an http or https URL",
-            _ => "--forward takes an absolute http or https URL",
-        })
-    })?;
+    validate_forward_url(url).map_err(Error::validation)?;
     UrlTarget::new(url, headers).map_err(|error| match error {
         Error::Validation(message) => Error::validation(format!("-H: {message}")),
         other => other,

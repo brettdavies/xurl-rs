@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "conversations", "start", "@alice", "--text", "hi"]
 store: empty
 exit_code: 0
-stdout_len: 374
+stdout_len: 398
 stderr_len: 0
 --- stdout ---
 {
@@ -16,7 +16,8 @@ stderr_len: 0
   "participants": [
     "@alice"
   ],
-  "reason": "invalid-participant-count",
+  "reason": "validation",
+  "rule": "invalid-participant-count",
   "status": "dry_run",
   "would_succeed": false
 }

@@ -69,12 +69,7 @@ async fn user_posts_refuses_an_empty_handle_before_any_request() {
     let envelope: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("empty-username")),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], "empty-username", "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 

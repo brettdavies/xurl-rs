@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "bookmark-folders", "posts", "rust"]
 store: empty
 exit_code: 0
-stdout_len: 320
+stdout_len: 344
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr bookmark-folders posts --help"
   },
-  "reason": "invalid-folder-id",
+  "reason": "validation",
+  "rule": "invalid-folder-id",
   "status": "dry_run",
   "would_succeed": false
 }

@@ -130,7 +130,7 @@ async fn search_users_refuses_a_query_outside_the_spec_pattern_before_any_reques
         assert_eq!(code, 0, "{query:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{query:?}");
-        assert_eq!(body["reason"], "invalid-user-query", "{query:?}");
+        assert_eq!(body["rule"], "invalid-user-query", "{query:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

@@ -111,7 +111,7 @@ async fn evaluate_refuses_a_draft_with_no_source_url_before_any_request() {
         assert_eq!(code, 1, "{text:?}: {stderr}");
         let envelope = error_envelope(&stderr);
         assert_eq!(envelope["reason"], "validation", "{text:?}");
-        assert_eq!(envelope["message"], "note-needs-source-url", "{text:?}");
+        assert_eq!(envelope["rule"], "note-needs-source-url", "{text:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
@@ -225,7 +225,7 @@ async fn inputs_outside_the_spec_are_refused_before_any_request() {
         assert_eq!(code, 0, "{args:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{args:?}");
-        assert_eq!(body["reason"], reason, "{args:?}");
+        assert_eq!(body["rule"], reason, "{args:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

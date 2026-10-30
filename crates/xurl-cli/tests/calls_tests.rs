@@ -219,7 +219,7 @@ async fn scheduled_add_refuses_a_start_that_is_not_rfc_3339_before_any_request()
     let body = json_out(&stdout);
     assert_eq!(body["command"], "calls-scheduled-add");
     assert_eq!(body["would_succeed"], false);
-    assert_eq!(body["reason"], "invalid-call-time");
+    assert_eq!(body["rule"], "invalid-call-time");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
@@ -324,12 +324,7 @@ async fn scheduled_update_that_changes_nothing_is_refused_before_any_request() {
     assert_eq!(code, 1, "stderr: {stderr}");
     let envelope = error_envelope(&stderr);
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("no-call-changes")),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], "no-call-changes", "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
@@ -637,7 +632,7 @@ async fn invitees_outside_the_spec_are_refused_before_any_request() {
         let (code, _stdout, stderr) = run(&store, &server.uri(), &args).await;
 
         assert_eq!(code, 1, "{reason}: {stderr}");
-        assert_eq!(error_envelope(&stderr)["message"], reason, "{stderr}");
+        assert_eq!(error_envelope(&stderr)["rule"], reason, "{stderr}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

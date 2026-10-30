@@ -346,6 +346,13 @@
             "null"
           ]
         },
+        "rule": {
+          "description": "The input rule a `validation` refusal broke, as the validator's\nkebab-case code (`invalid-username`, `no-list-changes`, ...);\n`message` is the sentence for it. Present under `validation`, and on\na dry run that refuses its input.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "schema": {
           "description": "Schema name a `validate` invocation named.",
           "type": [

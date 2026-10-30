@@ -267,7 +267,7 @@ async fn dry_run_sends_nothing_even_with_validate_only() {
     )
     .await;
     assert_eq!(code, 0, "stderr: {stderr}");
-    assert_eq!(json_out(&stdout)["reason"], "invalid-rule-id");
+    assert_eq!(json_out(&stdout)["rule"], "invalid-rule-id");
 
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

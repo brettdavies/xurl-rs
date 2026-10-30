@@ -91,7 +91,7 @@ async fn inputs_outside_the_spec_are_refused_before_any_request() {
         assert_eq!(code, 0, "{:?}: {stderr}", &args[..2]);
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{:?}", &args[..2]);
-        assert_eq!(body["reason"], reason, "{:?}", &args[..2]);
+        assert_eq!(body["rule"], reason, "{:?}", &args[..2]);
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

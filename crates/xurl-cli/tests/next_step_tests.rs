@@ -339,7 +339,8 @@ async fn a_refused_input_carries_its_message_and_step_in_yaml() {
         "message: The webhook URL names a port; X takes one without a port.",
         "  action: show-help",
         "  command: xr webhooks add --help",
-        "reason: webhook-url-has-port",
+        "reason: validation",
+        "rule: webhook-url-has-port",
     ] {
         assert!(
             stdout.lines().any(|l| l == line),

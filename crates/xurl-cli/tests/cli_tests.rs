@@ -2661,7 +2661,7 @@ async fn test_post_empty_body_dry_run_reports_empty_body_reason() {
     let v = parse_json(&stdout);
     assert_eq!(v["status"], "dry_run");
     assert_eq!(v["would_succeed"], serde_json::Value::Bool(false));
-    assert_eq!(v["reason"], "empty-body");
+    assert_eq!(v["rule"], "empty-body");
     assert_eq!(v["exit_code"], 1);
 }
 

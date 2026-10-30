@@ -144,25 +144,27 @@ then close.
 
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
-kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. It
-also carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table under "Which
-Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
-`crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
-fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
-caller finishes or decides on first: angle-bracket placeholders to fill, or, under `confirm`, the invocation that
-destroys once it runs. A new error picks an existing action where one fits, and does not ship without a step. Prefer
-additive envelope changes: add keys rather than renaming or retyping existing ones.
+kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
+`validation` refusal also carries `rule`, the validator's kebab-case code for the input rule it broke, and its `message`
+is the sentence for that rule, from the one function in `crates/xurl-cli/src/cli/output/validation.rs` that text output
+and any help stating the rule also call. It also carries a `next_step` object `{action, command | template, docs}`
+wherever a step exists; the table under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a
+row, and `crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each
+golden fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is
+one the caller finishes or decides on first: angle-bracket placeholders to fill, or, under `confirm`, the invocation
+that destroys once it runs. A new error picks an existing action where one fits, and does not ship without a step.
+Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
 `--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
 invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
 would end on, and either refusal carries the keys of the real run's error envelope, `message` and `next_step` among
-them. An invalid input's `message` is the rule it broke, as text output words it; a step that reruns the invocation
-keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
-stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
-and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
-confirmation prompt; `confirmation_required: true` marks a destructive command that would stop to ask. Text output
-summarizes the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`).
+them. An invalid input answers with its real run's `reason`, `validation`, its `rule`, and the sentence for that rule as
+`message`; a step that reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out
+under (the `app` it is stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an
+expired token is reported and not refreshed, and whether X still accepts the credential is not checked. The flag
+outranks `--force` and the confirmation prompt; `confirmation_required: true` marks a destructive command that would
+stop to ask. Text output summarizes the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`).
 
 ## Shortcut commands
 

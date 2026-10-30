@@ -123,12 +123,7 @@ async fn add_refuses_an_empty_url_without_a_request() {
     assert_eq!(code, 1, "stderr: {stderr}");
     let envelope = error_envelope(&stderr);
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("empty-webhook-url")),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], "empty-webhook-url", "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
@@ -315,12 +310,7 @@ async fn replay_refuses_a_time_that_is_not_twelve_digits() {
     assert_eq!(code, 1, "stderr: {stderr}");
     let envelope = error_envelope(&stderr);
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("invalid-replay-time")),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], "invalid-replay-time", "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
@@ -743,7 +733,7 @@ async fn subscriptions_remove_refuses_an_account_in_neither_form() {
         assert_eq!(code, 1, "{account}: {stderr}");
         let envelope = error_envelope(&stderr);
         assert_eq!(envelope["reason"], "validation", "{envelope}");
-        assert_eq!(envelope["message"], reason, "{envelope}");
+        assert_eq!(envelope["rule"], reason, "{envelope}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
@@ -1268,12 +1258,7 @@ async fn add_refuses_a_url_x_would_refuse(#[case] url: &str, #[case] reason: &st
     assert_eq!(code, 1, "stderr: {stderr}");
     let envelope = error_envelope(&stderr);
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains(reason)),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], reason, "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 

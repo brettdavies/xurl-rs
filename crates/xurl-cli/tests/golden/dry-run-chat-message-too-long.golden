@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "chat", "send", "1YqKDqWqdPLGV", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 509
+stdout_len: 533
 stderr_len: 0
 --- stdout ---
 {
@@ -14,8 +14,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr broadcasts chat send --help"
   },
-  "reason": "chat-message-too-long",
+  "reason": "validation",
   "reply_to": null,
+  "rule": "chat-message-too-long",
   "status": "dry_run",
   "would_succeed": false
 }

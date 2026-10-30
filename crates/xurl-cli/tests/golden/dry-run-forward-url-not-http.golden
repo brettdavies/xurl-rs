@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "webhooks", "listen", "--forward", "ftp://example.com/hook"]
 store: empty
 exit_code: 0
-stdout_len: 440
+stdout_len: 475
 stderr_len: 0
 --- stdout ---
 {
@@ -13,13 +13,14 @@ stderr_len: 0
     "timeout_secs": 30,
     "url": "ftp://example.com/hook"
   },
-  "message": "--forward takes an http or https URL",
+  "message": "--forward takes an http or https URL.",
   "next_step": {
     "action": "show-help",
     "command": "xr webhooks listen --help"
   },
   "path": "/webhook",
   "reason": "validation",
+  "rule": "forward-url-not-http",
   "secret": null,
   "status": "dry_run",
   "would_succeed": false
