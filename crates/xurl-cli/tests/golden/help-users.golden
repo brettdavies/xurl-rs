@@ -1,7 +1,7 @@
 args: ["users", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7479
+stdout_len: 7515
 stderr_len: 0
 --- stdout ---
 Look up 1 to 100 accounts by handle or by id in one request
@@ -166,6 +166,9 @@ Examples:
   The handle of each, one per line:
     xr users 2244994945 12 --output json | jaq -r '.data[]?.username'
   Every argument is a handle or every one an id; X answers each form from its own endpoint.
+
+Response schema:
+  xr schema users
 
 --- stderr ---
 

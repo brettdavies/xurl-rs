@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8211
+stdout_len: 8261
 stderr_len: 0
 --- stdout ---
 Schedule a call on your X Calls calendar and invite people to it
@@ -185,6 +185,9 @@ Examples:
     xr calls scheduled add --start 2026-11-02T16:00:00Z --title Standup --duration 15 --invite 2244994945
   Schedule (JSON envelope):
     xr calls scheduled add --start 2026-11-02T16:00:00Z --title Standup --duration 15 --invite 2244994945 --output json
+
+Response schema:
+  xr schema calls scheduled add
 
 --- stderr ---
 

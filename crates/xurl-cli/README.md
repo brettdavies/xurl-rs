@@ -780,6 +780,7 @@ xr --output json --dry-run post "Hello"
   "command": "post",
   "exit_code": 0,
   "media_ids": [],
+  "response_schema": "xr schema post",
   "status": "dry_run",
   "would_succeed": true
 }
@@ -798,11 +799,15 @@ xr --output json --dry-run post "Hello"
   the credential is not checked, since nothing is sent to find out.
 - `confirmation_required: true` marks a destructive command that would stop to ask. The flag outranks `--force` and the
   prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
+- `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
+  typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
+  ends with a `Response schema:` block naming it.
 
 A command that only reads local state, such as `auth status`, `schema`, or `version`, has nothing to hold back and
 answers as it always does. Text output summarizes the same facts in lines: that nothing was sent, whether the real run
-would succeed and, when it would not, the exit code and why, then the command's inputs, the credential, and whether it
-would stop to ask. A refusal prints the advice the real run's error prints, which `--quiet` leaves out.
+would succeed and, when it would not, the exit code and why, then the command's inputs, the credential, the response
+schema, and whether it would stop to ask. A refusal prints the advice the real run's error prints, which `--quiet`
+leaves out.
 
 ```text
 $ xr --dry-run bookmark-folders add ""

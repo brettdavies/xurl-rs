@@ -1,7 +1,7 @@
 args: ["unblock", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7134
+stdout_len: 7172
 stderr_len: 0
 --- stdout ---
 Unblock a user
@@ -163,6 +163,9 @@ Examples:
     xr unblock @spammer
   Unblock (JSON envelope):
     xr unblock @spammer --output json
+
+Response schema:
+  xr schema unblock
 
 --- stderr ---
 

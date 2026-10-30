@@ -1,7 +1,7 @@
 args: ["auth", "apps", "redirect-uri", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6878
+stdout_len: 6935
 stderr_len: 0
 --- stdout ---
 Show the effective redirect URI, its source, and the stored value
@@ -156,6 +156,9 @@ Examples:
     xr auth apps redirect-uri get my-app --output json
   Compare env-var override vs stored value:
     REDIRECT_URI=https://example/callback xr auth apps redirect-uri get my-app --output json
+
+Response schema:
+  xr schema auth apps redirect-uri get
 
 --- stderr ---
 

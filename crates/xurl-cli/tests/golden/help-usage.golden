@@ -1,7 +1,7 @@
 args: ["usage", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7120
+stdout_len: 7156
 stderr_len: 0
 --- stdout ---
 Show API usage (post caps, daily breakdown)
@@ -165,6 +165,9 @@ Examples:
     xr usage --output json
   Quiet + JSON for clean agent consumption:
     xr usage --quiet --output json
+
+Response schema:
+  xr schema usage
 
 --- stderr ---
 

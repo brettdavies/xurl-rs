@@ -1,7 +1,7 @@
 args: ["webhooks", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6922
+stdout_len: 6966
 stderr_len: 0
 --- stdout ---
 List the webhooks registered for the app
@@ -159,6 +159,9 @@ Examples:
     xr webhooks list
   As a JSON envelope:
     xr webhooks list --output json
+
+Response schema:
+  xr schema webhooks list
 
 --- stderr ---
 

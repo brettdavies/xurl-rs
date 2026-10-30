@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "media", "subtitles", "remove", "1585341984679469056", "--language", "english"]
 store: empty
 exit_code: 0
-stdout_len: 422
+stdout_len: 479
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 0
     "command": "xr media subtitles remove --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema media subtitles remove",
   "rule": "invalid-language-code",
   "status": "dry_run",
   "video_id": "1585341984679469056",

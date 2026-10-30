@@ -25,7 +25,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::error::{ContextKind, ContextValue, ErrorKind};
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, FromArgMatches, Parser};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
@@ -175,8 +175,14 @@ where
 {
     let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
 
-    let cli = match Cli::try_parse_from(args_vec.iter()) {
-        Ok(cli) => cli,
+    // Parsed in two steps, formatting a failure as `Cli::try_parse_from`
+    // does, so the matches stay to name the command that ran.
+    let parsed = Cli::command()
+        .try_get_matches_from(args_vec.iter())
+        .and_then(|matches| Cli::from_arg_matches(&matches).map(|cli| (cli, matches)))
+        .map_err(|e| e.format(&mut Cli::command()));
+    let (cli, matches) = match parsed {
+        Ok(parsed) => parsed,
         Err(e) => {
             return render_parse_error(&e, &args_vec, overrides, stdout, stderr);
         }
@@ -190,7 +196,10 @@ where
         cli.raw,
         overrides.no_color,
     )
-    .with_no_interactive(cli.no_interactive);
+    .with_no_interactive(cli.no_interactive)
+    .with_response_schema(crate::cli::commands::schema::pointer_for(&matched_path(
+        &matches,
+    )));
     crate::cli::panic_hook::publish(&out);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
@@ -757,6 +766,17 @@ fn render_schema_refusal(
         },
     );
     EXIT_USAGE_ERROR
+}
+
+/// The words of the subcommand clap matched, empty for a raw request.
+fn matched_path(matches: &clap::ArgMatches) -> String {
+    let mut words = Vec::new();
+    let mut current = matches;
+    while let Some((name, sub)) = current.subcommand() {
+        words.push(name);
+        current = sub;
+    }
+    words.join(" ")
 }
 
 /// The command an unknown word's pointer names, and why it names it.

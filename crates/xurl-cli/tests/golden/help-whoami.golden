@@ -1,7 +1,7 @@
 args: ["whoami", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7609
+stdout_len: 7646
 stderr_len: 0
 --- stdout ---
 Show the authenticated user's profile
@@ -168,6 +168,9 @@ Examples:
     xr whoami --username alice --output json
   Your id, username, and name from the store, with no request:
     xr whoami --cached
+
+Response schema:
+  xr schema whoami
 
 --- stderr ---
 

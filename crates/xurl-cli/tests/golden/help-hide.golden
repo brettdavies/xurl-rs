@@ -1,7 +1,7 @@
 args: ["hide", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7072
+stdout_len: 7107
 stderr_len: 0
 --- stdout ---
 Hide a reply to your post
@@ -164,6 +164,9 @@ Examples:
   Hide a reply by its URL (JSON envelope):
     xr hide https://x.com/alice/status/1585341984679469056 --output json
   Only the author of the post replied to can hide a reply.
+
+Response schema:
+  xr schema hide
 
 --- stderr ---
 

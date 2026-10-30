@@ -1,7 +1,7 @@
 args: ["bookmark-folders", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7049
+stdout_len: 7101
 stderr_len: 0
 --- stdout ---
 List the folders you sort bookmarks into
@@ -162,6 +162,9 @@ Examples:
     xr bookmark-folders list
   As a JSON envelope:
     xr bookmark-folders list --output json
+
+Response schema:
+  xr schema bookmark-folders list
 
 --- stderr ---
 

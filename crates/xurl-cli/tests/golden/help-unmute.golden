@@ -1,7 +1,7 @@
 args: ["unmute", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7123
+stdout_len: 7160
 stderr_len: 0
 --- stdout ---
 Unmute a user
@@ -163,6 +163,9 @@ Examples:
     xr unmute @noisy
   Unmute (JSON envelope):
     xr unmute @noisy --output json
+
+Response schema:
+  xr schema unmute
 
 --- stderr ---
 

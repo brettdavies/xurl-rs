@@ -1,7 +1,7 @@
 args: ["dm", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7246
+stdout_len: 7279
 stderr_len: 0
 --- stdout ---
 Send a direct message
@@ -168,6 +168,9 @@ Examples:
     xr dm @recipient "Hello" --output json
   Without the @ prefix:
     xr dm recipient "Hi" --output json
+
+Response schema:
+  xr schema dm
 
 --- stderr ---
 

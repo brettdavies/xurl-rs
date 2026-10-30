@@ -25,6 +25,9 @@
 
 mod common;
 
+use clap::CommandFactory;
+use xurl::cli::commands::schema::{invocation, registered_commands};
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::io::Write as _;
@@ -403,6 +406,66 @@ impl Scratch {
         std::fs::create_dir_all(self.dir.path().join("no-git")).expect("bin dir");
         format!("{SCRATCH_PLACEHOLDER}/no-git")
     }
+}
+
+/// Every typed command's help ends with the invocation that prints its
+/// schema, and no other command's help mentions one.
+#[test]
+fn a_typed_command_s_help_names_its_schema() {
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let mut wrong = Vec::new();
+    for path in common::command_paths() {
+        let words = path.join(" ");
+        let cmd = path.iter().fold(&root, |cmd, name| {
+            cmd.find_subcommand(name)
+                .unwrap_or_else(|| panic!("clap has no command {words:?}"))
+        });
+        let help = cmd.clone().render_long_help().to_string();
+        let expected = registered_commands()
+            .find(|command| *command == words)
+            .map(invocation);
+        match expected {
+            Some(line)
+                if !help
+                    .trim_end()
+                    .contains(&format!("Response schema:\n  {line}")) =>
+            {
+                wrong.push(format!("{words}: its help does not end with `{line}`"));
+            }
+            None if help.contains("Response schema:") => {
+                wrong.push(format!("{words}: names a schema it does not have"));
+            }
+            _ => {}
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "help and the schema registry disagree:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// Pointing help at schemas keeps every subcommand in the order it is
+/// declared, which completions and the help listings follow.
+#[test]
+fn naming_schemas_in_help_keeps_the_declared_command_order() {
+    fn names(cmd: &clap::Command, prefix: &str, out: &mut Vec<String>) {
+        for sub in cmd.get_subcommands() {
+            let path = format!("{prefix} {}", sub.get_name());
+            out.push(path.clone());
+            names(sub, &path, out);
+        }
+    }
+    let declared =
+        <xurl::cli::Commands as clap::Subcommand>::augment_subcommands(clap::Command::new("xr"));
+    let (mut want, mut got) = (Vec::new(), Vec::new());
+    names(&declared, "xr", &mut want);
+    names(&xurl::cli::Cli::command(), "xr", &mut got);
+    assert_eq!(
+        got, want,
+        "the command tree `xr` parses lists its commands in another order than they are declared"
+    );
 }
 
 fn static_cases() -> Vec<Case> {

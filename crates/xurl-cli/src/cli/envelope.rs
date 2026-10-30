@@ -44,6 +44,10 @@ pub enum Envelope {
         would_succeed: bool,
         /// Exit code the verb would have returned on actual execution.
         exit_code: i32,
+        /// The `xr schema` invocation that describes the command's response,
+        /// on a command with a typed response. A raw request carries none.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        response_schema: Option<String>,
         /// Verb-specific context payload, flattened at the top level.
         #[serde(flatten)]
         payload: Value,

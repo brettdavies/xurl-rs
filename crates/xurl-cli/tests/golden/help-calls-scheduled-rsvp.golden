@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "rsvp", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7761
+stdout_len: 7812
 stderr_len: 0
 --- stdout ---
 Answer an invitation to a scheduled call
@@ -182,6 +182,9 @@ Examples:
     xr calls scheduled rsvp 1849302018273645 accepted
   Accept (JSON envelope):
     xr calls scheduled rsvp 1849302018273645 accepted --output json
+
+Response schema:
+  xr schema calls scheduled rsvp
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "notes", "remove", "note-1"]
 store: empty
 exit_code: 0
-stdout_len: 354
+stdout_len: 401
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 0
   },
   "note_id": "note-1",
   "reason": "validation",
+  "response_schema": "xr schema notes remove",
   "rule": "invalid-note-id",
   "status": "dry_run",
   "would_succeed": false

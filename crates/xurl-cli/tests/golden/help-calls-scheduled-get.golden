@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7111
+stdout_len: 7161
 stderr_len: 0
 --- stdout ---
 Show a scheduled call, with its invitees and their answers
@@ -163,6 +163,9 @@ Examples:
     xr calls scheduled get 1849302018273645
   As a JSON envelope:
     xr calls scheduled get 1849302018273645 --output json
+
+Response schema:
+  xr schema calls scheduled get
 
 --- stderr ---
 

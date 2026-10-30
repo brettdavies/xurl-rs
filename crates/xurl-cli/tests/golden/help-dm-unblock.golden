@@ -1,7 +1,7 @@
 args: ["dm-unblock", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7196
+stdout_len: 7237
 stderr_len: 0
 --- stdout ---
 Let a user send you direct messages again
@@ -163,6 +163,9 @@ Examples:
     xr dm-unblock @friend
   Unblock (JSON envelope):
     xr dm-unblock @friend --output json
+
+Response schema:
+  xr schema dm-unblock
 
 --- stderr ---
 

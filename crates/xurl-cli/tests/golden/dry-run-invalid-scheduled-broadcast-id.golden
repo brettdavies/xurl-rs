@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "scheduled", "get", "1YqKDqWqdPLGV"]
 store: empty
 exit_code: 0
-stdout_len: 377
+stdout_len: 436
 stderr_len: 0
 --- stdout ---
 {
@@ -13,6 +13,7 @@ stderr_len: 0
     "command": "xr broadcasts scheduled get --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema broadcasts scheduled get",
   "rule": "invalid-scheduled-broadcast-id",
   "scheduled_id": "1YqKDqWqdPLGV",
   "status": "dry_run",

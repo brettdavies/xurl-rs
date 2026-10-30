@@ -1,7 +1,7 @@
 args: ["dm-block", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7277
+stdout_len: 7316
 stderr_len: 0
 --- stdout ---
 Stop a user sending you direct messages
@@ -164,6 +164,9 @@ Examples:
   Block (JSON envelope):
     xr dm-block @spammer --output json
   Blocks direct messages only; xr block blocks the account.
+
+Response schema:
+  xr schema dm-block
 
 --- stderr ---
 

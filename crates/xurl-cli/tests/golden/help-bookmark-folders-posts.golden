@@ -1,7 +1,7 @@
 args: ["bookmark-folders", "posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7197
+stdout_len: 7250
 stderr_len: 0
 --- stdout ---
 List the posts in one of your bookmark folders, by id
@@ -166,6 +166,9 @@ Examples:
     xr bookmark-folders posts 1146654567674912769
   As a JSON envelope:
     xr bookmark-folders posts 1146654567674912769 --output json
+
+Response schema:
+  xr schema bookmark-folders posts
 
 --- stderr ---
 

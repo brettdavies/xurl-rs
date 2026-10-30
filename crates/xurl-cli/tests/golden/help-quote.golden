@@ -1,7 +1,7 @@
 args: ["quote", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7125
+stdout_len: 7161
 stderr_len: 0
 --- stdout ---
 Quote a post
@@ -168,6 +168,9 @@ Examples:
     xr quote 1585341984679469056 "Worth a read." --output json
   Quote-post from a URL:
     xr quote https://x.com/elonmusk/status/1585341984679469056 "Thread."
+
+Response schema:
+  xr schema quote
 
 --- stderr ---
 

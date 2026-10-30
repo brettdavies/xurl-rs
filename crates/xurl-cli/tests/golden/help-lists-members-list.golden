@@ -1,7 +1,7 @@
 args: ["lists", "members", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7136
+stdout_len: 7185
 stderr_len: 0
 --- stdout ---
 List the accounts on a list
@@ -166,6 +166,9 @@ Examples:
     xr lists members list 1146654567674912769
   As a JSON envelope:
     xr lists members list 1146654567674912769 --output json
+
+Response schema:
+  xr schema lists members list
 
 --- stderr ---
 

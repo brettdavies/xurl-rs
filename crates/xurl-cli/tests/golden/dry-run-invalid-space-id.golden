@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "spaces", "get", "1DXxyRYNejbKM-"]
 store: empty
 exit_code: 0
-stdout_len: 340
+stdout_len: 385
 stderr_len: 0
 --- stdout ---
 {
@@ -13,6 +13,7 @@ stderr_len: 0
     "command": "xr spaces get --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema spaces get",
   "rule": "invalid-space-id",
   "space_ids": [
     "1DXxyRYNejbKM-"

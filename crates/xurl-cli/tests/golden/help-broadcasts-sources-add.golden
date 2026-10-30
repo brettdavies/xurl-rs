@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7395
+stdout_len: 7448
 stderr_len: 0
 --- stdout ---
 Create a stream source
@@ -168,6 +168,9 @@ Examples:
     xr broadcasts sources add "Studio A" --region us-east-1
   Create (JSON envelope):
     xr broadcasts sources add "Studio A" --region us-east-1 --output json
+
+Response schema:
+  xr schema broadcasts sources add
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["trends", "place", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7169
+stdout_len: 7212
 stderr_len: 0
 --- stdout ---
 List the trends for a place, by its Yahoo WOEID (1 is worldwide)
@@ -166,6 +166,9 @@ Examples:
     xr trends place 1 -n 10
   As a JSON envelope:
     xr trends place 1 -n 10 --output json
+
+Response schema:
+  xr schema trends place
 
 --- stderr ---
 

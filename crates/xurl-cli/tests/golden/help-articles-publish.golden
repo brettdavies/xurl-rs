@@ -1,7 +1,7 @@
 args: ["articles", "publish", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7182
+stdout_len: 7229
 stderr_len: 0
 --- stdout ---
 Publish a draft X Article
@@ -166,6 +166,9 @@ Examples:
     xr articles publish 1850000000000000003 --force --no-interactive
   Publish (JSON envelope):
     xr articles publish 1850000000000000003 --force --no-interactive --output json
+
+Response schema:
+  xr schema articles publish
 
 --- stderr ---
 

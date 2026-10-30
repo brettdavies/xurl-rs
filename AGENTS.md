@@ -167,7 +167,9 @@ them. An invalid input answers with its real run's `reason`, `validation`, its `
 under (the `app` it is stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an
 expired token is reported and not refreshed, and whether X still accepts the credential is not checked. The flag
 outranks `--force` and the confirmation prompt; `confirmation_required: true` marks a destructive command that would
-stop to ask. Text output summarizes the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`).
+stop to ask. `response_schema` names the `xr schema` invocation for a command with a typed response, and raw mode
+carries none; the same command's `--help` ends with a `Response schema:` block, both read from the schema registry. Text
+output summarizes the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`).
 
 ## Shortcut commands
 

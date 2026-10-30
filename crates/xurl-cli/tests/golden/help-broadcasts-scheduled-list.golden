@@ -1,7 +1,7 @@
 args: ["broadcasts", "scheduled", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7036
+stdout_len: 7092
 stderr_len: 0
 --- stdout ---
 List your scheduled broadcasts
@@ -162,6 +162,9 @@ Examples:
     xr broadcasts scheduled list
   As a JSON envelope:
     xr broadcasts scheduled list --output json
+
+Response schema:
+  xr schema broadcasts scheduled list
 
 --- stderr ---
 

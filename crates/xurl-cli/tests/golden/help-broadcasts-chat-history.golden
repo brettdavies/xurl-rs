@@ -1,7 +1,7 @@
 args: ["broadcasts", "chat", "history", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7158
+stdout_len: 7212
 stderr_len: 0
 --- stdout ---
 List a broadcast's chat
@@ -166,6 +166,9 @@ Examples:
     xr broadcasts chat history 1YqKDqWqdPLGV -n 50
   As a JSON envelope:
     xr broadcasts chat history 1YqKDqWqdPLGV -n 50 --output json
+
+Response schema:
+  xr schema broadcasts chat history
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["lists", "posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7141
+stdout_len: 7183
 stderr_len: 0
 --- stdout ---
 List the posts from a list's members
@@ -166,6 +166,9 @@ Examples:
     xr lists posts 1146654567674912769 -n 50
   As a JSON envelope:
     xr lists posts 1146654567674912769 -n 50 --output json
+
+Response schema:
+  xr schema lists posts
 
 --- stderr ---
 

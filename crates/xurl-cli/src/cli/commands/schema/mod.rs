@@ -2,12 +2,15 @@
 //!
 //! This module holds the registry, which names every command with a typed
 //! response by its words. `words` turns the words a caller gives into a row,
-//! `run` prints what each scope asks for, and `resolve` derives the views.
+//! `run` prints what each scope asks for, `resolve` derives the views, and
+//! `pointers` points each registered command's help and dry run at its schema.
 
+mod pointers;
 mod resolve;
 mod run;
 mod words;
 
+pub use pointers::{SchemaPointers, pointer_for};
 pub use run::{Request, run_schema};
 pub use words::{Refusal, scope_words};
 

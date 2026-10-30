@@ -1,7 +1,7 @@
 args: ["conversations", "history", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7199
+stdout_len: 7251
 stderr_len: 0
 --- stdout ---
 List the messages in a conversation, by id
@@ -166,6 +166,9 @@ Examples:
     xr conversations history 1580705921830768643 -n 50
   As a JSON envelope:
     xr conversations history 1580705921830768643 -n 50 --output json
+
+Response schema:
+  xr schema conversations history
 
 --- stderr ---
 

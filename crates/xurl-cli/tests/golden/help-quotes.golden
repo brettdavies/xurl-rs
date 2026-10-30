@@ -1,7 +1,7 @@
 args: ["quotes", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7252
+stdout_len: 7289
 stderr_len: 0
 --- stdout ---
 List the posts that quote a post
@@ -168,6 +168,9 @@ Examples:
     xr quotes 1585341984679469056 -n 100 --output json
   The id of each quote, one per line:
     xr quotes 1585341984679469056 --output json | jaq -r '.data[]?.id'
+
+Response schema:
+  xr schema quotes
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["blocked", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6999
+stdout_len: 7037
 stderr_len: 0
 --- stdout ---
 List users you have blocked
@@ -162,6 +162,9 @@ Examples:
     xr blocked
   First 100, as JSON Lines:
     xr blocked -n 100 --output jsonl
+
+Response schema:
+  xr schema blocked
 
 --- stderr ---
 

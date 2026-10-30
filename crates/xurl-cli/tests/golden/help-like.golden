@@ -1,7 +1,7 @@
 args: ["like", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6988
+stdout_len: 7023
 stderr_len: 0
 --- stdout ---
 Like a post
@@ -164,6 +164,9 @@ Examples:
   Like a post (JSON envelope):
     xr like 1585341984679469056 --output json
   Idempotent: re-liking is a server-side no-op.
+
+Response schema:
+  xr schema like
 
 --- stderr ---
 

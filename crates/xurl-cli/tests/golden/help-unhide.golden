@@ -1,7 +1,7 @@
 args: ["unhide", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7007
+stdout_len: 7044
 stderr_len: 0
 --- stdout ---
 Show a hidden reply to your post again
@@ -163,6 +163,9 @@ Examples:
     xr unhide 1585341984679469056
   Show a hidden reply again (JSON envelope):
     xr unhide 1585341984679469056 --output json
+
+Response schema:
+  xr schema unhide
 
 --- stderr ---
 

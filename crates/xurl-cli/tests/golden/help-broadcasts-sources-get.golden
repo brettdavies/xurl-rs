@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7122
+stdout_len: 7175
 stderr_len: 0
 --- stdout ---
 Show one stream source, and whether it is receiving video
@@ -163,6 +163,9 @@ Examples:
     xr broadcasts sources get 1x2y3z4w5v6u
   As a JSON envelope:
     xr broadcasts sources get 1x2y3z4w5v6u --output json
+
+Response schema:
+  xr schema broadcasts sources get
 
 --- stderr ---
 

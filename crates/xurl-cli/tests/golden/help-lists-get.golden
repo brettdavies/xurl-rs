@@ -1,7 +1,7 @@
 args: ["lists", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6992
+stdout_len: 7032
 stderr_len: 0
 --- stdout ---
 Read one list, by id
@@ -163,6 +163,9 @@ Examples:
     xr lists get 1146654567674912769
   As a JSON envelope:
     xr lists get 1146654567674912769 --output json
+
+Response schema:
+  xr schema lists get
 
 --- stderr ---
 

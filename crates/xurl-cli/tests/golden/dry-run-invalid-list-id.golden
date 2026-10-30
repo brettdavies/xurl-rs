@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "lists", "get", "rustaceans"]
 store: empty
 exit_code: 0
-stdout_len: 309
+stdout_len: 353
 stderr_len: 0
 --- stdout ---
 {
@@ -14,6 +14,7 @@ stderr_len: 0
     "command": "xr lists get --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema lists get",
   "rule": "invalid-list-id",
   "status": "dry_run",
   "would_succeed": false

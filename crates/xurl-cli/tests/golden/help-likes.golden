@@ -1,7 +1,7 @@
 args: ["likes", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7121
+stdout_len: 7157
 stderr_len: 0
 --- stdout ---
 List your liked posts
@@ -164,6 +164,9 @@ Examples:
     xr likes -n 100 --output json
   The id of each liked post, one per line:
     xr likes -n 100 --output json | jaq -r '.data[]?.id'
+
+Response schema:
+  xr schema likes
 
 --- stderr ---
 

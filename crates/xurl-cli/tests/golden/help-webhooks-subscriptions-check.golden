@@ -1,7 +1,7 @@
 args: ["webhooks", "subscriptions", "check", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7120
+stdout_len: 7179
 stderr_len: 0
 --- stdout ---
 Say whether your account's activity is subscribed to a webhook
@@ -163,6 +163,9 @@ Examples:
     xr webhooks subscriptions check 1146654567674912769
   As a JSON envelope:
     xr webhooks subscriptions check 1146654567674912769 --output json
+
+Response schema:
+  xr schema webhooks subscriptions check
 
 --- stderr ---
 

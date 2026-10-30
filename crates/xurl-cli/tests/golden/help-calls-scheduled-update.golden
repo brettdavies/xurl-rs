@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8625
+stdout_len: 8678
 stderr_len: 0
 --- stdout ---
 Move, rename, or re-invite a call you organize
@@ -200,6 +200,9 @@ Examples:
     xr calls scheduled update 1849302018273645 --start 2026-11-02T17:00:00Z
   Move (JSON envelope):
     xr calls scheduled update 1849302018273645 --start 2026-11-02T17:00:00Z --output json
+
+Response schema:
+  xr schema calls scheduled update
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["conversations", "send", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7135
+stdout_len: 7184
 stderr_len: 0
 --- stdout ---
 Send a message into a conversation, by id
@@ -166,6 +166,9 @@ Examples:
     xr conversations send 1580705921830768643 "Running late"
   Send (JSON envelope):
     xr conversations send 1580705921830768643 "Running late" --output json
+
+Response schema:
+  xr schema conversations send
 
 --- stderr ---
 

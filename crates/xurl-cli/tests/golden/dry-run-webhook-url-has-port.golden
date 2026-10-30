@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "webhooks", "add", "https://example.com:8443/webhook"]
 store: empty
 exit_code: 0
-stdout_len: 367
+stdout_len: 414
 stderr_len: 0
 --- stdout ---
 {
@@ -13,6 +13,7 @@ stderr_len: 0
     "command": "xr webhooks add --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema webhooks add",
   "rule": "webhook-url-has-port",
   "status": "dry_run",
   "url": "https://example.com:8443/webhook",

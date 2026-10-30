@@ -23,6 +23,7 @@ mod common;
 use serde_json::{Value, json};
 use wiremock::MockServer;
 use xdk::testing::MockX;
+use xurl::cli::commands::schema::{invocation, registered_commands};
 
 use common::invoke::{
     Fill, OVERRIDES, Ran, SAMPLE, arguments_for, bearer_only, every_kind_with_the_login_expired,
@@ -42,6 +43,22 @@ const LOCAL_READS: &[&str] = &[
     "examples",
     "validate",
 ];
+
+/// What is wrong with the schema pointer a dry run of `path` carries: a
+/// command with a registry row names `xr schema` with its words, and any
+/// other carries none.
+fn pointer_fault(path: &str, document: &Value) -> Option<String> {
+    if document["status"] != "dry_run" {
+        return None;
+    }
+    let expected = registered_commands()
+        .find(|command| *command == path)
+        .map(invocation);
+    let carried = document["response_schema"].as_str().map(str::to_string);
+    (carried != expected).then(|| {
+        format!("carries response_schema {carried:?}, where its schema is {expected:?}: {document}")
+    })
+}
 
 /// Raw mode is not a clap command; each row is a request shape.
 const RAW_INVOCATIONS: &[(&str, &[&str])] = &[
@@ -166,6 +183,9 @@ async fn a_dry_run_sends_nothing_and_stores_nothing() {
         {
             found.push(format!("{path}: {fault}"));
         }
+        if let Some(fault) = pointer_fault(&path, &document) {
+            found.push(format!("{path}: {fault}"));
+        }
         if !args.iter().any(|arg| arg == "--force") {
             continue;
         }
@@ -193,11 +213,14 @@ async fn a_dry_run_sends_nothing_and_stores_nothing() {
         if let Some(fault) = credential_report_fault(&document) {
             found.push(format!("{name}: {fault}"));
         }
+        if document.get("response_schema").is_some() {
+            found.push(format!("{name}: a raw request names a schema: {document}"));
+        }
     }
     assert!(
         found.is_empty(),
         "under --dry-run a command reached the network, changed local state, or left its \
-         credential unreported:\n{}",
+         credential unreported, or named the wrong schema:\n{}",
         found.join("\n")
     );
 }

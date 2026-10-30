@@ -1,7 +1,7 @@
 args: ["conversations", "start", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7412
+stdout_len: 7462
 stderr_len: 0
 --- stdout ---
 Start a group conversation and send its first message
@@ -166,6 +166,9 @@ Examples:
     xr conversations start @alice @bob --text "Plans for Friday?"
   Start (JSON envelope):
     xr conversations start @alice @bob --text "Plans for Friday?" --output json
+
+Response schema:
+  xr schema conversations start
 
 --- stderr ---
 

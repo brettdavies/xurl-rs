@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "users", "@not-a-handle!"]
 store: empty
 exit_code: 0
-stdout_len: 372
+stdout_len: 412
 stderr_len: 0
 --- stdout ---
 {
@@ -16,6 +16,7 @@ stderr_len: 0
     "command": "xr users --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema users",
   "rule": "invalid-username",
   "status": "dry_run",
   "would_succeed": false

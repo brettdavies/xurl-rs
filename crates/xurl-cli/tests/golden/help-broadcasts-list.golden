@@ -1,7 +1,7 @@
 args: ["broadcasts", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6986
+stdout_len: 7032
 stderr_len: 0
 --- stdout ---
 List your broadcasts
@@ -162,6 +162,9 @@ Examples:
     xr broadcasts list
   As a JSON envelope:
     xr broadcasts list --output json
+
+Response schema:
+  xr schema broadcasts list
 
 --- stderr ---
 
