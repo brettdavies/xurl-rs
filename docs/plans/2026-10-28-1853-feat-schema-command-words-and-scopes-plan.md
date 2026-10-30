@@ -19,8 +19,8 @@ execution: code
 - **Means:** a schema registry keyed by command words, scope flags over schemars' own inlined generation, and schema
   pointers in help and dry runs that are derived from the registry (KTD1, KTD3, KTD7, KTD8).
 - **Authority:** R-IDs win on behavior, KTDs on mechanism, and a unit overrides neither. Brett's answers to D1–D3 (Open
-  Questions) replace the recommended defaults recorded here; D1 is answered and recorded. `AGENTS.md` § "Where a change
-  goes" places every change in the binary crate.
+  Questions) replace the recommended defaults recorded here; all three are answered and recorded. `AGENTS.md`
+  § "Where a change goes" places every change in the binary crate.
 - **Execution profile:** inline in one session, with no subagents and no worktrees. A stack of three PRs, one per unit;
   the bottom PR targets `dev`.
 - **Stop conditions:**
@@ -119,7 +119,7 @@ Every figure here was measured on that build and on the committed `schema/respon
 
 - R15. `schema/responses/` holds one file per registry row, named by the row's words joined with `-`, with the content
   `--full` prints. The renames are `redirect-uri-get` → `auth-apps-redirect-uri-get` and `redirect-uri-set` →
-  `auth-apps-redirect-uri-set`, plus whatever D2 decides for `skill-install-all`.
+  `auth-apps-redirect-uri-set`. The two `skill install` files are removed (D2).
 - R16. The `xr validate --schema` aliases and the `typed_alias` coverage of every registry response type stay unchanged.
 - R17. `AGENTS.md`, `crates/xurl-cli/README.md`, the examples page, and `xr schema --help` describe the new grammar, and
   each PR leaves them true for the code in that PR.
@@ -129,9 +129,13 @@ Every figure here was measured on that build and on the committed `schema/respon
 - **Version call and old names: a minor, xr 4.5.0 (D1, Brett chose C).** The whole reshape ships in 4.5.0 alongside
   #421's renames, on blast-radius grounds. Old slugs and the `envelope` positional refuse at exit 2 with a `fix-input`
   step carrying the corrected command. Governs R5.
-- **How the `skill install --all` schema is named: pending Brett (D2).** Recommended: reachable as
-  `xr schema skill install -- --all`, with its file unchanged. Governs R1, R15.
-- **The dry-run `command` value stays as it is: pending Brett (D3).** Recommended default; `response_schema` is the only
+- **`skill install` is schema-less (D2, Brett: "Make it schema-less").** It prints the installer's own report, as
+  `skill update` does, and joins it on the schema-less list (KTD10). Governs R1, R15.
+- **A registry row with no schema is `internal`.** A command the resolver returns always has a row, so a lookup that
+  finds none means the registry is broken: reason `internal`, with the `report-issue` step.
+- **Free-text `validation` refusals carry a `rule` (the merge chain's validation shape).** `no-typed-response` and
+  `missing-command` name the two `xr schema` refusals that have no validator, once the OQ1 PR defines the key.
+- **The dry-run `command` value stays as it is (D3, Brett: "Keep the slug").** `response_schema` is the only
   new key. Governs R14.
 - **For an array, the default body describes one element.** `data_cardinality` says it is an array, so `.properties`
   gives the fields whatever the cardinality. #426 defines `data_cardinality` as a metadata key, which would carry no
@@ -146,7 +150,7 @@ Every figure here was measured on that build and on the committed `schema/respon
 
 - `xr schema webhooks subscriptions count` prints at most 35 lines. The mean default output across the 138 API-response
   commands is at most 75 lines, against 416 today, measured over the built binary.
-- All 143 command paths and the flag form resolve by their words, and no hyphen-joined slug appears in `--list` or
+- Every command path resolves by its words, and no hyphen-joined slug appears in `--list` or
   `--all`.
 - Following the `next_step` of any refusal R3, R5, R6, or R11 defines reaches a successful `xr schema` call in one more
   invocation.
@@ -239,15 +243,15 @@ Every figure here was measured on that build and on the committed `schema/respon
 - KTD9. **Structured `--list` output is an array of `{command, type, file}` records.** `file` is the derived stem plus
   `.schema.json`, and text output keeps aligned rows. `scripts/generate-response-schemas.sh` and the drift tests read
   the structured form, because command names now contain spaces and splitting a text row on whitespace cannot recover
-  them. The generator calls `xr schema --output json -- <words>` in U1, and adds `--full` in U2 once the flag exists.
-  The `--` also covers the D2 flag form.
-- KTD10. **The flag form, under D2's recommended option.** The row key is `skill install --all`. `[COMMAND]...` accepts
-  `--all` only after `--`, and the stem is `skill-install-all`.
+  them. The generator calls `xr schema --output json <words>` in U1, and adds `--full` in U2 once the flag exists.
+- KTD10. **`skill install` is schema-less (D2).** Both of its rows and both files go, with the flag-form table and the
+  `--` handling in `invocation()` that served only them, the two `UNVALIDATED_TYPES` entries, and the report types'
+  `JsonSchema` derive. Every row is then named by words alone, and a file's stem is the words joined with `-`.
 - KTD11. **Old names are recognized in one function, and refused (D1).** A single token matches a row when it
-  equals that row's derived stem, or one of the three irregular names (`redirect-uri-get`, `redirect-uri-set`,
-  `skill-install-all`). The caller refuses with `invalid-args`, exit 2, and `fix-input` carrying `xr schema <words>`.
-  The precedent is `render_misplaced_flags` in `crates/xurl-cli/src/cli/runner.rs`: one line that names the problem and
-  ends `Run: <command>`.
+  equals that row's derived stem, one of the two irregular names (`redirect-uri-get`, `redirect-uri-set`), or the stem
+  of a command its family retired (#421's `retired_verbs.rs`), which names its replacement's row. The caller refuses
+  with `invalid-args`, exit 2, and `fix-input` carrying `xr schema <words>`. The precedent is `render_misplaced_flags`
+  in `crates/xurl-cli/src/cli/runner.rs`: one line that names the problem and ends `Run: <command>`.
 
 ### High-Level Technical Design
 
@@ -322,8 +326,8 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
 - **Goal:** every registry row is reached by its command words, and `--list`, `--all`, the committed files, and the
   generator all name commands that way.
 - **Requirements:** R1, R2, R3, R4, R5, R6, R15, R16, R17.
-- **Dependencies:** none. D2 blocks opening U1's PR, not building it. Build on its recommended default, keep the code
-  that depends on it in KTD10's row, and swap that code before the PR opens if the answer differs.
+- **Dependencies:** layer 4 of the merge chain. U1's base is the head of the OQ1 PR (issues-dry-run-envelopes), which
+  sits on #447; U2 and U3 chain above it, and verb-alignment's second PR sits on U3.
 - **Files:**
   - `crates/xurl-cli/src/cli/commands/schema.rs`
   - `crates/xurl-cli/src/cli/mod.rs` (the `Schema` variant: `command: Vec<String>`, its help, `SCHEMA_HELP`)
@@ -343,7 +347,7 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
     `crates/xurl-cli/tests/agentic_tests.rs`
 - **Approach:**
   1. Rewrite the registry keys and the schema-less set as words (KTD1). Drop the override table and
-     `schema_name_for_path`. Keep `FLAG_FORMS` as `("skill install --all", "skill install")` under D2-a.
+     `schema_name_for_path`. Move `skill install` to the schema-less list (KTD10).
   2. Add the word resolver (KTD2) and the old-name recognizer (KTD11), both pure functions over the registry and
      `Cli::command()`.
   3. Route refusals: unknown word to `render_unknown_command`, scope word and old name to an `invalid-args` envelope
@@ -351,10 +355,9 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
      branch in `run_schema` goes here, replaced by R5 and R6; `--envelope` keeps working.
   4. Make `--list` print records in structured formats and aligned rows in text, with no `envelope` row (KTD9). Make
      `--all` key its values by words.
-  5. Rename the two files, rewrite the generator to read `--list --output tsv` and call with `--`, then regenerate the
-     completions.
-  6. Update the docs and examples that name slugs. `SCHEMA_HELP` and the examples page show a multi-word command, the
-     `-- --all` form, and one paired example: `xr schema search` and then
+  5. Rename the two files, rewrite the generator to read `--list --output tsv`, then regenerate the completions.
+  6. Update the docs and examples that name slugs. `SCHEMA_HELP` and the examples page show a multi-word command and
+     one paired example: `xr schema search` and then
      `xr search "from:jack" --output json | jaq -r '.data[].text'`, so the step from schema to filter is shown in
      context.
 - **Execution note:** rewrite the walks in `schema_tests.rs` first, so that every clap path joined with a space is in
@@ -379,14 +382,16 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
     as the words form, which proves Success Criteria item 3 for this refusal.
   - `xr --output json schema envelope` exits 2 with `invalid-args` and `fix-input` carrying `xr schema --envelope`;
     `xr schema path` gets a `show-help` step.
-  - `xr schema skill install -- --all` prints the `InstallMultiEnvelope` schema (D2-a). Without `--`,
-    `xr schema skill install --all` exits 2 with `invalid-args`, because clap reads `--all` as the catalog flag, and
-    `xr schema --help` documents the `--` form.
+  - `xr schema skill install` and `xr schema skill update` exit 1 with the no-typed-response refusal (D2).
+  - `xr schema broadcasts scheduled remove` refuses with `suggestion: cancel` from `retired_verbs.rs`, and the old name
+    `broadcasts-scheduled-remove` with `fix-input` carrying `xr schema broadcasts scheduled cancel`.
+  - A row the registry resolves without a schema refuses with `internal` and `report-issue` (unit tests in `run.rs`
+    and `runner.rs`).
   - `xr schema --list --output json` parses as one JSON array of `{command, type, file}`, one per row, with no
     `envelope` entry. `--output tsv` has a header and one row per command.
   - `xr schema --all --output json` keys are exactly the registry's words.
   - Walk: every clap path joined with a space is in exactly one of the registry or the schema-less set, and every
-    registry key except a flag form is a clap path.
+    registry key is a clap path.
   - Walk: no two rows derive the same file stem, every row has its committed file, and no committed file is orphaned.
   - Walk: no top-level command is named after a scope word, with the words read from the `schema` subcommand's flags.
   - Tests this unit and U2 retire or rewrite on purpose: `envelope_schema_via_flag_equals_positional` (U1's R5 and R6
@@ -477,7 +482,7 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
     - `items` unwraps on an array step.
     - A root with leftover `$defs` keeps them in the view.
     - `data_type` reads the element's `$ref` name from the default generation, and the root `title` for a CLI-built
-      object row (`xr schema skill install` gives `InstallEnvelope`).
+      object row (`xr schema auth apps redirect-uri get` gives `RedirectUriGetResponse`).
 - **Verification:** the drift walk passes against `--full`, and `scripts/generate-response-schemas.sh` changes no file.
   `schema/output.schema.json` differs only by the two keys. Measured on the built binary,
   `xr schema webhooks subscriptions count` prints at most 35 lines and the mean view over the API-response rows is at
@@ -519,8 +524,7 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
     `xr schema webhooks subscriptions count`.
   - `xr help webhooks subscriptions count` prints the same footer.
   - `xr webhooks -h` (a family with no row) and `xr auth oauth2 --help` (schema-less) print no footer.
-  - `xr skill install --help` names both rows under D2-a: `xr schema skill install` and
-    `xr schema skill install -- --all`.
+  - `xr skill install --help` prints no footer (D2).
   - With a bearer token set, `xr --dry-run --output json webhooks subscriptions count` carries
     `response_schema: "xr schema webhooks subscriptions count"` next to `auth` and `command`. In text output a
     `response schema: xr schema webhooks subscriptions count` line follows the credential line.
@@ -533,9 +537,8 @@ land it with `gh stack merge` on the top PR, which skips the per-merge restack r
   - Walk (help), in `golden_tests.rs`: for every clap path, the help ends with the footer iff the path has a registry
     row.
   - Walk (dry run), in `dry_run_guard.rs`: for every command it runs that answers with the shared envelope,
-    `response_schema` is present iff the path has a row, and equals `xr schema <path>`. `skill install` and
-    `skill update` print the installer's own report under `--dry-run`, not the shared envelope, so the walk names them
-    as exempt with that reason.
+    `response_schema` is present iff the path has a row, and equals `xr schema <path>`. The installer's own report
+    from `skill install` and `skill update` carries none, which is what a command with no row carries.
   - Unit (`dry_run.rs`): `response_schema` is never printed as an input line, and the `response schema:` line comes
     after `credential:`.
 - **Verification:** the help and dry-run walks pass. The re-blessed fixtures differ from `dev` only by the footer and
@@ -587,11 +590,11 @@ question does not block.
   blast-radius grounds, with #421's renames in the same release; #421 merges first, and U1 rekeys the rows for whatever
   names it leaves. Old slugs and the `envelope` positional refuse through `fix-input`. RELEASES.md § Versioning lists
   positional forms and `xr schema` output as contract, so each PR body states the call and its reason.
-- **D2, the `skill install --all` row. Blocks U1's flag-form row.** Option a: `xr schema skill install -- --all`, with
-  the file unchanged. Option b: one `skill install` schema with `anyOf` both reports, and the file removed. Option c:
-  drop it. Recommended: a. Caveat: Windows PowerShell 5.1 may strip a bare `--` before a native command sees it (medium
-  confidence, unverified here), so that form needs `'--'` quoted there.
-- **D3, the dry-run `command` value. Blocks nothing.** Recommended: unchanged; changing it would be a separate issue.
+- **D2, the `skill install --all` row: answered, schema-less.** Brett: "Make it schema-less". `skill install` joins
+  `skill update` on the schema-less list (KTD10), and `xr schema skill-install` from 4.4 refuses as `unknown-command`,
+  which fits the D1 minor. The JSON reports are unchanged and stay pinned by their golden fixtures.
+- **D3, the dry-run `command` value: answered, unchanged.** Brett: "Keep the slug". `response_schema` is the only new
+  key.
 
 ---
 
@@ -615,7 +618,7 @@ question does not block.
 
 Every review ran inline in this session. Brett's standing rule for this repo forbids subagents, so no reviewer agent and
 no outside model was dispatched. Nobody watched this session, so each choice below was settled from the evidence named
-beside it, and only the decisions that are Brett's (D1–D3) stayed open. D1 is answered (Open Questions).
+beside it, and only the decisions that are Brett's (D1–D3) stayed open. All three are answered (Open Questions).
 
 ### Engineering review (2026-10-28, `/plan-eng-review`, plan at `6b5fa41`)
 
@@ -796,7 +799,7 @@ already recorded as a Key Decision).
   - Surfaced by: Code quality, Q1 and Q2
   - Files: `crates/xurl-cli/tests/schema_tests.rs`
   - Verify: `cargo test -p xurl-rs --test schema_tests --test recipe_guard`
-- [ ] **T6 (P2, human: ~30min / CC: ~5min)**: schema: document `--` for the flag form and test the refusal without it
+- [x] **T6 (P2, human: ~30min / CC: ~5min)**: schema: document `--` for the flag form; dropped, as D2 leaves none
   - Surfaced by: Code quality, Q3
   - Files: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/tests/schema_tests.rs`
   - Verify: the U1 flag-form scenarios
@@ -1020,5 +1023,5 @@ Brett's to decide.
 **UNRESOLVED DECISIONS:**
 
 - D1: answered, C (a minor, xr 4.5.0; old names refused through `fix-input`)
-- D2: how the `skill install --all` schema is named (Brett)
-- D3: whether the dry-run `command` value changes (Brett)
+- D2: answered, schema-less (`skill install` joins the schema-less list)
+- D3: answered, unchanged (`response_schema` is the only new key)
