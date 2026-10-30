@@ -19,15 +19,33 @@ const RUN_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema/run.rs";
 // Single command schema
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// `xr schema <args> --output json`, parsed.
+fn schema_json(args: &[&str]) -> serde_json::Value {
+    let output = common::xr()
+        .args(["--output", "json", "schema"])
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "xr schema {args:?}: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
 #[test]
-fn schema_post_outputs_valid_json_schema() {
-    let output = common::xr().args(["schema", "post"]).output().unwrap();
-    assert!(output.status.success());
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    // Must have standard JSON Schema fields
-    assert!(json.get("$defs").is_some() || json.get("definitions").is_some());
-    assert!(json.get("properties").is_some());
+fn schema_post_full_is_the_complete_standalone_schema() {
+    let json = schema_json(&["post", "--full"]);
+    assert!(json.get("$defs").is_some());
     assert_eq!(json["type"], "object");
+    let properties = json["properties"].as_object().unwrap();
+    for key in ["data", "includes", "meta", "errors"] {
+        assert!(
+            properties.contains_key(key),
+            "--full keeps the wrapper's {key}"
+        );
+    }
 }
 
 #[test]
@@ -36,8 +54,187 @@ fn schema_post_contains_post_fields() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("\"text\""));
     assert!(stdout.contains("\"author_id\""));
-    assert!(stdout.contains("\"includes\""));
-    assert!(stdout.contains("\"meta\""));
+}
+
+#[test]
+fn the_default_view_is_data_resolved_in_place_under_its_labels() {
+    let view = schema_json(&["webhooks", "subscriptions", "count"]);
+    assert_eq!(view["command"], "webhooks subscriptions count");
+    assert_eq!(view["data_cardinality"], "object");
+    assert_eq!(view["data_type"], "AccountActivitySubscriptionCount");
+    assert_eq!(view["common_schema"], "xr schema --common");
+    assert!(view.get("data_nullable").is_none());
+    assert!(view.get("$defs").is_none());
+    let mut fields: Vec<&String> = view["properties"].as_object().unwrap().keys().collect();
+    fields.sort();
+    assert_eq!(
+        fields,
+        [
+            "account_name",
+            "provisioned_count",
+            "subscriptions_count_all",
+            "subscriptions_count_direct_messages"
+        ]
+    );
+    assert!(
+        view["description"]
+            .as_str()
+            .unwrap()
+            .starts_with("How many Account Activity subscriptions"),
+        "the view carries the data type's own description"
+    );
+}
+
+#[test]
+fn an_array_view_describes_one_element() {
+    let view = schema_json(&["search"]);
+    assert_eq!(view["data_cardinality"], "array");
+    assert_eq!(view["data_type"], "Post");
+    assert!(view["properties"]["text"].is_object());
+    assert!(
+        view["properties"]["public_metrics"]["properties"]["like_count"].is_object(),
+        "nested types are inlined"
+    );
+}
+
+#[test]
+fn a_view_of_data_that_may_be_null_says_so() {
+    let view = schema_json(&["stream", "rules", "add"]);
+    assert_eq!(view["data_cardinality"], "array");
+    assert_eq!(view["data_nullable"], true);
+    assert_eq!(view["data_type"], "StreamRule");
+}
+
+#[test]
+fn a_shape_the_cli_builds_has_no_wrapper_label() {
+    let view = schema_json(&["auth", "status"]);
+    assert!(view.get("common_schema").is_none());
+    assert_eq!(view["data_type"], "AppStatusEntry");
+    assert_eq!(
+        schema_json(&["auth", "apps", "redirect-uri", "get"])["data_type"],
+        "RedirectUriGetResponse"
+    );
+}
+
+#[test]
+fn every_default_view_is_free_of_references_and_the_wrapper() {
+    let all = schema_json(&["--all"]);
+    let mut leaking = Vec::new();
+    for (command, view) in all.as_object().unwrap() {
+        let text = view.to_string();
+        let wrapper = view["properties"].as_object().is_some_and(|properties| {
+            ["includes", "meta", "errors"]
+                .iter()
+                .any(|key| properties.contains_key(*key))
+        });
+        if text.contains("\"$ref\"") || view.get("$defs").is_some() || wrapper {
+            leaking.push(command.clone());
+        }
+    }
+    assert!(
+        leaking.is_empty(),
+        "these default views carry a reference, definitions, or the wrapper: {leaking:?}\n\
+         Cause: the row's type recurses, so schemars kept a `$ref`, or the view no longer \
+         starts from `data`.\n\
+         Fix: in {RUN_SOURCE} and schema/resolve.rs, keep the view at the inlined `data`; a \
+         recursive response type needs its own treatment before it gets a row."
+    );
+}
+
+#[test]
+fn common_is_the_shared_wrapper_with_its_definitions_once() {
+    let common = schema_json(&["--common"]);
+    let mut properties: Vec<&String> = common["properties"].as_object().unwrap().keys().collect();
+    properties.sort();
+    assert_eq!(properties, ["data", "errors", "includes", "meta"]);
+    let defs = common["$defs"].as_object().unwrap();
+    for name in ["Includes", "Post", "User", "ApiError", "ResponseMeta"] {
+        assert!(defs.contains_key(name), "--common defines {name}");
+    }
+}
+
+#[test]
+fn a_path_resolves_one_node_with_or_without_data() {
+    let short = schema_json(&["post", "--path", "public_metrics"]);
+    let long = schema_json(&["post", "--path", "data.public_metrics"]);
+    assert_eq!(short, long);
+    assert!(
+        schema_json(&["post", "--path", "data"])["properties"]["text"].is_object(),
+        "`--path data` is the data itself"
+    );
+    assert!(short["properties"]["like_count"].is_object());
+    assert!(
+        schema_json(&["search", "--path", "entities"])["description"].is_string(),
+        "a path steps through the array of posts"
+    );
+    assert_eq!(
+        schema_json(&["--common", "--path", "includes.users"])["properties"]["username"]["type"],
+        "string"
+    );
+}
+
+#[test]
+fn a_path_that_names_no_property_carries_a_template_that_works() {
+    let output = common::xr()
+        .args([
+            "--output",
+            "json",
+            "schema",
+            "post",
+            "--path",
+            "public_metrics.nope",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(envelope["reason"], "invalid-args");
+    assert_eq!(envelope["path"], "public_metrics.nope");
+    assert!(
+        envelope["known_properties"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("like_count"))
+    );
+    assert_eq!(envelope["next_step"]["action"], "fix-input");
+    let template = envelope["next_step"]["template"].as_str().unwrap();
+    assert_eq!(template, "xr schema post --path public_metrics.<property>");
+
+    let filled = template.replace("<property>", "like_count");
+    let words: Vec<&str> = filled.split_whitespace().skip(1).collect();
+    assert!(common::xr().args(&words).output().unwrap().status.success());
+
+    let output = common::xr()
+        .args([
+            "--output",
+            "json",
+            "schema",
+            "post",
+            "--path",
+            "text.length",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(envelope["known_properties"], serde_json::json!([]));
+}
+
+#[rstest]
+#[case(&["post", "--common"])]
+#[case(&["--full"])]
+#[case(&["--list", "--all"])]
+#[case(&["--envelope", "--path", "x"])]
+#[case(&["post", "--full", "--path", "x"])]
+fn scopes_that_cannot_combine_are_refused_by_clap(#[case] args: &[&str]) {
+    let output = common::xr()
+        .args(["--output", "json", "schema"])
+        .args(args)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2), "xr schema {args:?}");
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(envelope["reason"], "invalid-args");
 }
 
 #[test]
@@ -221,24 +418,14 @@ fn schema_all_emits_one_schema_per_registered_command() {
          Cause: print_all_schemas in {RUN_SOURCE} emits a key that is not in SCHEMA_ENTRIES.\n\
          Fix: add the command's row to SCHEMA_ENTRIES or drop it from `--all`."
     );
-    // Each value should be a valid schema object — either an object schema
-    // with `properties` or an array schema with `items`.
-    for (cmd, schema) in obj {
-        let shape_ok = schema.get("properties").is_some() || schema.get("items").is_some();
-        assert!(shape_ok, "Schema for '{cmd}' missing properties or items");
+    // Each value is that command's default view, labelled with its words.
+    for (cmd, view) in obj {
+        assert_eq!(view["command"], cmd.as_str(), "the view of {cmd} names it");
+        assert!(
+            view["data_cardinality"].is_string(),
+            "the view of {cmd} says whether data is an array"
+        );
     }
-}
-
-#[test]
-fn schema_all_takes_precedence_over_list() {
-    // When both --all and --list are provided, --all takes precedence
-    let output = common::xr()
-        .args(["schema", "--all", "--list"])
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    // Should be JSON (--all), not plain text (--list)
-    let _: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -378,7 +565,7 @@ fn committed_response_schemas_match_runtime() {
     for record in list_records() {
         let command = record["command"].as_str().expect("a command");
         let file = record["file"].as_str().expect("a file");
-        let mut args = vec!["schema", "--output", "json", "--"];
+        let mut args = vec!["schema", "--full", "--output", "json", "--"];
         args.extend(command.split_whitespace());
         let runtime = common::xr().args(&args).output().unwrap();
         assert!(
@@ -441,11 +628,15 @@ fn every_registry_row_derives_its_own_file() {
 #[test]
 fn schema_commands_sharing_type_produce_identical_output() {
     // post, reply, quote, read should all return the same schema
-    let post = common::xr().args(["schema", "post"]).output().unwrap();
-    let reply = common::xr().args(["schema", "reply"]).output().unwrap();
+    let mut post = schema_json(&["post"]);
+    let mut reply = schema_json(&["reply"]);
+    assert_eq!(post["command"], "post");
+    assert_eq!(reply["command"], "reply");
+    post.as_object_mut().unwrap().remove("command");
+    reply.as_object_mut().unwrap().remove("command");
     assert_eq!(
-        post.stdout, reply.stdout,
-        "post and reply should share the same schema"
+        post, reply,
+        "post and reply share one view apart from the command"
     );
 }
 
@@ -587,7 +778,7 @@ fn schema_refusal(args: &[&str]) -> (Option<i32>, serde_json::Value) {
 #[case(&["search-users"], "search-users")]
 fn a_command_is_named_by_its_words(#[case] words: &[&str], #[case] file: &str) {
     let output = common::xr()
-        .args(["schema", "--output", "json"])
+        .args(["schema", "--full", "--output", "json"])
         .args(words)
         .output()
         .unwrap();

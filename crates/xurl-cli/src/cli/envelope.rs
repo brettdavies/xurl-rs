@@ -218,7 +218,9 @@ pub struct ErrorBody {
     /// `listen` again on a free port, under `address-in-use`, and two under
     /// `invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved
     /// after the command word it came before, and the `xr schema`
-    /// invocation that works for an old name or a scope word.
+    /// invocation that works for an old name or a scope word. One carries a
+    /// template: the `xr schema --path` invocation with the segment that
+    /// named nothing left as `<property>`, under `invalid-args`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.
@@ -303,6 +305,12 @@ pub struct ErrorBody {
     /// Schema name a `validate` invocation named.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub schema: Option<String>,
+    /// Dot path an `xr schema --path` invocation named.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Property names at the last node an `xr schema --path` resolved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub known_properties: Option<Vec<String>>,
     /// Schema names `validate` accepts.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub known_schemas: Option<Vec<String>>,

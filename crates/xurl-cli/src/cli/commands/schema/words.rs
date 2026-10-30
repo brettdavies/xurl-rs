@@ -52,6 +52,17 @@ pub enum Refusal {
     },
     /// A bare word spelled like one of `xr schema`'s scope flags.
     ScopeWord(String),
+    /// A `--path` segment that names no property.
+    PathMiss {
+        /// The dot path as given.
+        path: String,
+        /// The segment that named nothing.
+        segment: String,
+        /// The property names where it was looked for, sorted.
+        known: Vec<String>,
+        /// The invocation with the segment left as `<property>`.
+        template: String,
+    },
     /// Anything else, refused as a value: no typed response, no arguments.
     Invalid(Error),
 }

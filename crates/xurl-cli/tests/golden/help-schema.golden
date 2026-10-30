@@ -1,7 +1,7 @@
 args: ["schema", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7363
+stdout_len: 8083
 stderr_len: 0
 --- stdout ---
 Show JSON Schema for a command's response type
@@ -13,6 +13,15 @@ Arguments:
           The command's words, as `xr help` takes them (e.g. `post`, `webhooks subscriptions count`)
 
 Options:
+      --full
+          Print the command's complete standalone schema, as committed under `schema/responses/`
+
+      --common
+          Print the API response wrapper every typed command shares, with its shared definitions
+
+      --path <DOT_PATH>
+          Print the node at a dot path into the command's `data`, or into the wrapper with `--common`
+
       --list
           List all commands and their response types
 
@@ -165,6 +174,13 @@ Examples:
   Then filter that command's output by the fields it names:
     xr schema search
     xr search "from:jack" --output json | jaq -r '.data[].text'
+  One field, by a dot path into data (through arrays and nullable values):
+    xr schema post --path public_metrics
+  The complete schema, wrapper and all, as committed under schema/responses/:
+    xr schema post --full --output json
+  The wrapper every typed command shares (includes, meta, errors):
+    xr schema --common
+    xr schema --common --path includes.users
   List every command with a schema (text, or one record per command):
     xr schema --list
     xr schema --list --output json

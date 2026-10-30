@@ -33,7 +33,7 @@ mkdir -p "$out"
     command="${row[$command_col]}"
     file="${row[$file_col]}"
     read -r -a words <<<"$command"
-    "$XR" schema --output json "${words[@]}" >"$out/$file"
+    "$XR" schema --full --output json "${words[@]}" >"$out/$file"
     echo "Generated: $out/$file"
   done
 }

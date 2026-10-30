@@ -293,13 +293,22 @@ xr examples                                    # Curated invocation examples
 ### Schema Discovery
 
 ```bash
-xr schema post                                 # JSON Schema for post response
+xr schema post                                 # post's data, every reference resolved in place
 xr schema webhooks subscriptions count         # a command's schema, named by the words you run it with
+xr schema post --path public_metrics           # one node of data, through arrays and nullable values
+xr schema post --full                          # the complete schema, as committed under schema/responses/
+xr schema --common                             # the wrapper every typed command shares: includes, meta, errors
 xr schema --list                               # All commands and response types
 xr schema --list --output json                 # one record per command: command, type, file
-xr schema --all                                # All schemas as one JSON document
+xr schema --all                                # every command's default view in one JSON document
 xr schema --envelope                           # the output envelope every command prints
 ```
+
+By default `xr schema <command>` prints the schema of the command's `data` with every `$ref` resolved, labelled with
+`command`, `data_cardinality` (`object`, or `array` when the body describes one element of a list), `data_type`,
+`common_schema` (`xr schema --common`) when the command answers with the API wrapper, and `data_nullable` when `data`
+may be null. A `--path` segment that names no property is refused with `invalid-args`, `path`, `known_properties`, and a
+`fix-input` step whose `template` ends in `<property>`.
 
 `xr schema` names a command by the same words `xr` and `xr help` take. A word that names no command is refused the way
 `xr help` refuses it (`unknown-command`). A hyphen-joined name from before, such as `webhooks-subscriptions-count`, and
@@ -309,10 +318,10 @@ Generate typed clients from schema output:
 
 ```bash
 # TypeScript
-xr schema post | bunx json-schema-to-typescript > types.ts
+xr schema post --full | bunx json-schema-to-typescript > types.ts
 
 # Python
-xr schema post | uvx --from datamodel-code-generator datamodel-codegen --output models.py
+xr schema post --full | uvx --from datamodel-code-generator datamodel-codegen --output models.py
 ```
 
 ### Raw API Access
@@ -691,7 +700,7 @@ as `XDG_CONFIG_HOME` for OpenCode) relocates its part of the path. Codex's desti
 xr schema --list                               # Discover all commands + response types
 xr schema post                                 # Get JSON Schema for any command's output
 xr schema webhooks subscriptions count         # Same, for a command of several words
-xr schema --all                                # All schemas for MCP tool definitions
+xr schema --all                                # Every command's default view; schema/responses/ holds the full ones
 ```
 
 ### Machine-Readable Output
@@ -881,12 +890,13 @@ fill, or, under `confirm`, the invocation that destroys once it runs. One whose 
 carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
 and `inspect-store` when a store command is what failed. Three `fix-input` steps carry an invocation: `listen` again on
 a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
-before, and the `xr schema` invocation that works for an old name or a scope word, both under `invalid-args`;
-and, under `auth-required`, a template that stores the signing secret `webhooks listen`
-lacks. A `validation` refusal names the input rule it broke in `rule`, the validator's kebab-case code
-(`invalid-username`, `no-list-changes`, ...), with the sentence for it in `message`, and `value` carries the offending
-input when the rule names one: an app name, a redirect URI, or a header's position among the `-H` headers. Branch on
-`rule`, not on the sentence. Text mode prints the same advice as prose instead; the two need not match word for word.
+before, and the `xr schema` invocation that works for an old name or a scope word, both under `invalid-args`; the
+`xr schema --path` invocation with the segment that named nothing left as `<property>`, a template, also under
+`invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen` lacks. A
+`validation` refusal names the input rule it broke in `rule`, the validator's kebab-case code (`invalid-username`,
+`no-list-changes`, ...), with the sentence for it in `message`, and `value` carries the offending input when the rule
+names one: an app name, a redirect URI, or a header's position among the `-H` headers. Branch on `rule`, not on the
+sentence. Text mode prints the same advice as prose instead; the two need not match word for word.
 
 ### Which Errors Carry a Step
 
@@ -899,7 +909,7 @@ input when the rule names one: an app name, a redirect URI, or a header's positi
 | `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
 | `processing-timeout`         | `resume-wait`                                                                                                                                    |
-| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, or for an old `xr schema` name                   |
+| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
 | `unknown-command`            | `show-help`                                                                                                                                      |
 | `invalid-method`             | `show-help`                                                                                                                                      |
 | `invalid-url`                | `show-help`                                                                                                                                      |

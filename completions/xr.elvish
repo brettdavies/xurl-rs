@@ -6258,6 +6258,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;skill;help;help'= {
         }
         &'xr;schema'= {
+            cand --path 'Print the node at a dot path into the command''s `data`, or into the wrapper with `--common`'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -6275,6 +6276,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
             cand --page 'Documented alias for `--cursor`'
             cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --full 'Print the command''s complete standalone schema, as committed under `schema/responses/`'
+            cand --common 'Print the API response wrapper every typed command shares, with its shared definitions'
             cand --list 'List all commands and their response types'
             cand --all 'Output all schemas as a single JSON document'
             cand --envelope 'Output the canonical agent-native output envelope schema'
