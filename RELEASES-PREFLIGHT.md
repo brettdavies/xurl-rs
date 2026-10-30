@@ -150,7 +150,9 @@ library re-exports in `crates/xdk/src/lib.rs`.
 
 - [ ] `xr help` lists the same shortcut commands as the previous release plus any net additions / removals. Diff
   `$LAST_TAG`'s `xr help` against `dev`'s and confirm every removed or renamed command has a `!:` commit and a `###
-  Breaking changes` bullet in the release changelog: a removal or rename is a major (RELEASES.md § Versioning).
+  Breaking changes` bullet in the release changelog: a removal or rename is a major (RELEASES.md § Versioning). A
+  break the maintainer takes into a minor has an `### Added` bullet instead, and a row in the release's guide under
+  `docs/migrating/`.
 - [ ] `xr schema` (typed response introspection) still emits a parseable JSON shape; downstream agents feature-detect
   from this. Diff the shape against `$LAST_TAG`'s output and surface any field rename / removal as a breaking row.
 - [ ] Public library surface (`xdk::*`, the `xdk-rs` package): `cargo semver-checks check-release --package xdk-rs

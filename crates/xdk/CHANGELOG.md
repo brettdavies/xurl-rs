@@ -2,6 +2,61 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-10-30
+
+### Breaking changes
+
+- Change the stream-source shortcuts to the shape X now answers with. `get_stream_sources` returns `ApiResponse<Vec<StreamSource>>`, and `create_stream_source`, `get_stream_source`, and `rename_stream_source` return `ApiResponse<StreamSource>`; `StreamSources` and `StreamSourceResult` are removed. `StreamSource` drops `rtmp_region`, `rtmp_stream_key`, `creation_time`, and `owner_id` for `region`, `stream_key`, and `created_at_ms`, and `StreamSourceDeleted` gains `deleted`. by @brettdavies in [#409](https://github.com/brettdavies/xurl-rs/pull/409)
+
+  ```rust
+  // Before
+  let list = client.get_stream_sources().send().await?;
+  for source in &list.data.sources {
+      println!("{} {:?}", source.id, source.rtmp_stream_key);
+  }
+
+  // After
+  let list = client.get_stream_sources().send().await?;
+  for source in &list.data {
+      println!("{} {:?}", source.id, source.stream_key);
+  }
+  ```
+- Change `Error::Validation(String)` to `Error::Validation { rule: &'static str, value: Option<String> }`: the kebab-case code of the input rule that failed and the offending input, with no prose. `Error::validation` takes `&'static str`, and `Display` is the rule with the value after a colon. by @brettdavies in [#450](https://github.com/brettdavies/xurl-rs/pull/450)
+
+  ```rust
+  // 0.3.0
+  match error {
+      Error::Validation(message) => eprintln!("{message}"),
+      other => eprintln!("{other}"),
+  }
+
+  // 0.4.0
+  match error {
+      Error::Validation { rule, value } => eprintln!("{rule}: {value:?}"),
+      other => eprintln!("{other}"),
+  }
+  ```
+
+### Added
+
+- Add `get_chat_mutes`, `add_chat_mute`, and `remove_chat_mute` on `Client`, with the `ChatMute` response type. by @brettdavies in [#409](https://github.com/brettdavies/xurl-rs/pull/409)
+- Add `end_broadcast` and `delete_broadcast` on `Client`, with the `BroadcastEnded` response type, and `get_region`, which returns the bare `IngestRegion`.
+- Add `Error::validation_of(rule, value)`, for a refusal that names its offending input. by @brettdavies in [#450](https://github.com/brettdavies/xurl-rs/pull/450)
+- Add `Error::MediaProcessingFailed { media_id, detail }` (`kind()` `invalid-request`) for a job X refused after processing, and `Error::AccountNotFound { account }` (`not-found`, exit 4) for a handle a lookup found no account for.
+- Add `auth::callback::wait_for_callback_on` and `auth::oauth2::run_oauth2_flow_on`, which serve the OAuth2 callback on a listener the caller has already bound instead of binding the redirect URI's port: for a socket bound before privileges drop, handed over by a service manager, or bound by a test. A listener on a port other than the redirect URI's is refused before anything is served. by @brettdavies in [#455](https://github.com/brettdavies/xurl-rs/pull/455)
+
+### Changed
+
+- Change the vendored X API spec to upstream 2.173. `API_SPEC_SHA256` and `API_SPEC_DATE` follow. by @brettdavies in [#409](https://github.com/brettdavies/xurl-rs/pull/409)
+- Change a 200 with `errors` and no `data` from `Validation` to `Error::Api { status: 200, .. }`, classified by X's problem `type`: `not-found`, `forbidden`, or `invalid-request`. A lookup by handle (`lookup_user`, `lookup_users_by_username`) that X answers this way with `resource-not-found` is `Error::AccountNotFound` naming the first handle. by @brettdavies in [#450](https://github.com/brettdavies/xurl-rs/pull/450)
+- Change `Receiver::bind` and `SignedSample::new` with no secret to rule `no-signing-secret`, and the receiver's CRC answer with no secret, which `bind` already refuses, to `Internal`.
+
+### Fixed
+
+- Fix the `io` error `read_checkpoint` returns for a file that is not a checkpoint to name the shape a checkpoint holds, `{"last_event_at": <Unix seconds>}`. by @brettdavies in [#443](https://github.com/brettdavies/xurl-rs/pull/443)
+
+**Full Changelog**: [xdk-rs-v0.3.0...xdk-rs-v0.4.0](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.3.0...xdk-rs-v0.4.0)
+
 ## [0.3.0] - 2026-10-27
 
 ### Breaking changes
