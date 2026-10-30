@@ -16,17 +16,16 @@ execution: code
 ## Goal Capsule
 
 - **Objective:** A caller who learned one of `xr`'s scheduled, broadcast, or call subtrees can type the matching command
-  in its sibling on the first try, and a script or agent that still types a retired name is told the new one.
-- **Means:** rename the three verbs that break the sibling pattern, leave `history` as it is, and answer each retired
-  word with the name that replaced it through the existing `unknown-command` envelope (KTD1, KTD2).
-- **Authority:** R-IDs win on behavior and KTDs on mechanism; a unit overrides neither. Every command and flag name, the
-  retired-name behavior, and the version call are Brett's (AGENTS.md § "Command grammar"); this plan records
-  recommendations, and the Decision Record names what is still his to answer.
-- **Execution profile:** inline in one session, no subagents or worktrees. A stack of three PRs, one per renamed spot,
-  the bottom PR targeting `dev` (KTD5). Brett merges.
+  in its sibling on the first try, and a script or agent that still types a renamed command is told the new one.
+- **Means:** rename the two verbs that break the sibling pattern, drop the command that starts a scheduled broadcast,
+  leave `history` as it is, and answer each renamed word with its replacement through the existing `unknown-command`
+  envelope (KTD1, KTD2, KTD6).
+- **Authority:** R-IDs win on behavior and KTDs on mechanism; a unit overrides neither. Brett set the names, the
+  retired-name behavior, and the version on 2026-10-29 (Decision Record D1 to D3).
+- **Execution profile:** inline in one session, no subagents or worktrees. A stack of two PRs, the bottom one targeting
+  `dev` (KTD5). Brett merges.
 - **Stop conditions:** a change would touch a public item of `xdk-rs`; a change would add a `reason` or a
-  `next_step.action`; a retired word would run a request instead of refusing; Brett's answer drops or renames a spot
-  differently than the units assume (re-plan that unit, keep the others).
+  `next_step.action`; a retired word would run a request instead of refusing.
 
 ---
 
@@ -34,11 +33,12 @@ execution: code
 
 ### Summary
 
-Three nested commands take the verb their siblings use: `xr broadcasts scheduled remove` becomes `cancel`,
-`xr broadcasts sources rename <ID> <NAME>` becomes `update <ID> --name <NAME>`, and `xr broadcasts scheduled live`
-becomes `start`. `xr conversations history` and `xr broadcasts chat history` keep their names. A retired word refuses at
+`xr broadcasts scheduled remove` becomes `cancel`, the verb `xr calls scheduled` uses, and
+`xr broadcasts sources rename <ID> <NAME>` becomes `update <ID> --name <NAME>`. `xr broadcasts scheduled live` goes,
+with the `--manual-publish` flag on `add` and `update` that made it necessary, so every scheduled broadcast goes live at
+its start time. `xr conversations history` and `xr broadcasts chat history` keep their names. A renamed word refuses at
 exit 2 as an unknown command whose `suggestion` and help pointer name its replacement. `AGENTS.md` gains the verb rule
-so the next family follows it.
+so the next family follows it. The release is `xr` 4.5.0.
 
 ### Problem Frame
 
@@ -83,21 +83,22 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
 - R2. `xr broadcasts sources` changes a source's label with the same verb as every other subtree that changes a resource
   (`lists update`, `broadcasts scheduled update`, `calls scheduled update`, `auth apps update`); its argument shape is
   D1's.
-- R3. Every action word under `xr broadcasts scheduled` is a verb; the one that starts a scheduled broadcast now names
-  that action.
+- R3. `xr` does not start a scheduled broadcast: `xr broadcasts scheduled live` and `--manual-publish` on `add` and
+  `update` are gone, and every schedule `xr` creates goes live at its start time.
 - R4. `xr conversations history` and `xr broadcasts chat history` keep their names.
 
 **Retired names**
 
-- R5. A retired word, typed in any form that reaches the unknown-command path (the invocation, the same with `--help`,
+- R5. A renamed word, typed in any form that reaches the unknown-command path (the invocation, the same with `--help`,
   `xr help <family> <word>`, and under `--dry-run`), exits 2 with reason `unknown-command`, its `suggestion` the
-  replacing word, and a `next_step` of `show-help` for the replacing command's help. It never sends a request.
+  replacing word, and a `next_step` of `show-help` for the replacing command's help. `live` exits 2 as any unknown
+  command does, with no suggestion and the family's help as its step. Neither sends a request.
 - R6. No retired word runs as an alias, appears in `--help`, completions, the schema registry, or the examples page.
 
 **Contract and records**
 
 - R7. The renamed commands keep their inputs, responses, exit codes, confirmation behavior, and `--dry-run` answers
-  apart from the command name, and the `xdk-rs` public API does not change.
+  apart from the command name and spot 2's `--name`, and the `xdk-rs` public API does not change.
 - R8. The release notes name each rename and its replacement; `AGENTS.md` § "Command grammar" states the verb rule the
   renames follow.
 - R9. Every document that defines `suggestion` says it also names the command that replaced a retired word: the field's
@@ -105,16 +106,22 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
 
 ### Key Decisions
 
-- **`history` stays.** Governs R4. Recommended from the evidence in the Problem Frame; Brett may override (D1).
-- **Old names refuse with the new name; they never alias.** Governs R5, R6. Recommended, pending Brett (Decision Record
-  D2).
-- **The names below are recommendations.** Governs R1, R2, R3. Spot 1 `cancel`, spot 2 `update --name`, spot 4 `start`,
-  pending Brett (Decision Record D1).
+- **Spot 1 is `cancel` on both.** Governs R1. `broadcasts scheduled remove` moves; Brett, 2026-10-29 (D1).
+- **Spot 2 is `update <ID> --name <NAME>`.** Governs R2. Brett, 2026-10-29 (D1).
+- **xr does not start a broadcast.** Governs R3. The encoder supplies the video and X publishes at the start time;
+  Brett, 2026-10-29 (D1).
+- **`history` stays.** Governs R4. Brett, 2026-10-29, on the evidence in the Problem Frame (D1).
+- **Renamed words refuse naming the replacement; nothing aliases.** Governs R5, R6. Brett, 2026-10-29 (D2).
 
 ### Scope Boundaries
 
 - The library's shortcut names stay as X names the operations (`delete_scheduled_broadcast`, `rename_stream_source`,
   `go_live`, `cancel_scheduled_call`). Renaming them would break `xdk-rs` for no caller benefit (R7).
+- The library keeps `go_live` and the request structs keep `manual_publish`: an embedder that drives the stream can
+  still start a manual schedule. Because the operation keeps a shortcut, it gets no `endpoint-decisions.json` entry
+  (`crates/xdk/tests/endpoint_decisions.rs` fails a decision for an operation with a shortcut), and raw mode still
+  reaches `POST /2/broadcasts/scheduled/{id}/live`.
+- `ScheduledBroadcast` keeps reporting `manual_publish`, which a schedule made by 4.4.0 or by X's own tools can carry.
 - The response types and their keys stay: `xr broadcasts scheduled cancel` still answers `{"deleted": true}`, since the
   key reports what X did.
 - `.anc.toml` does not change. anc's `p6-may-standard-names` audit reads only the root `--help` (`audit_standard_names`
@@ -123,7 +130,7 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
 - The validate aliases do not change. They name response types (`delete`, `stream-source`, `scheduled-broadcast`,
   `scheduled-call-cancelled`), not commands.
 - Considered and not built: a deprecation alias that still runs the old name and warns. The issue asks for no aliases,
-  and `xr` has no deprecation channel to carry the warning; a Brett choice of D2's alias option would change this.
+  `xr` has no deprecation channel to carry the warning, and Brett chose refusal (D2).
 - Considered and not built: an expiry for retired-name rows. A row is one line and costs nothing to keep; a later rename
   that collides with a row fails the guard test (U1).
 - Considered and not built: retired-name handling for `xr schema <slug>`. Its unknown-name error already lists every
@@ -142,8 +149,8 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
   `crates/xurl-cli/tests/golden/schema-list.golden`. Proposed order: this stack merges first and #424 rekeys the names
   it finds; if #424 is ready first, this stack rebases and edits three space-separated keys instead. Either way the
   conflict is three lines plus a re-bless.
-- **Issues #415 and #425 (`issues-help-accuracy`)** re-bless most `help-*.golden` fixtures, including the seven this
-  plan moves or replaces. The PR that lands second re-blesses only the fixtures its own change moves.
+- **Issues #415 and #425 (`issues-help-accuracy`)** re-bless most `help-*.golden` fixtures, including the eight this
+  plan moves, replaces, or deletes. The PR that lands second re-blesses only the fixtures its own change moves.
 - **Issues #419, #420, #422 (`issues-dry-run-envelopes`)** touch dry-run envelopes and `calls scheduled` user-id input.
   No overlap with the renamed arms: R4 keeps `conversations history`, whose dry-run fixture
   (`dry-run-invalid-conversation-id.golden`) stays, and spot 1 renames the broadcast command, not
@@ -155,77 +162,45 @@ The `rename` row is the hazard: a plain rename steers the caller to the destruct
 
 ## Decision Record
 
-Each decision lists the options, the evidence, and the recommendation. D1 to D3 are Brett's and go to him as one brief
-before any build; D4 to D7 are settled from evidence.
+Each decision records the choice and the evidence it rested on. Brett answered D1 to D3 on 2026-10-29; D4 to D7 are
+settled from evidence.
 
 ### D1. The names (Brett)
 
-**Spot 1, cancelling a scheduled event.** Options:
-
-- `cancel` on both, renaming `broadcasts scheduled remove`. **Recommended.** Moves only the command whose own help,
-  about line, and prompt already say "cancel". Keeps the domain verb where X's operation is a cancellation (invitees
-  notified, occurrences scoped, `cancelled` reported). `cancel` is not in anc's standard list, which does not matter two
-  levels down.
-- `remove` on both, renaming `calls scheduled cancel`. Matches the fourteen `remove` verbs in the other subtrees and
-  anc's list. But X keeps a cancelled call as cancelled and answers a second cancel with success, so `remove`
-  misdescribes it, and `remove --scope this --occurrence <T>` reads as deleting one occurrence.
-- Neither. Leaves the issue's agent-inference miss: today `xr broadcasts scheduled cancel` gets no suggestion at all.
-
-**Spot 2, changing a source's label.** Options:
-
-- `update <ID> --name <NAME>`, with `--name` required. **Recommended.** X's operation is `updateSource`; every other
-  change verb is `update` with the changed fields as flags (`lists update --name`, `calls scheduled update --title`);
-  `broadcasts scheduled update` already requires flags (`--start`, `--end`). Survives X adding a field to
-  `UpdateSourceRequest`.
-- `update <ID> <NAME>`. Same verb and the same argument shape, so a script that changes only the word keeps working. No
-  other `update` takes a positional value. With option (a), a script that changes only the word fails once more: the
-  same shape on `lists update` answers `unexpected argument 'Rust' found` (`invalid-args`, exit 2) with its help page as
-  the step, observed for `xr lists update 123 Rust`.
-- Keep `rename`. X's request takes only `name` (required, `additionalProperties: false`) and its summary says "Rename a
-  stream source", so the word is exact; it stays the one `rename` in the tree.
-
-**Spot 4, starting a scheduled broadcast now.** Options:
-
-- `start`. **Recommended.** Names the action as `xr`'s help ("Start a scheduled broadcast now"), about line ("start them
-  early"), and prompt ("Start scheduled broadcast {id} now?") already do; anc counts it standard; `conversations start`
-  is precedent. `add` and `update` take a `--start <TIME>` flag in the same subtree, which reads as "start at" beside
-  "start now".
-- `publish`. X's own description of the operation is "Publishes a schedule that was created or updated with
-  `manual_publish: true`", the flag `--manual-publish` already names the mode it pairs with, `articles publish` is the
-  same draft-to-public move, and anc counts it standard. Less plain for a person than "start".
-- `go-live`, X's operation id (`goLiveScheduledBroadcast`). No other `xr` verb is a hyphenated phrase.
-
-**Spot 3, `history`.** No rename (Key Decisions). Brett may still override; the evidence is in the Problem Frame.
-
-**Across spots 1, 2, and 4, a no-break alternative.** Keep every name and add hint rows to the same table, mapping a
-sibling's verb to this family's: `cancel` to `remove` under `broadcasts scheduled`, `start` to `live` there, and
-`update` to `rename` under `broadcasts sources`. Nothing breaks and no major is needed, and an agent's first guess from
-a sibling gets a one-step pointer. The tree stays inconsistent for a person reading `--help`, and the issue asks for the
-alignment itself.
+- **Spot 1: `cancel` on both, renaming `broadcasts scheduled remove`.** It moves only the command whose own help, about
+  line, and prompt already say "cancel", and keeps the domain verb where X's operation is a cancellation (invitees
+  notified, occurrences scoped, `cancelled` reported). Rejected: `remove` on both, which misdescribes a call X keeps as
+  cancelled; no change, which leaves `xr broadcasts scheduled cancel` with no suggestion at all.
+- **Spot 2: `update <ID> --name <NAME>`, with `--name` required.** X's operation is `updateSource`, and every other
+  change verb is `update` with the changed fields as flags (`lists update --name`; `broadcasts scheduled update` already
+  requires `--start` and `--end`). Accepted cost: a script that swaps only the word gets one more refusal, as
+  `xr lists update 123 Rust` answers `unexpected argument 'Rust' found`, before the help shows `--name`. Rejected:
+  `update <ID> <NAME>` and keeping `rename`.
+- **Spot 4: drop `broadcasts scheduled live` and `--manual-publish`.** The encoder (OBS, ffmpeg, a hardware box) sends
+  the video to the stream source; `POST /2/broadcasts/scheduled/{id}/live` only publishes a schedule made with
+  `manual_publish: true` ("Without that flag the coordinator auto-publishes at start and this call is rejected"). Going
+  live belongs to the app that drives the broadcast, as joining a call does under the `calls-live` not-supported entry
+  in `endpoint-decisions.json`. The flag goes with the command, or `xr` would create schedules it cannot start.
+  Rejected: renaming to `go-live`, `start`, or `publish`, and keeping `live`.
+- **Spot 3: `history` stays on both.** The evidence is in the Problem Frame.
 
 ### D2. What a retired name does (Brett)
 
-- **Refuses with the new name. Recommended.** The `unknown-command` envelope as today, with `suggestion` the new word
-  and `next_step.command` its help (KTD1). Additive: no new `reason`, `action`, or key. Without it the `rename` caller
-  is steered to `remove` (Problem Frame table).
-- Disappears. The plain clap path: family help for `remove` and `live`, `Did you mean 'remove'?` for `rename`.
-- Runs as a hidden, deprecated alias until a later major. The route `RELEASES.md` § "X API changes" describes for a
-  contract rename, but the issue asks for no aliases and `xr` has no deprecation warning to carry.
+A renamed word refuses with the `unknown-command` envelope as today, its `suggestion` the new word and
+`next_step.command` its help (KTD1). No new `reason`, `action`, or key. `live` has no replacement and takes the plain
+unknown-command answer: exit 2, no suggestion, `xr broadcasts scheduled --help` as its step. `--manual-publish` takes
+clap's `unexpected argument` refusal (`invalid-args`). Rejected: letting the old names disappear, which steers the
+`rename` caller to `remove`, and a hidden deprecated alias, which the issue rules out.
 
 ### D3. The version call (Brett)
 
-`RELEASES.md` § "The three bumps": "Major: anything in the contract removed, renamed, or retyped"; command names are
-contract (§ "What the contract is").
-
-- **`xr` 5.0.0, batched with the schema-ergonomics breaks. Recommended.** Issue #424 drops `xr schema`'s hyphen-slug
-  argument and #426 drops the `xr schema envelope` positional and changes what `xr schema <command>` prints, both
-  contract breaks, so one major can carry all three, which is the "major that batches removals" `RELEASES.md` describes.
-  Each PR files its entry under `### Breaking changes`.
-- `xr` 4.5.0 on blast radius: the renamed commands are hours old and no first-party consumer names them. Departs from
-  the written rule. The required check `Surface growth needs a minor section` (`scripts/check-surface-bump.sh`) fails a
-  PR that adds a command without a bullet under `### Added`, `### Deprecated`, or `### Breaking changes`, so each PR
-  would file the new name under `### Added` and its body would state the minor call.
-- `xdk-rs`: no release; nothing in the library changes (R7).
+`xr` 4.5.0, a minor, on blast radius: the changed commands first shipped in 4.4.0 on 2026-10-28, and no first-party
+consumer names them. This departs from `RELEASES.md` § "The three bumps" ("Major: anything in the contract removed,
+renamed, or retyped"), so each PR body states the minor call and that reason. Each PR files its entry under `### Added`:
+the required check `Surface growth needs a minor section` (`scripts/check-surface-bump.sh`) fails a new command without
+a bullet under `### Added`, `### Deprecated`, or `### Breaking changes`, and the PR template keeps a contract change out
+of `### Changed`. The removal of `live` and `--manual-publish` rides in the `cancel` bullet, in the same PR. `xdk-rs`
+gets no release (R7).
 
 ### D4. Retired names reuse `unknown-command` (settled)
 
@@ -235,7 +210,7 @@ existing action where one fits"), `RELEASES.md` § "Closed sets" (a new member i
 and
 `docs/solutions/design-patterns/unknown-command-needs-two-detectors-one-renderer-and-the-scorer-that-saw-the-word.md`
 (one renderer for every unknown-command path). The text names the rename instead of guessing at a typo:
-`Error: unknown command 'live': 'start' replaced it. Try 'xr broadcasts scheduled start --help'.`, and the JSON
+`Error: unknown command 'remove': 'cancel' replaced it. Try 'xr broadcasts scheduled cancel --help'.`, and the JSON
 `message` carries the same sentence. The renderer stays one function and learns which source gave the suggestion.
 Suggestion wording is not contract (`RELEASES.md` § "What the contract is"); `suggestion` keeps its key and type, and
 its description gains the replacement case (R9).
@@ -279,11 +254,14 @@ records below list them.
   family is gone, its replacing word is not a subcommand there, or its retired word is one again. `recipe_guard.rs`
   counts any test file containing `Cause:` as a recipe walk (`walk_files`), so the guard lives in
   `crates/xurl-cli/tests/unknown_command_tests.rs`, which has none, and its message carries none either.
-- KTD5. **One PR per spot, three in all.** Each rename is separable, so Brett can still hold one back after answering
-  D1; each PR carries its own retired-verb row, fixtures, schema file, completions, and README lines. U1 introduces the
-  module with the first row. U4's grammar text is its own commit in U3's PR, since it describes the end state and a
-  fourth PR would add one more run of CI's jobs to the account's 20-job queue. The stack lands with
-  `gh stack merge --squash`, one atomic merge, so no restack re-runs CI.
+- KTD5. **Two PRs.** The bottom PR carries everything under `broadcasts scheduled`: U1's table and `cancel`, and U3's
+  removal, since the removal's changelog line rides in the `cancel` bullet (D3). The top PR carries U2's `update` and
+  U4's grammar text as separate commits; a third PR would add one more run of CI's jobs to the account's 20-job queue.
+  The stack lands with `gh stack merge --squash`, one atomic merge, so no restack re-runs CI.
+- KTD6. **`live` and `--manual-publish` go from the binary only.** The variant, its arm, its `family_help` verb, its
+  `SCHEMA_ENTRIES` string, its schema file, and its help fixture go; the two `manual_publish` args leave `add` and
+  `update`, whose arms then pass no `manual_publish`, the value they pass today when the flag is absent. `live` gets no
+  table row (D2).
 
 ### High-Level Technical Design
 
@@ -291,22 +269,19 @@ How a retired word reaches the caller. Directional, not an implementation spec.
 
 ```mermaid
 flowchart TB
-  A["argv: xr broadcasts scheduled live 185..."] --> B["clap try_parse"]
-  B -->|InvalidSubcommand 'live'| C["failing_command: 'xr broadcasts scheduled'"]
+  A["argv: xr broadcasts scheduled remove 185..."] --> B["clap try_parse"]
+  B -->|InvalidSubcommand 'remove'| C["failing_command: 'xr broadcasts scheduled'"]
   C --> D{"retired_verbs lookup by family and word"}
-  D -->|row found| E["suggestion = 'start'"]
+  D -->|row found| E["suggestion = 'cancel'"]
   D -->|no row| F["suggestion_for_rejected: clap's score, then the help path"]
   E --> G["render_unknown_command"]
   F --> G
-  G --> H["exit 2, reason unknown-command, next_step show-help 'xr broadcasts scheduled start --help'"]
+  G --> H["exit 2, reason unknown-command, next_step show-help 'xr broadcasts scheduled cancel --help'"]
 ```
 
 ### Assumptions
 
-- The units below assume D1's recommended names and D2's refusal. A different D1 answer changes the words in a unit, not
-  its shape; D2 "disappears" drops KTD1, KTD4, and every row; D2 "alias" replaces U1's table with hidden clap aliases
-  plus a deprecation notice and needs its own plan.
-- D3 changes only each PR's changelog section and whether its title carries `!`.
+- Brett's answers of 2026-10-29 are final for this plan; a later change to a name re-plans that unit only.
 
 ---
 
@@ -316,7 +291,7 @@ flowchart TB
 
 - **Goal:** The two scheduled subtrees cancel with one verb, and `remove` under `broadcasts scheduled` names `cancel`.
 - **Requirements:** R1, R5, R6, R7, R9.
-- **Dependencies:** Brett's D1 to D3 answers.
+- **Dependencies:** none.
 - **Files:**
   - Create `crates/xurl-cli/src/cli/retired_verbs.rs`; modify `crates/xurl-cli/src/cli/mod.rs` (module declaration,
     `ScheduledBroadcastsCommands::Remove` to `Cancel`) and `crates/xurl-cli/src/cli/runner.rs` (lookup before
@@ -403,46 +378,48 @@ flowchart TB
     assertions.
 - **Verification:** the suites pass; `xr broadcasts sources --help` lists `update`; no `rename` remains in the tree.
 
-### U3. `broadcasts scheduled live` becomes `start`
+### U3. `xr` stops starting a scheduled broadcast
 
-- **Goal:** Every action under `broadcasts scheduled` is a verb, and `live` names `start`.
-- **Requirements:** R3, R5, R6, R7.
-- **Dependencies:** U1.
+- **Goal:** `broadcasts scheduled live` and `--manual-publish` are gone, and every schedule `xr` makes goes live at its
+  start time.
+- **Requirements:** R3, R5, R6.
+- **Dependencies:** U1; ships in U1's PR (KTD5).
 - **Files:**
-  - Modify `crates/xurl-cli/src/cli/mod.rs` (`ScheduledBroadcastsCommands::Live` to `Start`; the `--manual-publish` help
-    on `add` and `update` names `xr broadcasts scheduled start`), `crates/xurl-cli/src/cli/family_help.rs`
-    (`broadcasts_scheduled::LIVE` to `START`, its JSON caption, and `page()`),
-    `crates/xurl-cli/src/cli/commands/broadcast_scheduled.rs`, `crates/xurl-cli/src/cli/commands/schema.rs`,
-    `crates/xurl-cli/src/cli/retired_verbs.rs`.
-  - Rename `schema/responses/broadcasts-scheduled-live.schema.json` to `broadcasts-scheduled-start.schema.json`.
-  - Replace `help-broadcasts-scheduled-live.golden` with `help-broadcasts-scheduled-start.golden`; re-bless
-    `help-broadcasts-scheduled.golden`, `help-broadcasts-scheduled-add.golden`,
-    `help-broadcasts-scheduled-update.golden`, and `schema-list.golden`.
-  - Modify `crates/xurl-cli/tests/agentic_tests.rs`, `crates/xurl-cli/tests/broadcasts_family_tests.rs`,
+  - Modify `crates/xurl-cli/src/cli/mod.rs` (drop `ScheduledBroadcastsCommands::Live` and `manual_publish` on `Add` and
+    `Update`; the `Scheduled` about line drops "and start them early"), `crates/xurl-cli/src/cli/family_help.rs` (drop
+    `broadcasts_scheduled::LIVE`; `page()` shows another example in its place),
+    `crates/xurl-cli/src/cli/commands/broadcast_scheduled.rs` (drop the arm and the two `manual_publish` reads),
+    `crates/xurl-cli/src/cli/commands/schema.rs` (drop the `broadcasts-scheduled-live` string from its row).
+  - Delete `schema/responses/broadcasts-scheduled-live.schema.json` and
+    `crates/xurl-cli/tests/golden/help-broadcasts-scheduled-live.golden`; re-bless `help-broadcasts-scheduled.golden`,
+    `help-broadcasts-scheduled-add.golden`, `help-broadcasts-scheduled-update.golden`, `help-broadcasts.golden`, and
+    `schema-list.golden`.
+  - Modify `crates/xurl-cli/tests/agentic_tests.rs` (`CONFIRMED_COMMANDS`),
+    `crates/xurl-cli/tests/broadcasts_family_tests.rs` (the confirmed-verb loop and any `--manual-publish` case),
     `crates/xurl-cli/tests/unknown_command_tests.rs`; regenerate `completions/`; modify `crates/xurl-cli/README.md` §
     "Broadcasts".
-- **Approach:** The arm still calls `go_live` behind the same confirmation (D5, KTD2).
-- **Patterns to follow:** U1's arm and row.
+- **Approach:** KTD6. The library is untouched (D5).
+- **Patterns to follow:** any command removed from the tree leaves no help fixture, schema file, or registry string, as
+  the golden, schema, and completions walks require.
 - **Test scenarios:**
-  - `xr broadcasts scheduled start 1850000000000000001 --force --no-interactive` sends
-    `POST /2/broadcasts/scheduled/1850000000000000001/live`.
-  - Without `--force` under `--no-interactive` it exits 1 with `confirmation-required`.
-  - `xr --dry-run --output json broadcasts scheduled start 1850000000000000001` answers
-    `"command": "broadcasts-scheduled-start"`.
-  - `xr --output json broadcasts scheduled live 1850000000000000001` exits 2 with `suggestion` `start` and no request.
-  - `xr broadcasts scheduled add --help` describes `--manual-publish` with `xr broadcasts scheduled start`.
-  - Regression contract (R7): the existing `live` tests move to `start` with their assertions unchanged.
-- **Verification:** the suites pass; no `live` verb remains; the `--manual-publish` text names a command that exists.
+  - `xr --output json broadcasts scheduled live 1850000000000000001` exits 2 with reason `unknown-command`, `command`
+    `live`, no `suggestion`, `next_step.command` `xr broadcasts scheduled --help`, and the mock records no request.
+  - `xr broadcasts scheduled add --source S --start 2026-11-02T16:00:00Z --manual-publish` exits 2 with `invalid-args`
+    and sends nothing.
+  - `xr broadcasts scheduled add --source S --start 2026-11-02T16:00:00Z` sends a body with no `manual_publish` key, as
+    today.
+  - `xr broadcasts scheduled --help` lists `list`, `get`, `add`, `update`, and `cancel`, and nothing else.
+- **Verification:** the suites pass; no `live` verb or `--manual-publish` flag remains in the tree, the completions, or
+  the README.
 
 ### U4. The verb rule in `AGENTS.md`
 
 - **Goal:** The next command family picks its verbs by the rule these renames follow.
 - **Requirements:** R8.
-- **Dependencies:** U1, U2, U3 (the text describes their end state; adjust to Brett's D1). Ships as its own commit in
-  U3's PR (KTD5).
+- **Dependencies:** U1, U2, U3 (the text describes their end state). Ships as its own commit in U2's PR (KTD5).
 - **Files:** Modify `AGENTS.md` § "Command grammar: flags vs subcommands".
 - **Approach:** Add one bullet group stating present rules only:
-  1. An action is a verb; sibling subtrees name the same action with the same verb.
+  1. An action is a verb, and sibling subtrees name the same action with the same verb.
   2. A read may be named for what it returns (`history`, `followed`, `pinned`, `written`).
   3. A resource change is `update`, its fields given as flags.
   4. A delete is `remove`; taking a scheduled event off the calendar is `cancel`.
@@ -454,18 +431,18 @@ flowchart TB
 
 ## Verification Contract
 
-| Gate               | Command                                                                                                                                      | When             |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| Format             | `cargo fmt --check`                                                                                                                          | every PR         |
-| Lint               | `cargo clippy --all-targets --all-features -- -D warnings`                                                                                   | every PR         |
-| Suite              | `cargo test --workspace --no-fail-fast`, in the background                                                                                   | every PR         |
-| Fixtures           | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests`, then `git diff --stat` names only the fixtures the unit lists               | U1 to U3         |
-| Schemas            | `scripts/generate-response-schemas.sh`, then `crates/xurl-cli/tests/schema_tests.rs`                                                         | U1 to U3         |
-| Completions        | `scripts/generate-completions.sh`, the tree clean after                                                                                      | U1 to U3         |
-| Library untouched  | `git diff --stat origin/dev -- crates/xdk` is empty                                                                                          | every PR         |
-| Local CI mirror    | `scripts/hooks/pre-push`, in the background                                                                                                  | before each push |
-| Agent-native audit | `anc audit . --bin xr` keeps its `p6-may-standard-names` verdict                                                                             | U3 (last rename) |
-| Real binary        | the offline reproduction script run against the built `xr`: each retired word exits 2 naming its replacement, each new word reaches the mock | U1 to U3         |
+| Gate               | Command                                                                                                                                                                         | When             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Format             | `cargo fmt --check`                                                                                                                                                             | every PR         |
+| Lint               | `cargo clippy --all-targets --all-features -- -D warnings`                                                                                                                      | every PR         |
+| Suite              | `cargo test --workspace --no-fail-fast`, in the background                                                                                                                      | every PR         |
+| Fixtures           | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests`, then `git diff --stat` names only the fixtures the unit lists                                                  | U1 to U3         |
+| Schemas            | `scripts/generate-response-schemas.sh`, then `crates/xurl-cli/tests/schema_tests.rs`                                                                                            | U1 to U3         |
+| Completions        | `scripts/generate-completions.sh`, the tree clean after                                                                                                                         | U1 to U3         |
+| Library untouched  | `git diff --stat origin/dev -- crates/xdk` is empty                                                                                                                             | every PR         |
+| Local CI mirror    | `scripts/hooks/pre-push`, in the background                                                                                                                                     | before each push |
+| Agent-native audit | `anc audit . --bin xr` keeps its `p6-may-standard-names` verdict                                                                                                                | top PR           |
+| Real binary        | the offline reproduction script run against the built `xr`: each renamed word exits 2 naming its replacement, `live` exits 2 with no suggestion, each new word reaches the mock | U1 to U3         |
 
 A new test counts once it has been observed failing against the unfixed code: run each retired-name case before the row
 exists and quote the failure.
@@ -474,11 +451,13 @@ exists and quote the failure.
 
 ## Definition of Done
 
-- Each spot Brett approved is renamed per its unit, and every surface in KTD2 carries the new word and none the old.
-- Every retired word refuses as R5 states, in text and JSON, and sends nothing.
+- Spots 1 and 2 are renamed per their units, and every surface in KTD2 carries the new word and none the old.
+- `live` and `--manual-publish` are gone from every surface KTD6 names.
+- Every renamed word and `live` refuse as R5 states, in text and JSON, and send nothing.
 - `history` is unchanged (R4).
 - No `crates/xdk` change; no new `reason`, `action`, or envelope key.
-- Each PR body's Related Issues names #421, and its Changelog section follows D3.
+- Each PR body's Related Issues names #421, states the 4.5.0 minor call with its reason, and files its Changelog entry
+  under `### Added` (D3).
 - Only the fixtures a unit lists moved; no stray re-bless.
 - No abandoned experiment code remains in the diff.
 
@@ -510,9 +489,9 @@ the session brief's authorization, and Brett's own questions (D1 to D3) went to 
 
 **Scope Challenge.** The plan touches about 25 files and adds one module, so the complexity gate tripped. Structure:
 original arrangement (a `retired_verbs.rs` module) kept over the smaller arrangement (rows inside `classify.rs`),
-because `classify.rs` is already 334 lines and the rows are their own concern. PR count: four PRs became three, with U4
-as a commit in U3's PR (KTD5); each `xr` PR fires about 25 CI jobs against the account's 20-job cap. Result: scope
-accepted as-is.
+because `classify.rs` is already 334 lines and the rows are their own concern. PR count: four PRs became fewer, with U4
+as a commit in another unit's PR (KTD5 holds the shape Brett's answers left: two); each `xr` PR fires about 25 CI jobs
+against the account's 20-job cap. Result: scope accepted as-is.
 
 **Reality rows.**
 
@@ -534,7 +513,7 @@ accepted as-is.
   re-measure on the first push].
 - REALITY: deferred-asks pass. Issue #421 asks for spots 1, 2, and 4 (U1 to U3) and flags spot 3, which its own proposal
   keeps; R4 keeps it, with the evidence in the Problem Frame. "No aliases" holds under D2's recommendation.
-- REALITY: pr-count finding. Four PRs became three (KTD5).
+- REALITY: pr-count finding. Four PRs became two after Brett's answers (KTD5).
 
 **Section 1, Architecture.**
 
@@ -567,7 +546,7 @@ CODE PATHS                                         USER FLOWS
   │   [GAP→U1-U3] JSON, text, --help, help, dry-run  ├── [GAP→U2] rename never suggests remove
   ├── no row -> clap score  [★★★ unknown_command_tests] └── [GAP→U1] other families' remove still run
   └── guard walk over Cli::command()  [GAP→U1]
-[+] renamed arms (cancel, update, start)           [+] Caller runs the new name
+[+] renamed arms (cancel, update)                  [+] Caller runs the new name
   ├── request path and body  [★★★ family tests, moved]  ├── [★★★ moved] confirmation gate
   └── dry-run command value  [GAP→U1-U3]                └── [★★★ moved] dry run sends nothing
 COVERAGE after the plan: every path has a planned or moved test; no E2E or eval scope.
@@ -606,10 +585,10 @@ fixture, schema file, or completion: the golden, schema, and completions gates f
   rename. Surfaced by: KTD1, Architecture finding 1. Verify: `cargo test -p xurl-rs --test unknown_command_tests`.
 - [ ] T2 (P1, human: ~2h / CC: ~20 min). `sources update --name`, its row, and the `dry_run_guard.rs` check. Surfaced
   by: Code quality finding 2. Verify: `cargo test -p xurl-rs --test broadcast_sources_tests --test dry_run_guard`.
-- [ ] T3 (P1, human: ~2h / CC: ~20 min). `scheduled start`, its row, the `--manual-publish` text, and the AGENTS.md
-  commit. Surfaced by: KTD5. Verify: `cargo test -p xurl-rs --test broadcasts_family_tests --test golden_tests`.
+- [ ] T3 (P1, human: ~2h / CC: ~20 min). Drop `live` and `--manual-publish` in T1's PR; the AGENTS.md commit rides in
+  T2's PR. Surfaced by: KTD5, KTD6. Verify: `cargo test -p xurl-rs --test broadcasts_family_tests --test golden_tests`.
 
-**Decision ledger.** Every choice above was settled from evidence and accepted. D1 to D3 stay open and are Brett's.
+**Decision ledger.** Every choice above was settled from evidence and accepted. Brett answered D1 to D3 on 2026-10-29.
 Approval readiness: PASS (Scope structure, PR count, Architecture 1, Code quality 1 and 2; each cites its evidence
 above).
 
@@ -628,11 +607,11 @@ enhancement to an existing product.
 agent branches on stable fields; issue #421 § "Agent-native considerations"). It reads the envelope literally, cannot
 ask, and pays per retry. Secondary: a person whose shell script names a 4.4.0 command.
 
-**Empathy narrative.** I upgraded `xr`, and my nightly job that starts a scheduled broadcast fails at exit 2. In JSON I
-get `unknown-command` with `command: live`. With a plain rename that is all: no `suggestion`, and a pointer to the
-family help, so I read the page, find `start`, and retry, two extra calls. If my job renamed a stream source, I get
+**Empathy narrative.** I upgraded `xr`, and my nightly job that cancels a scheduled broadcast fails at exit 2. In JSON I
+get `unknown-command` with `command: remove`. With a plain rename that is all: no `suggestion`, and a pointer to the
+family help, so I read the page, find `cancel`, and retry, two extra calls. If my job renamed a stream source, I get
 `suggestion: remove` and the delete verb's help page, which reads like the fix. With the plan, the same failure carries
-`suggestion: start` and `xr broadcasts scheduled start --help`; one help read and one retry and the job runs.
+`suggestion: cancel` and `xr broadcasts scheduled cancel --help`; one help read and one retry and the job runs.
 
 **Competitive benchmark.** Endpoint: a caller with a call to an old name reaches a working call.
 
@@ -686,7 +665,7 @@ Path                                  | Class | what | fix  | recovery | code | 
 retired word (live, remove, rename)   | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
 update without --name                 | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
 update ID NAME (positional kept)      | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
-cancel or start without --force       | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
+cancel without --force                | usage | pass | pass | N/A      | pass | N/A     | N/A   | pass      | pass    | none
 unexpected failure on these paths     | n/a   | no new path: a table lookup on the error branch; panics keep the run_argv hook (reason internal)
 ```
 
@@ -706,7 +685,7 @@ template as its fix. No path prompts without a TTY alternative, and none carries
   `bash scripts/check-surface-bump.sh check ...`. The required check fails a renamed command filed under `### Changed`,
   so D3's 4.5.0 option was misstated. Accepted: D3 corrected; the correction goes to Brett.
 - [INFORMATIONAL] (confidence: 8/10) observed `xr lists update 123 Rust` answers `unexpected argument 'Rust' found`.
-  Spot 2 option (a) costs a positional caller one more retry. Recorded under D1 for Brett.
+  Spot 2 option (a) costs a positional caller one more retry. Recorded under D1; Brett accepted it.
 - Outside this plan, observed: `xr --output json lists update 123` answers `"message": "no-list-changes"`, the bare code
   where text mode prints a sentence (`crates/xurl-cli/src/cli/output/validation.rs:77`). Reported to the coordinating
   session for the slot that owns validation messages; not built here.
@@ -725,13 +704,13 @@ AGENTS.md sentence, and the replacement sentence with its typo-path test (P1). N
 `/ce-doc-review` of this plan on 2026-10-28 in non-interactive mode, classified `unified-plan`. Every lens ran inline in
 this session, with no subagent and no cross-model pass (session rule), so no agreement promotion applies.
 
-| Lens        | Why it ran                                                 | Findings                                        |
-| ----------- | ---------------------------------------------------------- | ----------------------------------------------- |
-| coherence   | always on                                                  | 3 applied                                       |
-| feasibility | always on                                                  | 0 retained; 1 FYI                               |
-| scope       | every plan (mechanism sizing)                              | 0 retained: the table and R9 each pass the test |
-| adversarial | `product_contract_source: ce-plan-bootstrap`, new module   | 1 applied                                       |
-| product     | the plan stakes positions on names and on keeping one      | 1 decision for Brett                            |
+| Lens        | Why it ran                                               | Findings                                        |
+| ----------- | -------------------------------------------------------- | ----------------------------------------------- |
+| coherence   | always on                                                | 3 applied                                       |
+| feasibility | always on                                                | 0 retained; 1 FYI                               |
+| scope       | every plan (mechanism sizing)                            | 0 retained: the table and R9 each pass the test |
+| adversarial | `product_contract_source: ce-plan-bootstrap`, new module | 1 applied                                       |
+| product     | the plan stakes positions on names and on keeping one    | 1 decision for Brett                            |
 
 **Applied.**
 
@@ -740,11 +719,10 @@ this session, with no subagent and no cross-model pass (session rule), so no agr
 - The Key Decision on `history` read as settled, while command names are Brett's and D1 says he may override. It now
   reads as recommended, pending him.
 - D4 said only the `suggestion` source changes, while the same paragraph changes the text sentence. It now names both.
-- The help-fixture count in Dependencies said six; U1 to U3 move or replace seven (`-scheduled-remove`, `-scheduled`,
-  `-sources-rename`, `-sources`, `-scheduled-live`, `-scheduled-add`, `-scheduled-update`).
+- The help-fixture count in Dependencies said six; it now counts every fixture U1 to U3 move, replace, or delete.
 
-**Decision for Brett.** A no-break alternative to the renames: keep every name and add sibling-verb hint rows to the
-same table (D1, "Across spots 1, 2, and 4"). It trades the alignment the issue asks for against no major release.
+**Decision for Brett.** A no-break alternative to the renames: keep every name and add sibling-verb hint rows. Brett
+chose the renames and the drop instead (D1).
 
 **FYI.** U1 regenerates `schema/output.schema.json` with `xr schema envelope`, the positional #426 replaces with
 `--envelope`; use whichever form `dev` has when U1 is built.
@@ -760,10 +738,7 @@ same table (D1, "Across spots 1, 2, and 4"). It trades the alignment the issue a
 | DX Review      | `/plan-devex-review`  | Developer experience gaps       | 1    | ISSUES OPEN | score: 6/10 → 8/10, TTHW: 2-3 retries → 1 retry |
 
 - **OUTSIDE COVERAGE:** codex, plan-review phase, skipped under the session rule for both reviews; no findings.
-- **VERDICT:** Eng, DX, and document reviews done; every finding folded into the plan. Build waits on D1 to D3.
+- **VERDICT:** Eng, DX, and document reviews done; every finding folded into the plan; Brett answered D1 to D3 on
+  2026-10-29. Ready to build.
 
-**UNRESOLVED DECISIONS:**
-
-- D1, the names for spots 1, 2, and 4 (Brett).
-- D2, whether a retired name refuses with its replacement, disappears, or aliases (Brett).
-- D3, `xr` 5.0.0 batched with #424 and #426, or 4.5.0 (Brett).
+NO UNRESOLVED DECISIONS
