@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "post", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: oauth2
 exit_code: 0
-stdout_len: 517
+stdout_len: 556
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 0
   "command": "post",
   "exit_code": 0,
   "media_ids": [],
+  "response_schema": "xr schema post",
   "status": "dry_run",
   "would_succeed": true
 }

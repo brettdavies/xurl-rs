@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "lists", "update", "1146654567674912769"]
 store: empty
 exit_code: 0
-stdout_len: 183
+stdout_len: 433
 stderr_len: 0
 --- stdout ---
 {
@@ -9,7 +9,14 @@ stderr_len: 0
   "command": "lists-update",
   "exit_code": 1,
   "list_id": "1146654567674912769",
-  "reason": "no-list-changes",
+  "message": "Nothing would change; give --name, --description, --private, or --public.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr lists update --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema lists update",
+  "rule": "no-list-changes",
   "status": "dry_run",
   "would_succeed": false
 }

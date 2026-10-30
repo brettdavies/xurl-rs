@@ -251,7 +251,7 @@ rules make the breaking releases livable:
   middle number for `xdk-rs` and a minor for `xurl-rs`, independent version lines notwithstanding.
 
 The two crates version and tag independently: the library on `xdk-rs-vX.Y.Z`, the CLI on `vX.Y.Z`. Breaking changes the
-CLI takes across its majors are written up under
+CLI takes are written up under
 [`docs/migrating`](https://github.com/brettdavies/xurl-rs/tree/main/docs/migrating).
 
 ## Relationship to xr and xurl

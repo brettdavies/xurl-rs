@@ -152,6 +152,15 @@ renaming or removing an attribute is a major. Reading both spellings of a rename
 becoming a break for `xr`'s callers, so majors stay reserved for this project's own deliberate breaks. As clig.dev puts
 it, "if you're putting out a major version bump every month, it's meaningless."
 
+### Why a break with a small blast radius can ship in a minor
+
+SemVer requires a major for every backward-incompatible change. `xr` keeps that as the default and leaves one case to
+the maintainer's judgment: a break few callers can reach ships in a minor. SemVer's FAQ already weighs a version by
+its effect on users: a fix that changes behavior a large audience depends on can ship as a major. The same weighing
+runs the other way here. Majors stay reserved for breaks that reach many callers, which keeps the major number
+meaningful, the point of the clig.dev line above. The migration guide is the condition: a caller who hits such a
+break finds its replacement under `docs/migrating/`, as after a major.
+
 ### Why a closed set can grow in a minor
 
 `reason` and `next_step.action` are closed so an agent can branch on them without parsing prose. Growth stays backward

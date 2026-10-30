@@ -109,8 +109,16 @@ async fn upload_media_rejects_an_unknown_extension_before_any_request() {
         .await
         .expect_err("no media type to infer");
 
-    assert!(err.is_validation(), "{err:?}");
-    assert!(err.to_string().contains("media_type"), "{err}");
+    assert!(
+        matches!(
+            &err,
+            xdk::Error::Validation {
+                rule: "unknown-media-type",
+                value: Some(_)
+            }
+        ),
+        "{err:?}"
+    );
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
@@ -230,8 +238,11 @@ async fn a_failed_job_is_a_validation_error_not_a_timeout() {
     .await
     .expect_err("processing failed");
 
-    assert!(error.is_validation(), "got {error:?}");
-    assert_eq!(error.to_string(), "media processing failed");
+    assert!(
+        matches!(&error, xdk::Error::MediaProcessingFailed { media_id, .. } if media_id == "m1"),
+        "got {error:?}"
+    );
+    assert_eq!(error.kind(), "invalid-request");
 }
 
 #[tokio::test]

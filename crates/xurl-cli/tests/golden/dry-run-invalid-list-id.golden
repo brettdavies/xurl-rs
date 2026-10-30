@@ -1,14 +1,21 @@
 args: ["--output", "json", "--dry-run", "lists", "get", "rustaceans"]
 store: empty
 exit_code: 0
-stdout_len: 154
+stdout_len: 353
 stderr_len: 0
 --- stdout ---
 {
   "command": "lists-get",
   "exit_code": 1,
   "list_id": "rustaceans",
-  "reason": "invalid-list-id",
+  "message": "A list id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr lists get --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema lists get",
+  "rule": "invalid-list-id",
   "status": "dry_run",
   "would_succeed": false
 }

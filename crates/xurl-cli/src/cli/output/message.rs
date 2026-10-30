@@ -13,10 +13,16 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Http { message, .. } => format!("HTTP Error: {message}"),
         Error::Io { message, .. } => format!("IO Error: {message}"),
         Error::InvalidMethod(method) => format!("Invalid Method: Invalid HTTP method: {method}"),
+        Error::Validation { rule, value } => {
+            super::validation::sentence(rule, value.as_deref()).unwrap_or_else(|| error.to_string())
+        }
         Error::Api { .. }
-        | Error::Validation(_)
         | Error::ProcessingTimeout { .. }
-        | Error::AddressInUse { .. } => error.to_string(),
+        | Error::AddressInUse { .. }
+        | Error::MediaProcessingFailed { .. } => error.to_string(),
+        Error::AccountNotFound { account } => {
+            format!("X found no account for the handle @{account}.")
+        }
         Error::InvalidUrl { message, .. } => format!("Invalid URL: {message}"),
         Error::InvalidPathParam { name, value } => {
             format!(
@@ -174,6 +180,12 @@ mod tests {
             ),
             (Error::api(400, "bad request"), "bad request"),
             (Error::validation("bad input"), "bad input"),
+            (
+                Error::AccountNotFound {
+                    account: "ghost".into(),
+                },
+                "X found no account for the handle @ghost.",
+            ),
         ];
         for (error, expected) in cases {
             assert_eq!(render(&error), expected, "{error:?}");

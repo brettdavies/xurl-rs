@@ -1,15 +1,22 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "sources", "add", "Studio A", "--region", ""]
 store: empty
 exit_code: 0
-stdout_len: 182
+stdout_len: 406
 stderr_len: 0
 --- stdout ---
 {
   "command": "broadcasts-sources-add",
   "exit_code": 1,
+  "message": "The source region is empty.",
   "name": "Studio A",
-  "reason": "empty-source-region",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts sources add --help"
+  },
+  "reason": "validation",
   "region": "",
+  "response_schema": "xr schema broadcasts sources add",
+  "rule": "empty-source-region",
   "status": "dry_run",
   "would_succeed": false
 }

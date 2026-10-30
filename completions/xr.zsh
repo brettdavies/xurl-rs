@@ -21,7 +21,7 @@ _xr() {
 '*--header=[Request headers]:HEADERS:_default' \
 '-d+[Request body data]:DATA:_default' \
 '--data=[Request body data]:DATA:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (oauth2, oauth1, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to send the request as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to send the request as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -47,8 +47,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add trace header to request]' \
@@ -75,7 +75,7 @@ never\:"Never emit ANSI color escapes"))' \
             (post)
 _arguments "${_arguments_options[@]}" : \
 '*--media-id=[Media ID(s) to attach (repeatable)]:MEDIA_IDS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -99,8 +99,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -116,7 +116,7 @@ never\:"Never emit ANSI color escapes"))' \
 (reply)
 _arguments "${_arguments_options[@]}" : \
 '*--media-id=[Media ID(s) to attach (repeatable)]:MEDIA_IDS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -140,8 +140,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -157,7 +157,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (quote)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -181,8 +181,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -198,7 +198,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (delete)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -222,8 +222,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -239,7 +239,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (read)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -263,8 +263,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -282,7 +282,7 @@ _arguments "${_arguments_options[@]}" : \
 '--start=[Start of the window (RFC 3339 with a zone, such as 2026-10-01T00\:00\:00Z)]:TIME:_default' \
 '--end=[End of the window (RFC 3339 with a zone); after the start]:TIME:_default' \
 '--granularity=[Bucket size (X'\''s default is total, one bucket for the window)]:GRANULARITY:(hourly daily weekly total)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -306,8 +306,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -325,7 +325,7 @@ _arguments "${_arguments_options[@]}" : \
 '--granularity=[Bucket size (X'\''s default is hour)]:GRANULARITY:(minute hour day)' \
 '--start=[Oldest moment counted (RFC 3339 with a zone, such as 2026-10-25T00\:00\:00Z); within the last seven days]:TIME:_default' \
 '--end=[Moment the count stops, exclusive (RFC 3339 with a zone)]:TIME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -349,8 +349,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -367,7 +367,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -391,8 +391,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -402,12 +402,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':query -- Search query:_default' \
+':query -- Search query. A user search is 1 to 50 letters, digits, underscores, apostrophes, or spaces.:_default' \
 && ret=0
 ;;
 (users)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -431,8 +431,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -442,14 +442,14 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'*::accounts -- Handles (@jack or jack) or numeric user ids, 1 to 100; not both:_default' \
+'*::accounts -- The accounts to look up, 1 to 100\: all usernames or all user ids. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (user-posts)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -473,8 +473,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -484,12 +484,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username, with or without the leading @:_default' \
+':target_username -- The account whose posts to read. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (posts)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -513,8 +513,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -531,7 +531,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -555,8 +555,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -573,7 +573,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -597,8 +597,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -615,7 +615,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -639,8 +639,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -657,7 +657,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -681,8 +681,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -697,7 +697,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (whoami)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -721,8 +721,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--cached[Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. \`source\` says which answered]' \
@@ -737,7 +737,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (user)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -761,8 +761,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -779,7 +779,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -803,8 +803,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -820,7 +820,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -844,8 +844,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -859,7 +859,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (like)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -883,8 +883,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -899,7 +899,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unlike)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -923,8 +923,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -939,7 +939,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (hide)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -963,8 +963,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -979,7 +979,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unhide)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1003,8 +1003,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1019,7 +1019,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (repost)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1043,8 +1043,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1059,7 +1059,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unrepost)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1083,8 +1083,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1099,7 +1099,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (bookmark)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1123,8 +1123,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1139,7 +1139,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unbookmark)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1163,8 +1163,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1181,7 +1181,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1205,8 +1205,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1241,8 +1241,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -1264,7 +1264,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1288,8 +1288,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1305,7 +1305,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1329,8 +1329,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1345,7 +1345,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1369,8 +1369,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1423,7 +1423,7 @@ esac
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (5-100; a lower value is raised to 5, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1447,8 +1447,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1462,7 +1462,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (follow)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1486,8 +1486,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1497,12 +1497,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to follow:_default' \
+':target_username -- The account to follow. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (unfollow)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1526,8 +1526,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1537,15 +1537,15 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unfollow:_default' \
+':target_username -- The account to unfollow. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (following)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username to list following for (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--of=[The account to list following for (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1569,8 +1569,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1586,8 +1586,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username to list followers for (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--of=[The account to list followers for (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1611,8 +1611,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1626,7 +1626,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (mute)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1650,8 +1650,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1661,12 +1661,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to mute:_default' \
+':target_username -- The account to mute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (unmute)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1690,8 +1690,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1701,14 +1701,14 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unmute:_default' \
+':target_username -- The account to unmute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (muted)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1732,8 +1732,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1747,7 +1747,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (block)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1771,8 +1771,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1782,12 +1782,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to block:_default' \
+':target_username -- The account to block. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (unblock)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1811,8 +1811,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1822,14 +1822,14 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unblock:_default' \
+':target_username -- The account to unblock. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (blocked)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1853,8 +1853,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1868,7 +1868,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (usage)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1892,8 +1892,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1915,7 +1915,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (credits)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -1939,8 +1939,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1982,7 +1982,7 @@ esac
 ;;
 (dm)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2006,8 +2006,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2017,7 +2017,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to DM:_default' \
+':target_username -- The account to message. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 ':text -- Message text:_default' \
 && ret=0
 ;;
@@ -2044,8 +2044,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2066,7 +2066,7 @@ never\:"Never emit ANSI color escapes"))' \
             (start)
 _arguments "${_arguments_options[@]}" : \
 '--text=[The first message]:TEXT:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2090,8 +2090,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2101,12 +2101,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'*::participants -- The people to start it with besides you, 2 to 49\: each a handle, or a numeric user id:_default' \
+'*::participants -- The people to start it with besides you, 2 to 49. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (send)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2130,8 +2130,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2149,7 +2149,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2173,8 +2173,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2191,7 +2191,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2215,8 +2215,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2226,7 +2226,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username of the other person:_default' \
+':target_username -- The other person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)
@@ -2292,8 +2292,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2313,7 +2313,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2337,8 +2337,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2353,7 +2353,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2377,8 +2377,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -2426,7 +2426,7 @@ esac
 ;;
 (dm-block)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2450,8 +2450,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2461,12 +2461,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to block from sending you direct messages:_default' \
+':target_username -- The account to block from sending you direct messages. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (dm-unblock)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2490,8 +2490,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2501,14 +2501,14 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unblock:_default' \
+':target_username -- The account to unblock. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (dms)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2532,8 +2532,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2568,8 +2568,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2591,8 +2591,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username whose own lists to read (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--of=[The account whose own lists to read (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2616,8 +2616,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2633,8 +2633,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username whose followed lists to read (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--of=[The account whose followed lists to read (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2658,8 +2658,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2675,8 +2675,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username whose list memberships to read (default\: you)]:USERNAME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--of=[The account whose list memberships to read (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2700,8 +2700,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2715,7 +2715,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (pinned)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2739,8 +2739,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2754,7 +2754,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2778,8 +2778,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2796,7 +2796,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2820,8 +2820,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2838,7 +2838,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2862,8 +2862,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2899,8 +2899,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2922,7 +2922,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2946,8 +2946,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2962,7 +2962,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -2986,8 +2986,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2998,12 +2998,12 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':list_id -- List ID, as `xr lists list` prints it:_default' \
-':target_username -- Username of the account:_default' \
+':target_username -- The account to add to the list. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3027,8 +3027,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3039,7 +3039,7 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':list_id -- List ID, as `xr lists list` prints it:_default' \
-':target_username -- Username of the account:_default' \
+':target_username -- The account to remove from the list. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)
@@ -3081,7 +3081,7 @@ esac
 (add)
 _arguments "${_arguments_options[@]}" : \
 '--description=[What the list is for, at most 100 characters]:DESCRIPTION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3105,8 +3105,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--private[Only you can see the list]' \
@@ -3124,7 +3124,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--name=[New name, 1 to 25 characters]:NAME:_default' \
 '--description=[New description, at most 100 characters]:DESCRIPTION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3148,8 +3148,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--public)--private[Make the list private]' \
@@ -3166,7 +3166,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3190,8 +3190,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -3207,7 +3207,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (follow)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3231,8 +3231,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3247,7 +3247,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unfollow)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3271,8 +3271,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3287,7 +3287,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (pin)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3311,8 +3311,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3327,7 +3327,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (unpin)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3351,8 +3351,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3496,8 +3496,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -3519,7 +3519,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (10-100; a lower value is raised to 10, X'\''s minimum). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3543,8 +3543,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3559,7 +3559,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3583,8 +3583,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3652,8 +3652,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -3676,7 +3676,7 @@ _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-age-hours=[Only stories updated within this many hours, 1 to 720 (X'\''s default is 168, one week)]:MAX_AGE_HOURS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3700,8 +3700,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3716,7 +3716,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3740,8 +3740,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3809,8 +3809,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -3833,7 +3833,7 @@ _arguments "${_arguments_options[@]}" : \
 '--state=[Only Spaces in this state (X'\''s default is all)]:STATE:(live scheduled all)' \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3857,8 +3857,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3873,7 +3873,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3897,8 +3897,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3913,7 +3913,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (by-creator)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3937,8 +3937,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3948,14 +3948,14 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'*::accounts -- Handles (@jack or jack) or numeric user ids, 1 to 100, in any mix:_default' \
+'*::accounts -- The accounts whose Spaces to read, 1 to 100, in any mix. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (posts)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -3979,8 +3979,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4056,8 +4056,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4098,8 +4098,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4119,9 +4119,9 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4145,8 +4145,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4161,7 +4161,7 @@ never\:"Never emit ANSI color escapes"))' \
 (add)
 _arguments "${_arguments_options[@]}" : \
 '--tag=[A label for the rule; the stream marks each post with the tags of the rules it matched]:TAG:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4185,8 +4185,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--validate-only[Have X check the rule and save nothing (the endpoint'\''s \`dry_run\`). This sends a request; \`--dry-run\` sends none]' \
@@ -4202,7 +4202,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4226,8 +4226,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -4244,7 +4244,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (count)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4268,8 +4268,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4400,8 +4400,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4424,7 +4424,7 @@ _arguments "${_arguments_options[@]}" : \
 '--title=[The article'\''s title]:TITLE:_default' \
 '--body-file=[The file holding the body, or \`-\` to read it from stdin]:PATH:_default' \
 '--cover=[The media id of an uploaded image to show above the article]:MEDIA_ID:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4448,8 +4448,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4463,7 +4463,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (publish)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4487,8 +4487,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -4557,8 +4557,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4581,7 +4581,7 @@ _arguments "${_arguments_options[@]}" : \
 '--text=[The note'\''s text; X requires a source URL in it]:TEXT:_default' \
 '--classification=[How the note classifies the post]:CLASSIFICATION:(misinformed_or_potentially_misleading not_misleading)' \
 '*--tag=[Why the post may be misleading; repeat for several]:TAG:(disputed_claim_as_fact factual_error manipulated_media misinterpreted_satire missing_important_context other outdated_information)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4605,8 +4605,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--trustworthy-sources[The note cites trustworthy sources]' \
@@ -4625,7 +4625,7 @@ never\:"Never emit ANSI color escapes"))' \
 (evaluate)
 _arguments "${_arguments_options[@]}" : \
 '--text=[The note'\''s text; X requires a source URL in it]:TEXT:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4649,8 +4649,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4667,7 +4667,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4691,8 +4691,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--test[Test mode, for an app X is still admitting to the program]' \
@@ -4709,7 +4709,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4733,8 +4733,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--test[Test mode, for an app X is still admitting to the program]' \
@@ -4749,7 +4749,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4773,8 +4773,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -4855,8 +4855,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4878,7 +4878,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of trends (1-50; X'\''s default is 20). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of trends (1-50; X'\''s default is 20). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4902,8 +4902,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4918,7 +4918,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (personal)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4942,8 +4942,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5010,8 +5010,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5033,7 +5033,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5057,8 +5057,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5072,7 +5072,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5096,10 +5096,51 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5133,8 +5174,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5156,7 +5197,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5180,8 +5221,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5195,7 +5236,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5219,8 +5260,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5240,7 +5281,7 @@ _arguments "${_arguments_options[@]}" : \
 '--end=[When the broadcast ends (RFC 3339); open-ended when unset]:TIME:_default' \
 '--title=[The broadcast'\''s title]:TITLE:_default' \
 '--description=[What the broadcast is about]:DESCRIPTION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5264,12 +5305,11 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--replay[Let people watch the broadcast after it ends]' \
-'--manual-publish[Wait for \`xr broadcasts scheduled live\` rather than starting on time]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5286,7 +5326,7 @@ _arguments "${_arguments_options[@]}" : \
 '--source=[Stream source ID to take video from instead]:SOURCE_ID:_default' \
 '--title=[The broadcast'\''s title]:TITLE:_default' \
 '--description=[What the broadcast is about]:DESCRIPTION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5310,12 +5350,11 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--replay[Let people watch the broadcast after it ends]' \
-'--manual-publish[Wait for \`xr broadcasts scheduled live\` rather than starting on time]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5326,9 +5365,9 @@ never\:"Never emit ANSI color escapes"))' \
 ':scheduled_id -- Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it:_default' \
 && ret=0
 ;;
-(remove)
+(cancel)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5352,49 +5391,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
-'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
-'-t[Add X-B3-Flags trace header]' \
-'--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
-'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-':scheduled_id -- Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it:_default' \
-&& ret=0
-;;
-(live)
-_arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
-'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
-json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"
-ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
-yaml\:"YAML document (best-effort serialization of the JSON shape)"
-csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
-tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
-'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
-'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
-'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
-'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
-always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
-never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -5436,11 +5434,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(remove)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(live)
+(cancel)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -5479,8 +5473,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5500,9 +5494,9 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (history)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-200). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-200). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5526,8 +5520,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5538,174 +5532,6 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
-&& ret=0
-;;
-(send)
-_arguments "${_arguments_options[@]}" : \
-'--reply-to=[The chat message to reply to, by id]:MESSAGE_ID:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
-'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
-json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"
-ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
-yaml\:"YAML document (best-effort serialization of the JSON shape)"
-csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
-tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
-'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
-'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
-'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
-'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
-always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
-never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
-'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'-t[Add X-B3-Flags trace header]' \
-'--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
-'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
-':text -- Message text, 1 to 140 characters:_default' \
-&& ret=0
-;;
-(remove)
-_arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
-'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
-json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"
-ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
-yaml\:"YAML document (best-effort serialization of the JSON shape)"
-csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
-tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
-'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
-'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
-'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
-'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
-always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
-never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
-'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
-'-t[Add X-B3-Flags trace header]' \
-'--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
-'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
-':message_id -- Chat message ID, as `xr broadcasts chat history` prints it:_default' \
-&& ret=0
-;;
-(mute)
-_arguments "${_arguments_options[@]}" : \
-'--until=[When the mute ends (RFC 3339 with a zone); for good when unset]:TIME:_default' \
-'--message=[A chat message of theirs to remove while muting, by id]:MESSAGE_ID:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
-'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
-json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"
-ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
-yaml\:"YAML document (best-effort serialization of the JSON shape)"
-csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
-tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
-'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
-'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
-'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
-'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
-always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
-never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
-'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'-t[Add X-B3-Flags trace header]' \
-'--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
-'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
-':target_username -- Username to mute:_default' \
-&& ret=0
-;;
-(unmute)
-_arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
-'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
-'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
-'--app=[Use a specific registered app (overrides default)]:APP:_default' \
-'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
-json\:"Machine-readable JSON, no color"
-jsonl\:"JSON Lines (useful for streaming)"
-ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
-yaml\:"YAML document (best-effort serialization of the JSON shape)"
-csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
-tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
-'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
-'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
-'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
-'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
-'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
-'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
-'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
-always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
-never\:"Never emit ANSI color escapes"))' \
-'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
-'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
-'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'-t[Add X-B3-Flags trace header]' \
-'--trace[Add X-B3-Flags trace header]' \
-'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
-'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
-'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
-'-h[Print help (see more with '\''--help'\'')]' \
-'--help[Print help (see more with '\''--help'\'')]' \
-':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
-':target_username -- Username to unmute:_default' \
 && ret=0
 ;;
 (help)
@@ -5721,22 +5547,6 @@ _arguments "${_arguments_options[@]}" : \
         curcontext="${curcontext%:*:*}:xr-broadcasts-chat-help-command-$line[1]:"
         case $line[1] in
             (history)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(send)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(remove)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(mute)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(unmute)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -5775,8 +5585,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5796,7 +5606,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5820,8 +5630,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5835,7 +5645,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5859,8 +5669,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5870,12 +5680,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to add:_default' \
+':target_username -- The account to add. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5899,8 +5709,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5910,7 +5720,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to remove:_default' \
+':target_username -- The account to remove. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)
@@ -5924,6 +5734,208 @@ _arguments "${_arguments_options[@]}" : \
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:xr-broadcasts-moderators-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(mutes)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__broadcasts__subcmd__mutes_commands" \
+"*::: :->mutes" \
+&& ret=0
+
+    case $state in
+    (mutes)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-mutes-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'--until=[When the mute ends (RFC 3339 with a zone); for good when unset]:TIME:_default' \
+'--broadcast=[A broadcast you moderate\: mute them in its host'\''s chats]:BROADCAST_ID:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':target_username -- The account to mute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--broadcast=[A broadcast you moderate\: unmute them in its host'\''s chats]:BROADCAST_ID:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':target_username -- The account to unmute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-mutes-help-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -5972,8 +5984,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5993,7 +6005,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6017,8 +6029,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6032,7 +6044,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6056,8 +6068,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6067,13 +6079,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':source_id -- Source ID, as `xr broadcasts sources list` prints it; it is also the stream key:_default' \
+':source_id -- Source ID, as `xr broadcasts sources list` prints it:_default' \
 && ret=0
 ;;
-(add)
+(region)
 _arguments "${_arguments_options[@]}" : \
-'--region=[Ingest region\: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2]:REGION:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6097,8 +6108,48 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'--region=[Ingest region\: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2; \`xr broadcasts sources region\` names the nearest]:REGION:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6111,9 +6162,10 @@ never\:"Never emit ANSI color escapes"))' \
 ':name -- A label for the source:_default' \
 && ret=0
 ;;
-(rename)
+(update)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--name=[The new label]:NAME:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6137,8 +6189,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6149,12 +6201,11 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':source_id -- Source ID, as `xr broadcasts sources list` prints it:_default' \
-':name -- The new label:_default' \
 && ret=0
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6178,8 +6229,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -6213,11 +6264,15 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(region)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (add)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(rename)
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -6257,6 +6312,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (scheduled)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled_commands" \
@@ -6285,11 +6344,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(remove)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(live)
+(cancel)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -6313,22 +6368,6 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(send)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(remove)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(mute)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(unmute)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
         esac
     ;;
 esac
@@ -6344,6 +6383,34 @@ _arguments "${_arguments_options[@]}" : \
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:xr-broadcasts-help-moderators-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(mutes)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes_commands" \
+"*::: :->mutes" \
+&& ret=0
+
+    case $state in
+    (mutes)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-help-mutes-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -6381,11 +6448,15 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(region)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (add)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(rename)
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -6432,8 +6503,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -6453,7 +6524,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6477,8 +6548,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6514,8 +6585,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -6537,9 +6608,9 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--start=[Calls still running at this time or starting after it (RFC 3339); X assumes now]:TIME:_default' \
 '--end=[Calls starting before this time (RFC 3339); X assumes 24 hours after \`--start\`]:TIME:_default' \
-'-n+[Number of calls (1-100)]:MAX_RESULTS:_default' \
-'--max-results=[Number of calls (1-100)]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'-n+[Number of calls (1-100); 20 when neither this nor \`--limit\` is given. Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of calls (1-100); 20 when neither this nor \`--limit\` is given. Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6563,8 +6634,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6578,7 +6649,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6602,8 +6673,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6622,10 +6693,10 @@ _arguments "${_arguments_options[@]}" : \
 '--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
 '--description=[What the call is about (1000 characters at most)]:DESCRIPTION:_default' \
 '--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
-'*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
+'*--invite=[Someone to invite; repeat for each person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
 '--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6649,8 +6720,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--no-notify[Send invitees no email about it]' \
@@ -6669,14 +6740,14 @@ _arguments "${_arguments_options[@]}" : \
 '--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
 '--description=[What the call is about (1000 characters at most)]:DESCRIPTION:_default' \
 '--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
-'*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
+'*--invite=[Someone to invite; repeat for each person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
 '--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
 '--scope=[Which occurrences, counted from \`--occurrence\`\: X assumes \`all\` without it and \`this\` with it]:SCOPE:((all\:"Every occurrence"
 this\:"The named occurrence alone"
 this-and-following\:"The named occurrence and every one after it"))' \
 '--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6700,8 +6771,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--no-notify[Send invitees no email about it]' \
@@ -6721,7 +6792,7 @@ _arguments "${_arguments_options[@]}" : \
 this\:"The named occurrence alone"
 this-and-following\:"The named occurrence and every one after it"))' \
 '--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6745,8 +6816,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--no-notify[Send invitees no email about the cancellation]' \
@@ -6767,7 +6838,7 @@ _arguments "${_arguments_options[@]}" : \
 this\:"The named occurrence alone"
 this-and-following\:"The named occurrence and every one after it"))' \
 '--occurrence=[The occurrence'\''s original start (RFC 3339), as a listed call'\''s \`occurrence_start_time\` gives it]:TIME:_default' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6791,8 +6862,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6947,8 +7018,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -6968,7 +7039,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6992,8 +7063,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7007,7 +7078,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7031,8 +7102,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7042,12 +7113,12 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':url -- The public HTTPS URL X delivers events to (200 characters at most):_default' \
+':url -- The public HTTPS URL X delivers events to, with no port (200 characters at most):_default' \
 && ret=0
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7071,8 +7142,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7087,7 +7158,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7111,8 +7182,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -7149,8 +7220,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7170,7 +7241,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (count)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7194,8 +7265,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7209,7 +7280,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7233,8 +7304,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7249,7 +7320,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7273,8 +7344,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7289,7 +7360,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (check)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7313,8 +7384,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7329,7 +7400,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7353,8 +7424,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -7366,7 +7437,7 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':webhook_id -- Webhook ID, as `xr webhooks list` prints it:_default' \
-':user_id -- Numeric user ID of the subscribed account, as `subscriptions list` prints it:_default' \
+':account -- The subscribed account, by username or by the user id `subscriptions list` prints. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)
@@ -7436,8 +7507,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7457,7 +7528,7 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7481,8 +7552,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7496,7 +7567,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7520,8 +7591,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7536,7 +7607,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7560,8 +7631,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -7624,7 +7695,7 @@ oauth1\:"The app'\''s \`OAuth1\` consumer secret (API Secret Key)"))' \
 '*-H+[A header for each forward, as '\''Name\: Value'\''; repeat for more. Its value is never printed]:NAME: VALUE:_default' \
 '*--header=[A header for each forward, as '\''Name\: Value'\''; repeat for more. Its value is never printed]:NAME: VALUE:_default' \
 '--forward-timeout=[Seconds one forward attempt may take before it is tried again (four attempts, 1, 2, then 4 seconds apart). Unset, 30]:SECS:_default' \
-'--checkpoint=[Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so \`xr webhooks replay --from-checkpoint\` can request what a stop missed]:FILE:_files' \
+'--checkpoint=[Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so \`xr webhooks replay --from-checkpoint\` can request what a stop missed. The file holds {"last_event_at"\: <Unix seconds>}]:FILE:_files' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -7646,8 +7717,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--allow-unsigned[Also print a POST that carries no signature, for a local test with curl. A POST with a wrong signature is refused either way]' \
@@ -7663,8 +7734,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--from=[Start of the window\: twelve digits, \`yyyymmddhhmm\` in UTC]:YYYYMMDDHHMM:_default' \
 '--to=[End of the window\: twelve digits, \`yyyymmddhhmm\` in UTC]:YYYYMMDDHHMM:_default' \
-'(--from --to)--from-checkpoint=[Request the window from the minute \`xr webhooks listen --checkpoint\` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included]:FILE:_files' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'(--from --to)--from-checkpoint=[Request the window from the minute \`xr webhooks listen --checkpoint\` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included. The file holds {"last_event_at"\: <Unix seconds>}]:FILE:_files' \
+'--auth=[Authentication type (this command accepts\: app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -7688,8 +7759,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7837,8 +7908,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7883,8 +7954,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7925,8 +7996,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7961,8 +8032,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7995,8 +8066,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8030,8 +8101,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--all[Clear all authentication]' \
@@ -8068,8 +8139,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8114,8 +8185,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8153,8 +8224,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8188,8 +8259,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -8224,8 +8295,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8258,8 +8329,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8300,8 +8371,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8335,8 +8406,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8467,8 +8538,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8607,8 +8678,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8631,7 +8702,7 @@ _arguments "${_arguments_options[@]}" : \
 '--media-type=[Media type (e.g., video/mp4)]:MEDIA_TYPE:_default' \
 '--category=[Media category (e.g., \`amplify_video\`)]:CATEGORY:_default' \
 '--wait=[Wait for X to finish processing the upload before returning]::SECS:_default' \
-'--auth=[Authentication type]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '*-H+[Request headers]:HEADERS:_default' \
@@ -8657,8 +8728,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Trace header]' \
@@ -8673,7 +8744,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (status)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-w+[Wait for X to finish processing instead of reading the status once]::SECS:_default' \
@@ -8701,8 +8772,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Trace header]' \
@@ -8717,7 +8788,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8741,8 +8812,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -8760,7 +8831,7 @@ _arguments "${_arguments_options[@]}" : \
 '--start=[Start of the window (RFC 3339 with a zone, such as 2026-10-01T00\:00\:00Z)]:TIME:_default' \
 '--end=[End of the window (RFC 3339 with a zone); after the start]:TIME:_default' \
 '--granularity=[Bucket size (X'\''s default is daily)]:GRANULARITY:(hourly daily total)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8784,8 +8855,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -8800,7 +8871,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (alt-text)
 _arguments "${_arguments_options[@]}" : \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8824,8 +8895,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -8862,8 +8933,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8886,7 +8957,7 @@ _arguments "${_arguments_options[@]}" : \
 '--language=[Two-letter language code of the track (e.g. en)]:CODE:_default' \
 '--name=[Language name viewers pick the track by (e.g. English)]:NAME:_default' \
 '--category=[Category the video was uploaded with]:CATEGORY:(amplify_video tweet_video)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8910,8 +8981,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -8929,7 +9000,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--language=[Two-letter language code of the track to remove (e.g. en)]:CODE:_default' \
 '--category=[Category the video was uploaded with]:CATEGORY:(amplify_video tweet_video)' \
-'--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -8953,8 +9024,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -9090,8 +9161,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -9131,8 +9202,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '()--all[Install into every known host in one invocation]' \
@@ -9167,8 +9238,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '()--all[Update every known host in one invocation]' \
@@ -9215,6 +9286,7 @@ esac
 ;;
 (schema)
 _arguments "${_arguments_options[@]}" : \
+'--path=[Print the node at a dot path into the command'\''s \`data\`, or into the wrapper with \`--common\`]:DOT_PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -9236,10 +9308,12 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--path)--full[Print the command'\''s complete standalone schema, as committed under \`schema/responses/\`]' \
+'--common[Print the API response wrapper every typed command shares, with its shared definitions]' \
 '--list[List all commands and their response types]' \
 '--all[Output all schemas as a single JSON document]' \
 '--envelope[Output the canonical agent-native output envelope schema]' \
@@ -9248,7 +9322,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'::command -- Command name to get the schema for (e.g. "post", "whoami", "envelope"):_default' \
+'*::command -- The command'\''s words, as `xr help` takes them (e.g. `post`, `webhooks subscriptions count`):_default' \
 && ret=0
 ;;
 (completions)
@@ -9274,8 +9348,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -9309,8 +9383,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -9343,8 +9417,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -9356,7 +9430,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-sent\`, \`chat-muted\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-deleted\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
+'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-deleted\`, \`ingest-region\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -9378,8 +9452,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -10010,6 +10084,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (scheduled)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled_commands" \
@@ -10038,11 +10116,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(remove)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(live)
+(cancel)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -10066,22 +10140,6 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(send)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(remove)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(mute)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
-(unmute)
-_arguments "${_arguments_options[@]}" : \
-&& ret=0
-;;
         esac
     ;;
 esac
@@ -10097,6 +10155,34 @@ _arguments "${_arguments_options[@]}" : \
         words=($line[1] "${words[@]}")
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:xr-help-broadcasts-moderators-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(mutes)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes_commands" \
+"*::: :->mutes" \
+&& ret=0
+
+    case $state in
+    (mutes)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-broadcasts-mutes-command-$line[1]:"
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
@@ -10134,11 +10220,15 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(region)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (add)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(rename)
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -11004,9 +11094,11 @@ _xr__subcmd__broadcasts_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
-'scheduled:Schedule broadcasts, change or cancel them, and start them early' \
-'chat:Read and moderate a broadcast'\''s chat' \
+'remove:Delete one of your broadcasts and its replay' \
+'scheduled:Schedule broadcasts and change or cancel them' \
+'chat:Read a broadcast'\''s chat' \
 'moderators:Manage who moderates your broadcast chats' \
+'mutes:Mute people in every chat of your broadcasts' \
 'sources:Manage the RTMP and RTMPS ingest points you stream to' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -11016,10 +11108,6 @@ _xr__subcmd__broadcasts_commands() {
 _xr__subcmd__broadcasts__subcmd__chat_commands() {
     local commands; commands=(
 'history:List a broadcast'\''s chat' \
-'send:Send a message into a broadcast'\''s chat' \
-'remove:Remove a message from a broadcast'\''s chat' \
-'mute:Mute someone in a broadcast'\''s chat' \
-'unmute:Unmute someone in a broadcast'\''s chat' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr broadcasts chat commands' commands "$@"
@@ -11028,10 +11116,6 @@ _xr__subcmd__broadcasts__subcmd__chat_commands() {
 _xr__subcmd__broadcasts__subcmd__chat__subcmd__help_commands() {
     local commands; commands=(
 'history:List a broadcast'\''s chat' \
-'send:Send a message into a broadcast'\''s chat' \
-'remove:Remove a message from a broadcast'\''s chat' \
-'mute:Mute someone in a broadcast'\''s chat' \
-'unmute:Unmute someone in a broadcast'\''s chat' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr broadcasts chat help commands' commands "$@"
@@ -11046,50 +11130,10 @@ _xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__history_commands() 
     local commands; commands=()
     _describe -t commands 'xr broadcasts chat help history commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__mute_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__mute_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts chat help mute commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__remove_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__remove_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts chat help remove commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__send_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__send_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts chat help send commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__unmute_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__chat__subcmd__help__subcmd__unmute_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts chat help unmute commands' commands "$@"
-}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__history_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__chat__subcmd__history_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts chat history commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__mute_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__chat__subcmd__mute_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts chat mute commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__remove_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__chat__subcmd__remove_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts chat remove commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__send_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__chat__subcmd__send_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts chat send commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__chat__subcmd__unmute_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__chat__subcmd__unmute_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts chat unmute commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__get_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__get_commands() {
@@ -11101,9 +11145,11 @@ _xr__subcmd__broadcasts__subcmd__help_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
-'scheduled:Schedule broadcasts, change or cancel them, and start them early' \
-'chat:Read and moderate a broadcast'\''s chat' \
+'remove:Delete one of your broadcasts and its replay' \
+'scheduled:Schedule broadcasts and change or cancel them' \
+'chat:Read a broadcast'\''s chat' \
 'moderators:Manage who moderates your broadcast chats' \
+'mutes:Mute people in every chat of your broadcasts' \
 'sources:Manage the RTMP and RTMPS ingest points you stream to' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -11113,10 +11159,6 @@ _xr__subcmd__broadcasts__subcmd__help_commands() {
 _xr__subcmd__broadcasts__subcmd__help__subcmd__chat_commands() {
     local commands; commands=(
 'history:List a broadcast'\''s chat' \
-'send:Send a message into a broadcast'\''s chat' \
-'remove:Remove a message from a broadcast'\''s chat' \
-'mute:Mute someone in a broadcast'\''s chat' \
-'unmute:Unmute someone in a broadcast'\''s chat' \
     )
     _describe -t commands 'xr broadcasts help chat commands' commands "$@"
 }
@@ -11124,26 +11166,6 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__chat_commands() {
 _xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__history_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help chat history commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__mute_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__mute_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts help chat mute commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__remove_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__remove_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts help chat remove commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__send_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__send_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts help chat send commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__unmute_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__unmute_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts help chat unmute commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__get_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__help__subcmd__get_commands() {
@@ -11184,6 +11206,35 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__remove_comman
     local commands; commands=()
     _describe -t commands 'xr broadcasts help moderators remove commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes_commands() {
+    local commands; commands=(
+'list:List who is muted in your broadcast chats, and until when' \
+'add:Mute someone in every chat of your broadcasts' \
+'remove:Unmute someone in your broadcast chats' \
+    )
+    _describe -t commands 'xr broadcasts help mutes commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help mutes add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help mutes list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help mutes remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help remove commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled_commands() {
     local commands; commands=(
@@ -11191,8 +11242,7 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled_commands() {
 'get:Read one scheduled broadcast, by id' \
 'add:Schedule a broadcast from one of your stream sources' \
 'update:Move a scheduled broadcast, or change its details' \
-'remove:Cancel a scheduled broadcast' \
-'live:Start a scheduled broadcast now' \
+'cancel:Cancel a scheduled broadcast' \
     )
     _describe -t commands 'xr broadcasts help scheduled commands' commands "$@"
 }
@@ -11200,6 +11250,11 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled_commands() {
 _xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help scheduled add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__cancel_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__cancel_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help scheduled cancel commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__get_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__get_commands() {
@@ -11211,16 +11266,6 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__list_commands(
     local commands; commands=()
     _describe -t commands 'xr broadcasts help scheduled list commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__live_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__live_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts help scheduled live commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__remove_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__remove_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts help scheduled remove commands' commands "$@"
-}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__update_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled__subcmd__update_commands() {
     local commands; commands=()
@@ -11231,8 +11276,9 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
+'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
-'rename:Rename a stream source' \
+'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
     )
     _describe -t commands 'xr broadcasts help sources commands' commands "$@"
@@ -11252,15 +11298,20 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__list_commands() 
     local commands; commands=()
     _describe -t commands 'xr broadcasts help sources list commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__region_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__region_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help sources region commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help sources remove commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__rename_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__rename_commands() {
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
-    _describe -t commands 'xr broadcasts help sources rename commands' commands "$@"
+    _describe -t commands 'xr broadcasts help sources update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__list_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__list_commands() {
@@ -11322,6 +11373,66 @@ _xr__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts moderators remove commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes_commands() {
+    local commands; commands=(
+'list:List who is muted in your broadcast chats, and until when' \
+'add:Mute someone in every chat of your broadcasts' \
+'remove:Unmute someone in your broadcast chats' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts mutes commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help_commands() {
+    local commands; commands=(
+'list:List who is muted in your broadcast chats, and until when' \
+'add:Mute someone in every chat of your broadcasts' \
+'remove:Unmute someone in your broadcast chats' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts mutes help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes help list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes help remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts remove commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__scheduled_commands() {
     local commands; commands=(
@@ -11329,8 +11440,7 @@ _xr__subcmd__broadcasts__subcmd__scheduled_commands() {
 'get:Read one scheduled broadcast, by id' \
 'add:Schedule a broadcast from one of your stream sources' \
 'update:Move a scheduled broadcast, or change its details' \
-'remove:Cancel a scheduled broadcast' \
-'live:Start a scheduled broadcast now' \
+'cancel:Cancel a scheduled broadcast' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr broadcasts scheduled commands' commands "$@"
@@ -11339,6 +11449,11 @@ _xr__subcmd__broadcasts__subcmd__scheduled_commands() {
 _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts scheduled add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__cancel_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__cancel_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts scheduled cancel commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__get_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__get_commands() {
@@ -11352,8 +11467,7 @@ _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help_commands() {
 'get:Read one scheduled broadcast, by id' \
 'add:Schedule a broadcast from one of your stream sources' \
 'update:Move a scheduled broadcast, or change its details' \
-'remove:Cancel a scheduled broadcast' \
-'live:Start a scheduled broadcast now' \
+'cancel:Cancel a scheduled broadcast' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr broadcasts scheduled help commands' commands "$@"
@@ -11362,6 +11476,11 @@ _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help_commands() {
 _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts scheduled help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__cancel_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__cancel_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts scheduled help cancel commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__get_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__get_commands() {
@@ -11378,16 +11497,6 @@ _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__list_commands(
     local commands; commands=()
     _describe -t commands 'xr broadcasts scheduled help list commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__live_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__live_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts scheduled help live commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__remove_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__remove_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts scheduled help remove commands' commands "$@"
-}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__update_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__update_commands() {
     local commands; commands=()
@@ -11397,16 +11506,6 @@ _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__help__subcmd__update_command
 _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts scheduled list commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__live_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__live_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts scheduled live commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__remove_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__remove_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr broadcasts scheduled remove commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled__subcmd__update_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__scheduled__subcmd__update_commands() {
@@ -11418,8 +11517,9 @@ _xr__subcmd__broadcasts__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
+'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
-'rename:Rename a stream source' \
+'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -11440,8 +11540,9 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__help_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
+'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
-'rename:Rename a stream source' \
+'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -11467,30 +11568,40 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__list_commands() 
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources help list commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__region_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__region_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources help region commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources help remove commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__rename_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__rename_commands() {
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__update_commands() {
     local commands; commands=()
-    _describe -t commands 'xr broadcasts sources help rename commands' commands "$@"
+    _describe -t commands 'xr broadcasts sources help update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__list_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources list commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__region_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__region_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources region commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources remove commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands() {
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
-    _describe -t commands 'xr broadcasts sources rename commands' commands "$@"
+    _describe -t commands 'xr broadcasts sources update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__calls_commands] )) ||
 _xr__subcmd__calls_commands() {
@@ -12098,9 +12209,11 @@ _xr__subcmd__help__subcmd__broadcasts_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
-'scheduled:Schedule broadcasts, change or cancel them, and start them early' \
-'chat:Read and moderate a broadcast'\''s chat' \
+'remove:Delete one of your broadcasts and its replay' \
+'scheduled:Schedule broadcasts and change or cancel them' \
+'chat:Read a broadcast'\''s chat' \
 'moderators:Manage who moderates your broadcast chats' \
+'mutes:Mute people in every chat of your broadcasts' \
 'sources:Manage the RTMP and RTMPS ingest points you stream to' \
     )
     _describe -t commands 'xr help broadcasts commands' commands "$@"
@@ -12109,10 +12222,6 @@ _xr__subcmd__help__subcmd__broadcasts_commands() {
 _xr__subcmd__help__subcmd__broadcasts__subcmd__chat_commands() {
     local commands; commands=(
 'history:List a broadcast'\''s chat' \
-'send:Send a message into a broadcast'\''s chat' \
-'remove:Remove a message from a broadcast'\''s chat' \
-'mute:Mute someone in a broadcast'\''s chat' \
-'unmute:Unmute someone in a broadcast'\''s chat' \
     )
     _describe -t commands 'xr help broadcasts chat commands' commands "$@"
 }
@@ -12120,26 +12229,6 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__chat_commands() {
 _xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__history_commands() {
     local commands; commands=()
     _describe -t commands 'xr help broadcasts chat history commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__mute_commands] )) ||
-_xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__mute_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help broadcasts chat mute commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__remove_commands] )) ||
-_xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__remove_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help broadcasts chat remove commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__send_commands] )) ||
-_xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__send_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help broadcasts chat send commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__unmute_commands] )) ||
-_xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__unmute_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help broadcasts chat unmute commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__get_commands] )) ||
 _xr__subcmd__help__subcmd__broadcasts__subcmd__get_commands() {
@@ -12175,6 +12264,35 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__remove_comman
     local commands; commands=()
     _describe -t commands 'xr help broadcasts moderators remove commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes_commands() {
+    local commands; commands=(
+'list:List who is muted in your broadcast chats, and until when' \
+'add:Mute someone in every chat of your broadcasts' \
+'remove:Unmute someone in your broadcast chats' \
+    )
+    _describe -t commands 'xr help broadcasts mutes commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts mutes add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__list_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts mutes list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts mutes remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts remove commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled_commands] )) ||
 _xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled_commands() {
     local commands; commands=(
@@ -12182,8 +12300,7 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled_commands() {
 'get:Read one scheduled broadcast, by id' \
 'add:Schedule a broadcast from one of your stream sources' \
 'update:Move a scheduled broadcast, or change its details' \
-'remove:Cancel a scheduled broadcast' \
-'live:Start a scheduled broadcast now' \
+'cancel:Cancel a scheduled broadcast' \
     )
     _describe -t commands 'xr help broadcasts scheduled commands' commands "$@"
 }
@@ -12191,6 +12308,11 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled_commands() {
 _xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__add_commands() {
     local commands; commands=()
     _describe -t commands 'xr help broadcasts scheduled add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__cancel_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__cancel_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts scheduled cancel commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__get_commands] )) ||
 _xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__get_commands() {
@@ -12202,16 +12324,6 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__list_commands(
     local commands; commands=()
     _describe -t commands 'xr help broadcasts scheduled list commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__live_commands] )) ||
-_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__live_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help broadcasts scheduled live commands' commands "$@"
-}
-(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__remove_commands] )) ||
-_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__remove_commands() {
-    local commands; commands=()
-    _describe -t commands 'xr help broadcasts scheduled remove commands' commands "$@"
-}
 (( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__update_commands] )) ||
 _xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled__subcmd__update_commands() {
     local commands; commands=()
@@ -12222,8 +12334,9 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
+'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
-'rename:Rename a stream source' \
+'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
     )
     _describe -t commands 'xr help broadcasts sources commands' commands "$@"
@@ -12243,15 +12356,20 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__list_commands() 
     local commands; commands=()
     _describe -t commands 'xr help broadcasts sources list commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__region_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__region_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts sources region commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands] )) ||
 _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr help broadcasts sources remove commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands] )) ||
-_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
-    _describe -t commands 'xr help broadcasts sources rename commands' commands "$@"
+    _describe -t commands 'xr help broadcasts sources update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__calls_commands] )) ||
 _xr__subcmd__help__subcmd__calls_commands() {

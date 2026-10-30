@@ -1,8 +1,8 @@
 //! `xr broadcasts` beyond moderators and sources: the caller's broadcasts,
 //! scheduled broadcasts (whose RFC 3339 times go out as the millisecond
-//! strings X takes), and a broadcast's chat. Going live, cancelling a
-//! scheduled broadcast, and removing a chat message ask first; inputs the
-//! spec bounds are refused before any request.
+//! strings X takes), and a broadcast's chat. Removing a broadcast and
+//! cancelling a scheduled broadcast ask first; inputs the spec bounds are
+//! refused before any request.
 
 mod common;
 
@@ -74,6 +74,42 @@ async fn list_and_get_read_the_callers_broadcasts() {
     let (code, stdout, stderr) = run_json(&server, &["broadcasts", "get", BROADCAST]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert_eq!(json_out(&stdout)["data"]["total_watched"], "1200");
+}
+
+#[tokio::test]
+async fn remove_deletes_the_broadcast_once_confirmed() {
+    let server = MockServer::start().await;
+    Mock::given(method("DELETE"))
+        .and(path(format!("/2/broadcasts/{BROADCAST}")))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"deleted": true}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let (code, _stdout, stderr) = run_json(
+        &server,
+        &["--no-interactive", "broadcasts", "remove", BROADCAST],
+    )
+    .await;
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert_eq!(error_envelope(&stderr)["reason"], "confirmation-required");
+
+    let (code, stdout, stderr) = run_json(
+        &server,
+        &[
+            "--no-interactive",
+            "broadcasts",
+            "remove",
+            BROADCAST,
+            "--force",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(json_out(&stdout)["data"]["deleted"], true);
 }
 
 #[tokio::test]
@@ -151,14 +187,8 @@ async fn scheduled_update_names_the_broadcast_and_both_times() {
 }
 
 #[tokio::test]
-async fn going_live_and_cancelling_ask_first() {
+async fn cancelling_asks_first() {
     let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path(format!("/2/broadcasts/scheduled/{SCHEDULED}/live")))
-        .respond_with(ResponseTemplate::new(200).set_body_json(scheduled()))
-        .expect(1)
-        .mount(&server)
-        .await;
     Mock::given(method("DELETE"))
         .and(path(format!("/2/broadcasts/scheduled/{SCHEDULED}")))
         .respond_with(
@@ -169,51 +199,65 @@ async fn going_live_and_cancelling_ask_first() {
         .mount(&server)
         .await;
 
-    for verb in ["live", "remove"] {
-        let (code, _stdout, stderr) = run_json(
-            &server,
-            &[
-                "--no-interactive",
-                "broadcasts",
-                "scheduled",
-                verb,
-                SCHEDULED,
-            ],
-        )
-        .await;
-        assert_eq!(code, 1, "{verb}: {stderr}");
-        assert_eq!(error_envelope(&stderr)["reason"], "confirmation-required");
+    let (code, _stdout, stderr) = run_json(
+        &server,
+        &[
+            "--no-interactive",
+            "broadcasts",
+            "scheduled",
+            "cancel",
+            SCHEDULED,
+        ],
+    )
+    .await;
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert_eq!(error_envelope(&stderr)["reason"], "confirmation-required");
 
-        let (code, _stdout, stderr) = run_json(
-            &server,
-            &[
-                "--no-interactive",
-                "broadcasts",
-                "scheduled",
-                verb,
-                SCHEDULED,
-                "--force",
-            ],
-        )
+    let (code, stdout, stderr) = run_json(
+        &server,
+        &[
+            "--no-interactive",
+            "broadcasts",
+            "scheduled",
+            "cancel",
+            SCHEDULED,
+            "--force",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "--force: {stderr}");
+    assert_eq!(json_out(&stdout)["data"]["deleted"], true);
+}
+
+/// X publishes every schedule `xr` makes at its start time, so the flag
+/// that held one back for a manual start is refused before any request.
+#[tokio::test]
+async fn scheduling_for_a_manual_start_is_refused() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/broadcasts/scheduled"))
+        .respond_with(ResponseTemplate::new(201).set_body_json(scheduled()))
+        .expect(0)
+        .mount(&server)
         .await;
-        assert_eq!(code, 0, "{verb} --force: {stderr}");
+
+    for verb in ["add", "update"] {
+        let mut args = vec!["broadcasts", "scheduled", verb];
+        if verb == "update" {
+            args.push(SCHEDULED);
+        } else {
+            args.extend(["--source", "abc123"]);
+        }
+        args.extend(["--start", START, "--end", END, "--manual-publish"]);
+        let (code, _stdout, stderr) = run_json(&server, &args).await;
+        assert_eq!(code, 2, "{verb}: {stderr}");
+        assert_eq!(error_envelope(&stderr)["reason"], "invalid-args", "{verb}");
     }
 }
 
 #[tokio::test]
-async fn chat_send_history_and_remove_reach_the_broadcasts_chat() {
+async fn chat_history_reads_the_broadcasts_chat() {
     let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path(format!("/2/broadcasts/{BROADCAST}/chat")))
-        .and(body_json(
-            serde_json::json!({"text": "Welcome!", "reply_to": "1700000000000"}),
-        ))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"success": true, "timestamp": "1700000000001"}
-        })))
-        .expect(1)
-        .mount(&server)
-        .await;
     Mock::given(method("GET"))
         .and(path(format!("/2/broadcasts/{BROADCAST}/chat")))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
@@ -222,135 +266,29 @@ async fn chat_send_history_and_remove_reach_the_broadcasts_chat() {
         .expect(1)
         .mount(&server)
         .await;
-    Mock::given(method("DELETE"))
-        .and(path(format!(
-            "/2/broadcasts/{BROADCAST}/chat/1700000000001"
-        )))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(serde_json::json!({"data": {"deleted": true}})),
-        )
-        .expect(1)
-        .mount(&server)
-        .await;
-
-    let (code, stdout, stderr) = run_json(
-        &server,
-        &[
-            "broadcasts",
-            "chat",
-            "send",
-            BROADCAST,
-            "Welcome!",
-            "--reply-to",
-            "1700000000000",
-        ],
-    )
-    .await;
-    assert_eq!(code, 0, "stderr: {stderr}");
-    assert_eq!(json_out(&stdout)["data"]["success"], true);
 
     let (code, stdout, stderr) =
         run_json(&server, &["broadcasts", "chat", "history", BROADCAST]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
     assert_eq!(json_out(&stdout)["data"][0]["author_username"], "alice");
-
-    let (code, _stdout, stderr) = run_json(
-        &server,
-        &[
-            "--no-interactive",
-            "broadcasts",
-            "chat",
-            "remove",
-            BROADCAST,
-            "1700000000001",
-            "--force",
-        ],
-    )
-    .await;
-    assert_eq!(code, 0, "stderr: {stderr}");
-}
-
-#[tokio::test]
-async fn chat_mute_resolves_the_user_and_sends_the_expiry_in_milliseconds() {
-    let server = MockServer::start().await;
-    Mock::given(method("GET"))
-        .and(path("/2/users/by/username/troll"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "99", "name": "troll", "username": "troll"}
-        })))
-        .expect(2)
-        .mount(&server)
-        .await;
-    Mock::given(method("POST"))
-        .and(path(format!("/2/broadcasts/{BROADCAST}/chat/mutes")))
-        .and(body_json(
-            serde_json::json!({"user_id": "99", "end_at_ms": END_MS}),
-        ))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": {"muted": true}})),
-        )
-        .expect(1)
-        .mount(&server)
-        .await;
-    Mock::given(method("DELETE"))
-        .and(path(format!("/2/broadcasts/{BROADCAST}/chat/mutes/99")))
-        .respond_with(
-            ResponseTemplate::new(200).set_body_json(serde_json::json!({"data": {"muted": false}})),
-        )
-        .expect(1)
-        .mount(&server)
-        .await;
-
-    let (code, stdout, stderr) = run_json(
-        &server,
-        &[
-            "broadcasts",
-            "chat",
-            "mute",
-            BROADCAST,
-            "@troll",
-            "--until",
-            END,
-        ],
-    )
-    .await;
-    assert_eq!(code, 0, "stderr: {stderr}");
-    assert_eq!(json_out(&stdout)["data"]["muted"], true);
-
-    let (code, _stdout, stderr) = run_json(
-        &server,
-        &["broadcasts", "chat", "unmute", BROADCAST, "@troll"],
-    )
-    .await;
-    assert_eq!(code, 0, "stderr: {stderr}");
 }
 
 #[tokio::test]
 async fn inputs_outside_the_spec_bounds_are_refused_before_any_request() {
     let server = MockServer::start().await;
-    let long_message = "x".repeat(141);
 
     for (args, reason) in [
-        (
-            vec!["broadcasts", "chat", "send", BROADCAST, &long_message],
-            "chat-message-too-long",
-        ),
-        (
-            vec!["broadcasts", "chat", "send", BROADCAST, ""],
-            "empty-body",
-        ),
         (
             vec!["broadcasts", "get", "not-an-id!"],
             "invalid-broadcast-id",
         ),
         (
-            vec!["broadcasts", "scheduled", "get", BROADCAST],
-            "invalid-scheduled-broadcast-id",
+            vec!["broadcasts", "remove", "not-an-id!"],
+            "invalid-broadcast-id",
         ),
         (
-            vec!["broadcasts", "chat", "remove", BROADCAST, "msg-1"],
-            "invalid-chat-message-id",
+            vec!["broadcasts", "scheduled", "get", BROADCAST],
+            "invalid-scheduled-broadcast-id",
         ),
         (
             vec![
@@ -374,7 +312,7 @@ async fn inputs_outside_the_spec_bounds_are_refused_before_any_request() {
         assert_eq!(code, 0, "{args:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{args:?}");
-        assert_eq!(body["reason"], reason, "{args:?}");
+        assert_eq!(body["rule"], reason, "{args:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

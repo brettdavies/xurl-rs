@@ -35,6 +35,27 @@
       },
       "type": "object"
     },
+    "ChatMute": {
+      "additionalProperties": true,
+      "description": "A user muted in every chat of the authenticated user's broadcasts.",
+      "properties": {
+        "end_at_ms": {
+          "description": "When a timed mute ends, in milliseconds since the Unix epoch, as a\ndecimal string. Absent for a mute with no end.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "user_id": {
+          "description": "The muted user's id; `includes.users` carries the user when the\nrequest expands it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "Includes": {
       "additionalProperties": true,
       "description": "Expanded objects included alongside the primary data.",
@@ -234,93 +255,6 @@
       },
       "type": "object"
     },
-    "StreamSource": {
-      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts.\n\nThe spec closes this object to further properties, so it carries no\nforward-compatibility bucket.",
-      "properties": {
-        "creation_time": {
-          "description": "When the source was created, in milliseconds since the Unix epoch.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "id": {
-          "description": "Source identifier. It is also the stream key an encoder sends, so\nwhoever holds it can stream to the source.",
-          "type": "string"
-        },
-        "is_stream_active": {
-          "description": "Whether the source is receiving video now.",
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "name": {
-          "description": "The label the account gave the source.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "owner_id": {
-          "description": "The owner's numeric user id. X sends it as a JSON number past the\nrange a 64-bit float holds exactly; this field keeps every digit.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "rtmp_region": {
-          "description": "Ingest region, such as `us-east-1`.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "rtmp_stream_key": {
-          "description": "The stream key, equal to `id`.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "rtmp_url": {
-          "description": "RTMP ingest URL.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "rtmps_url": {
-          "description": "RTMPS ingest URL, on port 443.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "id"
-      ],
-      "type": "object"
-    },
-    "StreamSourceResult": {
-      "additionalProperties": true,
-      "description": "One stream source, as reading, creating, and renaming a source answer.",
-      "properties": {
-        "source": {
-          "$ref": "#/$defs/StreamSource",
-          "description": "The source."
-        }
-      },
-      "required": [
-        "source"
-      ],
-      "type": "object"
-    },
     "User": {
       "additionalProperties": true,
       "description": "A user object from the X API v2.\n\nRequired fields: `id`, `name`, `username`.\nOptional fields depend on which `user.fields` the caller requests.",
@@ -434,8 +368,11 @@
   "description": "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints.",
   "properties": {
     "data": {
-      "$ref": "#/$defs/StreamSourceResult",
-      "description": "Primary payload: one object, or an array for list endpoints."
+      "description": "Primary payload: one object, or an array for list endpoints.",
+      "items": {
+        "$ref": "#/$defs/ChatMute"
+      },
+      "type": "array"
     },
     "errors": {
       "description": "Partial errors returned alongside a 200 response.",

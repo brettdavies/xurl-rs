@@ -35,25 +35,6 @@
       },
       "type": "object"
     },
-    "ChatSentResult": {
-      "additionalProperties": true,
-      "description": "Confirmation that a message reached a broadcast's chat.",
-      "properties": {
-        "success": {
-          "description": "Whether the message was sent.",
-          "type": "boolean"
-        },
-        "timestamp": {
-          "description": "The message's id, which X also uses as its timestamp.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "success",
-        "timestamp"
-      ],
-      "type": "object"
-    },
     "Includes": {
       "additionalProperties": true,
       "description": "Expanded objects included alongside the primary data.",
@@ -253,6 +234,69 @@
       },
       "type": "object"
     },
+    "StreamSource": {
+      "additionalProperties": true,
+      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts,\nas `/2/sources` describes one.",
+      "properties": {
+        "created_at_ms": {
+          "description": "When the source was created, in milliseconds since the Unix epoch,\nas a decimal string.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Source identifier, the `source_id` a scheduled broadcast binds to.",
+          "type": "string"
+        },
+        "is_stream_active": {
+          "description": "Whether an encoder is sending video to the source now. Publishing a\nbroadcast on the source needs it.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "The label the account gave the source.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "region": {
+          "description": "Ingest region, an AWS region name such as `us-east-1`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rtmp_url": {
+          "description": "RTMP ingest URL.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rtmps_url": {
+          "description": "RTMPS ingest URL, on port 443.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stream_key": {
+          "description": "The stream key an encoder sends, so whoever holds it can stream to\nthe source.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
     "User": {
       "additionalProperties": true,
       "description": "A user object from the X API v2.\n\nRequired fields: `id`, `name`, `username`.\nOptional fields depend on which `user.fields` the caller requests.",
@@ -366,7 +410,7 @@
   "description": "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints.",
   "properties": {
     "data": {
-      "$ref": "#/$defs/ChatSentResult",
+      "$ref": "#/$defs/StreamSource",
       "description": "Primary payload: one object, or an array for list endpoints."
     },
     "errors": {

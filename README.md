@@ -64,8 +64,12 @@ codes. It installs with `brew install brettdavies/tap/xurl-rs` or `cargo install
 - [Agent-native features](crates/xurl-cli/README.md#agent-native-features): the skill bundle, response schemas,
   machine-readable output, quiet and non-interactive modes, and structured exit codes
 - [Shell completions](crates/xurl-cli/README.md#shell-completions)
-- [Relationship to xurl](crates/xurl-cli/README.md#relationship-to-xurl), with
-  [KNOWN_DIFFERENCES.md](KNOWN_DIFFERENCES.md) naming each deliberate divergence from the Go tool
+
+Coming from Go `xurl` 1.3.4: `xurl posts USER` is `xr user-posts USER`, an error goes to stderr rather than to stdout
+(as an envelope under `--output json`), `xr delete` asks before it deletes (`--force` skips the question), and
+`XURL_DRY_RUN=1` checks a migrated script offline. [KNOWN_DIFFERENCES.md](KNOWN_DIFFERENCES.md) names each deliberate
+divergence, and the CLI README's [Relationship to xurl](crates/xurl-cli/README.md#relationship-to-xurl) table compares
+the two tools.
 
 ## Before you start: an X app
 
@@ -100,12 +104,13 @@ Without that enrollment step, `/2/*` reads can fail even when the OAuth callback
 
 ## Stability
 
-Both crates follow [SemVer 2.0.0](https://semver.org/) and version independently.
+Both crates follow [SemVer 2.0.0](https://semver.org/) and version independently, with one exception for `xr`.
 
 - **`xr`:** the contract is what a script or an agent depends on: command names, flags, environment variables, exit
   codes, every structured output shape with its `reason` and `next_step.action` sets, and the `~/.xurl/auth.yml` store
-  format. Text output and help text are not contract. A break ships only in a major, and each major's breaks are written
-  up with before-and-after invocations under [`docs/migrating`](docs/migrating).
+  format. Text output and help text are not contract. A break ships in a major, or in a minor when the maintainer
+  judges its blast radius small, and either way its release has a guide under [`docs/migrating`](docs/migrating)
+  that maps each old invocation to its replacement.
 - **`xdk-rs`:** the contract is the public Rust API and the behavior its rustdoc documents. The crate is `0.x`, so a
   break moves the middle number (`0.1.x` to `0.2.0`), and every breaking changelog entry carries a before/after
   snippet.

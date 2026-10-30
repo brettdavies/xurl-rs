@@ -19,6 +19,12 @@ const REPLAY_HORIZON: Duration = Duration::from_secs(24 * 60 * 60);
 
 const SECS_PER_MINUTE: u64 = 60;
 
+/// The checkpoint file's JSON, with a placeholder where the time goes.
+// `xr webhooks replay --from-checkpoint` and `xr webhooks listen --checkpoint`
+// print it in their help (`crates/xurl-cli/src/cli/mod.rs`).
+#[doc(hidden)]
+pub const CHECKPOINT_SHAPE: &str = r#"{"last_event_at": <Unix seconds>}"#;
+
 /// The record on disk: one field, Unix seconds.
 #[derive(Serialize, Deserialize)]
 struct Record {
@@ -112,8 +118,7 @@ pub fn read_checkpoint(path: &Path, now: SystemTime) -> Result<SystemTime> {
     })?;
     let not_a_checkpoint = |cause: &dyn std::fmt::Display| {
         Error::io(format!(
-            "{} is not a checkpoint, a JSON object whose last_event_at is a number of seconds: \
-             {cause}",
+            "{} is not a checkpoint, a JSON object of the form {CHECKPOINT_SHAPE}: {cause}",
             path.display()
         ))
     };
@@ -181,10 +186,11 @@ pub fn replay_window(checkpoint: SystemTime, now: SystemTime) -> Result<ReplayWi
 
 fn not_ahead(at: SystemTime, now: SystemTime) -> Result<()> {
     if at > now {
-        return Err(Error::validation(format!(
-            "the checkpoint's time is later than the clock's, by {} seconds",
-            at.duration_since(now).map_or(0, |ahead| ahead.as_secs())
-        )));
+        let ahead = at.duration_since(now).map_or(0, |ahead| ahead.as_secs());
+        return Err(Error::validation_of(
+            "checkpoint-in-the-future",
+            ahead.to_string(),
+        ));
     }
     Ok(())
 }

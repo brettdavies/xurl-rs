@@ -1,14 +1,21 @@
 args: ["--output", "json", "--dry-run", "bookmark-folders", "add", "A name that runs past the limit"]
 store: empty
 exit_code: 0
-stdout_len: 188
+stdout_len: 429
 stderr_len: 0
 --- stdout ---
 {
   "command": "bookmark-folders-add",
   "exit_code": 1,
+  "message": "A bookmark folder name is at most 25 characters.",
   "name": "A name that runs past the limit",
-  "reason": "folder-name-too-long",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr bookmark-folders add --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema bookmark-folders add",
+  "rule": "folder-name-too-long",
   "status": "dry_run",
   "would_succeed": false
 }

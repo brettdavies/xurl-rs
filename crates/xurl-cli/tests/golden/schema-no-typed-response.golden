@@ -1,0 +1,11 @@
+args: ["schema", "webhooks"]
+store: empty
+exit_code: 1
+stdout_len: 0
+stderr_len: 445
+--- stdout ---
+
+--- stderr ---
+Error: schema not available for 'webhooks': it has no typed response; these commands beneath it have one: webhooks add, webhooks list, webhooks remove, webhooks replay, webhooks stream-links add, webhooks stream-links list, webhooks stream-links remove, webhooks subscriptions add, webhooks subscriptions check, webhooks subscriptions count, webhooks subscriptions list, webhooks subscriptions remove, webhooks validate.
+Try 'xr schema --help'.
+

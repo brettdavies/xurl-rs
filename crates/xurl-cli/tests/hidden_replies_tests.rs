@@ -87,12 +87,7 @@ async fn hide_refuses_an_empty_reply_id_before_any_request() {
     let envelope: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("empty-post-id")),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], "empty-post-id", "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 

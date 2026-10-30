@@ -83,6 +83,42 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
     haystack.contains("client-not-enrolled") || haystack.contains("client-forbidden")
 }
 
+/// The status an API answer classifies as: its own, except a 200, which X
+/// sends with `errors` and no `data` when it refuses the request itself. That
+/// one reads as the first error's problem `type` says: a resource that does
+/// not exist, one the caller may not read, or anything else about the
+/// request.
+fn classified_status(status: u16, body: &str) -> u16 {
+    if status != 200 {
+        return status;
+    }
+    let problem = serde_json::from_str::<serde_json::Value>(body)
+        .ok()
+        .and_then(|value| {
+            Some(
+                value
+                    .get("errors")?
+                    .get(0)?
+                    .get("type")?
+                    .as_str()?
+                    .to_string(),
+            )
+        });
+    match problem.as_deref() {
+        Some(problem) if problem.ends_with("/resource-not-found") => 404,
+        Some(problem) if problem.ends_with("/not-authorized-for-resource") => 403,
+        _ => 400,
+    }
+}
+
+/// `Display` of [`Error::Validation`]: the rule, with the value after a colon.
+fn validation_display(rule: &str, value: Option<&str>) -> String {
+    match value {
+        Some(value) => format!("{rule}: {value}"),
+        None => rule.to_string(),
+    }
+}
+
 /// A lower-level failure an [`Error`] wraps, as
 /// [`std::error::Error::source`] returns it.
 pub type Source = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -104,11 +140,11 @@ pub type Source = Box<dyn std::error::Error + Send + Sync + 'static>;
 /// ```rust,no_run
 /// use xdk::Error;
 /// # fn run() -> Result<(), Error> {
-/// # let result: Result<(), Error> = Err(Error::validation("missing field"));
+/// # let result: Result<(), Error> = Err(Error::validation("empty-body"));
 /// match result {
 ///     Ok(()) => println!("ok"),
 ///     Err(Error::Api { status, body, .. }) => eprintln!("api {status}: {body}"),
-///     Err(Error::Validation(msg)) => eprintln!("validation: {msg}"),
+///     Err(Error::Validation { rule, .. }) => eprintln!("validation: {rule}"),
 ///     Err(Error::InvalidUrl { message, .. }) => eprintln!("bad URL: {message}"),
 ///     Err(other) => eprintln!("{} (kind={})", other, other.kind()),
 /// }
@@ -157,9 +193,19 @@ pub enum Error {
         reset_at: Option<u64>,
     },
 
-    /// Non-HTTP validation or logic error (e.g., missing fields, errors-only 200 responses).
-    #[error("{0}")]
-    Validation(String),
+    /// An input the library refused before sending anything. `rule` names
+    /// the input rule it broke, as a kebab-case code (`invalid-username`,
+    /// `no-list-changes`, ...), and `value` holds the offending input as it
+    /// was given, when the rule names one. The error states the fact and
+    /// leaves the wording to its consumer; `Display` is the code, with the
+    /// value after a colon.
+    #[error("{}", validation_display(rule, value.as_deref()))]
+    Validation {
+        /// The kebab-case code of the input rule the input broke.
+        rule: &'static str,
+        /// The offending input, as it was given, when the rule names one.
+        value: Option<String>,
+    },
 
     /// A URL that cannot be requested: a raw URL with a scheme other than
     /// `http://` or `https://`, or one that does not parse. Both are
@@ -231,6 +277,24 @@ pub enum Error {
         media_id: String,
         /// The deadline the wait ran to.
         waited: std::time::Duration,
+    },
+
+    /// X finished processing an upload and refused it. Another upload of
+    /// the same file meets the same refusal.
+    #[error("media {media_id} failed processing: {detail}")]
+    MediaProcessingFailed {
+        /// The media id X refused.
+        media_id: String,
+        /// What X said about the failure.
+        detail: String,
+    },
+
+    /// X found no account for `account`, a handle a lookup named; a lookup
+    /// of several names the first handle it found no account for.
+    #[error("user @{account} not found")]
+    AccountNotFound {
+        /// The handle, without its `@`, as the lookup sent it.
+        account: String,
     },
 
     /// A webhook receiver could not bind its address because another socket
@@ -415,9 +479,17 @@ impl Error {
         }
     }
 
-    /// Create a validation error for non-HTTP error conditions.
-    pub fn validation(body: impl Into<String>) -> Self {
-        Self::Validation(body.into())
+    /// Create a validation error for an input that broke `rule`.
+    pub fn validation(rule: &'static str) -> Self {
+        Self::Validation { rule, value: None }
+    }
+
+    /// Create a validation error for `value`, an input that broke `rule`.
+    pub fn validation_of(rule: &'static str, value: impl Into<String>) -> Self {
+        Self::Validation {
+            rule,
+            value: Some(value.into()),
+        }
     }
 
     /// Create a transport error from a message alone.
@@ -510,43 +582,40 @@ impl Error {
     #[must_use]
     pub fn next_action(&self) -> Option<NextAction> {
         match self {
-            Self::Api { status, body, .. } if refuses_enrollment(*status, body) => {
-                Some(NextAction::EnrollApp)
-            }
             Self::Api {
-                status: 429,
-                reset_at: Some(_),
-                ..
-            } => Some(NextAction::WaitAndRetry),
+                status,
+                body,
+                reset_at,
+            } => {
+                let status = classified_status(*status, body);
+                if refuses_enrollment(status, body) {
+                    return Some(NextAction::EnrollApp);
+                }
+                match status {
+                    429 if reset_at.is_some() => Some(NextAction::WaitAndRetry),
+                    500..=599 => Some(NextAction::Retry),
+                    400 | 404 | 422 => Some(NextAction::FixInput),
+                    // The stored-credential recovery steps are the binary's:
+                    // it knows which apps hold what and names the
+                    // invocation. A 401, a 403 that is not about enrollment,
+                    // and a 429 that names no reset are credential and quota
+                    // questions of the same kind.
+                    401 | 403 | 429 => None,
+                    _ => Some(NextAction::ReportIssue),
+                }
+            }
             Self::ProcessingTimeout { .. } => Some(NextAction::ResumeWait),
-            Self::Http { .. }
-            | Self::Api {
-                status: 500..=599, ..
-            } => Some(NextAction::Retry),
-            Self::Api {
-                status: 400 | 404 | 422,
-                ..
-            }
-            | Self::Io { .. }
+            Self::Http { .. } => Some(NextAction::Retry),
+            Self::Io { .. }
             | Self::AddressInUse { .. }
             | Self::InvalidMethod(_)
-            | Self::Validation(_)
+            | Self::Validation { .. }
             | Self::InvalidUrl { .. }
-            | Self::InvalidPathParam { .. } => Some(NextAction::FixInput),
-            // The stored-credential recovery steps are the binary's: it knows
-            // which apps hold what and names the invocation. A 401, a 403
-            // that is not about enrollment, and a 429 that names no reset
-            // are credential and quota questions of the same kind.
-            Self::Api {
-                status: 401 | 403 | 429,
-                ..
-            }
-            | Self::Auth { .. }
-            | Self::TokenStore { .. }
-            | Self::AuthMethodMismatch(_) => None,
-            Self::Api { .. } | Self::Internal(_) | Self::Json { .. } => {
-                Some(NextAction::ReportIssue)
-            }
+            | Self::InvalidPathParam { .. }
+            | Self::MediaProcessingFailed { .. }
+            | Self::AccountNotFound { .. } => Some(NextAction::FixInput),
+            Self::Auth { .. } | Self::TokenStore { .. } | Self::AuthMethodMismatch(_) => None,
+            Self::Internal(_) | Self::Json { .. } => Some(NextAction::ReportIssue),
         }
     }
 
@@ -559,28 +628,32 @@ impl Error {
     #[must_use]
     pub fn docs_url(&self) -> Option<&'static str> {
         match self {
-            Self::Api { status, body, .. } if refuses_enrollment(*status, body) => {
-                Some(ENROLLMENT_DOCS)
+            Self::Api { status, body, .. } => {
+                let status = classified_status(*status, body);
+                if refuses_enrollment(status, body) {
+                    return Some(ENROLLMENT_DOCS);
+                }
+                match status {
+                    401 => Some(AUTHENTICATION_DOCS),
+                    429 => Some(RATE_LIMIT_DOCS),
+                    400 | 404 | 422 | 500..=599 => Some(RESPONSE_CODE_DOCS),
+                    403 => None,
+                    _ => Some(ISSUE_TRACKER),
+                }
             }
-            Self::Api { status: 401, .. } | Self::Auth { .. } | Self::AuthMethodMismatch(_) => {
-                Some(AUTHENTICATION_DOCS)
-            }
-            Self::Api { status: 429, .. } => Some(RATE_LIMIT_DOCS),
-            Self::Api {
-                status: 400 | 404 | 422 | 500..=599,
-                ..
-            } => Some(RESPONSE_CODE_DOCS),
-            Self::Api { status: 403, .. }
-            | Self::Http { .. }
+            Self::Auth { .. } | Self::AuthMethodMismatch(_) => Some(AUTHENTICATION_DOCS),
+            Self::Http { .. }
             | Self::Io { .. }
             | Self::InvalidMethod(_)
-            | Self::Validation(_)
+            | Self::Validation { .. }
             | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::TokenStore { .. }
             | Self::ProcessingTimeout { .. }
-            | Self::AddressInUse { .. } => None,
-            Self::Api { .. } | Self::Internal(_) | Self::Json { .. } => Some(ISSUE_TRACKER),
+            | Self::AddressInUse { .. }
+            | Self::MediaProcessingFailed { .. }
+            | Self::AccountNotFound { .. } => None,
+            Self::Internal(_) | Self::Json { .. } => Some(ISSUE_TRACKER),
         }
     }
 
@@ -590,10 +663,16 @@ impl Error {
         matches!(self, Self::Api { .. })
     }
 
+    /// Whether X answered with `errors`, no `data`, and a problem type that
+    /// says what the request named does not exist.
+    pub(crate) fn finds_nothing(&self) -> bool {
+        matches!(self, Self::Api { status: 200, body, .. } if classified_status(200, body) == 404)
+    }
+
     /// Returns true if this is a validation error.
     #[must_use]
     pub fn is_validation(&self) -> bool {
-        matches!(self, Self::Validation(_))
+        matches!(self, Self::Validation { .. })
     }
 
     /// Returns a typed kebab-case identifier for this error.
@@ -610,6 +689,7 @@ impl Error {
     /// | `Api { 404, .. }`      | `not-found`      |
     /// | `Api { 429, .. }`      | `rate-limited`   |
     /// | `Api { 400 \| 422, .. }` | `invalid-request` |
+    /// | `Api { 200, .. }`      | by X's problem `type`: `not-found`, `forbidden`, or `invalid-request` |
     /// | `Api { 5xx, .. }`      | `server-error`   |
     /// | `Api { other, .. }`    | `api-error`      |
     /// | `Http`                 | `network-error`  |
@@ -623,33 +703,35 @@ impl Error {
     /// | `AuthMethodMismatch`   | `auth-method-mismatch` |
     /// | `ProcessingTimeout`    | `processing-timeout` |
     /// | `AddressInUse`         | `address-in-use` |
+    /// | `MediaProcessingFailed` | `invalid-request` |
+    /// | `AccountNotFound`      | `not-found`      |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
             Self::Auth { .. } => "auth-required",
             Self::TokenStore { .. } => "token-store",
-            Self::Api { status: 401, .. } => "auth-required",
-            Self::Api { status: 403, .. } => "forbidden",
-            Self::Api { status: 404, .. } => "not-found",
-            Self::Api { status: 429, .. } => "rate-limited",
-            Self::Api {
-                status: 400 | 422, ..
-            } => "invalid-request",
-            Self::Api {
-                status: 500..=599, ..
-            } => "server-error",
-            Self::Api { .. } => "api-error",
+            Self::Api { status, body, .. } => match classified_status(*status, body) {
+                401 => "auth-required",
+                403 => "forbidden",
+                404 => "not-found",
+                429 => "rate-limited",
+                400 | 422 => "invalid-request",
+                500..=599 => "server-error",
+                _ => "api-error",
+            },
             Self::Http { .. } => "network-error",
             Self::Io { .. } => "io",
             Self::Json { .. } => "serialization",
             Self::InvalidMethod(_) => "invalid-method",
             Self::AuthMethodMismatch(_) => "auth-method-mismatch",
-            Self::Validation(_) => "validation",
+            Self::Validation { .. } => "validation",
             Self::InvalidUrl { .. } => "invalid-url",
             Self::InvalidPathParam { .. } => "invalid-path-param",
             Self::Internal(_) => "internal",
             Self::ProcessingTimeout { .. } => "processing-timeout",
             Self::AddressInUse { .. } => "address-in-use",
+            Self::MediaProcessingFailed { .. } => "invalid-request",
+            Self::AccountNotFound { .. } => "not-found",
         }
     }
 
@@ -664,18 +746,22 @@ impl Error {
     pub fn exit_code(&self) -> i32 {
         match self {
             Self::Auth { .. } | Self::TokenStore { .. } => EXIT_AUTH_REQUIRED,
-            Self::Api { status: 401, .. } => EXIT_AUTH_REQUIRED,
-            Self::Api { status: 429, .. } => EXIT_RATE_LIMITED,
-            Self::Api { status: 404, .. } => EXIT_NOT_FOUND,
-            Self::Api { .. } => EXIT_GENERAL_ERROR,
+            Self::Api { status, body, .. } => match classified_status(*status, body) {
+                401 => EXIT_AUTH_REQUIRED,
+                429 => EXIT_RATE_LIMITED,
+                404 => EXIT_NOT_FOUND,
+                _ => EXIT_GENERAL_ERROR,
+            },
+            Self::AccountNotFound { .. } => EXIT_NOT_FOUND,
             Self::Http { .. } | Self::Io { .. } | Self::AddressInUse { .. } => EXIT_NETWORK_ERROR,
             Self::Json { .. }
             | Self::InvalidMethod(_)
-            | Self::Validation(_)
+            | Self::Validation { .. }
             | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
-            | Self::ProcessingTimeout { .. } => EXIT_GENERAL_ERROR,
+            | Self::ProcessingTimeout { .. }
+            | Self::MediaProcessingFailed { .. } => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch(_) => EXIT_AUTH_MISMATCH,
         }
     }

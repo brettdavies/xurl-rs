@@ -25,6 +25,9 @@
 
 mod common;
 
+use clap::CommandFactory;
+use xurl::cli::commands::schema::{invocation, registered_commands};
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::io::Write as _;
@@ -62,6 +65,15 @@ const UNTRIGGERABLE: &[(&str, &str)] = &[
          shortcut did not bind, or when a raw-URL target is asked for its \
          template; both are programmer errors with no argv path",
     ),
+];
+
+/// Validator codes no `xr` command raises, each with the validator that
+/// raises it: the library keeps the shortcut and its validator for an
+/// embedder, and `xr` gives the endpoint no command (AGENTS.md § "Command
+/// grammar").
+const LIBRARY_ONLY_VALIDATORS: &[(&str, &str)] = &[
+    ("chat-message-too-long", "validate_chat_message"),
+    ("invalid-chat-message-id", "validate_chat_message_id"),
 ];
 
 /// Variables the colour libraries consult that the seam does not strip.
@@ -405,11 +417,102 @@ impl Scratch {
     }
 }
 
+/// Every typed command's help ends with the invocation that prints its
+/// schema, and no other command's help mentions one.
+#[test]
+fn a_typed_command_s_help_names_its_schema() {
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let mut wrong = Vec::new();
+    for path in common::command_paths() {
+        let words = path.join(" ");
+        let cmd = path.iter().fold(&root, |cmd, name| {
+            cmd.find_subcommand(name)
+                .unwrap_or_else(|| panic!("clap has no command {words:?}"))
+        });
+        let help = cmd.clone().render_long_help().to_string();
+        let expected = registered_commands()
+            .find(|command| *command == words)
+            .map(invocation);
+        match expected {
+            Some(line)
+                if !help
+                    .trim_end()
+                    .contains(&format!("Response schema:\n  {line}")) =>
+            {
+                wrong.push(format!("{words}: its help does not end with `{line}`"));
+            }
+            None if help.contains("Response schema:") => {
+                wrong.push(format!("{words}: names a schema it does not have"));
+            }
+            _ => {}
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "help and the schema registry disagree:\n{}",
+        wrong.join("\n")
+    );
+}
+
+/// Pointing help at schemas keeps every subcommand in the order it is
+/// declared, which completions and the help listings follow.
+#[test]
+fn naming_schemas_in_help_keeps_the_declared_command_order() {
+    fn names(cmd: &clap::Command, prefix: &str, out: &mut Vec<String>) {
+        for sub in cmd.get_subcommands() {
+            let path = format!("{prefix} {}", sub.get_name());
+            out.push(path.clone());
+            names(sub, &path, out);
+        }
+    }
+    let declared =
+        <xurl::cli::Commands as clap::Subcommand>::augment_subcommands(clap::Command::new("xr"));
+    let (mut want, mut got) = (Vec::new(), Vec::new());
+    names(&declared, "xr", &mut want);
+    names(&xurl::cli::Cli::command(), "xr", &mut got);
+    assert_eq!(
+        got, want,
+        "the command tree `xr` parses lists its commands in another order than they are declared"
+    );
+}
+
 fn static_cases() -> Vec<Case> {
     vec![
         case("version-flag", &["--version"]),
         case("version-subcommand", &["version"]),
         case("schema-list", &["schema", "--list"]),
+        case(
+            "schema-old-name-json",
+            &["--output", "json", "schema", "webhooks-subscriptions-count"],
+        ),
+        case(
+            "schema-scope-word-json",
+            &["--output", "json", "schema", "envelope"],
+        ),
+        case(
+            "schema-unknown-word-json",
+            &[
+                "--output",
+                "json",
+                "schema",
+                "webhooks",
+                "subscriptoins",
+                "count",
+            ],
+        ),
+        case("schema-no-typed-response", &["schema", "webhooks"]),
+        case(
+            "schema-path-miss-json",
+            &[
+                "--output",
+                "json",
+                "schema",
+                "post",
+                "--path",
+                "public_metrics.nope",
+            ],
+        ),
         case("examples", &["examples"]),
     ]
 }
@@ -503,7 +606,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             "invalid-url",
             &["--output", "json", "--auth", "app", "http://[bad"],
         )),
-        reason_case("validation", &["--output", "json", "relative/path"]),
+        reason_case("validation", &["--output", "json", "post", ""]),
         Case {
             store: Store::OAuth2,
             cwd: Some(upload_dir),
@@ -742,6 +845,52 @@ fn dry_run_cases() -> Vec<Case> {
             "dry-run-text-invalid",
             &["--dry-run", "bookmark-folders", "add", ""],
         ),
+        case(
+            "dry-run-text-invalid-quiet",
+            &["--quiet", "--dry-run", "bookmark-folders", "add", ""],
+        ),
+        case(
+            "dry-run-forward-url-not-http",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "listen",
+                "--forward",
+                "ftp://example.com/hook",
+            ],
+        ),
+        case(
+            "dry-run-listen-no-signing-secret",
+            &["--output", "json", "--dry-run", "webhooks", "listen"],
+        ),
+        case(
+            "dry-run-header-not-name-value",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "listen",
+                "--forward",
+                "https://example.com/hook",
+                "-H",
+                "X-Token abc",
+            ],
+        ),
+        case(
+            "dry-run-program-not-found",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "listen",
+                "--",
+                "xr-no-such-program",
+            ],
+        ),
         case("dry-run-text-no-credential", &["--dry-run", "whoami"]),
         case("dry-run-text-quiet", &["--quiet", "--dry-run", "whoami"]),
         signed_in(case(
@@ -903,36 +1052,6 @@ fn dry_run_cases() -> Vec<Case> {
                 "1YqKDqWqdPLGV",
             ],
         ),
-        case(
-            "dry-run-invalid-chat-message-id",
-            &[
-                "--output",
-                "json",
-                "--dry-run",
-                "broadcasts",
-                "chat",
-                "remove",
-                "1YqKDqWqdPLGV",
-                "msg-1",
-            ],
-        ),
-        Case {
-            name: "dry-run-chat-message-too-long".to_string(),
-            args: [
-                "--output",
-                "json",
-                "--dry-run",
-                "broadcasts",
-                "chat",
-                "send",
-                "1YqKDqWqdPLGV",
-            ]
-            .into_iter()
-            .map(str::to_string)
-            .chain(["x".repeat(141)])
-            .collect(),
-            ..Case::default()
-        },
         case(
             "dry-run-invalid-list-id",
             &[
@@ -1117,7 +1236,7 @@ fn dry_run_cases() -> Vec<Case> {
                 "subscriptions",
                 "remove",
                 "1146654567674912769",
-                "@someone",
+                "12345678901234567890",
             ],
         ),
         case(
@@ -1214,7 +1333,7 @@ fn dry_run_cases() -> Vec<Case> {
                 "json",
                 "--dry-run",
                 "bookmark-folders",
-                "get",
+                "posts",
                 "rust",
             ],
         ),
@@ -1503,21 +1622,22 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     }
 }
 
-/// The `reason` of the one JSON envelope a capture carries, on either stream.
+/// The string under `key` (`reason` or `rule`) of the one JSON envelope a
+/// capture carries, on either stream.
 ///
-/// A multi-host envelope carries its reasons per host under `results`; the
-/// first one is the case's reason when every host reports the same.
-fn envelope_reason(captured: &Captured) -> Option<String> {
+/// A multi-host envelope carries its values per host under `results`; the
+/// first one is the case's when every host reports the same.
+fn envelope_field(captured: &Captured, key: &str) -> Option<String> {
     let value = [&captured.stderr, &captured.stdout]
         .into_iter()
         .filter(|stream| !stream.trim().is_empty())
         .find_map(|stream| serde_json::from_str::<serde_json::Value>(stream).ok())?;
-    let reason_of = |v: &serde_json::Value| v.get("reason")?.as_str().map(str::to_string);
-    reason_of(&value).or_else(|| {
+    let field_of = |v: &serde_json::Value| v.get(key)?.as_str().map(str::to_string);
+    field_of(&value).or_else(|| {
         let results = value.get("installations")?.as_array()?;
-        let mut reasons = results.iter().map(reason_of);
-        let first = reasons.next()??;
-        reasons
+        let mut values = results.iter().map(field_of);
+        let first = values.next()??;
+        values
             .all(|r| r.as_deref() == Some(first.as_str()))
             .then_some(first)
     })
@@ -1677,6 +1797,7 @@ fn xr_output_matches_the_golden_fixtures() {
     std::fs::create_dir_all(&dir).expect("golden dir");
 
     let cases = all_cases(&bin, &scratch);
+    let validators = validator_reasons();
     let mut failures = Vec::new();
     let mut expected_files = BTreeSet::new();
 
@@ -1685,11 +1806,20 @@ fn xr_output_matches_the_golden_fixtures() {
         expected_files.insert(file.clone());
         let actual = capture(case, &bin, &api, &scratch);
 
-        if let Some(reason) = case.reason {
-            let found = envelope_reason(&actual);
-            if found.as_deref() != Some(reason) {
+        // A `dry-run-<code>` case exists to pin that validator's refusal, so
+        // its envelope must still name the code as its `rule`: a bless would
+        // otherwise re-capture whatever a renamed verb or a widened input now
+        // prints.
+        let pinned = case
+            .name
+            .strip_prefix("dry-run-")
+            .filter(|code| validators.contains(*code));
+        for (key, expected) in [("reason", case.reason), ("rule", pinned)] {
+            let Some(expected) = expected else { continue };
+            let found = envelope_field(&actual, key);
+            if found.as_deref() != Some(expected) {
                 failures.push(format!(
-                    "== {} ==\ntrigger no longer yields reason {reason:?}: found {found:?}\nstdout:\n{}\nstderr:\n{}",
+                    "== {} ==\ntrigger no longer yields {key} {expected:?}: found {found:?}\nstdout:\n{}\nstderr:\n{}",
                     case.name, actual.stdout, actual.stderr
                 ));
             }
@@ -1915,7 +2045,7 @@ fn every_library_kind_is_a_reason() {
 }
 
 /// The refusals `validate_*` in the library's `api/shortcuts.rs` can raise.
-fn validator_reasons() -> BTreeSet<String> {
+fn library_validator_reasons() -> BTreeSet<String> {
     let source =
         std::fs::read_to_string(common::workspace_root().join("crates/xdk/src/api/shortcuts.rs"))
             .expect("shortcuts readable");
@@ -1924,6 +2054,49 @@ fn validator_reasons() -> BTreeSet<String> {
         .captures_iter(&source)
         .map(|m| m[1].to_string())
         .collect()
+}
+
+/// The validator refusals an `xr` command can raise.
+fn validator_reasons() -> BTreeSet<String> {
+    let mut codes = library_validator_reasons();
+    for (code, _) in LIBRARY_ONLY_VALIDATORS {
+        codes.remove(*code);
+    }
+    codes
+}
+
+/// A library-only code is one the library still raises from a validator no
+/// `xr` source calls; once a command calls it, the entry goes and the code
+/// takes a `dry-run-<code>` fixture.
+#[test]
+fn every_library_only_validator_is_out_of_xrs_reach() {
+    let codes = library_validator_reasons();
+    let sources: Vec<(PathBuf, String)> =
+        common::rust_files(&common::workspace_root().join("crates/xurl-cli/src"))
+            .into_iter()
+            .map(|path| {
+                let text = std::fs::read_to_string(&path).expect("source readable");
+                (path, text)
+            })
+            .collect();
+    for (code, validator) in LIBRARY_ONLY_VALIDATORS {
+        assert!(
+            codes.contains(*code),
+            "{code:?} is no longer a validator code in crates/xdk/src/api/shortcuts.rs; \
+             drop its LIBRARY_ONLY_VALIDATORS entry"
+        );
+        let call = regex::Regex::new(&format!(r"\b{validator}\b")).unwrap();
+        let callers: Vec<&PathBuf> = sources
+            .iter()
+            .filter(|(_, text)| call.is_match(text))
+            .map(|(path, _)| path)
+            .collect();
+        assert!(
+            callers.is_empty(),
+            "{validator} is called from {callers:?}, so an xr command can raise {code:?}: \
+             drop its LIBRARY_ONLY_VALIDATORS entry and add a dry-run-{code} case"
+        );
+    }
 }
 
 /// A reason the source can emit is named by the schema and pinned by a
@@ -1975,5 +2148,152 @@ fn every_reason_the_source_emits_is_documented_and_pinned() {
     assert!(
         unpinned.is_empty(),
         "validator refusals without a dry-run fixture: {unpinned:?}"
+    );
+}
+
+/// The step a dry run's envelope names, as the real run would name it: a
+/// step that reruns the invocation keeps `--dry-run`, which the real run's
+/// invocation lacks.
+fn step_without_dry_run(step: &serde_json::Value) -> serde_json::Value {
+    let mut step = step.clone();
+    for key in ["command", "template"] {
+        if let Some(text) = step[key].as_str() {
+            step[key] = text.replacen(" --dry-run", "", 1).into();
+        }
+    }
+    step
+}
+
+/// A dry run that refuses answers as its real run's error does: every
+/// refusing JSON case in [`dry_run_cases`] carries a `message`, and the
+/// `reason`, `next_step`, and `exit_code` the same invocation gets without
+/// `--dry-run` (with `--force` when it would stop to ask). A validation
+/// refusal carries the validator's code as `rule`, the sentence for it as
+/// `message`, and the offending input as `value` when the rule names one, the
+/// same in both runs. Every validator code has a case there,
+/// and each must turn up as a `rule`, so a validator added later is held
+/// here too.
+#[test]
+fn a_refusing_dry_run_carries_the_message_and_step_of_its_real_run() {
+    let bin = common::xr_bin().to_string();
+    let api = MockApi::start();
+    let scratch = Scratch::new();
+    let mut checked = 0;
+    let mut rules = std::collections::BTreeSet::new();
+    let mut failures = Vec::new();
+    for case in dry_run_cases() {
+        let is_json_dry_run = case.args.iter().any(|a| a == "--dry-run")
+            && case
+                .args
+                .windows(2)
+                .any(|w| w[0] == "--output" && w[1] == "json");
+        if !is_json_dry_run {
+            continue;
+        }
+        let dry = capture(&case, &bin, &api, &scratch);
+        let answer: serde_json::Value = match serde_json::from_str(dry.stdout.trim()) {
+            Ok(answer) => answer,
+            Err(e) => {
+                failures.push(format!(
+                    "{}: no dry-run envelope ({e}): {}",
+                    case.name, dry.stdout
+                ));
+                continue;
+            }
+        };
+        if answer["would_succeed"] != false {
+            continue;
+        }
+        checked += 1;
+        if answer["message"].as_str().is_none_or(str::is_empty) {
+            failures.push(format!("{}: no message: {answer}", case.name));
+        }
+        let mut args: Vec<String> = case
+            .args
+            .iter()
+            .filter(|a| *a != "--dry-run")
+            .cloned()
+            .collect();
+        if answer["confirmation_required"] == true {
+            args.push("--force".to_string());
+        }
+        let real_case = Case {
+            name: case.name.clone(),
+            args,
+            env: case.env.clone(),
+            unset_home: case.unset_home,
+            skill_home: case.skill_home.clone(),
+            stdin: case.stdin,
+            cwd: case.cwd.clone(),
+            reason: None,
+            store: case.store,
+        };
+        let real = capture(&real_case, &bin, &api, &scratch);
+        let error: serde_json::Value = match serde_json::from_str(real.stderr.trim()) {
+            Ok(error) => error,
+            Err(e) => {
+                failures.push(format!(
+                    "{}: the real run printed no envelope ({e}): {}",
+                    case.name, real.stderr
+                ));
+                continue;
+            }
+        };
+        if answer["exit_code"] != real.exit_code {
+            failures.push(format!(
+                "{}: the dry run says exit {}, the real run exited {}",
+                case.name, answer["exit_code"], real.exit_code
+            ));
+        }
+        let step = step_without_dry_run(&answer["next_step"]);
+        if step != error["next_step"] {
+            failures.push(format!(
+                "{}: the dry run's step {} differs from the real run's {}",
+                case.name, answer["next_step"], error["next_step"]
+            ));
+        }
+        if answer["reason"] != error["reason"] {
+            failures.push(format!(
+                "{}: the dry run's reason {} differs from the real run's {}",
+                case.name, answer["reason"], error["reason"]
+            ));
+        }
+        if error["reason"] == "validation" {
+            for key in ["rule", "message", "value"] {
+                if answer[key] != error[key] {
+                    failures.push(format!(
+                        "{}: the dry run's {key} {} differs from the real run's {}",
+                        case.name, answer[key], error[key]
+                    ));
+                }
+            }
+            match error["rule"].as_str() {
+                Some(rule) if error["message"].as_str() != Some(rule) => {
+                    rules.insert(rule.to_string());
+                }
+                _ => failures.push(format!(
+                    "{}: a validation refusal needs a rule and a message apart from it: {error}",
+                    case.name
+                )),
+            }
+        }
+    }
+    for code in validator_reasons() {
+        if !rules.contains(&code) {
+            failures.push(format!(
+                "validator code {code:?} reached no refusing dry run as its `rule`"
+            ));
+        }
+    }
+    let validators = validator_reasons().len();
+    assert!(
+        checked >= validators,
+        "checked {checked} refusing dry runs, fewer than the {validators} validator codes; the case filter is broken"
+    );
+    assert!(
+        failures.is_empty(),
+        "{} refusing dry run(s) do not answer as their real run does:\n{}",
+        failures.len(),
+        failures.join("\n")
     );
 }

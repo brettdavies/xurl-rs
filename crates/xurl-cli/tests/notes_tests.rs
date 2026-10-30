@@ -99,6 +99,23 @@ async fn evaluate_scores_a_draft() {
     assert_eq!(json_out(&stdout)["data"]["claim_opinion_score"], 0.82);
 }
 
+/// A draft is scored only when it could be written: text with no source URL
+/// is refused before the request, as `notes write` refuses it.
+#[tokio::test]
+async fn evaluate_refuses_a_draft_with_no_source_url_before_any_request() {
+    let server = MockServer::start().await;
+    for text in ["No link here", "see https:// later"] {
+        let (code, _stdout, stderr) =
+            run_json(&server, &["notes", "evaluate", POST_ID, "--text", text]).await;
+
+        assert_eq!(code, 1, "{text:?}: {stderr}");
+        let envelope = error_envelope(&stderr);
+        assert_eq!(envelope["reason"], "validation", "{text:?}");
+        assert_eq!(envelope["rule"], "note-needs-source-url", "{text:?}");
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
 #[tokio::test]
 async fn eligible_and_written_send_test_mode_false_unless_asked() {
     let server = MockServer::start().await;
@@ -191,6 +208,10 @@ async fn inputs_outside_the_spec_are_refused_before_any_request() {
             ],
             "note-needs-source-url",
         ),
+        (
+            vec!["notes", "evaluate", POST_ID, "--text", "No source here"],
+            "note-needs-source-url",
+        ),
         (vec!["notes", "remove", "note-1"], "invalid-note-id"),
         (
             vec!["notes", "evaluate", "", "--text", TEXT],
@@ -204,7 +225,7 @@ async fn inputs_outside_the_spec_are_refused_before_any_request() {
         assert_eq!(code, 0, "{args:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{args:?}");
-        assert_eq!(body["reason"], reason, "{args:?}");
+        assert_eq!(body["rule"], reason, "{args:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

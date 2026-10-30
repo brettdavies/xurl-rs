@@ -283,9 +283,18 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "DELETE",
         "/2/broadcasts/chat/moderators/{user_id}",
     ),
+    ("GET_CHAT_MUTES", "GET", "/2/broadcasts/chat/mutes"),
+    ("ADD_CHAT_MUTE", "POST", "/2/broadcasts/chat/mutes"),
+    (
+        "REMOVE_CHAT_MUTE",
+        "DELETE",
+        "/2/broadcasts/chat/mutes/{user_id}",
+    ),
     // broadcast stream sources
     ("LIST_BROADCASTS", "GET", "/2/broadcasts"),
     ("GET_BROADCAST", "GET", "/2/broadcasts/{id}"),
+    ("DELETE_BROADCAST", "DELETE", "/2/broadcasts/{id}"),
+    ("END_BROADCAST", "PUT", "/2/broadcasts/{id}/state"),
     (
         "LIST_SCHEDULED_BROADCASTS",
         "GET",
@@ -330,6 +339,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_STREAM_SOURCE", "GET", "/2/sources/{id}"),
     ("RENAME_STREAM_SOURCE", "PUT", "/2/sources/{id}"),
     ("DELETE_STREAM_SOURCE", "DELETE", "/2/sources/{id}"),
+    ("GET_REGION", "GET", "/2/region"),
     // calls
     ("GET_CALL", "GET", "/2/calls/{id}"),
     ("GET_SCHEDULED_CALLS", "GET", "/2/calls/scheduled"),

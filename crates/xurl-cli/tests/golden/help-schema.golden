@@ -1,18 +1,27 @@
 args: ["schema", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7046
+stdout_len: 8083
 stderr_len: 0
 --- stdout ---
 Show JSON Schema for a command's response type
 
-Usage: xr schema [OPTIONS] [COMMAND]
+Usage: xr schema [OPTIONS] [COMMAND]...
 
 Arguments:
-  [COMMAND]
-          Command name to get the schema for (e.g. "post", "whoami", "envelope")
+  [COMMAND]...
+          The command's words, as `xr help` takes them (e.g. `post`, `webhooks subscriptions count`)
 
 Options:
+      --full
+          Print the command's complete standalone schema, as committed under `schema/responses/`
+
+      --common
+          Print the API response wrapper every typed command shares, with its shared definitions
+
+      --path <DOT_PATH>
+          Print the node at a dot path into the command's `data`, or into the wrapper with `--common`
+
       --list
           List all commands and their response types
 
@@ -22,6 +31,10 @@ Options:
       --envelope
           Output the canonical agent-native output envelope schema
 
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -127,16 +140,16 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100.
+          Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it
           
-          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
+          It is clamped to the range that command's `-n` takes, and `-n` wins when both are given. A raw request carries its page size in its own query string.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
-          Pagination cursor / `pagination_token` for list endpoints.
+          The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
+          A command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.
           
           [env: XURL_CURSOR=]
 
@@ -154,18 +167,27 @@ Options:
           
           [env: XURL_AFTER=]
 
-  -h, --help
-          Print help (see a summary with '-h')
-
 Examples:
-  List all command schemas (text):
-    xr schema --list
-  List all command schemas (JSON):
-    xr schema --list --output json
-  Dump a single command's schema:
+  A command's schema, named by the words you run it with:
     xr schema post --output json
-  Dump every schema as one JSON document:
+    xr schema webhooks subscriptions count --output json
+  Then filter that command's output by the fields it names:
+    xr schema search
+    xr search "from:jack" --output json | jaq -r '.data[].text'
+  One field, by a dot path into data (through arrays and nullable values):
+    xr schema post --path public_metrics
+  The complete schema, wrapper and all, as committed under schema/responses/:
+    xr schema post --full --output json
+  The wrapper every typed command shares (includes, meta, errors):
+    xr schema --common
+    xr schema --common --path includes.users
+  List every command with a schema (text, or one record per command):
+    xr schema --list
+    xr schema --list --output json
+  Every schema as one JSON document:
     xr schema --all --output json
+  The output envelope every command prints:
+    xr schema --envelope --output json
 
 --- stderr ---
 

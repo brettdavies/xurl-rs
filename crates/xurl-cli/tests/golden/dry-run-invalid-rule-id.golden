@@ -1,14 +1,21 @@
 args: ["--output", "json", "--dry-run", "stream", "rules", "remove", "rule-1"]
 store: empty
 exit_code: 0
-stdout_len: 230
+stdout_len: 465
 stderr_len: 0
 --- stdout ---
 {
   "command": "stream-rules-remove",
   "confirmation_required": true,
   "exit_code": 1,
-  "reason": "invalid-rule-id",
+  "message": "A filtered-stream rule id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr stream rules remove --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema stream rules remove",
+  "rule": "invalid-rule-id",
   "rule_ids": [
     "rule-1"
   ],

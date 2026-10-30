@@ -25,7 +25,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::error::{ContextKind, ContextValue, ErrorKind};
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, FromArgMatches, Parser};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
@@ -40,6 +40,7 @@ use crate::cli::reparse::{
     color_choice, equals_form_hint, failing_command, lenient_cli, output_intent,
     parse_past_stray_words, parse_without_display_flags, raw_choice,
 };
+use crate::cli::retired_verbs;
 use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
@@ -174,8 +175,14 @@ where
 {
     let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
 
-    let cli = match Cli::try_parse_from(args_vec.iter()) {
-        Ok(cli) => cli,
+    // Parsed in two steps, formatting a failure as `Cli::try_parse_from`
+    // does, so the matches stay to name the command that ran.
+    let parsed = Cli::command()
+        .try_get_matches_from(args_vec.iter())
+        .and_then(|matches| Cli::from_arg_matches(&matches).map(|cli| (cli, matches)))
+        .map_err(|e| e.format(&mut Cli::command()));
+    let (cli, matches) = match parsed {
+        Ok(parsed) => parsed,
         Err(e) => {
             return render_parse_error(&e, &args_vec, overrides, stdout, stderr);
         }
@@ -189,7 +196,10 @@ where
         cli.raw,
         overrides.no_color,
     )
-    .with_no_interactive(cli.no_interactive);
+    .with_no_interactive(cli.no_interactive)
+    .with_response_schema(crate::cli::commands::schema::pointer_for(&matched_path(
+        &matches,
+    )));
     crate::cli::panic_hook::publish(&out);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
@@ -238,25 +248,25 @@ where
             }
             Commands::Schema {
                 command,
+                full,
+                common,
+                path,
                 list,
                 all,
                 envelope,
             } => {
-                return match crate::cli::commands::schema::run_schema(
-                    command.as_deref(),
-                    *list,
-                    *all,
-                    *envelope,
-                    &out,
-                    stdout,
-                ) {
+                let request = crate::cli::commands::schema::Request {
+                    command,
+                    list: *list,
+                    all: *all,
+                    envelope: *envelope,
+                    full: *full,
+                    common: *common,
+                    path: path.as_deref(),
+                };
+                return match crate::cli::commands::schema::run_schema(&request, &out, stdout) {
                     Ok(()) => EXIT_SUCCESS,
-                    // What `schema` refuses is the name it was given.
-                    Err(e) => {
-                        let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
-                        out.print_refusal(stderr, &e, None, &hint);
-                        EXIT_GENERAL_ERROR
-                    }
+                    Err(refusal) => render_schema_refusal(refusal, &args_vec, &out, stderr),
                 };
             }
             Commands::Skill { .. } => {
@@ -294,7 +304,7 @@ where
             let suggestion = nearest_command(&word);
             return render_unknown_command(
                 &word,
-                suggestion.as_deref(),
+                Suggestion::nearest(suggestion.as_deref()),
                 ROOT_COMMAND,
                 &out,
                 stderr,
@@ -368,6 +378,11 @@ where
             out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
             EXIT_SUCCESS
         }
+        Err(Failure::DryRunInvalid { ctx, error }) => {
+            let hint = crate::cli::hints::show_help_hint(&invoked_help(&args_vec));
+            out.print_dry_run_refusal(stdout, &ctx, &error, Some(&hint));
+            EXIT_SUCCESS
+        }
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
             match recovery_hint(&e, &snapshot, &args_vec, structured) {
@@ -403,6 +418,7 @@ fn recovery_hint(
         .or_else(|| crate::cli::hints::enrollment_hint(error))
         .or_else(|| crate::cli::hints::resume_wait_hint(error))
         .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
+        .or_else(|| crate::cli::hints::no_signing_secret_hint(snapshot, error, &invocation))
         .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
         .or_else(|| crate::cli::hints::mismatch_hint(snapshot, error, &invocation, structured))
         .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
@@ -497,7 +513,13 @@ fn render_parse_error(
     let root_word = hidden_word.or_else(|| unknown_word(past_stray_words.as_ref()?));
     if let Some(word) = root_word {
         let suggestion = nearest_command(&word);
-        return render_unknown_command(&word, suggestion.as_deref(), ROOT_COMMAND, &out, stderr);
+        return render_unknown_command(
+            &word,
+            Suggestion::nearest(suggestion.as_deref()),
+            ROOT_COMMAND,
+            &out,
+            stderr,
+        );
     }
     // clap scores a stray word against the commands even after a raw target,
     // where the caller meant a request and named no command.
@@ -512,9 +534,10 @@ fn render_parse_error(
         && let Some(word) = context_string(error, ContextKind::InvalidSubcommand)
     {
         if !word.starts_with('-') {
-            let suggestion = suggestion_for_rejected(error, args, &word);
             let command = failing_command(error, args);
-            return render_unknown_command(&word, suggestion.as_deref(), &command, &out, stderr);
+            let nearest = suggestion_for_rejected(error, args, &word);
+            let suggestion = Suggestion::for_word(&command, &word, nearest.as_deref());
+            return render_unknown_command(&word, suggestion, &command, &out, stderr);
         }
         if matches!(word.as_str(), "-h" | "--help") && help_command_precedes(args, &word) {
             let _ = write!(stdout, "{}", help_command_page(args));
@@ -594,18 +617,6 @@ fn help_command_page(args: &[OsString]) -> String {
         .unwrap_or_default()
 }
 
-/// The one rendering both detection paths use.
-///
-/// Text mode gets the sentence, pointing at the help of the nearest command
-/// under `command`, the one the word was typed under, or at the help of
-/// `command` itself when nothing scored close enough. Every structured mode
-/// gets the envelope with the offending word in `command`, the nearest real
-/// name in `suggestion`, absent when nothing scored, and a `next_step` that
-/// runs the same help page.
-///
-/// The pointer names a help page rather than the corrected invocation: the
-/// suggestion is a guess, and the corrected invocation of a write command
-/// would act on it.
 /// Renders raw-only flags given ahead of a command word: `invalid-args`,
 /// with the invocation that moves them after the word as its step when one
 /// exists, and the command's help otherwise. The message and the step name
@@ -656,22 +667,182 @@ fn render_misplaced_flags(
     EXIT_USAGE_ERROR
 }
 
+/// Renders what `xr schema` refused. A word that names no command takes
+/// the refusal `xr help` gives it; an old name or a scope word is
+/// `invalid-args` with the invocation that works as its step, when one
+/// exists; a fault in the registry names the issue tracker; anything else is
+/// the value refusal every command gives.
+fn render_schema_refusal(
+    refusal: crate::cli::commands::schema::Refusal,
+    args: &[OsString],
+    out: &OutputConfig,
+    stderr: &mut dyn Write,
+) -> i32 {
+    use crate::cli::commands::schema::{Refusal, invocation};
+    let (given, problem, run) = match refusal {
+        Refusal::UnknownCommand {
+            word,
+            suggestion,
+            under,
+        } => {
+            return render_unknown_command(
+                &word,
+                Suggestion::for_word(&under, &word, suggestion.as_deref()),
+                &under,
+                out,
+                stderr,
+            );
+        }
+        Refusal::Invalid(error) => {
+            let hint = match error {
+                xdk::error::Error::Internal(_) => crate::cli::hints::general_hint(&error, ""),
+                _ => None,
+            }
+            .unwrap_or_else(|| crate::cli::hints::show_help_hint(&invoked_help(args)));
+            out.print_refusal(stderr, &error, None, &hint);
+            return EXIT_GENERAL_ERROR;
+        }
+        Refusal::PathMiss {
+            path,
+            segment,
+            known,
+            template,
+        } => {
+            let has = if known.is_empty() {
+                "it has no properties".to_string()
+            } else {
+                format!("it has {}", known.join(", "))
+            };
+            out.emit_error_envelope(
+                stderr,
+                ErrorBody {
+                    reason: Reason::InvalidArgs,
+                    exit_code: EXIT_USAGE_ERROR,
+                    message: Some(format!(
+                        "no property '{segment}' in '{path}'; {has}. Fill in <property> and run: {template}"
+                    )),
+                    path: Some(path),
+                    known_properties: Some(known),
+                    next_step: Some(NextStep::fix_input_template(template)),
+                    ..ErrorBody::default()
+                },
+            );
+            return EXIT_USAGE_ERROR;
+        }
+        Refusal::OldName { given, command } => {
+            let problem = format!(
+                "'{given}' is a name `xr schema` no longer takes; it takes the command's words."
+            );
+            (given, problem, Some(invocation(command)))
+        }
+        Refusal::ScopeWord(word) => {
+            let flag = format!("--{word}");
+            let alone = Cli::try_parse_from(["xr", "schema", flag.as_str()]).is_ok();
+            let problem = format!(
+                "'{word}' names a scope of `xr schema`, not a command; it is the flag {flag}."
+            );
+            (word, problem, alone.then(|| format!("xr schema {flag}")))
+        }
+    };
+    let (message, next_step) = match run {
+        Some(run) => (
+            format!("{problem} Run: {run}"),
+            NextStep::fix_input_with(run),
+        ),
+        None => (
+            format!("{problem} Try 'xr schema --help'."),
+            NextStep::show_help("xr schema --help".to_string()),
+        ),
+    };
+    out.emit_error_envelope(
+        stderr,
+        ErrorBody {
+            reason: Reason::InvalidArgs,
+            exit_code: EXIT_USAGE_ERROR,
+            message: Some(message),
+            command: Some(given),
+            next_step: Some(next_step),
+            ..ErrorBody::default()
+        },
+    );
+    EXIT_USAGE_ERROR
+}
+
+/// The words of the subcommand clap matched, empty for a raw request.
+fn matched_path(matches: &clap::ArgMatches) -> String {
+    let mut words = Vec::new();
+    let mut current = matches;
+    while let Some((name, sub)) = current.subcommand() {
+        words.push(name);
+        current = sub;
+    }
+    words.join(" ")
+}
+
+/// The command an unknown word's pointer names, and why it names it.
+#[derive(Clone, Copy)]
+enum Suggestion<'a> {
+    /// Nothing scored close enough to name.
+    Nothing,
+    /// The nearest real command by spelling: a guess at a typo.
+    Nearest(&'a str),
+    /// The command that replaced a word its family retired.
+    Replacement(&'a str),
+}
+
+impl<'a> Suggestion<'a> {
+    fn nearest(name: Option<&'a str>) -> Self {
+        name.map_or(Self::Nothing, Self::Nearest)
+    }
+
+    /// The word that replaced `word` when `command`'s family retired it, and
+    /// the nearest name by spelling otherwise.
+    fn for_word(command: &str, word: &str, nearest: Option<&'a str>) -> Self {
+        match retired_verbs::replacement(command, word) {
+            Some(replacement) => Self::Replacement(replacement),
+            None => Self::nearest(nearest),
+        }
+    }
+
+    fn name(self) -> Option<&'a str> {
+        match self {
+            Self::Nothing => None,
+            Self::Nearest(name) | Self::Replacement(name) => Some(name),
+        }
+    }
+}
+
+/// The one rendering both detection paths use.
+///
+/// Text mode gets the sentence, pointing at the help of the suggested command
+/// under `command`, the one the word was typed under, or at the help of
+/// `command` itself when nothing scored close enough. Every structured mode
+/// gets the envelope with the offending word in `command`, the suggested name
+/// in `suggestion`, absent when there is none, and a `next_step` that runs the
+/// same help page. A replacement reads as one, not as a guess at a typo.
+///
+/// The pointer names a help page rather than the corrected invocation: the
+/// suggestion can be a guess, and the corrected invocation of a write command
+/// would act on it.
 fn render_unknown_command(
     word: &str,
-    suggestion: Option<&str>,
+    suggestion: Suggestion<'_>,
     command: &str,
     out: &OutputConfig,
     stderr: &mut dyn Write,
 ) -> i32 {
-    let target = match suggestion {
-        Some(nearest) => format!("{command} {nearest}"),
+    let target = match suggestion.name() {
+        Some(name) => format!("{command} {name}"),
         None => command.to_string(),
     };
     let message = match suggestion {
-        Some(nearest) => {
-            format!("unknown command '{word}'. Did you mean '{nearest}'? Try '{target} --help'.")
+        Suggestion::Nothing => format!("unknown command '{word}'. Try '{target} --help'."),
+        Suggestion::Nearest(name) => {
+            format!("unknown command '{word}'. Did you mean '{name}'? Try '{target} --help'.")
         }
-        None => format!("unknown command '{word}'. Try '{target} --help'."),
+        Suggestion::Replacement(name) => {
+            format!("unknown command '{word}': '{name}' replaced it. Try '{target} --help'.")
+        }
     };
     out.emit_error_envelope(
         stderr,
@@ -680,7 +851,7 @@ fn render_unknown_command(
             exit_code: EXIT_USAGE_ERROR,
             message: Some(message),
             command: Some(word.to_string()),
-            suggestion: suggestion.map(str::to_string),
+            suggestion: suggestion.name().map(str::to_string),
             next_step: Some(NextStep::show_help(format!("{target} --help"))),
             ..ErrorBody::default()
         },
@@ -692,3 +863,31 @@ fn render_unknown_command(
 // `Send` by themselves, but the function-pointer type below is, which is
 // what library consumers need to dispatch the runner from a thread pool.
 xdk::assert_send_sync!(fn() -> i32);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::ColorChoice;
+
+    /// A command the registry resolves but holds no schema for is a fault in
+    /// xr, so its refusal points at the issue tracker rather than at a help
+    /// page the caller can do nothing with.
+    #[test]
+    fn a_broken_schema_registry_reports_an_internal_fault() {
+        let out = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+        let mut stderr = Vec::new();
+        let code = render_schema_refusal(
+            crate::cli::commands::schema::Refusal::Invalid(xdk::error::Error::Internal(
+                "no schema registered for 'post'".into(),
+            )),
+            &["xr", "schema", "post"].map(OsString::from),
+            &out,
+            &mut stderr,
+        );
+        let envelope: serde_json::Value =
+            serde_json::from_slice(&stderr).expect("a JSON error envelope");
+        assert_eq!(code, EXIT_GENERAL_ERROR);
+        assert_eq!(envelope["reason"], "internal");
+        assert_eq!(envelope["next_step"]["action"], "report-issue");
+    }
+}

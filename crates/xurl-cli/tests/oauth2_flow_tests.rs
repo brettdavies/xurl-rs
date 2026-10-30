@@ -16,7 +16,7 @@
 //! in the ordering correctness.
 
 use std::io::{Read, Write};
-use std::net::{TcpListener as StdTcpListener, TcpStream as StdTcpStream};
+use std::net::TcpStream as StdTcpStream;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -29,6 +29,11 @@ use tokio_util::sync::CancellationToken;
 use xdk::auth::Auth;
 use xdk::auth::oauth2::run_oauth2_flow;
 use xdk::config::Config;
+
+#[path = "../../xdk/tests/support/port_band.rs"]
+mod port_band;
+
+use port_band::{band_port, failed_to_bind};
 
 // ── Recording opener shared state ─────────────────────────────────────────
 //
@@ -134,13 +139,6 @@ fn recording_opener(url: &str) -> std::io::Result<()> {
 
 // ── Test scaffolding ──────────────────────────────────────────────────────
 
-fn pick_free_port() -> u16 {
-    let l = StdTcpListener::bind("127.0.0.1:0").expect("bind 127.0.0.1:0");
-    let port = l.local_addr().unwrap().port();
-    drop(l);
-    port
-}
-
 fn test_config(token_url: &str, info_url: &str, redirect_uri: &str) -> Config {
     let mut cfg = Config::new();
     cfg.client_id = "test-client-id".to_string();
@@ -173,11 +171,6 @@ fn test_auth(cfg: Config, tmp: &TempDir, redirect_uri: &str) -> Auth {
 
 #[tokio::test]
 async fn listener_bound_before_browser_opener_invoked() {
-    let port = pick_free_port();
-    let callback_target = format!("127.0.0.1:{port}");
-    let redirect_uri = format!("http://127.0.0.1:{port}/callback");
-    reset_recorder(&callback_target);
-
     // Wiremock token + userinfo endpoints, driven from a dedicated runtime.
     let server = MockServer::start().await;
     let token_url = format!("{}/2/oauth2/token", server.uri());
@@ -194,20 +187,37 @@ async fn listener_bound_before_browser_opener_invoked() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new().unwrap();
-    let cfg = test_config(&token_url, &info_url, &redirect_uri);
-    let mut auth = test_auth(cfg, &tmp, &redirect_uri);
+    let mut completed = None;
+    for _ in 0..20 {
+        let port = band_port();
+        let redirect_uri = format!("http://127.0.0.1:{port}/callback");
+        reset_recorder(&format!("127.0.0.1:{port}"));
+        let tmp = TempDir::new().unwrap();
+        let cfg = test_config(&token_url, &info_url, &redirect_uri);
+        let mut auth = test_auth(cfg, &tmp, &redirect_uri);
 
-    let flow_started_at = Instant::now();
-    let token = run_oauth2_flow(
-        &mut auth,
-        &reqwest::Client::new(),
-        "testuser",
-        CancellationToken::new(),
-        recording_opener,
-    )
-    .await
-    .expect("flow completes");
+        let flow_started_at = Instant::now();
+        match run_oauth2_flow(
+            &mut auth,
+            &reqwest::Client::new(),
+            "testuser",
+            CancellationToken::new(),
+            recording_opener,
+        )
+        .await
+        {
+            Ok(token) => {
+                completed = Some((token, auth, tmp, flow_started_at));
+                break;
+            }
+            // The test names the port before the flow binds it, so another
+            // process can hold it; only that bind failing picks again.
+            Err(error) if failed_to_bind(&error, port) => {}
+            Err(error) => panic!("flow completes: {error}"),
+        }
+    }
+    let (token, auth, _tmp, flow_started_at) =
+        completed.expect("a port the flow could bind in 20 picks");
     assert_eq!(token, "ACCESS-TOKEN");
 
     let r = recorder().lock().unwrap();

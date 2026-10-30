@@ -8,28 +8,33 @@
 
 use serde_json::Value;
 
-use super::validation;
-
 /// The context keys the summary words itself; every other key is an input.
-const WORDED: [&str; 4] = ["command", "reason", "auth", "confirmation_required"];
+const WORDED: [&str; 5] = [
+    "command",
+    "reason",
+    "auth",
+    "confirmation_required",
+    "response_schema",
+];
 
-/// A credential refusal: the message the real run's error prints, and the
-/// advice its text error prints after it (none under `--quiet`).
-pub(super) struct CredentialRefusal<'a> {
+/// A refusal of the inputs or the credentials: the message the real run's
+/// error prints, and the advice its text error prints after it (none under
+/// `--quiet`).
+pub(super) struct Refusal<'a> {
     pub(super) message: &'a str,
     pub(super) advice: &'a [String],
 }
 
 /// The summary's lines, in the order they print.
 ///
-/// An input refusal carries its validator code in the context's `reason`;
-/// a credential refusal arrives as `refusal`, apart from the context, so
-/// the error's own keys are never read as inputs.
+/// A refusal arrives as `refusal`, apart from the context, so the error's
+/// own keys are never read as inputs. A context `reason` with no refusal
+/// beside it prints as it is.
 pub(super) fn summary(
     would_succeed: bool,
     exit_code: i32,
     ctx: &Value,
-    refusal: Option<&CredentialRefusal>,
+    refusal: Option<&Refusal>,
 ) -> Vec<String> {
     let mut lines = vec![match ctx.get("command").and_then(Value::as_str) {
         Some(command) => format!("Dry run of `{command}`: nothing was sent."),
@@ -43,7 +48,7 @@ pub(super) fn summary(
             None => ctx
                 .get("reason")
                 .and_then(Value::as_str)
-                .map(|code| validation::sentence(code).unwrap_or_else(|| code.to_string())),
+                .map(str::to_string),
         };
         lines.push(match why {
             Some(why) => format!("The real run would fail with exit code {exit_code}: {why}"),
@@ -65,6 +70,9 @@ pub(super) fn summary(
     }
     if let Some(auth) = ctx.get("auth") {
         lines.push(format!("  credential: {}", credential_text(auth)));
+    }
+    if let Some(pointer) = ctx.get("response_schema").and_then(Value::as_str) {
+        lines.push(format!("  response schema: {pointer}"));
     }
     if ctx.get("confirmation_required").and_then(Value::as_bool) == Some(true) {
         lines.push(
@@ -121,7 +129,7 @@ fn credential_text(auth: &Value) -> String {
 mod tests {
     use serde_json::json;
 
-    use super::{CredentialRefusal, summary};
+    use super::{Refusal, summary};
 
     #[test]
     fn a_dry_run_that_would_succeed_names_its_inputs_and_credential() {
@@ -143,14 +151,37 @@ mod tests {
     }
 
     #[test]
-    fn an_input_refusal_states_the_rule_and_the_exit_code() {
-        let ctx =
-            json!({"command": "bookmark-folders-add", "name": "", "reason": "empty-folder-name"});
+    fn the_response_schema_follows_the_credential_and_is_no_input() {
+        let ctx = json!({
+            "command": "webhooks-subscriptions-count",
+            "response_schema": "xr schema webhooks subscriptions count",
+            "auth": {"scheme": "app"},
+        });
         assert_eq!(
-            summary(false, 1, &ctx, None),
+            summary(true, 0, &ctx, None),
+            [
+                "Dry run of `webhooks-subscriptions-count`: nothing was sent.",
+                "The real run would succeed, as far as an offline check can tell.",
+                "  credential: app",
+                "  response schema: xr schema webhooks subscriptions count",
+            ]
+        );
+    }
+
+    #[test]
+    fn an_input_refusal_states_the_rule_the_exit_code_and_the_help() {
+        let ctx = json!({"command": "bookmark-folders-add", "name": ""});
+        let advice = ["Try 'xr bookmark-folders add --help'.".to_string()];
+        let refusal = Refusal {
+            message: "The folder name is empty.",
+            advice: &advice,
+        };
+        assert_eq!(
+            summary(false, 1, &ctx, Some(&refusal)),
             [
                 "Dry run of `bookmark-folders-add`: nothing was sent.",
                 "The real run would fail with exit code 1: The folder name is empty.",
+                "Try 'xr bookmark-folders add --help'.",
                 "  name: \"\"",
             ]
         );
@@ -160,7 +191,7 @@ mod tests {
     fn a_credential_refusal_carries_the_real_runs_message_and_advice() {
         let ctx = json!({"command": "whoami"});
         let advice = ["Register an app first. Run: <template>".to_string()];
-        let refusal = CredentialRefusal {
+        let refusal = Refusal {
             message: "Auth Error: NoAuthMethod: no authentication method available",
             advice: &advice,
         };

@@ -1,14 +1,21 @@
 args: ["--output", "json", "--dry-run", "conversations", "history", "abc"]
 store: empty
 exit_code: 0
-stdout_len: 175
+stdout_len: 470
 stderr_len: 0
 --- stdout ---
 {
   "command": "conversations-history",
   "conversation_id": "abc",
   "exit_code": 1,
-  "reason": "invalid-conversation-id",
+  "message": "A conversation id is two user ids joined by a hyphen, such as 123-456, or a group's 15 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr conversations history --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema conversations history",
+  "rule": "invalid-conversation-id",
   "status": "dry_run",
   "would_succeed": false
 }

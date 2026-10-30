@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8382
+stdout_len: 8678
 stderr_len: 0
 --- stdout ---
 Move, rename, or re-invite a call you organize
@@ -27,18 +27,11 @@ Options:
       --duration <MINUTES>
           How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30
 
-      --invite <USER_ID>
-          Numeric user ID of someone to invite; repeat for each person
+      --invite <ACCOUNT>
+          Someone to invite; repeat for each person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
       --recurrence <RRULE>
           The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO
-
-  -v, --verbose[=<VERBOSE>]
-          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
-          
-          [env: XURL_VERBOSE=]
-          [default: false]
-          [possible values: true, false]
 
       --time-zone <ZONE>
           The IANA time zone the recurrence follows, such as America/Chicago
@@ -54,16 +47,33 @@ Options:
           - this:               The named occurrence alone
           - this-and-following: The named occurrence and every one after it
 
-      --app <APP>
-          Use a specific registered app (overrides default)
-          
-          [env: XURL_APP=]
-
       --occurrence <TIME>
           The occurrence's original start (RFC 3339), as a listed call's `occurrence_start_time` gives it
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
+
+  -u, --username <USERNAME>
+          `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
+
+  -t, --trace
+          Add X-B3-Flags trace header
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
+  -v, --verbose[=<VERBOSE>]
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
+          
+          [env: XURL_VERBOSE=]
+          [default: false]
+          [possible values: true, false]
+
+      --app <APP>
+          Use a specific registered app (overrides default)
+          
+          [env: XURL_APP=]
 
       --output <OUTPUT>
           Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`
@@ -85,16 +95,10 @@ Options:
           
           [env: XURL_JSON=]
 
-  -u, --username <USERNAME>
-          `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
-
       --jsonl
           Shorthand for `--output jsonl` (P2 alias)
           
           [env: XURL_JSONL=]
-
-  -t, --trace
-          Add X-B3-Flags trace header
 
       --raw[=<RAW>]
           Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are
@@ -164,16 +168,16 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100.
+          Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it
           
-          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
+          It is clamped to the range that command's `-n` takes, and `-n` wins when both are given. A raw request carries its page size in its own query string.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
-          Pagination cursor / `pagination_token` for list endpoints.
+          The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
+          A command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.
           
           [env: XURL_CURSOR=]
 
@@ -191,14 +195,14 @@ Options:
           
           [env: XURL_AFTER=]
 
-  -h, --help
-          Print help (see a summary with '-h')
-
 Examples:
   Move a call an hour later (text):
     xr calls scheduled update 1849302018273645 --start 2026-11-02T17:00:00Z
   Move (JSON envelope):
     xr calls scheduled update 1849302018273645 --start 2026-11-02T17:00:00Z --output json
+
+Response schema:
+  xr schema calls scheduled update
 
 --- stderr ---
 

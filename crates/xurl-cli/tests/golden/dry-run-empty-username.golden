@@ -1,13 +1,20 @@
 args: ["--output", "json", "--dry-run", "follow", ""]
 store: empty
 exit_code: 0
-stdout_len: 148
+stdout_len: 335
 stderr_len: 0
 --- stdout ---
 {
   "command": "follow",
   "exit_code": 1,
-  "reason": "empty-username",
+  "message": "The username is empty.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr follow --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema follow",
+  "rule": "empty-username",
   "status": "dry_run",
   "target_username": "",
   "would_succeed": false

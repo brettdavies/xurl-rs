@@ -1,14 +1,21 @@
 args: ["--output", "json", "--dry-run", "like", ""]
 store: empty
 exit_code: 0
-stdout_len: 137
+stdout_len: 345
 stderr_len: 0
 --- stdout ---
 {
   "command": "like",
   "exit_code": 1,
+  "message": "The post id is empty; give an id or a post URL.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr like --help"
+  },
   "post_id": "",
-  "reason": "empty-post-id",
+  "reason": "validation",
+  "response_schema": "xr schema like",
+  "rule": "empty-post-id",
   "status": "dry_run",
   "would_succeed": false
 }

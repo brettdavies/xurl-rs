@@ -148,9 +148,7 @@ impl ClientBuilder {
             timeout: self.timeout,
         };
         if credentials.is_empty() {
-            return Err(Error::validation(
-                "no credential given: set a bearer token, an OAuth2 credential, or OAuth1 credentials before build()",
-            ));
+            return Err(Error::validation("no-credential"));
         }
         Client::from_source(
             self.base_url,

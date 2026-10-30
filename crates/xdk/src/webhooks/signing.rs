@@ -159,17 +159,14 @@ impl SignedSample {
     ///
     /// Returns a `validation` error when `secrets` holds no secret.
     pub fn new(secrets: &SigningSecrets) -> Result<Self> {
-        let (secret, signature_header) = if let Some(secret) =
-            present(secrets.oauth2_client_secret.as_deref())
-        {
-            (secret, OAUTH2_SIGNATURE_HEADER)
-        } else if let Some(secret) = present(secrets.oauth1_consumer_secret.as_deref()) {
-            (secret, LEGACY_SIGNATURE_HEADER)
-        } else {
-            return Err(Error::validation(
-                "a signed sample needs the app's OAuth2 client secret or OAuth1 consumer secret",
-            ));
-        };
+        let (secret, signature_header) =
+            if let Some(secret) = present(secrets.oauth2_client_secret.as_deref()) {
+                (secret, OAUTH2_SIGNATURE_HEADER)
+            } else if let Some(secret) = present(secrets.oauth1_consumer_secret.as_deref()) {
+                (secret, LEGACY_SIGNATURE_HEADER)
+            } else {
+                return Err(Error::validation("no-signing-secret"));
+            };
         Ok(Self {
             body: SAMPLE_BODY,
             signature_header,

@@ -235,16 +235,22 @@ async fn a_target_that_never_answers_is_cut_at_the_timeout_on_every_attempt() {
     );
 }
 
-fn closed_port() -> SocketAddr {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a port");
-    let address = listener.local_addr().expect("its address");
-    drop(listener);
-    address
+/// An address that refuses connections while the returned socket lives:
+/// bound, so no test running beside this one can take the port, and never
+/// listening. A port bound and released can be taken by such a test, which
+/// then answers.
+fn closed_port() -> (tokio::net::TcpSocket, SocketAddr) {
+    let socket = tokio::net::TcpSocket::new_v4().expect("a socket");
+    socket
+        .bind("127.0.0.1:0".parse().expect("an address"))
+        .expect("a port");
+    let address = socket.local_addr().expect("its address");
+    (socket, address)
 }
 
 #[tokio::test]
 async fn a_closed_port_is_retried_and_its_cause_never_names_the_url() {
-    let address = closed_port();
+    let (_socket, address) = closed_port();
     let url = format!("http://{address}/hook");
     let event = signed_event().await;
     let target = UrlTarget::new(&url, &[] as &[&str]).expect("a valid target");
@@ -281,16 +287,24 @@ fn a_header_the_forward_sets_itself_is_refused(#[case] given: &str) {
 }
 
 #[rstest::rstest]
-#[case::no_colon("X-Token abc")]
-#[case::empty_name(": abc")]
-#[case::space_in_name("X Token: abc")]
-#[case::control_in_value("X-Token: a\u{7}bc")]
-fn a_malformed_header_is_refused_by_position_never_by_value(#[case] given: &str) {
+#[case::no_colon("X-Token abc", "header-not-name-value")]
+#[case::empty_name(": abc", "empty-header-name")]
+#[case::space_in_name("X Token: abc", "invalid-header-name")]
+#[case::control_in_value("X-Token: a\u{7}bc", "invalid-header-value")]
+fn a_malformed_header_is_refused_by_position_never_by_value(
+    #[case] given: &str,
+    #[case] expected: &str,
+) {
     let err = UrlTarget::new("http://127.0.0.1:9/hook", &["X-Ok: 1", given]).expect_err("refused");
-    assert_eq!(err.kind(), "validation", "{err}");
-    let message = err.to_string();
-    assert!(message.contains("header 2"), "{message}");
-    assert!(!message.contains("abc"), "{message}");
+    assert!(
+        matches!(
+            &err,
+            xdk::Error::Validation { rule, value: Some(position) }
+                if *rule == expected && position == "2"
+        ),
+        "{err:?}"
+    );
+    assert!(!err.to_string().contains("abc"), "{err}");
 }
 
 /// A server that answers 200 and then streams a chunked body that never

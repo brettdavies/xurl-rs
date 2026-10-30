@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "articles", "publish", "draft-1"]
 store: empty
 exit_code: 0
-stdout_len: 197
+stdout_len: 414
 stderr_len: 0
 --- stdout ---
 {
@@ -9,7 +9,14 @@ stderr_len: 0
   "command": "articles-publish",
   "confirmation_required": true,
   "exit_code": 1,
-  "reason": "invalid-article-id",
+  "message": "An article id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr articles publish --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema articles publish",
+  "rule": "invalid-article-id",
   "status": "dry_run",
   "would_succeed": false
 }

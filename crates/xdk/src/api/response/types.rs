@@ -622,6 +622,18 @@ pub struct Broadcast {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// What X answers an ended broadcast with.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct BroadcastEnded {
+    /// Broadcast ID.
+    pub id: String,
+    /// The broadcast's state, always `ENDED`.
+    pub state: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// A broadcast scheduled to start later.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ScheduledBroadcast {
@@ -1022,6 +1034,22 @@ pub struct ChatMutedResult {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// A user muted in every chat of the authenticated user's broadcasts.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ChatMute {
+    /// The muted user's id; `includes.users` carries the user when the
+    /// request expands it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// When a timed mute ends, in milliseconds since the Unix epoch, as a
+    /// decimal string. Absent for a mute with no end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_at_ms: Option<String>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// A draft X Article just saved.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ArticleDraft {
@@ -1189,65 +1217,57 @@ pub struct BookmarkFolderPost {
 
 // ── Broadcast stream sources ────────────────────────────────────────
 
-/// A persistent RTMP and RTMPS ingest point for the account's broadcasts.
-///
-/// The spec closes this object to further properties, so it carries no
-/// forward-compatibility bucket.
+/// A persistent RTMP and RTMPS ingest point for the account's broadcasts,
+/// as `/2/sources` describes one.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct StreamSource {
-    /// Source identifier. It is also the stream key an encoder sends, so
-    /// whoever holds it can stream to the source.
+    /// Source identifier, the `source_id` a scheduled broadcast binds to.
     pub id: String,
     /// The label the account gave the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Ingest region, such as `us-east-1`.
+    /// Ingest region, an AWS region name such as `us-east-1`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rtmp_region: Option<String>,
+    pub region: Option<String>,
     /// RTMP ingest URL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rtmp_url: Option<String>,
     /// RTMPS ingest URL, on port 443.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rtmps_url: Option<String>,
-    /// The stream key, equal to `id`.
+    /// The stream key an encoder sends, so whoever holds it can stream to
+    /// the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rtmp_stream_key: Option<String>,
-    /// Whether the source is receiving video now.
+    pub stream_key: Option<String>,
+    /// Whether an encoder is sending video to the source now. Publishing a
+    /// broadcast on the source needs it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_stream_active: Option<bool>,
-    /// When the source was created, in milliseconds since the Unix epoch.
+    /// When the source was created, in milliseconds since the Unix epoch,
+    /// as a decimal string.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub creation_time: Option<u64>,
-    /// The owner's numeric user id. X sends it as a JSON number past the
-    /// range a 64-bit float holds exactly; this field keeps every digit.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub owner_id: Option<u64>,
-}
-
-/// The account's stream sources.
-#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct StreamSources {
-    /// Every source the account has, or none.
-    pub sources: Vec<StreamSource>,
+    pub created_at_ms: Option<String>,
     /// Forward-compatibility bucket for fields the spec adds later.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
 
-/// One stream source, as reading, creating, and renaming a source answer.
-#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
-pub struct StreamSourceResult {
-    /// The source.
-    pub source: StreamSource,
-    /// Forward-compatibility bucket for fields the spec adds later.
-    #[serde(flatten)]
-    pub extra: BTreeMap<String, Value>,
-}
-
-/// What X answers a deleted stream source with: an empty object.
+/// What X answers a deleted stream source with.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct StreamSourceDeleted {
+    /// Whether the source was deleted.
+    pub deleted: bool,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The ingest region nearest the server that answered, which a new stream
+/// source takes as its `region`. X sends it with no `data` envelope.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct IngestRegion {
+    /// An AWS region name, such as `us-east-1`.
+    pub region: String,
     /// Forward-compatibility bucket for fields the spec adds later.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
@@ -1709,15 +1729,14 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate:
             "response body is not a JSON object — expected JSON with a \"data\" field, got: {body}"
         )));
     }
-    // X API v2 returns errors-only 200 responses with no `data` field
-    // (e.g., {"errors": [{"title": "Not Found Error", ...}]}). Surface
-    // the raw JSON as a validation error — these are not HTTP errors
-    // (status was 200) but semantic failures from the API.
+    // X answers a request it refuses with a 200 that carries `errors` and
+    // no `data` (e.g., {"errors": [{"type": ".../resource-not-found", ...}]}).
+    // That is X's refusal, classified by its problem type like any other.
     if let Some(obj) = value.as_object()
         && !obj.contains_key("data")
         && obj.contains_key("errors")
     {
-        return Err(crate::error::Error::validation(value.to_string()));
+        return Err(crate::error::Error::api(200, value.to_string()));
     }
     super::vocabulary::normalize(&mut value);
     if is_page_with_no_results(&value) {
@@ -2365,9 +2384,9 @@ mod tests {
     }
 
     #[test]
-    fn errors_only_response_returns_validation_error() {
-        // X API v2 returns {"errors": [...]} with no "data" on 200 for not-found resources.
-        // deserialize_response should return Error::Validation with the raw JSON.
+    fn errors_only_response_is_x_refusing_the_request() {
+        // X answers a lookup of a resource that does not exist with a 200 that
+        // carries `errors` and no `data`; it reads by its problem type.
         let json = json!({
             "errors": [{
                 "detail": "Could not find tweet with id: [123].",
@@ -2379,7 +2398,9 @@ mod tests {
         let result = deserialize_response::<Post>(json);
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.is_validation(), "Expected Validation error, got: {err}");
+        assert!(err.is_api(), "Expected X's refusal, got: {err:?}");
+        assert_eq!(err.kind(), "not-found", "{err}");
+        assert_eq!(err.exit_code(), crate::error::EXIT_NOT_FOUND, "{err}");
         let msg = err.to_string();
         assert!(
             msg.contains("Not Found Error"),

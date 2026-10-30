@@ -516,6 +516,21 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_CHAT_MUTES,
+        fixture: "chat_mutes",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::ADD_CHAT_MUTE,
+        fixture: "broadcast_chat_muted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::REMOVE_CHAT_MUTE,
+        fixture: "broadcast_chat_muted",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_MEDIA,
         fixture: "media_list",
         status: 200,
@@ -606,6 +621,16 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::DELETE_BROADCAST,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::END_BROADCAST,
+        fixture: "broadcast_ended",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::LIST_SCHEDULED_BROADCASTS,
         fixture: "scheduled_broadcasts",
         status: 200,
@@ -668,7 +693,7 @@ const ROUTES: &[Route] = &[
     Route {
         endpoint: endpoints::CREATE_STREAM_SOURCE,
         fixture: "stream_source",
-        status: 200,
+        status: 201,
     },
     Route {
         endpoint: endpoints::GET_STREAM_SOURCE,
@@ -683,6 +708,11 @@ const ROUTES: &[Route] = &[
     Route {
         endpoint: endpoints::DELETE_STREAM_SOURCE,
         fixture: "stream_source_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_REGION,
+        fixture: "ingest_region",
         status: 200,
     },
     Route {

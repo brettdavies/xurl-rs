@@ -1221,7 +1221,7 @@ fn test_a_narrowed_sign_in_requests_the_named_scopes_and_offline_access(
 }
 
 #[test]
-fn test_an_unknown_scope_is_rejected_naming_the_valid_ones() {
+fn test_an_unknown_scope_is_rejected_naming_it() {
     let (token_store, _tmp) = create_temp_token_store();
     let mut auth = auth_for(&test_config(), token_store);
 
@@ -1229,12 +1229,13 @@ fn test_an_unknown_scope_is_rejected_naming_the_valid_ones() {
         .with_oauth2_scopes(&["tweet.read", "tweet.reed"])
         .expect_err("tweet.reed is not a scope");
 
-    assert_eq!(error.kind(), "validation");
-    let message = error.to_string();
-    assert!(message.contains("tweet.reed"), "{message}");
-    for valid in get_oauth2_scopes() {
-        assert!(message.contains(valid), "{valid} is listed: {message}");
-    }
+    assert!(
+        matches!(
+            &error,
+            xdk::Error::Validation { rule: "unknown-scope", value: Some(names) } if names == "tweet.reed"
+        ),
+        "{error:?}"
+    );
 }
 
 // ── One refresh across processes ───────────────────────────────────────────

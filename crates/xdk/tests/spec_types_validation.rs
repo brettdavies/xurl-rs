@@ -27,14 +27,15 @@ use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ArticleDraft, ArticlePublished,
-    BookmarkFolder, Broadcast, BroadcastChatMessage, ChatMutedResult, ChatSentResult, Community,
-    DmBlockResult, DmEvent, HiddenResult, List, ListMemberResult, ListUpdatedResult, Media,
-    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, NewsStory, Note, NoteCreated,
-    NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
-    StreamRuleCounts, StreamSource, StreamSourceResult, StreamSources, SubscribedResult, Trend,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkFolder, Broadcast, BroadcastChatMessage, BroadcastEnded, ChatMute, ChatMutedResult,
+    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, HiddenResult, IngestRegion,
+    List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult,
+    MediaSubtitlesResult, NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount, StreamRuleCounts, StreamSource,
+    StreamSourceDeleted, SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob,
+    WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -193,23 +194,35 @@ fn typed_responses_match_vendored_spec() {
         ),
         (
             "ListSourcesResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSources)).unwrap(),
-        ),
-        (
-            "ListSourcesResponseDataSources",
             serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
         ),
         (
             "GetSourceResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
         ),
         (
             "CreateSourceResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
         ),
         (
             "UpdateSourceResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSourceResult)).unwrap(),
+            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
+        ),
+        (
+            "DeleteSourceResponseData",
+            serde_json::to_value(schemars::schema_for!(StreamSourceDeleted)).unwrap(),
+        ),
+        (
+            "GetRegionResponse",
+            serde_json::to_value(schemars::schema_for!(IngestRegion)).unwrap(),
+        ),
+        (
+            "DeleteBroadcastResponseData",
+            serde_json::to_value(schemars::schema_for!(DeletedResult)).unwrap(),
+        ),
+        (
+            "UpdateBroadcastStateResponseData",
+            serde_json::to_value(schemars::schema_for!(BroadcastEnded)).unwrap(),
         ),
         (
             "Call",
@@ -345,6 +358,18 @@ fn typed_responses_match_vendored_spec() {
         ),
         (
             "MuteBroadcastChatUserResponseData",
+            serde_json::to_value(schemars::schema_for!(ChatMutedResult)).unwrap(),
+        ),
+        (
+            "BroadcastChatMute",
+            serde_json::to_value(schemars::schema_for!(ChatMute)).unwrap(),
+        ),
+        (
+            "MuteChatUserResponseData",
+            serde_json::to_value(schemars::schema_for!(ChatMutedResult)).unwrap(),
+        ),
+        (
+            "UnmuteChatUserResponseData",
             serde_json::to_value(schemars::schema_for!(ChatMutedResult)).unwrap(),
         ),
         (

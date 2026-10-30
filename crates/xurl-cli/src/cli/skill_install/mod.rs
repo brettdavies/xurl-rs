@@ -119,7 +119,7 @@ impl InstallError {
 
 /// Result envelope shared by both `--output text` and `--output json`.
 /// Uniform across success and error paths per the project envelope rules.
-#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct InstallEnvelope {
     /// Action discriminator: `"skill-install"` or `"skill-update"`.
     pub action: &'static str,
@@ -180,7 +180,7 @@ impl InstallEnvelope {
 }
 
 /// Multi-host envelope for `--all` invocations.
-#[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct InstallMultiEnvelope {
     /// Action discriminator: `"skill-install"` or `"skill-update"`.
     pub action: &'static str,
