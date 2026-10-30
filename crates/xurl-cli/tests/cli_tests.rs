@@ -5669,7 +5669,7 @@ async fn test_a_refused_argument_carries_the_help_and_no_credential_step() {
     assert_ne!(code, 0, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
-    assert_eq!(v["reason"], "validation", "{v}");
+    assert_eq!(v["reason"], "invalid-url", "{v}");
     assert_eq!(
         v["next_step"],
         serde_json::json!({"action": "show-help", "command": "xr --help"}),

@@ -519,7 +519,7 @@ async fn a_raw_target_keeps_the_url_error(#[case] args: &[&str]) {
     assert_eq!(code, 1, "args {args:?}; stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
-    assert_eq!(v["reason"], "validation", "args {args:?}; got: {v}");
+    assert_eq!(v["reason"], "invalid-url", "args {args:?}; got: {v}");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -553,7 +553,7 @@ async fn a_bare_invocation_under_structured_intent_is_a_usage_error() {
 #[tokio::test]
 async fn a_raw_only_flag_alone_still_asks_for_a_url() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "-X", "POST"]).await;
-    assert_eq!(code, 1, "stderr: {stderr}");
+    assert_eq!(code, 2, "stderr: {stderr}");
     assert!(
         plain(&stderr).contains("No URL provided"),
         "stderr: {stderr}"

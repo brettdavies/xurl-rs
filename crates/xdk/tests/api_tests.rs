@@ -1632,9 +1632,11 @@ async fn redteam_get_me_no_data_field() {
 
     let result = client.get_me().send().await;
     let err = result.unwrap_err();
-    assert!(
-        err.is_validation(),
-        "Should be Validation error (not API or JSON error) for errors-only 200: {err}"
+    assert!(err.is_api(), "an errors-only 200 is X's refusal: {err:?}");
+    assert_eq!(
+        err.kind(),
+        "invalid-request",
+        "an errors-only 200 with no problem type reads as a refused request: {err}"
     );
 }
 

@@ -186,10 +186,11 @@ pub fn replay_window(checkpoint: SystemTime, now: SystemTime) -> Result<ReplayWi
 
 fn not_ahead(at: SystemTime, now: SystemTime) -> Result<()> {
     if at > now {
-        return Err(Error::validation(format!(
-            "the checkpoint's time is later than the clock's, by {} seconds",
-            at.duration_since(now).map_or(0, |ahead| ahead.as_secs())
-        )));
+        let ahead = at.duration_since(now).map_or(0, |ahead| ahead.as_secs());
+        return Err(Error::validation_of(
+            "checkpoint-in-the-future",
+            ahead.to_string(),
+        ));
     }
     Ok(())
 }

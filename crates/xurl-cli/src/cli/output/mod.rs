@@ -330,7 +330,10 @@ impl OutputConfig {
         let mut body = error_body(error, exit_code);
         body.next_step = Some(hint.next_step.clone());
         if let Some(reason) = reason {
+            // `rule` names the input rule under `reason: validation`; a
+            // refusal with a reason of its own carries that reason alone.
             body.reason = reason;
+            body.rule = None;
         }
         self.emit_error_envelope(err, body);
     }
@@ -427,23 +430,10 @@ impl OutputConfig {
     /// `{"status":"error","reason":<kind>,"exit_code":<code>,"message":<display>}`.
     /// Json/Jsonl/Ndjson emit one JSON line; Yaml emits a YAML document; Csv/Tsv
     /// emit a JSON line carrying the envelope (delimited formats are not a good
-    /// fit for nested error metadata). Text mode prints a validator's code as
-    /// the rule the input broke (`validation::sentence`); the envelope keeps
-    /// the code.
+    /// fit for nested error metadata). A validation refusal's `message` is
+    /// the sentence for its rule (`validation::sentence`) in every format, and
+    /// the envelope carries the rule itself as `rule`.
     pub fn print_error(&self, err: &mut dyn Write, error: &Error, exit_code: i32) {
-        let worded;
-        let error = match error {
-            Error::Validation(code) if !self.format.is_structured() => {
-                match validation::sentence(code) {
-                    Some(sentence) => {
-                        worded = Error::validation(sentence);
-                        &worded
-                    }
-                    None => error,
-                }
-            }
-            other => other,
-        };
         self.emit_error_envelope(err, error_body(error, exit_code));
     }
 
@@ -524,15 +514,6 @@ impl OutputConfig {
                     ..(**mismatch).clone()
                 });
                 &reworded
-            }
-            Error::Validation(text) if !self.format.is_structured() => {
-                match validation::sentence(text) {
-                    Some(sentence) => {
-                        reworded = Error::validation(sentence);
-                        &reworded
-                    }
-                    None => error,
-                }
             }
             other => other,
         };
@@ -785,11 +766,15 @@ fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
         Error::ProcessingTimeout { media_id, .. } => {
             body.media_id = Some(media_id.clone());
         }
-        Error::Validation(code) => {
-            if let Some(sentence) = validation::sentence(code) {
-                body.message = Some(sentence);
-                body.rule = Some(code.clone());
-            }
+        Error::Validation { rule, value } => {
+            body.rule = Some((*rule).to_string());
+            body.value.clone_from(value);
+        }
+        Error::MediaProcessingFailed { media_id, .. } => {
+            body.media_id = Some(media_id.clone());
+        }
+        Error::AccountNotFound { account } => {
+            body.account = Some(account.clone());
         }
         Error::Api {
             status: 429,

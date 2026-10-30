@@ -209,9 +209,7 @@ impl Receiver {
     /// `io` error when it cannot be bound for any other reason.
     pub async fn bind(config: ReceiverConfig, cancel: CancellationToken) -> Result<Self> {
         if config.secrets.is_empty() {
-            return Err(Error::validation(
-                "a webhook receiver needs the app's OAuth2 client secret or OAuth1 consumer secret",
-            ));
+            return Err(Error::validation("no-signing-secret"));
         }
         let listener = TcpListener::bind(config.bind).await.map_err(|e| {
             if e.kind() == std::io::ErrorKind::AddrInUse {
@@ -340,7 +338,7 @@ fn answer_crc(shared: &Shared, request: &Request<Incoming>) -> Response<Full<Byt
     // this match is the only one a bound receiver reaches.
     let response_token = match shared.config.secrets.crc_secret() {
         Some(secret) => sign(secret, token.as_bytes()),
-        None => Err(Error::validation("no signing secret")),
+        None => Err(Error::Internal("no signing secret".to_string())),
     };
     let Ok(response_token) = response_token else {
         tracing::error!(target: WEBHOOKS_TARGET, kind = "crc-not-signed");

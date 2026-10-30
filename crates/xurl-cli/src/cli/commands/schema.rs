@@ -578,15 +578,9 @@ fn schema_for_command(command: &str) -> Result<Value> {
         return Ok((entry.schema)());
     }
     if SCHEMA_LESS_COMMANDS.contains(&command) {
-        return Err(Error::validation(format!(
-            "schema not available for '{command}' (no typed response)"
-        )));
+        return Err(Error::validation_of("no-typed-response", command));
     }
-    let valid: Vec<&str> = registered_commands().collect();
-    Err(Error::validation(format!(
-        "unknown command '{command}'. Valid commands: {}",
-        valid.join(", ")
-    )))
+    Err(Error::validation_of("unknown-schema-command", command))
 }
 
 /// Runs the schema subcommand.
@@ -629,9 +623,7 @@ pub fn run_schema(
         }
         None => {
             // No argument: show help text (same as `xr schema --help`)
-            Err(Error::validation(
-                "usage: xr schema <COMMAND> | xr schema envelope | xr schema --list | xr schema --all",
-            ))
+            Err(Error::validation("missing-command"))
         }
     }
 }

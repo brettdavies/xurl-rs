@@ -503,7 +503,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             "invalid-url",
             &["--output", "json", "--auth", "app", "http://[bad"],
         )),
-        reason_case("validation", &["--output", "json", "relative/path"]),
+        reason_case("validation", &["--output", "json", "post", ""]),
         Case {
             store: Store::OAuth2,
             cwd: Some(upload_dir),
@@ -761,6 +761,32 @@ fn dry_run_cases() -> Vec<Case> {
         case(
             "dry-run-listen-no-signing-secret",
             &["--output", "json", "--dry-run", "webhooks", "listen"],
+        ),
+        case(
+            "dry-run-header-not-name-value",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "listen",
+                "--forward",
+                "https://example.com/hook",
+                "-H",
+                "X-Token abc",
+            ],
+        ),
+        case(
+            "dry-run-program-not-found",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "webhooks",
+                "listen",
+                "--",
+                "xr-no-such-program",
+            ],
         ),
         case("dry-run-text-no-credential", &["--dry-run", "whoami"]),
         case("dry-run-text-quiet", &["--quiet", "--dry-run", "whoami"]),
@@ -2026,8 +2052,9 @@ fn step_without_dry_run(step: &serde_json::Value) -> serde_json::Value {
 /// refusing JSON case in [`dry_run_cases`] carries a `message`, and the
 /// `reason`, `next_step`, and `exit_code` the same invocation gets without
 /// `--dry-run` (with `--force` when it would stop to ask). A validation
-/// refusal carries the validator's code as `rule` and the sentence for it as
-/// `message`, the same in both runs. Every validator code has a case there,
+/// refusal carries the validator's code as `rule`, the sentence for it as
+/// `message`, and the offending input as `value` when the rule names one, the
+/// same in both runs. Every validator code has a case there,
 /// and each must turn up as a `rule`, so a validator added later is held
 /// here too.
 #[test]
@@ -2116,7 +2143,7 @@ fn a_refusing_dry_run_carries_the_message_and_step_of_its_real_run() {
             ));
         }
         if error["reason"] == "validation" {
-            for key in ["rule", "message"] {
+            for key in ["rule", "message", "value"] {
                 if answer[key] != error[key] {
                     failures.push(format!(
                         "{}: the dry run's {key} {} differs from the real run's {}",

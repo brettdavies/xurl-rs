@@ -1,0 +1,30 @@
+args: ["--output", "json", "--dry-run", "webhooks", "listen", "--", "xr-no-such-program"]
+store: empty
+exit_code: 0
+stdout_len: 537
+stderr_len: 0
+--- stdout ---
+{
+  "bind": "127.0.0.1:8080",
+  "command": "webhooks-listen",
+  "exit_code": 1,
+  "message": "The program after --, xr-no-such-program, is not a path to a file, and no directory on PATH holds it.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr webhooks listen --help"
+  },
+  "path": "/webhook",
+  "program": [
+    "xr-no-such-program"
+  ],
+  "reason": "validation",
+  "rule": "program-not-found",
+  "secret": null,
+  "status": "dry_run",
+  "timeout_secs": 30,
+  "value": "xr-no-such-program",
+  "would_succeed": false
+}
+
+--- stderr ---
+

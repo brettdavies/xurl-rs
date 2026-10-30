@@ -1460,11 +1460,12 @@ fn registration_rejects_a_name_outside_the_allowed_set() {
     let err = store
         .add_app("my app", "id", "secret")
         .expect_err("a spaced name must be rejected");
-    let msg = err.to_string();
-    assert!(msg.contains("my app"), "names the value: {msg}");
     assert!(
-        msg.contains("'_'") && msg.contains("'-'"),
-        "names the set: {msg}"
+        matches!(
+            &err,
+            xdk::Error::Validation { rule: "invalid-app-name", value: Some(name) } if name == "my app"
+        ),
+        "names the rule and the value: {err:?}"
     );
     assert!(store.apps.is_empty(), "nothing is registered on rejection");
 }
