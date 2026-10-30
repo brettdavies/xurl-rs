@@ -211,8 +211,8 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
                 )
             }
         }
-        "missing-command" => "usage: xr schema <COMMAND>... | xr schema --envelope | xr schema \
-             --list | xr schema --all"
+        "missing-command" => "usage: xr schema <COMMAND>... | xr schema --common | xr schema \
+             --envelope | xr schema --list | xr schema --all"
             .to_string(),
         _ => return None,
     };

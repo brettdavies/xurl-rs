@@ -239,13 +239,23 @@ where
             }
             Commands::Schema {
                 command,
+                full,
+                common,
+                path,
                 list,
                 all,
                 envelope,
             } => {
-                return match crate::cli::commands::schema::run_schema(
-                    command, *list, *all, *envelope, &out, stdout,
-                ) {
+                let request = crate::cli::commands::schema::Request {
+                    command,
+                    list: *list,
+                    all: *all,
+                    envelope: *envelope,
+                    full: *full,
+                    common: *common,
+                    path: path.as_deref(),
+                };
+                return match crate::cli::commands::schema::run_schema(&request, &out, stdout) {
                     Ok(()) => EXIT_SUCCESS,
                     Err(refusal) => render_schema_refusal(refusal, &args_vec, &out, stderr),
                 };
@@ -682,6 +692,33 @@ fn render_schema_refusal(
             .unwrap_or_else(|| crate::cli::hints::show_help_hint(&invoked_help(args)));
             out.print_refusal(stderr, &error, None, &hint);
             return EXIT_GENERAL_ERROR;
+        }
+        Refusal::PathMiss {
+            path,
+            segment,
+            known,
+            template,
+        } => {
+            let has = if known.is_empty() {
+                "it has no properties".to_string()
+            } else {
+                format!("it has {}", known.join(", "))
+            };
+            out.emit_error_envelope(
+                stderr,
+                ErrorBody {
+                    reason: Reason::InvalidArgs,
+                    exit_code: EXIT_USAGE_ERROR,
+                    message: Some(format!(
+                        "no property '{segment}' in '{path}'; {has}. Fill in <property> and run: {template}"
+                    )),
+                    path: Some(path),
+                    known_properties: Some(known),
+                    next_step: Some(NextStep::fix_input_template(template)),
+                    ..ErrorBody::default()
+                },
+            );
+            return EXIT_USAGE_ERROR;
         }
         Refusal::OldName { given, command } => {
             let problem = format!(

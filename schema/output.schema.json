@@ -247,6 +247,16 @@
             "null"
           ]
         },
+        "known_properties": {
+          "description": "Property names at the last node an `xr schema --path` resolved.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "known_schemas": {
           "description": "Schema names `validate` accepts.",
           "items": {
@@ -294,7 +304,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`,\n`run-command`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template`\nthe caller finishes or decides on first, never both: a template\nholds angle-bracket placeholders only the caller can fill, or, under\n`confirm`, the invocation that destroys once it runs. One whose\nrecovery is not an `xr` invocation carries neither, and `docs` when\na page covers it: `enroll-app`, `wait-and-retry`, `retry`,\n`fix-input`, `report-issue`, and `inspect-store` when a store\ncommand is what failed. Three `fix-input` steps carry an invocation:\n`listen` again on a free port, under `address-in-use`, and two under\n`invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved\nafter the command word it came before, and the `xr schema`\ninvocation that works for an old name or a scope word."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`,\n`run-command`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template`\nthe caller finishes or decides on first, never both: a template\nholds angle-bracket placeholders only the caller can fill, or, under\n`confirm`, the invocation that destroys once it runs. One whose\nrecovery is not an `xr` invocation carries neither, and `docs` when\na page covers it: `enroll-app`, `wait-and-retry`, `retry`,\n`fix-input`, `report-issue`, and `inspect-store` when a store\ncommand is what failed. Three `fix-input` steps carry an invocation:\n`listen` again on a free port, under `address-in-use`, and two under\n`invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved\nafter the command word it came before, and the `xr schema`\ninvocation that works for an old name or a scope word. One carries a\ntemplate: the `xr schema --path` invocation with the segment that\nnamed nothing left as `<property>`, under `invalid-args`."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
@@ -313,6 +323,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "path": {
+          "description": "Dot path an `xr schema --path` invocation named.",
+          "type": [
+            "string",
             "null"
           ]
         },

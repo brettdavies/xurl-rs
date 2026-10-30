@@ -430,6 +430,17 @@ fn static_cases() -> Vec<Case> {
             ],
         ),
         case("schema-no-typed-response", &["schema", "webhooks"]),
+        case(
+            "schema-path-miss-json",
+            &[
+                "--output",
+                "json",
+                "schema",
+                "post",
+                "--path",
+                "public_metrics.nope",
+            ],
+        ),
         case("examples", &["examples"]),
     ]
 }

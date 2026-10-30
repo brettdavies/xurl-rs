@@ -223,8 +223,9 @@ impl NextStep {
         }
     }
 
-    /// Fill in and run `template`, the invocation that stores what the
-    /// command lacked; each placeholder is a value only the caller has.
+    /// Fill in and run `template`, the invocation with each value only the
+    /// caller has left as an angle-bracket placeholder: the secret a command
+    /// lacked, or the property an `xr schema --path` segment should name.
     #[must_use]
     pub fn fix_input_template(template: String) -> Self {
         Self {

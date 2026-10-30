@@ -6677,6 +6677,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             break
         }
         'xr;schema' {
+            [CompletionResult]::new('--path', '--path', [CompletionResultType]::ParameterName, 'Print the node at a dot path into the command''s `data`, or into the wrapper with `--common`')
             [CompletionResult]::new('-v', '-v', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--verbose', '--verbose', [CompletionResultType]::ParameterName, 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary')
             [CompletionResult]::new('--app', '--app', [CompletionResultType]::ParameterName, 'Use a specific registered app (overrides default)')
@@ -6694,6 +6695,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--cursor', '--cursor', [CompletionResultType]::ParameterName, 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it')
             [CompletionResult]::new('--page', '--page', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor`')
             [CompletionResult]::new('--after', '--after', [CompletionResultType]::ParameterName, 'Documented alias for `--cursor` (`--after <token>`)')
+            [CompletionResult]::new('--full', '--full', [CompletionResultType]::ParameterName, 'Print the command''s complete standalone schema, as committed under `schema/responses/`')
+            [CompletionResult]::new('--common', '--common', [CompletionResultType]::ParameterName, 'Print the API response wrapper every typed command shares, with its shared definitions')
             [CompletionResult]::new('--list', '--list', [CompletionResultType]::ParameterName, 'List all commands and their response types')
             [CompletionResult]::new('--all', '--all', [CompletionResultType]::ParameterName, 'Output all schemas as a single JSON document')
             [CompletionResult]::new('--envelope', '--envelope', [CompletionResultType]::ParameterName, 'Output the canonical agent-native output envelope schema')

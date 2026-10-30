@@ -99,12 +99,13 @@ invocation fails again until its input or the state it read changes. Under `addr
 holds, it carries `listen` again on `--port 0`: a `command`, or a `template` that hides each `-H` value. Under
 `invalid-args`, for `-u`, `--auth`, or `-t` given before a command word that takes it, it carries the invocation with
 the flag after the word, and for an old `xr schema` name or a bare scope word (`envelope`), the `xr schema` invocation
-that works. Under `auth-required`, for a `webhooks listen` whose app has no secret to verify X's signatures by, it
-carries a `template` that stores the secret `--secret` names: the OAuth1 credentials under `--secret oauth1`, the app's
-client secret otherwise. `report-issue` (`internal`, `serialization`, `api-error`) names the issue tracker in `docs`.
-`confirm` rides on `confirmation-required` and carries a `template`, the invocation with `--force`: it is never a
-`command`, so an agent that runs every command it is handed cannot confirm a deletion by accident. `run-command` names
-the sibling skill verb that repairs `destination-not-empty` or `not-installed`.
+that works; for an `xr schema --path` segment that names no property, it carries a `template` ending in `<property>`
+beside `known_properties`. Under `auth-required`, for a `webhooks listen` whose app has no secret to verify X's
+signatures by, it carries a `template` that stores the secret `--secret` names: the OAuth1 credentials under
+`--secret oauth1`, the app's client secret otherwise. `report-issue` (`internal`, `serialization`, `api-error`) names
+the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
+`--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a deletion by
+accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.

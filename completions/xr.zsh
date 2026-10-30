@@ -9164,6 +9164,7 @@ esac
 ;;
 (schema)
 _arguments "${_arguments_options[@]}" : \
+'--path=[Print the node at a dot path into the command'\''s \`data\`, or into the wrapper with \`--common\`]:DOT_PATH:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -9189,6 +9190,8 @@ never\:"Never emit ANSI color escapes"))' \
 '--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--path)--full[Print the command'\''s complete standalone schema, as committed under \`schema/responses/\`]' \
+'--common[Print the API response wrapper every typed command shares, with its shared definitions]' \
 '--list[List all commands and their response types]' \
 '--all[Output all schemas as a single JSON document]' \
 '--envelope[Output the canonical agent-native output envelope schema]' \

@@ -5254,6 +5254,7 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from help" -f -a "install" -d 'Install the skill bundle into a host\'s canonical skills directory'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from help" -f -a "update" -d 'Refresh an existing skill-bundle install in place'
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand schema" -l path -d 'Print the node at a dot path into the command\'s `data`, or into the wrapper with `--common`' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -5283,6 +5284,8 @@ complete -c xr -n "__fish_xr_using_subcommand schema" -l limit -d 'Page size for
 complete -c xr -n "__fish_xr_using_subcommand schema" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l full -d 'Print the command\'s complete standalone schema, as committed under `schema/responses/`'
+complete -c xr -n "__fish_xr_using_subcommand schema" -l common -d 'Print the API response wrapper every typed command shares, with its shared definitions'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l list -d 'List all commands and their response types'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l all -d 'Output all schemas as a single JSON document'
 complete -c xr -n "__fish_xr_using_subcommand schema" -l envelope -d 'Output the canonical agent-native output envelope schema'

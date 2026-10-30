@@ -2,15 +2,17 @@
 //!
 //! This module holds the registry, which names every command with a typed
 //! response by its words. `words` turns the words a caller gives into a row,
-//! and `run` prints what `xr schema` is asked for.
+//! `run` prints what each scope asks for, and `resolve` derives the views.
 
+mod resolve;
 mod run;
 mod words;
 
-pub use run::run_schema;
+pub use run::{Request, run_schema};
 pub use words::{Refusal, scope_words};
 
-use schemars::schema_for;
+use schemars::JsonSchema;
+use schemars::generate::SchemaSettings;
 use serde_json::Value;
 
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
@@ -35,9 +37,14 @@ struct SchemaEntry {
     commands: &'static [&'static str],
     /// Human-readable type name.
     type_name: &'static str,
-    /// Builds the response type's JSON Schema. `schema_for!` needs the type
-    /// at its expansion site, so each row carries its own.
-    schema: fn() -> Value,
+    /// Builds the response type's JSON Schema under `settings`. The type
+    /// must be named where the generator runs, so each row carries its own.
+    schema: fn(SchemaSettings) -> Value,
+}
+
+/// `T`'s JSON Schema as the generator `settings` describes renders it.
+fn generate<T: JsonSchema>(settings: SchemaSettings) -> Value {
+    settings.into_generator().into_root_schema_for::<T>().into()
 }
 
 /// All command-to-type mappings, ordered by category.
@@ -45,7 +52,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
     SchemaEntry {
         commands: &["post", "reply", "quote", "read"],
         type_name: "ApiResponse<Post>",
-        schema: || schema_for!(ApiResponse<Post>).into(),
+        schema: generate::<ApiResponse<Post>>,
     },
     SchemaEntry {
         commands: &[
@@ -62,12 +69,12 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "quotes",
         ],
         type_name: "ApiResponse<Vec<Post>>",
-        schema: || schema_for!(ApiResponse<Vec<Post>>).into(),
+        schema: generate::<ApiResponse<Vec<Post>>>,
     },
     SchemaEntry {
         commands: &["whoami", "user"],
         type_name: "ApiResponse<User>",
-        schema: || schema_for!(ApiResponse<User>).into(),
+        schema: generate::<ApiResponse<User>>,
     },
     SchemaEntry {
         commands: &[
@@ -83,12 +90,12 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "search-users",
         ],
         type_name: "ApiResponse<Vec<User>>",
-        schema: || schema_for!(ApiResponse<Vec<User>>).into(),
+        schema: generate::<ApiResponse<Vec<User>>>,
     },
     SchemaEntry {
         commands: &["like", "unlike"],
         type_name: "ApiResponse<LikedResult>",
-        schema: || schema_for!(ApiResponse<LikedResult>).into(),
+        schema: generate::<ApiResponse<LikedResult>>,
     },
     SchemaEntry {
         commands: &[
@@ -98,42 +105,42 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "lists pinned",
         ],
         type_name: "ApiResponse<Vec<List>>",
-        schema: || schema_for!(ApiResponse<Vec<List>>).into(),
+        schema: generate::<ApiResponse<Vec<List>>>,
     },
     SchemaEntry {
         commands: &["lists get", "lists add"],
         type_name: "ApiResponse<List>",
-        schema: || schema_for!(ApiResponse<List>).into(),
+        schema: generate::<ApiResponse<List>>,
     },
     SchemaEntry {
         commands: &["lists update"],
         type_name: "ApiResponse<ListUpdatedResult>",
-        schema: || schema_for!(ApiResponse<ListUpdatedResult>).into(),
+        schema: generate::<ApiResponse<ListUpdatedResult>>,
     },
     SchemaEntry {
         commands: &["lists members add", "lists members remove"],
         type_name: "ApiResponse<ListMemberResult>",
-        schema: || schema_for!(ApiResponse<ListMemberResult>).into(),
+        schema: generate::<ApiResponse<ListMemberResult>>,
     },
     SchemaEntry {
         commands: &["lists pin", "lists unpin"],
         type_name: "ApiResponse<PinnedResult>",
-        schema: || schema_for!(ApiResponse<PinnedResult>).into(),
+        schema: generate::<ApiResponse<PinnedResult>>,
     },
     SchemaEntry {
         commands: &["broadcasts list"],
         type_name: "ApiResponse<Vec<Broadcast>>",
-        schema: || schema_for!(ApiResponse<Vec<Broadcast>>).into(),
+        schema: generate::<ApiResponse<Vec<Broadcast>>>,
     },
     SchemaEntry {
         commands: &["broadcasts get"],
         type_name: "ApiResponse<Broadcast>",
-        schema: || schema_for!(ApiResponse<Broadcast>).into(),
+        schema: generate::<ApiResponse<Broadcast>>,
     },
     SchemaEntry {
         commands: &["broadcasts scheduled list"],
         type_name: "ApiResponse<Vec<ScheduledBroadcast>>",
-        schema: || schema_for!(ApiResponse<Vec<ScheduledBroadcast>>).into(),
+        schema: generate::<ApiResponse<Vec<ScheduledBroadcast>>>,
     },
     SchemaEntry {
         commands: &[
@@ -142,127 +149,127 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "broadcasts scheduled update",
         ],
         type_name: "ApiResponse<ScheduledBroadcast>",
-        schema: || schema_for!(ApiResponse<ScheduledBroadcast>).into(),
+        schema: generate::<ApiResponse<ScheduledBroadcast>>,
     },
     SchemaEntry {
         commands: &["broadcasts chat history"],
         type_name: "ApiResponse<Vec<BroadcastChatMessage>>",
-        schema: || schema_for!(ApiResponse<Vec<BroadcastChatMessage>>).into(),
+        schema: generate::<ApiResponse<Vec<BroadcastChatMessage>>>,
     },
     SchemaEntry {
         commands: &["broadcasts chat send"],
         type_name: "ApiResponse<ChatSentResult>",
-        schema: || schema_for!(ApiResponse<ChatSentResult>).into(),
+        schema: generate::<ApiResponse<ChatSentResult>>,
     },
     SchemaEntry {
         commands: &["broadcasts chat mute", "broadcasts chat unmute"],
         type_name: "ApiResponse<ChatMutedResult>",
-        schema: || schema_for!(ApiResponse<ChatMutedResult>).into(),
+        schema: generate::<ApiResponse<ChatMutedResult>>,
     },
     SchemaEntry {
         commands: &["media get"],
         type_name: "ApiResponse<Vec<Media>>",
-        schema: || schema_for!(ApiResponse<Vec<Media>>).into(),
+        schema: generate::<ApiResponse<Vec<Media>>>,
     },
     SchemaEntry {
         commands: &["media analytics"],
         type_name: "ApiResponse<Vec<MediaAnalytics>>",
-        schema: || schema_for!(ApiResponse<Vec<MediaAnalytics>>).into(),
+        schema: generate::<ApiResponse<Vec<MediaAnalytics>>>,
     },
     SchemaEntry {
         commands: &["spaces search", "spaces get", "spaces by-creator"],
         type_name: "ApiResponse<Vec<Space>>",
-        schema: || schema_for!(ApiResponse<Vec<Space>>).into(),
+        schema: generate::<ApiResponse<Vec<Space>>>,
     },
     SchemaEntry {
         commands: &["stream rules list"],
         type_name: "ApiResponse<Vec<StreamRule>>",
-        schema: || schema_for!(ApiResponse<Vec<StreamRule>>).into(),
+        schema: generate::<ApiResponse<Vec<StreamRule>>>,
     },
     SchemaEntry {
         commands: &["stream rules add", "stream rules remove"],
         type_name: "ApiResponse<Option<Vec<StreamRule>>>",
-        schema: || schema_for!(ApiResponse<Option<Vec<StreamRule>>>).into(),
+        schema: generate::<ApiResponse<Option<Vec<StreamRule>>>>,
     },
     SchemaEntry {
         commands: &["stream rules count"],
         type_name: "ApiResponse<StreamRuleCounts>",
-        schema: || schema_for!(ApiResponse<StreamRuleCounts>).into(),
+        schema: generate::<ApiResponse<StreamRuleCounts>>,
     },
     SchemaEntry {
         commands: &["articles draft"],
         type_name: "ApiResponse<ArticleDraft>",
-        schema: || schema_for!(ApiResponse<ArticleDraft>).into(),
+        schema: generate::<ApiResponse<ArticleDraft>>,
     },
     SchemaEntry {
         commands: &["articles publish"],
         type_name: "ApiResponse<ArticlePublished>",
-        schema: || schema_for!(ApiResponse<ArticlePublished>).into(),
+        schema: generate::<ApiResponse<ArticlePublished>>,
     },
     SchemaEntry {
         commands: &["notes write"],
         type_name: "ApiResponse<NoteCreated>",
-        schema: || schema_for!(ApiResponse<NoteCreated>).into(),
+        schema: generate::<ApiResponse<NoteCreated>>,
     },
     SchemaEntry {
         commands: &["notes evaluate"],
         type_name: "ApiResponse<NoteEvaluation>",
-        schema: || schema_for!(ApiResponse<NoteEvaluation>).into(),
+        schema: generate::<ApiResponse<NoteEvaluation>>,
     },
     SchemaEntry {
         commands: &["notes written"],
         type_name: "ApiResponse<Vec<Note>>",
-        schema: || schema_for!(ApiResponse<Vec<Note>>).into(),
+        schema: generate::<ApiResponse<Vec<Note>>>,
     },
     SchemaEntry {
         commands: &["communities search"],
         type_name: "ApiResponse<Vec<Community>>",
-        schema: || schema_for!(ApiResponse<Vec<Community>>).into(),
+        schema: generate::<ApiResponse<Vec<Community>>>,
     },
     SchemaEntry {
         commands: &["communities get"],
         type_name: "ApiResponse<Community>",
-        schema: || schema_for!(ApiResponse<Community>).into(),
+        schema: generate::<ApiResponse<Community>>,
     },
     SchemaEntry {
         commands: &["news search"],
         type_name: "ApiResponse<Vec<NewsStory>>",
-        schema: || schema_for!(ApiResponse<Vec<NewsStory>>).into(),
+        schema: generate::<ApiResponse<Vec<NewsStory>>>,
     },
     SchemaEntry {
         commands: &["news get"],
         type_name: "ApiResponse<NewsStory>",
-        schema: || schema_for!(ApiResponse<NewsStory>).into(),
+        schema: generate::<ApiResponse<NewsStory>>,
     },
     SchemaEntry {
         commands: &["trends place"],
         type_name: "ApiResponse<Vec<Trend>>",
-        schema: || schema_for!(ApiResponse<Vec<Trend>>).into(),
+        schema: generate::<ApiResponse<Vec<Trend>>>,
     },
     SchemaEntry {
         commands: &["trends personal"],
         type_name: "ApiResponse<Vec<PersonalizedTrend>>",
-        schema: || schema_for!(ApiResponse<Vec<PersonalizedTrend>>).into(),
+        schema: generate::<ApiResponse<Vec<PersonalizedTrend>>>,
     },
     SchemaEntry {
         commands: &["analytics"],
         type_name: "ApiResponse<Vec<PostAnalytics>>",
-        schema: || schema_for!(ApiResponse<Vec<PostAnalytics>>).into(),
+        schema: generate::<ApiResponse<Vec<PostAnalytics>>>,
     },
     SchemaEntry {
         commands: &["search-counts"],
         type_name: "ApiResponse<Vec<PostCount>>",
-        schema: || schema_for!(ApiResponse<Vec<PostCount>>).into(),
+        schema: generate::<ApiResponse<Vec<PostCount>>>,
     },
     SchemaEntry {
         commands: &["hide", "unhide"],
         type_name: "ApiResponse<HiddenResult>",
-        schema: || schema_for!(ApiResponse<HiddenResult>).into(),
+        schema: generate::<ApiResponse<HiddenResult>>,
     },
     SchemaEntry {
         commands: &["follow", "unfollow", "lists follow", "lists unfollow"],
         type_name: "ApiResponse<FollowingResult>",
-        schema: || schema_for!(ApiResponse<FollowingResult>).into(),
+        schema: generate::<ApiResponse<FollowingResult>>,
     },
     SchemaEntry {
         commands: &[
@@ -277,87 +284,87 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "webhooks stream-links remove",
         ],
         type_name: "ApiResponse<DeletedResult>",
-        schema: || schema_for!(ApiResponse<DeletedResult>).into(),
+        schema: generate::<ApiResponse<DeletedResult>>,
     },
     SchemaEntry {
         commands: &["repost", "unrepost"],
         type_name: "ApiResponse<RepostedResult>",
-        schema: || schema_for!(ApiResponse<RepostedResult>).into(),
+        schema: generate::<ApiResponse<RepostedResult>>,
     },
     SchemaEntry {
         commands: &["bookmark", "unbookmark"],
         type_name: "ApiResponse<BookmarkedResult>",
-        schema: || schema_for!(ApiResponse<BookmarkedResult>).into(),
+        schema: generate::<ApiResponse<BookmarkedResult>>,
     },
     SchemaEntry {
         commands: &["mute", "unmute"],
         type_name: "ApiResponse<MutingResult>",
-        schema: || schema_for!(ApiResponse<MutingResult>).into(),
+        schema: generate::<ApiResponse<MutingResult>>,
     },
     SchemaEntry {
         commands: &["block", "unblock"],
         type_name: "ApiResponse<BlockingResult>",
-        schema: || schema_for!(ApiResponse<BlockingResult>).into(),
+        schema: generate::<ApiResponse<BlockingResult>>,
     },
     SchemaEntry {
         commands: &["dm", "conversations start", "conversations send"],
         type_name: "ApiResponse<DmSentResult>",
-        schema: || schema_for!(ApiResponse<DmSentResult>).into(),
+        schema: generate::<ApiResponse<DmSentResult>>,
     },
     SchemaEntry {
         commands: &["dms", "conversations history", "conversations with"],
         type_name: "ApiResponse<Vec<DmEvent>>",
-        schema: || schema_for!(ApiResponse<Vec<DmEvent>>).into(),
+        schema: generate::<ApiResponse<Vec<DmEvent>>>,
     },
     SchemaEntry {
         commands: &["dm-events get"],
         type_name: "ApiResponse<DmEvent>",
-        schema: || schema_for!(ApiResponse<DmEvent>).into(),
+        schema: generate::<ApiResponse<DmEvent>>,
     },
     SchemaEntry {
         commands: &["dm-block", "dm-unblock"],
         type_name: "ApiResponse<DmBlockResult>",
-        schema: || schema_for!(ApiResponse<DmBlockResult>).into(),
+        schema: generate::<ApiResponse<DmBlockResult>>,
     },
     SchemaEntry {
         commands: &["usage"],
         type_name: "ApiResponse<UsageData>",
-        schema: || schema_for!(ApiResponse<UsageData>).into(),
+        schema: generate::<ApiResponse<UsageData>>,
     },
     SchemaEntry {
         commands: &["usage credits"],
         type_name: "ApiResponse<UsageCreditsData>",
-        schema: || schema_for!(ApiResponse<UsageCreditsData>).into(),
+        schema: generate::<ApiResponse<UsageCreditsData>>,
     },
     SchemaEntry {
         commands: &["broadcasts moderators list"],
         type_name: "ApiResponse<Vec<User>>",
-        schema: || schema_for!(ApiResponse<Vec<User>>).into(),
+        schema: generate::<ApiResponse<Vec<User>>>,
     },
     SchemaEntry {
         commands: &["broadcasts moderators add", "broadcasts moderators remove"],
         type_name: "ApiResponse<ChatModeratorsResult>",
-        schema: || schema_for!(ApiResponse<ChatModeratorsResult>).into(),
+        schema: generate::<ApiResponse<ChatModeratorsResult>>,
     },
     SchemaEntry {
         commands: &["bookmark-folders list"],
         type_name: "ApiResponse<Vec<BookmarkFolder>>",
-        schema: || schema_for!(ApiResponse<Vec<BookmarkFolder>>).into(),
+        schema: generate::<ApiResponse<Vec<BookmarkFolder>>>,
     },
     SchemaEntry {
         commands: &["bookmark-folders add"],
         type_name: "ApiResponse<BookmarkFolder>",
-        schema: || schema_for!(ApiResponse<BookmarkFolder>).into(),
+        schema: generate::<ApiResponse<BookmarkFolder>>,
     },
     SchemaEntry {
         commands: &["bookmark-folders posts"],
         type_name: "ApiResponse<Vec<BookmarkFolderPost>>",
-        schema: || schema_for!(ApiResponse<Vec<BookmarkFolderPost>>).into(),
+        schema: generate::<ApiResponse<Vec<BookmarkFolderPost>>>,
     },
     SchemaEntry {
         commands: &["broadcasts sources list"],
         type_name: "ApiResponse<StreamSources>",
-        schema: || schema_for!(ApiResponse<StreamSources>).into(),
+        schema: generate::<ApiResponse<StreamSources>>,
     },
     SchemaEntry {
         commands: &[
@@ -366,67 +373,67 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "broadcasts sources rename",
         ],
         type_name: "ApiResponse<StreamSourceResult>",
-        schema: || schema_for!(ApiResponse<StreamSourceResult>).into(),
+        schema: generate::<ApiResponse<StreamSourceResult>>,
     },
     SchemaEntry {
         commands: &["broadcasts sources remove"],
         type_name: "ApiResponse<StreamSourceDeleted>",
-        schema: || schema_for!(ApiResponse<StreamSourceDeleted>).into(),
+        schema: generate::<ApiResponse<StreamSourceDeleted>>,
     },
     SchemaEntry {
         commands: &["calls get"],
         type_name: "ApiResponse<XCall>",
-        schema: || schema_for!(ApiResponse<XCall>).into(),
+        schema: generate::<ApiResponse<XCall>>,
     },
     SchemaEntry {
         commands: &["calls scheduled list"],
         type_name: "ApiResponse<Vec<ScheduledCall>>",
-        schema: || schema_for!(ApiResponse<Vec<ScheduledCall>>).into(),
+        schema: generate::<ApiResponse<Vec<ScheduledCall>>>,
     },
     SchemaEntry {
         commands: &["calls scheduled get", "calls scheduled add"],
         type_name: "ApiResponse<ScheduledCall>",
-        schema: || schema_for!(ApiResponse<ScheduledCall>).into(),
+        schema: generate::<ApiResponse<ScheduledCall>>,
     },
     SchemaEntry {
         commands: &["calls scheduled update"],
         type_name: "ApiResponse<ScheduledCallUpdated>",
-        schema: || schema_for!(ApiResponse<ScheduledCallUpdated>).into(),
+        schema: generate::<ApiResponse<ScheduledCallUpdated>>,
     },
     SchemaEntry {
         commands: &["calls scheduled cancel"],
         type_name: "ApiResponse<ScheduledCallCancelled>",
-        schema: || schema_for!(ApiResponse<ScheduledCallCancelled>).into(),
+        schema: generate::<ApiResponse<ScheduledCallCancelled>>,
     },
     SchemaEntry {
         commands: &["calls scheduled rsvp"],
         type_name: "ApiResponse<ScheduledCallRsvp>",
-        schema: || schema_for!(ApiResponse<ScheduledCallRsvp>).into(),
+        schema: generate::<ApiResponse<ScheduledCallRsvp>>,
     },
     SchemaEntry {
         commands: &["webhooks list"],
         type_name: "ApiResponse<Vec<Webhook>>",
-        schema: || schema_for!(ApiResponse<Vec<Webhook>>).into(),
+        schema: generate::<ApiResponse<Vec<Webhook>>>,
     },
     SchemaEntry {
         commands: &["webhooks add"],
         type_name: "ApiResponse<Webhook>",
-        schema: || schema_for!(ApiResponse<Webhook>).into(),
+        schema: generate::<ApiResponse<Webhook>>,
     },
     SchemaEntry {
         commands: &["webhooks validate"],
         type_name: "ApiResponse<WebhookValidation>",
-        schema: || schema_for!(ApiResponse<WebhookValidation>).into(),
+        schema: generate::<ApiResponse<WebhookValidation>>,
     },
     SchemaEntry {
         commands: &["webhooks subscriptions count"],
         type_name: "ApiResponse<AccountActivitySubscriptionCount>",
-        schema: || schema_for!(ApiResponse<AccountActivitySubscriptionCount>).into(),
+        schema: generate::<ApiResponse<AccountActivitySubscriptionCount>>,
     },
     SchemaEntry {
         commands: &["webhooks subscriptions list"],
         type_name: "ApiResponse<AccountActivitySubscriptions>",
-        schema: || schema_for!(ApiResponse<AccountActivitySubscriptions>).into(),
+        schema: generate::<ApiResponse<AccountActivitySubscriptions>>,
     },
     SchemaEntry {
         commands: &[
@@ -435,47 +442,47 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "webhooks subscriptions remove",
         ],
         type_name: "ApiResponse<SubscribedResult>",
-        schema: || schema_for!(ApiResponse<SubscribedResult>).into(),
+        schema: generate::<ApiResponse<SubscribedResult>>,
     },
     SchemaEntry {
         commands: &["webhooks stream-links list"],
         type_name: "ApiResponse<Vec<WebhookStreamLink>>",
-        schema: || schema_for!(ApiResponse<Vec<WebhookStreamLink>>).into(),
+        schema: generate::<ApiResponse<Vec<WebhookStreamLink>>>,
     },
     SchemaEntry {
         commands: &["webhooks stream-links add"],
         type_name: "ApiResponse<ProvisionedResult>",
-        schema: || schema_for!(ApiResponse<ProvisionedResult>).into(),
+        schema: generate::<ApiResponse<ProvisionedResult>>,
     },
     SchemaEntry {
         commands: &["webhooks replay"],
         type_name: "ApiResponse<WebhookReplayJob>",
-        schema: || schema_for!(ApiResponse<WebhookReplayJob>).into(),
+        schema: generate::<ApiResponse<WebhookReplayJob>>,
     },
     SchemaEntry {
         commands: &["media alt-text"],
         type_name: "ApiResponse<MediaMetadataResult>",
-        schema: || schema_for!(ApiResponse<MediaMetadataResult>).into(),
+        schema: generate::<ApiResponse<MediaMetadataResult>>,
     },
     SchemaEntry {
         commands: &["media subtitles add"],
         type_name: "ApiResponse<MediaSubtitlesResult>",
-        schema: || schema_for!(ApiResponse<MediaSubtitlesResult>).into(),
+        schema: generate::<ApiResponse<MediaSubtitlesResult>>,
     },
     SchemaEntry {
         commands: &["auth status", "auth apps list"],
         type_name: "Vec<AppStatusEntry>",
-        schema: || schema_for!(Vec<AppStatusEntry>).into(),
+        schema: generate::<Vec<AppStatusEntry>>,
     },
     SchemaEntry {
         commands: &["auth apps redirect-uri get"],
         type_name: "RedirectUriGetResponse",
-        schema: || schema_for!(RedirectUriGetResponse).into(),
+        schema: generate::<RedirectUriGetResponse>,
     },
     SchemaEntry {
         commands: &["auth apps redirect-uri set"],
         type_name: "RedirectUriSetResponse",
-        schema: || schema_for!(RedirectUriSetResponse).into(),
+        schema: generate::<RedirectUriSetResponse>,
     },
 ];
 

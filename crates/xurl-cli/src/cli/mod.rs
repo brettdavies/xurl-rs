@@ -15,7 +15,7 @@ pub(crate) mod shutdown;
 pub use runner::{run, run_argv, run_with_store_path};
 
 use clap::builder::FalseyValueParser;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
 
 pub mod env;
 pub mod envelope;
@@ -632,6 +632,13 @@ Examples:
   Then filter that command's output by the fields it names:
     xr schema search
     xr search \"from:jack\" --output json | jaq -r '.data[].text'
+  One field, by a dot path into data (through arrays and nullable values):
+    xr schema post --path public_metrics
+  The complete schema, wrapper and all, as committed under schema/responses/:
+    xr schema post --full --output json
+  The wrapper every typed command shares (includes, meta, errors):
+    xr schema --common
+    xr schema --common --path includes.users
   List every command with a schema (text, or one record per command):
     xr schema --list
     xr schema --list --output json
@@ -1929,11 +1936,24 @@ pub enum Commands {
 
     // ── Meta ─────────────────────────────────────────────────────────
     /// Show JSON Schema for a command's response type
-    #[command(after_help = SCHEMA_HELP)]
+    #[command(
+        after_help = SCHEMA_HELP,
+        group(ArgGroup::new("scope").args(["command", "common", "envelope", "list", "all"])),
+        group(ArgGroup::new("path_root").args(["command", "common"]))
+    )]
     Schema {
         /// The command's words, as `xr help` takes them (e.g. `post`, `webhooks subscriptions count`)
-        #[arg(value_name = "COMMAND", conflicts_with_all = ["list", "all", "envelope"])]
+        #[arg(value_name = "COMMAND")]
         command: Vec<String>,
+        /// Print the command's complete standalone schema, as committed under `schema/responses/`
+        #[arg(long, requires = "command", conflicts_with = "path")]
+        full: bool,
+        /// Print the API response wrapper every typed command shares, with its shared definitions
+        #[arg(long)]
+        common: bool,
+        /// Print the node at a dot path into the command's `data`, or into the wrapper with `--common`
+        #[arg(long, value_name = "DOT_PATH", requires = "path_root")]
+        path: Option<String>,
         /// List all commands and their response types
         #[arg(long)]
         list: bool,
