@@ -1,7 +1,7 @@
 args: ["user-posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7192
+stdout_len: 7275
 stderr_len: 0
 --- stdout ---
 List the posts a user wrote
@@ -17,7 +17,7 @@ Options:
           Number of results (5-100; a lower value is raised to 5, X's minimum). Overrides global `--limit` when set
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

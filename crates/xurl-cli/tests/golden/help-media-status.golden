@@ -1,7 +1,7 @@
 args: ["media", "status", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7627
+stdout_len: 7727
 stderr_len: 0
 --- stdout ---
 Check media upload status
@@ -14,7 +14,7 @@ Arguments:
 
 Options:
       --auth <AUTH_TYPE>
-          Authentication type
+          Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

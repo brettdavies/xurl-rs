@@ -1,7 +1,7 @@
 args: ["analytics", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7756
+stdout_len: 7834
 stderr_len: 0
 --- stdout ---
 Report impressions and engagement for your posts over a time window
@@ -25,7 +25,7 @@ Options:
           [possible values: hourly, daily, weekly, total]
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

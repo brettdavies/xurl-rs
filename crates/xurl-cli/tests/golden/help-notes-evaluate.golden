@@ -1,7 +1,7 @@
 args: ["notes", "evaluate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7174
+stdout_len: 7252
 stderr_len: 0
 --- stdout ---
 Score a draft Community Note without writing it
@@ -17,7 +17,7 @@ Options:
           The note's text; X requires a source URL in it
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`

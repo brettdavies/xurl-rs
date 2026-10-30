@@ -1,7 +1,7 @@
 args: ["whoami", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7531
+stdout_len: 7609
 stderr_len: 0
 --- stdout ---
 Show the authenticated user's profile
@@ -15,7 +15,7 @@ Options:
           The stored names are what X answered when a login for this account last asked, in any app, so a rename shows once one of them asks again, as a live `xr whoami` does. The login's token is not checked either: an expired login still answers, so `--cached` is no test of a credential. `xr --dry-run whoami` says whether the token has expired.
 
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
