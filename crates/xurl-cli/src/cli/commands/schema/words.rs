@@ -5,6 +5,7 @@ use xdk::error::Error;
 
 use crate::cli::Cli;
 use crate::cli::classify::{ROOT_COMMAND, nearest};
+use crate::cli::retired_verbs;
 
 use super::{file_stem, registered_commands};
 
@@ -112,7 +113,8 @@ pub(super) fn resolve(words: &[String]) -> std::result::Result<&'static str, Ref
     )))
 }
 
-/// The row an old hyphen-joined name meant, when `token` is one.
+/// The row an old hyphen-joined name meant, when `token` is one. The name of
+/// a command its family retired means the row of the command that replaced it.
 fn old_name(token: &str) -> Option<&'static str> {
     IRREGULAR_OLD_NAMES
         .iter()
@@ -121,5 +123,10 @@ fn old_name(token: &str) -> Option<&'static str> {
         .or_else(|| {
             registered_commands()
                 .find(|command| command.contains(' ') && file_stem(command) == token)
+        })
+        .or_else(|| {
+            let (_, replacement) = retired_verbs::retired_commands()
+                .find(|(retired, _)| file_stem(retired) == token)?;
+            registered_commands().find(|command| *command == replacement)
         })
 }

@@ -517,10 +517,7 @@ fn render_parse_error(
         if !word.starts_with('-') {
             let command = failing_command(error, args);
             let nearest = suggestion_for_rejected(error, args, &word);
-            let suggestion = match retired_verbs::replacement(&command, &word) {
-                Some(replacement) => Suggestion::Replacement(replacement),
-                None => Suggestion::nearest(nearest.as_deref()),
-            };
+            let suggestion = Suggestion::for_word(&command, &word, nearest.as_deref());
             return render_unknown_command(&word, suggestion, &command, &out, stderr);
         }
         if matches!(word.as_str(), "-h" | "--help") && help_command_precedes(args, &word) {
@@ -671,7 +668,7 @@ fn render_schema_refusal(
         } => {
             return render_unknown_command(
                 &word,
-                Suggestion::nearest(suggestion.as_deref()),
+                Suggestion::for_word(&under, &word, suggestion.as_deref()),
                 &under,
                 out,
                 stderr,
@@ -739,6 +736,15 @@ enum Suggestion<'a> {
 impl<'a> Suggestion<'a> {
     fn nearest(name: Option<&'a str>) -> Self {
         name.map_or(Self::Nothing, Self::Nearest)
+    }
+
+    /// The word that replaced `word` when `command`'s family retired it, and
+    /// the nearest name by spelling otherwise.
+    fn for_word(command: &str, word: &str, nearest: Option<&'a str>) -> Self {
+        match retired_verbs::replacement(command, word) {
+            Some(replacement) => Self::Replacement(replacement),
+            None => Self::nearest(nearest),
+        }
     }
 
     fn name(self) -> Option<&'a str> {

@@ -4,6 +4,8 @@
 //! the replacement rather than clap's guess at a typo: the sibling nearest by
 //! spelling can be an unrelated verb, and `rename` scores closest to `remove`.
 
+use crate::cli::classify::ROOT_COMMAND;
+
 /// A word a family no longer takes, and the word that took its place.
 struct Retired {
     /// The family as `failing_command` names it, such as
@@ -25,6 +27,16 @@ pub(crate) fn replacement(family: &str, word: &str) -> Option<&'static str> {
         .iter()
         .find(|row| row.family == family && row.retired == word)
         .map(|row| row.replacement)
+}
+
+/// Each retired command by its words beneath `xr`, beside the words of the
+/// command that replaced it.
+pub(crate) fn retired_commands() -> impl Iterator<Item = (String, String)> {
+    RETIRED.iter().map(|row| {
+        let family = row.family.strip_prefix(ROOT_COMMAND).unwrap_or(row.family);
+        let words = |word: &str| format!("{family} {word}").trim_start().to_string();
+        (words(row.retired), words(row.replacement))
+    })
 }
 
 #[cfg(test)]
