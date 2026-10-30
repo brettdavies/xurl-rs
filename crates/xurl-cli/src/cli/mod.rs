@@ -3095,8 +3095,7 @@ pub enum MutesCommands {
     /// broadcast's host instead.
     #[command(after_help = family_help::broadcast_mutes::FAMILY.verb_page(&family_help::broadcast_mutes::ADD))]
     Add {
-        /// Username to mute
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to mute. {}", output::account_rule()))]
         target_username: String,
         /// When the mute ends (RFC 3339 with a zone); for good when unset
         #[arg(long, value_name = "TIME")]
@@ -3114,8 +3113,7 @@ pub enum MutesCommands {
     /// Unmute someone in your broadcast chats
     #[command(after_help = family_help::broadcast_mutes::FAMILY.verb_page(&family_help::broadcast_mutes::REMOVE))]
     Remove {
-        /// Username to unmute
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to unmute. {}", output::account_rule()))]
         target_username: String,
         /// A broadcast you moderate: unmute them in its host's chats
         #[arg(long, value_name = "BROADCAST_ID")]

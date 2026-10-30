@@ -1,12 +1,12 @@
 args: ["broadcasts", "sources", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7448
+stdout_len: 7485
 stderr_len: 0
 --- stdout ---
 Create a stream source
 
-Point an encoder at its `rtmps_url` with its `id` as the stream key.
+Point an encoder at its `rtmps_url` with its `stream_key`.
 
 Usage: xr broadcasts sources add [OPTIONS] --region <REGION> <NAME>
 
@@ -16,7 +16,7 @@ Arguments:
 
 Options:
       --region <REGION>
-          Ingest region: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2
+          Ingest region: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2; `xr broadcasts sources region` names the nearest
 
       --auth <AUTH_TYPE>
           Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
@@ -164,7 +164,7 @@ Global Options:
           [env: XURL_AFTER=]
 
 Examples:
-  Create a source; stream to its rtmps_url with its id as the key (text):
+  Create a source; stream to its rtmps_url with its stream_key (text):
     xr broadcasts sources add "Studio A" --region us-east-1
   Create (JSON envelope):
     xr broadcasts sources add "Studio A" --region us-east-1 --output json

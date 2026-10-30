@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7175
+stdout_len: 7148
 stderr_len: 0
 --- stdout ---
 Show one stream source, and whether it is receiving video
@@ -10,7 +10,7 @@ Usage: xr broadcasts sources get [OPTIONS] <SOURCE_ID>
 
 Arguments:
   <SOURCE_ID>
-          Source ID, as `xr broadcasts sources list` prints it; it is also the stream key
+          Source ID, as `xr broadcasts sources list` prints it
 
 Options:
       --auth <AUTH_TYPE>

@@ -1,7 +1,7 @@
 //! The `broadcasts` family: the caller's broadcasts, their chat moderators,
 //! the people muted in their chats, and the RTMP and RTMPS stream sources
-//! the caller broadcasts from, with the ingest region to create one in. The scheduled broadcasts and a broadcast's
-//! chat have modules of their own.
+//! the caller broadcasts from, with the ingest region to create one in. The
+//! scheduled broadcasts and a broadcast's chat have modules of their own.
 
 use serde_json::json;
 

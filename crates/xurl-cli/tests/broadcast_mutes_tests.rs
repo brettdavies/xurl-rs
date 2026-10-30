@@ -30,9 +30,10 @@ async fn run_json(server: &MockServer, args: &[&str]) -> (i32, String, String) {
 
 async fn mount_troll(server: &MockServer, times: u64) {
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/troll"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "troll"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "99", "name": "troll", "username": "troll"}
+            "data": [{"id": "99", "name": "troll", "username": "troll"}]
         })))
         .expect(times)
         .mount(server)
@@ -184,7 +185,7 @@ async fn remove_without_a_broadcast_unmutes_in_the_callers_own_chats() {
 async fn inputs_outside_the_spec_bounds_are_refused_before_any_request() {
     let server = MockServer::start().await;
 
-    for (args, reason) in [
+    for (args, rule) in [
         (
             vec![
                 "broadcasts",
@@ -239,7 +240,8 @@ async fn inputs_outside_the_spec_bounds_are_refused_before_any_request() {
         assert_eq!(code, 0, "{args:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{args:?}");
-        assert_eq!(body["reason"], reason, "{args:?}");
+        assert_eq!(body["reason"], "validation", "{args:?}");
+        assert_eq!(body["rule"], rule, "{args:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
