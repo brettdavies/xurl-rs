@@ -49,6 +49,12 @@ pub struct NextStep {
 pub(crate) const REGISTER_APP_TEMPLATE: &str =
     "<secret-command> | xr auth apps add <name> --client-id <client-id> --client-secret-file -";
 
+/// The refusal of a webhook receiver with no secret to verify X's
+/// signatures by, shared by the command that raises it and the hint that
+/// answers it.
+pub(crate) const NO_SIGNING_SECRET: &str = "No signing secret: X signs webhook requests with the \
+     app's OAuth2 client secret or OAuth1 consumer secret, and the app has neither stored";
+
 /// The README section on a token store that could not be loaded.
 pub(crate) const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
 
@@ -212,6 +218,18 @@ impl NextStep {
             action: NextAction::FixInput,
             command: Some(command),
             template: None,
+            docs: None,
+        }
+    }
+
+    /// Fill in and run `template`, the invocation that stores what the
+    /// command lacked; each placeholder is a value only the caller has.
+    #[must_use]
+    pub fn fix_input_template(template: String) -> Self {
+        Self {
+            action: NextAction::FixInput,
+            command: None,
+            template: Some(template),
             docs: None,
         }
     }
@@ -554,6 +572,67 @@ pub fn address_in_use_hint(error: &Error, invocation: &[String]) -> Option<Hint>
         )],
         next_step,
     })
+}
+
+/// Builds the hint for a webhook receiver with no secret to verify X's
+/// signatures by: with no app registered, register one; otherwise store the
+/// secret `listen` signs with, the `OAuth1` consumer secret under
+/// `--secret oauth1` and the app's client secret otherwise.
+#[must_use]
+pub fn no_signing_secret_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    invocation: &[String],
+) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    if message != NO_SIGNING_SECRET {
+        return None;
+    }
+    let app = snapshot.active_app.as_str();
+    if !snapshot.apps.contains_key(app) {
+        let next_step = NextStep::register_app();
+        let template = next_step.template.clone().unwrap_or_default();
+        return Some(Hint {
+            text_lines: vec![format!("Register an app first. Run: {template}")],
+            next_step,
+        });
+    }
+    let (stores, template) = if requested_secret(invocation) == Some("oauth1") {
+        (
+            "the app's OAuth1 credentials",
+            format!(
+                "{ROOT_COMMAND} auth oauth1 --app {app} --consumer-key <key> \
+                 --consumer-secret-file <path> --access-token-file <path> --token-secret-file <path>"
+            ),
+        )
+    } else {
+        (
+            "the app's client secret",
+            format!("{ROOT_COMMAND} auth apps update {app} --client-secret-file <path>"),
+        )
+    };
+    Some(Hint {
+        text_lines: vec![format!(
+            "Store {stores}, then listen again. Run: {template}"
+        )],
+        next_step: NextStep::fix_input_template(template),
+    })
+}
+
+/// The secret `--secret` names in `invocation`, read up to any `--`.
+fn requested_secret(invocation: &[String]) -> Option<&str> {
+    let mut args = invocation.iter().take_while(|arg| *arg != "--");
+    while let Some(arg) = args.next() {
+        if arg == "--secret" {
+            return args.next().map(String::as_str);
+        }
+        if let Some(value) = arg.strip_prefix("--secret=") {
+            return Some(value);
+        }
+    }
+    None
 }
 
 /// Builds the retry hint when `error` is a 429 that named its reset.
