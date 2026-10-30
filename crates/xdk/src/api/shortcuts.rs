@@ -833,9 +833,11 @@ pub fn validate_accounts<S: AsRef<str>>(accounts: &[S]) -> std::result::Result<(
 /// regard to case or a leading `@`, as X matches it.
 ///
 /// # Errors
-/// Returns a validation error naming the first username `found` does not
-/// carry: X answers an unknown username with an entry in `errors`, not with
-/// a failed request.
+/// Returns [`Error::AccountNotFound`](crate::error::Error::AccountNotFound)
+/// naming the first username `found` does not carry: X answers a lookup that
+/// finds some of its usernames with the rest in `errors` beside `data`. A
+/// lookup that finds none of them fails at its own `send` with the same
+/// error.
 pub fn user_ids_for_accounts<S: AsRef<str>>(
     accounts: &[S],
     found: &[User],
@@ -1882,11 +1884,15 @@ impl Client {
         &self,
         usernames: &[S],
     ) -> Call<ApiResponse<Vec<User>>> {
+        let first = usernames
+            .first()
+            .map(|name| resolve_username(name.as_ref()));
         self.user_batch(
             endpoints::LOOKUP_USERS_BY_USERNAME.path,
             "usernames",
             usernames.iter().map(|name| resolve_username(name.as_ref())),
         )
+        .looking_up(first)
     }
 
     fn user_batch(
@@ -2993,13 +2999,14 @@ impl Client {
             endpoints::LOOKUP_USER.method,
             template(
                 endpoints::LOOKUP_USER.path,
-                HashMap::from([("username".to_string(), username)]),
+                HashMap::from([("username".to_string(), username.clone())]),
                 vec![(
                     "user.fields".to_string(),
                     "created_at,description,public_metrics,verified,profile_image_url".to_string(),
                 )],
             ),
         )
+        .looking_up(Some(username))
     }
 
     /// Fetches the home timeline.

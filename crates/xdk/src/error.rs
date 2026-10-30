@@ -289,7 +289,8 @@ pub enum Error {
         detail: String,
     },
 
-    /// X answered a lookup of `account`, a handle, with no user.
+    /// X found no account for `account`, a handle a lookup named; a lookup
+    /// of several names the first handle it found no account for.
     #[error("user @{account} not found")]
     AccountNotFound {
         /// The handle, without its `@`, as the lookup sent it.
@@ -660,6 +661,12 @@ impl Error {
     #[must_use]
     pub fn is_api(&self) -> bool {
         matches!(self, Self::Api { .. })
+    }
+
+    /// Whether X answered with `errors`, no `data`, and a problem type that
+    /// says what the request named does not exist.
+    pub(crate) fn finds_nothing(&self) -> bool {
+        matches!(self, Self::Api { status: 200, body, .. } if classified_status(200, body) == 404)
     }
 
     /// Returns true if this is a validation error.

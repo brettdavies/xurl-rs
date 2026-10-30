@@ -37,6 +37,9 @@ pub struct Call<T> {
     /// The query parameter a list endpoint reads its cursor from; `None`
     /// for an endpoint that takes no cursor.
     cursor_param: Option<&'static str>,
+    /// The first handle a lookup by handle names: an answer that finds no
+    /// account for any of them is [`Error::AccountNotFound`] for this one.
+    handle: Option<String>,
     failed: Option<Error>,
     response: PhantomData<fn() -> T>,
 }
@@ -184,6 +187,7 @@ impl<T> Call<T> {
             options: CallOptions::default(),
             request,
             cursor_param: None,
+            handle: None,
             failed: None,
             response: PhantomData,
         }
@@ -200,6 +204,12 @@ impl<T> Call<T> {
     /// [`Call::pagination_token`], as `pagination_token`.
     pub(crate) fn paginated(self) -> Self {
         self.paginated_by("pagination_token")
+    }
+
+    /// Marks a lookup by handle, `handle` the first one it names.
+    pub(crate) fn looking_up(mut self, handle: Option<String>) -> Self {
+        self.handle = handle;
+        self
     }
 
     /// [`Call::paginated`] for an endpoint that reads its cursor from
@@ -297,14 +307,17 @@ impl<T: DeserializeOwned> Call<T> {
     /// # Errors
     ///
     /// Everything [`Client::send_request`] returns, plus [`Error::Json`]
-    /// when the body does not decode into `T` and [`Error::Validation`]
-    /// when a 200 carries only `errors`.
+    /// when the body does not decode into `T`. A 200 that carries only
+    /// `errors` is [`Error::Api`] read by X's problem type, except a lookup
+    /// by handle that finds no account, which is [`Error::AccountNotFound`]
+    /// naming the first handle.
     pub async fn send(self) -> Result<T> {
         let Self {
             client,
             options,
             mut request,
             cursor_param,
+            handle,
             failed,
             ..
         } = self;
@@ -322,6 +335,12 @@ impl<T: DeserializeOwned> Call<T> {
             query.push((param.to_string(), options.pagination_token));
         }
         let timeout = options.timeout.unwrap_or_else(|| client.request_timeout());
-        decode(client.send_request_with(&request, timeout).await?)
+        let answer = decode(client.send_request_with(&request, timeout).await?);
+        match (answer, handle) {
+            (Err(error), Some(account)) if error.finds_nothing() => {
+                Err(Error::AccountNotFound { account })
+            }
+            (answer, _) => answer,
+        }
     }
 }

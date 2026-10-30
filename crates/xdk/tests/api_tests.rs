@@ -1069,6 +1069,93 @@ async fn test_lookup_user() {
     assert_eq!(resp.data.username, "lookedup");
 }
 
+/// X's 200 for a lookup it answers with one `errors` entry of `problem` per
+/// value and no `data`.
+fn errors_only(problem: &str, values: &[&str]) -> ResponseTemplate {
+    let errors: Vec<serde_json::Value> = values
+        .iter()
+        .map(|value| {
+            serde_json::json!({
+                "value": value,
+                "detail": format!("Could not find user with usernames: [{value}]."),
+                "title": "Not Found Error",
+                "resource_type": "user",
+                "type": format!("https://api.x.com/2/problems/{problem}")
+            })
+        })
+        .collect();
+    ResponseTemplate::new(200).set_body_json(serde_json::json!({"errors": errors}))
+}
+
+#[tokio::test]
+async fn a_lookup_by_handle_that_finds_no_account_names_the_first_handle() {
+    let ts = TestServer::new().await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/ghost"))
+            .respond_with(errors_only("resource-not-found", &["ghost"])),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by"))
+            .and(query_param("usernames", "ghost,phantom"))
+            .respond_with(errors_only("resource-not-found", &["ghost", "phantom"])),
+    )
+    .await;
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let client = Client::new(&cfg, auth).expect("client builds");
+
+    let one = client.lookup_user("@ghost").send().await.unwrap_err();
+    let several = client
+        .lookup_users_by_username(&["@ghost", "phantom"])
+        .send()
+        .await
+        .unwrap_err();
+
+    for err in [one, several] {
+        assert!(
+            matches!(&err, xdk::Error::AccountNotFound { account, .. } if account == "ghost"),
+            "{err:?}"
+        );
+        assert_eq!(err.kind(), "not-found");
+        assert_eq!(err.exit_code(), 4);
+    }
+}
+
+/// An errors-only answer that is not a handle lookup finding nothing reads
+/// as its problem type: an id lookup that finds nothing, and a handle
+/// lookup X refuses for another reason.
+#[tokio::test]
+async fn any_other_errors_only_answer_reads_as_its_problem_type() {
+    let ts = TestServer::new().await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users"))
+            .and(query_param("ids", "12"))
+            .respond_with(errors_only("resource-not-found", &["12"])),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/users/by/username/locked"))
+            .respond_with(errors_only("not-authorized-for-resource", &["locked"])),
+    )
+    .await;
+    let cfg = create_test_config(ts.uri());
+    let (auth, _tmp) = create_mock_auth_with_all_methods(ts.uri());
+    let client = Client::new(&cfg, auth).expect("client builds");
+
+    let by_id = client.lookup_users_by_id(&["12"]).send().await.unwrap_err();
+    let refused = client.lookup_user("locked").send().await.unwrap_err();
+
+    assert!(by_id.is_api(), "{by_id:?}");
+    assert_eq!(by_id.kind(), "not-found");
+    assert!(refused.is_api(), "{refused:?}");
+    assert_eq!(refused.kind(), "forbidden");
+}
+
 #[tokio::test]
 async fn test_create_post_with_media() {
     let ts = TestServer::new().await;
