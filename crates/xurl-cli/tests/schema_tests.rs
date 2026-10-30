@@ -816,6 +816,7 @@ fn a_mistyped_word_gets_the_refusal_xr_help_gives_it() {
 )]
 #[case("redirect-uri-get", "xr schema auth apps redirect-uri get")]
 #[case("broadcasts-scheduled-remove", "xr schema broadcasts scheduled cancel")]
+#[case("broadcasts-sources-rename", "xr schema broadcasts sources update")]
 fn an_old_name_is_refused_with_the_words_that_work(#[case] old: &str, #[case] run: &str) {
     let (code, envelope) = schema_refusal(&[old]);
     assert_eq!(code, Some(2));

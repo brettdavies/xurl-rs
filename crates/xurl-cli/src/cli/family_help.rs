@@ -1053,10 +1053,10 @@ pub mod broadcast_sources {
         json_caption: "Create (JSON envelope)",
     };
 
-    /// `xr broadcasts sources rename`.
-    pub const RENAME: Verb = Verb {
-        name: "rename",
-        example_args: "1x2y3z4w5v6u \"Studio B\"",
+    /// `xr broadcasts sources update`.
+    pub const UPDATE: Verb = Verb {
+        name: "update",
+        example_args: "1x2y3z4w5v6u --name \"Studio B\"",
         text_caption: "Rename a source (text)",
         json_caption: "Rename (JSON envelope)",
     };

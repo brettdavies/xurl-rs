@@ -517,8 +517,8 @@ _xr() {
             xr__subcmd__broadcasts__subcmd__help__subcmd__sources,remove)
                 cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove"
                 ;;
-            xr__subcmd__broadcasts__subcmd__help__subcmd__sources,rename)
-                cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__rename"
+            xr__subcmd__broadcasts__subcmd__help__subcmd__sources,update)
+                cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update"
                 ;;
             xr__subcmd__broadcasts__subcmd__moderators,add)
                 cmd="xr__subcmd__broadcasts__subcmd__moderators__subcmd__add"
@@ -595,8 +595,8 @@ _xr() {
             xr__subcmd__broadcasts__subcmd__sources,remove)
                 cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__remove"
                 ;;
-            xr__subcmd__broadcasts__subcmd__sources,rename)
-                cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__rename"
+            xr__subcmd__broadcasts__subcmd__sources,update)
+                cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__update"
                 ;;
             xr__subcmd__broadcasts__subcmd__sources__subcmd__help,add)
                 cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__add"
@@ -613,8 +613,8 @@ _xr() {
             xr__subcmd__broadcasts__subcmd__sources__subcmd__help,remove)
                 cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove"
                 ;;
-            xr__subcmd__broadcasts__subcmd__sources__subcmd__help,rename)
-                cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__rename"
+            xr__subcmd__broadcasts__subcmd__sources__subcmd__help,update)
+                cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__update"
                 ;;
             xr__subcmd__calls,get)
                 cmd="xr__subcmd__calls__subcmd__get"
@@ -1087,8 +1087,8 @@ _xr() {
             xr__subcmd__help__subcmd__broadcasts__subcmd__sources,remove)
                 cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove"
                 ;;
-            xr__subcmd__help__subcmd__broadcasts__subcmd__sources,rename)
-                cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__rename"
+            xr__subcmd__help__subcmd__broadcasts__subcmd__sources,update)
+                cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update"
                 ;;
             xr__subcmd__help__subcmd__calls,get)
                 cmd="xr__subcmd__help__subcmd__calls__subcmd__get"
@@ -6115,7 +6115,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__broadcasts__subcmd__help__subcmd__sources)
-            opts="list get add rename remove"
+            opts="list get add update remove"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -6184,7 +6184,7 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__rename)
+        xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -7433,7 +7433,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__broadcasts__subcmd__sources)
-            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help list get add rename remove help"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help list get add update remove help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -7707,7 +7707,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__broadcasts__subcmd__sources__subcmd__help)
-            opts="list get add rename remove help"
+            opts="list get add update remove help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -7790,7 +7790,7 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__rename)
+        xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__update)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -7992,13 +7992,17 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xr__subcmd__broadcasts__subcmd__sources__subcmd__rename)
-            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help"
+        xr__subcmd__broadcasts__subcmd__sources__subcmd__update)
+            opts="-u -t -v -q -h --name --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --name)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --auth)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -12085,7 +12089,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__help__subcmd__broadcasts__subcmd__sources)
-            opts="list get add rename remove"
+            opts="list get add update remove"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -12154,7 +12158,7 @@ _xr() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__rename)
+        xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

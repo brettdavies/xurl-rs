@@ -4409,7 +4409,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your stream sources')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Show one stream source, and whether it is receiving video')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a stream source')
-            [CompletionResult]::new('rename', 'rename', [CompletionResultType]::ParameterValue, 'Rename a stream source')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Rename a stream source')
             [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Delete a stream source; an encoder sending to it is no longer received')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
@@ -4505,7 +4505,8 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             break
         }
-        'xr;broadcasts;sources;rename' {
+        'xr;broadcasts;sources;update' {
+            [CompletionResult]::new('--name', '--name', [CompletionResultType]::ParameterName, 'The new label')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -4570,7 +4571,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your stream sources')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Show one stream source, and whether it is receiving video')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a stream source')
-            [CompletionResult]::new('rename', 'rename', [CompletionResultType]::ParameterValue, 'Rename a stream source')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Rename a stream source')
             [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Delete a stream source; an encoder sending to it is no longer received')
             [CompletionResult]::new('help', 'help', [CompletionResultType]::ParameterValue, 'Print this message or the help of the given subcommand(s)')
             break
@@ -4584,7 +4585,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;broadcasts;sources;help;add' {
             break
         }
-        'xr;broadcasts;sources;help;rename' {
+        'xr;broadcasts;sources;help;update' {
             break
         }
         'xr;broadcasts;sources;help;remove' {
@@ -4674,7 +4675,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your stream sources')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Show one stream source, and whether it is receiving video')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a stream source')
-            [CompletionResult]::new('rename', 'rename', [CompletionResultType]::ParameterValue, 'Rename a stream source')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Rename a stream source')
             [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Delete a stream source; an encoder sending to it is no longer received')
             break
         }
@@ -4687,7 +4688,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;broadcasts;help;sources;add' {
             break
         }
-        'xr;broadcasts;help;sources;rename' {
+        'xr;broadcasts;help;sources;update' {
             break
         }
         'xr;broadcasts;help;sources;remove' {
@@ -7323,7 +7324,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your stream sources')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Show one stream source, and whether it is receiving video')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a stream source')
-            [CompletionResult]::new('rename', 'rename', [CompletionResultType]::ParameterValue, 'Rename a stream source')
+            [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Rename a stream source')
             [CompletionResult]::new('remove', 'remove', [CompletionResultType]::ParameterValue, 'Delete a stream source; an encoder sending to it is no longer received')
             break
         }
@@ -7336,7 +7337,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;help;broadcasts;sources;add' {
             break
         }
-        'xr;help;broadcasts;sources;rename' {
+        'xr;help;broadcasts;sources;update' {
             break
         }
         'xr;help;broadcasts;sources;remove' {

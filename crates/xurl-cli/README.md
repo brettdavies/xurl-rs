@@ -398,7 +398,7 @@ xr broadcasts moderators add @helper               # Add a chat moderator
 xr broadcasts sources list                         # Your RTMP and RTMPS ingest points
 xr broadcasts sources add "Studio A" --region us-east-1
 xr broadcasts sources get 1x2y3z4w5v6u             # Whether the source is receiving video
-xr broadcasts sources rename 1x2y3z4w5v6u "Studio B"
+xr broadcasts sources update 1x2y3z4w5v6u --name "Studio B"
 xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force skips)
 ```
 

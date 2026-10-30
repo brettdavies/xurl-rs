@@ -264,6 +264,12 @@ failure message carries a `Cause:` line) is named here, and no document lists th
   `bookmark`/`bookmarks`, and `timeline`/`mentions` are separate commands because they are separate endpoints.
 - A subcommand family groups a noun that owns several operations: tooling nouns (`auth`, `skill`, `schema`,
   `completions`) and API namespaces with sibling endpoints (`media` over `/2/media/*`, `usage` over `/2/usage/*`).
+- An action is a verb, and sibling families name the same action with the same verb. A change to a resource is
+  `update`, its fields given as flags (`lists update --name`); deleting one is `remove`; taking a scheduled event off the
+  calendar is `cancel`, under `calls scheduled` and `broadcasts scheduled` alike. A read can be named for what it
+  returns (`conversations history`, `lists pinned`, `notes written`).
+- A renamed command word gets a row in `crates/xurl-cli/src/cli/retired_verbs.rs`, so the old word refuses naming its
+  replacement rather than running as an alias.
 
 Routing a new endpoint: when an existing family noun owns it (an API-namespace sibling), add a subcommand there; when it
 stands alone in the core domain, add a top-level command; never add an endpoint-selecting flag to an existing command.

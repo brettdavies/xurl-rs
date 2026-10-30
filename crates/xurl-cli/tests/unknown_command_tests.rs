@@ -1162,3 +1162,28 @@ async fn a_retired_word_stays_a_command_in_other_families() {
     assert_eq!(v["status"], "dry_run", "got: {v}");
     assert_eq!(v["command"], "lists-remove", "got: {v}");
 }
+
+/// The sibling nearest `rename` by spelling is `remove`, the delete verb, so
+/// only the row keeps a caller who renamed a source off the delete page.
+#[tokio::test]
+async fn a_retired_word_never_points_at_its_nearest_sibling() {
+    let (code, _stdout, stderr) = run_isolated(&[
+        "xr",
+        "--output",
+        "json",
+        "broadcasts",
+        "sources",
+        "rename",
+        "1x2y3z4w5v6u",
+        "Studio B",
+    ])
+    .await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_unknown_command_under(
+        &stderr,
+        "json",
+        "rename",
+        Some("update"),
+        "xr broadcasts sources",
+    );
+}

@@ -373,7 +373,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &[
             "broadcasts sources get",
             "broadcasts sources add",
-            "broadcasts sources rename",
+            "broadcasts sources update",
         ],
         type_name: "ApiResponse<StreamSourceResult>",
         schema: generate::<ApiResponse<StreamSourceResult>>,

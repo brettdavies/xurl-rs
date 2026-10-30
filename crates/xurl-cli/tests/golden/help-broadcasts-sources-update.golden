@@ -1,21 +1,21 @@
-args: ["broadcasts", "sources", "rename", "--help"]
+args: ["broadcasts", "sources", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7160
+stdout_len: 7192
 stderr_len: 0
 --- stdout ---
 Rename a stream source
 
-Usage: xr broadcasts sources rename [OPTIONS] <SOURCE_ID> <NAME>
+Usage: xr broadcasts sources update [OPTIONS] --name <NAME> <SOURCE_ID>
 
 Arguments:
   <SOURCE_ID>
           Source ID, as `xr broadcasts sources list` prints it
 
-  <NAME>
+Options:
+      --name <NAME>
           The new label
 
-Options:
       --auth <AUTH_TYPE>
           Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
 
@@ -163,12 +163,12 @@ Global Options:
 
 Examples:
   Rename a source (text):
-    xr broadcasts sources rename 1x2y3z4w5v6u "Studio B"
+    xr broadcasts sources update 1x2y3z4w5v6u --name "Studio B"
   Rename (JSON envelope):
-    xr broadcasts sources rename 1x2y3z4w5v6u "Studio B" --output json
+    xr broadcasts sources update 1x2y3z4w5v6u --name "Studio B" --output json
 
 Response schema:
-  xr schema broadcasts sources rename
+  xr schema broadcasts sources update
 
 --- stderr ---
 

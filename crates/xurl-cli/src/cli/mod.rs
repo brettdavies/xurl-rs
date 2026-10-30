@@ -2975,13 +2975,13 @@ pub enum SourcesCommands {
         common: CommonFlags,
     },
     /// Rename a stream source
-    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::RENAME))]
-    Rename {
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::UPDATE))]
+    Update {
         /// Source ID, as `xr broadcasts sources list` prints it
         #[arg(value_name = "SOURCE_ID")]
         source_id: String,
         /// The new label
-        #[arg(value_name = "NAME")]
+        #[arg(long, value_name = "NAME")]
         name: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
