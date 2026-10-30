@@ -426,6 +426,13 @@ only once its trigger has fired. `crates/xdk/tests/endpoint_decisions.rs` fails 
 shortcut nor a decision, for an entry naming an operation the spec lacks, and for a decision covering one that has a
 shortcut.
 
+A refresh PR's Changelog lists what a user of `xr` or an embedder of `xdk-rs` can observe, such as a command added,
+behavior fixed because X changed something, or a type that changed, each under its usual heading in each crate whose
+surface it touches. A refresh with none of those, as when X edits only prose, adds no bullet when another PR in the same
+`xdk-rs` release already records the spec moving. Otherwise its `xdk-rs` block takes one `### Changed` bullet, since the
+public `API_SPEC_*` constants move with nothing else to explain them; its `xurl-rs` block stays empty, because `xr`
+reports none of them.
+
 ## Known differences from the Go original
 
 See [`KNOWN_DIFFERENCES.md`](KNOWN_DIFFERENCES.md) for intentional deviations from
