@@ -58,8 +58,12 @@ broke the command surface.
 
 An entry in `endpoint-decisions.json` recording what was decided for spec operations that have no shortcut command:
 `planned` (a command family to build, retired when it ships), `raw-only`, or `not-supported` (no command until the
-entry's `revisit_when` trigger fires). Each carries a reason, who decided, and when. Every spec operation has a shortcut
-or a decision, and only a person changes one.
+entry's `revisit_when` trigger fires). `raw-only` means `xr` already serves the need, so a command would add nothing:
+raw mode or another command covers it, as with a second path to a resource a command reads, a batch of one, a niche
+read, or a stream. `not-supported` means the capability needs something `xr` does not hold or drive, such as XChat's
+encryption keys, a live call's audio socket, or the encoder that takes a broadcast live; raw mode still reaches the
+endpoint. Each entry carries a reason, who decided, and when. Every spec operation has a shortcut or a decision, and
+only a person changes one.
 
 ### Spec↔types validation gate
 
