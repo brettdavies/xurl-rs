@@ -758,6 +758,10 @@ fn dry_run_cases() -> Vec<Case> {
                 "ftp://example.com/hook",
             ],
         ),
+        case(
+            "dry-run-listen-no-signing-secret",
+            &["--output", "json", "--dry-run", "webhooks", "listen"],
+        ),
         case("dry-run-text-no-credential", &["--dry-run", "whoami"]),
         case("dry-run-text-quiet", &["--quiet", "--dry-run", "whoami"]),
         signed_in(case(

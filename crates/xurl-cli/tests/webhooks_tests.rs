@@ -17,7 +17,7 @@ use common::listen::{
     EVENT_UNDER_CONSUMER_SECRET, LEGACY_HEADER, OAUTH2_HEADER, crc_token_from, deliver, free_port,
     listen_tapped, listen_while, next_record,
 };
-use common::{oauth1_store, run_in_process as run};
+use common::{oauth1_store, oauth2_store, run_in_process as run};
 
 const WEBHOOK_ID: &str = "1146654567674912769";
 
@@ -1557,4 +1557,71 @@ async fn the_checkpoint_help_names_a_shape_the_replay_takes() {
     )
     .await;
     assert_eq!(code, 0, "{stdout} {stderr}");
+}
+
+/// The real run and the dry run of `listen` with `extra` arguments, under
+/// `store`: each one's exit code and JSON envelope.
+async fn listen_both_ways(
+    store: &Path,
+    extra: &[&str],
+) -> ((i32, serde_json::Value), (i32, serde_json::Value)) {
+    let mut argv = vec!["--output", "json", "webhooks", "listen", "--port", "0"];
+    argv.extend(extra);
+    let (code, _stdout, stderr) = run(store, "http://127.0.0.1:9", &argv).await;
+    let real = (code, error_envelope(&stderr));
+    argv.insert(0, "--dry-run");
+    let (code, stdout, stderr) = run(store, "http://127.0.0.1:9", &argv).await;
+    assert_eq!(code, 0, "dry run: {stderr}");
+    let dry = (
+        code,
+        serde_json::from_str(stdout.trim()).expect("JSON on stdout"),
+    );
+    (real, dry)
+}
+
+/// `listen` with no secret to verify X's signatures by names the secret to
+/// store, and its dry run answers with the same reason, message, and step.
+#[tokio::test]
+async fn listen_without_a_signing_secret_names_the_secret_to_store() {
+    let tmp = TempDir::new().expect("tempdir");
+    let no_secret = tmp.path().join("no-secret.yml");
+    let mut ts = xdk::store::TokenStore::new_with_path(no_secret.to_str().expect("utf-8 path"));
+    ts.add_app("myapp", "CLIENT-ID-VALUE", "").expect("add_app");
+    let oauth2_only = oauth2_store(tmp.path());
+    let empty = tmp.path().join("empty.yml");
+
+    for (store, extra, action, template) in [
+        (
+            no_secret.as_path(),
+            &[][..],
+            "fix-input",
+            Some("xr auth apps update myapp --client-secret-file <path>"),
+        ),
+        (
+            oauth2_only.as_path(),
+            &["--secret", "oauth1"][..],
+            "fix-input",
+            Some(
+                "xr auth oauth1 --app myapp --consumer-key <key> --consumer-secret-file <path> \
+                 --access-token-file <path> --token-secret-file <path>",
+            ),
+        ),
+        (empty.as_path(), &[][..], "register-app", None),
+    ] {
+        let ((code, real), (_, dry)) = listen_both_ways(store, extra).await;
+
+        assert_eq!(code, 77, "{extra:?}: {real}");
+        assert_eq!(real["reason"], "auth-required", "{real}");
+        assert_eq!(real["next_step"]["action"], action, "{real}");
+        if let Some(template) = template {
+            assert_eq!(real["next_step"]["template"], template, "{real}");
+        }
+        assert!(real["next_step"].get("command").is_none(), "{real}");
+
+        assert_eq!(dry["status"], "dry_run", "{dry}");
+        assert_eq!(dry["would_succeed"], false, "{dry}");
+        for key in ["reason", "exit_code", "message", "next_step"] {
+            assert_eq!(dry[key], real[key], "{extra:?}: the dry run's {key}: {dry}");
+        }
+    }
 }

@@ -409,6 +409,7 @@ fn recovery_hint(
         .or_else(|| crate::cli::hints::enrollment_hint(error))
         .or_else(|| crate::cli::hints::resume_wait_hint(error))
         .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
+        .or_else(|| crate::cli::hints::no_signing_secret_hint(snapshot, error, &invocation))
         .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
         .or_else(|| crate::cli::hints::mismatch_hint(snapshot, error, &invocation, structured))
         .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))

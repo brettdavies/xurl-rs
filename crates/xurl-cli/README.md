@@ -877,44 +877,44 @@ before, under `invalid-args`. Text mode prints the same advice as prose instead;
 
 ### Which Errors Carry a Step
 
-| `reason`                     | `next_step.action`                                                                                       |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; none when X answers a 401                   |
-| `client-credentials-missing` | `register-app` or `select-app`                                                                           |
-| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                |
-| `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise |
-| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                     |
-| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                            |
-| `processing-timeout`         | `resume-wait`                                                                                            |
-| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it           |
-| `unknown-command`            | `show-help`                                                                                              |
-| `invalid-method`             | `show-help`                                                                                              |
-| `invalid-url`                | `show-help`                                                                                              |
-| `invalid-path-param`         | `show-help`                                                                                              |
-| `unsupported-pagination`     | `show-help`                                                                                              |
-| `invalid-json`               | `show-help`                                                                                              |
-| `unknown-schema`             | `show-help`                                                                                              |
-| `missing-host`               | `show-help`                                                                                              |
-| `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                          |
-| `no-tty`                     | `select-app`, as a template that takes the app's name                                                    |
-| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                             |
-| `network-error`              | `retry`                                                                                                  |
-| `server-error`               | `retry`                                                                                                  |
-| `git-clone-failed`           | `retry`                                                                                                  |
-| `not-found`                  | `fix-input`                                                                                              |
-| `invalid-request`            | `fix-input`                                                                                              |
-| `validation-failed`          | `fix-input`                                                                                              |
-| `io`                         | `fix-input`                                                                                              |
-| `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                |
-| `home-not-set`               | `fix-input`                                                                                              |
-| `destination-is-file`        | `fix-input`                                                                                              |
-| `remove-failed`              | `fix-input`                                                                                              |
-| `git-not-found`              | `fix-input`                                                                                              |
-| `destination-not-empty`      | `run-command`: `xr skill update <host>`                                                                  |
-| `not-installed`              | `run-command`: `xr skill install <host>`                                                                 |
-| `internal`                   | `report-issue`                                                                                           |
-| `serialization`              | `report-issue`                                                                                           |
-| `api-error`                  | `report-issue`                                                                                           |
+| `reason`                     | `next_step.action`                                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; `fix-input` when `webhooks listen` has no signing secret; none when X answers a 401 |
+| `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
+| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
+| `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
+| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
+| `processing-timeout`         | `resume-wait`                                                                                                                                    |
+| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it                                                   |
+| `unknown-command`            | `show-help`                                                                                                                                      |
+| `invalid-method`             | `show-help`                                                                                                                                      |
+| `invalid-url`                | `show-help`                                                                                                                                      |
+| `invalid-path-param`         | `show-help`                                                                                                                                      |
+| `unsupported-pagination`     | `show-help`                                                                                                                                      |
+| `invalid-json`               | `show-help`                                                                                                                                      |
+| `unknown-schema`             | `show-help`                                                                                                                                      |
+| `missing-host`               | `show-help`                                                                                                                                      |
+| `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                  |
+| `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                            |
+| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                                                                     |
+| `network-error`              | `retry`                                                                                                                                          |
+| `server-error`               | `retry`                                                                                                                                          |
+| `git-clone-failed`           | `retry`                                                                                                                                          |
+| `not-found`                  | `fix-input`                                                                                                                                      |
+| `invalid-request`            | `fix-input`                                                                                                                                      |
+| `validation-failed`          | `fix-input`                                                                                                                                      |
+| `io`                         | `fix-input`                                                                                                                                      |
+| `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                                                        |
+| `home-not-set`               | `fix-input`                                                                                                                                      |
+| `destination-is-file`        | `fix-input`                                                                                                                                      |
+| `remove-failed`              | `fix-input`                                                                                                                                      |
+| `git-not-found`              | `fix-input`                                                                                                                                      |
+| `destination-not-empty`      | `run-command`: `xr skill update <host>`                                                                                                          |
+| `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                         |
+| `internal`                   | `report-issue`                                                                                                                                   |
+| `serialization`              | `report-issue`                                                                                                                                   |
+| `api-error`                  | `report-issue`                                                                                                                                   |
 
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 
