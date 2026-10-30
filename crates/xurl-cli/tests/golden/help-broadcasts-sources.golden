@@ -12,7 +12,7 @@ Commands:
   list    List your stream sources
   get     Show one stream source, and whether it is receiving video
   add     Create a stream source
-  rename  Rename a stream source
+  update  Rename a stream source
   remove  Delete a stream source; an encoder sending to it is no longer received
   help    Print this message or the help of the given subcommand(s)
 

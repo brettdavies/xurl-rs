@@ -4177,7 +4177,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
             cand add 'Create a stream source'
-            cand rename 'Rename a stream source'
+            cand update 'Rename a stream source'
             cand remove 'Delete a stream source; an encoder sending to it is no longer received'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
@@ -4269,7 +4269,8 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
         }
-        &'xr;broadcasts;sources;rename'= {
+        &'xr;broadcasts;sources;update'= {
+            cand --name 'The new label'
             cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
@@ -4332,7 +4333,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
             cand add 'Create a stream source'
-            cand rename 'Rename a stream source'
+            cand update 'Rename a stream source'
             cand remove 'Delete a stream source; an encoder sending to it is no longer received'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
@@ -4342,7 +4343,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;sources;help;add'= {
         }
-        &'xr;broadcasts;sources;help;rename'= {
+        &'xr;broadcasts;sources;help;update'= {
         }
         &'xr;broadcasts;sources;help;remove'= {
         }
@@ -4410,7 +4411,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
             cand add 'Create a stream source'
-            cand rename 'Rename a stream source'
+            cand update 'Rename a stream source'
             cand remove 'Delete a stream source; an encoder sending to it is no longer received'
         }
         &'xr;broadcasts;help;sources;list'= {
@@ -4419,7 +4420,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;help;sources;add'= {
         }
-        &'xr;broadcasts;help;sources;rename'= {
+        &'xr;broadcasts;help;sources;update'= {
         }
         &'xr;broadcasts;help;sources;remove'= {
         }
@@ -6774,7 +6775,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
             cand add 'Create a stream source'
-            cand rename 'Rename a stream source'
+            cand update 'Rename a stream source'
             cand remove 'Delete a stream source; an encoder sending to it is no longer received'
         }
         &'xr;help;broadcasts;sources;list'= {
@@ -6783,7 +6784,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;help;broadcasts;sources;add'= {
         }
-        &'xr;help;broadcasts;sources;rename'= {
+        &'xr;help;broadcasts;sources;update'= {
         }
         &'xr;help;broadcasts;sources;remove'= {
         }

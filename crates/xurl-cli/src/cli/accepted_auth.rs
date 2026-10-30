@@ -100,7 +100,7 @@ pub const ROWS: &[Row] = &[
     row("broadcasts sources get", &[ep::GET_STREAM_SOURCE]),
     row("broadcasts sources list", &[ep::GET_STREAM_SOURCES]),
     row("broadcasts sources remove", &[ep::DELETE_STREAM_SOURCE]),
-    row("broadcasts sources rename", &[ep::RENAME_STREAM_SOURCE]),
+    row("broadcasts sources update", &[ep::RENAME_STREAM_SOURCE]),
     row("calls get", &[ep::GET_CALL]),
     row(
         "calls scheduled add",

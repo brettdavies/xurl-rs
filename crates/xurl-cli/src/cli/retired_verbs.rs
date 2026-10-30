@@ -15,11 +15,18 @@ struct Retired {
     replacement: &'static str,
 }
 
-const RETIRED: &[Retired] = &[Retired {
-    family: "xr broadcasts scheduled",
-    retired: "remove",
-    replacement: "cancel",
-}];
+const RETIRED: &[Retired] = &[
+    Retired {
+        family: "xr broadcasts scheduled",
+        retired: "remove",
+        replacement: "cancel",
+    },
+    Retired {
+        family: "xr broadcasts sources",
+        retired: "rename",
+        replacement: "update",
+    },
+];
 
 /// The word that replaced `word` under `family`, when the family retired it.
 pub(crate) fn replacement(family: &str, word: &str) -> Option<&'static str> {

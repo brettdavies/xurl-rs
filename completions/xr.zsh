@@ -6064,8 +6064,9 @@ never\:"Never emit ANSI color escapes"))' \
 ':name -- A label for the source:_default' \
 && ret=0
 ;;
-(rename)
+(update)
 _arguments "${_arguments_options[@]}" : \
+'--name=[The new label]:NAME:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -6102,7 +6103,6 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':source_id -- Source ID, as `xr broadcasts sources list` prints it:_default' \
-':name -- The new label:_default' \
 && ret=0
 ;;
 (remove)
@@ -6170,7 +6170,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(rename)
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -6334,7 +6334,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(rename)
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -10086,7 +10086,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
-(rename)
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -11174,7 +11174,7 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources_commands() {
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
 'add:Create a stream source' \
-'rename:Rename a stream source' \
+'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
     )
     _describe -t commands 'xr broadcasts help sources commands' commands "$@"
@@ -11199,10 +11199,10 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove_commands(
     local commands; commands=()
     _describe -t commands 'xr broadcasts help sources remove commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__rename_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__rename_commands() {
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
-    _describe -t commands 'xr broadcasts help sources rename commands' commands "$@"
+    _describe -t commands 'xr broadcasts help sources update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__list_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__list_commands() {
@@ -11349,7 +11349,7 @@ _xr__subcmd__broadcasts__subcmd__sources_commands() {
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
 'add:Create a stream source' \
-'rename:Rename a stream source' \
+'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -11371,7 +11371,7 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__help_commands() {
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
 'add:Create a stream source' \
-'rename:Rename a stream source' \
+'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -11402,10 +11402,10 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove_commands(
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources help remove commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__rename_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__rename_commands() {
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__update_commands() {
     local commands; commands=()
-    _describe -t commands 'xr broadcasts sources help rename commands' commands "$@"
+    _describe -t commands 'xr broadcasts sources help update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__list_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__list_commands() {
@@ -11417,10 +11417,10 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources remove commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands] )) ||
-_xr__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands() {
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
-    _describe -t commands 'xr broadcasts sources rename commands' commands "$@"
+    _describe -t commands 'xr broadcasts sources update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__calls_commands] )) ||
 _xr__subcmd__calls_commands() {
@@ -12147,7 +12147,7 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources_commands() {
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
 'add:Create a stream source' \
-'rename:Rename a stream source' \
+'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
     )
     _describe -t commands 'xr help broadcasts sources commands' commands "$@"
@@ -12172,10 +12172,10 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands(
     local commands; commands=()
     _describe -t commands 'xr help broadcasts sources remove commands' commands "$@"
 }
-(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands] )) ||
-_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__rename_commands() {
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
-    _describe -t commands 'xr help broadcasts sources rename commands' commands "$@"
+    _describe -t commands 'xr help broadcasts sources update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__calls_commands] )) ||
 _xr__subcmd__help__subcmd__calls_commands() {

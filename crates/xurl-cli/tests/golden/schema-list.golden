@@ -37,7 +37,7 @@ broadcasts sources add         ApiResponse<StreamSourceResult>
 broadcasts sources get         ApiResponse<StreamSourceResult>
 broadcasts sources list        ApiResponse<StreamSources>
 broadcasts sources remove      ApiResponse<StreamSourceDeleted>
-broadcasts sources rename      ApiResponse<StreamSourceResult>
+broadcasts sources update      ApiResponse<StreamSourceResult>
 calls get                      ApiResponse<XCall>
 calls scheduled add            ApiResponse<ScheduledCall>
 calls scheduled cancel         ApiResponse<ScheduledCallCancelled>

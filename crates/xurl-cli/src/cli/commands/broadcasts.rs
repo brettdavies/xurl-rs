@@ -124,13 +124,13 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
             })
             .await
         }
-        SourcesCommands::Rename {
+        SourcesCommands::Update {
             source_id,
             name,
             common,
         } => {
             let ctx = json!({
-                "command": "broadcasts-sources-rename",
+                "command": "broadcasts-sources-update",
                 "source_id": source_id,
                 "name": name,
             });
