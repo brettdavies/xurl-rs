@@ -358,7 +358,7 @@
           "type": "string"
         },
         "suggestion": {
-          "description": "The nearest real command, when one is within the threshold.",
+          "description": "The nearest real command, when one is within the threshold, or the\ncommand that replaced a retired word.",
           "type": [
             "string",
             "null"

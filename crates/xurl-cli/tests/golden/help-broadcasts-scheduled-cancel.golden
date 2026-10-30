@@ -1,4 +1,4 @@
-args: ["broadcasts", "scheduled", "remove", "--help"]
+args: ["broadcasts", "scheduled", "cancel", "--help"]
 store: empty
 exit_code: 0
 stdout_len: 7257
@@ -6,7 +6,7 @@ stderr_len: 0
 --- stdout ---
 Cancel a scheduled broadcast
 
-Usage: xr broadcasts scheduled remove [OPTIONS] <SCHEDULED_ID>
+Usage: xr broadcasts scheduled cancel [OPTIONS] <SCHEDULED_ID>
 
 Arguments:
   <SCHEDULED_ID>
@@ -163,9 +163,9 @@ Global Options:
 
 Examples:
   Cancel a scheduled broadcast without a prompt (text):
-    xr broadcasts scheduled remove 1850000000000000001 --force --no-interactive
+    xr broadcasts scheduled cancel 1850000000000000001 --force --no-interactive
   Cancel (JSON envelope):
-    xr broadcasts scheduled remove 1850000000000000001 --force --no-interactive --output json
+    xr broadcasts scheduled cancel 1850000000000000001 --force --no-interactive --output json
 
 --- stderr ---
 

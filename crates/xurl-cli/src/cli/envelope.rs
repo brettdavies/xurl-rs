@@ -211,7 +211,8 @@ pub struct ErrorBody {
     /// The offending value, echoed verbatim.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
-    /// The nearest real command, when one is within the threshold.
+    /// The nearest real command, when one is within the threshold, or the
+    /// command that replaced a retired word.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suggestion: Option<String>,
 

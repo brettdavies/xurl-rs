@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8386
+stdout_len: 8323
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -27,10 +27,9 @@ broadcasts-moderators-add      ApiResponse<ChatModeratorsResult>
 broadcasts-moderators-list     ApiResponse<Vec<User>>
 broadcasts-moderators-remove   ApiResponse<ChatModeratorsResult>
 broadcasts-scheduled-add       ApiResponse<ScheduledBroadcast>
+broadcasts-scheduled-cancel    ApiResponse<DeletedResult>
 broadcasts-scheduled-get       ApiResponse<ScheduledBroadcast>
 broadcasts-scheduled-list      ApiResponse<Vec<ScheduledBroadcast>>
-broadcasts-scheduled-live      ApiResponse<ScheduledBroadcast>
-broadcasts-scheduled-remove    ApiResponse<DeletedResult>
 broadcasts-scheduled-update    ApiResponse<ScheduledBroadcast>
 broadcasts-sources-add         ApiResponse<StreamSourceResult>
 broadcasts-sources-get         ApiResponse<StreamSourceResult>

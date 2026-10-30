@@ -3545,7 +3545,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
             cand list 'List your broadcasts'
             cand get 'Read one broadcast, by id'
-            cand scheduled 'Schedule broadcasts, change or cancel them, and start them early'
+            cand scheduled 'Schedule broadcasts and change or cancel them'
             cand chat 'Read and moderate a broadcast''s chat'
             cand moderators 'Manage who moderates your broadcast chats'
             cand sources 'Manage the RTMP and RTMPS ingest points you stream to'
@@ -3638,8 +3638,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand get 'Read one scheduled broadcast, by id'
             cand add 'Schedule a broadcast from one of your stream sources'
             cand update 'Move a scheduled broadcast, or change its details'
-            cand remove 'Cancel a scheduled broadcast'
-            cand live 'Start a scheduled broadcast now'
+            cand cancel 'Cancel a scheduled broadcast'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;broadcasts;scheduled;list'= {
@@ -3729,7 +3728,6 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --page 'Documented alias for `--cursor`'
             cand --after 'Documented alias for `--cursor` (`--after <token>`)'
             cand --replay 'Let people watch the broadcast after it ends'
-            cand --manual-publish 'Wait for `xr broadcasts scheduled live` rather than starting on time'
             cand -t 'Add X-B3-Flags trace header'
             cand --trace 'Add X-B3-Flags trace header'
             cand --json 'Shorthand for `--output json` (P2 alias)'
@@ -3765,7 +3763,6 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --page 'Documented alias for `--cursor`'
             cand --after 'Documented alias for `--cursor` (`--after <token>`)'
             cand --replay 'Let people watch the broadcast after it ends'
-            cand --manual-publish 'Wait for `xr broadcasts scheduled live` rather than starting on time'
             cand -t 'Add X-B3-Flags trace header'
             cand --trace 'Add X-B3-Flags trace header'
             cand --json 'Shorthand for `--output json` (P2 alias)'
@@ -3774,37 +3771,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
         }
-        &'xr;broadcasts;scheduled;remove'= {
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand --force 'Skip the confirmation prompt; required under `--no-interactive`'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;broadcasts;scheduled;live'= {
+        &'xr;broadcasts;scheduled;cancel'= {
             cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
@@ -3839,8 +3806,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand get 'Read one scheduled broadcast, by id'
             cand add 'Schedule a broadcast from one of your stream sources'
             cand update 'Move a scheduled broadcast, or change its details'
-            cand remove 'Cancel a scheduled broadcast'
-            cand live 'Start a scheduled broadcast now'
+            cand cancel 'Cancel a scheduled broadcast'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;broadcasts;scheduled;help;list'= {
@@ -3851,9 +3817,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;scheduled;help;update'= {
         }
-        &'xr;broadcasts;scheduled;help;remove'= {
-        }
-        &'xr;broadcasts;scheduled;help;live'= {
+        &'xr;broadcasts;scheduled;help;cancel'= {
         }
         &'xr;broadcasts;scheduled;help;help'= {
         }
@@ -4387,7 +4351,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;help'= {
             cand list 'List your broadcasts'
             cand get 'Read one broadcast, by id'
-            cand scheduled 'Schedule broadcasts, change or cancel them, and start them early'
+            cand scheduled 'Schedule broadcasts and change or cancel them'
             cand chat 'Read and moderate a broadcast''s chat'
             cand moderators 'Manage who moderates your broadcast chats'
             cand sources 'Manage the RTMP and RTMPS ingest points you stream to'
@@ -4402,8 +4366,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand get 'Read one scheduled broadcast, by id'
             cand add 'Schedule a broadcast from one of your stream sources'
             cand update 'Move a scheduled broadcast, or change its details'
-            cand remove 'Cancel a scheduled broadcast'
-            cand live 'Start a scheduled broadcast now'
+            cand cancel 'Cancel a scheduled broadcast'
         }
         &'xr;broadcasts;help;scheduled;list'= {
         }
@@ -4413,9 +4376,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;help;scheduled;update'= {
         }
-        &'xr;broadcasts;help;scheduled;remove'= {
-        }
-        &'xr;broadcasts;help;scheduled;live'= {
+        &'xr;broadcasts;help;scheduled;cancel'= {
         }
         &'xr;broadcasts;help;chat'= {
             cand history 'List a broadcast''s chat'
@@ -6752,7 +6713,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;broadcasts'= {
             cand list 'List your broadcasts'
             cand get 'Read one broadcast, by id'
-            cand scheduled 'Schedule broadcasts, change or cancel them, and start them early'
+            cand scheduled 'Schedule broadcasts and change or cancel them'
             cand chat 'Read and moderate a broadcast''s chat'
             cand moderators 'Manage who moderates your broadcast chats'
             cand sources 'Manage the RTMP and RTMPS ingest points you stream to'
@@ -6766,8 +6727,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand get 'Read one scheduled broadcast, by id'
             cand add 'Schedule a broadcast from one of your stream sources'
             cand update 'Move a scheduled broadcast, or change its details'
-            cand remove 'Cancel a scheduled broadcast'
-            cand live 'Start a scheduled broadcast now'
+            cand cancel 'Cancel a scheduled broadcast'
         }
         &'xr;help;broadcasts;scheduled;list'= {
         }
@@ -6777,9 +6737,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;help;broadcasts;scheduled;update'= {
         }
-        &'xr;help;broadcasts;scheduled;remove'= {
-        }
-        &'xr;help;broadcasts;scheduled;live'= {
+        &'xr;help;broadcasts;scheduled;cancel'= {
         }
         &'xr;help;broadcasts;chat'= {
             cand history 'List a broadcast''s chat'

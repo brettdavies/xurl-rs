@@ -25,6 +25,7 @@ pub mod panic_hook;
 #[cfg(test)]
 mod parse_tests;
 mod reparse;
+mod retired_verbs;
 pub mod skill_install;
 
 pub use output::OutputFormat;
@@ -2716,7 +2717,7 @@ pub enum BroadcastsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// Schedule broadcasts, change or cancel them, and start them early
+    /// Schedule broadcasts and change or cancel them
     #[command(after_help = family_help::broadcasts_scheduled::page())]
     Scheduled {
         /// `scheduled` verb to dispatch.
@@ -2791,9 +2792,6 @@ pub enum ScheduledBroadcastsCommands {
         /// Let people watch the broadcast after it ends
         #[arg(long)]
         replay: bool,
-        /// Wait for `xr broadcasts scheduled live` rather than starting on time
-        #[arg(long)]
-        manual_publish: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -2824,29 +2822,13 @@ pub enum ScheduledBroadcastsCommands {
         /// Let people watch the broadcast after it ends
         #[arg(long)]
         replay: bool,
-        /// Wait for `xr broadcasts scheduled live` rather than starting on time
-        #[arg(long)]
-        manual_publish: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
     /// Cancel a scheduled broadcast
-    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::REMOVE))]
-    Remove {
-        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
-        #[arg(value_name = "SCHEDULED_ID")]
-        scheduled_id: String,
-        /// Skip the confirmation prompt; required under `--no-interactive`
-        #[arg(long)]
-        force: bool,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Start a scheduled broadcast now
-    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::LIVE))]
-    Live {
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::CANCEL))]
+    Cancel {
         /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
         #[arg(value_name = "SCHEDULED_ID")]
         scheduled_id: String,

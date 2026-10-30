@@ -40,6 +40,7 @@ use crate::cli::reparse::{
     color_choice, equals_form_hint, failing_command, lenient_cli, output_intent,
     parse_past_stray_words, parse_without_display_flags, raw_choice,
 };
+use crate::cli::retired_verbs;
 use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
@@ -294,7 +295,7 @@ where
             let suggestion = nearest_command(&word);
             return render_unknown_command(
                 &word,
-                suggestion.as_deref(),
+                Suggestion::nearest(suggestion.as_deref()),
                 ROOT_COMMAND,
                 &out,
                 stderr,
@@ -502,7 +503,13 @@ fn render_parse_error(
     let root_word = hidden_word.or_else(|| unknown_word(past_stray_words.as_ref()?));
     if let Some(word) = root_word {
         let suggestion = nearest_command(&word);
-        return render_unknown_command(&word, suggestion.as_deref(), ROOT_COMMAND, &out, stderr);
+        return render_unknown_command(
+            &word,
+            Suggestion::nearest(suggestion.as_deref()),
+            ROOT_COMMAND,
+            &out,
+            stderr,
+        );
     }
     // clap scores a stray word against the commands even after a raw target,
     // where the caller meant a request and named no command.
@@ -517,9 +524,13 @@ fn render_parse_error(
         && let Some(word) = context_string(error, ContextKind::InvalidSubcommand)
     {
         if !word.starts_with('-') {
-            let suggestion = suggestion_for_rejected(error, args, &word);
             let command = failing_command(error, args);
-            return render_unknown_command(&word, suggestion.as_deref(), &command, &out, stderr);
+            let nearest = suggestion_for_rejected(error, args, &word);
+            let suggestion = match retired_verbs::replacement(&command, &word) {
+                Some(replacement) => Suggestion::Replacement(replacement),
+                None => Suggestion::nearest(nearest.as_deref()),
+            };
+            return render_unknown_command(&word, suggestion, &command, &out, stderr);
         }
         if matches!(word.as_str(), "-h" | "--help") && help_command_precedes(args, &word) {
             let _ = write!(stdout, "{}", help_command_page(args));
@@ -599,18 +610,6 @@ fn help_command_page(args: &[OsString]) -> String {
         .unwrap_or_default()
 }
 
-/// The one rendering both detection paths use.
-///
-/// Text mode gets the sentence, pointing at the help of the nearest command
-/// under `command`, the one the word was typed under, or at the help of
-/// `command` itself when nothing scored close enough. Every structured mode
-/// gets the envelope with the offending word in `command`, the nearest real
-/// name in `suggestion`, absent when nothing scored, and a `next_step` that
-/// runs the same help page.
-///
-/// The pointer names a help page rather than the corrected invocation: the
-/// suggestion is a guess, and the corrected invocation of a write command
-/// would act on it.
 /// Renders raw-only flags given ahead of a command word: `invalid-args`,
 /// with the invocation that moves them after the word as its step when one
 /// exists, and the command's help otherwise. The message and the step name
@@ -661,22 +660,61 @@ fn render_misplaced_flags(
     EXIT_USAGE_ERROR
 }
 
+/// The command an unknown word's pointer names, and why it names it.
+#[derive(Clone, Copy)]
+enum Suggestion<'a> {
+    /// Nothing scored close enough to name.
+    Nothing,
+    /// The nearest real command by spelling: a guess at a typo.
+    Nearest(&'a str),
+    /// The command that replaced a word its family retired.
+    Replacement(&'a str),
+}
+
+impl<'a> Suggestion<'a> {
+    fn nearest(name: Option<&'a str>) -> Self {
+        name.map_or(Self::Nothing, Self::Nearest)
+    }
+
+    fn name(self) -> Option<&'a str> {
+        match self {
+            Self::Nothing => None,
+            Self::Nearest(name) | Self::Replacement(name) => Some(name),
+        }
+    }
+}
+
+/// The one rendering both detection paths use.
+///
+/// Text mode gets the sentence, pointing at the help of the suggested command
+/// under `command`, the one the word was typed under, or at the help of
+/// `command` itself when nothing scored close enough. Every structured mode
+/// gets the envelope with the offending word in `command`, the suggested name
+/// in `suggestion`, absent when there is none, and a `next_step` that runs the
+/// same help page. A replacement reads as one, not as a guess at a typo.
+///
+/// The pointer names a help page rather than the corrected invocation: the
+/// suggestion can be a guess, and the corrected invocation of a write command
+/// would act on it.
 fn render_unknown_command(
     word: &str,
-    suggestion: Option<&str>,
+    suggestion: Suggestion<'_>,
     command: &str,
     out: &OutputConfig,
     stderr: &mut dyn Write,
 ) -> i32 {
-    let target = match suggestion {
-        Some(nearest) => format!("{command} {nearest}"),
+    let target = match suggestion.name() {
+        Some(name) => format!("{command} {name}"),
         None => command.to_string(),
     };
     let message = match suggestion {
-        Some(nearest) => {
-            format!("unknown command '{word}'. Did you mean '{nearest}'? Try '{target} --help'.")
+        Suggestion::Nothing => format!("unknown command '{word}'. Try '{target} --help'."),
+        Suggestion::Nearest(name) => {
+            format!("unknown command '{word}'. Did you mean '{name}'? Try '{target} --help'.")
         }
-        None => format!("unknown command '{word}'. Try '{target} --help'."),
+        Suggestion::Replacement(name) => {
+            format!("unknown command '{word}': '{name}' replaced it. Try '{target} --help'.")
+        }
     };
     out.emit_error_envelope(
         stderr,
@@ -685,7 +723,7 @@ fn render_unknown_command(
             exit_code: EXIT_USAGE_ERROR,
             message: Some(message),
             command: Some(word.to_string()),
-            suggestion: suggestion.map(str::to_string),
+            suggestion: suggestion.name().map(str::to_string),
             next_step: Some(NextStep::show_help(format!("{target} --help"))),
             ..ErrorBody::default()
         },
