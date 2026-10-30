@@ -6,7 +6,8 @@ use serde_json::{Value, json};
 use super::{Run, send_confirmed, send_validated};
 use crate::cli::failure::CommandResult;
 use crate::cli::{
-    CallAnswer, CallDetailsArgs, CallScope, CallsCommands, OccurrenceArgs, ScheduledCallsCommands,
+    CallAnswer, CallDetailsArgs, CallScope, CallsCommands, OccurrenceArgs,
+    SCHEDULED_CALLS_PAGE_SIZE, ScheduledCallsCommands,
 };
 use xdk::api::shortcuts::{
     self, NewScheduledCall, OccurrenceScope, Occurrences, RsvpAnswer, ScheduledCallChanges,
@@ -37,6 +38,9 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
             max_results,
             common,
         } => {
+            let max_results = max_results
+                .or(run.flags.global_limit)
+                .unwrap_or(SCHEDULED_CALLS_PAGE_SIZE);
             let ctx = json!({
                 "command": "calls-scheduled-list",
                 "start_time": start,

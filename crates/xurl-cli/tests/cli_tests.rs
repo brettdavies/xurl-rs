@@ -3672,8 +3672,9 @@ fn no_help_page_lists_a_global_flag_under_options() {
 /// The authenticated user the paging requests below are made for.
 const PAGING_USER_ID: &str = "2244994945";
 
-/// Every command that pages: its arguments, and the path its request lands on
-/// once the authenticated user is resolved.
+/// Commands that page, with their arguments and the path their request lands
+/// on once the authenticated user is resolved; `help_claims_guard.rs` walks
+/// them all.
 const PAGING_COMMANDS: &[(&[&str], &str)] = &[
     (&["search", "x"], "/2/tweets/search/recent"),
     (
@@ -3754,63 +3755,10 @@ async fn followers_and_following_read_the_callers_own_list_without_an_id_lookup(
     }
 }
 
-/// `--limit` and `--cursor` reach the wire as `max_results` and
-/// `pagination_token` on every command that pages.
+/// X answers a page with no results as `meta` alone, with no `data` key. Each
+/// of the [`PAGING_COMMANDS`] reports that as an empty list at exit 0.
 #[tokio::test]
-async fn every_paging_command_sends_the_limit_and_cursor() {
-    for (args, request_path) in PAGING_COMMANDS {
-        let ts = CliMockServer::new().await;
-        let tmp = TempDir::new().expect("tempdir");
-        let store = tmp.path().join(".xurl");
-        populate_oauth1_store(&store);
-        ts.mount(
-            Mock::given(method("GET"))
-                .and(path("/2/users/me"))
-                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "data": {"id": PAGING_USER_ID, "name": "Paging User", "username": "paging"}
-                }))),
-        )
-        .await;
-        ts.mount(
-            Mock::given(method("GET"))
-                .and(path(*request_path))
-                .and(wiremock::matchers::query_param("max_results", "25"))
-                .and(wiremock::matchers::query_param(
-                    "pagination_token",
-                    "CURSOR-TOKEN",
-                ))
-                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "data": [],
-                    "meta": {"result_count": 0}
-                })))
-                .expect(1),
-        )
-        .await;
-
-        let mut argv = vec![
-            "xr",
-            "--output",
-            "json",
-            "--limit",
-            "25",
-            "--cursor",
-            "CURSOR-TOKEN",
-        ];
-        argv.extend_from_slice(args);
-        argv.extend_from_slice(&["--auth", "oauth1"]);
-        let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &argv).await;
-        assert_eq!(
-            code, 0,
-            "xr {args:?} must send max_results and pagination_token to {request_path}; \
-             stderr: {stderr}; stdout: {stdout}"
-        );
-    }
-}
-
-/// X answers a page with no results as `meta` alone, with no `data` key. Every
-/// command that pages reports that as an empty list at exit 0.
-#[tokio::test]
-async fn every_paging_command_answers_a_page_with_no_results() {
+async fn paging_commands_answer_a_page_with_no_results() {
     for (args, request_path) in PAGING_COMMANDS {
         let ts = CliMockServer::new().await;
         let tmp = TempDir::new().expect("tempdir");
@@ -3844,35 +3792,6 @@ async fn every_paging_command_answers_a_page_with_no_results() {
             serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("xr {args:?}: {e}: {stdout}"));
         assert_eq!(page["data"], serde_json::json!([]), "xr {args:?}: {page}");
         assert_eq!(page["meta"]["result_count"], 0, "xr {args:?}: {page}");
-    }
-}
-
-/// The `--limit` and `--cursor` help name exactly the commands that page, so
-/// the help cannot promise paging a command does not do.
-#[test]
-fn the_limit_and_cursor_help_name_exactly_the_commands_that_page() {
-    use clap::CommandFactory;
-    let paging: std::collections::BTreeSet<&str> =
-        PAGING_COMMANDS.iter().map(|(args, _)| args[0]).collect();
-    let command = cli::Cli::command();
-    let subcommands: std::collections::BTreeSet<&str> = command
-        .get_subcommands()
-        .map(clap::Command::get_name)
-        .collect();
-    for flag in ["limit", "cursor"] {
-        let help = command
-            .get_arguments()
-            .find(|arg| arg.get_id() == flag)
-            .and_then(|arg| arg.get_long_help())
-            .unwrap_or_else(|| panic!("--{flag} has long help"))
-            .to_string();
-        let named: std::collections::BTreeSet<&str> = help
-            .split('`')
-            .skip(1)
-            .step_by(2)
-            .filter(|word| subcommands.contains(word))
-            .collect();
-        assert_eq!(named, paging, "--{flag} help names {named:?}; help: {help}");
     }
 }
 

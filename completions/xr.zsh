@@ -47,8 +47,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add trace header to request]' \
@@ -99,8 +99,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -140,8 +140,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -181,8 +181,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -222,8 +222,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -263,8 +263,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -306,8 +306,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -349,8 +349,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -391,8 +391,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -431,8 +431,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -473,8 +473,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -513,8 +513,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -555,8 +555,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -597,8 +597,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -639,8 +639,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -681,8 +681,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -721,8 +721,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--cached[Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. \`source\` says which answered]' \
@@ -761,8 +761,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -803,8 +803,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -844,8 +844,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -883,8 +883,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -923,8 +923,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -963,8 +963,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1003,8 +1003,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1043,8 +1043,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1083,8 +1083,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1123,8 +1123,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1163,8 +1163,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1205,8 +1205,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1241,8 +1241,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -1288,8 +1288,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1329,8 +1329,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1369,8 +1369,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1447,8 +1447,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1486,8 +1486,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1526,8 +1526,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1569,8 +1569,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1611,8 +1611,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1650,8 +1650,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1690,8 +1690,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1732,8 +1732,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1771,8 +1771,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1811,8 +1811,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1853,8 +1853,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1892,8 +1892,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -1939,8 +1939,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2006,8 +2006,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2044,8 +2044,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2090,8 +2090,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2130,8 +2130,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2173,8 +2173,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2215,8 +2215,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2292,8 +2292,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2337,8 +2337,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2377,8 +2377,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -2450,8 +2450,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2490,8 +2490,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2532,8 +2532,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2568,8 +2568,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2616,8 +2616,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2658,8 +2658,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2700,8 +2700,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2739,8 +2739,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2778,8 +2778,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2820,8 +2820,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2862,8 +2862,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2899,8 +2899,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -2946,8 +2946,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -2986,8 +2986,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3027,8 +3027,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3105,8 +3105,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--private[Only you can see the list]' \
@@ -3148,8 +3148,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--public)--private[Make the list private]' \
@@ -3190,8 +3190,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -3231,8 +3231,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3271,8 +3271,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3311,8 +3311,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3351,8 +3351,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3496,8 +3496,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -3543,8 +3543,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3583,8 +3583,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3652,8 +3652,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -3700,8 +3700,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3740,8 +3740,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3809,8 +3809,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -3857,8 +3857,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3897,8 +3897,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3937,8 +3937,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -3979,8 +3979,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4056,8 +4056,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4098,8 +4098,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4119,8 +4119,8 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (list)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-1000). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -4145,8 +4145,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4185,8 +4185,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--validate-only[Have X check the rule and save nothing (the endpoint'\''s \`dry_run\`). This sends a request; \`--dry-run\` sends none]' \
@@ -4226,8 +4226,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -4268,8 +4268,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4400,8 +4400,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4448,8 +4448,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4487,8 +4487,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -4557,8 +4557,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4605,8 +4605,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--trustworthy-sources[The note cites trustworthy sources]' \
@@ -4649,8 +4649,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4691,8 +4691,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--test[Test mode, for an app X is still admitting to the program]' \
@@ -4733,8 +4733,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--test[Test mode, for an app X is still admitting to the program]' \
@@ -4773,8 +4773,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -4855,8 +4855,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -4902,8 +4902,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -4942,8 +4942,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5010,8 +5010,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5057,8 +5057,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5096,8 +5096,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5133,8 +5133,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5180,8 +5180,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5219,8 +5219,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5264,8 +5264,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--replay[Let people watch the broadcast after it ends]' \
@@ -5310,8 +5310,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--replay[Let people watch the broadcast after it ends]' \
@@ -5352,8 +5352,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -5393,8 +5393,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -5479,8 +5479,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5500,8 +5500,8 @@ never\:"Never emit ANSI color escapes"))' \
         case $line[1] in
             (history)
 _arguments "${_arguments_options[@]}" : \
-'-n+[Number of results (1-200). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--max-results=[Number of results (1-200). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -5526,8 +5526,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5567,8 +5567,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5608,8 +5608,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -5652,8 +5652,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5693,8 +5693,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5775,8 +5775,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -5820,8 +5820,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5859,8 +5859,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5899,8 +5899,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -5972,8 +5972,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -6017,8 +6017,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6056,8 +6056,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6097,8 +6097,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6137,8 +6137,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6178,8 +6178,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -6432,8 +6432,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -6477,8 +6477,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6514,8 +6514,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -6537,8 +6537,8 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--start=[Calls still running at this time or starting after it (RFC 3339); X assumes now]:TIME:_default' \
 '--end=[Calls starting before this time (RFC 3339); X assumes 24 hours after \`--start\`]:TIME:_default' \
-'-n+[Number of calls (1-100)]:MAX_RESULTS:_default' \
-'--max-results=[Number of calls (1-100)]:MAX_RESULTS:_default' \
+'-n+[Number of calls (1-100); 20 when neither this nor \`--limit\` is given. Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of calls (1-100); 20 when neither this nor \`--limit\` is given. Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -6563,8 +6563,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6602,8 +6602,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6649,8 +6649,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--no-notify[Send invitees no email about it]' \
@@ -6700,8 +6700,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--no-notify[Send invitees no email about it]' \
@@ -6745,8 +6745,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--no-notify[Send invitees no email about the cancellation]' \
@@ -6791,8 +6791,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -6947,8 +6947,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -6992,8 +6992,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7031,8 +7031,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7071,8 +7071,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7111,8 +7111,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -7149,8 +7149,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7194,8 +7194,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7233,8 +7233,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7273,8 +7273,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7313,8 +7313,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7353,8 +7353,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -7436,8 +7436,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7481,8 +7481,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7520,8 +7520,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7560,8 +7560,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -7646,8 +7646,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--allow-unsigned[Also print a POST that carries no signature, for a local test with curl. A POST with a wrong signature is refused either way]' \
@@ -7688,8 +7688,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -7837,8 +7837,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7883,8 +7883,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7925,8 +7925,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7961,8 +7961,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -7995,8 +7995,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8030,8 +8030,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--all[Clear all authentication]' \
@@ -8068,8 +8068,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8114,8 +8114,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8153,8 +8153,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8188,8 +8188,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
@@ -8224,8 +8224,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8258,8 +8258,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8300,8 +8300,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8335,8 +8335,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8467,8 +8467,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8607,8 +8607,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8657,8 +8657,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Trace header]' \
@@ -8701,8 +8701,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Trace header]' \
@@ -8741,8 +8741,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -8784,8 +8784,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -8824,8 +8824,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -8862,8 +8862,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -8910,8 +8910,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -8953,8 +8953,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '-t[Add X-B3-Flags trace header]' \
@@ -9090,8 +9090,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -9131,8 +9131,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '()--all[Install into every known host in one invocation]' \
@@ -9167,8 +9167,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 '--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '()--all[Update every known host in one invocation]' \
@@ -9236,8 +9236,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '--list[List all commands and their response types]' \
@@ -9274,8 +9274,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -9309,8 +9309,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -9343,8 +9343,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
@@ -9378,8 +9378,8 @@ tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
 always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
 never\:"Never emit ANSI color escapes"))' \
 '--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
-'--limit=[Global result-set limit, clamped to 1..=100]:LIMIT:_default' \
-'--cursor=[Pagination cursor / \`pagination_token\` for list endpoints]:TOKEN:_default' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
 '(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \

@@ -1,7 +1,7 @@
 args: ["media", "upload", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8206
+stdout_len: 8177
 stderr_len: 0
 --- stdout ---
 Upload media file
@@ -151,16 +151,16 @@ Global Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100.
+          Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it
           
-          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
+          It is clamped to the range that command's `-n` takes, and `-n` wins when both are given. A raw request carries its page size in its own query string.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
-          Pagination cursor / `pagination_token` for list endpoints.
+          The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
+          A command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.
           
           [env: XURL_CURSOR=]
 

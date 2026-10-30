@@ -55,8 +55,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_needs_command" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_needs_command" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_needs_command" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_needs_command" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_needs_command" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_needs_command" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_needs_command" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_needs_command" -s t -l trace -d 'Add trace header to request'
@@ -161,8 +161,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand post" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand post" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand post" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -198,8 +198,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand reply" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand reply" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand reply" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand reply" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand reply" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -234,8 +234,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand quote" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand quote" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand quote" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand quote" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand quote" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -270,8 +270,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand delete" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand delete" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand delete" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand delete" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand delete" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
@@ -307,8 +307,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand read" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand read" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand read" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand read" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand read" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -349,8 +349,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand analytics" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand analytics" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand analytics" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -390,8 +390,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand search-counts" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand search-counts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand search-counts" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -427,8 +427,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand search-users" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand search-users" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand search-users" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -463,8 +463,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand users" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand users" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand users" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand users" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand users" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand users" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -500,8 +500,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand user-posts" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand user-posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand user-posts" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -536,8 +536,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand posts" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand posts" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand posts" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -573,8 +573,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand search" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand search" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand search" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -610,8 +610,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand likers" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand likers" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand likers" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand likers" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand likers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand likers" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -647,8 +647,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand reposters" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand reposters" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand reposters" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -684,8 +684,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand quotes" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand quotes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand quotes" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -720,8 +720,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand whoami" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand whoami" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand whoami" -l cached -d 'Answer from the account the store holds for the login (id, username, display name) with no request; ask X when it holds none yet. `source` says which answered'
@@ -757,8 +757,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand user" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand user" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand user" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand user" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand user" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -794,8 +794,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand timeline" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand timeline" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand timeline" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -831,8 +831,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand mentions" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand mentions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand mentions" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -867,8 +867,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand like" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand like" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand like" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand like" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand like" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -903,8 +903,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand unlike" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unlike" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand unlike" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -939,8 +939,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand hide" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand hide" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand hide" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand hide" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand hide" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand hide" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -975,8 +975,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand unhide" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unhide" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand unhide" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1011,8 +1011,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand repost" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand repost" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand repost" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand repost" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand repost" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1047,8 +1047,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand unrepost" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unrepost" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand unrepost" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1083,8 +1083,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1119,8 +1119,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand unbookmark" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1156,8 +1156,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmarks" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1190,8 +1190,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and not __fish_seen_subcommand_from list posts add help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -1230,8 +1230,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1267,8 +1267,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from posts" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1303,8 +1303,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand bookmark-folders; and __fish_seen_subcommand_from add" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1344,8 +1344,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand likes" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand likes" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand likes" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand likes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand likes" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1380,8 +1380,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand follow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand follow" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand follow" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand follow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand follow" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1416,8 +1416,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand unfollow" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unfollow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand unfollow" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1454,8 +1454,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand following" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand following" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand following" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand following" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand following" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1492,8 +1492,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand followers" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand followers" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand followers" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand followers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand followers" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1528,8 +1528,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand mute" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand mute" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand mute" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand mute" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand mute" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1564,8 +1564,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand unmute" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unmute" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand unmute" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1601,8 +1601,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand muted" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand muted" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand muted" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand muted" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand muted" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1637,8 +1637,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand block" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand block" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand block" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand block" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand block" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1673,8 +1673,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand unblock" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand unblock" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand unblock" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1710,8 +1710,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand blocked" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand blocked" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand blocked" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1746,8 +1746,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and not __fish_seen_subcommand_from credits help" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1784,8 +1784,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand usage; and __fish_seen_subcommand_from credits" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1822,8 +1822,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand dm" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1856,8 +1856,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and not __fish_seen_subcommand_from start send history with help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -1897,8 +1897,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from start" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1933,8 +1933,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from send" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -1970,8 +1970,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from history" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2007,8 +2007,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand conversations; and __fish_seen_subcommand_from with" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2046,8 +2046,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and not __fish_seen_subcommand_from get remove help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -2084,8 +2084,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2120,8 +2120,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-events; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
@@ -2160,8 +2160,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-block" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-block" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-block" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2196,8 +2196,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand dm-unblock" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2233,8 +2233,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand dms" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand dms" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand dms" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand dms" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand dms" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2267,8 +2267,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and not __fish_seen_subcommand_from list followed memberships pinned get posts followers members add update remove follow unfollow pin unpin help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -2320,8 +2320,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2358,8 +2358,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followed" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2396,8 +2396,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from memberships" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2432,8 +2432,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pinned" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2468,8 +2468,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2505,8 +2505,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from posts" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2542,8 +2542,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from followers" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2576,8 +2576,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from members" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -2616,8 +2616,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from add" -l private -d 'Only you can see the list'
@@ -2655,8 +2655,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from update" -l private -d 'Make the list private'
@@ -2693,8 +2693,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
@@ -2730,8 +2730,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from follow" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2766,8 +2766,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unfollow" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2802,8 +2802,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from pin" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2838,8 +2838,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand lists; and __fish_seen_subcommand_from unpin" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2888,8 +2888,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and not __fish_seen_subcommand_from search get help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -2927,8 +2927,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from search" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -2963,8 +2963,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand communities; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3000,8 +3000,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and not __fish_seen_subcommand_from search get help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -3040,8 +3040,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from search" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3076,8 +3076,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand news; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3113,8 +3113,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and not __fish_seen_subcommand_from search get by-creator posts help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -3157,8 +3157,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from search" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3193,8 +3193,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3229,8 +3229,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from by-creator" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3266,8 +3266,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand spaces; and __fish_seen_subcommand_from posts" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3305,8 +3305,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and not __fish_seen_subcommand_from rules help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -3340,8 +3340,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand stream; and __fish_seen_subcommand_from rules" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -3380,8 +3380,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and not __fish_seen_subcommand_from draft publish help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -3421,8 +3421,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from draft" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3457,8 +3457,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand articles; and __fish_seen_subcommand_from publish" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
@@ -3495,8 +3495,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and not __fish_seen_subcommand_from write evaluate eligible written remove help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -3546,8 +3546,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from write" -l trustworthy-sources -d 'The note cites trustworthy sources'
@@ -3586,8 +3586,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from evaluate" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3623,8 +3623,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from eligible" -l test -d 'Test mode, for an app X is still admitting to the program'
@@ -3661,8 +3661,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from written" -l test -d 'Test mode, for an app X is still admitting to the program'
@@ -3698,8 +3698,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand notes; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
@@ -3739,8 +3739,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and not __fish_seen_subcommand_from place personal help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -3778,8 +3778,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from place" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3814,8 +3814,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from personal" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3851,8 +3851,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -3894,8 +3894,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3930,8 +3930,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -3964,8 +3964,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4004,8 +4004,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from chat" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4043,8 +4043,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4080,8 +4080,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4126,8 +4126,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4164,8 +4164,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -4198,8 +4198,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand calls; and __fish_seen_subcommand_from scheduled" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4241,8 +4241,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and not __fish_seen_subcommand_from list add validate remove subscriptions stream-links listen replay help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4285,8 +4285,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from list" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -4321,8 +4321,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from add" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -4357,8 +4357,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from validate" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -4393,8 +4393,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
@@ -4428,8 +4428,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from subscriptions" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4467,8 +4467,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from stream-links" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4514,8 +4514,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from listen" -l allow-unsigned -d 'Also print a POST that carries no signature, for a local test with curl. A POST with a wrong signature is refused either way'
@@ -4553,8 +4553,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand webhooks; and __fish_seen_subcommand_from replay" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -4596,8 +4596,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and not __fish_seen_subcommand_from oauth2 oauth1 app status clear apps default help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4642,8 +4642,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth2" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4682,8 +4682,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from oauth1" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4717,8 +4717,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from app" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4750,8 +4750,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from status" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4784,8 +4784,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from clear" -l all -d 'Clear all authentication'
@@ -4821,8 +4821,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from apps" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4860,8 +4860,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand auth; and __fish_seen_subcommand_from default" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4901,8 +4901,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and not __fish_seen_subcommand_from upload status get analytics alt-text subtitles help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -4947,8 +4947,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from upload" -s t -l trace -d 'Trace header'
@@ -4985,8 +4985,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from status" -s t -l trace -d 'Trace header'
@@ -5021,8 +5021,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from get" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -5062,8 +5062,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from analytics" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -5098,8 +5098,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from alt-text" -s t -l trace -d 'Add X-B3-Flags trace header'
@@ -5132,8 +5132,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand media; and __fish_seen_subcommand_from subtitles" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -5175,8 +5175,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and not __fish_seen_subcommand_from install update help" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -5209,8 +5209,8 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from install" -l all -d 'Install into every known host in one invocation'
@@ -5242,8 +5242,8 @@ complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand skill; and __fish_seen_subcommand_from update" -l all -d 'Update every known host in one invocation'
@@ -5280,8 +5280,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand schema" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand schema" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand schema" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand schema" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand schema" -l list -d 'List all commands and their response types'
@@ -5316,8 +5316,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand completions" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand completions" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand completions" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand completions" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand completions" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand completions" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -5349,8 +5349,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand version" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand version" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand version" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand version" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand version" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand version" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -5382,8 +5382,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand examples" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand examples" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand examples" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand examples" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand examples" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand examples" -l json -d 'Shorthand for `--output json` (P2 alias)'
@@ -5416,8 +5416,8 @@ always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand validate" -l limit -d 'Global result-set limit, clamped to 1..=100' -r
-complete -c xr -n "__fish_xr_using_subcommand validate" -l cursor -d 'Pagination cursor / `pagination_token` for list endpoints' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l page -d 'Documented alias for `--cursor`' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -l json -d 'Shorthand for `--output json` (P2 alias)'

@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use assert_cmd::Command;
 use clap::CommandFactory;
 
+pub mod invoke;
 pub mod listen;
 
 /// Store path for spawns that never touch credentials. Its parent directory
