@@ -117,6 +117,10 @@ scripts parse. A script that needs any other stable output reads a structured fo
 
 A minor can carry fixes, and a major can carry both.
 
+An `xr` break ships in a major, or in a minor when the maintainer judges its blast radius small. A break taken into a
+minor is filed under `### Added`, because `### Breaking changes` sets a major. Either way, the release ships a guide
+under `docs/migrating/` that maps each old invocation to its replacement, and `MIGRATING.md` lists it.
+
 ### X API changes
 
 X ships additive API changes often and does not version them.
@@ -383,6 +387,13 @@ merge it once CI is green. `scripts/release/postflight.sh backport` gates on tha
 `dev` or push to `dev` directly: the squash-merged histories share no recent ancestry, so the merge conflicts on every
 file both sides touched, and a direct push bypasses `dev`'s required checks. Dev-only content (`CONCEPTS.md`, the
 engineering docs) is never part of the copy, so the sync cannot remove it.
+
+When the release moved `xdk-rs`, the same PR deletes each `required-update` entry under
+`[package.metadata.cargo-semver-checks.lints]` in `crates/xdk/Cargo.toml` that the new `xdk-rs-v<version>` tag moves the
+baseline past.
+`cargo semver-checks check-release --package xdk-rs --baseline-rev xdk-rs-v<version> --release-type patch` names every
+lint that still fires, and an entry whose lint it does not name goes: left standing, it would reclassify the next break
+of the same kind. `scripts/release/preflight.sh api-contract` runs the same probe and fails while such an entry stands.
 
 Discovery compares `origin/dev` with `origin/main` and classifies every differing path against the previous `v*` tag,
 the last point the two branches agreed. A path `dev` has not touched since that tag is release-prep and is adopted. A

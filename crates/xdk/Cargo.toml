@@ -1,6 +1,6 @@
 [package]
 name = "xdk-rs"
-version = "0.3.0"
+version = "0.4.0"
 description = "Async Rust client for the X (Twitter) API: OAuth1, OAuth2 PKCE, bearer tokens, media upload, streaming. xdk is X's SDK name; this is an independent project, not affiliated with X Corp."
 documentation = "https://docs.rs/xdk-rs"
 keywords = ["twitter", "x", "api", "oauth", "async"]
@@ -126,28 +126,8 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 # reclassifies a break rather than silencing it: the gate CI runs
 # (`release-type: minor`) passes, while a patch-level probe
 # (`cargo semver-checks --release-type patch`) still names every break. Each
-# entry is scoped to one release and is self-clearing: once the tag moves the
-# baseline past the change, the lint stops firing and the entry must be
-# deleted. A standing entry understates the next break of the same kind.
+# entry is scoped to one release: once the tag moves the baseline past the
+# change, the lint stops firing, and the release's backport to dev deletes
+# the entry. A standing entry understates the next break of the same kind,
+# so `scripts/release/preflight.sh api-contract` fails while one stands.
 [package.metadata.cargo-semver-checks.lints]
-# Covers `Error::Api::reset_at`: a 429 carries the reset its own response
-# named, so a pattern that names every field of the variant gains `..`.
-enum_struct_variant_field_added = { lint-level = "deny", required-update = "minor" }
-# Covers `Error::Http`, `Io`, `Json`, `Auth`, `TokenStore`, and `InvalidUrl`:
-# each wraps a lower-level failure and keeps it as `source`, so the tuple
-# variant holding a message became a struct variant holding `message` and
-# `source`.
-enum_tuple_variant_changed_kind = { lint-level = "deny", required-update = "minor" }
-# Covers `StreamSource::region`, `stream_key`, `created_at_ms`, and `extra`,
-# and `StreamSourceDeleted::deleted`: `/2/sources` names a source's fields
-# anew and answers a delete with `deleted`, so a literal of either struct
-# names more fields.
-constructible_struct_adds_field = { lint-level = "deny", required-update = "minor" }
-# Covers `StreamSources` and `StreamSourceResult`: `/2/sources` answers a
-# list with a bare array and a read with the source itself, so no response
-# is shaped like either wrapper.
-struct_missing = { lint-level = "deny", required-update = "minor" }
-# Covers `StreamSource::rtmp_region`, `rtmp_stream_key`, `creation_time`, and
-# `owner_id`: `/2/sources` names a source's region, stream key, and creation
-# time `region`, `stream_key`, and `created_at_ms`, and sends no owner id.
-struct_pub_field_missing = { lint-level = "deny", required-update = "minor" }

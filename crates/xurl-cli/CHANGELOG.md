@@ -2,6 +2,69 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.5.0] - 2026-10-30
+
+### Added
+
+- Add `xr broadcasts mutes list | add | remove`: mute someone in every chat of your broadcasts, by handle or user ID, until `--until` or for good, and see who is muted and until when. A moderator mutes in another host's chats with `--broadcast`. by @brettdavies in [#409](https://github.com/brettdavies/xurl-rs/pull/409)
+- Add `xr broadcasts remove`: delete a scheduled or ended broadcast of yours with its replay. It asks first; `--force` skips the prompt.
+- Add `xr broadcasts sources region`, which names the ingest region to pass to `xr broadcasts sources add --region`.
+- Add `message` and `next_step` to the `--dry-run` envelope of a command that refuses its inputs, under every structured format: `message` is the rule the input broke, as text output words it, and `next_step` is the step the real run's error names. by @brettdavies in [#437](https://github.com/brettdavies/xurl-rs/pull/437)
+- Add numeric user IDs to every command that names one account, and to `--of` on `following`, `followers`, `lists list`, `lists followed`, and `lists memberships`: each takes a handle (`@jack` or `jack`) or a numeric user ID. An argument made only of digits is now a user ID, sent with no lookup; prefix an all-digit handle with `@` to keep the old meaning (`xr follow @1234`). by @brettdavies in [#439](https://github.com/brettdavies/xurl-rs/pull/439)
+- Add handles to `xr calls scheduled add --invite`, `xr calls scheduled update --invite`, and `xr webhooks subscriptions remove`: each account is a handle or a numeric user ID, in any mix, and every handle is looked up in one request before the command's own.
+- Add the auth schemes each command accepts to its `--auth` help, such as `this command accepts: app` on `xr webhooks replay`, with the set `--of` allows where it differs. by @brettdavies in [#445](https://github.com/brettdavies/xurl-rs/pull/445)
+- Add `xr broadcasts scheduled cancel`, which replaces `xr broadcasts scheduled remove` and matches `xr calls scheduled cancel`. The old word exits 2 as an unknown command whose `suggestion` and help pointer name `cancel`. Remove `xr broadcasts scheduled live` and `--manual-publish` on `add` and `update`: X takes every schedule `xr` makes live at its start time. A schedule already created for a manual start goes live through raw mode, `xr -X POST /2/broadcasts/scheduled/<ID>/live`. by @brettdavies in [#447](https://github.com/brettdavies/xurl-rs/pull/447)
+- Add `rule` to every validation refusal's JSON envelope, in the real run and the dry run: the validator's kebab-case code for the input rule that failed, such as `invalid-username`. A real run's `message` on a validation refusal changes from that code to the sentence for the rule, and a dry run's `reason` changes from the code to `validation`, the `reason` its real run carries. by @brettdavies in [#449](https://github.com/brettdavies/xurl-rs/pull/449)
+- Add `value` to a validation refusal's JSON envelope, the offending input as it was given, when the rule names one: an app name, a redirect URI, an unknown scope, a missing program, or a `-H` header's position. Every validation refusal now names its rule: refusals that carried prose, such as `xr auth clear` with nothing to clear or a malformed `-H` header, carry `rule` and the sentence for it in `message`. by @brettdavies in [#450](https://github.com/brettdavies/xurl-rs/pull/450)
+- Add `account` to the `not-found` envelope of a handle X knows no account for, where the refusal was `validation` with the handle in `message`.
+- Add `media_id` to the refusal of a media job X failed after processing it, which is now `invalid-request` with X's detail in `message`, where it was `validation` with the message "media processing failed".
+- Change a 200 X answers with `errors` and no `data` from `validation` to the reason its problem type names: `not-found` (exit 4), `forbidden`, or `invalid-request`.
+- Change raw mode's refusal of a URL that is neither absolute nor an absolute path from `validation` to `invalid-url`, and of a missing URL from `validation` (exit 1) to `invalid-args` (exit 2). A failed confirmation or picker prompt is now `io`, not `validation`.
+- Add command words to `xr schema`: `xr schema webhooks subscriptions count` prints that command's schema. A hyphen-joined name such as `webhooks-subscriptions-count` is now refused at exit 2 with `invalid-args`, and its `fix-input` step carries the words form to run instead. by @brettdavies in [#451](https://github.com/brettdavies/xurl-rs/pull/451)
+- Add command words to `xr schema --list` and `xr schema --all`. `--list` has no `envelope` row, and in JSON, YAML, CSV, and TSV it prints one record per command with `command`, `type`, and `file`.
+- Add the `unknown-command` refusal at exit 2 to `xr schema`, as `xr help` gives it, for a word that names no command; it was `validation` at exit 1.
+- Add the refusal of a bare `xr schema envelope` at exit 2 with a `fix-input` step carrying `xr schema --envelope`, the form that works.
+- Add the replacement of a retired command word to `xr schema`'s refusal: `xr schema broadcasts scheduled remove` suggests `cancel`, and `xr schema broadcasts-scheduled-remove` refuses with a `fix-input` step carrying `xr schema broadcasts scheduled cancel`.
+- Add the commands beneath a family to its `no-typed-response` refusal: `xr schema webhooks` names `webhooks list`, `webhooks add`, and the rest.
+- Add the full command path to the names of two committed schema files: `schema/responses/redirect-uri-get.schema.json` and `redirect-uri-set.schema.json` are now `auth-apps-redirect-uri-get.schema.json` and `auth-apps-redirect-uri-set.schema.json`.
+- Add the resolved `data` view as the default of `xr schema <command>`: the schema of the command's `data`, every reference resolved, with `command`, `data_cardinality`, `data_type`, `common_schema`, and `data_nullable` labels. The complete schema the command printed before is now `xr schema <command> --full`. by @brettdavies in [#452](https://github.com/brettdavies/xurl-rs/pull/452)
+- Add `xr schema --common` and `xr schema --path <DOT_PATH>`. `xr schema --all` now prints every command's default view; the complete schemas stay under `schema/responses/`.
+- Add the `path` and `known_properties` keys to the error envelope, on an `xr schema --path` segment that names no property, with a `fix-input` template.
+- Add the refusal of combined scopes such as `xr schema --list --all` at exit 2 with `invalid-args`; before, one flag silently won.
+- Add a `Response schema:` block to the help of every command with a typed response, naming the `xr schema` invocation that describes its output. by @brettdavies in [#453](https://github.com/brettdavies/xurl-rs/pull/453)
+- Add `response_schema` to the dry-run envelope of every command with a typed response, and a `response schema:` line to its text summary.
+- Add `xr broadcasts sources update <ID> --name <NAME>`, which replaces `xr broadcasts sources rename <ID> <NAME>` and takes the label as a flag, as `xr lists update --name` does. The old word exits 2 as an unknown command whose `suggestion` and help pointer name `update`. by @brettdavies in [#454](https://github.com/brettdavies/xurl-rs/pull/454)
+- Remove `xr broadcasts chat send`, `remove`, `mute`, and `unmute`, which acted inside a live broadcast's chat, and the `chat-sent` schema name of `xr validate --schema` with them. `xr broadcasts chat history` stays, and raw mode still reaches the chat endpoints. by @brettdavies in [#462](https://github.com/brettdavies/xurl-rs/pull/462)
+
+### Changed
+
+- Change the vendored X API spec to upstream 2.173, which adds the broadcast chat mutes, ending and deleting a broadcast, the ingest region, and the `/2/users/{id}/broadcasts` and `/2/users/{id}/sources` paths. Those last two are reachable in raw mode. by @brettdavies in [#409](https://github.com/brettdavies/xurl-rs/pull/409)
+- Change the text output of a `--dry-run` that refuses its inputs to print the real run's `Try 'xr <command> --help'.` line, which `--quiet` leaves out. by @brettdavies in [#437](https://github.com/brettdavies/xurl-rs/pull/437)
+- Change every help page to list the global flags under their own `Global Options` heading, so they no longer sit between a command's own options. by @brettdavies in [#441](https://github.com/brettdavies/xurl-rs/pull/441)
+- Change `xr schema skill install` to refuse with the no-typed-response message at exit 1, as `xr schema skill update` does. `schema/responses/skill-install.schema.json` and `skill-install-all.schema.json` are removed. The JSON report `xr skill install` prints is unchanged. by @brettdavies in [#451](https://github.com/brettdavies/xurl-rs/pull/451)
+
+### Fixed
+
+- Fix `xr broadcasts sources list | get | add | update | remove` for the shape X now answers with: `data` holds the sources or the source itself, a source's fields are `region`, `stream_key`, and `created_at_ms`, `owner_id` is gone, and `remove` answers `{"deleted": true}`. by @brettdavies in [#409](https://github.com/brettdavies/xurl-rs/pull/409)
+- Fix `xr --dry-run webhooks listen --forward <URL>` naming `fix-input` for a URL it refuses, where the real run names `show-help`. by @brettdavies in [#437](https://github.com/brettdavies/xurl-rs/pull/437)
+- Fix `xr notes evaluate` sending a draft whose `--text` holds no source URL; it is now refused before the request, as `xr notes write` refuses it. by @brettdavies in [#438](https://github.com/brettdavies/xurl-rs/pull/438)
+- Fix the help of every argument that names accounts to state the username and user ID rules its validator enforces. by @brettdavies in [#439](https://github.com/brettdavies/xurl-rs/pull/439)
+- Fix `xr search-users --help` to state the query rule under Arguments, `xr webhooks add --help` to say the URL names no port, and the `webhooks replay --from-checkpoint` and `webhooks listen --checkpoint` help to name the checkpoint file's JSON shape. by @brettdavies in [#443](https://github.com/brettdavies/xurl-rs/pull/443)
+- Fix the error for an unreadable checkpoint file to name the shape a checkpoint file holds.
+- Fix the `--limit` and `--cursor` help to describe every command that pages, instead of naming ten and saying the rest ignore them. by @brettdavies in [#444](https://github.com/brettdavies/xurl-rs/pull/444)
+- Fix `xr calls scheduled list` to take its page size from the global `--limit` when `-n` is not given; the default stays 20.
+- Fix the `-n` help of `xr stream rules list` and `xr broadcasts chat history` to state the 100 results a page holds at most; it said 1000 and 200.
+- Fix `xr webhooks listen` with no signing secret to carry a `next_step`: `fix-input` with a template that stores the app's client secret, or its OAuth1 credentials under `--secret oauth1`, and `register-app` when no app is registered. by @brettdavies in [#448](https://github.com/brettdavies/xurl-rs/pull/448)
+- Fix `xr webhooks listen --dry-run` with no signing secret to answer with its real run's `reason` (`auth-required`), message, and step, in place of `reason: no-signing-secret`.
+
+### Documentation
+
+- Document how `xr` differs from Go `xurl` 1.3.4: a map of the commands and flags spelled differently (`xurl posts` is `xr user-posts`), the Go commands `xr` lacks, and sections on errors on stderr, `--dry-run` and `XURL_DRY_RUN=1`, the confirmation before `delete`, the credential check before sending, `--cursor`, post-vocabulary key names, and secrets from a file or stdin. by @brettdavies in [#434](https://github.com/brettdavies/xurl-rs/pull/434)
+- Fix the account of Go `xurl`'s exit codes: it exits 1 on every failure.
+- Compare `xr` with Go `xurl` 1.3.4 row by row in the CLI README, with release binary sizes and command counts measured from both tools, and name the differences a migrated script hits first in the root README. by @brettdavies in [#435](https://github.com/brettdavies/xurl-rs/pull/435)
+
+**Full Changelog**: [v4.4.1...v4.5.0](https://github.com/brettdavies/xurl-rs/compare/v4.4.1...v4.5.0)
+
 ## [4.4.1] - 2026-10-28
 
 ### Fixed

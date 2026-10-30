@@ -43,7 +43,7 @@ group in isolation:
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
 | `drift`              | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, `Cargo.lock` packages `main` resolves newer (delegated to `scripts/release/drift.sh`)                                              | no                            |
 | `surface`            | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                                                                   | no                            |
-| `api-contract`       | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` on `xdk-rs` vs its last `xdk-rs-v*` tag                                                                                                                 | no (builds prev tag once)     |
+| `api-contract`       | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` on `xdk-rs` vs its last `xdk-rs-v*` tag, and any `required-update` override that tag has made stale                                                     | no (builds prev tag once)     |
 | `smoke`              | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                                                           | yes                           |
 | `multi-app`          | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                                                                    | yes                           |
 | `changelog-sections` | No PR this release carries leaves its changelog entry to its title for want of a `## Changelog (<crate>)` section (`generate-changelog.py --audit-sections`, for `xurl-rs` and for `xdk-rs` while its release is pending) | no (reads PR bodies via `gh`) |
@@ -150,7 +150,9 @@ library re-exports in `crates/xdk/src/lib.rs`.
 
 - [ ] `xr help` lists the same shortcut commands as the previous release plus any net additions / removals. Diff
   `$LAST_TAG`'s `xr help` against `dev`'s and confirm every removed or renamed command has a `!:` commit and a `###
-  Breaking changes` bullet in the release changelog: a removal or rename is a major (RELEASES.md § Versioning).
+  Breaking changes` bullet in the release changelog: a removal or rename is a major (RELEASES.md § Versioning). A
+  break the maintainer takes into a minor has an `### Added` bullet instead, and a row in the release's guide under
+  `docs/migrating/`.
 - [ ] `xr schema` (typed response introspection) still emits a parseable JSON shape; downstream agents feature-detect
   from this. Diff the shape against `$LAST_TAG`'s output and surface any field rename / removal as a breaking row.
 - [ ] Public library surface (`xdk::*`, the `xdk-rs` package): `cargo semver-checks check-release --package xdk-rs
@@ -160,8 +162,9 @@ library re-exports in `crates/xdk/src/lib.rs`.
   each reported break has a row in the `xdk-rs` changelog. A break shipping in a minor by decision gets a
   `required-update = "minor"` entry in `crates/xdk/Cargo.toml` under `[package.metadata.cargo-semver-checks.lints]`,
   which reclassifies it rather than silencing it: the gate still names the break. Those entries are scoped to one
-  release and are deleted once the tag moves the baseline past them. Before the first `xdk-rs-v*` tag the gate skips:
-  there is no baseline.
+  release: the backport after it deletes each entry the new tag moves the baseline past, and this gate fails while one
+  stands, because a patch-level probe against the last `xdk-rs-v*` tag no longer names that entry's lint. Before the
+  first `xdk-rs-v*` tag the gate skips: there is no baseline.
 
 ### Real-world smoke (live X API)
 
