@@ -48,10 +48,10 @@ xr auth status                   # list configured apps and token freshness
 
 Bare `xr` (no arguments) prints the root help on stdout at exit 0. A word that names no command exits 2 with reason
 `unknown-command`, echoing the word in `command` and naming the nearest real command in `suggestion` when one is close
-enough. Read those rather than parsing the message. A flag only a raw request reads (`-X`, `-H`, `-d`, `--auth`, `-u`,
-`-t`, `-s`, `-F`), given before a command word, exits 2 with reason `invalid-args`, since the command reads only its own
-copy: for `-u`, `--auth`, or `-t` on a command that takes it, `next_step` is `fix-input` carrying the invocation with
-the flag after the word.
+enough, or the command that replaced a word its family retired. Read those rather than parsing the message. A flag only
+a raw request reads (`-X`, `-H`, `-d`, `--auth`, `-u`, `-t`, `-s`, `-F`), given before a command word, exits 2 with
+reason `invalid-args`, since the command reads only its own copy: for `-u`, `--auth`, or `-t` on a command that takes
+it, `next_step` is `fix-input` carrying the invocation with the flag after the word.
 
 ## Auth paths
 

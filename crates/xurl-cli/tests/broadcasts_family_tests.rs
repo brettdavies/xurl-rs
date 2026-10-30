@@ -1,8 +1,8 @@
 //! `xr broadcasts` beyond moderators and sources: the caller's broadcasts,
 //! scheduled broadcasts (whose RFC 3339 times go out as the millisecond
-//! strings X takes), and a broadcast's chat. Going live, cancelling a
-//! scheduled broadcast, and removing a chat message ask first; inputs the
-//! spec bounds are refused before any request.
+//! strings X takes), and a broadcast's chat. Cancelling a scheduled broadcast
+//! and removing a chat message ask first; inputs the spec bounds are refused
+//! before any request.
 
 mod common;
 
@@ -151,14 +151,8 @@ async fn scheduled_update_names_the_broadcast_and_both_times() {
 }
 
 #[tokio::test]
-async fn going_live_and_cancelling_ask_first() {
+async fn cancelling_asks_first() {
     let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path(format!("/2/broadcasts/scheduled/{SCHEDULED}/live")))
-        .respond_with(ResponseTemplate::new(200).set_body_json(scheduled()))
-        .expect(1)
-        .mount(&server)
-        .await;
     Mock::given(method("DELETE"))
         .and(path(format!("/2/broadcasts/scheduled/{SCHEDULED}")))
         .respond_with(
@@ -169,34 +163,59 @@ async fn going_live_and_cancelling_ask_first() {
         .mount(&server)
         .await;
 
-    for verb in ["live", "remove"] {
-        let (code, _stdout, stderr) = run_json(
-            &server,
-            &[
-                "--no-interactive",
-                "broadcasts",
-                "scheduled",
-                verb,
-                SCHEDULED,
-            ],
-        )
-        .await;
-        assert_eq!(code, 1, "{verb}: {stderr}");
-        assert_eq!(error_envelope(&stderr)["reason"], "confirmation-required");
+    let (code, _stdout, stderr) = run_json(
+        &server,
+        &[
+            "--no-interactive",
+            "broadcasts",
+            "scheduled",
+            "cancel",
+            SCHEDULED,
+        ],
+    )
+    .await;
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert_eq!(error_envelope(&stderr)["reason"], "confirmation-required");
 
-        let (code, _stdout, stderr) = run_json(
-            &server,
-            &[
-                "--no-interactive",
-                "broadcasts",
-                "scheduled",
-                verb,
-                SCHEDULED,
-                "--force",
-            ],
-        )
+    let (code, stdout, stderr) = run_json(
+        &server,
+        &[
+            "--no-interactive",
+            "broadcasts",
+            "scheduled",
+            "cancel",
+            SCHEDULED,
+            "--force",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "--force: {stderr}");
+    assert_eq!(json_out(&stdout)["data"]["deleted"], true);
+}
+
+/// X publishes every schedule `xr` makes at its start time, so the flag
+/// that held one back for a manual start is refused before any request.
+#[tokio::test]
+async fn scheduling_for_a_manual_start_is_refused() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/broadcasts/scheduled"))
+        .respond_with(ResponseTemplate::new(201).set_body_json(scheduled()))
+        .expect(0)
+        .mount(&server)
         .await;
-        assert_eq!(code, 0, "{verb} --force: {stderr}");
+
+    for verb in ["add", "update"] {
+        let mut args = vec!["broadcasts", "scheduled", verb];
+        if verb == "update" {
+            args.push(SCHEDULED);
+        } else {
+            args.extend(["--source", "abc123"]);
+        }
+        args.extend(["--start", START, "--end", END, "--manual-publish"]);
+        let (code, _stdout, stderr) = run_json(&server, &args).await;
+        assert_eq!(code, 2, "{verb}: {stderr}");
+        assert_eq!(error_envelope(&stderr)["reason"], "invalid-args", "{verb}");
     }
 }
 

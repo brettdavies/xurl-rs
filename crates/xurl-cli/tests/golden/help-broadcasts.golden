@@ -1,7 +1,7 @@
 args: ["broadcasts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7609
+stdout_len: 7590
 stderr_len: 0
 --- stdout ---
 Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources
@@ -11,7 +11,7 @@ Usage: xr broadcasts [OPTIONS] <COMMAND>
 Commands:
   list        List your broadcasts
   get         Read one broadcast, by id
-  scheduled   Schedule broadcasts, change or cancel them, and start them early
+  scheduled   Schedule broadcasts and change or cancel them
   chat        Read and moderate a broadcast's chat
   moderators  Manage who moderates your broadcast chats
   sources     Manage the RTMP and RTMPS ingest points you stream to

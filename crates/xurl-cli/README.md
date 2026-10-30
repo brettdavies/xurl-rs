@@ -369,8 +369,7 @@ xr broadcasts get 1YqKDqWqdPLGV                    # One broadcast, by id
 xr broadcasts scheduled list                       # Your scheduled broadcasts
 xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z
 xr broadcasts scheduled update 1850000000000000001 --start 2026-11-02T17:00:00Z --end 2026-11-02T18:00:00Z
-xr broadcasts scheduled live 1850000000000000001   # Start now (asks first)
-xr broadcasts scheduled remove 1850000000000000001 # Cancel (asks first)
+xr broadcasts scheduled cancel 1850000000000000001 # Cancel (asks first)
 xr broadcasts chat history 1YqKDqWqdPLGV           # A broadcast's chat
 xr broadcasts chat send 1YqKDqWqdPLGV "Welcome!"   # Up to 140 characters
 xr broadcasts chat mute 1YqKDqWqdPLGV @troll --until 2026-11-02T17:00:00Z
@@ -385,7 +384,8 @@ xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force
 ```
 
 A scheduled broadcast takes its video from a stream source, so `add` names one with `--source`; its times are RFC 3339,
-and `xr` sends them as the milliseconds since the Unix epoch X takes. X takes both times on every `update`.
+and `xr` sends them as the milliseconds since the Unix epoch X takes. X takes both times on every `update`, and takes the
+broadcast live at its start time.
 
 A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `id` as the
 stream key, then poll `get` until `is_stream_active` is true. The `id` is the stream key itself, so whoever holds it can

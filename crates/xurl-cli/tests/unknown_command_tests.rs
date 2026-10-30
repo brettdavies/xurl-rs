@@ -1051,3 +1051,113 @@ async fn a_structured_parse_error_names_the_command_it_belongs_to() {
     );
     assert!(message.ends_with("Try 'xr whoami --help'."), "got: {v}");
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// A retired word: a command renamed under its family
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SCHEDULED: &str = "1850000000000000001";
+
+/// A renamed verb names its replacement however the caller reached it, and
+/// nothing past the parse runs.
+#[rstest::rstest]
+#[case::invocation(&["xr", "--output", "json", "broadcasts", "scheduled", "remove", SCHEDULED])]
+#[case::help_flag(&["xr", "--output", "json", "broadcasts", "scheduled", "remove", "--help"])]
+#[case::help_command(&["xr", "--output", "json", "help", "broadcasts", "scheduled", "remove"])]
+#[case::dry_run(&["xr", "--output", "json", "--dry-run", "broadcasts", "scheduled", "remove", SCHEDULED])]
+#[case::alias_binary(&["xurl-rs", "--output", "json", "broadcasts", "scheduled", "remove", SCHEDULED])]
+#[tokio::test]
+async fn a_retired_word_names_its_replacement(#[case] args: &[&str]) {
+    let (code, stdout, stderr) = run_isolated(args).await;
+    assert_eq!(code, 2, "args {args:?}; stderr: {stderr}");
+    assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
+    assert_unknown_command_under(
+        &stderr,
+        "json",
+        "remove",
+        Some("cancel"),
+        "xr broadcasts scheduled",
+    );
+}
+
+#[tokio::test]
+async fn a_retired_word_says_what_replaced_it() {
+    let (code, _stdout, stderr) =
+        run_isolated(&["xr", "broadcasts", "scheduled", "remove", SCHEDULED]).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_eq!(
+        plain(&stderr).trim_end(),
+        "Error: unknown command 'remove': 'cancel' replaced it. \
+         Try 'xr broadcasts scheduled cancel --help'."
+    );
+    let (_, _, stderr) = run_isolated(&[
+        "xr",
+        "--output",
+        "json",
+        "broadcasts",
+        "scheduled",
+        "remove",
+        SCHEDULED,
+    ])
+    .await;
+    assert_eq!(
+        envelope(&stderr, "json")["message"],
+        "unknown command 'remove': 'cancel' replaced it. \
+         Try 'xr broadcasts scheduled cancel --help'."
+    );
+}
+
+#[tokio::test]
+async fn a_typo_of_the_replacement_still_reads_as_a_typo() {
+    let (code, _stdout, stderr) =
+        run_isolated(&["xr", "broadcasts", "scheduled", "cancle", SCHEDULED]).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_eq!(
+        plain(&stderr).trim_end(),
+        "Error: unknown command 'cancle'. Did you mean 'cancel'? \
+         Try 'xr broadcasts scheduled cancel --help'."
+    );
+}
+
+/// `live` was dropped rather than renamed, so nothing replaces it.
+#[tokio::test]
+async fn a_dropped_word_is_an_unknown_command() {
+    let (code, _stdout, stderr) = run_isolated(&[
+        "xr",
+        "--output",
+        "json",
+        "broadcasts",
+        "scheduled",
+        "live",
+        SCHEDULED,
+    ])
+    .await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_unknown_command_under(&stderr, "json", "live", None, "xr broadcasts scheduled");
+}
+
+/// A row belongs to one family: `remove` elsewhere is still a command.
+#[tokio::test]
+async fn a_retired_word_stays_a_command_in_other_families() {
+    let (code, stdout, stderr) = run_with_overrides(
+        &[
+            "xr",
+            "--output",
+            "json",
+            "--dry-run",
+            "lists",
+            "remove",
+            "123",
+            "--force",
+        ],
+        &EnvOverrides {
+            api_base_url: Some("http://127.0.0.1:9".into()),
+            ..EnvOverrides::default()
+        },
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("dry-run JSON");
+    assert_eq!(v["status"], "dry_run", "got: {v}");
+    assert_eq!(v["command"], "lists-remove", "got: {v}");
+}

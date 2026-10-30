@@ -80,15 +80,14 @@ pub const ROWS: &[Row] = &[
         "broadcasts scheduled add",
         &[ep::CREATE_SCHEDULED_BROADCAST],
     ),
+    row(
+        "broadcasts scheduled cancel",
+        &[ep::DELETE_SCHEDULED_BROADCAST],
+    ),
     row("broadcasts scheduled get", &[ep::GET_SCHEDULED_BROADCAST]),
     row(
         "broadcasts scheduled list",
         &[ep::LIST_SCHEDULED_BROADCASTS],
-    ),
-    row("broadcasts scheduled live", &[ep::GO_LIVE]),
-    row(
-        "broadcasts scheduled remove",
-        &[ep::DELETE_SCHEDULED_BROADCAST],
     ),
     row(
         "broadcasts scheduled update",
