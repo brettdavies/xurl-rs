@@ -266,11 +266,14 @@ pub fn stderr_records(stderr: &str) -> Vec<serde_json::Value> {
 }
 
 /// `xr --output json webhooks listen` as a child process, for what only a
-/// real process shows: its exit, its own stderr, and a signal.
+/// real process shows: its exit, its own stderr, and a signal. Dropped while
+/// the process still runs, it kills the process and reaps it.
 pub struct ListenProcess {
     child: std::process::Child,
+    /// Whether the child's exit has been collected.
+    reaped: bool,
     lines: std::sync::mpsc::Receiver<String>,
-    stderr: std::thread::JoinHandle<String>,
+    stderr: Option<std::thread::JoinHandle<String>>,
     /// The port it listens on, from its `listening` record.
     pub port: u16,
 }
@@ -310,8 +313,9 @@ impl ListenProcess {
         });
         let mut process = Self {
             child,
+            reaped: false,
             lines,
-            stderr,
+            stderr: Some(stderr),
             port: 0,
         };
         match process
@@ -332,10 +336,27 @@ impl ListenProcess {
     /// Ends the process and fails the test with `why`, its exit, and its
     /// stderr, the only place a refusal before binding shows.
     fn fail(mut self, why: &str) -> ! {
+        let status = self.stop();
+        let stderr = self.stderr().unwrap_or_default();
+        panic!("listen did not start: {why}; exit {status:?}; stderr: {stderr}");
+    }
+
+    /// Kills the process and collects its exit.
+    fn stop(&mut self) -> std::io::Result<std::process::ExitStatus> {
         let _ = self.child.kill();
         let status = self.child.wait();
-        let stderr = self.stderr.join().unwrap_or_default();
-        panic!("listen did not start: {why}; exit {status:?}; stderr: {stderr}");
+        self.reaped = true;
+        status
+    }
+
+    /// All of stderr, once the process has ended.
+    fn stderr(&mut self) -> std::thread::Result<String> {
+        self.stderr.take().expect("stderr is read once").join()
+    }
+
+    /// The process id of the `xr` it runs.
+    pub fn id(&self) -> u32 {
+        self.child.id()
     }
 
     /// The next stdout line, within ten seconds.
@@ -358,9 +379,8 @@ impl ListenProcess {
     /// Kills the process outright, as an out-of-memory kill or a crash
     /// would end it, and returns its stderr.
     pub fn kill(mut self) -> String {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-        self.stderr.join().unwrap_or_default()
+        let _ = self.stop();
+        self.stderr().unwrap_or_default()
     }
 
     /// Waits for the exit, at most `within`, and returns the status and all
@@ -378,17 +398,27 @@ impl ListenProcess {
         let deadline = std::time::Instant::now() + within;
         let status = loop {
             if let Some(status) = self.child.try_wait().expect("try_wait") {
+                self.reaped = true;
                 break status;
             }
-            if std::time::Instant::now() >= deadline {
-                let _ = self.child.kill();
-                let _ = self.child.wait();
-                panic!("listen did not exit within {within:?}");
-            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "listen did not exit within {within:?}"
+            );
             std::thread::sleep(std::time::Duration::from_millis(20));
         };
-        let stderr = self.stderr.join().expect("the stderr reader");
+        let stderr = self.stderr().expect("the stderr reader");
         let rest = self.lines.iter().collect();
         (status, rest, stderr)
+    }
+}
+
+/// A test that panics before it calls `kill` or `wait` drops the process
+/// instead, and dropping a `Child` leaves its process running.
+impl Drop for ListenProcess {
+    fn drop(&mut self) {
+        if !self.reaped {
+            let _ = self.stop();
+        }
     }
 }
