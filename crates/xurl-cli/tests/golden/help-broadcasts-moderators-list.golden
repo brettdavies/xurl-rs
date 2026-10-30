@@ -1,7 +1,7 @@
 args: ["broadcasts", "moderators", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6946
+stdout_len: 7003
 stderr_len: 0
 --- stdout ---
 List your broadcast chat moderators
@@ -159,6 +159,9 @@ Examples:
     xr broadcasts moderators list
   As a JSON envelope:
     xr broadcasts moderators list --output json
+
+Response schema:
+  xr schema broadcasts moderators list
 
 --- stderr ---
 

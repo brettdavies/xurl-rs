@@ -1,7 +1,7 @@
 args: ["lists", "unpin", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6977
+stdout_len: 7019
 stderr_len: 0
 --- stdout ---
 Unpin a list
@@ -163,6 +163,9 @@ Examples:
     xr lists unpin 1146654567674912769
   As a JSON envelope:
     xr lists unpin 1146654567674912769 --output json
+
+Response schema:
+  xr schema lists unpin
 
 --- stderr ---
 

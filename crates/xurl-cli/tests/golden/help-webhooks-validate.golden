@@ -1,7 +1,7 @@
 args: ["webhooks", "validate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7089
+stdout_len: 7137
 stderr_len: 0
 --- stdout ---
 Ask X to send its CRC check to a webhook again
@@ -163,6 +163,9 @@ Examples:
     xr webhooks validate 1146654567674912769
   Check again (JSON envelope):
     xr webhooks validate 1146654567674912769 --output json
+
+Response schema:
+  xr schema webhooks validate
 
 --- stderr ---
 

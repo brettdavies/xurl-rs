@@ -17,6 +17,8 @@ pub use runner::{run, run_argv, run_with_store_path};
 use clap::builder::FalseyValueParser;
 use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
 
+use crate::cli::commands::schema::SchemaPointers;
+
 pub mod env;
 pub mod envelope;
 pub mod family_help;
@@ -944,6 +946,7 @@ const GLOBAL_OPTIONS: &str = "Global Options";
 /// Auth-enabled curl-like interface for the X API.
 #[derive(Parser, Debug)]
 #[command(
+    schema_pointers(),
     name = "xr",
     about = "Auth enabled curl-like interface for the X API",
     long_about = r#"A command-line tool for making authenticated requests to the X API.

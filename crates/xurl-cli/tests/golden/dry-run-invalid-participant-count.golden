@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "conversations", "start", "@alice", "--text", "hi"]
 store: empty
 exit_code: 0
-stdout_len: 398
+stdout_len: 452
 stderr_len: 0
 --- stdout ---
 {
@@ -17,6 +17,7 @@ stderr_len: 0
     "@alice"
   ],
   "reason": "validation",
+  "response_schema": "xr schema conversations start",
   "rule": "invalid-participant-count",
   "status": "dry_run",
   "would_succeed": false

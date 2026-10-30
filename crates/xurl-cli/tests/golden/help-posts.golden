@@ -1,7 +1,7 @@
 args: ["posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7307
+stdout_len: 7343
 stderr_len: 0
 --- stdout ---
 Read 1 to 100 posts by id or URL in one request
@@ -166,6 +166,9 @@ Examples:
   The text of each post, one per line:
     xr posts 1585341984679469056 1346889436626259968 --output json | jaq -r '.data[]?.text'
   The ids X could not return are under errors, beside the posts it could.
+
+Response schema:
+  xr schema posts
 
 --- stderr ---
 

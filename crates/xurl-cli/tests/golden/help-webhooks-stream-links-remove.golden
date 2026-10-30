@@ -1,7 +1,7 @@
 args: ["webhooks", "stream-links", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7263
+stdout_len: 7322
 stderr_len: 0
 --- stdout ---
 Stop delivering the app's filtered stream to a webhook
@@ -166,6 +166,9 @@ Examples:
     xr webhooks stream-links remove 1146654567674912769 --force --no-interactive
   Unlink (JSON envelope):
     xr webhooks stream-links remove 1146654567674912769 --force --no-interactive --output json
+
+Response schema:
+  xr schema webhooks stream-links remove
 
 --- stderr ---
 

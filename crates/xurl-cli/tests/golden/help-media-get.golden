@@ -1,7 +1,7 @@
 args: ["media", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7193
+stdout_len: 7233
 stderr_len: 0
 --- stdout ---
 Read 1 to 100 uploads by media key in one request
@@ -164,6 +164,9 @@ Examples:
   Same, JSON envelope:
     xr media get 3_1146654567674912769 7_1146654567674912770 --output json
   A media key is the type and the id joined by an underscore, as a post's media lists it.
+
+Response schema:
+  xr schema media get
 
 --- stderr ---
 

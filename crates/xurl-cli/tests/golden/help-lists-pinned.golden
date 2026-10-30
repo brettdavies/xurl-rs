@@ -1,7 +1,7 @@
 args: ["lists", "pinned", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6885
+stdout_len: 6928
 stderr_len: 0
 --- stdout ---
 List the lists you have pinned
@@ -159,6 +159,9 @@ Examples:
     xr lists pinned
   As a JSON envelope:
     xr lists pinned --output json
+
+Response schema:
+  xr schema lists pinned
 
 --- stderr ---
 

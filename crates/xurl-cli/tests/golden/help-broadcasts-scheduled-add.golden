@@ -1,7 +1,7 @@
 args: ["broadcasts", "scheduled", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7645
+stdout_len: 7700
 stderr_len: 0
 --- stdout ---
 Schedule a broadcast from one of your stream sources
@@ -177,6 +177,9 @@ Examples:
     xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --title "Launch day"
   Schedule (JSON envelope):
     xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --title "Launch day" --output json
+
+Response schema:
+  xr schema broadcasts scheduled add
 
 --- stderr ---
 

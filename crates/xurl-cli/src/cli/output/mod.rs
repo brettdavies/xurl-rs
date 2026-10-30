@@ -119,6 +119,11 @@ pub struct OutputConfig {
     /// struct. Constructors default this to `false`; the runner sets it via
     /// [`Self::with_no_interactive`] right after construction.
     pub no_interactive: bool,
+    /// The `xr schema` invocation that describes the running command's
+    /// response, when the command has one. A dry run's envelope carries it as
+    /// `response_schema`. The runner sets it via
+    /// [`Self::with_response_schema`] once the command is parsed.
+    pub response_schema: Option<String>,
 }
 
 impl OutputConfig {
@@ -174,6 +179,7 @@ impl OutputConfig {
             verbose,
             raw,
             no_interactive: false,
+            response_schema: None,
         }
     }
 
@@ -186,6 +192,24 @@ impl OutputConfig {
     pub fn with_no_interactive(mut self, no_interactive: bool) -> Self {
         self.no_interactive = no_interactive;
         self
+    }
+
+    /// Sets [`Self::response_schema`].
+    #[must_use]
+    pub fn with_response_schema(mut self, response_schema: Option<String>) -> Self {
+        self.response_schema = response_schema;
+        self
+    }
+
+    /// `ctx` with `response_schema` added when the running command has a
+    /// schema. Both dry-run printers start here, so the text summary and the
+    /// envelope carry the same pointer.
+    fn with_pointer(&self, ctx: &Value) -> Value {
+        let mut ctx = ctx.clone();
+        if let (Some(pointer), Some(map)) = (&self.response_schema, ctx.as_object_mut()) {
+            map.insert("response_schema".into(), Value::String(pointer.clone()));
+        }
+        ctx
     }
 
     /// Returns `true` when the active session can drive interactive prompts.
@@ -473,6 +497,7 @@ impl OutputConfig {
         exit_code: i32,
         ctx: &Value,
     ) {
+        let ctx = &self.with_pointer(ctx);
         if !self.format.is_structured() {
             for line in dry_run::summary(would_succeed, exit_code, ctx, None) {
                 let _ = writeln!(out, "{line}");
@@ -504,6 +529,7 @@ impl OutputConfig {
         error: &Error,
         hint: Option<&crate::cli::hints::Hint>,
     ) {
+        let ctx = &self.with_pointer(ctx);
         let reworded;
         let error = match error {
             // A dry run looks no id up, so a path it rendered would carry a
@@ -825,6 +851,7 @@ impl Default for OutputConfig {
             verbose: false,
             raw: false,
             no_interactive: false,
+            response_schema: None,
         }
     }
 }
@@ -889,6 +916,7 @@ mod tests {
             verbose: false,
             raw: false,
             no_interactive: false,
+            response_schema: None,
         };
         assert!(!cfg.quiet);
     }

@@ -1,7 +1,7 @@
 args: ["dms", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7069
+stdout_len: 7103
 stderr_len: 0
 --- stdout ---
 List recent direct messages
@@ -164,6 +164,9 @@ Examples:
     xr dms -n 50 --output json
   The id of each event, one per line:
     xr dms -n 100 --output json | jaq -r '.data[]?.id'
+
+Response schema:
+  xr schema dms
 
 --- stderr ---
 

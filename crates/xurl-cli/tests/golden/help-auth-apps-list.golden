@@ -1,7 +1,7 @@
 args: ["auth", "apps", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6612
+stdout_len: 6657
 stderr_len: 0
 --- stdout ---
 List registered apps
@@ -152,6 +152,9 @@ Examples:
     xr auth apps list --output json
   Quiet + JSON for clean agent consumption:
     xr auth apps list --quiet --output json
+
+Response schema:
+  xr schema auth apps list
 
 --- stderr ---
 

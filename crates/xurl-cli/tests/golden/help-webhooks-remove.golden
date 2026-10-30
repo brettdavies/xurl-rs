@@ -1,7 +1,7 @@
 args: ["webhooks", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7225
+stdout_len: 7271
 stderr_len: 0
 --- stdout ---
 Delete a webhook; its subscriptions stop delivering
@@ -166,6 +166,9 @@ Examples:
     xr webhooks remove 1146654567674912769 --force --no-interactive
   Delete (JSON envelope):
     xr webhooks remove 1146654567674912769 --force --no-interactive --output json
+
+Response schema:
+  xr schema webhooks remove
 
 --- stderr ---
 

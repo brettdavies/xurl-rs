@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "post", ""]
 store: empty
 exit_code: 0
-stdout_len: 319
+stdout_len: 358
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 0
     "command": "xr post --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema post",
   "rule": "empty-body",
   "status": "dry_run",
   "would_succeed": false

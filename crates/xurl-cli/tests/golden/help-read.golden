@@ -1,7 +1,7 @@
 args: ["read", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7138
+stdout_len: 7173
 stderr_len: 0
 --- stdout ---
 Read a post
@@ -167,6 +167,9 @@ Examples:
     xr read https://x.com/elonmusk/status/1585341984679469056 --output json
   Extract a single field via jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'
+
+Response schema:
+  xr schema read
 
 --- stderr ---
 

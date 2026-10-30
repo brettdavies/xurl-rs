@@ -1,7 +1,7 @@
 args: ["news", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7000
+stdout_len: 7039
 stderr_len: 0
 --- stdout ---
 Read one news story, by id
@@ -163,6 +163,9 @@ Examples:
     xr news get 1850000000000000000
   As a JSON envelope:
     xr news get 1850000000000000000 --output json
+
+Response schema:
+  xr schema news get
 
 --- stderr ---
 

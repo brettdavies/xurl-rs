@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "rename", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7104
+stdout_len: 7160
 stderr_len: 0
 --- stdout ---
 Rename a stream source
@@ -166,6 +166,9 @@ Examples:
     xr broadcasts sources rename 1x2y3z4w5v6u "Studio B"
   Rename (JSON envelope):
     xr broadcasts sources rename 1x2y3z4w5v6u "Studio B" --output json
+
+Response schema:
+  xr schema broadcasts sources rename
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["reposters", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7248
+stdout_len: 7288
 stderr_len: 0
 --- stdout ---
 List the users who reposted a post
@@ -168,6 +168,9 @@ Examples:
     xr reposters https://x.com/alice/status/1585341984679469056 -n 100 --output json
   The handle of each, one per line:
     xr reposters 1585341984679469056 --output json | jaq -r '.data[]?.username'
+
+Response schema:
+  xr schema reposters
 
 --- stderr ---
 

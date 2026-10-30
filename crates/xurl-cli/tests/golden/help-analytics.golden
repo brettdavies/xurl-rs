@@ -1,7 +1,7 @@
 args: ["analytics", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7834
+stdout_len: 7874
 stderr_len: 0
 --- stdout ---
 Report impressions and engagement for your posts over a time window
@@ -176,6 +176,9 @@ Examples:
     xr analytics 1585341984679469056 1346889436626259968 --start 2026-10-01T00:00:00Z --end 2026-10-08T00:00:00Z --granularity daily --output json
   The impressions of each post, one per line:
     xr analytics 1585341984679469056 --start 2026-10-01T00:00:00Z --end 2026-10-02T00:00:00Z --output json | jaq -r '.data[]? | "\(.id) \(.impressions)"'
+
+Response schema:
+  xr schema analytics
 
 --- stderr ---
 

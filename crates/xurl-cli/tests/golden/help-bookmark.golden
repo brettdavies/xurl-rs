@@ -1,7 +1,7 @@
 args: ["bookmark", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6949
+stdout_len: 6988
 stderr_len: 0
 --- stdout ---
 Bookmark a post
@@ -163,6 +163,9 @@ Examples:
     xr bookmark 1585341984679469056
   Bookmark (JSON envelope):
     xr bookmark 1585341984679469056 --output json
+
+Response schema:
+  xr schema bookmark
 
 --- stderr ---
 

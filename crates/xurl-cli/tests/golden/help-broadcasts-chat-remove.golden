@@ -1,7 +1,7 @@
 args: ["broadcasts", "chat", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7341
+stdout_len: 7394
 stderr_len: 0
 --- stdout ---
 Remove a message from a broadcast's chat
@@ -169,6 +169,9 @@ Examples:
     xr broadcasts chat remove 1YqKDqWqdPLGV 1700000000001 --force --no-interactive
   Remove (JSON envelope):
     xr broadcasts chat remove 1YqKDqWqdPLGV 1700000000001 --force --no-interactive --output json
+
+Response schema:
+  xr schema broadcasts chat remove
 
 --- stderr ---
 

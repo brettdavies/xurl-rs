@@ -1,7 +1,7 @@
 args: ["reply", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7345
+stdout_len: 7381
 stderr_len: 0
 --- stdout ---
 Reply to a post
@@ -173,6 +173,9 @@ Examples:
     xr reply https://x.com/elonmusk/status/1585341984679469056 "Nice thread."
   Reply with a media attachment:
     xr reply 1585341984679469056 "Here's a photo" --media-id 222 --output json
+
+Response schema:
+  xr schema reply
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "lists", "add", ""]
 store: empty
 exit_code: 0
-stdout_len: 309
+stdout_len: 353
 stderr_len: 0
 --- stdout ---
 {
@@ -16,6 +16,7 @@ stderr_len: 0
     "command": "xr lists add --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema lists add",
   "rule": "empty-list-name",
   "status": "dry_run",
   "would_succeed": false

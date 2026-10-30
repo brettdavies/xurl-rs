@@ -1,7 +1,7 @@
 args: ["search-counts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7597
+stdout_len: 7641
 stderr_len: 0
 --- stdout ---
 Count the recent posts that match a query, per time bucket
@@ -176,6 +176,9 @@ Examples:
     xr search-counts rustlang --granularity day --output json
   One window, the total alone:
     xr search-counts rustlang --start 2026-10-25T00:00:00Z --end 2026-10-26T00:00:00Z --output json | jaq '.meta.total_post_count'
+
+Response schema:
+  xr schema search-counts
 
 --- stderr ---
 

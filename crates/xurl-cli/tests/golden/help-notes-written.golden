@@ -1,7 +1,7 @@
 args: ["notes", "written", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7107
+stdout_len: 7151
 stderr_len: 0
 --- stdout ---
 List the Community Notes you wrote
@@ -165,6 +165,9 @@ Examples:
     xr notes written --test
   As a JSON envelope:
     xr notes written --test --output json
+
+Response schema:
+  xr schema notes written
 
 --- stderr ---
 

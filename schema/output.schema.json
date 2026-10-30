@@ -132,6 +132,13 @@
           "format": "int32",
           "type": "integer"
         },
+        "response_schema": {
+          "description": "The `xr schema` invocation that describes the command's response,\non a command with a typed response. A raw request carries none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "status": {
           "const": "dry_run",
           "type": "string"

@@ -1,7 +1,7 @@
 args: ["notes", "evaluate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7252
+stdout_len: 7297
 stderr_len: 0
 --- stdout ---
 Score a draft Community Note without writing it
@@ -166,6 +166,9 @@ Examples:
     xr notes evaluate 1585341984679469056 --text "The photo is from 2019: https://example.com/source"
   Score (JSON envelope):
     xr notes evaluate 1585341984679469056 --text "The photo is from 2019: https://example.com/source" --output json
+
+Response schema:
+  xr schema notes evaluate
 
 --- stderr ---
 

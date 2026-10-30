@@ -1,13 +1,14 @@
 args: ["--dry-run", "post", "Hello"]
 store: oauth2
 exit_code: 0
-stdout_len: 176
+stdout_len: 210
 stderr_len: 0
 --- stdout ---
 Dry run of `post`: nothing was sent.
 The real run would succeed, as far as an offline check can tell.
   body: Hello
   credential: oauth2, app myapp, login alice, token current
+  response schema: xr schema post
 
 --- stderr ---
 

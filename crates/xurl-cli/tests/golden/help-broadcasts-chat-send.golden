@@ -1,7 +1,7 @@
 args: ["broadcasts", "chat", "send", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7216
+stdout_len: 7267
 stderr_len: 0
 --- stdout ---
 Send a message into a broadcast's chat
@@ -169,6 +169,9 @@ Examples:
     xr broadcasts chat send 1YqKDqWqdPLGV "Welcome!"
   Send (JSON envelope):
     xr broadcasts chat send 1YqKDqWqdPLGV "Welcome!" --output json
+
+Response schema:
+  xr schema broadcasts chat send
 
 --- stderr ---
 

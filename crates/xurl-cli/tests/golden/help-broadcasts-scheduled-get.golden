@@ -1,7 +1,7 @@
 args: ["broadcasts", "scheduled", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7102
+stdout_len: 7157
 stderr_len: 0
 --- stdout ---
 Read one scheduled broadcast, by id
@@ -163,6 +163,9 @@ Examples:
     xr broadcasts scheduled get 1850000000000000001
   As a JSON envelope:
     xr broadcasts scheduled get 1850000000000000001 --output json
+
+Response schema:
+  xr schema broadcasts scheduled get
 
 --- stderr ---
 

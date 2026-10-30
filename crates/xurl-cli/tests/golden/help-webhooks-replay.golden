@@ -1,7 +1,7 @@
 args: ["webhooks", "replay", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7610
+stdout_len: 7656
 stderr_len: 0
 --- stdout ---
 Deliver a past window of events to a webhook again
@@ -172,6 +172,9 @@ Examples:
     xr webhooks replay 1146654567674912769 --from 202601150000 --to 202601151200
   Replay (JSON envelope):
     xr webhooks replay 1146654567674912769 --from 202601150000 --to 202601151200 --output json
+
+Response schema:
+  xr schema webhooks replay
 
 --- stderr ---
 

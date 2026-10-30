@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6915
+stdout_len: 6969
 stderr_len: 0
 --- stdout ---
 List your stream sources
@@ -159,6 +159,9 @@ Examples:
     xr broadcasts sources list
   As a JSON envelope:
     xr broadcasts sources list --output json
+
+Response schema:
+  xr schema broadcasts sources list
 
 --- stderr ---
 

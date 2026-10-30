@@ -1,7 +1,7 @@
 args: ["webhooks", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7214
+stdout_len: 7257
 stderr_len: 0
 --- stdout ---
 Register a webhook URL
@@ -165,6 +165,9 @@ Examples:
     xr webhooks add https://example.com/webhooks/x
   Register (JSON envelope):
     xr webhooks add https://example.com/webhooks/x --output json
+
+Response schema:
+  xr schema webhooks add
 
 --- stderr ---
 

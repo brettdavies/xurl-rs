@@ -1,7 +1,7 @@
 args: ["spaces", "search", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7221
+stdout_len: 7265
 stderr_len: 0
 --- stdout ---
 Search Spaces by keyword
@@ -171,6 +171,9 @@ Examples:
     xr spaces search rust --state live
   As a JSON envelope:
     xr spaces search rust --state live --output json
+
+Response schema:
+  xr schema spaces search
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "sources", "add", "", "--region", "us-east-1"]
 store: empty
 exit_code: 0
-stdout_len: 346
+stdout_len: 403
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 0
   },
   "reason": "validation",
   "region": "us-east-1",
+  "response_schema": "xr schema broadcasts sources add",
   "rule": "empty-source-name",
   "status": "dry_run",
   "would_succeed": false

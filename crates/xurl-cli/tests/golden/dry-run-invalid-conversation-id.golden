@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "conversations", "history", "abc"]
 store: empty
 exit_code: 0
-stdout_len: 414
+stdout_len: 470
 stderr_len: 0
 --- stdout ---
 {
@@ -14,6 +14,7 @@ stderr_len: 0
     "command": "xr conversations history --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema conversations history",
   "rule": "invalid-conversation-id",
   "status": "dry_run",
   "would_succeed": false

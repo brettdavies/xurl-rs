@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "get", "not-an-id!"]
 store: empty
 exit_code: 0
-stdout_len: 346
+stdout_len: 395
 stderr_len: 0
 --- stdout ---
 {
@@ -14,6 +14,7 @@ stderr_len: 0
     "command": "xr broadcasts get --help"
   },
   "reason": "validation",
+  "response_schema": "xr schema broadcasts get",
   "rule": "invalid-broadcast-id",
   "status": "dry_run",
   "would_succeed": false

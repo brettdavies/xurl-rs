@@ -1,7 +1,7 @@
 args: ["spaces", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7039
+stdout_len: 7080
 stderr_len: 0
 --- stdout ---
 Read 1 to 100 Spaces by id in one request
@@ -163,6 +163,9 @@ Examples:
     xr spaces get 1DXxyRYNejbKM 1YpKkgVgQwvGj
   As a JSON envelope:
     xr spaces get 1DXxyRYNejbKM 1YpKkgVgQwvGj --output json
+
+Response schema:
+  xr schema spaces get
 
 --- stderr ---
 

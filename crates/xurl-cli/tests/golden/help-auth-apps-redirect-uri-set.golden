@@ -1,7 +1,7 @@
 args: ["auth", "apps", "redirect-uri", "set", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6871
+stdout_len: 6928
 stderr_len: 0
 --- stdout ---
 Set the stored redirect URI for an app (empty string clears)
@@ -159,6 +159,9 @@ Examples:
     xr auth apps redirect-uri set my-app https://localhost:8443/callback --output json
   Clear the stored URI (empty string):
     xr auth apps redirect-uri set my-app ""
+
+Response schema:
+  xr schema auth apps redirect-uri set
 
 --- stderr ---
 

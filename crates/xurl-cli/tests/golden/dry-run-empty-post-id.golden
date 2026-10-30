@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "like", ""]
 store: empty
 exit_code: 0
-stdout_len: 306
+stdout_len: 345
 stderr_len: 0
 --- stdout ---
 {
@@ -14,6 +14,7 @@ stderr_len: 0
   },
   "post_id": "",
   "reason": "validation",
+  "response_schema": "xr schema like",
   "rule": "empty-post-id",
   "status": "dry_run",
   "would_succeed": false

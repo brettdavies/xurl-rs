@@ -1,7 +1,7 @@
 args: ["media", "subtitles", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7363
+stdout_len: 7416
 stderr_len: 0
 --- stdout ---
 Remove a subtitle track from an uploaded video
@@ -172,6 +172,9 @@ Examples:
     xr media subtitles remove 1585341984679469056 --language en
   Remove (JSON envelope):
     xr media subtitles remove 1585341984679469056 --language en --output json
+
+Response schema:
+  xr schema media subtitles remove
 
 --- stderr ---
 

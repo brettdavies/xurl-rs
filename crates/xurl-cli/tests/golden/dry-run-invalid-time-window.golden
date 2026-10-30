@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "search-counts", "rustlang", "--start", "2026-10-26T00:00:00Z", "--end", "2026-10-25T00:00:00Z"]
 store: empty
 exit_code: 0
-stdout_len: 489
+stdout_len: 537
 stderr_len: 0
 --- stdout ---
 {
@@ -16,6 +16,7 @@ stderr_len: 0
   },
   "query": "rustlang",
   "reason": "validation",
+  "response_schema": "xr schema search-counts",
   "rule": "invalid-time-window",
   "start": "2026-10-26T00:00:00Z",
   "status": "dry_run",

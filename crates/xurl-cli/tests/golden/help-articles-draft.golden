@@ -1,7 +1,7 @@
 args: ["articles", "draft", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7435
+stdout_len: 7480
 stderr_len: 0
 --- stdout ---
 Save a draft X Article from a plain-text body
@@ -170,6 +170,9 @@ Examples:
     xr articles draft --title "Why Rust" --body-file why-rust.md
   Save (JSON envelope):
     xr articles draft --title "Why Rust" --body-file why-rust.md --output json
+
+Response schema:
+  xr schema articles draft
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["lists", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7375
+stdout_len: 7418
 stderr_len: 0
 --- stdout ---
 Rename a list, or change its description or privacy
@@ -177,6 +177,9 @@ Examples:
     xr lists update 1146654567674912769 --name "Rust people" --public
   As a JSON envelope:
     xr lists update 1146654567674912769 --name "Rust people" --public --output json
+
+Response schema:
+  xr schema lists update
 
 --- stderr ---
 

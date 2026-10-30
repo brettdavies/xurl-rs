@@ -1,7 +1,7 @@
 args: ["delete", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7198
+stdout_len: 7235
 stderr_len: 0
 --- stdout ---
 Delete a post
@@ -168,6 +168,9 @@ Examples:
     xr delete 1585341984679469056 --output json
   Delete in a non-interactive context (CI, agent); --force confirms it:
     xr delete 1585341984679469056 --force --no-interactive --output json
+
+Response schema:
+  xr schema delete
 
 --- stderr ---
 

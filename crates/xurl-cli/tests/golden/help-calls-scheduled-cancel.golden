@@ -1,7 +1,7 @@
 args: ["calls", "scheduled", "cancel", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7818
+stdout_len: 7871
 stderr_len: 0
 --- stdout ---
 Cancel a call you organize and take it off invitees' calendars
@@ -180,6 +180,9 @@ Examples:
     xr calls scheduled cancel 1849302018273645 --force --no-interactive
   Cancel (JSON envelope):
     xr calls scheduled cancel 1849302018273645 --force --no-interactive --output json
+
+Response schema:
+  xr schema calls scheduled cancel
 
 --- stderr ---
 

@@ -1,7 +1,7 @@
 args: ["lists", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7146
+stdout_len: 7189
 stderr_len: 0
 --- stdout ---
 Delete a list you own
@@ -166,6 +166,9 @@ Examples:
     xr lists remove 1146654567674912769 --force --no-interactive
   As a JSON envelope:
     xr lists remove 1146654567674912769 --force --no-interactive --output json
+
+Response schema:
+  xr schema lists remove
 
 --- stderr ---
 

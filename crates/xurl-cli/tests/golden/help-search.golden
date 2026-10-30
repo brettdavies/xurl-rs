@@ -1,7 +1,7 @@
 args: ["search", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7315
+stdout_len: 7352
 stderr_len: 0
 --- stdout ---
 Search recent posts
@@ -170,6 +170,9 @@ Examples:
     XURL_OUTPUT=json xr search "rustlang"
   The id of each result, one per line:
     xr search "rustlang" --output json | jaq -r '.data[]?.id'
+
+Response schema:
+  xr schema search
 
 --- stderr ---
 

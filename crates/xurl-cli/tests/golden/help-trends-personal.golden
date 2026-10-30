@@ -1,7 +1,7 @@
 args: ["trends", "personal", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6900
+stdout_len: 6946
 stderr_len: 0
 --- stdout ---
 List the trends X picks for you
@@ -159,6 +159,9 @@ Examples:
     xr trends personal
   As a JSON envelope:
     xr trends personal --output json
+
+Response schema:
+  xr schema trends personal
 
 --- stderr ---
 

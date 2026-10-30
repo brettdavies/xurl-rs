@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "update", "1849302018273645", "--recurrence", ""]
 store: empty
 exit_code: 0
-stdout_len: 378
+stdout_len: 435
 stderr_len: 0
 --- stdout ---
 {
@@ -14,6 +14,7 @@ stderr_len: 0
   },
   "reason": "validation",
   "recurrence": "",
+  "response_schema": "xr schema calls scheduled update",
   "rule": "empty-call-recurrence",
   "scheduled_call_id": "1849302018273645",
   "status": "dry_run",

@@ -9,7 +9,13 @@
 use serde_json::Value;
 
 /// The context keys the summary words itself; every other key is an input.
-const WORDED: [&str; 4] = ["command", "reason", "auth", "confirmation_required"];
+const WORDED: [&str; 5] = [
+    "command",
+    "reason",
+    "auth",
+    "confirmation_required",
+    "response_schema",
+];
 
 /// A refusal of the inputs or the credentials: the message the real run's
 /// error prints, and the advice its text error prints after it (none under
@@ -64,6 +70,9 @@ pub(super) fn summary(
     }
     if let Some(auth) = ctx.get("auth") {
         lines.push(format!("  credential: {}", credential_text(auth)));
+    }
+    if let Some(pointer) = ctx.get("response_schema").and_then(Value::as_str) {
+        lines.push(format!("  response schema: {pointer}"));
     }
     if ctx.get("confirmation_required").and_then(Value::as_bool) == Some(true) {
         lines.push(
@@ -137,6 +146,24 @@ mod tests {
                 "The real run would succeed, as far as an offline check can tell.",
                 "  body: Hello",
                 "  credential: oauth2, app myapp, login alice, token current",
+            ]
+        );
+    }
+
+    #[test]
+    fn the_response_schema_follows_the_credential_and_is_no_input() {
+        let ctx = json!({
+            "command": "webhooks-subscriptions-count",
+            "response_schema": "xr schema webhooks subscriptions count",
+            "auth": {"scheme": "app"},
+        });
+        assert_eq!(
+            summary(true, 0, &ctx, None),
+            [
+                "Dry run of `webhooks-subscriptions-count`: nothing was sent.",
+                "The real run would succeed, as far as an offline check can tell.",
+                "  credential: app",
+                "  response schema: xr schema webhooks subscriptions count",
             ]
         );
     }

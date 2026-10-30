@@ -1,7 +1,7 @@
 args: ["lists", "follow", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6982
+stdout_len: 7025
 stderr_len: 0
 --- stdout ---
 Follow a list
@@ -163,6 +163,9 @@ Examples:
     xr lists follow 1146654567674912769
   As a JSON envelope:
     xr lists follow 1146654567674912769 --output json
+
+Response schema:
+  xr schema lists follow
 
 --- stderr ---
 

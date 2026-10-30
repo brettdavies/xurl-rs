@@ -1,7 +1,7 @@
 args: ["communities", "search", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7111
+stdout_len: 7160
 stderr_len: 0
 --- stdout ---
 Search communities
@@ -166,6 +166,9 @@ Examples:
     xr communities search rust
   As a JSON envelope:
     xr communities search rust --output json
+
+Response schema:
+  xr schema communities search
 
 --- stderr ---
 

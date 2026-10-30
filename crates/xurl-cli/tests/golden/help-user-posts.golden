@@ -1,7 +1,7 @@
 args: ["user-posts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7462
+stdout_len: 7503
 stderr_len: 0
 --- stdout ---
 List the posts a user wrote
@@ -168,6 +168,9 @@ Examples:
     xr user-posts @XDevelopers -n 100 --output json
   The text of each post, one per line:
     xr user-posts @XDevelopers --output json | jaq -r '.data[]?.text'
+
+Response schema:
+  xr schema user-posts
 
 --- stderr ---
 

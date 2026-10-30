@@ -1,7 +1,7 @@
 args: ["muted", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6989
+stdout_len: 7025
 stderr_len: 0
 --- stdout ---
 List users you have muted
@@ -162,6 +162,9 @@ Examples:
     xr muted
   First 100, as JSON Lines:
     xr muted -n 100 --output jsonl
+
+Response schema:
+  xr schema muted
 
 --- stderr ---
 

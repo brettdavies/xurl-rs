@@ -1,7 +1,7 @@
 args: ["media", "alt-text", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7400
+stdout_len: 7445
 stderr_len: 0
 --- stdout ---
 Set the alt text shown for an uploaded image or video
@@ -170,6 +170,9 @@ Examples:
     xr media upload ./dog.png --media-type image/png --category tweet_image
     xr media alt-text <media_id> "A dog asleep on a beach towel"
     xr post "Beach day" --media-id <media_id>
+
+Response schema:
+  xr schema media alt-text
 
 --- stderr ---
 

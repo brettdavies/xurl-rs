@@ -1,7 +1,7 @@
 args: ["conversations", "with", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7315
+stdout_len: 7364
 stderr_len: 0
 --- stdout ---
 List the messages between you and one person
@@ -166,6 +166,9 @@ Examples:
     xr conversations with @alice
   As a JSON envelope:
     xr conversations with @alice --output json
+
+Response schema:
+  xr schema conversations with
 
 --- stderr ---
 

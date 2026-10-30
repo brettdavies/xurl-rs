@@ -1,7 +1,7 @@
 args: ["followers", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7365
+stdout_len: 7405
 stderr_len: 0
 --- stdout ---
 List your followers
@@ -167,6 +167,9 @@ Examples:
     xr followers -n 100 --output json
   Someone else's followers:
     xr followers --of @elonmusk --output json
+
+Response schema:
+  xr schema followers
 
 --- stderr ---
 

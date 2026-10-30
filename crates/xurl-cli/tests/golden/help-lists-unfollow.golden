@@ -1,7 +1,7 @@
 args: ["lists", "unfollow", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7004
+stdout_len: 7049
 stderr_len: 0
 --- stdout ---
 Stop following a list
@@ -163,6 +163,9 @@ Examples:
     xr lists unfollow 1146654567674912769
   As a JSON envelope:
     xr lists unfollow 1146654567674912769 --output json
+
+Response schema:
+  xr schema lists unfollow
 
 --- stderr ---
 
