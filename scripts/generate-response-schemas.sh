@@ -33,8 +33,7 @@ mkdir -p "$out"
     command="${row[$command_col]}"
     file="${row[$file_col]}"
     read -r -a words <<<"$command"
-    # `--` lets a flag form's flag (`skill install --all`) reach xr schema as a word.
-    "$XR" schema --output json -- "${words[@]}" >"$out/$file"
+    "$XR" schema --output json "${words[@]}" >"$out/$file"
     echo "Generated: $out/$file"
   done
 }

@@ -14,7 +14,6 @@ use schemars::schema_for;
 use serde_json::Value;
 
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
-use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
@@ -478,16 +477,6 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         type_name: "RedirectUriSetResponse",
         schema: || schema_for!(RedirectUriSetResponse).into(),
     },
-    SchemaEntry {
-        commands: &["skill install"],
-        type_name: "InstallEnvelope",
-        schema: || schema_for!(InstallEnvelope).into(),
-    },
-    SchemaEntry {
-        commands: &["skill install --all"],
-        type_name: "InstallMultiEnvelope",
-        schema: || schema_for!(InstallMultiEnvelope).into(),
-    },
 ];
 
 /// Commands clap parses that emit no typed response, so `xr schema` has no
@@ -529,6 +518,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "notes",
     "schema",
     "skill",
+    "skill install",
     "skill update",
     "spaces",
     "stream",
@@ -541,11 +531,6 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "webhooks stream-links",
     "webhooks subscriptions",
 ];
-
-/// Registry names that describe a flag form of a command rather than a
-/// command of their own, each with the command it belongs to. The flag
-/// reaches `xr schema` after `--`, where clap reads it as a word.
-pub const FLAG_FORMS: &[(&str, &str)] = &[("skill install --all", "skill install")];
 
 /// Every response type the registry names, one per row, in table order.
 pub fn registered_types() -> impl Iterator<Item = &'static str> {
@@ -575,26 +560,11 @@ pub fn commands_beneath(path: &str) -> Vec<&'static str> {
 /// its `.schema.json` suffix: the words joined with `-`.
 #[must_use]
 pub fn file_stem(command: &str) -> String {
-    command
-        .split_whitespace()
-        .map(|word| word.trim_start_matches('-'))
-        .collect::<Vec<_>>()
-        .join("-")
+    command.replace(' ', "-")
 }
 
-/// The invocation that prints `command`'s schema. A flag form's flag goes
-/// after `--`, where clap reads it as a word rather than as `xr schema`'s
-/// own flag.
+/// The invocation that prints `command`'s schema.
 #[must_use]
 pub fn invocation(command: &str) -> String {
-    let mut parts = vec!["xr", "schema"];
-    let mut separated = false;
-    for word in command.split_whitespace() {
-        if word.starts_with('-') && !separated {
-            parts.push("--");
-            separated = true;
-        }
-        parts.push(word);
-    }
-    parts.join(" ")
+    format!("xr schema {command}")
 }

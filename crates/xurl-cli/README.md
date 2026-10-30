@@ -295,7 +295,6 @@ xr examples                                    # Curated invocation examples
 ```bash
 xr schema post                                 # JSON Schema for post response
 xr schema webhooks subscriptions count         # a command's schema, named by the words you run it with
-xr schema skill install -- --all               # a flag form, after -- so the flag reads as a word
 xr schema --list                               # All commands and response types
 xr schema --list --output json                 # one record per command: command, type, file
 xr schema --all                                # All schemas as one JSON document

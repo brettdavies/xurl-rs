@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8283
+stdout_len: 8184
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -108,8 +108,6 @@ reposters                      ApiResponse<Vec<User>>
 search                         ApiResponse<Vec<Post>>
 search-counts                  ApiResponse<Vec<PostCount>>
 search-users                   ApiResponse<Vec<User>>
-skill install                  InstallEnvelope
-skill install --all            InstallMultiEnvelope
 spaces by-creator              ApiResponse<Vec<Space>>
 spaces get                     ApiResponse<Vec<Space>>
 spaces posts                   ApiResponse<Vec<Post>>

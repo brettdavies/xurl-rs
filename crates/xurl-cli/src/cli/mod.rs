@@ -632,8 +632,6 @@ Examples:
   Then filter that command's output by the fields it names:
     xr schema search
     xr search \"from:jack\" --output json | jaq -r '.data[].text'
-  The --all form of skill install, after -- so it reads as a word:
-    xr schema skill install -- --all
   List every command with a schema (text, or one record per command):
     xr schema --list
     xr schema --list --output json

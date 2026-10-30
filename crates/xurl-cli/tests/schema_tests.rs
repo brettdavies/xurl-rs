@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use rstest::rstest;
 use xurl::cli::commands::schema::{
-    FLAG_FORMS, SCHEMA_LESS_COMMANDS, file_stem, registered_commands, registered_types, scope_words,
+    SCHEMA_LESS_COMMANDS, file_stem, registered_commands, registered_types, scope_words,
 };
 use xurl::cli::commands::validate::{UNVALIDATED_TYPES, validated_types};
 
@@ -495,10 +495,9 @@ fn every_clap_command_is_in_exactly_one_schema_set() {
 #[test]
 fn declared_schema_sets_name_only_commands_clap_parses() {
     let names = clap_schema_names();
-    let flag_forms: BTreeSet<&str> = FLAG_FORMS.iter().map(|(name, _)| *name).collect();
 
     let stale_registry: Vec<&str> = registered_commands()
-        .filter(|name| !names.contains(*name) && !flag_forms.contains(name))
+        .filter(|name| !names.contains(*name))
         .collect();
     assert!(
         stale_registry.is_empty(),
@@ -518,18 +517,6 @@ fn declared_schema_sets_name_only_commands_clap_parses() {
         "SCHEMA_LESS_COMMANDS names commands clap does not parse: {stale_schema_less:?}\n\
          Cause: the command was renamed or removed from the clap tree.\n\
          Fix: in {SCHEMA_SOURCE}, drop each stale name from SCHEMA_LESS_COMMANDS."
-    );
-
-    let stale_flag_forms: Vec<&&str> = FLAG_FORMS
-        .iter()
-        .map(|(_, base)| base)
-        .filter(|base| !names.contains(**base))
-        .collect();
-    assert!(
-        stale_flag_forms.is_empty(),
-        "FLAG_FORMS points at commands clap does not parse: {stale_flag_forms:?}\n\
-         Cause: the base command was renamed or removed from the clap tree.\n\
-         Fix: in {SCHEMA_SOURCE}, point each entry at the command whose flag it describes."
     );
 }
 
@@ -554,6 +541,8 @@ fn registry_names_each_command_once() {
 #[case(&["validate"])]
 #[case(&["auth", "oauth2"])]
 #[case(&["media", "upload"])]
+#[case(&["skill", "install"])]
+#[case(&["skill", "update"])]
 fn schema_less_command_is_not_reported_unknown(#[case] words: &[&str]) {
     common::xr()
         .arg("schema")
@@ -596,7 +585,6 @@ fn schema_refusal(args: &[&str]) -> (Option<i32>, serde_json::Value) {
 #[case(&["auth", "apps", "redirect-uri", "get"], "auth-apps-redirect-uri-get")]
 #[case(&["spaces", "by-creator"], "spaces-by-creator")]
 #[case(&["search-users"], "search-users")]
-#[case(&["skill", "install", "--", "--all"], "skill-install-all")]
 fn a_command_is_named_by_its_words(#[case] words: &[&str], #[case] file: &str) {
     let output = common::xr()
         .args(["schema", "--output", "json"])
@@ -636,7 +624,6 @@ fn a_mistyped_word_gets_the_refusal_xr_help_gives_it() {
     "xr schema webhooks subscriptions count"
 )]
 #[case("redirect-uri-get", "xr schema auth apps redirect-uri get")]
-#[case("skill-install-all", "xr schema skill install -- --all")]
 fn an_old_name_is_refused_with_the_words_that_work(#[case] old: &str, #[case] run: &str) {
     let (code, envelope) = schema_refusal(&[old]);
     assert_eq!(code, Some(2));
@@ -648,13 +635,6 @@ fn an_old_name_is_refused_with_the_words_that_work(#[case] old: &str, #[case] ru
     let words: Vec<&str> = run.split_whitespace().skip(1).collect();
     let rerun = common::xr().args(&words).output().unwrap();
     assert!(rerun.status.success(), "the step `{run}` runs");
-}
-
-#[test]
-fn a_flag_form_without_its_separator_is_refused_by_clap() {
-    let (code, envelope) = schema_refusal(&["skill", "install", "--all"]);
-    assert_eq!(code, Some(2));
-    assert_eq!(envelope["reason"], "invalid-args");
 }
 
 #[test]
