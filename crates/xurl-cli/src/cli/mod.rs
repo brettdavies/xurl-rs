@@ -30,6 +30,8 @@ pub use output::OutputFormat;
 use skill_install::KNOWN_HOSTS;
 pub use skill_install::SkillHost;
 use xdk::api::VideoCategory;
+use xdk::api::shortcuts::WEBHOOK_URL_MAX_CHARS;
+use xdk::webhooks::CHECKPOINT_SHAPE;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
 /// and TTY detection.
@@ -275,7 +277,6 @@ Examples:
     xr search-users rust -n 50 --output json
   The handle of each, one per line:
     xr search-users rust --output json | jaq -r '.data[]?.username'
-  A query is 1 to 50 letters, digits, underscores, apostrophes, or spaces.
 ";
 
 /// `xr user-posts` examples — paired text + JSON, JSONL pipeline.
@@ -1352,7 +1353,7 @@ pub enum Commands {
     /// Find accounts by keyword
     #[command(after_help = SEARCH_USERS_HELP)]
     SearchUsers {
-        /// Search query
+        #[arg(help = format!("Search query. {}", output::user_search_rule()))]
         query: String,
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
@@ -3245,8 +3246,13 @@ pub enum WebhooksCommands {
     /// succeeds only while a receiver is reachable there.
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::ADD))]
     Add {
-        /// The public HTTPS URL X delivers events to (200 characters at most)
-        #[arg(value_name = "URL")]
+        #[arg(
+            value_name = "URL",
+            help = format!(
+                "The public HTTPS URL X delivers events to, with no port \
+                 ({WEBHOOK_URL_MAX_CHARS} characters at most)"
+            )
+        )]
         url: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -3358,11 +3364,16 @@ pub enum WebhooksCommands {
         /// it started
         #[arg(last = true, value_name = "PROGRAM")]
         program: Vec<String>,
-        /// Record, at most once a minute, when the oldest event not yet
-        /// delivered to every target arrived (the newest event when none is
-        /// waiting), so `xr webhooks replay --from-checkpoint` can request
-        /// what a stop missed
-        #[arg(long, value_name = "FILE")]
+        #[arg(
+            long,
+            value_name = "FILE",
+            help = format!(
+                "Record, at most once a minute, when the oldest event not yet delivered to every \
+                 target arrived (the newest event when none is waiting), so `xr webhooks replay \
+                 --from-checkpoint` can request what a stop missed. The file holds \
+                 {CHECKPOINT_SHAPE}"
+            )
+        )]
         checkpoint: Option<std::path::PathBuf>,
     },
     /// Deliver a past window of events to a webhook again
@@ -3387,11 +3398,16 @@ pub enum WebhooksCommands {
             required_unless_present = "from_checkpoint"
         )]
         to: Option<String>,
-        /// Request the window from the minute `xr webhooks listen
-        /// --checkpoint` recorded to the current minute, at most the 24 hours
-        /// X replays. Replayed events reach the targets again, repeats
-        /// included
-        #[arg(long, value_name = "FILE", conflicts_with_all = ["from", "to"])]
+        #[arg(
+            long,
+            value_name = "FILE",
+            conflicts_with_all = ["from", "to"],
+            help = format!(
+                "Request the window from the minute `xr webhooks listen --checkpoint` recorded to \
+                 the current minute, at most the 24 hours X replays. Replayed events reach the \
+                 targets again, repeats included. The file holds {CHECKPOINT_SHAPE}"
+            )
+        )]
         from_checkpoint: Option<std::path::PathBuf>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]

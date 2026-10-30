@@ -1,7 +1,7 @@
 args: ["search-users", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7203
+stdout_len: 7208
 stderr_len: 0
 --- stdout ---
 Find accounts by keyword
@@ -10,7 +10,7 @@ Usage: xr search-users [OPTIONS] <QUERY>
 
 Arguments:
   <QUERY>
-          Search query
+          Search query. A user search is 1 to 50 letters, digits, underscores, apostrophes, or spaces.
 
 Options:
   -n, --max-results <MAX_RESULTS>
@@ -168,7 +168,6 @@ Examples:
     xr search-users rust -n 50 --output json
   The handle of each, one per line:
     xr search-users rust --output json | jaq -r '.data[]?.username'
-  A query is 1 to 50 letters, digits, underscores, apostrophes, or spaces.
 
 --- stderr ---
 

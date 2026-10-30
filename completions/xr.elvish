@@ -5292,7 +5292,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -H 'A header for each forward, as ''Name: Value''; repeat for more. Its value is never printed'
             cand --header 'A header for each forward, as ''Name: Value''; repeat for more. Its value is never printed'
             cand --forward-timeout 'Seconds one forward attempt may take before it is tried again (four attempts, 1, 2, then 4 seconds apart). Unset, 30'
-            cand --checkpoint 'Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed'
+            cand --checkpoint 'Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed. The file holds {"last_event_at": <Unix seconds>}'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -5320,7 +5320,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;webhooks;replay'= {
             cand --from 'Start of the window: twelve digits, `yyyymmddhhmm` in UTC'
             cand --to 'End of the window: twelve digits, `yyyymmddhhmm` in UTC'
-            cand --from-checkpoint 'Request the window from the minute `xr webhooks listen --checkpoint` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included'
+            cand --from-checkpoint 'Request the window from the minute `xr webhooks listen --checkpoint` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included. The file holds {"last_event_at": <Unix seconds>}'
             cand --auth 'Authentication type (oauth1, oauth2, app)'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'

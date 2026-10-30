@@ -1,7 +1,7 @@
 args: ["webhooks", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7146
+stdout_len: 7160
 stderr_len: 0
 --- stdout ---
 Register a webhook URL
@@ -12,7 +12,7 @@ Usage: xr webhooks add [OPTIONS] <URL>
 
 Arguments:
   <URL>
-          The public HTTPS URL X delivers events to (200 characters at most)
+          The public HTTPS URL X delivers events to, with no port (200 characters at most)
 
 Options:
       --auth <AUTH_TYPE>

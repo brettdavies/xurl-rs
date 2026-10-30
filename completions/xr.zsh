@@ -402,7 +402,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':query -- Search query:_default' \
+':query -- Search query. A user search is 1 to 50 letters, digits, underscores, apostrophes, or spaces.:_default' \
 && ret=0
 ;;
 (users)
@@ -7042,7 +7042,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':url -- The public HTTPS URL X delivers events to (200 characters at most):_default' \
+':url -- The public HTTPS URL X delivers events to, with no port (200 characters at most):_default' \
 && ret=0
 ;;
 (validate)
@@ -7624,7 +7624,7 @@ oauth1\:"The app'\''s \`OAuth1\` consumer secret (API Secret Key)"))' \
 '*-H+[A header for each forward, as '\''Name\: Value'\''; repeat for more. Its value is never printed]:NAME: VALUE:_default' \
 '*--header=[A header for each forward, as '\''Name\: Value'\''; repeat for more. Its value is never printed]:NAME: VALUE:_default' \
 '--forward-timeout=[Seconds one forward attempt may take before it is tried again (four attempts, 1, 2, then 4 seconds apart). Unset, 30]:SECS:_default' \
-'--checkpoint=[Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so \`xr webhooks replay --from-checkpoint\` can request what a stop missed]:FILE:_files' \
+'--checkpoint=[Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so \`xr webhooks replay --from-checkpoint\` can request what a stop missed. The file holds {"last_event_at"\: <Unix seconds>}]:FILE:_files' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -7663,7 +7663,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '--from=[Start of the window\: twelve digits, \`yyyymmddhhmm\` in UTC]:YYYYMMDDHHMM:_default' \
 '--to=[End of the window\: twelve digits, \`yyyymmddhhmm\` in UTC]:YYYYMMDDHHMM:_default' \
-'(--from --to)--from-checkpoint=[Request the window from the minute \`xr webhooks listen --checkpoint\` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included]:FILE:_files' \
+'(--from --to)--from-checkpoint=[Request the window from the minute \`xr webhooks listen --checkpoint\` recorded to the current minute, at most the 24 hours X replays. Replayed events reach the targets again, repeats included. The file holds {"last_event_at"\: <Unix seconds>}]:FILE:_files' \
 '--auth=[Authentication type (oauth1, oauth2, app)]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \

@@ -1380,3 +1380,67 @@ async fn replay_from_a_checkpoint_without_a_bearer_is_an_auth_mismatch() {
     assert_eq!(error_envelope(&stderr)["reason"], "auth-method-mismatch");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
+
+// ── help states what the validators enforce ──────────────────────────
+
+/// The help of `command` as `xr` prints it.
+async fn help_of(command: &[&str]) -> String {
+    let tmp = TempDir::new().expect("tempdir");
+    let mut args = command.to_vec();
+    args.push("--help");
+    let (code, stdout, stderr) = run(&tmp.path().join(".xurl"), "http://127.0.0.1:9", &args).await;
+    assert_eq!(code, 0, "{stderr}");
+    stdout
+}
+
+/// `<URL>` names the two rules a URL can break offline beyond being https:
+/// it names no port, and it fits the validator's length limit.
+#[tokio::test]
+async fn the_url_help_states_the_rules_its_validator_enforces() {
+    let help = help_of(&["webhooks", "add"]).await;
+    let arguments = help
+        .split("Arguments:")
+        .nth(1)
+        .and_then(|rest| rest.split("Options:").next())
+        .expect("an Arguments section");
+    assert!(arguments.contains("no port"), "{arguments}");
+    let limit = format!("{} characters", xdk::api::shortcuts::WEBHOOK_URL_MAX_CHARS);
+    assert!(arguments.contains(&limit), "{arguments}");
+}
+
+/// Both checkpoint flags name the file's shape, and a file written by hand in
+/// that shape drives a replay.
+#[tokio::test]
+async fn the_checkpoint_help_names_a_shape_the_replay_takes() {
+    for command in [&["webhooks", "replay"][..], &["webhooks", "listen"][..]] {
+        let help = help_of(command).await;
+        assert!(
+            help.contains(xdk::webhooks::CHECKPOINT_SHAPE),
+            "xr {} --help does not name the checkpoint shape: {help}",
+            command.join(" ")
+        );
+    }
+
+    let server = replay_server().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = bearer_store(tmp.path());
+    let checkpoint = tmp.path().join("checkpoint.json");
+    let filled =
+        xdk::webhooks::CHECKPOINT_SHAPE.replace("<Unix seconds>", &(now_secs() - 600).to_string());
+    std::fs::write(&checkpoint, filled).expect("write");
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "webhooks",
+            "replay",
+            WEBHOOK_ID,
+            "--from-checkpoint",
+            checkpoint.to_str().expect("utf-8 path"),
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "{stdout} {stderr}");
+}
