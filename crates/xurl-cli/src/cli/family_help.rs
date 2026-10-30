@@ -799,14 +799,6 @@ pub mod broadcasts_own {
         json_caption: "As a JSON envelope",
     };
 
-    /// `xr broadcasts end`.
-    pub const END: Verb = Verb {
-        name: "end",
-        example_args: "1YqKDqWqdPLGV --force --no-interactive",
-        text_caption: "End a broadcast without a prompt (text)",
-        json_caption: "End (JSON envelope)",
-    };
-
     /// `xr broadcasts remove`.
     pub const REMOVE: Verb = Verb {
         name: "remove",
@@ -896,47 +888,12 @@ pub mod broadcast_chat {
         json_caption: "As a JSON envelope",
     };
 
-    /// `xr broadcasts chat send`.
-    pub const SEND: Verb = Verb {
-        name: "send",
-        example_args: "1YqKDqWqdPLGV \"Welcome!\"",
-        text_caption: "Send into a broadcast's chat (text)",
-        json_caption: "Send (JSON envelope)",
-    };
-
-    /// `xr broadcasts chat remove`.
-    pub const REMOVE: Verb = Verb {
-        name: "remove",
-        example_args: "1YqKDqWqdPLGV 1700000000001 --force --no-interactive",
-        text_caption: "Remove a chat message without a prompt (text)",
-        json_caption: "Remove (JSON envelope)",
-    };
-
-    /// `xr broadcasts chat mute`.
-    pub const MUTE: Verb = Verb {
-        name: "mute",
-        example_args: "1YqKDqWqdPLGV @troll --until 2026-11-02T17:00:00Z",
-        text_caption: "Mute someone in the chat for an hour (text)",
-        json_caption: "Mute (JSON envelope)",
-    };
-
-    /// `xr broadcasts chat unmute`.
-    pub const UNMUTE: Verb = Verb {
-        name: "unmute",
-        example_args: "1YqKDqWqdPLGV @troll",
-        text_caption: "Unmute someone in the chat (text)",
-        json_caption: "Unmute (JSON envelope)",
-    };
-
     /// The page under `xr broadcasts chat --help`.
     #[must_use]
     pub fn page() -> String {
         const SECTIONS: &[Section<'static>] = &[
             ("A broadcast's chat (text)", &[Example::text(&HISTORY)]),
-            (
-                "Send, then mute someone, JSON envelope",
-                &[Example::json(&SEND), Example::json(&MUTE)],
-            ),
+            ("As a JSON envelope", &[Example::json(&HISTORY)]),
         ];
         FAMILY.page(SECTIONS)
     }
@@ -1011,11 +968,8 @@ pub mod broadcasts {
                 &[Example::text(&broadcasts_own::LIST)],
             ),
             (
-                "End one, then delete it and its replay, JSON envelope",
-                &[
-                    Example::json(&broadcasts_own::END),
-                    Example::json(&broadcasts_own::REMOVE),
-                ],
+                "Delete one and its replay, JSON envelope",
+                &[Example::json(&broadcasts_own::REMOVE)],
             ),
         ];
         const SCHEDULED: &[Section<'static>] = &[(
@@ -1023,8 +977,8 @@ pub mod broadcasts {
             &[Example::json(&broadcasts_scheduled::ADD)],
         )];
         const CHAT: &[Section<'static>] = &[(
-            "Send into a broadcast's chat, JSON envelope",
-            &[Example::json(&broadcast_chat::SEND)],
+            "A broadcast's chat, JSON envelope",
+            &[Example::json(&broadcast_chat::HISTORY)],
         )];
         page_of(&[
             (&broadcasts_own::FAMILY, YOURS),

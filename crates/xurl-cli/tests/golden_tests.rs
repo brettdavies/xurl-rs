@@ -67,6 +67,15 @@ const UNTRIGGERABLE: &[(&str, &str)] = &[
     ),
 ];
 
+/// Validator codes no `xr` command raises, each with the validator that
+/// raises it: the library keeps the shortcut and its validator for an
+/// embedder, and `xr` gives the endpoint no command (AGENTS.md § "Command
+/// grammar").
+const LIBRARY_ONLY_VALIDATORS: &[(&str, &str)] = &[
+    ("chat-message-too-long", "validate_chat_message"),
+    ("invalid-chat-message-id", "validate_chat_message_id"),
+];
+
 /// Variables the colour libraries consult that the seam does not strip.
 const COLOR_FORCING_VARS: &[&str] = &["CLICOLOR", "CLICOLOR_FORCE"];
 
@@ -1043,36 +1052,6 @@ fn dry_run_cases() -> Vec<Case> {
                 "1YqKDqWqdPLGV",
             ],
         ),
-        case(
-            "dry-run-invalid-chat-message-id",
-            &[
-                "--output",
-                "json",
-                "--dry-run",
-                "broadcasts",
-                "chat",
-                "remove",
-                "1YqKDqWqdPLGV",
-                "msg-1",
-            ],
-        ),
-        Case {
-            name: "dry-run-chat-message-too-long".to_string(),
-            args: [
-                "--output",
-                "json",
-                "--dry-run",
-                "broadcasts",
-                "chat",
-                "send",
-                "1YqKDqWqdPLGV",
-            ]
-            .into_iter()
-            .map(str::to_string)
-            .chain(["x".repeat(141)])
-            .collect(),
-            ..Case::default()
-        },
         case(
             "dry-run-invalid-list-id",
             &[
@@ -2066,7 +2045,7 @@ fn every_library_kind_is_a_reason() {
 }
 
 /// The refusals `validate_*` in the library's `api/shortcuts.rs` can raise.
-fn validator_reasons() -> BTreeSet<String> {
+fn library_validator_reasons() -> BTreeSet<String> {
     let source =
         std::fs::read_to_string(common::workspace_root().join("crates/xdk/src/api/shortcuts.rs"))
             .expect("shortcuts readable");
@@ -2075,6 +2054,49 @@ fn validator_reasons() -> BTreeSet<String> {
         .captures_iter(&source)
         .map(|m| m[1].to_string())
         .collect()
+}
+
+/// The validator refusals an `xr` command can raise.
+fn validator_reasons() -> BTreeSet<String> {
+    let mut codes = library_validator_reasons();
+    for (code, _) in LIBRARY_ONLY_VALIDATORS {
+        codes.remove(*code);
+    }
+    codes
+}
+
+/// A library-only code is one the library still raises from a validator no
+/// `xr` source calls; once a command calls it, the entry goes and the code
+/// takes a `dry-run-<code>` fixture.
+#[test]
+fn every_library_only_validator_is_out_of_xrs_reach() {
+    let codes = library_validator_reasons();
+    let sources: Vec<(PathBuf, String)> =
+        common::rust_files(&common::workspace_root().join("crates/xurl-cli/src"))
+            .into_iter()
+            .map(|path| {
+                let text = std::fs::read_to_string(&path).expect("source readable");
+                (path, text)
+            })
+            .collect();
+    for (code, validator) in LIBRARY_ONLY_VALIDATORS {
+        assert!(
+            codes.contains(*code),
+            "{code:?} is no longer a validator code in crates/xdk/src/api/shortcuts.rs; \
+             drop its LIBRARY_ONLY_VALIDATORS entry"
+        );
+        let call = regex::Regex::new(&format!(r"\b{validator}\b")).unwrap();
+        let callers: Vec<&PathBuf> = sources
+            .iter()
+            .filter(|(_, text)| call.is_match(text))
+            .map(|(path, _)| path)
+            .collect();
+        assert!(
+            callers.is_empty(),
+            "{validator} is called from {callers:?}, so an xr command can raise {code:?}: \
+             drop its LIBRARY_ONLY_VALIDATORS entry and add a dry-run-{code} case"
+        );
+    }
 }
 
 /// A reason the source can emit is named by the schema and pinned by a

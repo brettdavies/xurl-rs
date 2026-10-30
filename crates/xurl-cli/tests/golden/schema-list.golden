@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8509
+stdout_len: 8213
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -19,11 +19,6 @@ bookmark-folders list          ApiResponse<Vec<BookmarkFolder>>
 bookmark-folders posts         ApiResponse<Vec<BookmarkFolderPost>>
 bookmarks                      ApiResponse<Vec<Post>>
 broadcasts chat history        ApiResponse<Vec<BroadcastChatMessage>>
-broadcasts chat mute           ApiResponse<ChatMutedResult>
-broadcasts chat remove         ApiResponse<DeletedResult>
-broadcasts chat send           ApiResponse<ChatSentResult>
-broadcasts chat unmute         ApiResponse<ChatMutedResult>
-broadcasts end                 ApiResponse<BroadcastEnded>
 broadcasts get                 ApiResponse<Broadcast>
 broadcasts list                ApiResponse<Vec<Broadcast>>
 broadcasts moderators add      ApiResponse<ChatModeratorsResult>

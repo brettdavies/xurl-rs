@@ -1,12 +1,12 @@
 args: ["broadcasts", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7357
+stdout_len: 7334
 stderr_len: 0
 --- stdout ---
 Delete one of your broadcasts and its replay
 
-X deletes a scheduled or ended broadcast; end a running one first with `xr broadcasts end`.
+X deletes a scheduled or ended broadcast, and refuses a running one.
 
 Usage: xr broadcasts remove [OPTIONS] <BROADCAST_ID>
 

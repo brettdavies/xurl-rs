@@ -88,19 +88,6 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
             })
             .await?;
         }
-        BroadcastsCommands::End {
-            broadcast_id,
-            force,
-            common,
-        } => {
-            let ctx = json!({"command": "broadcasts-end", "broadcast_id": broadcast_id});
-            let prompt = format!("End broadcast {broadcast_id}?");
-            let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
-            send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
-                client.end_broadcast(&broadcast_id)
-            })
-            .await?;
-        }
         BroadcastsCommands::Remove {
             broadcast_id,
             force,
@@ -141,23 +128,18 @@ async fn mutes(action: MutesCommands, run: Run<'_>) -> CommandResult<()> {
             target_username,
             until,
             broadcast,
-            message,
             common,
         } => {
             let ctx = json!({
                 "command": "broadcasts-mutes-add",
                 "broadcast_id": broadcast,
                 "until": until,
-                "message_id": message,
             });
             let validate = || {
                 shortcuts::validate_time_window(until.as_deref(), None)?;
                 broadcast
                     .as_deref()
-                    .map_or(Ok(()), shortcuts::validate_broadcast_id)?;
-                message
-                    .as_deref()
-                    .map_or(Ok(()), shortcuts::validate_chat_message_id)
+                    .map_or(Ok(()), shortcuts::validate_broadcast_id)
             };
             act_on_user_with(
                 run,
@@ -165,14 +147,7 @@ async fn mutes(action: MutesCommands, run: Run<'_>) -> CommandResult<()> {
                 validate,
                 &target_username,
                 &common,
-                |client, id| {
-                    client.add_chat_mute(
-                        id,
-                        broadcast.as_deref(),
-                        until.as_deref(),
-                        message.as_deref(),
-                    )
-                },
+                |client, id| client.add_chat_mute(id, broadcast.as_deref(), until.as_deref(), None),
             )
             .await
         }

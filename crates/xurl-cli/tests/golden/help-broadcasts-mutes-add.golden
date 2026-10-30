@@ -1,7 +1,7 @@
 args: ["broadcasts", "mutes", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7734
+stdout_len: 7632
 stderr_len: 0
 --- stdout ---
 Mute someone in every chat of your broadcasts
@@ -20,9 +20,6 @@ Options:
 
       --broadcast <BROADCAST_ID>
           A broadcast you moderate: mute them in its host's chats
-
-      --message <MESSAGE_ID>
-          A message of theirs in that broadcast's chat to remove, by id
 
       --auth <AUTH_TYPE>
           Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
