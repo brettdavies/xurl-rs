@@ -978,8 +978,8 @@ NO_COLOR=1 xr whoami                           # Disable color (no-color.org)
 
 ## Stability
 
-`xr` follows [SemVer 2.0.0](https://semver.org/). Its public API is the machine contract a script or an agent depends
-on:
+`xr` follows [SemVer 2.0.0](https://semver.org/), with the one exception under Major below. Its public API is the
+machine contract a script or an agent depends on:
 
 - **Invocation:** command names and aliases, flags, positional forms, and every environment variable `xr --help` lists.
 - **Exit codes:** the table under [Structured Exit Codes](#structured-exit-codes).
@@ -998,9 +998,10 @@ How a change arrives:
   and also a deprecation or a raised minimum Rust version. `reason` and `next_step.action` are closed sets that gain
   members in minors, so treat a value you do not recognize as your default branch.
 - **Major:** anything in the contract removed, renamed, or retyped, or its documented meaning changed. A name that has
-  to change is added in a minor and deprecated there, then removed in a major that batches removals. Each major's
-  breaks are written up with before-and-after invocations under
-  [`docs/migrating`](https://github.com/brettdavies/xurl-rs/tree/main/docs/migrating).
+  to change is added in a minor and deprecated there, then removed in a major that batches removals. A break whose
+  blast radius the maintainer judges small ships in a minor instead. Either way, its release has a guide under
+  [`docs/migrating`](https://github.com/brettdavies/xurl-rs/tree/main/docs/migrating) that maps each old invocation
+  to its replacement.
 
 [`RELEASES.md` § Versioning](https://github.com/brettdavies/xurl-rs/blob/main/RELEASES.md#versioning) is the full
 policy.
