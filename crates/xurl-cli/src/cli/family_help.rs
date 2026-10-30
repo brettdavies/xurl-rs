@@ -798,6 +798,14 @@ pub mod broadcasts_own {
         text_caption: "Read one broadcast, by id (text)",
         json_caption: "As a JSON envelope",
     };
+
+    /// `xr broadcasts remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1YqKDqWqdPLGV --force --no-interactive",
+        text_caption: "Delete a broadcast and its replay without a prompt (text)",
+        json_caption: "Delete (JSON envelope)",
+    };
 }
 
 /// The `xr broadcasts scheduled` family.
@@ -841,20 +849,12 @@ pub mod broadcasts_scheduled {
         json_caption: "Move (JSON envelope)",
     };
 
-    /// `xr broadcasts scheduled remove`.
-    pub const REMOVE: Verb = Verb {
-        name: "remove",
+    /// `xr broadcasts scheduled cancel`.
+    pub const CANCEL: Verb = Verb {
+        name: "cancel",
         example_args: "1850000000000000001 --force --no-interactive",
         text_caption: "Cancel a scheduled broadcast without a prompt (text)",
         json_caption: "Cancel (JSON envelope)",
-    };
-
-    /// `xr broadcasts scheduled live`.
-    pub const LIVE: Verb = Verb {
-        name: "live",
-        example_args: "1850000000000000001 --force --no-interactive",
-        text_caption: "Start a scheduled broadcast now, without a prompt (text)",
-        json_caption: "Go live (JSON envelope)",
     };
 
     /// The page under `xr broadcasts scheduled --help`.
@@ -863,8 +863,8 @@ pub mod broadcasts_scheduled {
         const SECTIONS: &[Section<'static>] = &[
             ("Your scheduled broadcasts (text)", &[Example::text(&LIST)]),
             (
-                "Schedule one, then start it early, JSON envelope",
-                &[Example::json(&ADD), Example::json(&LIVE)],
+                "Schedule one, then move it, JSON envelope",
+                &[Example::json(&ADD), Example::json(&UPDATE)],
             ),
         ];
         FAMILY.page(SECTIONS)
@@ -888,47 +888,12 @@ pub mod broadcast_chat {
         json_caption: "As a JSON envelope",
     };
 
-    /// `xr broadcasts chat send`.
-    pub const SEND: Verb = Verb {
-        name: "send",
-        example_args: "1YqKDqWqdPLGV \"Welcome!\"",
-        text_caption: "Send into a broadcast's chat (text)",
-        json_caption: "Send (JSON envelope)",
-    };
-
-    /// `xr broadcasts chat remove`.
-    pub const REMOVE: Verb = Verb {
-        name: "remove",
-        example_args: "1YqKDqWqdPLGV 1700000000001 --force --no-interactive",
-        text_caption: "Remove a chat message without a prompt (text)",
-        json_caption: "Remove (JSON envelope)",
-    };
-
-    /// `xr broadcasts chat mute`.
-    pub const MUTE: Verb = Verb {
-        name: "mute",
-        example_args: "1YqKDqWqdPLGV @troll --until 2026-11-02T17:00:00Z",
-        text_caption: "Mute someone in the chat for an hour (text)",
-        json_caption: "Mute (JSON envelope)",
-    };
-
-    /// `xr broadcasts chat unmute`.
-    pub const UNMUTE: Verb = Verb {
-        name: "unmute",
-        example_args: "1YqKDqWqdPLGV @troll",
-        text_caption: "Unmute someone in the chat (text)",
-        json_caption: "Unmute (JSON envelope)",
-    };
-
     /// The page under `xr broadcasts chat --help`.
     #[must_use]
     pub fn page() -> String {
         const SECTIONS: &[Section<'static>] = &[
             ("A broadcast's chat (text)", &[Example::text(&HISTORY)]),
-            (
-                "Send, then mute someone, JSON envelope",
-                &[Example::json(&SEND), Example::json(&MUTE)],
-            ),
+            ("As a JSON envelope", &[Example::json(&HISTORY)]),
         ];
         FAMILY.page(SECTIONS)
     }
@@ -937,8 +902,8 @@ pub mod broadcast_chat {
 /// The `xr broadcasts` family.
 pub mod broadcasts {
     use super::{
-        Example, Family, Section, Verb, broadcast_chat, broadcast_sources, broadcasts_own,
-        broadcasts_scheduled, page_of,
+        Example, Family, Section, Verb, broadcast_chat, broadcast_mutes, broadcast_sources,
+        broadcasts_own, broadcasts_scheduled, page_of,
     };
 
     /// The family every page below belongs to.
@@ -983,6 +948,10 @@ pub mod broadcasts {
                 &[Example::json(&ADD), Example::json(&REMOVE)],
             ),
         ];
+        const MUTES: &[Section<'static>] = &[(
+            "Time someone out of every chat of your broadcasts, JSON envelope",
+            &[Example::json(&broadcast_mutes::ADD)],
+        )];
         const SOURCES: &[Section<'static>] = &[
             (
                 "The ingest points you stream to (text)",
@@ -993,22 +962,29 @@ pub mod broadcasts {
                 &[Example::json(&broadcast_sources::ADD)],
             ),
         ];
-        const YOURS: &[Section<'static>] = &[(
-            "Your broadcasts (text)",
-            &[Example::text(&broadcasts_own::LIST)],
-        )];
+        const YOURS: &[Section<'static>] = &[
+            (
+                "Your broadcasts (text)",
+                &[Example::text(&broadcasts_own::LIST)],
+            ),
+            (
+                "Delete one and its replay, JSON envelope",
+                &[Example::json(&broadcasts_own::REMOVE)],
+            ),
+        ];
         const SCHEDULED: &[Section<'static>] = &[(
             "Schedule one, JSON envelope",
             &[Example::json(&broadcasts_scheduled::ADD)],
         )];
         const CHAT: &[Section<'static>] = &[(
-            "Send into a broadcast's chat, JSON envelope",
-            &[Example::json(&broadcast_chat::SEND)],
+            "A broadcast's chat, JSON envelope",
+            &[Example::json(&broadcast_chat::HISTORY)],
         )];
         page_of(&[
             (&broadcasts_own::FAMILY, YOURS),
             (&broadcasts_scheduled::FAMILY, SCHEDULED),
             (&FAMILY, MODERATORS),
+            (&broadcast_mutes::FAMILY, MUTES),
             (&broadcast_sources::FAMILY, SOURCES),
             (&broadcast_chat::FAMILY, CHAT),
         ])
@@ -1023,6 +999,56 @@ pub mod broadcasts {
                 &[Example::text(&LIST)],
             ),
             ("Add a moderator (JSON envelope)", &[Example::json(&ADD)]),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
+/// The `xr broadcasts mutes` family.
+pub mod broadcast_mutes {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "broadcasts mutes",
+    };
+
+    /// `xr broadcasts mutes list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "Who is muted in your broadcast chats, and until when (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr broadcasts mutes add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "@troll --until 2026-11-02T17:00:00Z",
+        text_caption: "Time someone out of every chat of your broadcasts (text)",
+        json_caption: "Time out (JSON envelope)",
+    };
+
+    /// `xr broadcasts mutes remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "@troll",
+        text_caption: "Unmute someone (text)",
+        json_caption: "Unmute (JSON envelope)",
+    };
+
+    /// The page under `xr broadcasts mutes --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Who is muted in your broadcast chats (text)",
+                &[Example::text(&LIST)],
+            ),
+            (
+                "Time someone out, then let them back, JSON envelope",
+                &[Example::json(&ADD), Example::json(&REMOVE)],
+            ),
         ];
         FAMILY.page(SECTIONS)
     }
@@ -1053,18 +1079,26 @@ pub mod broadcast_sources {
         json_caption: "As a JSON envelope",
     };
 
+    /// `xr broadcasts sources region`.
+    pub const REGION: Verb = Verb {
+        name: "region",
+        example_args: "",
+        text_caption: "The ingest region to pass to add --region (text)",
+        json_caption: "As a JSON object",
+    };
+
     /// `xr broadcasts sources add`.
     pub const ADD: Verb = Verb {
         name: "add",
         example_args: "\"Studio A\" --region us-east-1",
-        text_caption: "Create a source; stream to its rtmps_url with its id as the key (text)",
+        text_caption: "Create a source; stream to its rtmps_url with its stream_key (text)",
         json_caption: "Create (JSON envelope)",
     };
 
-    /// `xr broadcasts sources rename`.
-    pub const RENAME: Verb = Verb {
-        name: "rename",
-        example_args: "1x2y3z4w5v6u \"Studio B\"",
+    /// `xr broadcasts sources update`.
+    pub const UPDATE: Verb = Verb {
+        name: "update",
+        example_args: "1x2y3z4w5v6u --name \"Studio B\"",
         text_caption: "Rename a source (text)",
         json_caption: "Rename (JSON envelope)",
     };
@@ -1083,8 +1117,12 @@ pub mod broadcast_sources {
         const SECTIONS: &[Section<'static>] = &[
             ("Your stream sources (text)", &[Example::text(&LIST)]),
             (
-                "Create one, then check it is receiving video, JSON envelope",
-                &[Example::json(&ADD), Example::json(&GET)],
+                "Find the nearest region, create a source there, then check it is receiving video, JSON",
+                &[
+                    Example::json(&REGION),
+                    Example::json(&ADD),
+                    Example::json(&GET),
+                ],
             ),
         ];
         FAMILY.page(SECTIONS)

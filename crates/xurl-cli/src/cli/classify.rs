@@ -128,7 +128,7 @@ pub(crate) fn nearest_command(word: &str) -> Option<String> {
 ///
 /// Jaro rather than Jaro-Winkler, which clap avoids for subcommands because
 /// the prefix weight over-favors a shared opening (clap-rs/clap#4660).
-fn nearest(word: &str, candidates: &[String]) -> Option<String> {
+pub(crate) fn nearest(word: &str, candidates: &[String]) -> Option<String> {
     let word = word.to_lowercase();
     candidates
         .iter()

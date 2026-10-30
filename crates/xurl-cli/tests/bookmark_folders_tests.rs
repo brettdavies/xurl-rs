@@ -152,7 +152,7 @@ async fn add_refuses_a_name_past_25_characters_before_any_request() {
     let body = json_out(&stdout);
     assert_eq!(body["command"], "bookmark-folders-add");
     assert_eq!(body["would_succeed"], false);
-    assert_eq!(body["reason"], "folder-name-too-long");
+    assert_eq!(body["rule"], "folder-name-too-long");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
@@ -173,12 +173,7 @@ async fn posts_refuses_a_folder_id_that_is_not_digits_before_any_request() {
     let envelope: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("invalid-folder-id")),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], "invalid-folder-id", "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 

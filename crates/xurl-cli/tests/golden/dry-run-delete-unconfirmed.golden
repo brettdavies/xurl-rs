@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "delete", "1234567890"]
 store: oauth2
 exit_code: 0
-stdout_len: 265
+stdout_len: 306
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 0
   "confirmation_required": true,
   "exit_code": 0,
   "post_id": "1234567890",
+  "response_schema": "xr schema delete",
   "status": "dry_run",
   "would_succeed": true
 }

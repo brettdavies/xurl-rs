@@ -36,10 +36,7 @@ pub(super) async fn run(action: NotesCommands, run: Run<'_>) -> CommandResult<()
                 "note": note,
                 "test_mode": test,
             });
-            let validate = || {
-                shortcuts::validate_post_id(&note.post)?;
-                shortcuts::validate_note_text(&note.text)
-            };
+            let validate = || validate_draft(&note.post, &note.text);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.create_note(&note, test)
             })
@@ -47,7 +44,7 @@ pub(super) async fn run(action: NotesCommands, run: Run<'_>) -> CommandResult<()
         }
         NotesCommands::Evaluate { post, text, common } => {
             let ctx = json!({"command": "notes-evaluate", "post": post, "text": text});
-            let validate = || shortcuts::validate_post_id(&post);
+            let validate = || validate_draft(&post, &text);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.evaluate_note(&post, &text)
             })
@@ -99,4 +96,12 @@ pub(super) async fn run(action: NotesCommands, run: Run<'_>) -> CommandResult<()
             .await
         }
     }
+}
+
+/// Checks a note's post and text, for writing it or scoring the draft: X
+/// writes no note without a source URL, so a draft without one is not worth
+/// a request to score.
+fn validate_draft(post: &str, text: &str) -> Result<(), &'static str> {
+    shortcuts::validate_post_id(post)?;
+    shortcuts::validate_note_text(text)
 }

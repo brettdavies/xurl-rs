@@ -78,7 +78,7 @@ covered() {
         | "- \(map("`\(.)`") | join(", ")): decided `\($decision.id)` (\($decision.status), \($decision.decided), \($decision.by)). \($decision.reason) \(if $decision.status == "planned" then "Build it." else "No command; reopens when: \($decision.revisit_when | reopens)." end)"
     ' "${registry}")"
   if [ -z "${lines}" ]; then
-    echo "No decision covers an operation this refresh adds."
+    echo "No decision covers an operation this refresh adds; judge each one by step 4."
   else
     printf '%s\n' "${lines}"
   fi

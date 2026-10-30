@@ -1,13 +1,20 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02T16:00:00Z", "--title", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 297
+stdout_len: 527
 stderr_len: 0
 --- stdout ---
 {
   "command": "calls-scheduled-add",
   "exit_code": 1,
-  "reason": "call-title-too-long",
+  "message": "A call title is at most 100 characters.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr calls scheduled add --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema calls scheduled add",
+  "rule": "call-title-too-long",
   "start_time": "2026-11-02T16:00:00Z",
   "status": "dry_run",
   "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",

@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serde_json::json;
-use xdk::error::{EXIT_AUTH_REQUIRED, Error};
+use xdk::error::Error;
 use xdk::webhooks::{
     Receiver, ReceiverConfig, RetryBudget, SignedSample, SigningSecrets, UrlTarget,
     validate_forward_url,
@@ -20,7 +20,7 @@ use super::webhooks_forward::{Finished, Forwarding, Target};
 use super::webhooks_program::ProgramTarget;
 use crate::cli::SigningSecret;
 use crate::cli::failure::{CommandResult, Failure};
-use crate::cli::hints::shell_word;
+use crate::cli::hints::{NO_SIGNING_SECRET, shell_word};
 
 /// What `xr webhooks listen` was asked for.
 pub(super) struct Listener {
@@ -93,14 +93,17 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     }
     if flags.dry_run {
         if let Err(error) = targets {
+            return Err(if error.is_validation() {
+                Failure::DryRunInvalid { ctx, error }
+            } else {
+                Failure::DryRunRefusal { ctx, error }
+            });
+        }
+        if signs_with.is_none() {
+            let error = Error::auth(NO_SIGNING_SECRET);
             return Err(Failure::DryRunRefusal { ctx, error });
         }
-        if signs_with.is_some() {
-            out.print_dry_run(stdout, true, 0, &ctx);
-        } else {
-            ctx["reason"] = json!("no-signing-secret");
-            out.print_dry_run(stdout, false, EXIT_AUTH_REQUIRED, &ctx);
-        }
+        out.print_dry_run(stdout, true, 0, &ctx);
         return Ok(());
     }
     let targets = targets.map_err(|error| {
@@ -111,11 +114,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
         }
     })?;
     let Some(signs_with) = signs_with else {
-        return Err(Error::auth(
-            "No signing secret: X signs webhook requests with the app's OAuth2 client secret or \
-             OAuth1 consumer secret, and the app has neither stored",
-        )
-        .into());
+        return Err(Error::auth(NO_SIGNING_SECRET).into());
     };
 
     let sample = SignedSample::new(&secrets)?;
@@ -222,21 +221,8 @@ fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
 
 /// `--forward` with its `-H` headers.
 fn url_target(url: &str, headers: &[String]) -> Result<UrlTarget, Error> {
-    validate_forward_url(url).map_err(|reason| {
-        Error::validation(match reason {
-            "forward-url-has-credentials" => {
-                "--forward takes a URL with no username or password, which every record of a \
-                 failed forward would repeat; pass the credential with -H 'Authorization: ...' \
-                 instead"
-            }
-            "forward-url-not-http" => "--forward takes an http or https URL",
-            _ => "--forward takes an absolute http or https URL",
-        })
-    })?;
-    UrlTarget::new(url, headers).map_err(|error| match error {
-        Error::Validation(message) => Error::validation(format!("-H: {message}")),
-        other => other,
-    })
+    validate_forward_url(url).map_err(Error::validation)?;
+    UrlTarget::new(url, headers)
 }
 
 /// The name of each `-H` header, for a dry run: never a value.

@@ -17,8 +17,10 @@ mod dry_run;
 mod format;
 mod message;
 mod validation;
+pub(crate) use validation::account_rule;
 
 pub(crate) use diagnostics::Diagnostics;
+pub(crate) use validation::user_search_rule;
 
 use std::io::{IsTerminal, Write};
 
@@ -117,6 +119,11 @@ pub struct OutputConfig {
     /// struct. Constructors default this to `false`; the runner sets it via
     /// [`Self::with_no_interactive`] right after construction.
     pub no_interactive: bool,
+    /// The `xr schema` invocation that describes the running command's
+    /// response, when the command has one. A dry run's envelope carries it as
+    /// `response_schema`. The runner sets it via
+    /// [`Self::with_response_schema`] once the command is parsed.
+    pub response_schema: Option<String>,
 }
 
 impl OutputConfig {
@@ -172,6 +179,7 @@ impl OutputConfig {
             verbose,
             raw,
             no_interactive: false,
+            response_schema: None,
         }
     }
 
@@ -184,6 +192,24 @@ impl OutputConfig {
     pub fn with_no_interactive(mut self, no_interactive: bool) -> Self {
         self.no_interactive = no_interactive;
         self
+    }
+
+    /// Sets [`Self::response_schema`].
+    #[must_use]
+    pub fn with_response_schema(mut self, response_schema: Option<String>) -> Self {
+        self.response_schema = response_schema;
+        self
+    }
+
+    /// `ctx` with `response_schema` added when the running command has a
+    /// schema. Both dry-run printers start here, so the text summary and the
+    /// envelope carry the same pointer.
+    fn with_pointer(&self, ctx: &Value) -> Value {
+        let mut ctx = ctx.clone();
+        if let (Some(pointer), Some(map)) = (&self.response_schema, ctx.as_object_mut()) {
+            map.insert("response_schema".into(), Value::String(pointer.clone()));
+        }
+        ctx
     }
 
     /// Returns `true` when the active session can drive interactive prompts.
@@ -328,7 +354,10 @@ impl OutputConfig {
         let mut body = error_body(error, exit_code);
         body.next_step = Some(hint.next_step.clone());
         if let Some(reason) = reason {
+            // `rule` names the input rule under `reason: validation`; a
+            // refusal with a reason of its own carries that reason alone.
             body.reason = reason;
+            body.rule = None;
         }
         self.emit_error_envelope(err, body);
     }
@@ -425,23 +454,10 @@ impl OutputConfig {
     /// `{"status":"error","reason":<kind>,"exit_code":<code>,"message":<display>}`.
     /// Json/Jsonl/Ndjson emit one JSON line; Yaml emits a YAML document; Csv/Tsv
     /// emit a JSON line carrying the envelope (delimited formats are not a good
-    /// fit for nested error metadata). Text mode prints a validator's code as
-    /// the rule the input broke (`validation::sentence`); the envelope keeps
-    /// the code.
+    /// fit for nested error metadata). A validation refusal's `message` is
+    /// the sentence for its rule (`validation::sentence`) in every format, and
+    /// the envelope carries the rule itself as `rule`.
     pub fn print_error(&self, err: &mut dyn Write, error: &Error, exit_code: i32) {
-        let worded;
-        let error = match error {
-            Error::Validation(code) if !self.format.is_structured() => {
-                match validation::sentence(code) {
-                    Some(sentence) => {
-                        worded = Error::validation(sentence);
-                        &worded
-                    }
-                    None => error,
-                }
-            }
-            other => other,
-        };
         self.emit_error_envelope(err, error_body(error, exit_code));
     }
 
@@ -481,6 +497,7 @@ impl OutputConfig {
         exit_code: i32,
         ctx: &Value,
     ) {
+        let ctx = &self.with_pointer(ctx);
         if !self.format.is_structured() {
             for line in dry_run::summary(would_succeed, exit_code, ctx, None) {
                 let _ = writeln!(out, "{line}");
@@ -500,10 +517,11 @@ impl OutputConfig {
         self.write_structured(out, &envelope);
     }
 
-    /// Emits the dry-run envelope of a command the credentials at hand
-    /// cannot serve: `would_succeed: false`, the exit code the real run
+    /// Emits the dry-run envelope of a command its inputs or the credentials
+    /// at hand refuse: `would_succeed: false`, the exit code the real run
     /// would end on, and the keys its error envelope would carry, its
-    /// `next_step` among them.
+    /// `next_step` among them. A validator's code stays the `reason`, and
+    /// the rule it names is the `message`.
     pub(crate) fn print_dry_run_refusal(
         &self,
         out: &mut dyn Write,
@@ -511,16 +529,17 @@ impl OutputConfig {
         error: &Error,
         hint: Option<&crate::cli::hints::Hint>,
     ) {
-        // A dry run looks no id up, so a path it rendered would carry a
-        // stand-in. Without one the message names the endpoint's template.
-        let templated;
+        let ctx = &self.with_pointer(ctx);
+        let reworded;
         let error = match error {
+            // A dry run looks no id up, so a path it rendered would carry a
+            // stand-in. Without one the message names the endpoint's template.
             Error::AuthMethodMismatch(mismatch) if mismatch.rendered_url.is_some() => {
-                templated = Error::from(xdk::error::AuthMismatch {
+                reworded = Error::from(xdk::error::AuthMismatch {
                     rendered_url: None,
                     ..(**mismatch).clone()
                 });
-                &templated
+                &reworded
             }
             other => other,
         };
@@ -531,7 +550,7 @@ impl OutputConfig {
                 Some(hint) if !self.quiet => hint.text_lines.as_slice(),
                 _ => &[],
             };
-            let refusal = dry_run::CredentialRefusal {
+            let refusal = dry_run::Refusal {
                 message: &message,
                 advice,
             };
@@ -773,6 +792,16 @@ fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
         Error::ProcessingTimeout { media_id, .. } => {
             body.media_id = Some(media_id.clone());
         }
+        Error::Validation { rule, value } => {
+            body.rule = Some((*rule).to_string());
+            body.value.clone_from(value);
+        }
+        Error::MediaProcessingFailed { media_id, .. } => {
+            body.media_id = Some(media_id.clone());
+        }
+        Error::AccountNotFound { account } => {
+            body.account = Some(account.clone());
+        }
         Error::Api {
             status: 429,
             reset_at: Some(reset_at),
@@ -822,6 +851,7 @@ impl Default for OutputConfig {
             verbose: false,
             raw: false,
             no_interactive: false,
+            response_schema: None,
         }
     }
 }
@@ -886,6 +916,7 @@ mod tests {
             verbose: false,
             raw: false,
             no_interactive: false,
+            response_schema: None,
         };
         assert!(!cfg.quiet);
     }

@@ -235,23 +235,22 @@
       "type": "object"
     },
     "StreamSource": {
-      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts.\n\nThe spec closes this object to further properties, so it carries no\nforward-compatibility bucket.",
+      "additionalProperties": true,
+      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts,\nas `/2/sources` describes one.",
       "properties": {
-        "creation_time": {
-          "description": "When the source was created, in milliseconds since the Unix epoch.",
-          "format": "uint64",
-          "minimum": 0,
+        "created_at_ms": {
+          "description": "When the source was created, in milliseconds since the Unix epoch,\nas a decimal string.",
           "type": [
-            "integer",
+            "string",
             "null"
           ]
         },
         "id": {
-          "description": "Source identifier. It is also the stream key an encoder sends, so\nwhoever holds it can stream to the source.",
+          "description": "Source identifier, the `source_id` a scheduled broadcast binds to.",
           "type": "string"
         },
         "is_stream_active": {
-          "description": "Whether the source is receiving video now.",
+          "description": "Whether an encoder is sending video to the source now. Publishing a\nbroadcast on the source needs it.",
           "type": [
             "boolean",
             "null"
@@ -264,24 +263,8 @@
             "null"
           ]
         },
-        "owner_id": {
-          "description": "The owner's numeric user id. X sends it as a JSON number past the\nrange a 64-bit float holds exactly; this field keeps every digit.",
-          "format": "uint64",
-          "minimum": 0,
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "rtmp_region": {
-          "description": "Ingest region, such as `us-east-1`.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "rtmp_stream_key": {
-          "description": "The stream key, equal to `id`.",
+        "region": {
+          "description": "Ingest region, an AWS region name such as `us-east-1`.",
           "type": [
             "string",
             "null"
@@ -300,24 +283,17 @@
             "string",
             "null"
           ]
+        },
+        "stream_key": {
+          "description": "The stream key an encoder sends, so whoever holds it can stream to\nthe source.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
         "id"
-      ],
-      "type": "object"
-    },
-    "StreamSourceResult": {
-      "additionalProperties": true,
-      "description": "One stream source, as reading, creating, and renaming a source answer.",
-      "properties": {
-        "source": {
-          "$ref": "#/$defs/StreamSource",
-          "description": "The source."
-        }
-      },
-      "required": [
-        "source"
       ],
       "type": "object"
     },
@@ -434,7 +410,7 @@
   "description": "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints.",
   "properties": {
     "data": {
-      "$ref": "#/$defs/StreamSourceResult",
+      "$ref": "#/$defs/StreamSource",
       "description": "Primary payload: one object, or an array for list endpoints."
     },
     "errors": {

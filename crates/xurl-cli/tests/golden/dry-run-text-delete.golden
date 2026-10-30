@@ -1,13 +1,14 @@
 args: ["--dry-run", "delete", "1234567890"]
 store: oauth2
 exit_code: 0
-stdout_len: 254
+stdout_len: 290
 stderr_len: 0
 --- stdout ---
 Dry run of `delete`: nothing was sent.
 The real run would succeed, as far as an offline check can tell.
   post_id: 1234567890
   credential: oauth2, app myapp, login alice, token current
+  response schema: xr schema delete
   the real run would stop to ask for confirmation; --force skips it
 
 --- stderr ---

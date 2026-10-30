@@ -1,14 +1,21 @@
 args: ["--output", "json", "--dry-run", "media", "alt-text", "1585341984679469056", ""]
 store: empty
 exit_code: 0
-stdout_len: 182
+stdout_len: 385
 stderr_len: 0
 --- stdout ---
 {
   "command": "media-alt-text",
   "exit_code": 1,
   "media_id": "1585341984679469056",
-  "reason": "empty-alt-text",
+  "message": "The alt text is empty.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr media alt-text --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema media alt-text",
+  "rule": "empty-alt-text",
   "status": "dry_run",
   "text": "",
   "would_succeed": false

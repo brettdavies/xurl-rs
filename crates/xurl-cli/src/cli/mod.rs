@@ -3,6 +3,7 @@
 //! Mirrors the Go cobra command tree: root (raw mode) + shortcuts +
 //! auth/media/webhook/version subcommands.
 
+pub mod accepted_auth;
 mod classify;
 pub mod commands;
 mod failure;
@@ -14,7 +15,9 @@ pub(crate) mod shutdown;
 pub use runner::{run, run_argv, run_with_store_path};
 
 use clap::builder::FalseyValueParser;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{ArgGroup, Parser, Subcommand, ValueEnum};
+
+use crate::cli::commands::schema::SchemaPointers;
 
 pub mod env;
 pub mod envelope;
@@ -24,12 +27,15 @@ pub mod panic_hook;
 #[cfg(test)]
 mod parse_tests;
 mod reparse;
+mod retired_verbs;
 pub mod skill_install;
 
 pub use output::OutputFormat;
 use skill_install::KNOWN_HOSTS;
 pub use skill_install::SkillHost;
 use xdk::api::VideoCategory;
+use xdk::api::shortcuts::WEBHOOK_URL_MAX_CHARS;
+use xdk::webhooks::CHECKPOINT_SHAPE;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
 /// and TTY detection.
@@ -275,7 +281,6 @@ Examples:
     xr search-users rust -n 50 --output json
   The handle of each, one per line:
     xr search-users rust --output json | jaq -r '.data[]?.username'
-  A query is 1 to 50 letters, digits, underscores, apostrophes, or spaces.
 ";
 
 /// `xr user-posts` examples — paired text + JSON, JSONL pipeline.
@@ -623,14 +628,26 @@ Examples:
 /// `xr schema` examples — paired text + JSON, list, all.
 const SCHEMA_HELP: &str = "\
 Examples:
-  List all command schemas (text):
-    xr schema --list
-  List all command schemas (JSON):
-    xr schema --list --output json
-  Dump a single command's schema:
+  A command's schema, named by the words you run it with:
     xr schema post --output json
-  Dump every schema as one JSON document:
+    xr schema webhooks subscriptions count --output json
+  Then filter that command's output by the fields it names:
+    xr schema search
+    xr search \"from:jack\" --output json | jaq -r '.data[].text'
+  One field, by a dot path into data (through arrays and nullable values):
+    xr schema post --path public_metrics
+  The complete schema, wrapper and all, as committed under schema/responses/:
+    xr schema post --full --output json
+  The wrapper every typed command shares (includes, meta, errors):
+    xr schema --common
+    xr schema --common --path includes.users
+  List every command with a schema (text, or one record per command):
+    xr schema --list
+    xr schema --list --output json
+  Every schema as one JSON document:
     xr schema --all --output json
+  The output envelope every command prints:
+    xr schema --envelope --output json
 ";
 
 /// `xr completions` examples.
@@ -917,9 +934,19 @@ Examples:
     xr post \"Beach day\" --media-id <media_id>
 ";
 
+/// The page size `xr calls scheduled list` asks for when neither `-n` nor
+/// `--limit` names one.
+pub(crate) const SCHEDULED_CALLS_PAGE_SIZE: i32 = 20;
+
+/// The heading every global flag sits under. clap copies a global flag into
+/// each subcommand at the place it holds on the root, so without a heading of
+/// its own it lands between that command's options.
+const GLOBAL_OPTIONS: &str = "Global Options";
+
 /// Auth-enabled curl-like interface for the X API.
 #[derive(Parser, Debug)]
 #[command(
+    schema_pointers(),
     name = "xr",
     about = "Auth enabled curl-like interface for the X API",
     long_about = r#"A command-line tool for making authenticated requests to the X API.
@@ -962,7 +989,8 @@ Shell completions:
 
 Run 'xr --help' to see all available commands."#,
     after_help = ROOT_HELP,
-    version
+    version,
+    mut_subcommands(accepted_auth::annotate)
 )]
 pub struct Cli {
     /// HTTP method (GET by default)
@@ -977,8 +1005,7 @@ pub struct Cli {
     #[arg(short = 'd', long = "data")]
     pub data: Option<String>,
 
-    /// Authentication type (oauth1, oauth2, app)
-    #[arg(long = "auth")]
+    #[arg(long = "auth", help = accepted_auth::every_scheme_help())]
     pub auth_type: Option<String>,
 
     /// `OAuth2` login to send the request as, by the name it is stored under: its username, or the
@@ -991,7 +1018,7 @@ pub struct Cli {
     #[arg(
         short = 'v',
         long = "verbose",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_VERBOSE",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1014,7 +1041,7 @@ pub struct Cli {
     pub file: Option<String>,
 
     /// Use a specific registered app (overrides default)
-    #[arg(long = "app", global = true, env = "XURL_APP")]
+    #[arg(long = "app", global = true, help_heading = GLOBAL_OPTIONS, env = "XURL_APP")]
     pub app: Option<String>,
 
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
@@ -1022,7 +1049,7 @@ pub struct Cli {
     /// at exit 2 with a JSON envelope whose reason is `invalid-args`.
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         default_value = "text",
         value_enum,
         env = "XURL_OUTPUT"
@@ -1032,7 +1059,7 @@ pub struct Cli {
     /// Shorthand for `--output json` (P2 alias).
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         conflicts_with = "output",
         conflicts_with = "jsonl",
         env = "XURL_JSON",
@@ -1044,7 +1071,7 @@ pub struct Cli {
     /// Shorthand for `--output jsonl` (P2 alias).
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         conflicts_with = "output",
         conflicts_with = "json",
         env = "XURL_JSONL",
@@ -1057,7 +1084,7 @@ pub struct Cli {
     /// `json` output on one line, as `jsonl` and `ndjson` always are.
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_RAW",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1072,7 +1099,7 @@ pub struct Cli {
     /// unconditionally without xr rejecting it.
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_NO_PAGER",
         value_parser = FalseyValueParser::new(),
         action = clap::ArgAction::SetTrue,
@@ -1083,7 +1110,7 @@ pub struct Cli {
     #[arg(
         long,
         short = 'q',
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_QUIET",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1096,7 +1123,7 @@ pub struct Cli {
     /// Disable interactive prompts; fail with error instead
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_NO_INTERACTIVE",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1107,7 +1134,7 @@ pub struct Cli {
     pub no_interactive: bool,
 
     /// Request timeout in seconds
-    #[arg(long, global = true, default_value = "30", env = "XURL_TIMEOUT")]
+    #[arg(long, global = true, help_heading = GLOBAL_OPTIONS, default_value = "30", env = "XURL_TIMEOUT")]
     pub timeout: u64,
 
     /// Wait out a rate limit and retry once, instead of failing with `rate-limited`
@@ -1118,7 +1145,7 @@ pub struct Cli {
     /// response is final whatever it is.
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_WAIT_ON_RATE_LIMIT",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1131,7 +1158,7 @@ pub struct Cli {
     /// Longest `--wait-on-rate-limit` waits before its retry, in seconds
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         value_name = "SECS",
         default_value = "60",
         env = "XURL_RATE_LIMIT_MAX_WAIT"
@@ -1141,7 +1168,7 @@ pub struct Cli {
     /// Colorize output: auto (TTY-aware), always, or never
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         value_enum,
         default_value_t = ColorChoice::Auto,
         env = "XURL_COLOR"
@@ -1164,7 +1191,7 @@ pub struct Cli {
     /// output prints the same context without the envelope's own keys.
     #[arg(
         long = "dry-run",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_DRY_RUN",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1174,27 +1201,26 @@ pub struct Cli {
     )]
     pub dry_run: bool,
 
-    /// Global result-set limit, clamped to 1..=100.
+    /// Page size for every command that takes `-n/--max-results`, when `-n` is not given; other
+    /// commands and raw requests ignore it
     ///
-    /// Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`,
-    /// `following`, `followers`, `muted`, `blocked`, and `dms`; other commands
-    /// ignore it. The per-command `-n/--max-results` flag takes precedence when
-    /// both are set.
-    #[arg(long = "limit", global = true, env = "XURL_LIMIT")]
+    /// It is clamped to the range that command's `-n` takes, and `-n` wins
+    /// when both are given. A raw request carries its page size in its own
+    /// query string.
+    #[arg(long = "limit", global = true, help_heading = GLOBAL_OPTIONS, env = "XURL_LIMIT")]
     pub limit: Option<i32>,
 
-    /// Pagination cursor / `pagination_token` for list endpoints.
+    /// The `meta.next_token` of the previous page, for every command whose endpoint pages; other
+    /// commands and raw requests ignore it
     ///
-    /// The X API uses cursor-based pagination: each list response carries a
-    /// `meta.next_token` field, and the next page is fetched by re-running
-    /// the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`).
-    /// Threads through to the `pagination_token` query parameter on every
-    /// `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`,
-    /// `followers`, `muted`, `blocked`, and `dms` invocation; other commands
-    /// ignore it.
+    /// A command whose endpoint pages answers with `meta.next_token` while
+    /// more results remain; run the same command again with `--cursor <token>`
+    /// (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the
+    /// endpoint's page token, `pagination_token` or `next_token`. A raw
+    /// request carries its page token in its own URL.
     #[arg(
         long = "cursor",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_CURSOR",
         value_name = "TOKEN"
     )]
@@ -1209,7 +1235,7 @@ pub struct Cli {
     /// get a structured error rather than a silent no-op.
     #[arg(
         long = "page",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_PAGE",
         value_name = "N",
         conflicts_with = "cursor"
@@ -1223,7 +1249,7 @@ pub struct Cli {
     /// from other CLIs (`gh`, `kubectl`) get a working flag.
     #[arg(
         long = "after",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_AFTER",
         value_name = "TOKEN",
         conflicts_with = "cursor",
@@ -1347,7 +1373,7 @@ pub enum Commands {
     /// Find accounts by keyword
     #[command(after_help = SEARCH_USERS_HELP)]
     SearchUsers {
-        /// Search query
+        #[arg(help = format!("Search query. {}", output::user_search_rule()))]
         query: String,
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
@@ -1359,8 +1385,15 @@ pub enum Commands {
     /// Look up 1 to 100 accounts by handle or by id in one request
     #[command(after_help = USERS_HELP)]
     Users {
-        /// Handles (@jack or jack) or numeric user ids, 1 to 100; not both
-        #[arg(value_name = "ACCOUNT", required = true, num_args = 1..)]
+        #[arg(
+            value_name = "ACCOUNT",
+            required = true,
+            num_args = 1..,
+            help = format!(
+                "The accounts to look up, 1 to 100: all usernames or all user ids. {}",
+                output::account_rule()
+            )
+        )]
         accounts: Vec<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1369,8 +1402,7 @@ pub enum Commands {
     /// List the posts a user wrote
     #[command(after_help = USER_POSTS_HELP)]
     UserPosts {
-        /// Username, with or without the leading @
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account whose posts to read. {}", output::account_rule()))]
         target_username: String,
         /// Number of results (5-100; a lower value is raised to 5, X's
         /// minimum). Overrides global `--limit` when set.
@@ -1602,8 +1634,7 @@ pub enum Commands {
     /// Follow a user
     #[command(after_help = FOLLOW_HELP)]
     Follow {
-        /// Username to follow
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to follow. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1612,8 +1643,7 @@ pub enum Commands {
     /// Unfollow a user
     #[command(after_help = UNFOLLOW_HELP)]
     Unfollow {
-        /// Username to unfollow
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to unfollow. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1625,8 +1655,7 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username to list following for (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        #[arg(long = "of", value_name = "ACCOUNT", help = format!("The account to list following for (default: you). {}", output::account_rule()))]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1638,8 +1667,7 @@ pub enum Commands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username to list followers for (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        #[arg(long = "of", value_name = "ACCOUNT", help = format!("The account to list followers for (default: you). {}", output::account_rule()))]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1648,8 +1676,7 @@ pub enum Commands {
     /// Mute a user
     #[command(after_help = MUTE_HELP)]
     Mute {
-        /// Username to mute
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to mute. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1658,8 +1685,7 @@ pub enum Commands {
     /// Unmute a user
     #[command(after_help = UNMUTE_HELP)]
     Unmute {
-        /// Username to unmute
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to unmute. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1678,8 +1704,7 @@ pub enum Commands {
     /// Block a user
     #[command(after_help = BLOCK_HELP)]
     Block {
-        /// Username to block
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to block. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1688,8 +1713,7 @@ pub enum Commands {
     /// Unblock a user
     #[command(after_help = UNBLOCK_HELP)]
     Unblock {
-        /// Username to unblock
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to unblock. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1723,8 +1747,7 @@ pub enum Commands {
     /// Send a direct message
     #[command(after_help = DM_HELP)]
     Dm {
-        /// Username to DM
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to message. {}", output::account_rule()))]
         target_username: String,
         /// Message text
         text: String,
@@ -1749,8 +1772,7 @@ pub enum Commands {
     /// Stop a user sending you direct messages
     #[command(after_help = DM_BLOCK_HELP)]
     DmBlock {
-        /// Username to block from sending you direct messages
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to block from sending you direct messages. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1759,8 +1781,7 @@ pub enum Commands {
     /// Let a user send you direct messages again
     #[command(after_help = DM_UNBLOCK_HELP)]
     DmUnblock {
-        /// Username to unblock
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to unblock. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -1918,10 +1939,24 @@ pub enum Commands {
 
     // ── Meta ─────────────────────────────────────────────────────────
     /// Show JSON Schema for a command's response type
-    #[command(after_help = SCHEMA_HELP)]
+    #[command(
+        after_help = SCHEMA_HELP,
+        group(ArgGroup::new("scope").args(["command", "common", "envelope", "list", "all"])),
+        group(ArgGroup::new("path_root").args(["command", "common"]))
+    )]
     Schema {
-        /// Command name to get the schema for (e.g. "post", "whoami", "envelope")
-        command: Option<String>,
+        /// The command's words, as `xr help` takes them (e.g. `post`, `webhooks subscriptions count`)
+        #[arg(value_name = "COMMAND")]
+        command: Vec<String>,
+        /// Print the command's complete standalone schema, as committed under `schema/responses/`
+        #[arg(long, requires = "command", conflicts_with = "path")]
+        full: bool,
+        /// Print the API response wrapper every typed command shares, with its shared definitions
+        #[arg(long)]
+        common: bool,
+        /// Print the node at a dot path into the command's `data`, or into the wrapper with `--common`
+        #[arg(long, value_name = "DOT_PATH", requires = "path_root")]
+        path: Option<String>,
         /// List all commands and their response types
         #[arg(long)]
         list: bool,
@@ -2038,8 +2073,7 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username whose own lists to read (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        #[arg(long = "of", value_name = "ACCOUNT", help = format!("The account whose own lists to read (default: you). {}", output::account_rule()))]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2051,8 +2085,7 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username whose followed lists to read (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        #[arg(long = "of", value_name = "ACCOUNT", help = format!("The account whose followed lists to read (default: you). {}", output::account_rule()))]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2064,8 +2097,7 @@ pub enum ListsCommands {
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Username whose list memberships to read (default: you)
-        #[arg(long = "of", value_name = "USERNAME")]
+        #[arg(long = "of", value_name = "ACCOUNT", help = format!("The account whose list memberships to read (default: you). {}", output::account_rule()))]
         of: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2238,8 +2270,7 @@ pub enum ListMembersCommands {
         /// List ID, as `xr lists list` prints it
         #[arg(value_name = "LIST_ID")]
         list_id: String,
-        /// Username of the account
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to add to the list. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2251,8 +2282,7 @@ pub enum ListMembersCommands {
         /// List ID, as `xr lists list` prints it
         #[arg(value_name = "LIST_ID")]
         list_id: String,
-        /// Username of the account
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to remove from the list. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2266,9 +2296,7 @@ pub enum ConversationsCommands {
     /// Start a group conversation and send its first message
     #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::START))]
     Start {
-        /// The people to start it with besides you, 2 to 49: each a
-        /// handle, or a numeric user id
-        #[arg(value_name = "PARTICIPANT", required = true, num_args = 1..)]
+        #[arg(value_name = "PARTICIPANT", required = true, num_args = 1.., help = format!("The people to start it with besides you, 2 to 49. {}", output::account_rule()))]
         participants: Vec<String>,
         /// The first message
         #[arg(long)]
@@ -2305,8 +2333,7 @@ pub enum ConversationsCommands {
     /// List the messages between you and one person
     #[command(after_help = family_help::conversations::FAMILY.verb_page(&family_help::conversations::WITH))]
     With {
-        /// Username of the other person
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The other person. {}", output::account_rule()))]
         target_username: String,
         /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
@@ -2404,8 +2431,7 @@ pub enum SpacesCommands {
     /// List the Spaces 1 to 100 accounts created, in one request
     #[command(after_help = family_help::spaces::FAMILY.verb_page(&family_help::spaces::BY_CREATOR))]
     ByCreator {
-        /// Handles (@jack or jack) or numeric user ids, 1 to 100, in any mix
-        #[arg(value_name = "ACCOUNT", required = true, num_args = 1..)]
+        #[arg(value_name = "ACCOUNT", required = true, num_args = 1.., help = format!("The accounts whose Spaces to read, 1 to 100, in any mix. {}", output::account_rule()))]
         accounts: Vec<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -2444,7 +2470,7 @@ pub enum StreamRulesCommands {
     /// List the filtered stream's rules
     #[command(after_help = family_help::stream_rules::FAMILY.verb_page(&family_help::stream_rules::LIST))]
     List {
-        /// Number of results (1-1000). Overrides global `--limit` when set.
+        /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
@@ -2706,14 +2732,29 @@ pub enum BroadcastsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// Schedule broadcasts, change or cancel them, and start them early
+    /// Delete one of your broadcasts and its replay
+    ///
+    /// X deletes a scheduled or ended broadcast, and refuses a running one.
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::REMOVE))]
+    Remove {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Schedule broadcasts and change or cancel them
     #[command(after_help = family_help::broadcasts_scheduled::page())]
     Scheduled {
         /// `scheduled` verb to dispatch.
         #[command(subcommand)]
         action: ScheduledBroadcastsCommands,
     },
-    /// Read and moderate a broadcast's chat
+    /// Read a broadcast's chat
     #[command(after_help = family_help::broadcast_chat::page())]
     Chat {
         /// `chat` verb to dispatch.
@@ -2726,6 +2767,13 @@ pub enum BroadcastsCommands {
         /// `moderators` verb to dispatch.
         #[command(subcommand)]
         action: ModeratorsCommands,
+    },
+    /// Mute people in every chat of your broadcasts
+    #[command(after_help = family_help::broadcast_mutes::page())]
+    Mutes {
+        /// `mutes` verb to dispatch.
+        #[command(subcommand)]
+        action: MutesCommands,
     },
     /// Manage the RTMP and RTMPS ingest points you stream to
     #[command(after_help = family_help::broadcast_sources::page())]
@@ -2781,9 +2829,6 @@ pub enum ScheduledBroadcastsCommands {
         /// Let people watch the broadcast after it ends
         #[arg(long)]
         replay: bool,
-        /// Wait for `xr broadcasts scheduled live` rather than starting on time
-        #[arg(long)]
-        manual_publish: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -2814,29 +2859,13 @@ pub enum ScheduledBroadcastsCommands {
         /// Let people watch the broadcast after it ends
         #[arg(long)]
         replay: bool,
-        /// Wait for `xr broadcasts scheduled live` rather than starting on time
-        #[arg(long)]
-        manual_publish: bool,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
     /// Cancel a scheduled broadcast
-    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::REMOVE))]
-    Remove {
-        /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
-        #[arg(value_name = "SCHEDULED_ID")]
-        scheduled_id: String,
-        /// Skip the confirmation prompt; required under `--no-interactive`
-        #[arg(long)]
-        force: bool,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Start a scheduled broadcast now
-    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::LIVE))]
-    Live {
+    #[command(after_help = family_help::broadcasts_scheduled::FAMILY.verb_page(&family_help::broadcasts_scheduled::CANCEL))]
+    Cancel {
         /// Scheduled broadcast ID, as `xr broadcasts scheduled list` prints it
         #[arg(value_name = "SCHEDULED_ID")]
         scheduled_id: String,
@@ -2858,72 +2887,9 @@ pub enum BroadcastChatCommands {
         /// Broadcast ID, as `xr broadcasts list` prints it
         #[arg(value_name = "BROADCAST_ID")]
         broadcast_id: String,
-        /// Number of results (1-200). Overrides global `--limit` when set.
+        /// Number of results (1-100). Overrides global `--limit` when set.
         #[arg(short = 'n', long = "max-results")]
         max_results: Option<i32>,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Send a message into a broadcast's chat
-    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::SEND))]
-    Send {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        /// Message text, 1 to 140 characters
-        text: String,
-        /// The chat message to reply to, by id
-        #[arg(long, value_name = "MESSAGE_ID")]
-        reply_to: Option<String>,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Remove a message from a broadcast's chat
-    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::REMOVE))]
-    Remove {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        /// Chat message ID, as `xr broadcasts chat history` prints it
-        #[arg(value_name = "MESSAGE_ID")]
-        message_id: String,
-        /// Skip the confirmation prompt; required under `--no-interactive`
-        #[arg(long)]
-        force: bool,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Mute someone in a broadcast's chat
-    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::MUTE))]
-    Mute {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        /// Username to mute
-        #[arg(value_name = "USERNAME")]
-        target_username: String,
-        /// When the mute ends (RFC 3339 with a zone); for good when unset
-        #[arg(long, value_name = "TIME")]
-        until: Option<String>,
-        /// A chat message of theirs to remove while muting, by id
-        #[arg(long, value_name = "MESSAGE_ID")]
-        message: Option<String>,
-        /// Shortcut flags shared with every other shortcut command.
-        #[command(flatten)]
-        common: CommonFlags,
-    },
-    /// Unmute someone in a broadcast's chat
-    #[command(after_help = family_help::broadcast_chat::FAMILY.verb_page(&family_help::broadcast_chat::UNMUTE))]
-    Unmute {
-        /// Broadcast ID, as `xr broadcasts list` prints it
-        #[arg(value_name = "BROADCAST_ID")]
-        broadcast_id: String,
-        /// Username to unmute
-        #[arg(value_name = "USERNAME")]
-        target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -2943,17 +2909,25 @@ pub enum SourcesCommands {
     /// Show one stream source, and whether it is receiving video
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::GET))]
     Get {
-        /// Source ID, as `xr broadcasts sources list` prints it; it is also
-        /// the stream key
+        /// Source ID, as `xr broadcasts sources list` prints it
         #[arg(value_name = "SOURCE_ID")]
         source_id: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Show the ingest region nearest the X server that answers
+    ///
+    /// Pass it to `xr broadcasts sources add --region`.
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::REGION))]
+    Region {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
     /// Create a stream source
     ///
-    /// Point an encoder at its `rtmps_url` with its `id` as the stream key.
+    /// Point an encoder at its `rtmps_url` with its `stream_key`.
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::ADD))]
     Add {
         /// A label for the source
@@ -2962,7 +2936,7 @@ pub enum SourcesCommands {
         /// Ingest region: us-east-1, us-east-2, us-west-1, us-west-2,
         /// ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1,
         /// ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or
-        /// ap-northeast-2
+        /// ap-northeast-2; `xr broadcasts sources region` names the nearest
         #[arg(long, value_name = "REGION")]
         region: String,
         /// Shortcut flags shared with every other shortcut command.
@@ -2970,13 +2944,13 @@ pub enum SourcesCommands {
         common: CommonFlags,
     },
     /// Rename a stream source
-    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::RENAME))]
-    Rename {
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::UPDATE))]
+    Update {
         /// Source ID, as `xr broadcasts sources list` prints it
         #[arg(value_name = "SOURCE_ID")]
         source_id: String,
         /// The new label
-        #[arg(value_name = "NAME")]
+        #[arg(long, value_name = "NAME")]
         name: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -3010,8 +2984,7 @@ pub enum ModeratorsCommands {
     /// Add a broadcast chat moderator
     #[command(after_help = family_help::broadcasts::FAMILY.verb_page(&family_help::broadcasts::ADD))]
     Add {
-        /// Username to add
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to add. {}", output::account_rule()))]
         target_username: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -3020,9 +2993,53 @@ pub enum ModeratorsCommands {
     /// Remove a broadcast chat moderator
     #[command(after_help = family_help::broadcasts::FAMILY.verb_page(&family_help::broadcasts::REMOVE))]
     Remove {
-        /// Username to remove
-        #[arg(value_name = "USERNAME")]
+        #[arg(value_name = "ACCOUNT", help = format!("The account to remove. {}", output::account_rule()))]
         target_username: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// `xr broadcasts mutes` verbs.
+#[derive(Subcommand, Debug)]
+pub enum MutesCommands {
+    /// List who is muted in your broadcast chats, and until when
+    #[command(after_help = family_help::broadcast_mutes::FAMILY.verb_page(&family_help::broadcast_mutes::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Mute someone in every chat of your broadcasts
+    ///
+    /// A moderator passes `--broadcast` to mute them in every chat of that
+    /// broadcast's host instead.
+    #[command(after_help = family_help::broadcast_mutes::FAMILY.verb_page(&family_help::broadcast_mutes::ADD))]
+    Add {
+        #[arg(value_name = "ACCOUNT", help = format!("The account to mute. {}", output::account_rule()))]
+        target_username: String,
+        /// When the mute ends (RFC 3339 with a zone); for good when unset
+        #[arg(long, value_name = "TIME")]
+        until: Option<String>,
+        /// A broadcast you moderate: mute them in its host's chats
+        #[arg(long, value_name = "BROADCAST_ID")]
+        broadcast: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Unmute someone in your broadcast chats
+    #[command(after_help = family_help::broadcast_mutes::FAMILY.verb_page(&family_help::broadcast_mutes::REMOVE))]
+    Remove {
+        #[arg(value_name = "ACCOUNT", help = format!("The account to unmute. {}", output::account_rule()))]
+        target_username: String,
+        /// A broadcast you moderate: unmute them in its host's chats
+        #[arg(long, value_name = "BROADCAST_ID")]
+        broadcast: Option<String>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -3066,9 +3083,15 @@ pub enum ScheduledCallsCommands {
         /// after `--start`
         #[arg(long, value_name = "TIME")]
         end: Option<String>,
-        /// Number of calls (1-100)
-        #[arg(short = 'n', long = "max-results", default_value_t = 20)]
-        max_results: i32,
+        #[arg(
+            short = 'n',
+            long = "max-results",
+            help = format!(
+                "Number of calls (1-100); {SCHEDULED_CALLS_PAGE_SIZE} when neither this nor \
+                 `--limit` is given. Overrides global `--limit` when set"
+            )
+        )]
+        max_results: Option<i32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
@@ -3173,8 +3196,7 @@ pub struct CallDetailsArgs {
     /// assumes 30
     #[arg(long, value_name = "MINUTES")]
     pub duration: Option<u32>,
-    /// Numeric user ID of someone to invite; repeat for each person
-    #[arg(long = "invite", value_name = "USER_ID")]
+    #[arg(long = "invite", value_name = "ACCOUNT", help = format!("Someone to invite; repeat for each person. {}", output::account_rule()))]
     pub invite: Vec<String>,
     /// The RFC 5545 RRULE to repeat the call by, such as
     /// FREQ=WEEKLY;BYDAY=MO
@@ -3240,8 +3262,13 @@ pub enum WebhooksCommands {
     /// succeeds only while a receiver is reachable there.
     #[command(after_help = family_help::webhooks::FAMILY.verb_page(&family_help::webhooks::ADD))]
     Add {
-        /// The public HTTPS URL X delivers events to (200 characters at most)
-        #[arg(value_name = "URL")]
+        #[arg(
+            value_name = "URL",
+            help = format!(
+                "The public HTTPS URL X delivers events to, with no port \
+                 ({WEBHOOK_URL_MAX_CHARS} characters at most)"
+            )
+        )]
         url: String,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -3353,11 +3380,16 @@ pub enum WebhooksCommands {
         /// it started
         #[arg(last = true, value_name = "PROGRAM")]
         program: Vec<String>,
-        /// Record, at most once a minute, when the oldest event not yet
-        /// delivered to every target arrived (the newest event when none is
-        /// waiting), so `xr webhooks replay --from-checkpoint` can request
-        /// what a stop missed
-        #[arg(long, value_name = "FILE")]
+        #[arg(
+            long,
+            value_name = "FILE",
+            help = format!(
+                "Record, at most once a minute, when the oldest event not yet delivered to every \
+                 target arrived (the newest event when none is waiting), so `xr webhooks replay \
+                 --from-checkpoint` can request what a stop missed. The file holds \
+                 {CHECKPOINT_SHAPE}"
+            )
+        )]
         checkpoint: Option<std::path::PathBuf>,
     },
     /// Deliver a past window of events to a webhook again
@@ -3382,11 +3414,16 @@ pub enum WebhooksCommands {
             required_unless_present = "from_checkpoint"
         )]
         to: Option<String>,
-        /// Request the window from the minute `xr webhooks listen
-        /// --checkpoint` recorded to the current minute, at most the 24 hours
-        /// X replays. Replayed events reach the targets again, repeats
-        /// included
-        #[arg(long, value_name = "FILE", conflicts_with_all = ["from", "to"])]
+        #[arg(
+            long,
+            value_name = "FILE",
+            conflicts_with_all = ["from", "to"],
+            help = format!(
+                "Request the window from the minute `xr webhooks listen --checkpoint` recorded to \
+                 the current minute, at most the 24 hours X replays. Replayed events reach the \
+                 targets again, repeats included. The file holds {CHECKPOINT_SHAPE}"
+            )
+        )]
         from_checkpoint: Option<std::path::PathBuf>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
@@ -3451,9 +3488,8 @@ pub enum WebhookSubscriptionsCommands {
         /// Webhook ID, as `xr webhooks list` prints it
         #[arg(value_name = "WEBHOOK_ID")]
         webhook_id: String,
-        /// Numeric user ID of the subscribed account, as `subscriptions list` prints it
-        #[arg(value_name = "USER_ID")]
-        user_id: String,
+        #[arg(value_name = "ACCOUNT", help = format!("The subscribed account, by username or by the user id `subscriptions list` prints. {}", output::account_rule()))]
+        account: String,
         /// Skip the confirmation prompt; required under `--no-interactive`
         #[arg(long)]
         force: bool,
@@ -3597,8 +3633,7 @@ impl Cli {
 /// it without local duplication.
 #[derive(clap::Args, Debug, Clone)]
 pub struct CommonFlags {
-    /// Authentication type (oauth1, oauth2, app)
-    #[arg(long = "auth")]
+    #[arg(long = "auth", help = accepted_auth::every_scheme_help())]
     pub auth_type: Option<String>,
 
     /// `OAuth2` login to act as, by the name it is stored under: its username, or the name given to

@@ -160,6 +160,6 @@ async fn likers_refuses_an_empty_post_id_before_any_request() {
     let body = json_out(&stdout);
     assert_eq!(body["command"], "likers");
     assert_eq!(body["would_succeed"], false);
-    assert_eq!(body["reason"], "empty-post-id");
+    assert_eq!(body["rule"], "empty-post-id");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

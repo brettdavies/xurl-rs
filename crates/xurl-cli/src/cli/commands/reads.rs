@@ -7,8 +7,8 @@
 use serde_json::json;
 
 use super::{
-    DryRun, Run, dry_run_or_validate, effective_limit, list_for_post, list_for_user, list_owned_by,
-    list_paged, make_client, print_typed, send_or_report, send_validated, with_flags,
+    DryRun, Run, dry_run_or_validate, effective_limit, list_for_post, list_for_user, list_paged,
+    make_client, print_typed, send_or_report, send_validated, with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
@@ -62,11 +62,9 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             max_results,
             common,
         } => {
-            let ctx = json!({"command": "user-posts"});
-            let validator = || shortcuts::validate_target_username(&target_username);
             let of = Some(target_username.as_str());
             let shortcut = Client::get_user_posts;
-            list_owned_by(run, ctx, validator, max_results, of, &common, shortcut).await?;
+            list_for_user(run, "user-posts", max_results, of, &common, shortcut).await?;
         }
         Commands::Search {
             query,

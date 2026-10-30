@@ -63,8 +63,9 @@ pub fn get_oauth2_scopes() -> Vec<&'static str> {
 ///
 /// # Errors
 ///
-/// Returns a validation error naming the valid scopes when `requested`
-/// carries a name outside [`get_oauth2_scopes`].
+/// Returns [`Error::Validation`] with rule `unknown-scope` when `requested`
+/// carries a name outside [`get_oauth2_scopes`], the unknown names, joined
+/// by `, `, in `value`.
 pub fn narrow_oauth2_scopes<S: AsRef<str>>(requested: &[S]) -> Result<Vec<&'static str>> {
     let known = get_oauth2_scopes();
     let unknown: Vec<&str> = requested
@@ -73,15 +74,7 @@ pub fn narrow_oauth2_scopes<S: AsRef<str>>(requested: &[S]) -> Result<Vec<&'stat
         .filter(|name| !known.contains(name))
         .collect();
     if !unknown.is_empty() {
-        return Err(Error::validation(format!(
-            "unknown OAuth2 scope {}. Valid scopes: {}",
-            unknown
-                .iter()
-                .map(|name| format!("{name:?}"))
-                .collect::<Vec<_>>()
-                .join(", "),
-            known.join(", ")
-        )));
+        return Err(Error::validation_of("unknown-scope", unknown.join(", ")));
     }
     Ok(known
         .into_iter()
@@ -268,6 +261,42 @@ pub async fn run_oauth2_flow<F>(
 where
     F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
 {
+    run_flow(auth, http, username, None, cancel, browser_opener).await
+}
+
+/// [`run_oauth2_flow`] with the callback served on `listener`, a socket the
+/// caller has already bound at the port its redirect URI names, instead of
+/// one the flow binds; see [`callback::wait_for_callback_on`].
+///
+/// # Errors
+///
+/// As [`run_oauth2_flow`], and an error when `listener` is bound to a port
+/// other than the redirect URI's.
+pub async fn run_oauth2_flow_on<F>(
+    auth: &mut Auth,
+    http: &reqwest::Client,
+    username: &str,
+    listener: std::net::TcpListener,
+    cancel: CancellationToken,
+    browser_opener: F,
+) -> Result<String>
+where
+    F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
+{
+    run_flow(auth, http, username, Some(listener), cancel, browser_opener).await
+}
+
+async fn run_flow<F>(
+    auth: &mut Auth,
+    http: &reqwest::Client,
+    username: &str,
+    listener: Option<std::net::TcpListener>,
+    cancel: CancellationToken,
+    browser_opener: F,
+) -> Result<String>
+where
+    F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
+{
     // Generate state parameter
     let state_bytes: [u8; 32] = rand::random();
     let state = BASE64_STANDARD.encode(state_bytes);
@@ -296,8 +325,13 @@ where
         }
     };
 
-    let code_result =
-        callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound).await;
+    let code_result = match listener {
+        Some(listener) => {
+            callback::wait_for_callback_on(listener, &redirect_parsed, &state, cancel, on_bound)
+                .await
+        }
+        None => callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound).await,
+    };
 
     if opener_failed.load(std::sync::atomic::Ordering::SeqCst) {
         return Err(Error::auth(

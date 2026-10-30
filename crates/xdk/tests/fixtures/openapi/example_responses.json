@@ -354,6 +354,34 @@
       "muted": true
     }
   },
+  "chat_mutes": {
+    "data": [
+      {
+        "user_id": "2244994945",
+        "end_at_ms": "1793638800000"
+      },
+      {
+        "user_id": "783214"
+      }
+    ],
+    "includes": {
+      "users": [
+        {
+          "id": "2244994945",
+          "name": "X Developers",
+          "username": "XDevelopers"
+        },
+        {
+          "id": "783214",
+          "name": "X",
+          "username": "X"
+        }
+      ]
+    },
+    "meta": {
+      "result_count": 2
+    }
+  },
   "note_created": {
     "data": {
       "id": "1850000000000000002"
@@ -742,39 +770,47 @@
     }
   },
   "stream_sources": {
-    "data": {
-      "sources": [
-        {
-          "id": "1x2y3z4w5v6u",
-          "name": "Studio A",
-          "rtmp_region": "us-east-1",
-          "rtmp_url": "rtmp://va.pscp.tv:80/x",
-          "rtmps_url": "rtmps://va.pscp.tv:443/x",
-          "rtmp_stream_key": "1x2y3z4w5v6u",
-          "is_stream_active": false,
-          "creation_time": 1761148800000,
-          "owner_id": 1234567890123456789
-        }
-      ]
+    "data": [
+      {
+        "id": "1x2y3z4w5v6u",
+        "name": "Studio A",
+        "region": "pdxa",
+        "rtmp_url": "rtmp://va.pscp.tv:80/x",
+        "rtmps_url": "rtmps://va.pscp.tv:443/x",
+        "stream_key": "1x2y3z4w5v6u",
+        "is_stream_active": false,
+        "created_at_ms": "1761148800000"
+      }
+    ],
+    "meta": {
+      "result_count": 1
     }
   },
   "stream_source": {
     "data": {
-      "source": {
-        "id": "1x2y3z4w5v6u",
-        "name": "Studio A",
-        "rtmp_region": "us-east-1",
-        "rtmp_url": "rtmp://va.pscp.tv:80/x",
-        "rtmps_url": "rtmps://va.pscp.tv:443/x",
-        "rtmp_stream_key": "1x2y3z4w5v6u",
-        "is_stream_active": false,
-        "creation_time": 1761148800000,
-        "owner_id": 1234567890123456789
-      }
+      "id": "1x2y3z4w5v6u",
+      "name": "Studio A",
+      "region": "pdxa",
+      "rtmp_url": "rtmp://va.pscp.tv:80/x",
+      "rtmps_url": "rtmps://va.pscp.tv:443/x",
+      "stream_key": "1x2y3z4w5v6u",
+      "is_stream_active": false,
+      "created_at_ms": "1761148800000"
     }
   },
   "stream_source_deleted": {
-    "data": {}
+    "data": {
+      "deleted": true
+    }
+  },
+  "ingest_region": {
+    "region": "us-east-1"
+  },
+  "broadcast_ended": {
+    "data": {
+      "id": "1YqKDqWqdPLGV",
+      "state": "ENDED"
+    }
   },
   "call": {
     "data": {

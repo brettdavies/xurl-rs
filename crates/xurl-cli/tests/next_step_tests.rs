@@ -315,6 +315,40 @@ async fn a_dry_run_refusal_carries_the_step_of_its_real_run(
     assert_eq!(step, expected, "{answer}");
 }
 
+/// A dry run that refuses an input carries the rule it broke and the step
+/// its real run names in every structured format, YAML as well as JSON.
+#[tokio::test]
+async fn a_refused_input_carries_its_message_and_step_in_yaml() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "yaml",
+            "--dry-run",
+            "webhooks",
+            "add",
+            "https://example.com:8443/hook",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    for line in [
+        "message: The webhook URL names a port; X takes one without a port.",
+        "  action: show-help",
+        "  command: xr webhooks add --help",
+        "reason: validation",
+        "rule: webhook-url-has-port",
+    ] {
+        assert!(
+            stdout.lines().any(|l| l == line),
+            "no {line:?} in:\n{stdout}"
+        );
+    }
+}
+
 /// A login flag ahead of the command word is refused with the invocation
 /// that moves it after the word, and that invocation reaches the command.
 #[tokio::test]

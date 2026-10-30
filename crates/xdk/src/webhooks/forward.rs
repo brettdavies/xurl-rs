@@ -122,21 +122,8 @@ impl UrlTarget {
     /// value, and no message repeats the URL. An `http` error when the HTTP
     /// client cannot be built.
     pub fn new(url: &str, headers: &[impl AsRef<str>]) -> Result<Self> {
-        validate_forward_url(url).map_err(|reason| {
-            Error::validation(match reason {
-                "forward-url-not-http" => {
-                    "forward-url-not-http: a forward takes an http or https URL"
-                }
-                "forward-url-has-credentials" => {
-                    "forward-url-has-credentials: the forward URL carries a username or \
-                     password; send a credential in a header such as Authorization instead"
-                }
-                _ => "forward-url-invalid: the forward URL is not an absolute URL",
-            })
-        })?;
-        let url = reqwest::Url::parse(url).map_err(|_| {
-            Error::validation("forward-url-invalid: the forward URL does not parse")
-        })?;
+        validate_forward_url(url).map_err(Error::validation)?;
+        let url = reqwest::Url::parse(url).map_err(|_| Error::validation("forward-url-invalid"))?;
         let headers = headers
             .iter()
             .enumerate()
@@ -239,21 +226,20 @@ pub fn validate_forward_url(url: &str) -> std::result::Result<(), &'static str> 
 
 /// One caller header, from its `Name: Value` line at `position` (from 1).
 fn caller_header(position: usize, line: &str) -> Result<(HeaderName, HeaderValue)> {
-    let refuse = |why: &str| Error::validation(format!("header {position} {why}"));
+    let refuse = |rule: &'static str| Error::validation_of(rule, position.to_string());
     let Some((name, value)) = line.split_once(':') else {
-        return Err(refuse("is not `Name: Value`: it has no colon"));
+        return Err(refuse("header-not-name-value"));
     };
     let name = name.trim();
     if name.is_empty() {
-        return Err(refuse("has an empty name"));
+        return Err(refuse("empty-header-name"));
     }
-    let name = HeaderName::from_bytes(name.as_bytes())
-        .map_err(|_| refuse("has a name HTTP does not allow"))?;
+    let name =
+        HeaderName::from_bytes(name.as_bytes()).map_err(|_| refuse("invalid-header-name"))?;
     if RESERVED_HEADERS.contains(&name.as_str()) {
-        return Err(refuse(&format!("sets {name}, which a forward sets itself")));
+        return Err(refuse("reserved-header"));
     }
-    let value = HeaderValue::from_str(value.trim())
-        .map_err(|_| refuse("has a value HTTP does not allow"))?;
+    let value = HeaderValue::from_str(value.trim()).map_err(|_| refuse("invalid-header-value"))?;
     Ok((name, value))
 }
 

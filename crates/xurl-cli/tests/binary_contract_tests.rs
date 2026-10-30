@@ -102,9 +102,9 @@ fn bare_invocation_prints_help() {
 }
 
 #[test]
-fn missing_url_exits_one() {
-    // Raw mode (a raw-only flag, no URL) — EXIT_GENERAL_ERROR.
-    let assert = common::xr().args(["-X", "POST"]).assert().failure().code(1);
+fn missing_url_exits_two() {
+    // Raw mode with a raw-only flag and no URL is a usage error.
+    let assert = common::xr().args(["-X", "POST"]).assert().failure().code(2);
     let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
     assert!(
         stderr.contains("No URL provided"),

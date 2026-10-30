@@ -4,29 +4,48 @@ mod common;
 
 use predicates::prelude::*;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use rstest::rstest;
 use xurl::cli::commands::schema::{
-    FLAG_FORMS, SCHEMA_LESS_COMMANDS, registered_commands, registered_types, schema_name_for_path,
+    SCHEMA_LESS_COMMANDS, file_stem, registered_commands, registered_types, scope_words,
 };
 use xurl::cli::commands::validate::{UNVALIDATED_TYPES, validated_types};
 
-const SCHEMA_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema.rs";
+const SCHEMA_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema/mod.rs";
+const RUN_SOURCE: &str = "crates/xurl-cli/src/cli/commands/schema/run.rs";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Single command schema
 // ═══════════════════════════════════════════════════════════════════════════
 
+/// `xr schema <args> --output json`, parsed.
+fn schema_json(args: &[&str]) -> serde_json::Value {
+    let output = common::xr()
+        .args(["--output", "json", "schema"])
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "xr schema {args:?}: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
 #[test]
-fn schema_post_outputs_valid_json_schema() {
-    let output = common::xr().args(["schema", "post"]).output().unwrap();
-    assert!(output.status.success());
-    let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    // Must have standard JSON Schema fields
-    assert!(json.get("$defs").is_some() || json.get("definitions").is_some());
-    assert!(json.get("properties").is_some());
+fn schema_post_full_is_the_complete_standalone_schema() {
+    let json = schema_json(&["post", "--full"]);
+    assert!(json.get("$defs").is_some());
     assert_eq!(json["type"], "object");
+    let properties = json["properties"].as_object().unwrap();
+    for key in ["data", "includes", "meta", "errors"] {
+        assert!(
+            properties.contains_key(key),
+            "--full keeps the wrapper's {key}"
+        );
+    }
 }
 
 #[test]
@@ -35,8 +54,187 @@ fn schema_post_contains_post_fields() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("\"text\""));
     assert!(stdout.contains("\"author_id\""));
-    assert!(stdout.contains("\"includes\""));
-    assert!(stdout.contains("\"meta\""));
+}
+
+#[test]
+fn the_default_view_is_data_resolved_in_place_under_its_labels() {
+    let view = schema_json(&["webhooks", "subscriptions", "count"]);
+    assert_eq!(view["command"], "webhooks subscriptions count");
+    assert_eq!(view["data_cardinality"], "object");
+    assert_eq!(view["data_type"], "AccountActivitySubscriptionCount");
+    assert_eq!(view["common_schema"], "xr schema --common");
+    assert!(view.get("data_nullable").is_none());
+    assert!(view.get("$defs").is_none());
+    let mut fields: Vec<&String> = view["properties"].as_object().unwrap().keys().collect();
+    fields.sort();
+    assert_eq!(
+        fields,
+        [
+            "account_name",
+            "provisioned_count",
+            "subscriptions_count_all",
+            "subscriptions_count_direct_messages"
+        ]
+    );
+    assert!(
+        view["description"]
+            .as_str()
+            .unwrap()
+            .starts_with("How many Account Activity subscriptions"),
+        "the view carries the data type's own description"
+    );
+}
+
+#[test]
+fn an_array_view_describes_one_element() {
+    let view = schema_json(&["search"]);
+    assert_eq!(view["data_cardinality"], "array");
+    assert_eq!(view["data_type"], "Post");
+    assert!(view["properties"]["text"].is_object());
+    assert!(
+        view["properties"]["public_metrics"]["properties"]["like_count"].is_object(),
+        "nested types are inlined"
+    );
+}
+
+#[test]
+fn a_view_of_data_that_may_be_null_says_so() {
+    let view = schema_json(&["stream", "rules", "add"]);
+    assert_eq!(view["data_cardinality"], "array");
+    assert_eq!(view["data_nullable"], true);
+    assert_eq!(view["data_type"], "StreamRule");
+}
+
+#[test]
+fn a_shape_the_cli_builds_has_no_wrapper_label() {
+    let view = schema_json(&["auth", "status"]);
+    assert!(view.get("common_schema").is_none());
+    assert_eq!(view["data_type"], "AppStatusEntry");
+    assert_eq!(
+        schema_json(&["auth", "apps", "redirect-uri", "get"])["data_type"],
+        "RedirectUriGetResponse"
+    );
+}
+
+#[test]
+fn every_default_view_is_free_of_references_and_the_wrapper() {
+    let all = schema_json(&["--all"]);
+    let mut leaking = Vec::new();
+    for (command, view) in all.as_object().unwrap() {
+        let text = view.to_string();
+        let wrapper = view["properties"].as_object().is_some_and(|properties| {
+            ["includes", "meta", "errors"]
+                .iter()
+                .any(|key| properties.contains_key(*key))
+        });
+        if text.contains("\"$ref\"") || view.get("$defs").is_some() || wrapper {
+            leaking.push(command.clone());
+        }
+    }
+    assert!(
+        leaking.is_empty(),
+        "these default views carry a reference, definitions, or the wrapper: {leaking:?}\n\
+         Cause: the row's type recurses, so schemars kept a `$ref`, or the view no longer \
+         starts from `data`.\n\
+         Fix: in {RUN_SOURCE} and schema/resolve.rs, keep the view at the inlined `data`; a \
+         recursive response type needs its own treatment before it gets a row."
+    );
+}
+
+#[test]
+fn common_is_the_shared_wrapper_with_its_definitions_once() {
+    let common = schema_json(&["--common"]);
+    let mut properties: Vec<&String> = common["properties"].as_object().unwrap().keys().collect();
+    properties.sort();
+    assert_eq!(properties, ["data", "errors", "includes", "meta"]);
+    let defs = common["$defs"].as_object().unwrap();
+    for name in ["Includes", "Post", "User", "ApiError", "ResponseMeta"] {
+        assert!(defs.contains_key(name), "--common defines {name}");
+    }
+}
+
+#[test]
+fn a_path_resolves_one_node_with_or_without_data() {
+    let short = schema_json(&["post", "--path", "public_metrics"]);
+    let long = schema_json(&["post", "--path", "data.public_metrics"]);
+    assert_eq!(short, long);
+    assert!(
+        schema_json(&["post", "--path", "data"])["properties"]["text"].is_object(),
+        "`--path data` is the data itself"
+    );
+    assert!(short["properties"]["like_count"].is_object());
+    assert!(
+        schema_json(&["search", "--path", "entities"])["description"].is_string(),
+        "a path steps through the array of posts"
+    );
+    assert_eq!(
+        schema_json(&["--common", "--path", "includes.users"])["properties"]["username"]["type"],
+        "string"
+    );
+}
+
+#[test]
+fn a_path_that_names_no_property_carries_a_template_that_works() {
+    let output = common::xr()
+        .args([
+            "--output",
+            "json",
+            "schema",
+            "post",
+            "--path",
+            "public_metrics.nope",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(envelope["reason"], "invalid-args");
+    assert_eq!(envelope["path"], "public_metrics.nope");
+    assert!(
+        envelope["known_properties"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("like_count"))
+    );
+    assert_eq!(envelope["next_step"]["action"], "fix-input");
+    let template = envelope["next_step"]["template"].as_str().unwrap();
+    assert_eq!(template, "xr schema post --path public_metrics.<property>");
+
+    let filled = template.replace("<property>", "like_count");
+    let words: Vec<&str> = filled.split_whitespace().skip(1).collect();
+    assert!(common::xr().args(&words).output().unwrap().status.success());
+
+    let output = common::xr()
+        .args([
+            "--output",
+            "json",
+            "schema",
+            "post",
+            "--path",
+            "text.length",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(envelope["known_properties"], serde_json::json!([]));
+}
+
+#[rstest]
+#[case(&["post", "--common"])]
+#[case(&["--full"])]
+#[case(&["--list", "--all"])]
+#[case(&["--envelope", "--path", "x"])]
+#[case(&["post", "--full", "--path", "x"])]
+fn scopes_that_cannot_combine_are_refused_by_clap(#[case] args: &[&str]) {
+    let output = common::xr()
+        .args(["--output", "json", "schema"])
+        .args(args)
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2), "xr schema {args:?}");
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(envelope["reason"], "invalid-args");
 }
 
 #[test]
@@ -70,44 +268,73 @@ fn schema_no_extra_named_property() {
 // --list flag
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[test]
-fn schema_list_advertises_every_registered_command_plus_envelope() {
-    let output = common::xr().args(["schema", "--list"]).output().unwrap();
+/// The records `xr schema --list --output json` prints.
+fn list_records() -> Vec<serde_json::Value> {
+    let output = common::xr()
+        .args(["schema", "--list", "--output", "json"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let listed: BTreeSet<&str> = stdout
-        .lines()
-        .filter_map(|line| line.split_whitespace().next())
-        .collect();
-    assert!(
-        listed.contains("envelope"),
-        "--list should advertise the envelope schema"
-    );
+    serde_json::from_slice::<serde_json::Value>(&output.stdout)
+        .expect("`xr schema --list --output json` is one JSON value")
+        .as_array()
+        .expect("an array of records")
+        .clone()
+}
 
-    let registry: BTreeSet<&str> = registered_commands().collect();
-    let missing: Vec<&&str> = registry.difference(&listed).collect();
+#[test]
+fn schema_list_records_every_registered_command_and_nothing_else() {
+    let records = list_records();
+    let listed: BTreeSet<String> = records
+        .iter()
+        .map(|record| record["command"].as_str().expect("a command").to_string())
+        .collect();
+    let registry: BTreeSet<String> = registered_commands().map(str::to_string).collect();
+    let missing: Vec<&String> = registry.difference(&listed).collect();
     assert!(
         missing.is_empty(),
         "`xr schema --list` omits registered commands: {missing:?}\n\
-         Cause: print_schema_list in {SCHEMA_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
+         Cause: print_schema_list in {RUN_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
          Fix: make the listing read SCHEMA_ENTRIES in full; a command reaches `--list` by \
          being in the registry, never by being listed again."
     );
-    let extra: Vec<&&str> = listed
-        .difference(&registry)
-        .filter(|name| **name != "envelope")
-        .collect();
+    let extra: Vec<&String> = listed.difference(&registry).collect();
     assert!(
         extra.is_empty(),
         "`xr schema --list` advertises commands with no registry row: {extra:?}\n\
-         Cause: print_schema_list in {SCHEMA_SOURCE} prints a name that is not in SCHEMA_ENTRIES.\n\
+         Cause: print_schema_list in {RUN_SOURCE} prints a name that is not in SCHEMA_ENTRIES.\n\
          Fix: add the command's row to SCHEMA_ENTRIES or drop it from the listing."
     );
     assert_eq!(
-        stdout.lines().count(),
-        registry.len() + 1,
-        "`xr schema --list` prints one row per registered command plus the envelope row"
+        records.len(),
+        registry.len(),
+        "one record per registered command"
     );
+    for record in &records {
+        let command = record["command"].as_str().unwrap_or_default();
+        assert_eq!(
+            record["file"],
+            format!("{}.schema.json", file_stem(command)),
+            "the record for {command} names its file"
+        );
+        assert!(
+            record["type"].is_string(),
+            "the record for {command} names its type"
+        );
+    }
+}
+
+#[test]
+fn schema_list_tsv_has_a_header_and_one_row_per_command() {
+    let output = common::xr()
+        .args(["schema", "--list", "--output", "tsv"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let mut lines = stdout.lines();
+    assert_eq!(lines.next(), Some("command\tfile\ttype"));
+    assert_eq!(lines.count(), registered_commands().count());
 }
 
 #[test]
@@ -146,7 +373,7 @@ fn schema_list_contains_expected_commands() {
         "dm",
         "dms",
         "usage",
-        "usage-credits",
+        "usage credits",
     ];
     for cmd in expected {
         assert!(stdout.contains(cmd), "--list output missing command: {cmd}");
@@ -180,7 +407,7 @@ fn schema_all_emits_one_schema_per_registered_command() {
     assert!(
         missing.is_empty(),
         "`xr schema --all` omits registered commands: {missing:?}\n\
-         Cause: print_all_schemas in {SCHEMA_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
+         Cause: print_all_schemas in {RUN_SOURCE} no longer walks every SCHEMA_ENTRIES row.\n\
          Fix: make `--all` read SCHEMA_ENTRIES in full; a command reaches `--all` by being in \
          the registry, never by being listed again."
     );
@@ -188,27 +415,17 @@ fn schema_all_emits_one_schema_per_registered_command() {
     assert!(
         extra.is_empty(),
         "`xr schema --all` emits schemas for commands with no registry row: {extra:?}\n\
-         Cause: print_all_schemas in {SCHEMA_SOURCE} emits a key that is not in SCHEMA_ENTRIES.\n\
+         Cause: print_all_schemas in {RUN_SOURCE} emits a key that is not in SCHEMA_ENTRIES.\n\
          Fix: add the command's row to SCHEMA_ENTRIES or drop it from `--all`."
     );
-    // Each value should be a valid schema object — either an object schema
-    // with `properties` or an array schema with `items`.
-    for (cmd, schema) in obj {
-        let shape_ok = schema.get("properties").is_some() || schema.get("items").is_some();
-        assert!(shape_ok, "Schema for '{cmd}' missing properties or items");
+    // Each value is that command's default view, labelled with its words.
+    for (cmd, view) in obj {
+        assert_eq!(view["command"], cmd.as_str(), "the view of {cmd} names it");
+        assert!(
+            view["data_cardinality"].is_string(),
+            "the view of {cmd} says whether data is an array"
+        );
     }
-}
-
-#[test]
-fn schema_all_takes_precedence_over_list() {
-    // When both --all and --list are provided, --all takes precedence
-    let output = common::xr()
-        .args(["schema", "--all", "--list"])
-        .output()
-        .unwrap();
-    assert!(output.status.success());
-    // Should be JSON (--all), not plain text (--list)
-    let _: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -279,9 +496,12 @@ fn schema_no_args_shows_usage() {
 
 #[test]
 fn envelope_schema_is_draft_2020_12_with_oneof() {
-    // `xr schema envelope` emits the canonical envelope JSON Schema; agents
+    // `xr schema --envelope` emits the canonical envelope JSON Schema; agents
     // pin against `$schema` + the three-variant `oneOf`.
-    let output = common::xr().args(["schema", "envelope"]).output().unwrap();
+    let output = common::xr()
+        .args(["schema", "--envelope"])
+        .output()
+        .unwrap();
     assert!(output.status.success());
     let parsed: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(
@@ -299,24 +519,26 @@ fn envelope_schema_is_draft_2020_12_with_oneof() {
 }
 
 #[test]
-fn envelope_schema_via_flag_equals_positional() {
-    let by_pos = common::xr().args(["schema", "envelope"]).output().unwrap();
-    let by_flag = common::xr()
-        .args(["schema", "--envelope"])
+fn envelope_as_a_word_is_refused_with_the_flag_as_its_step() {
+    let output = common::xr()
+        .args(["--output", "json", "schema", "envelope"])
         .output()
         .unwrap();
-    assert!(by_pos.status.success());
-    assert!(by_flag.status.success());
-    assert_eq!(by_pos.stdout, by_flag.stdout);
+    assert_eq!(output.status.code(), Some(2));
+    let envelope: serde_json::Value = serde_json::from_slice(&output.stderr).unwrap();
+    assert_eq!(envelope["reason"], "invalid-args");
+    assert_eq!(envelope["command"], "envelope");
+    assert_eq!(envelope["next_step"]["action"], "fix-input");
+    assert_eq!(envelope["next_step"]["command"], "xr schema --envelope");
 }
 
 #[test]
 fn committed_envelope_schema_matches_runtime() {
     // Drift guard: schema/output.schema.json must match the runtime-emitted
     // schema byte-for-byte. Regenerate via:
-    //   cargo run --bin xr -- schema envelope --output json > schema/output.schema.json
+    //   cargo run --bin xr -- schema --envelope --output json > schema/output.schema.json
     let output = common::xr()
-        .args(["schema", "envelope", "--output", "json"])
+        .args(["schema", "--envelope", "--output", "json"])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -329,45 +551,37 @@ fn committed_envelope_schema_matches_runtime() {
     assert_eq!(
         runtime.trim(),
         committed.trim(),
-        "schema/output.schema.json drifted; regenerate with: cargo run --bin xr -- schema envelope --output json > schema/output.schema.json"
+        "schema/output.schema.json drifted; regenerate with: cargo run --bin xr -- schema --envelope --output json > schema/output.schema.json"
     );
 }
 
 #[test]
 fn committed_response_schemas_match_runtime() {
-    // Drift guard: every schema/responses/<cmd>.schema.json must match the
-    // runtime-emitted shape for that command. Regenerate via:
+    // Drift guard: every schema/responses/<file> must match the runtime-emitted
+    // shape for its command. Regenerate via:
     //   ./scripts/generate-response-schemas.sh
-    let list = common::xr()
-        .args(["schema", "--list", "--output", "text"])
-        .output()
-        .unwrap();
-    assert!(list.status.success());
-    let list_text = String::from_utf8(list.stdout).unwrap();
-
     let dir = concat!(env!("CARGO_WORKSPACE_DIR"), "/schema/responses");
     let mut checked = 0usize;
-    for line in list_text.lines() {
-        let cmd = line.split_whitespace().next().unwrap_or("");
-        if cmd.is_empty() || cmd == "envelope" {
-            continue;
-        }
-        let runtime = common::xr()
-            .args(["schema", cmd, "--output", "json"])
-            .output()
-            .unwrap();
-        assert!(runtime.status.success(), "xr schema {cmd} exited non-zero");
+    for record in list_records() {
+        let command = record["command"].as_str().expect("a command");
+        let file = record["file"].as_str().expect("a file");
+        let mut args = vec!["schema", "--full", "--output", "json", "--"];
+        args.extend(command.split_whitespace());
+        let runtime = common::xr().args(&args).output().unwrap();
+        assert!(
+            runtime.status.success(),
+            "xr schema {command} exited non-zero"
+        );
         let runtime_body = String::from_utf8(runtime.stdout).unwrap();
-        let path = format!("{dir}/{cmd}.schema.json");
-        let committed = std::fs::read_to_string(&path).unwrap_or_else(|_| {
+        let committed = std::fs::read_to_string(format!("{dir}/{file}")).unwrap_or_else(|_| {
             panic!(
-                "schema/responses/{cmd}.schema.json missing; regenerate with: ./scripts/generate-response-schemas.sh"
+                "schema/responses/{file} missing; regenerate with: ./scripts/generate-response-schemas.sh"
             )
         });
         assert_eq!(
             runtime_body.trim(),
             committed.trim(),
-            "schema/responses/{cmd}.schema.json drifted; regenerate with: ./scripts/generate-response-schemas.sh"
+            "schema/responses/{file} drifted; regenerate with: ./scripts/generate-response-schemas.sh"
         );
         checked += 1;
     }
@@ -378,43 +592,51 @@ fn committed_response_schemas_match_runtime() {
 fn committed_response_schemas_have_no_orphans() {
     // The generator only writes files for commands in SCHEMA_ENTRIES; a
     // command removed from the list leaves its committed schema behind.
-    let list = common::xr()
-        .args(["schema", "--list", "--output", "text"])
-        .output()
-        .unwrap();
-    assert!(list.status.success());
-    let list_text = String::from_utf8(list.stdout).unwrap();
-    let known: std::collections::BTreeSet<String> = list_text
-        .lines()
-        .filter_map(|line| line.split_whitespace().next())
-        .filter(|cmd| !cmd.is_empty() && *cmd != "envelope")
-        .map(str::to_string)
+    let known: BTreeSet<String> = registered_commands()
+        .map(|command| format!("{}.schema.json", file_stem(command)))
         .collect();
-
     let dir = concat!(env!("CARGO_WORKSPACE_DIR"), "/schema/responses");
     let orphans: Vec<String> = std::fs::read_dir(dir)
         .unwrap()
         .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
-        .filter_map(|name| {
-            name.strip_suffix(".schema.json")
-                .filter(|cmd| !known.contains(*cmd))
-                .map(|_| name.clone())
-        })
+        .filter(|name| !known.contains(name))
         .collect();
     assert!(
         orphans.is_empty(),
-        "schema/responses/ has files for commands `xr schema --list` does not know: {orphans:?}; delete them"
+        "schema/responses/ has files for commands the registry does not know: {orphans:?}; delete them"
+    );
+}
+
+#[test]
+fn every_registry_row_derives_its_own_file() {
+    let mut seen: BTreeMap<String, &str> = BTreeMap::new();
+    let mut shared = Vec::new();
+    for command in registered_commands() {
+        if let Some(other) = seen.insert(file_stem(command), command) {
+            shared.push(format!("{other} and {command}"));
+        }
+    }
+    assert!(
+        shared.is_empty(),
+        "these registry rows derive the same schema/responses/ file: {shared:?}\n\
+         Cause: two command paths join with `-` to the same name, so one row's committed \
+         schema would overwrite the other's.\n\
+         Fix: in {SCHEMA_SOURCE}, file_stem must tell the two apart, or one command is renamed."
     );
 }
 
 #[test]
 fn schema_commands_sharing_type_produce_identical_output() {
     // post, reply, quote, read should all return the same schema
-    let post = common::xr().args(["schema", "post"]).output().unwrap();
-    let reply = common::xr().args(["schema", "reply"]).output().unwrap();
+    let mut post = schema_json(&["post"]);
+    let mut reply = schema_json(&["reply"]);
+    assert_eq!(post["command"], "post");
+    assert_eq!(reply["command"], "reply");
+    post.as_object_mut().unwrap().remove("command");
+    reply.as_object_mut().unwrap().remove("command");
     assert_eq!(
-        post.stdout, reply.stdout,
-        "post and reply should share the same schema"
+        post, reply,
+        "post and reply share one view apart from the command"
     );
 }
 
@@ -422,14 +644,11 @@ fn schema_commands_sharing_type_produce_identical_output() {
 // Registry exhaustiveness: clap's command tree is the source of truth
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// Every command clap parses, under the name `xr schema` accepts for it.
+/// Every command clap parses, by the words `xr schema` and `xr help` take.
 fn clap_schema_names() -> BTreeSet<String> {
     common::command_paths()
         .iter()
-        .map(|path| {
-            let parts: Vec<&str> = path.iter().map(String::as_str).collect();
-            schema_name_for_path(&parts)
-        })
+        .map(|path| path.join(" "))
         .collect()
 }
 
@@ -467,18 +686,17 @@ fn every_clap_command_is_in_exactly_one_schema_set() {
 #[test]
 fn declared_schema_sets_name_only_commands_clap_parses() {
     let names = clap_schema_names();
-    let flag_forms: BTreeSet<&str> = FLAG_FORMS.iter().map(|(name, _)| *name).collect();
 
     let stale_registry: Vec<&str> = registered_commands()
-        .filter(|name| !names.contains(*name) && !flag_forms.contains(name))
+        .filter(|name| !names.contains(*name))
         .collect();
     assert!(
         stale_registry.is_empty(),
         "SCHEMA_ENTRIES names commands clap does not parse: {stale_registry:?}\n\
-         Cause: the command was renamed or removed from the clap tree, or its schema name \
-         differs from its clap path without a SCHEMA_NAME_OVERRIDES entry.\n\
-         Fix: in {SCHEMA_SOURCE}, drop the row, rename it to the clap path joined with `-`, \
-         or add the override; then run scripts/generate-response-schemas.sh."
+         Cause: the command was renamed or removed from the clap tree, and the row still \
+         names it by its old words.\n\
+         Fix: in {SCHEMA_SOURCE}, drop the row or rename it to the command's words as \
+         `xr help` takes them; then run scripts/generate-response-schemas.sh."
     );
 
     let stale_schema_less: Vec<&&str> = SCHEMA_LESS_COMMANDS
@@ -490,18 +708,6 @@ fn declared_schema_sets_name_only_commands_clap_parses() {
         "SCHEMA_LESS_COMMANDS names commands clap does not parse: {stale_schema_less:?}\n\
          Cause: the command was renamed or removed from the clap tree.\n\
          Fix: in {SCHEMA_SOURCE}, drop each stale name from SCHEMA_LESS_COMMANDS."
-    );
-
-    let stale_flag_forms: Vec<&&str> = FLAG_FORMS
-        .iter()
-        .map(|(_, base)| base)
-        .filter(|base| !names.contains(**base))
-        .collect();
-    assert!(
-        stale_flag_forms.is_empty(),
-        "FLAG_FORMS points at commands clap does not parse: {stale_flag_forms:?}\n\
-         Cause: the base command was renamed or removed from the clap tree.\n\
-         Fix: in {SCHEMA_SOURCE}, point each entry at the command whose flag it describes."
     );
 }
 
@@ -521,18 +727,125 @@ fn registry_names_each_command_once() {
 }
 
 #[rstest]
-#[case("skill")]
-#[case("examples")]
-#[case("validate")]
-#[case("auth-oauth2")]
-#[case("media-upload")]
-fn schema_less_command_is_not_reported_unknown(#[case] command: &str) {
+#[case(&["skill"])]
+#[case(&["examples"])]
+#[case(&["validate"])]
+#[case(&["auth", "oauth2"])]
+#[case(&["media", "upload"])]
+#[case(&["skill", "install"])]
+#[case(&["skill", "update"])]
+fn schema_less_command_is_not_reported_unknown(#[case] words: &[&str]) {
     common::xr()
-        .args(["schema", command])
+        .arg("schema")
+        .args(words)
         .assert()
         .failure()
         .stderr(predicate::str::contains("schema not available"))
         .stderr(predicate::str::contains("unknown command").not());
+}
+
+#[test]
+fn a_family_without_a_schema_names_the_commands_beneath_it_that_have_one() {
+    common::xr()
+        .args(["schema", "webhooks"])
+        .assert()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "schema not available for 'webhooks'",
+        ))
+        .stderr(predicate::str::contains("webhooks subscriptions count"));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Command words: the words `xr help` takes, and what a wrong word gets
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// `xr --output json schema <args>`: the exit code and the envelope on stderr.
+fn schema_refusal(args: &[&str]) -> (Option<i32>, serde_json::Value) {
+    let output = common::xr()
+        .args(["--output", "json", "schema"])
+        .args(args)
+        .output()
+        .unwrap();
+    let envelope = serde_json::from_slice(&output.stderr).unwrap_or(serde_json::Value::Null);
+    (output.status.code(), envelope)
+}
+
+#[rstest]
+#[case(&["webhooks", "subscriptions", "count"], "webhooks-subscriptions-count")]
+#[case(&["auth", "apps", "redirect-uri", "get"], "auth-apps-redirect-uri-get")]
+#[case(&["spaces", "by-creator"], "spaces-by-creator")]
+#[case(&["search-users"], "search-users")]
+fn a_command_is_named_by_its_words(#[case] words: &[&str], #[case] file: &str) {
+    let output = common::xr()
+        .args(["schema", "--full", "--output", "json"])
+        .args(words)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "xr schema {words:?}");
+    let committed = std::fs::read_to_string(format!(
+        "{}/schema/responses/{file}.schema.json",
+        env!("CARGO_WORKSPACE_DIR")
+    ))
+    .unwrap();
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap().trim(),
+        committed.trim()
+    );
+}
+
+#[test]
+fn a_mistyped_word_gets_the_refusal_xr_help_gives_it() {
+    let (code, envelope) = schema_refusal(&["webhooks", "subscriptoins", "count"]);
+    assert_eq!(code, Some(2));
+    assert_eq!(envelope["reason"], "unknown-command");
+    assert_eq!(envelope["command"], "subscriptoins");
+    assert_eq!(envelope["suggestion"], "subscriptions");
+    assert_eq!(envelope["next_step"]["action"], "show-help");
+
+    let (code, envelope) = schema_refusal(&["post", "extra"]);
+    assert_eq!(code, Some(2));
+    assert_eq!(envelope["reason"], "unknown-command");
+    assert_eq!(envelope["command"], "extra");
+}
+
+#[rstest]
+#[case(
+    "webhooks-subscriptions-count",
+    "xr schema webhooks subscriptions count"
+)]
+#[case("redirect-uri-get", "xr schema auth apps redirect-uri get")]
+#[case("broadcasts-scheduled-remove", "xr schema broadcasts scheduled cancel")]
+#[case("broadcasts-sources-rename", "xr schema broadcasts sources update")]
+fn an_old_name_is_refused_with_the_words_that_work(#[case] old: &str, #[case] run: &str) {
+    let (code, envelope) = schema_refusal(&[old]);
+    assert_eq!(code, Some(2));
+    assert_eq!(envelope["reason"], "invalid-args");
+    assert_eq!(envelope["command"], old);
+    assert_eq!(envelope["next_step"]["action"], "fix-input");
+    assert_eq!(envelope["next_step"]["command"], run);
+
+    let words: Vec<&str> = run.split_whitespace().skip(1).collect();
+    let rerun = common::xr().args(&words).output().unwrap();
+    assert!(rerun.status.success(), "the step `{run}` runs");
+}
+
+#[test]
+fn no_top_level_command_shares_a_name_with_a_scope_flag() {
+    let scopes = scope_words();
+    assert!(
+        !scopes.is_empty(),
+        "the schema subcommand declares its scope flags"
+    );
+    let clashing: Vec<String> = common::top_level_families()
+        .into_iter()
+        .filter(|family| scopes.contains(family))
+        .collect();
+    assert!(
+        clashing.is_empty(),
+        "these top-level commands share a name with an `xr schema` flag: {clashing:?}; \
+         `xr schema <name>` refuses the word as a scope, so the command's schema would be unreachable"
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

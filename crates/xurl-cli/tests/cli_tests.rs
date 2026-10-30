@@ -14,7 +14,7 @@ mod common;
 use std::path::Path;
 
 use tempfile::TempDir;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xurl::cli;
@@ -2661,7 +2661,7 @@ async fn test_post_empty_body_dry_run_reports_empty_body_reason() {
     let v = parse_json(&stdout);
     assert_eq!(v["status"], "dry_run");
     assert_eq!(v["would_succeed"], serde_json::Value::Bool(false));
-    assert_eq!(v["reason"], "empty-body");
+    assert_eq!(v["rule"], "empty-body");
     assert_eq!(v["exit_code"], 1);
 }
 
@@ -3597,11 +3597,84 @@ async fn test_limit_help_advertised_globally() {
     );
 }
 
+/// The heading every global flag carries on every help page.
+const GLOBAL_HEADING: &str = "Global Options";
+
+/// A root argument is global exactly when it sits under the global heading,
+/// so a flag added later as global cannot land among a command's own options.
+#[test]
+fn every_global_flag_and_only_a_global_flag_carries_the_global_heading() {
+    use clap::CommandFactory;
+    let root = cli::Cli::command();
+    let misplaced: Vec<String> = root
+        .get_arguments()
+        .filter(|arg| arg.is_global_set() != (arg.get_help_heading() == Some(GLOBAL_HEADING)))
+        .map(|arg| arg.get_id().to_string())
+        .collect();
+    assert!(
+        misplaced.is_empty(),
+        "these root arguments are global without the {GLOBAL_HEADING:?} heading, or carry it \
+         without being global: {misplaced:?}"
+    );
+}
+
+/// No help page lists a global flag among the command's own options: clap
+/// copies each global flag into a subcommand with the place it holds on the
+/// root, which would put it between the command's flags.
+#[test]
+fn no_help_page_lists_a_global_flag_under_options() {
+    use clap::CommandFactory;
+    let mut root = cli::Cli::command();
+    root.build();
+    let flag_line = regex::Regex::new(r"^\s{2,}(?:-\w, )?--([a-z][a-z-]*)").unwrap();
+
+    let mut paths = common::command_paths();
+    paths.push(Vec::new());
+    let mut found = Vec::new();
+    for path in paths {
+        let cmd = path.iter().fold(&mut root, |cmd, name| {
+            cmd.find_subcommand_mut(name)
+                .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+        });
+        // A command's own flag of the same name, such as `skill install
+        // --dry-run`, keeps clap from copying the global one in.
+        let globals: Vec<String> = cmd
+            .get_arguments()
+            .filter(|arg| arg.is_global_set())
+            .filter_map(|arg| arg.get_long().map(str::to_string))
+            .collect();
+        assert!(
+            !globals.is_empty(),
+            "xr {}: no global flag reached it",
+            path.join(" ")
+        );
+        let help = cmd.render_long_help().to_string();
+        let own_options = help
+            .lines()
+            .skip_while(|line| *line != "Options:")
+            .skip(1)
+            .take_while(|line| line.starts_with(' ') || line.is_empty());
+        for line in own_options {
+            if let Some(flag) = flag_line.captures(line).map(|c| c[1].to_string())
+                && globals.contains(&flag)
+            {
+                found.push(format!("xr {}: --{flag}", path.join(" ")));
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "global flags listed under Options instead of {GLOBAL_HEADING:?}:\n{}",
+        found.join("\n")
+    );
+}
+
 /// The authenticated user the paging requests below are made for.
 const PAGING_USER_ID: &str = "2244994945";
 
-/// Every command that pages: its arguments, and the path its request lands on
-/// once the authenticated user is resolved.
+/// Commands that page, with their arguments and the path their request lands
+/// on once the authenticated user is resolved; `help_claims_guard.rs` walks
+/// them all.
 const PAGING_COMMANDS: &[(&[&str], &str)] = &[
     (&["search", "x"], "/2/tweets/search/recent"),
     (
@@ -3656,9 +3729,10 @@ async fn followers_and_following_read_the_callers_own_list_without_an_id_lookup(
         .await;
         ts.mount(
             Mock::given(method("GET"))
-                .and(path("/2/users/by/username/jack"))
+                .and(path("/2/users/by"))
+                .and(query_param("usernames", "jack"))
                 .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "data": {"id": "783214", "name": "jack", "username": "jack"}
+                    "data": [{"id": "783214", "name": "jack", "username": "jack"}]
                 })))
                 .expect(1),
         )
@@ -3682,63 +3756,10 @@ async fn followers_and_following_read_the_callers_own_list_without_an_id_lookup(
     }
 }
 
-/// `--limit` and `--cursor` reach the wire as `max_results` and
-/// `pagination_token` on every command that pages.
+/// X answers a page with no results as `meta` alone, with no `data` key. Each
+/// of the [`PAGING_COMMANDS`] reports that as an empty list at exit 0.
 #[tokio::test]
-async fn every_paging_command_sends_the_limit_and_cursor() {
-    for (args, request_path) in PAGING_COMMANDS {
-        let ts = CliMockServer::new().await;
-        let tmp = TempDir::new().expect("tempdir");
-        let store = tmp.path().join(".xurl");
-        populate_oauth1_store(&store);
-        ts.mount(
-            Mock::given(method("GET"))
-                .and(path("/2/users/me"))
-                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "data": {"id": PAGING_USER_ID, "name": "Paging User", "username": "paging"}
-                }))),
-        )
-        .await;
-        ts.mount(
-            Mock::given(method("GET"))
-                .and(path(*request_path))
-                .and(wiremock::matchers::query_param("max_results", "25"))
-                .and(wiremock::matchers::query_param(
-                    "pagination_token",
-                    "CURSOR-TOKEN",
-                ))
-                .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "data": [],
-                    "meta": {"result_count": 0}
-                })))
-                .expect(1),
-        )
-        .await;
-
-        let mut argv = vec![
-            "xr",
-            "--output",
-            "json",
-            "--limit",
-            "25",
-            "--cursor",
-            "CURSOR-TOKEN",
-        ];
-        argv.extend_from_slice(args);
-        argv.extend_from_slice(&["--auth", "oauth1"]);
-        let (code, stdout, stderr) = run_at_with(&store, &api_env(ts.uri()), &argv).await;
-        assert_eq!(
-            code, 0,
-            "xr {args:?} must send max_results and pagination_token to {request_path}; \
-             stderr: {stderr}; stdout: {stdout}"
-        );
-    }
-}
-
-/// X answers a page with no results as `meta` alone, with no `data` key. Every
-/// command that pages reports that as an empty list at exit 0.
-#[tokio::test]
-async fn every_paging_command_answers_a_page_with_no_results() {
+async fn paging_commands_answer_a_page_with_no_results() {
     for (args, request_path) in PAGING_COMMANDS {
         let ts = CliMockServer::new().await;
         let tmp = TempDir::new().expect("tempdir");
@@ -3772,35 +3793,6 @@ async fn every_paging_command_answers_a_page_with_no_results() {
             serde_json::from_str(&stdout).unwrap_or_else(|e| panic!("xr {args:?}: {e}: {stdout}"));
         assert_eq!(page["data"], serde_json::json!([]), "xr {args:?}: {page}");
         assert_eq!(page["meta"]["result_count"], 0, "xr {args:?}: {page}");
-    }
-}
-
-/// The `--limit` and `--cursor` help name exactly the commands that page, so
-/// the help cannot promise paging a command does not do.
-#[test]
-fn the_limit_and_cursor_help_name_exactly_the_commands_that_page() {
-    use clap::CommandFactory;
-    let paging: std::collections::BTreeSet<&str> =
-        PAGING_COMMANDS.iter().map(|(args, _)| args[0]).collect();
-    let command = cli::Cli::command();
-    let subcommands: std::collections::BTreeSet<&str> = command
-        .get_subcommands()
-        .map(clap::Command::get_name)
-        .collect();
-    for flag in ["limit", "cursor"] {
-        let help = command
-            .get_arguments()
-            .find(|arg| arg.get_id() == flag)
-            .and_then(|arg| arg.get_long_help())
-            .unwrap_or_else(|| panic!("--{flag} has long help"))
-            .to_string();
-        let named: std::collections::BTreeSet<&str> = help
-            .split('`')
-            .skip(1)
-            .step_by(2)
-            .filter(|word| subcommands.contains(word))
-            .collect();
-        assert_eq!(named, paging, "--{flag} help names {named:?}; help: {help}");
     }
 }
 
@@ -5677,7 +5669,7 @@ async fn test_a_refused_argument_carries_the_help_and_no_credential_step() {
     assert_ne!(code, 0, "stderr: {stderr}");
     let v: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
-    assert_eq!(v["reason"], "validation", "{v}");
+    assert_eq!(v["reason"], "invalid-url", "{v}");
     assert_eq!(
         v["next_step"],
         serde_json::json!({"action": "show-help", "command": "xr --help"}),

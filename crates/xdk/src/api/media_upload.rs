@@ -159,7 +159,7 @@ impl MediaUpload {
             .category
             .unwrap_or_else(|| category_for(&media_type).to_string());
         let path = self.path.to_str().ok_or_else(|| {
-            Error::validation(format!("{} is not a valid UTF-8 path", self.path.display()))
+            Error::validation_of("invalid-media-path", self.path.display().to_string())
         })?;
         execute_media_upload(
             path,
@@ -189,10 +189,10 @@ fn media_type_for(path: &Path) -> Result<&'static str> {
         Some("webp") => Ok("image/webp"),
         Some("mp4" | "m4v") => Ok("video/mp4"),
         Some("mov") => Ok("video/quicktime"),
-        _ => Err(Error::validation(format!(
-            "cannot infer the media type of {}; set it with MediaUpload::media_type",
-            path.display()
-        ))),
+        _ => Err(Error::validation_of(
+            "unknown-media-type",
+            path.display().to_string(),
+        )),
     }
 }
 
@@ -227,13 +227,15 @@ mod tests {
     }
 
     #[test]
-    fn an_unknown_or_missing_extension_is_a_validation_error_naming_the_setter() {
+    fn an_unknown_or_missing_extension_is_refused_naming_the_path() {
         for name in ["notes.txt", "archive.tar.gz", "noext", ".hidden"] {
             let err = media_type_for(Path::new(name)).unwrap_err();
-            assert!(err.is_validation(), "{name}: {err:?}");
             assert!(
-                err.to_string().contains("MediaUpload::media_type"),
-                "{name}: {err}"
+                matches!(
+                    &err,
+                    Error::Validation { rule: "unknown-media-type", value: Some(path) } if path == name
+                ),
+                "{name}: {err:?}"
             );
         }
     }

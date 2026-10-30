@@ -25,19 +25,17 @@ fn user_client(base_url: String) -> Client {
         .expect("client builds")
 }
 
-/// A source as X describes one; `owner_id` sits past the range a 64-bit
-/// float holds exactly.
+/// A source as X describes one.
 fn source(name: &str) -> serde_json::Value {
     json!({
         "id": SOURCE_ID,
         "name": name,
-        "rtmp_region": "us-east-1",
+        "region": "pdxa",
         "rtmp_url": "rtmp://va.pscp.tv:80/x",
         "rtmps_url": "rtmps://va.pscp.tv:443/x",
-        "rtmp_stream_key": SOURCE_ID,
+        "stream_key": SOURCE_ID,
         "is_stream_active": false,
-        "creation_time": 1_761_148_800_000_u64,
-        "owner_id": 1_234_567_890_123_456_789_u64
+        "created_at_ms": "1761148800000"
     })
 }
 
@@ -48,7 +46,7 @@ async fn get_stream_sources_lists_the_accounts_sources() {
         .and(path("/2/sources"))
         .respond_with(
             ResponseTemplate::new(200)
-                .set_body_json(json!({"data": {"sources": [source("Studio A")]}})),
+                .set_body_json(json!({"data": [source("Studio A")], "meta": {"result_count": 1}})),
         )
         .expect(1)
         .mount(&server)
@@ -60,11 +58,13 @@ async fn get_stream_sources_lists_the_accounts_sources() {
         .await
         .expect("listed");
 
-    assert_eq!(resp.data.sources.len(), 1);
-    let listed = &resp.data.sources[0];
+    assert_eq!(resp.data.len(), 1);
+    let listed = &resp.data[0];
     assert_eq!(listed.id, SOURCE_ID);
     assert_eq!(listed.name.as_deref(), Some("Studio A"));
-    assert_eq!(listed.owner_id, Some(1_234_567_890_123_456_789));
+    assert_eq!(listed.region.as_deref(), Some("pdxa"));
+    assert_eq!(listed.stream_key.as_deref(), Some(SOURCE_ID));
+    assert_eq!(listed.created_at_ms.as_deref(), Some("1761148800000"));
     assert_eq!(listed.is_stream_active, Some(false));
 }
 
@@ -76,10 +76,7 @@ async fn create_stream_source_posts_the_name_and_region() {
         .and(body_json(
             json!({"name": "Studio A", "region": "us-east-1"}),
         ))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(json!({"data": {"source": source("Studio A")}})),
-        )
+        .respond_with(ResponseTemplate::new(201).set_body_json(json!({"data": source("Studio A")})))
         .expect(1)
         .mount(&server)
         .await;
@@ -90,9 +87,9 @@ async fn create_stream_source_posts_the_name_and_region() {
         .await
         .expect("created");
 
-    assert_eq!(resp.data.source.id, SOURCE_ID);
+    assert_eq!(resp.data.id, SOURCE_ID);
     assert_eq!(
-        resp.data.source.rtmps_url.as_deref(),
+        resp.data.rtmps_url.as_deref(),
         Some("rtmps://va.pscp.tv:443/x")
     );
 }
@@ -102,10 +99,7 @@ async fn get_stream_source_gets_the_source() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
         .and(path(format!("/2/sources/{SOURCE_ID}")))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(json!({"data": {"source": source("Studio A")}})),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": source("Studio A")})))
         .expect(1)
         .mount(&server)
         .await;
@@ -116,7 +110,7 @@ async fn get_stream_source_gets_the_source() {
         .await
         .expect("fetched");
 
-    assert_eq!(resp.data.source.name.as_deref(), Some("Studio A"));
+    assert_eq!(resp.data.name.as_deref(), Some("Studio A"));
 }
 
 #[tokio::test]
@@ -125,10 +119,7 @@ async fn rename_stream_source_puts_the_new_name() {
     Mock::given(method("PUT"))
         .and(path(format!("/2/sources/{SOURCE_ID}")))
         .and(body_json(json!({"name": "Studio B"})))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(json!({"data": {"source": source("Studio B")}})),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": source("Studio B")})))
         .expect(1)
         .mount(&server)
         .await;
@@ -139,15 +130,15 @@ async fn rename_stream_source_puts_the_new_name() {
         .await
         .expect("renamed");
 
-    assert_eq!(resp.data.source.name.as_deref(), Some("Studio B"));
+    assert_eq!(resp.data.name.as_deref(), Some("Studio B"));
 }
 
 #[tokio::test]
-async fn delete_stream_source_deletes_and_reads_the_empty_answer() {
+async fn delete_stream_source_deletes_and_reads_the_answer() {
     let server = MockServer::start().await;
     Mock::given(method("DELETE"))
         .and(path(format!("/2/sources/{SOURCE_ID}")))
-        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": {}})))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": {"deleted": true}})))
         .expect(1)
         .mount(&server)
         .await;
@@ -158,7 +149,7 @@ async fn delete_stream_source_deletes_and_reads_the_empty_answer() {
         .await
         .expect("deleted");
 
-    assert!(resp.data.extra.is_empty());
+    assert!(resp.data.deleted);
 }
 
 #[test]

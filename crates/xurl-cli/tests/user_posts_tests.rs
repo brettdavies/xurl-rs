@@ -20,9 +20,10 @@ fn json_out(stdout: &str) -> serde_json::Value {
 async fn user_posts_resolves_the_handle_then_reads_its_posts() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/jack"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "jack"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": JACK_ID, "name": "jack", "username": "jack"}
+            "data": [{"id": JACK_ID, "name": "jack", "username": "jack"}]
         })))
         .expect(1)
         .mount(&server)
@@ -68,12 +69,7 @@ async fn user_posts_refuses_an_empty_handle_before_any_request() {
     let envelope: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("empty-username")),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], "empty-username", "{envelope}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 

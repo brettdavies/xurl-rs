@@ -204,6 +204,52 @@
       "revisit_when": {
         "kind": "never"
       }
+    },
+    {
+      "id": "user-broadcasts",
+      "operations": [
+        "GET /2/users/{id}/broadcasts",
+        "GET /2/users/{id}/broadcasts/{broadcast_id}",
+        "DELETE /2/users/{id}/broadcasts/{broadcast_id}"
+      ],
+      "status": "raw-only",
+      "reason": "The caller's broadcasts by a second path that X marks deprecated: `id` can only be the authenticated user, and xr broadcasts list, get, and remove serve the same broadcasts from the /2/broadcasts paths X names in their place.",
+      "decided": "2026-10-30",
+      "by": "Brett, on #409",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "broadcasts-go-live",
+      "operations": [
+        "POST /2/users/{id}/broadcasts",
+        "PUT /2/users/{id}/broadcasts/{broadcast_id}/state"
+      ],
+      "status": "not-supported",
+      "reason": "Going live from a source: the create call makes a broadcast that posts nothing until the state call publishes it, once the source is receiving video. Going live belongs to the app that drives the encoder; xr's commands stay out of a live session (AGENTS.md § \"Command grammar\"). Raw mode still reaches both.",
+      "decided": "2026-10-30",
+      "by": "Brett, on #409",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
+      "id": "user-sources",
+      "operations": [
+        "GET /2/users/{id}/sources",
+        "POST /2/users/{id}/sources",
+        "GET /2/users/{id}/sources/{source_id}",
+        "PUT /2/users/{id}/sources/{source_id}",
+        "DELETE /2/users/{id}/sources/{source_id}"
+      ],
+      "status": "raw-only",
+      "reason": "The caller's stream sources by a second path: `id` can only be the authenticated user, and xr broadcasts sources serves the same sources from /2/sources.",
+      "decided": "2026-10-30",
+      "by": "Brett, on #409",
+      "revisit_when": {
+        "kind": "never"
+      }
     }
   ]
 }

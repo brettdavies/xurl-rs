@@ -4,8 +4,9 @@
 
 mod common;
 
+use clap::CommandFactory;
 use tempfile::TempDir;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{body_json, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// Registers one app at `store` so the per-app renderers have an entry to
@@ -522,9 +523,10 @@ async fn follow_resolves_the_caller_and_the_handle_before_calling_the_shortcut()
         .mount(&server)
         .await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/helper"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "helper"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "222", "name": "Helper", "username": "helper"}
+            "data": [{"id": "222", "name": "Helper", "username": "helper"}]
         })))
         .expect(1)
         .mount(&server)
@@ -559,7 +561,7 @@ async fn follow_resolves_the_caller_and_the_handle_before_calling_the_shortcut()
         sequence,
         [
             "GET /2/users/me",
-            "GET /2/users/by/username/helper",
+            "GET /2/users/by",
             "POST /2/users/111/following",
         ],
         "the caller's id and the handle resolve before the one shortcut call"
@@ -567,12 +569,103 @@ async fn follow_resolves_the_caller_and_the_handle_before_calling_the_shortcut()
 }
 
 #[tokio::test]
+async fn follow_takes_a_numeric_user_id_without_looking_it_up() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": {"id": "111", "name": "Me", "username": "me"}
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/users/111/following"))
+        .and(body_json(serde_json::json!({"target_user_id": "222"})))
+        .respond_with(ResponseTemplate::new(200).set_body_json(fixture("action_following")))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = common::oauth1_store(tmp.path());
+
+    let (code, _stdout, stderr) = common::run_in_process(
+        &store,
+        &server.uri(),
+        &["follow", "222", "--output", "json"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let sequence: Vec<String> = server
+        .received_requests()
+        .await
+        .expect("recorded")
+        .iter()
+        .map(|req| format!("{} {}", req.method, req.url.path()))
+        .collect();
+    assert_eq!(
+        sequence,
+        ["GET /2/users/me", "POST /2/users/111/following"],
+        "an id needs no lookup"
+    );
+}
+
+/// The sentence a dry run of `args` answers with for the rule it broke.
+async fn refusal_sentence(args: &[&str]) -> String {
+    let tmp = TempDir::new().expect("tempdir");
+    let mut argv = vec!["--dry-run", "--output", "json"];
+    argv.extend(args);
+    let (code, stdout, stderr) =
+        common::run_in_process(&tmp.path().join(".xurl"), "http://127.0.0.1:9", &argv).await;
+    assert_eq!(code, 0, "{args:?}: {stderr}");
+    let body: serde_json::Value = serde_json::from_str(stdout.trim()).expect("JSON on stdout");
+    assert_eq!(body["would_succeed"], false, "{args:?}: {body}");
+    body["message"].as_str().expect("a message").to_string()
+}
+
+/// Every argument that names accounts states, in its help, the rules its
+/// validator enforces, in the words a refusal of each form prints.
+#[tokio::test]
+async fn every_account_argument_states_the_username_and_user_id_rules() {
+    let username = refusal_sentence(&["follow", "not a handle"]).await;
+    let user_id = refusal_sentence(&["follow", "12345678901234567890"]).await;
+    let user_id = user_id.split(';').next().expect("the user id rule");
+
+    let mut checked = Vec::new();
+    let mut stack = vec![(String::new(), xurl::cli::Cli::command())];
+    while let Some((path, cmd)) = stack.pop() {
+        for arg in cmd.get_arguments() {
+            let names = arg.get_value_names().unwrap_or_default();
+            if !names
+                .iter()
+                .any(|name| *name == "ACCOUNT" || *name == "PARTICIPANT")
+            {
+                continue;
+            }
+            let help = arg.get_help().map(ToString::to_string).unwrap_or_default();
+            assert!(
+                help.contains(&username) && help.contains(user_id),
+                "`xr{path}` <{}> help does not state the account rules: {help}",
+                arg.get_id()
+            );
+            checked.push(format!("xr{path} {}", arg.get_id()));
+        }
+        for sub in cmd.get_subcommands() {
+            stack.push((format!("{path} {}", sub.get_name()), sub.clone()));
+        }
+    }
+    assert!(!checked.is_empty(), "no account argument found");
+}
+
+#[tokio::test]
 async fn dm_prints_the_send_confirmation_the_spec_documents() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/helper"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "helper"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "222", "name": "Helper", "username": "helper"}
+            "data": [{"id": "222", "name": "Helper", "username": "helper"}]
         })))
         .expect(1)
         .mount(&server)
@@ -605,9 +698,10 @@ async fn dm_prints_the_send_confirmation_the_spec_documents() {
 async fn dm_reports_a_recipient_not_messageable_problem_in_the_envelope() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/helper"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "helper"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "222", "name": "Helper", "username": "helper"}
+            "data": [{"id": "222", "name": "Helper", "username": "helper"}]
         })))
         .mount(&server)
         .await;

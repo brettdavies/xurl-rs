@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "usage"]
 store: oauth2
 exit_code: 0
-stdout_len: 469
+stdout_len: 509
 stderr_len: 0
 --- stdout ---
 {
@@ -16,6 +16,7 @@ stderr_len: 0
   "method": "GET",
   "reason": "auth-method-mismatch",
   "requested": null,
+  "response_schema": "xr schema usage",
   "status": "dry_run",
   "supported": [
     "app"
