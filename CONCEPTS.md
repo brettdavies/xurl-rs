@@ -150,6 +150,13 @@ from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error
 and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints
 that never appear in the envelope.
 
+### Errors-only answer
+
+A 200 from X that carries `errors` and no `data`: X refusing the request itself rather than failing it with an error
+status. `xr` reads it by the problem type of its first error, as not found, forbidden, or an invalid request, never as a
+success and never as its own fault. A lookup by handle that finds no account for any handle it named reads as not found
+naming the first such handle, the same answer a lookup that finds only some of its handles gives.
+
 ### Retired word
 
 A command word a command family no longer takes because it was renamed: typed anyway, it refuses as an unknown command
