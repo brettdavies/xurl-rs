@@ -270,7 +270,8 @@ pub struct ErrorBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub media_id: Option<String>,
 
-    /// The handle a lookup found no account for, under `not-found`.
+    /// The handle, without its `@`, a lookup found no account for, under
+    /// `not-found`: the first such handle when the lookup named several.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub account: Option<String>,
 
