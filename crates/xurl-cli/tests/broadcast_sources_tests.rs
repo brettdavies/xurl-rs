@@ -1,7 +1,7 @@
-//! `xr broadcasts sources` reaches the stream-source endpoints through the
-//! runner: each verb sends the request the spec gives its endpoint and
-//! prints the typed response, a `remove` asks before it deletes, and an
-//! empty name is refused before any request.
+//! `xr broadcasts sources` reaches the stream-source endpoints and the
+//! ingest region through the runner: each verb sends the request the spec
+//! gives its endpoint and prints the typed response, a `remove` asks before
+//! it deletes, and an empty name is refused before any request.
 
 mod common;
 
@@ -55,6 +55,31 @@ async fn sources_list_prints_the_sources_as_json() {
     assert_eq!(body["data"][0]["name"], "Studio A");
     assert_eq!(body["data"][0]["stream_key"], SOURCE_ID);
     assert_eq!(body["meta"]["result_count"], 1);
+}
+
+#[tokio::test]
+async fn sources_region_prints_the_nearest_ingest_region() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/region"))
+        .respond_with(
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({"region": "us-west-2"})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &["broadcasts", "sources", "region", "--output", "json"],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert_eq!(json_out(&stdout)["region"], "us-west-2");
 }
 
 #[tokio::test]

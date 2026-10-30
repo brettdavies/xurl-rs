@@ -16,15 +16,16 @@ use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute, ChatMutedResult,
-    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
-    FollowingResult, HiddenResult, LikedResult, List, ListMemberResult, ListUpdatedResult, Media,
-    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
-    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
+    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
+    StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -77,6 +78,11 @@ struct StreamSourceBody {
 #[derive(Serialize)]
 struct NameBody {
     name: String,
+}
+
+#[derive(Serialize)]
+struct BroadcastStateBody {
+    state: &'static str,
 }
 
 #[derive(Serialize)]
@@ -2284,6 +2290,25 @@ impl Client {
         )
     }
 
+    /// Deletes one of the caller's broadcasts, scheduled or ended, with its
+    /// replay. X refuses a running broadcast until it is ended.
+    pub fn delete_broadcast(&self, id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_BROADCAST.method,
+            template(endpoints::DELETE_BROADCAST.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Ends one of the caller's broadcasts. The spec's `updateBroadcastState`
+    /// takes no state but `END`.
+    pub fn end_broadcast(&self, id: &str) -> Call<ApiResponse<BroadcastEnded>> {
+        self.json_call(
+            endpoints::END_BROADCAST.method,
+            template(endpoints::END_BROADCAST.path, id_param(id), Vec::new()),
+            &BroadcastStateBody { state: "END" },
+        )
+    }
+
     /// Fetches the caller's scheduled broadcasts.
     pub fn list_scheduled_broadcasts(
         &self,
@@ -3792,6 +3817,16 @@ impl Client {
                 id_param(source_id),
                 Vec::new(),
             ),
+        )
+    }
+
+    /// Reads the ingest region nearest the server that answers, the value
+    /// [`Client::create_stream_source`] takes as `region`. X answers it
+    /// bare, outside the `data` envelope.
+    pub fn get_region(&self) -> Call<IngestRegion> {
+        self.call(
+            endpoints::GET_REGION.method,
+            template(endpoints::GET_REGION.path, HashMap::new(), Vec::new()),
         )
     }
 

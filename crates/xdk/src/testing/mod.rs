@@ -621,6 +621,16 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::DELETE_BROADCAST,
+        fixture: "action_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::END_BROADCAST,
+        fixture: "broadcast_ended",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::LIST_SCHEDULED_BROADCASTS,
         fixture: "scheduled_broadcasts",
         status: 200,
@@ -698,6 +708,11 @@ const ROUTES: &[Route] = &[
     Route {
         endpoint: endpoints::DELETE_STREAM_SOURCE,
         fixture: "stream_source_deleted",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::GET_REGION,
+        fixture: "ingest_region",
         status: 200,
     },
     Route {

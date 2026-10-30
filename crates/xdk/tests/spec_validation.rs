@@ -23,9 +23,9 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     ArticleDraft, ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost,
-    BookmarkedResult, Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute,
-    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
-    DmSentResult, FollowingResult, HiddenResult, LikedResult, List, ListMemberResult,
+    BookmarkedResult, Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult,
+    ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
     ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
     MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
@@ -701,6 +701,21 @@ fn spec_stream_source_deleted() {
 }
 
 #[test]
+fn spec_ingest_region() {
+    let examples = load_examples();
+    let resp: IngestRegion = serde_json::from_value(examples["ingest_region"].clone()).unwrap();
+    assert_eq!(resp.region, "us-east-1");
+}
+
+#[test]
+fn spec_broadcast_ended() {
+    let examples = load_examples();
+    let resp: ApiResponse<BroadcastEnded> =
+        serde_json::from_value(examples["broadcast_ended"].clone()).unwrap();
+    assert_eq!(resp.data.state, "ENDED");
+}
+
+#[test]
 fn spec_call() {
     let examples = load_examples();
     let resp: ApiResponse<XCall> = serde_json::from_value(examples["call"].clone()).unwrap();
@@ -1075,6 +1090,12 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "stream_source_deleted",
         endpoints::DELETE_STREAM_SOURCE,
+        ReplyKind::Success,
+    ),
+    ("ingest_region", endpoints::GET_REGION, ReplyKind::Success),
+    (
+        "broadcast_ended",
+        endpoints::END_BROADCAST,
         ReplyKind::Success,
     ),
     ("call", endpoints::GET_CALL, ReplyKind::Success),

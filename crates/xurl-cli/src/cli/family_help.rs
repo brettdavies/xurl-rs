@@ -798,6 +798,22 @@ pub mod broadcasts_own {
         text_caption: "Read one broadcast, by id (text)",
         json_caption: "As a JSON envelope",
     };
+
+    /// `xr broadcasts end`.
+    pub const END: Verb = Verb {
+        name: "end",
+        example_args: "1YqKDqWqdPLGV --force --no-interactive",
+        text_caption: "End a broadcast without a prompt (text)",
+        json_caption: "End (JSON envelope)",
+    };
+
+    /// `xr broadcasts remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1YqKDqWqdPLGV --force --no-interactive",
+        text_caption: "Delete a broadcast and its replay without a prompt (text)",
+        json_caption: "Delete (JSON envelope)",
+    };
 }
 
 /// The `xr broadcasts scheduled` family.
@@ -997,10 +1013,19 @@ pub mod broadcasts {
                 &[Example::json(&broadcast_sources::ADD)],
             ),
         ];
-        const YOURS: &[Section<'static>] = &[(
-            "Your broadcasts (text)",
-            &[Example::text(&broadcasts_own::LIST)],
-        )];
+        const YOURS: &[Section<'static>] = &[
+            (
+                "Your broadcasts (text)",
+                &[Example::text(&broadcasts_own::LIST)],
+            ),
+            (
+                "End one, then delete it and its replay, JSON envelope",
+                &[
+                    Example::json(&broadcasts_own::END),
+                    Example::json(&broadcasts_own::REMOVE),
+                ],
+            ),
+        ];
         const SCHEDULED: &[Section<'static>] = &[(
             "Schedule one, JSON envelope",
             &[Example::json(&broadcasts_scheduled::ADD)],
@@ -1108,6 +1133,14 @@ pub mod broadcast_sources {
         json_caption: "As a JSON envelope",
     };
 
+    /// `xr broadcasts sources region`.
+    pub const REGION: Verb = Verb {
+        name: "region",
+        example_args: "",
+        text_caption: "The ingest region to pass to add --region (text)",
+        json_caption: "As a JSON object",
+    };
+
     /// `xr broadcasts sources add`.
     pub const ADD: Verb = Verb {
         name: "add",
@@ -1138,8 +1171,12 @@ pub mod broadcast_sources {
         const SECTIONS: &[Section<'static>] = &[
             ("Your stream sources (text)", &[Example::text(&LIST)]),
             (
-                "Create one, then check it is receiving video, JSON envelope",
-                &[Example::json(&ADD), Example::json(&GET)],
+                "Find the nearest region, create a source there, then check it is receiving video, JSON",
+                &[
+                    Example::json(&REGION),
+                    Example::json(&ADD),
+                    Example::json(&GET),
+                ],
             ),
         ];
         FAMILY.page(SECTIONS)

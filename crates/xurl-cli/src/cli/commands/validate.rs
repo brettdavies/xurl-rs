@@ -18,15 +18,16 @@ use crate::cli::output::OutputConfig;
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute, ChatMutedResult,
-    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
-    FollowingResult, HiddenResult, LikedResult, List, ListMemberResult, ListUpdatedResult, Media,
-    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
-    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
+    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
+    StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -54,6 +55,16 @@ const fn typed_alias<T: DeserializeOwned + Default>(name: &'static str) -> Schem
         name,
         validate: typed::<T>,
         response_type: Some(std::any::type_name::<ApiResponse<T>>),
+    }
+}
+
+/// An alias whose validator deserializes a bare `T`, for a response X sends
+/// with no envelope.
+const fn bare_alias<T: DeserializeOwned>(name: &'static str) -> SchemaAlias {
+    SchemaAlias {
+        name,
+        validate: try_into::<T>,
+        response_type: Some(std::any::type_name::<T>),
     }
 }
 
@@ -119,6 +130,7 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<Vec<Note>>("notes"),
     typed_alias::<Broadcast>("broadcast"),
     typed_alias::<Vec<Broadcast>>("broadcasts"),
+    typed_alias::<BroadcastEnded>("broadcast-ended"),
     typed_alias::<ScheduledBroadcast>("scheduled-broadcast"),
     typed_alias::<Vec<ScheduledBroadcast>>("scheduled-broadcasts"),
     typed_alias::<Vec<BroadcastChatMessage>>("chat-messages"),
@@ -160,6 +172,7 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<Vec<StreamSource>>("stream-sources"),
     typed_alias::<StreamSource>("stream-source"),
     typed_alias::<StreamSourceDeleted>("stream-source-deleted"),
+    bare_alias::<IngestRegion>("ingest-region"),
     typed_alias::<XCall>("call"),
     typed_alias::<Vec<ScheduledCall>>("scheduled-calls"),
     typed_alias::<ScheduledCall>("scheduled-call"),

@@ -12,15 +12,16 @@ use crate::cli::skill_install::{InstallEnvelope, InstallMultiEnvelope};
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute, ChatMutedResult,
-    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
-    FollowingResult, HiddenResult, LikedResult, List, ListMemberResult, ListUpdatedResult, Media,
-    MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
-    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
+    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
+    StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{Error, Result};
 
@@ -124,6 +125,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts-get"],
         type_name: "ApiResponse<Broadcast>",
         schema: || schema_for!(ApiResponse<Broadcast>).into(),
+    },
+    SchemaEntry {
+        commands: &["broadcasts-end"],
+        type_name: "ApiResponse<BroadcastEnded>",
+        schema: || schema_for!(ApiResponse<BroadcastEnded>).into(),
     },
     SchemaEntry {
         commands: &["broadcasts-scheduled-list"],
@@ -270,6 +276,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "delete",
             "dm-events-remove",
             "lists-remove",
+            "broadcasts-remove",
             "broadcasts-scheduled-remove",
             "broadcasts-chat-remove",
             "notes-remove",
@@ -359,6 +366,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts-mutes-list"],
         type_name: "ApiResponse<Vec<ChatMute>>",
         schema: || schema_for!(ApiResponse<Vec<ChatMute>>).into(),
+    },
+    SchemaEntry {
+        commands: &["broadcasts-sources-region"],
+        type_name: "IngestRegion",
+        schema: || schema_for!(IngestRegion).into(),
     },
     SchemaEntry {
         commands: &["broadcasts-sources-list"],

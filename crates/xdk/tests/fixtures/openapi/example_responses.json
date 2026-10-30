@@ -803,6 +803,15 @@
       "deleted": true
     }
   },
+  "ingest_region": {
+    "region": "us-east-1"
+  },
+  "broadcast_ended": {
+    "data": {
+      "id": "1YqKDqWqdPLGV",
+      "state": "ENDED"
+    }
+  },
   "call": {
     "data": {
       "id": "8a6f1c2e-call",

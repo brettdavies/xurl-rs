@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "The ingest region nearest the server that answered, which a new stream\nsource takes as its `region`. X sends it with no `data` envelope.",
+  "properties": {
+    "region": {
+      "description": "An AWS region name, such as `us-east-1`.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "region"
+  ],
+  "title": "IngestRegion",
+  "type": "object"
+}

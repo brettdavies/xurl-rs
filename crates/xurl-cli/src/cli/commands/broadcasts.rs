@@ -1,6 +1,6 @@
 //! The `broadcasts` family: the caller's broadcasts, their chat moderators,
 //! the people muted in their chats, and the RTMP and RTMPS stream sources
-//! the caller broadcasts from. The scheduled broadcasts and a broadcast's
+//! the caller broadcasts from, with the ingest region to create one in. The scheduled broadcasts and a broadcast's
 //! chat have modules of their own.
 
 use serde_json::json;
@@ -85,6 +85,32 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
             let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_broadcast(&broadcast_id)
+            })
+            .await?;
+        }
+        BroadcastsCommands::End {
+            broadcast_id,
+            force,
+            common,
+        } => {
+            let ctx = json!({"command": "broadcasts-end", "broadcast_id": broadcast_id});
+            let prompt = format!("End broadcast {broadcast_id}?");
+            let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
+            send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
+                client.end_broadcast(&broadcast_id)
+            })
+            .await?;
+        }
+        BroadcastsCommands::Remove {
+            broadcast_id,
+            force,
+            common,
+        } => {
+            let ctx = json!({"command": "broadcasts-remove", "broadcast_id": broadcast_id});
+            let prompt = format!("Delete broadcast {broadcast_id} and its replay?");
+            let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
+            send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
+                client.delete_broadcast(&broadcast_id)
             })
             .await?;
         }
@@ -179,6 +205,10 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
         SourcesCommands::List { common } => {
             let ctx = json!({"command": "broadcasts-sources-list"});
             send_validated(run, ctx, || Ok(()), &common, Client::get_stream_sources).await
+        }
+        SourcesCommands::Region { common } => {
+            let ctx = json!({"command": "broadcasts-sources-region"});
+            send_validated(run, ctx, || Ok(()), &common, Client::get_region).await
         }
         SourcesCommands::Get { source_id, common } => {
             let ctx = json!({"command": "broadcasts-sources-get", "source_id": source_id});

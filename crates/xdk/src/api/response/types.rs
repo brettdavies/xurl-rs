@@ -622,6 +622,18 @@ pub struct Broadcast {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// What X answers an ended broadcast with.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct BroadcastEnded {
+    /// Broadcast ID.
+    pub id: String,
+    /// The broadcast's state, always `ENDED`.
+    pub state: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// A broadcast scheduled to start later.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct ScheduledBroadcast {
@@ -1214,8 +1226,7 @@ pub struct StreamSource {
     /// The label the account gave the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    /// Ingest region: `atla` or `pdxa` for a source in X's own data
-    /// centers, an AWS region such as `us-east-1` for an older one.
+    /// Ingest region, an AWS region name such as `us-east-1`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub region: Option<String>,
     /// RTMP ingest URL.
@@ -1246,6 +1257,17 @@ pub struct StreamSource {
 pub struct StreamSourceDeleted {
     /// Whether the source was deleted.
     pub deleted: bool,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The ingest region nearest the server that answered, which a new stream
+/// source takes as its `region`. X sends it with no `data` envelope.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct IngestRegion {
+    /// An AWS region name, such as `us-east-1`.
+    pub region: String,
     /// Forward-compatibility bucket for fields the spec adds later.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,

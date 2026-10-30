@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7055
+stdout_len: 7196
 stderr_len: 0
 --- stdout ---
 Manage the RTMP and RTMPS ingest points you stream to
@@ -11,6 +11,7 @@ Usage: xr broadcasts sources [OPTIONS] <COMMAND>
 Commands:
   list    List your stream sources
   get     Show one stream source, and whether it is receiving video
+  region  Show the ingest region nearest the X server that answers
   add     Create a stream source
   rename  Rename a stream source
   remove  Delete a stream source; an encoder sending to it is no longer received
@@ -155,7 +156,8 @@ Options:
 Examples:
   Your stream sources (text):
     xr broadcasts sources list
-  Create one, then check it is receiving video, JSON envelope:
+  Find the nearest region, create a source there, then check it is receiving video, JSON:
+    xr broadcasts sources region --output json
     xr broadcasts sources add "Studio A" --region us-east-1 --output json
     xr broadcasts sources get 1x2y3z4w5v6u --output json
 

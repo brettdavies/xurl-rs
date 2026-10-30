@@ -2706,6 +2706,35 @@ pub enum BroadcastsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// End one of your broadcasts
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::END))]
+    End {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete one of your broadcasts and its replay
+    ///
+    /// X deletes a scheduled or ended broadcast; end a running one first
+    /// with `xr broadcasts end`.
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::REMOVE))]
+    Remove {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
     /// Schedule broadcasts, change or cancel them, and start them early
     #[command(after_help = family_help::broadcasts_scheduled::page())]
     Scheduled {
@@ -2957,6 +2986,15 @@ pub enum SourcesCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Show the ingest region nearest the X server that answers
+    ///
+    /// Pass it to `xr broadcasts sources add --region`.
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::REGION))]
+    Region {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
     /// Create a stream source
     ///
     /// Point an encoder at its `rtmps_url` with its `stream_key`.
@@ -2968,7 +3006,7 @@ pub enum SourcesCommands {
         /// Ingest region: us-east-1, us-east-2, us-west-1, us-west-2,
         /// ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1,
         /// ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or
-        /// ap-northeast-2
+        /// ap-northeast-2; `xr broadcasts sources region` names the nearest
         #[arg(long, value_name = "REGION")]
         region: String,
         /// Shortcut flags shared with every other shortcut command.

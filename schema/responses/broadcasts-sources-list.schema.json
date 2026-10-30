@@ -264,7 +264,7 @@
           ]
         },
         "region": {
-          "description": "Ingest region: `atla` or `pdxa` for a source in X's own data\ncenters, an AWS region such as `us-east-1` for an older one.",
+          "description": "Ingest region, an AWS region name such as `us-east-1`.",
           "type": [
             "string",
             "null"

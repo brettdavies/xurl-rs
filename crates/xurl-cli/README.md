@@ -366,6 +366,8 @@ media id for 24 hours, so the envelope carries the id and the command that resum
 ```bash
 xr broadcasts list                                 # Your broadcasts
 xr broadcasts get 1YqKDqWqdPLGV                    # One broadcast, by id
+xr broadcasts end 1YqKDqWqdPLGV                    # End a broadcast (asks first)
+xr broadcasts remove 1YqKDqWqdPLGV                 # Delete a broadcast and its replay (asks first)
 xr broadcasts scheduled list                       # Your scheduled broadcasts
 xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z
 xr broadcasts scheduled update 1850000000000000001 --start 2026-11-02T17:00:00Z --end 2026-11-02T18:00:00Z
@@ -381,6 +383,7 @@ xr broadcasts mutes list                           # Who is muted in every chat 
 xr broadcasts mutes add @troll --until 2026-11-02T17:00:00Z
 xr broadcasts mutes remove @troll                  # Unmute
 xr broadcasts sources list                         # Your RTMP and RTMPS ingest points
+xr broadcasts sources region                       # The ingest region to pass to add --region
 xr broadcasts sources add "Studio A" --region us-east-1
 xr broadcasts sources get 1x2y3z4w5v6u             # Whether the source is receiving video
 xr broadcasts sources rename 1x2y3z4w5v6u "Studio B"
@@ -396,8 +399,12 @@ that broadcast's host, and `--message` to remove one of their messages from that
 
 A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `stream_key`,
 then poll `get` until `is_stream_active` is true. Whoever holds the stream key can stream to the source; keep it out of
-logs you share. `--region` takes an ingest region, and `xr broadcasts sources add --help` lists them. The API lists the
-regions in prose, so `xr` passes the value through rather than refusing one it does not know.
+logs you share. `--region` takes an ingest region, and `xr broadcasts sources add --help` lists them;
+`xr broadcasts sources region` names the one nearest the X server that answers. The API lists the regions in prose, so
+`xr` passes the value through rather than refusing one it does not know.
+
+`xr broadcasts remove` deletes a scheduled or ended broadcast with its replay; X refuses a running one, so
+`xr broadcasts end` comes first. Both ask first, and `--force` skips the prompt.
 
 ### Calls
 

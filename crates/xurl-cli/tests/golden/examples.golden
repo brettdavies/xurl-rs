@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 12179
+stdout_len: 12418
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -183,7 +183,8 @@ BROADCASTS:
     xr broadcasts mutes add @troll --until 2026-11-02T17:00:00Z --output json
     xr broadcasts mutes list --output json
 
-  Create a stream source, stream to its rtmps_url with its stream_key, and check it is live:
+  Create a stream source in the nearest region, stream to its rtmps_url with its stream_key, and check it is live:
+    xr broadcasts sources region --output json
     xr broadcasts sources add "Studio A" --region us-east-1 --output json
     xr broadcasts sources get 1x2y3z4w5v6u --output json
 
@@ -194,6 +195,10 @@ BROADCASTS:
   Your broadcasts, and one by id:
     xr broadcasts list --output json
     xr broadcasts get 1YqKDqWqdPLGV --output json
+
+  End a broadcast, then delete it and its replay:
+    xr broadcasts end 1YqKDqWqdPLGV --force --output json
+    xr broadcasts remove 1YqKDqWqdPLGV --force --output json
 
 CALLS:
   The calls on your calendar in a week, then one with its invitees' answers:
