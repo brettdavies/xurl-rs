@@ -270,6 +270,10 @@ failure message carries a `Cause:` line) is named here, and no document lists th
   returns (`conversations history`, `lists pinned`, `notes written`).
 - A renamed command word gets a row in `crates/xurl-cli/src/cli/retired_verbs.rs`, so the old word refuses naming its
   replacement rather than running as an alias.
+- A command is an admin shortcut or a read: it adds, updates, removes, or cancels a resource, or reads one. No command
+  acts inside a live broadcast or call, such as going live, ending one, or sending, removing, or muting in its chat; that
+  belongs to the app that drives the session. The library keeps its shortcuts for those endpoints in
+  `crates/xdk/src/api/shortcuts.rs` for an embedder that drives a session, and raw mode reaches them.
 
 Routing a new endpoint: when an existing family noun owns it (an API-namespace sibling), add a subcommand there; when it
 stands alone in the core domain, add a top-level command; never add an endpoint-selecting flag to an existing command.
@@ -409,7 +413,8 @@ agent as "Triage and fix PR #N". The workflow finds the open refresh PR by the p
 its title, so a retitled PR keeps that phrase.
 
 A refresh adds a command only where one fits `xr`: the endpoint belongs to a family `xr` has or a domain it serves, uses
-a credential `xr` holds, and is a read or an action a user or agent would run from a CLI. `xr` supports an API feature
+a credential `xr` holds, and is a read or an action a user or agent would run from a CLI. An endpoint that acts inside a
+live broadcast or call fails the test, as § "Command grammar" says. `xr` supports an API feature
 fully, in part, or not at all. Full support is a command for every operation. Partial support is a family where some
 operations have commands and others stay raw by decision, as `xr calls` leaves the live-call endpoints. No support is a
 feature with no command at all, such as XChat, whose encryption needs keys `xr` does not hold. Raw mode reaches every
