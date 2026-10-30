@@ -22,14 +22,14 @@ use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, Redirec
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMutedResult, ChatSentResult,
-    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
-    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
-    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts,
-    StreamSourceDeleted, StreamSourceResult, StreamSources, SubscribedResult, Trend,
+    Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
+    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
+    StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend,
     UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
     WebhookValidation, XCall,
 };
@@ -141,6 +141,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<Broadcast>>,
     },
     SchemaEntry {
+        commands: &["broadcasts end"],
+        type_name: "ApiResponse<BroadcastEnded>",
+        schema: generate::<ApiResponse<BroadcastEnded>>,
+    },
+    SchemaEntry {
         commands: &["broadcasts scheduled list"],
         type_name: "ApiResponse<Vec<ScheduledBroadcast>>",
         schema: generate::<ApiResponse<Vec<ScheduledBroadcast>>>,
@@ -165,7 +170,12 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<ChatSentResult>>,
     },
     SchemaEntry {
-        commands: &["broadcasts chat mute", "broadcasts chat unmute"],
+        commands: &[
+            "broadcasts chat mute",
+            "broadcasts chat unmute",
+            "broadcasts mutes add",
+            "broadcasts mutes remove",
+        ],
         type_name: "ApiResponse<ChatMutedResult>",
         schema: generate::<ApiResponse<ChatMutedResult>>,
     },
@@ -279,6 +289,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "delete",
             "dm-events remove",
             "lists remove",
+            "broadcasts remove",
             "broadcasts scheduled cancel",
             "broadcasts chat remove",
             "notes remove",
@@ -365,9 +376,19 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<Vec<BookmarkFolderPost>>>,
     },
     SchemaEntry {
+        commands: &["broadcasts mutes list"],
+        type_name: "ApiResponse<Vec<ChatMute>>",
+        schema: generate::<ApiResponse<Vec<ChatMute>>>,
+    },
+    SchemaEntry {
+        commands: &["broadcasts sources region"],
+        type_name: "IngestRegion",
+        schema: generate::<IngestRegion>,
+    },
+    SchemaEntry {
         commands: &["broadcasts sources list"],
-        type_name: "ApiResponse<StreamSources>",
-        schema: generate::<ApiResponse<StreamSources>>,
+        type_name: "ApiResponse<Vec<StreamSource>>",
+        schema: generate::<ApiResponse<Vec<StreamSource>>>,
     },
     SchemaEntry {
         commands: &[
@@ -375,8 +396,8 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "broadcasts sources add",
             "broadcasts sources update",
         ],
-        type_name: "ApiResponse<StreamSourceResult>",
-        schema: generate::<ApiResponse<StreamSourceResult>>,
+        type_name: "ApiResponse<StreamSource>",
+        schema: generate::<ApiResponse<StreamSource>>,
     },
     SchemaEntry {
         commands: &["broadcasts sources remove"],
@@ -509,6 +530,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "broadcasts",
     "broadcasts chat",
     "broadcasts moderators",
+    "broadcasts mutes",
     "broadcasts scheduled",
     "broadcasts sources",
     "calls",

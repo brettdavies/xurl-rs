@@ -88,6 +88,45 @@
         },
         "style": "form"
       },
+      "BroadcastChatMuteExpansionsParameter": {
+        "description": "A comma separated list of fields to expand.",
+        "explode": false,
+        "in": "query",
+        "name": "expansions",
+        "required": false,
+        "schema": {
+          "items": {
+            "enum": [
+              "user_id"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "BroadcastChatMuteFieldsParameter": {
+        "description": "A comma separated list of BroadcastChatMute fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "broadcast_chat_mute.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a BroadcastChatMute object.",
+          "items": {
+            "enum": [
+              "end_at_ms"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
       "BroadcastFieldsParameter": {
         "description": "A comma separated list of Broadcast fields to display.",
         "explode": false,
@@ -1298,7 +1337,7 @@
       "AddChatGroupAdminsActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -1382,7 +1421,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/AddChatGroupAdminsActionSignatures"
             },
@@ -1432,7 +1471,7 @@
       "AddChatGroupMembersActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -1532,7 +1571,7 @@
       "AddChatGroupMembersRequest": {
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/AddChatGroupMembersActionSignatures"
             },
@@ -1630,7 +1669,7 @@
       "AddConversationKeysActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -1730,7 +1769,7 @@
       "AddConversationKeysRequest": {
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/AddConversationKeysActionSignatures"
             },
@@ -2147,7 +2186,7 @@
       "ApproveChatGroupAdminRequestActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -2231,7 +2270,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/ApproveChatGroupAdminRequestActionSignatures"
             },
@@ -2269,7 +2308,7 @@
       "ArchiveChatConversationActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -2353,7 +2392,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/ArchiveChatConversationActionSignatures"
             },
@@ -2989,6 +3028,19 @@
             "type": "string"
           },
           "text": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "BroadcastChatMute": {
+        "properties": {
+          "end_at_ms": {
+            "description": "The Unix timestamp in milliseconds when the mute expires. Absent for indefinite mutes.",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "The muted user's ID.",
             "type": "string"
           }
         },
@@ -4136,7 +4188,7 @@
       "CreateChatConversationActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -4236,7 +4288,7 @@
       "CreateChatConversationRequest": {
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/CreateChatConversationActionSignatures"
             },
@@ -4333,7 +4385,7 @@
       "CreateChatGroupAdminRequestActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -4417,7 +4469,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/CreateChatGroupAdminRequestActionSignatures"
             },
@@ -4455,7 +4507,7 @@
       "CreateChatGroupJoinRequestActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -4539,7 +4591,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/CreateChatGroupJoinRequestActionSignatures"
             },
@@ -5838,8 +5890,251 @@
       },
       "CreateSourceResponseData": {
         "properties": {
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Source id; the `source_id` a scheduled broadcast binds to. Currently equal to `stream_key`.",
+            "type": "string"
+          },
+          "is_stream_active": {
+            "description": "Whether an encoder is currently sending video to the source. Publishing a broadcast on the source needs it.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Label for the source.",
+            "type": "string"
+          },
+          "region": {
+            "description": "Ingest region: `atla` or `pdxa` for on-prem sources, the AWS region (e.g. `us-east-1`) for sources created before the move to on-prem.",
+            "type": "string"
+          },
+          "rtmp_url": {
+            "description": "RTMP ingest URL.",
+            "type": "string"
+          },
+          "rtmps_url": {
+            "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          },
+          "stream_key": {
+            "description": "RTMP stream key.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "CreateUserBroadcastRequest": {
+        "properties": {
+          "is_low_latency": {
+            "description": "Ignored.",
+            "type": "boolean"
+          },
+          "region": {
+            "description": "Ignored: the source sets the region.",
+            "type": "string"
+          },
+          "source_id": {
+            "description": "The source's `rtmp_stream_key`.",
+            "pattern": "^[a-zA-Z0-9]{1,32}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id"
+        ],
+        "type": "object"
+      },
+      "CreateUserBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateUserBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateUserBroadcastResponseData": {
+        "properties": {
+          "broadcast": {
+            "$ref": "#/components/schemas/CreateUserBroadcastResponseDataBroadcast"
+          },
+          "share_url": {
+            "description": "The broadcast's watch page.",
+            "type": "string"
+          },
+          "video_access": {
+            "$ref": "#/components/schemas/CreateUserBroadcastResponseDataVideoAccess",
+            "description": "Always empty."
+          }
+        },
+        "required": [
+          "broadcast",
+          "video_access",
+          "share_url"
+        ],
+        "type": "object"
+      },
+      "CreateUserBroadcastResponseDataBroadcast": {
+        "additionalProperties": false,
+        "properties": {
+          "available_for_replay": {
+            "description": "Whether a replay is available.",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "end_ms": {
+            "description": "End time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "height": {
+            "description": "Video height in pixels.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id; equal to `broadcast_id`.",
+            "type": "string"
+          },
+          "image_url": {
+            "description": "Thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_medium": {
+            "description": "Medium thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_small": {
+            "description": "Small thumbnail URL.",
+            "type": "string"
+          },
+          "is_high_latency": {
+            "description": "Whether the broadcast is high latency.",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_id": {
+            "description": "Numeric media id from `media_key`.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast's video.",
+            "type": "string"
+          },
+          "scheduled_end_ms": {
+            "description": "Scheduled end time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "scheduled_start_ms": {
+            "description": "Scheduled start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "`NOT_STARTED`, `RUNNING`, `TIMED_OUT`, `ENDED`, `PRE_PUBLISHED` or `CANCELED`.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "total_watched": {
+            "description": "Total viewers (decimal string).",
+            "type": "string"
+          },
+          "total_watching": {
+            "description": "Current viewers (decimal string).",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast.",
+            "type": "string"
+          },
+          "twitter_user_id": {
+            "description": "Owner's user id.",
+            "type": "string"
+          },
+          "updated_at_ms": {
+            "description": "Last update time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "width": {
+            "description": "Video width in pixels.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "CreateUserBroadcastResponseDataVideoAccess": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "CreateUserSourceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Label for the source.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "region": {
+            "description": "Ingest data center, `atla` or `pdxa` (default). The AWS regions us-west-1 and us-west-2 map to `pdxa`; us-east-1, us-east-2, ca-central-1, sa-east-1, eu-west-1, eu-west-2, eu-west-3, eu-central-1, eu-north-1, ap-south-1, ap-northeast-1, ap-northeast-2, ap-southeast-1 and ap-southeast-2 map to `atla`.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "CreateUserSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateUserSourceResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateUserSourceResponseData": {
+        "properties": {
           "source": {
-            "$ref": "#/components/schemas/CreateSourceResponseDataSource"
+            "$ref": "#/components/schemas/CreateUserSourceResponseDataSource"
           }
         },
         "required": [
@@ -5847,9 +6142,13 @@
         ],
         "type": "object"
       },
-      "CreateSourceResponseDataSource": {
+      "CreateUserSourceResponseDataSource": {
         "additionalProperties": false,
         "properties": {
+          "creation_origin": {
+            "$ref": "#/components/schemas/CreateUserSourceResponseDataSourceCreationOrigin",
+            "description": "Where a source created before the move to on-prem was created, e.g. `{\"value\": 2, \"name\": \"MediaStudio\", \"original_name\": \"MEDIA_STUDIO\"}`; omitted for on-prem sources."
+          },
           "creation_time": {
             "description": "Creation time, ms since Unix epoch.",
             "type": "integer"
@@ -5858,8 +6157,12 @@
             "description": "Source id; also the RTMP stream key.",
             "type": "string"
           },
+          "is360": {
+            "description": "Whether the source streams 360° video.",
+            "type": "boolean"
+          },
           "is_stream_active": {
-            "description": "Whether the source is currently receiving video.",
+            "description": "Whether an encoder is currently sending video to the source.",
             "type": "boolean"
           },
           "name": {
@@ -5871,7 +6174,7 @@
             "type": "integer"
           },
           "rtmp_region": {
-            "description": "Ingest region, e.g. `us-east-1`.",
+            "description": "Ingest region as an AWS region name, e.g. `us-east-1` or `us-west-2`. Accepted as `region` when creating a source.",
             "type": "string"
           },
           "rtmp_stream_key": {
@@ -5885,11 +6188,51 @@
           "rtmps_url": {
             "description": "RTMPS ingest URL (port 443).",
             "type": "string"
+          },
+          "video_service": {
+            "$ref": "#/components/schemas/CreateUserSourceResponseDataSourceVideoService",
+            "description": "Video service of a source created before the move to on-prem, e.g. `{\"value\": 0, \"name\": \"Vidman\", \"original_name\": \"VIDMAN\"}`; omitted for on-prem sources."
           }
         },
         "required": [
           "id"
         ],
+        "type": "object"
+      },
+      "CreateUserSourceResponseDataSourceCreationOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Name, e.g. `PublicApi`.",
+            "type": "string"
+          },
+          "original_name": {
+            "description": "Upper-case name, e.g. `PUBLIC_API`.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric value.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "CreateUserSourceResponseDataSourceVideoService": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Name, e.g. `PublicApi`.",
+            "type": "string"
+          },
+          "original_name": {
+            "description": "Upper-case name, e.g. `PUBLIC_API`.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric value.",
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "CreateUsersBookmarkFolderRequest": {
@@ -6391,10 +6734,36 @@
         ],
         "type": "object"
       },
+      "DeleteBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteBroadcastResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the broadcast was deleted.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
       "DeleteChatConversationActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -6477,7 +6846,7 @@
       "DeleteChatConversationMessageTtlActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -6561,7 +6930,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/DeleteChatConversationMessageTtlActionSignatures"
             },
@@ -6600,7 +6969,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/DeleteChatConversationActionSignatures"
             },
@@ -6638,7 +7007,7 @@
       "DeleteChatMessagesActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -6721,7 +7090,7 @@
       "DeleteChatMessagesRequest": {
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/DeleteChatMessagesActionSignatures"
             },
@@ -7121,6 +7490,58 @@
         "type": "object"
       },
       "DeleteSourceResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the source was deleted.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeleteUserBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteUserBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteUserBroadcastResponseData": {
+        "properties": {
+          "success": {
+            "description": "Always `true` on success.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "type": "object"
+      },
+      "DeleteUserSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeleteUserSourceResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeleteUserSourceResponseData": {
         "properties": {},
         "type": "object"
       },
@@ -7205,7 +7626,7 @@
       "DisableChatGroupInviteActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -7289,7 +7710,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/DisableChatGroupInviteActionSignatures"
             },
@@ -7347,6 +7768,231 @@
           "type": {
             "enum": [
               "https://api.x.com/2/problems/disallowed-resource"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmBadAttachmentProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-bad-attachment"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmBadCtaProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-bad-cta"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmBadCustomProfileProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-bad-custom-profile"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmBadMediaProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-bad-media"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmBadQuickReplyProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-bad-quick-reply"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmBadUrlProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-bad-url"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmConversationNameTooLongProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-conversation-name-too-long"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmConversationNotFoundProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-conversation-not-found"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmDuplicateProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-duplicate"
             ],
             "type": "string"
           }
@@ -7564,6 +8210,856 @@
         },
         "type": "array"
       },
+      "DmInactiveDeviceProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-inactive-device"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmNotDeliveredProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-not-delivered"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmNotFoundProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-not-found"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmNotOwnerProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-not-owner"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmParticipantNotAddedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-participant-not-added"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmParticipantNotFoundProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-participant-not-found"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmParticipantRestrictedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-participant-restricted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmParticipantUnavailableProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-participant-unavailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRateLimitedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-rate-limited"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRecipientBlocksSenderProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-recipient-blocks-sender"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRecipientCannotReceiveProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-recipient-cannot-receive"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRecipientEncryptedUnavailableProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-recipient-encrypted-unavailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRecipientNotAcceptingProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-recipient-not-accepting"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRecipientNotFoundProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-recipient-not-found"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRecipientRestrictsGroupsProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-recipient-restricts-groups"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRecipientUnavailableProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-recipient-unavailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmRequestInProgressProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-request-in-progress"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSafetyLimitedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-safety-limited"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSafetyRejectedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-safety-rejected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderBlocksRecipientProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-blocks-recipient"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderDeclinedDmsProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-declined-dms"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderDmsClosedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-dms-closed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderEncryptedUnavailableProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-encrypted-unavailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderNotInConversationProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-not-in-conversation"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderNotPermittedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-not-permitted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderNotVerifiedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-not-verified"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderPhoneRequiredProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-phone-required"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderReadOnlyProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-read-only"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmSenderUnavailableProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-sender-unavailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmTextEmptyProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-text-empty"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmTextTooLongProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-text-too-long"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmTooFewParticipantsProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-too-few-participants"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmTooManyParticipantsProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-too-many-participants"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "DmUnsupportedMessageProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/dm-unsupported-message"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
       "DuplicateRuleProblem": {
         "properties": {
           "detail": {
@@ -7595,7 +9091,7 @@
       "EnableChatGroupInviteActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -7679,7 +9175,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/EnableChatGroupInviteActionSignatures"
             },
@@ -8688,6 +10184,40 @@
         },
         "type": "object"
       },
+      "GetChatMutedUsersResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BroadcastChatMute"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "includes": {
+            "$ref": "#/components/schemas/Expansions"
+          },
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "GetChatSettingsResponse": {
         "properties": {
           "data": {
@@ -9557,6 +11087,22 @@
         },
         "type": "object"
       },
+      "GetRegionResponse": {
+        "properties": {
+          "region": {
+            "description": "Ingest region. Pass it as `region` when creating a stream source.",
+            "enum": [
+              "us-east-1",
+              "us-west-2"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "region"
+        ],
+        "type": "object"
+      },
       "GetRuleCountsResponse": {
         "properties": {
           "data": {
@@ -9799,44 +11345,24 @@
       },
       "GetSourceResponseData": {
         "properties": {
-          "source": {
-            "$ref": "#/components/schemas/GetSourceResponseDataSource"
-          }
-        },
-        "required": [
-          "source"
-        ],
-        "type": "object"
-      },
-      "GetSourceResponseDataSource": {
-        "additionalProperties": false,
-        "properties": {
-          "creation_time": {
-            "description": "Creation time, ms since Unix epoch.",
-            "type": "integer"
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
           },
           "id": {
-            "description": "Source id; also the RTMP stream key.",
+            "description": "Source id; the `source_id` a scheduled broadcast binds to. Currently equal to `stream_key`.",
             "type": "string"
           },
           "is_stream_active": {
-            "description": "Whether the source is currently receiving video.",
+            "description": "Whether an encoder is currently sending video to the source. Publishing a broadcast on the source needs it.",
             "type": "boolean"
           },
           "name": {
             "description": "Label for the source.",
             "type": "string"
           },
-          "owner_id": {
-            "description": "Owner's numeric user id. Exceeds the exact integer range of many JSON parsers.",
-            "type": "integer"
-          },
-          "rtmp_region": {
-            "description": "Ingest region, e.g. `us-east-1`.",
-            "type": "string"
-          },
-          "rtmp_stream_key": {
-            "description": "Stream key; equal to `id`.",
+          "region": {
+            "description": "Ingest region: `atla` or `pdxa` for on-prem sources, the AWS region (e.g. `us-east-1`) for sources created before the move to on-prem.",
             "type": "string"
           },
           "rtmp_url": {
@@ -9845,6 +11371,10 @@
           },
           "rtmps_url": {
             "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          },
+          "stream_key": {
+            "description": "RTMP stream key.",
             "type": "string"
           }
         },
@@ -10101,6 +11631,258 @@
               "$ref": "#/components/schemas/Problem"
             },
             "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetUserBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetUserBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetUserBroadcastResponseData": {
+        "properties": {
+          "broadcast": {
+            "$ref": "#/components/schemas/GetUserBroadcastResponseDataBroadcast"
+          }
+        },
+        "required": [
+          "broadcast"
+        ],
+        "type": "object"
+      },
+      "GetUserBroadcastResponseDataBroadcast": {
+        "additionalProperties": false,
+        "properties": {
+          "available_for_replay": {
+            "description": "Whether a replay is available.",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "end_ms": {
+            "description": "End time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "height": {
+            "description": "Video height in pixels.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id; equal to `broadcast_id`.",
+            "type": "string"
+          },
+          "image_url": {
+            "description": "Thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_medium": {
+            "description": "Medium thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_small": {
+            "description": "Small thumbnail URL.",
+            "type": "string"
+          },
+          "is_high_latency": {
+            "description": "Whether the broadcast is high latency.",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_id": {
+            "description": "Numeric media id from `media_key`.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast's video.",
+            "type": "string"
+          },
+          "scheduled_end_ms": {
+            "description": "Scheduled end time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "scheduled_start_ms": {
+            "description": "Scheduled start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "`NOT_STARTED`, `RUNNING`, `TIMED_OUT`, `ENDED`, `PRE_PUBLISHED` or `CANCELED`.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "total_watched": {
+            "description": "Total viewers (decimal string).",
+            "type": "string"
+          },
+          "total_watching": {
+            "description": "Current viewers (decimal string).",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast.",
+            "type": "string"
+          },
+          "twitter_user_id": {
+            "description": "Owner's user id.",
+            "type": "string"
+          },
+          "updated_at_ms": {
+            "description": "Last update time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "width": {
+            "description": "Video width in pixels.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "GetUserSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetUserSourceResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetUserSourceResponseData": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/GetUserSourceResponseDataSource"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "type": "object"
+      },
+      "GetUserSourceResponseDataSource": {
+        "additionalProperties": false,
+        "properties": {
+          "creation_origin": {
+            "$ref": "#/components/schemas/GetUserSourceResponseDataSourceCreationOrigin",
+            "description": "Where a source created before the move to on-prem was created, e.g. `{\"value\": 2, \"name\": \"MediaStudio\", \"original_name\": \"MEDIA_STUDIO\"}`; omitted for on-prem sources."
+          },
+          "creation_time": {
+            "description": "Creation time, ms since Unix epoch.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Source id; also the RTMP stream key.",
+            "type": "string"
+          },
+          "is360": {
+            "description": "Whether the source streams 360° video.",
+            "type": "boolean"
+          },
+          "is_stream_active": {
+            "description": "Whether an encoder is currently sending video to the source.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Label for the source.",
+            "type": "string"
+          },
+          "owner_id": {
+            "description": "Owner's numeric user id. Exceeds the exact integer range of many JSON parsers.",
+            "type": "integer"
+          },
+          "rtmp_region": {
+            "description": "Ingest region as an AWS region name, e.g. `us-east-1` or `us-west-2`. Accepted as `region` when creating a source.",
+            "type": "string"
+          },
+          "rtmp_stream_key": {
+            "description": "Stream key; equal to `id`.",
+            "type": "string"
+          },
+          "rtmp_url": {
+            "description": "RTMP ingest URL.",
+            "type": "string"
+          },
+          "rtmps_url": {
+            "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          },
+          "video_service": {
+            "$ref": "#/components/schemas/GetUserSourceResponseDataSourceVideoService",
+            "description": "Video service of a source created before the move to on-prem, e.g. `{\"value\": 0, \"name\": \"Vidman\", \"original_name\": \"VIDMAN\"}`; omitted for on-prem sources."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "GetUserSourceResponseDataSourceCreationOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Name, e.g. `PublicApi`.",
+            "type": "string"
+          },
+          "original_name": {
+            "description": "Upper-case name, e.g. `PUBLIC_API`.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric value.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "GetUserSourceResponseDataSourceVideoService": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Name, e.g. `PublicApi`.",
+            "type": "string"
+          },
+          "original_name": {
+            "description": "Upper-case name, e.g. `PUBLIC_API`.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric value.",
+            "type": "integer"
           }
         },
         "type": "object"
@@ -11793,7 +13575,74 @@
       "ListSourcesResponse": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/ListSourcesResponseData"
+            "items": {
+              "$ref": "#/components/schemas/ListSourcesResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "ListSourcesResponseData": {
+        "properties": {
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Source id; the `source_id` a scheduled broadcast binds to. Currently equal to `stream_key`.",
+            "type": "string"
+          },
+          "is_stream_active": {
+            "description": "Whether an encoder is currently sending video to the source. Publishing a broadcast on the source needs it.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Label for the source.",
+            "type": "string"
+          },
+          "region": {
+            "description": "Ingest region: `atla` or `pdxa` for on-prem sources, the AWS region (e.g. `us-east-1`) for sources created before the move to on-prem.",
+            "type": "string"
+          },
+          "rtmp_url": {
+            "description": "RTMP ingest URL.",
+            "type": "string"
+          },
+          "rtmps_url": {
+            "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          },
+          "stream_key": {
+            "description": "RTMP stream key.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "ListUserBroadcastsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ListUserBroadcastsResponseData"
           },
           "errors": {
             "items": {
@@ -11804,11 +13653,164 @@
         },
         "type": "object"
       },
-      "ListSourcesResponseData": {
+      "ListUserBroadcastsResponseData": {
+        "properties": {
+          "broadcasts": {
+            "items": {
+              "$ref": "#/components/schemas/ListUserBroadcastsResponseDataBroadcasts"
+            },
+            "type": "array"
+          },
+          "next_token": {
+            "$ref": "#/components/schemas/ListUserBroadcastsResponseDataNextToken"
+          }
+        },
+        "required": [
+          "broadcasts"
+        ],
+        "type": "object"
+      },
+      "ListUserBroadcastsResponseDataBroadcasts": {
+        "additionalProperties": false,
+        "properties": {
+          "available_for_replay": {
+            "description": "Whether a replay is available.",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "end_ms": {
+            "description": "End time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "height": {
+            "description": "Video height in pixels.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id; equal to `broadcast_id`.",
+            "type": "string"
+          },
+          "image_url": {
+            "description": "Thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_medium": {
+            "description": "Medium thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_small": {
+            "description": "Small thumbnail URL.",
+            "type": "string"
+          },
+          "is_high_latency": {
+            "description": "Whether the broadcast is high latency.",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_id": {
+            "description": "Numeric media id from `media_key`.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast's video.",
+            "type": "string"
+          },
+          "scheduled_end_ms": {
+            "description": "Scheduled end time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "scheduled_start_ms": {
+            "description": "Scheduled start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "`NOT_STARTED`, `RUNNING`, `TIMED_OUT`, `ENDED`, `PRE_PUBLISHED` or `CANCELED`.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "total_watched": {
+            "description": "Total viewers (decimal string).",
+            "type": "string"
+          },
+          "total_watching": {
+            "description": "Current viewers (decimal string).",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast.",
+            "type": "string"
+          },
+          "twitter_user_id": {
+            "description": "Owner's user id.",
+            "type": "string"
+          },
+          "updated_at_ms": {
+            "description": "Last update time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "width": {
+            "description": "Video width in pixels.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "ListUserBroadcastsResponseDataNextToken": {
+        "additionalProperties": false,
+        "properties": {
+          "offset": {
+            "description": "Pass as `pagination_token` to read the next page.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "type": "object"
+      },
+      "ListUserSourcesResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ListUserSourcesResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ListUserSourcesResponseData": {
         "properties": {
           "sources": {
             "items": {
-              "$ref": "#/components/schemas/ListSourcesResponseDataSources"
+              "$ref": "#/components/schemas/ListUserSourcesResponseDataSources"
             },
             "type": "array"
           }
@@ -11818,9 +13820,13 @@
         ],
         "type": "object"
       },
-      "ListSourcesResponseDataSources": {
+      "ListUserSourcesResponseDataSources": {
         "additionalProperties": false,
         "properties": {
+          "creation_origin": {
+            "$ref": "#/components/schemas/ListUserSourcesResponseDataSourcesCreationOrigin",
+            "description": "Where a source created before the move to on-prem was created, e.g. `{\"value\": 2, \"name\": \"MediaStudio\", \"original_name\": \"MEDIA_STUDIO\"}`; omitted for on-prem sources."
+          },
           "creation_time": {
             "description": "Creation time, ms since Unix epoch.",
             "type": "integer"
@@ -11829,8 +13835,12 @@
             "description": "Source id; also the RTMP stream key.",
             "type": "string"
           },
+          "is360": {
+            "description": "Whether the source streams 360° video.",
+            "type": "boolean"
+          },
           "is_stream_active": {
-            "description": "Whether the source is currently receiving video.",
+            "description": "Whether an encoder is currently sending video to the source.",
             "type": "boolean"
           },
           "name": {
@@ -11842,7 +13852,7 @@
             "type": "integer"
           },
           "rtmp_region": {
-            "description": "Ingest region, e.g. `us-east-1`.",
+            "description": "Ingest region as an AWS region name, e.g. `us-east-1` or `us-west-2`. Accepted as `region` when creating a source.",
             "type": "string"
           },
           "rtmp_stream_key": {
@@ -11856,6 +13866,10 @@
           "rtmps_url": {
             "description": "RTMPS ingest URL (port 443).",
             "type": "string"
+          },
+          "video_service": {
+            "$ref": "#/components/schemas/ListUserSourcesResponseDataSourcesVideoService",
+            "description": "Video service of a source created before the move to on-prem, e.g. `{\"value\": 0, \"name\": \"Vidman\", \"original_name\": \"VIDMAN\"}`; omitted for on-prem sources."
           }
         },
         "required": [
@@ -11863,10 +13877,46 @@
         ],
         "type": "object"
       },
+      "ListUserSourcesResponseDataSourcesCreationOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Name, e.g. `PublicApi`.",
+            "type": "string"
+          },
+          "original_name": {
+            "description": "Upper-case name, e.g. `PUBLIC_API`.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric value.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ListUserSourcesResponseDataSourcesVideoService": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Name, e.g. `PublicApi`.",
+            "type": "string"
+          },
+          "original_name": {
+            "description": "Upper-case name, e.g. `PUBLIC_API`.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric value.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "MarkChatConversationReadActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -12600,7 +14650,7 @@
       "MuteChatConversationActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -12684,7 +14734,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/MuteChatConversationActionSignatures"
             },
@@ -12711,6 +14761,61 @@
         "properties": {
           "muted": {
             "description": "Whether the conversation is muted for the authenticated user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "muted"
+        ],
+        "type": "object"
+      },
+      "MuteChatUserRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "broadcast_id": {
+            "description": "A broadcast whose host's chats the user is muted in. Required with `message_id`.",
+            "pattern": "^[a-zA-Z0-9]{1,24}$",
+            "type": "string"
+          },
+          "end_at_ms": {
+            "description": "The Unix timestamp in milliseconds when the mute expires. Omit this field to mute indefinitely.",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "type": "string"
+          },
+          "message_id": {
+            "description": "A chat message in `broadcast_id` to remove while muting the user.",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "The user to mute.",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "MuteChatUserResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/MuteChatUserResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "MuteChatUserResponseData": {
+        "properties": {
+          "muted": {
+            "description": "Whether the user is muted in this broadcast chat.",
             "type": "boolean"
           }
         },
@@ -14570,6 +16675,49 @@
             "https://api.twitter.com/2/problems/duplicate-rules": "#/components/schemas/DuplicateRuleProblem",
             "https://api.twitter.com/2/problems/invalid-rules": "#/components/schemas/InvalidRuleProblem",
             "https://api.x.com/2/problems/disallowed-resource": "#/components/schemas/DisallowedResourceProblem",
+            "https://api.x.com/2/problems/dm-bad-attachment": "#/components/schemas/DmBadAttachmentProblem",
+            "https://api.x.com/2/problems/dm-bad-cta": "#/components/schemas/DmBadCtaProblem",
+            "https://api.x.com/2/problems/dm-bad-custom-profile": "#/components/schemas/DmBadCustomProfileProblem",
+            "https://api.x.com/2/problems/dm-bad-media": "#/components/schemas/DmBadMediaProblem",
+            "https://api.x.com/2/problems/dm-bad-quick-reply": "#/components/schemas/DmBadQuickReplyProblem",
+            "https://api.x.com/2/problems/dm-bad-url": "#/components/schemas/DmBadUrlProblem",
+            "https://api.x.com/2/problems/dm-conversation-name-too-long": "#/components/schemas/DmConversationNameTooLongProblem",
+            "https://api.x.com/2/problems/dm-conversation-not-found": "#/components/schemas/DmConversationNotFoundProblem",
+            "https://api.x.com/2/problems/dm-duplicate": "#/components/schemas/DmDuplicateProblem",
+            "https://api.x.com/2/problems/dm-inactive-device": "#/components/schemas/DmInactiveDeviceProblem",
+            "https://api.x.com/2/problems/dm-not-delivered": "#/components/schemas/DmNotDeliveredProblem",
+            "https://api.x.com/2/problems/dm-not-found": "#/components/schemas/DmNotFoundProblem",
+            "https://api.x.com/2/problems/dm-not-owner": "#/components/schemas/DmNotOwnerProblem",
+            "https://api.x.com/2/problems/dm-participant-not-added": "#/components/schemas/DmParticipantNotAddedProblem",
+            "https://api.x.com/2/problems/dm-participant-not-found": "#/components/schemas/DmParticipantNotFoundProblem",
+            "https://api.x.com/2/problems/dm-participant-restricted": "#/components/schemas/DmParticipantRestrictedProblem",
+            "https://api.x.com/2/problems/dm-participant-unavailable": "#/components/schemas/DmParticipantUnavailableProblem",
+            "https://api.x.com/2/problems/dm-rate-limited": "#/components/schemas/DmRateLimitedProblem",
+            "https://api.x.com/2/problems/dm-recipient-blocks-sender": "#/components/schemas/DmRecipientBlocksSenderProblem",
+            "https://api.x.com/2/problems/dm-recipient-cannot-receive": "#/components/schemas/DmRecipientCannotReceiveProblem",
+            "https://api.x.com/2/problems/dm-recipient-encrypted-unavailable": "#/components/schemas/DmRecipientEncryptedUnavailableProblem",
+            "https://api.x.com/2/problems/dm-recipient-not-accepting": "#/components/schemas/DmRecipientNotAcceptingProblem",
+            "https://api.x.com/2/problems/dm-recipient-not-found": "#/components/schemas/DmRecipientNotFoundProblem",
+            "https://api.x.com/2/problems/dm-recipient-restricts-groups": "#/components/schemas/DmRecipientRestrictsGroupsProblem",
+            "https://api.x.com/2/problems/dm-recipient-unavailable": "#/components/schemas/DmRecipientUnavailableProblem",
+            "https://api.x.com/2/problems/dm-request-in-progress": "#/components/schemas/DmRequestInProgressProblem",
+            "https://api.x.com/2/problems/dm-safety-limited": "#/components/schemas/DmSafetyLimitedProblem",
+            "https://api.x.com/2/problems/dm-safety-rejected": "#/components/schemas/DmSafetyRejectedProblem",
+            "https://api.x.com/2/problems/dm-sender-blocks-recipient": "#/components/schemas/DmSenderBlocksRecipientProblem",
+            "https://api.x.com/2/problems/dm-sender-declined-dms": "#/components/schemas/DmSenderDeclinedDmsProblem",
+            "https://api.x.com/2/problems/dm-sender-dms-closed": "#/components/schemas/DmSenderDmsClosedProblem",
+            "https://api.x.com/2/problems/dm-sender-encrypted-unavailable": "#/components/schemas/DmSenderEncryptedUnavailableProblem",
+            "https://api.x.com/2/problems/dm-sender-not-in-conversation": "#/components/schemas/DmSenderNotInConversationProblem",
+            "https://api.x.com/2/problems/dm-sender-not-permitted": "#/components/schemas/DmSenderNotPermittedProblem",
+            "https://api.x.com/2/problems/dm-sender-not-verified": "#/components/schemas/DmSenderNotVerifiedProblem",
+            "https://api.x.com/2/problems/dm-sender-phone-required": "#/components/schemas/DmSenderPhoneRequiredProblem",
+            "https://api.x.com/2/problems/dm-sender-read-only": "#/components/schemas/DmSenderReadOnlyProblem",
+            "https://api.x.com/2/problems/dm-sender-unavailable": "#/components/schemas/DmSenderUnavailableProblem",
+            "https://api.x.com/2/problems/dm-text-empty": "#/components/schemas/DmTextEmptyProblem",
+            "https://api.x.com/2/problems/dm-text-too-long": "#/components/schemas/DmTextTooLongProblem",
+            "https://api.x.com/2/problems/dm-too-few-participants": "#/components/schemas/DmTooFewParticipantsProblem",
+            "https://api.x.com/2/problems/dm-too-many-participants": "#/components/schemas/DmTooManyParticipantsProblem",
+            "https://api.x.com/2/problems/dm-unsupported-message": "#/components/schemas/DmUnsupportedMessageProblem",
             "https://api.x.com/2/problems/field-hydration-failure": "#/components/schemas/FieldHydrationFailureProblem",
             "https://api.x.com/2/problems/field-unauthorized": "#/components/schemas/FieldUnauthorizedProblem",
             "https://api.x.com/2/problems/internal-error": "#/components/schemas/InternalErrorProblem",
@@ -14612,6 +16760,135 @@
           },
           {
             "$ref": "#/components/schemas/InternalErrorProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmBadAttachmentProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmBadCtaProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmBadCustomProfileProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmBadMediaProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmBadQuickReplyProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmBadUrlProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmConversationNameTooLongProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmConversationNotFoundProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmDuplicateProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmInactiveDeviceProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmNotDeliveredProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmNotFoundProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmNotOwnerProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmParticipantNotAddedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmParticipantNotFoundProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmParticipantRestrictedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmParticipantUnavailableProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRateLimitedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRecipientBlocksSenderProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRecipientCannotReceiveProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRecipientEncryptedUnavailableProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRecipientNotAcceptingProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRecipientNotFoundProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRecipientRestrictsGroupsProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRecipientUnavailableProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmRequestInProgressProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSafetyLimitedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSafetyRejectedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderBlocksRecipientProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderDeclinedDmsProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderDmsClosedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderEncryptedUnavailableProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderNotInConversationProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderNotPermittedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderNotVerifiedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderPhoneRequiredProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderReadOnlyProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmSenderUnavailableProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmTextEmptyProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmTextTooLongProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmTooFewParticipantsProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmTooManyParticipantsProblem"
+          },
+          {
+            "$ref": "#/components/schemas/DmUnsupportedMessageProblem"
           },
           {
             "$ref": "#/components/schemas/DuplicateRuleProblem"
@@ -14686,7 +16963,7 @@
       "RejectChatGroupAdminRequestActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -14770,7 +17047,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/RejectChatGroupAdminRequestActionSignatures"
             },
@@ -14808,7 +17085,7 @@
       "RejectChatGroupJoinRequestsActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -14892,7 +17169,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/RejectChatGroupJoinRequestsActionSignatures"
             },
@@ -14942,7 +17219,7 @@
       "RemoveChatGroupAdminsActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -15026,7 +17303,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/RemoveChatGroupAdminsActionSignatures"
             },
@@ -15076,7 +17353,7 @@
       "RemoveChatGroupMembersActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -15156,14 +17433,95 @@
         },
         "type": "object"
       },
+      "RemoveChatGroupMembersGroupKeyRotationData": {
+        "properties": {
+          "base64_encoded_key_rotation": {
+            "description": "Base64-encoded key rotation payload.",
+            "type": "string"
+          },
+          "conversation_key_version": {
+            "description": "Version of the new rotated conversation key.",
+            "type": "string"
+          },
+          "conversation_participant_keys": {
+            "description": "Encrypted conversation keys for each participant.",
+            "items": {
+              "$ref": "#/components/schemas/RemoveChatGroupMembersGroupKeyRotationDataConversationParticipantKeys"
+            },
+            "type": "array"
+          },
+          "encrypted_avatar": {
+            "description": "Re-encrypted group avatar with new conversation key.",
+            "type": "string"
+          },
+          "encrypted_description": {
+            "description": "Re-encrypted group description with new conversation key.",
+            "type": "string"
+          },
+          "encrypted_title": {
+            "description": "Re-encrypted group title with new conversation key.",
+            "type": "string"
+          },
+          "rotated_pmk_bundle": {
+            "description": "Message keys re-encrypted with the rotated conversation key.",
+            "items": {
+              "$ref": "#/components/schemas/RemoveChatGroupMembersGroupKeyRotationDataRotatedPmkBundle"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveChatGroupMembersGroupKeyRotationDataConversationParticipantKeys": {
+        "properties": {
+          "encrypted_conversation_key": {
+            "description": "Conversation key encrypted with this participant's public key.",
+            "type": "string"
+          },
+          "public_key_version": {
+            "description": "Version of the participant's public key used for encryption.",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "Participant user ID.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveChatGroupMembersGroupKeyRotationDataRotatedPmkBundle": {
+        "properties": {
+          "base64_encoded_encrypted_pmk": {
+            "description": "Base64-encoded message key, encrypted with the new conversation key.",
+            "type": "string"
+          },
+          "message_sequence_id": {
+            "description": "Sequence ID of the message the key belongs to.",
+            "type": "string"
+          },
+          "pme_sequence_id": {
+            "description": "Sequence ID of the key's origin event.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "base64_encoded_encrypted_pmk",
+          "message_sequence_id"
+        ],
+        "type": "object"
+      },
       "RemoveChatGroupMembersRequest": {
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/RemoveChatGroupMembersActionSignatures"
             },
             "type": "array"
+          },
+          "group_key_rotation_data": {
+            "$ref": "#/components/schemas/RemoveChatGroupMembersGroupKeyRotationData",
+            "description": "Conversation key rotated as part of this removal. Omit it when the removal does not change the key."
           },
           "user_ids": {
             "description": "List of user IDs to remove from the group conversation.",
@@ -16669,7 +19027,7 @@
       "UnarchiveChatConversationActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -16753,7 +19111,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/UnarchiveChatConversationActionSignatures"
             },
@@ -16951,7 +19309,7 @@
       "UnmuteChatConversationActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -17035,7 +19393,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/UnmuteChatConversationActionSignatures"
             },
@@ -17062,6 +19420,32 @@
         "properties": {
           "muted": {
             "description": "Whether the conversation is muted for the authenticated user.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "muted"
+        ],
+        "type": "object"
+      },
+      "UnmuteChatUserResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UnmuteChatUserResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UnmuteChatUserResponseData": {
+        "properties": {
+          "muted": {
+            "description": "Whether the user is muted in this broadcast chat.",
             "type": "boolean"
           }
         },
@@ -17305,10 +19689,69 @@
         ],
         "type": "object"
       },
+      "UpdateBroadcastStateRequest": {
+        "properties": {
+          "chat_option": {
+            "description": "Not allowed with `END`.",
+            "type": "integer"
+          },
+          "locale": {
+            "description": "Not allowed with `END`.",
+            "type": "string"
+          },
+          "should_not_tweet": {
+            "description": "Not allowed with `END`.",
+            "type": "boolean"
+          },
+          "state": {
+            "description": "`END`. `PUBLISH` is not supported.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Not allowed with `END`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "UpdateBroadcastStateResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateBroadcastStateResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateBroadcastStateResponseData": {
+        "properties": {
+          "id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "state": {
+            "description": "Always `ENDED`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ],
+        "type": "object"
+      },
       "UpdateChatConversationMessageTtlActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -17392,7 +19835,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/UpdateChatConversationMessageTtlActionSignatures"
             },
@@ -17438,7 +19881,7 @@
       "UpdateChatConversationScreenCaptureBlockingActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -17521,7 +19964,7 @@
       "UpdateChatConversationScreenCaptureDetectionActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -17622,7 +20065,7 @@
             "type": "boolean"
           },
           "blocking_action_signatures": {
-            "description": "Cryptographic signatures for the screenshot blocking change.",
+            "description": "Signatures for the screenshot blocking change, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureBlockingActionSignatures"
             },
@@ -17633,7 +20076,7 @@
             "type": "boolean"
           },
           "detection_action_signatures": {
-            "description": "Cryptographic signatures for the screenshot detection change.",
+            "description": "Signatures for the screenshot detection change, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/UpdateChatConversationScreenCaptureDetectionActionSignatures"
             },
@@ -17672,7 +20115,7 @@
       "UpdateChatGroupActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -17755,7 +20198,7 @@
       "UpdateChatGroupAdminSettingsActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
-            "description": "Base64-encoded message event detail.",
+            "description": "Base64-encoded Thrift MessageEventDetail for the signed action.",
             "minLength": 1,
             "pattern": "^[A-Za-z0-9+/=_-]+$",
             "type": "string"
@@ -17872,7 +20315,7 @@
         "description": "At least one of `add_member`, `edit_group_info`, `send_message`, `start_call`, `edit_message_ttl`, `block_screen_capture` is required.",
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/UpdateChatGroupAdminSettingsActionSignatures"
             },
@@ -17952,7 +20395,7 @@
         "additionalProperties": false,
         "properties": {
           "action_signatures": {
-            "description": "Cryptographic signatures for the action.",
+            "description": "Signatures for this action, forwarded in the order they are sent.",
             "items": {
               "$ref": "#/components/schemas/UpdateChatGroupActionSignatures"
             },
@@ -18722,8 +21165,244 @@
       },
       "UpdateSourceResponseData": {
         "properties": {
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Source id; the `source_id` a scheduled broadcast binds to. Currently equal to `stream_key`.",
+            "type": "string"
+          },
+          "is_stream_active": {
+            "description": "Whether an encoder is currently sending video to the source. Publishing a broadcast on the source needs it.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Label for the source.",
+            "type": "string"
+          },
+          "region": {
+            "description": "Ingest region: `atla` or `pdxa` for on-prem sources, the AWS region (e.g. `us-east-1`) for sources created before the move to on-prem.",
+            "type": "string"
+          },
+          "rtmp_url": {
+            "description": "RTMP ingest URL.",
+            "type": "string"
+          },
+          "rtmps_url": {
+            "description": "RTMPS ingest URL (port 443).",
+            "type": "string"
+          },
+          "stream_key": {
+            "description": "RTMP stream key.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "UpdateUserBroadcastStateRequest": {
+        "properties": {
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows. `PUBLISH` only.",
+            "type": "integer"
+          },
+          "locale": {
+            "description": "Broadcast language. `PUBLISH` only.",
+            "type": "string"
+          },
+          "should_not_tweet": {
+            "description": "Skip the announcing Post. Unset keeps the broadcast's setting, which defaults to posting. `PUBLISH` only.",
+            "type": "boolean"
+          },
+          "state": {
+            "description": "`PUBLISH` or `END`.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Broadcast title. `PUBLISH` only.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "type": "object"
+      },
+      "UpdateUserBroadcastStateResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateUserBroadcastStateResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateUserBroadcastStateResponseData": {
+        "properties": {
+          "broadcast": {
+            "$ref": "#/components/schemas/UpdateUserBroadcastStateResponseDataBroadcast",
+            "description": "The published broadcast, on `PUBLISH`."
+          },
+          "success": {
+            "description": "`true` once `END` succeeds.",
+            "type": "boolean"
+          },
+          "tweet_error": {
+            "description": "Why the announcing Post failed, on `PUBLISH`. Omitted when the Post went out or `should_not_tweet` was true.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateUserBroadcastStateResponseDataBroadcast": {
+        "additionalProperties": false,
+        "properties": {
+          "available_for_replay": {
+            "description": "Whether a replay is available.",
+            "type": "boolean"
+          },
+          "broadcast_id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "created_at_ms": {
+            "description": "Creation time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "end_ms": {
+            "description": "End time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "height": {
+            "description": "Video height in pixels.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id; equal to `broadcast_id`.",
+            "type": "string"
+          },
+          "image_url": {
+            "description": "Thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_medium": {
+            "description": "Medium thumbnail URL.",
+            "type": "string"
+          },
+          "image_url_small": {
+            "description": "Small thumbnail URL.",
+            "type": "string"
+          },
+          "is_high_latency": {
+            "description": "Whether the broadcast is high latency.",
+            "type": "boolean"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_id": {
+            "description": "Numeric media id from `media_key`.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast's video.",
+            "type": "string"
+          },
+          "scheduled_end_ms": {
+            "description": "Scheduled end time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "scheduled_start_ms": {
+            "description": "Scheduled start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "`NOT_STARTED`, `RUNNING`, `TIMED_OUT`, `ENDED`, `PRE_PUBLISHED` or `CANCELED`.",
+            "type": "string"
+          },
+          "status": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "total_watched": {
+            "description": "Total viewers (decimal string).",
+            "type": "string"
+          },
+          "total_watching": {
+            "description": "Current viewers (decimal string).",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast.",
+            "type": "string"
+          },
+          "twitter_user_id": {
+            "description": "Owner's user id.",
+            "type": "string"
+          },
+          "updated_at_ms": {
+            "description": "Last update time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "width": {
+            "description": "Video width in pixels.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "UpdateUserSourceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "New label for the source.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "UpdateUserSourceResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateUserSourceResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateUserSourceResponseData": {
+        "properties": {
           "source": {
-            "$ref": "#/components/schemas/UpdateSourceResponseDataSource"
+            "$ref": "#/components/schemas/UpdateUserSourceResponseDataSource"
           }
         },
         "required": [
@@ -18731,9 +21410,13 @@
         ],
         "type": "object"
       },
-      "UpdateSourceResponseDataSource": {
+      "UpdateUserSourceResponseDataSource": {
         "additionalProperties": false,
         "properties": {
+          "creation_origin": {
+            "$ref": "#/components/schemas/UpdateUserSourceResponseDataSourceCreationOrigin",
+            "description": "Where a source created before the move to on-prem was created, e.g. `{\"value\": 2, \"name\": \"MediaStudio\", \"original_name\": \"MEDIA_STUDIO\"}`; omitted for on-prem sources."
+          },
           "creation_time": {
             "description": "Creation time, ms since Unix epoch.",
             "type": "integer"
@@ -18742,8 +21425,12 @@
             "description": "Source id; also the RTMP stream key.",
             "type": "string"
           },
+          "is360": {
+            "description": "Whether the source streams 360° video.",
+            "type": "boolean"
+          },
           "is_stream_active": {
-            "description": "Whether the source is currently receiving video.",
+            "description": "Whether an encoder is currently sending video to the source.",
             "type": "boolean"
           },
           "name": {
@@ -18755,7 +21442,7 @@
             "type": "integer"
           },
           "rtmp_region": {
-            "description": "Ingest region, e.g. `us-east-1`.",
+            "description": "Ingest region as an AWS region name, e.g. `us-east-1` or `us-west-2`. Accepted as `region` when creating a source.",
             "type": "string"
           },
           "rtmp_stream_key": {
@@ -18769,11 +21456,51 @@
           "rtmps_url": {
             "description": "RTMPS ingest URL (port 443).",
             "type": "string"
+          },
+          "video_service": {
+            "$ref": "#/components/schemas/UpdateUserSourceResponseDataSourceVideoService",
+            "description": "Video service of a source created before the move to on-prem, e.g. `{\"value\": 0, \"name\": \"Vidman\", \"original_name\": \"VIDMAN\"}`; omitted for on-prem sources."
           }
         },
         "required": [
           "id"
         ],
+        "type": "object"
+      },
+      "UpdateUserSourceResponseDataSourceCreationOrigin": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Name, e.g. `PublicApi`.",
+            "type": "string"
+          },
+          "original_name": {
+            "description": "Upper-case name, e.g. `PUBLIC_API`.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric value.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateUserSourceResponseDataSourceVideoService": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Name, e.g. `PublicApi`.",
+            "type": "string"
+          },
+          "original_name": {
+            "description": "Upper-case name, e.g. `PUBLIC_API`.",
+            "type": "string"
+          },
+          "value": {
+            "description": "Numeric value.",
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "UploadComplianceJobSubmissionRequest": {
@@ -19853,6 +22580,8 @@
               "like.write": "Like and unlike Posts on your behalf.",
               "list.read": "View Lists, members, and followers of Lists you created or are a member of, including private Lists.",
               "list.write": "Create and manage Lists on your behalf.",
+              "media.library.read": "View your media library, its analytics, and its monetization settings.",
+              "media.library.write": "Add media to your media library and manage its monetization settings.",
               "media.write": "Upload media, such as photos and videos, on your behalf.",
               "mute.read": "View accounts you have muted.",
               "mute.write": "Mute and unmute accounts on your behalf.",
@@ -19892,7 +22621,7 @@
     },
     "termsOfService": "https://developer.x.com/en/developer-terms/agreement-and-policy.html",
     "title": "X API v2",
-    "version": "2.172"
+    "version": "2.173"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -20448,7 +23177,7 @@
             "style": "form"
           },
           {
-            "description": "A base32hex-encoded pagination token.",
+            "description": "A base32hex-encoded pagination token that decodes to 9 bytes.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -21421,6 +24150,214 @@
         ]
       }
     },
+    "/2/broadcasts/chat/mutes": {
+      "get": {
+        "description": "Returns the users muted in the authenticated broadcaster's chat, with the expiry time of timed mutes. Mutes apply to all of their broadcasts. Expired timed mutes are omitted. Use `expansions=user_id` to include the muted users.",
+        "operationId": "getChatMutedUsers",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          },
+          {
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "$ref": "#/components/parameters/BroadcastChatMuteFieldsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/BroadcastChatMuteExpansionsParameter"
+          },
+          {
+            "$ref": "#/components/parameters/UserFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetChatMutedUsersResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get muted chat users",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "post": {
+        "description": "Prevents a user from posting messages in all of a broadcaster's chats. Without `broadcast_id`, the user is muted in the authenticated user's own chats. Moderators pass `broadcast_id` to mute the user in that broadcast host's chats. When `end_at_ms` is provided, the mute expires at that time.",
+        "operationId": "muteChatUser",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MuteChatUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MuteChatUserResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Mute or time out a user in chat",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/broadcasts/chat/mutes/{user_id}": {
+      "delete": {
+        "description": "Allows a muted user to post messages in a broadcaster's chats again. Without `broadcast_id`, the user is unmuted in the authenticated user's own chats. Moderators pass `broadcast_id` to unmute the user in that broadcast host's chats.",
+        "operationId": "unmuteChatUser",
+        "parameters": [
+          {
+            "description": "A 64-bit signed integer.",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[1-9][0-9]{0,18}$",
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "A broadcast whose host's chats the user is unmuted in.",
+            "in": "query",
+            "name": "broadcast_id",
+            "required": false,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnmuteChatUserResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Unmute a user in chat",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
     "/2/broadcasts/scheduled": {
       "get": {
         "description": "Returns scheduled broadcasts owned by the authenticated user.",
@@ -21821,6 +24758,64 @@
       }
     },
     "/2/broadcasts/{id}": {
+      "delete": {
+        "description": "Deletes one of the authenticated user's broadcasts, scheduled or ended, including its replay. A running broadcast must be ended first.",
+        "operationId": "deleteBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete a broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
       "get": {
         "description": "Returns a broadcast owned by the authenticated user.",
         "operationId": "getBroadcast",
@@ -22247,6 +25242,76 @@
           }
         ],
         "summary": "Remove a chat message from a live broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/broadcasts/{id}/state": {
+      "put": {
+        "description": "Ends one of the authenticated user's broadcasts. Only `state: END` is supported.",
+        "operationId": "updateBroadcastState",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBroadcastStateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBroadcastStateResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "End a broadcast",
         "tags": [
           "Broadcasts"
         ]
@@ -22952,13 +26017,14 @@
     },
     "/2/chat/conversations": {
       "get": {
-        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and each conversation's latest notifying message. With unread_only=true, only conversations that are unread for you are returned; a page can then hold fewer than max_results, so keep paging while has_more is true.",
+        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox, most recently active first. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and each conversation's latest notifying message.\n\nThe filters unread_only, type, is_archived, is_muted, participant_ids, participant_query, start_time and end_time are optional and combine with AND. participant_query keeps conversations where another participant's username, or a word of their display name, starts with the query, ignoring case and accents; with a leading @ it matches usernames only. It considers the 100 people who best match the query, uses only public profile information, and never matches group names, nicknames or messages. start_time and end_time apply to the time of each conversation's latest message. Each page covers max_results conversations and returns those that match, so a page can hold fewer than max_results, or none, while has_more is true: keep paging with next_token. Once a page reaches a conversation whose latest message is older than start_time, has_more is false.\n\nA pagination_token only works with the same filters as the request that returned it; with other filters, the request fails with a 400.\n\nWhen both are provided, `start_time` must be earlier than `end_time`.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
         "operationId": "getChatConversations",
         "parameters": [
           {
+            "description": "Conversations covered per page (1-1000, default 200). Filtered pages can return fewer.",
             "in": "query",
             "name": "max_results",
             "required": false,
@@ -22972,6 +26038,7 @@
             "style": "form"
           },
           {
+            "description": "meta.next_token from the previous page. Send the same filters with it, or the request fails.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -22988,6 +26055,92 @@
             "schema": {
               "default": false,
               "type": "boolean"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Only direct (1:1) or only group conversations. Omit for both.",
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "direct",
+                "group"
+              ],
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "true: only archived; false: only not archived. Omit for both.",
+            "in": "query",
+            "name": "is_archived",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "style": "form"
+          },
+          {
+            "description": "true: only muted; false: only not muted. Omit for both.",
+            "in": "query",
+            "name": "is_muted",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "style": "form"
+          },
+          {
+            "description": "Comma-separated numeric user IDs (1-10), all in the chat. Names or @handles: use participant_query.",
+            "explode": false,
+            "in": "query",
+            "name": "participant_ids",
+            "required": false,
+            "schema": {
+              "items": {
+                "pattern": "^[0-9]{1,19}$",
+                "type": "string"
+              },
+              "maxItems": 10,
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "style": "form"
+          },
+          {
+            "description": "Name or @username prefix (1-50 chars); keeps chats where any other participant matches it.",
+            "in": "query",
+            "name": "participant_query",
+            "required": false,
+            "schema": {
+              "maxLength": 50,
+              "minLength": 1,
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "ISO 8601, e.g. 2026-10-16T00:00:00Z. Chats whose latest message is at or after this time.",
+            "in": "query",
+            "name": "start_time",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "style": "form"
+          },
+          {
+            "description": "ISO 8601, e.g. 2026-10-17T00:00:00Z. Chats whose latest message is before this time.",
+            "in": "query",
+            "name": "end_time",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
             },
             "style": "form"
           },
@@ -23039,7 +26192,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Get Chat Conversations; unread state via chat_conversation.fields=unread,last_read_event_id,newest_event_id",
+        "summary": "Get Chat Conversations, newest first. All filters must match (AND). A page can hold fewer than max_results while meta.next_token is set: keep paging. Read state: chat_conversation.fields=unread,last_read_event_id,newest_event_id",
         "tags": [
           "Chat"
         ]
@@ -24696,7 +27849,7 @@
     },
     "/2/chat/conversations/{id}/members/remove": {
       "post": {
-        "description": "Removes one or more members from an existing encrypted Chat group conversation. To leave a group, pass your own user ID. Leaving does not delete the conversation for the caller.",
+        "description": "Removes one or more members from an existing encrypted Chat group conversation. To leave a group, pass your own user ID. Leaving does not delete the conversation for the caller. When the removal rotates the conversation key, send group_key_rotation_data and the action signatures for the removal and the key change, in that order.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -30399,9 +33552,56 @@
         ]
       }
     },
+    "/2/region": {
+      "get": {
+        "description": "Returns the ingest region nearest the server handling the request. Pass it as `region` when creating a stream source to ingest there.",
+        "operationId": "getRegion",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetRegionResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get the ingest region",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
     "/2/sources": {
       "get": {
-        "description": "Returns the authenticated user's RTMP/RTMPS stream sources (empty array if none). A source's `id` is also its stream key and is the `source_id` a scheduled broadcast binds to.",
+        "description": "Returns the authenticated user's RTMP/RTMPS stream sources. A source's `id` is the `source_id` a scheduled broadcast binds to.",
         "operationId": "listSources",
         "responses": {
           "200": {
@@ -30446,7 +33646,7 @@
         ]
       },
       "post": {
-        "description": "Creates a persistent RTMP/RTMPS ingest point for the authenticated user. Push an encoder to `rtmps_url` with the source `id` as the stream key.",
+        "description": "Creates a persistent RTMP/RTMPS ingest point for the authenticated user. Push an encoder to `rtmps_url` with the source's stream key.",
         "operationId": "createSource",
         "requestBody": {
           "content": {
@@ -30459,7 +33659,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
@@ -30504,7 +33704,7 @@
     },
     "/2/sources/{id}": {
       "delete": {
-        "description": "Deletes one of the authenticated user's stream sources. Success is an empty object.",
+        "description": "Deletes one of the authenticated user's stream sources.",
         "operationId": "deleteSource",
         "parameters": [
           {
@@ -30562,7 +33762,7 @@
         ]
       },
       "get": {
-        "description": "Returns one of the authenticated user's stream sources. Poll it after starting an encoder and wait for `is_stream_active` before going live.",
+        "description": "Returns one of the authenticated user's stream sources.",
         "operationId": "getSource",
         "parameters": [
           {
@@ -34738,7 +37938,7 @@
             "style": "form"
           },
           {
-            "description": "A base32hex-encoded pagination token.",
+            "description": "A base32hex-encoded pagination token that decodes to 8 bytes.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -36175,6 +39375,7 @@
         "operationId": "getUsersMeFollowers",
         "parameters": [
           {
+            "description": "The maximum number of users to return.",
             "in": "query",
             "name": "max_results",
             "required": false,
@@ -36187,7 +39388,7 @@
             "style": "form"
           },
           {
-            "description": "A base32hex-encoded pagination token.",
+            "description": "The next_token or previous_token from a previous response, to fetch that page. A base32hex-encoded pagination token.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -36258,6 +39459,7 @@
         "operationId": "getUsersMeFollowing",
         "parameters": [
           {
+            "description": "The maximum number of users to return.",
             "in": "query",
             "name": "max_results",
             "required": false,
@@ -36270,7 +39472,7 @@
             "style": "form"
           },
           {
-            "description": "A base32hex-encoded pagination token.",
+            "description": "The next_token or previous_token from a previous response, to fetch that page. A base32hex-encoded pagination token.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -36805,6 +40007,7 @@
     },
     "/2/users/{id}/blocking": {
       "get": {
+        "description": "Returns the Users that the given User is blocking.",
         "operationId": "getUsersBlocking",
         "parameters": [
           {
@@ -36887,12 +40090,13 @@
             "UserToken": []
           }
         ],
-        "summary": "Get Users Blocking",
+        "summary": "Get blocked Users",
         "tags": [
           "Users"
         ]
       },
       "post": {
+        "description": "Causes the source User to block the target User.",
         "operationId": "usersIdBlock",
         "parameters": [
           {
@@ -36954,7 +40158,7 @@
             "UserToken": []
           }
         ],
-        "summary": "Users ID Block",
+        "summary": "Block User",
         "tags": [
           "Users"
         ]
@@ -37430,6 +40634,356 @@
         ]
       }
     },
+    "/2/users/{id}/broadcasts": {
+      "get": {
+        "description": "Returns the authenticated user's broadcasts, 100 per page. `id` must be the authenticated user. Deprecated: use GET /2/broadcasts.",
+        "operationId": "listUserBroadcasts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "description": "`next_token.offset` from the previous page.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListUserBroadcastsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "List a user's broadcasts",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "post": {
+        "description": "Creates a broadcast on one of the authenticated user's sources. `id` must be the authenticated user. The broadcast is `NOT_STARTED` and posts nothing until it is published with PUT /2/users/:id/broadcasts/:broadcast_id/state; one that is never published is deleted after 7 days. When the source already has a running broadcast, that broadcast is returned.",
+        "operationId": "createUserBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserBroadcastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Create a broadcast on a user's source",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/users/{id}/broadcasts/{broadcast_id}": {
+      "delete": {
+        "description": "Deletes one of the authenticated user's broadcasts. `id` must be the authenticated user. Deprecated: use DELETE /2/broadcasts/:id.",
+        "operationId": "deleteUserBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteUserBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete a user's broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "get": {
+        "description": "Returns one of the authenticated user's broadcasts. `id` must be the authenticated user. Deprecated: use GET /2/broadcasts/:id.",
+        "operationId": "getUserBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get a user's broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/users/{id}/broadcasts/{broadcast_id}/state": {
+      "put": {
+        "description": "Publishes or ends one of the authenticated user's broadcasts. `id` must be the authenticated user. `PUBLISH` takes a broadcast created with POST /2/users/:id/broadcasts live once its source is receiving video, and posts it unless `should_not_tweet` is true. `END` ends the broadcast. Deprecated: use PUT /2/broadcasts/:id/state to end a broadcast.",
+        "operationId": "updateUserBroadcastState",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "broadcast_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserBroadcastStateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateUserBroadcastStateResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Publish or end a user's broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
     "/2/users/{id}/dm/block": {
       "post": {
         "operationId": "blockUsersDms",
@@ -37795,6 +41349,7 @@
             "style": "simple"
           },
           {
+            "description": "The maximum number of users to return.",
             "in": "query",
             "name": "max_results",
             "required": false,
@@ -37807,7 +41362,7 @@
             "style": "form"
           },
           {
-            "description": "A base32hex-encoded pagination token.",
+            "description": "The next_token or previous_token from a previous response, to fetch that page. A base32hex-encoded pagination token.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -37889,6 +41444,7 @@
             "style": "simple"
           },
           {
+            "description": "The maximum number of users to return.",
             "in": "query",
             "name": "max_results",
             "required": false,
@@ -37901,7 +41457,7 @@
             "style": "form"
           },
           {
-            "description": "A base32hex-encoded pagination token.",
+            "description": "The next_token or previous_token from a previous response, to fetch that page. A base32hex-encoded pagination token.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
@@ -39253,6 +42809,343 @@
         "summary": "Unrepost Post",
         "tags": [
           "Users"
+        ]
+      }
+    },
+    "/2/users/{id}/sources": {
+      "get": {
+        "description": "Returns the authenticated user's RTMP/RTMPS stream sources (empty array if none). `id` must be the authenticated user.",
+        "operationId": "listUserSources",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListUserSourcesResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "List a user's stream sources",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "post": {
+        "description": "Creates a persistent RTMP/RTMPS ingest point for the authenticated user. `id` must be the authenticated user.",
+        "operationId": "createUserSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserSourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateUserSourceResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Create a stream source for a user",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/users/{id}/sources/{source_id}": {
+      "delete": {
+        "description": "Deletes one of the authenticated user's stream sources. `id` must be the authenticated user. Success is an empty object.",
+        "operationId": "deleteUserSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteUserSourceResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete a user's stream source",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "get": {
+        "description": "Returns one of the authenticated user's stream sources. `id` must be the authenticated user.",
+        "operationId": "getUserSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetUserSourceResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get a user's stream source",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "put": {
+        "description": "Renames one of the authenticated user's stream sources. `id` must be the authenticated user.",
+        "operationId": "updateUserSource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/UserId"
+            },
+            "style": "simple"
+          },
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserSourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateUserSourceResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Rename a user's stream source",
+        "tags": [
+          "Broadcasts"
         ]
       }
     },

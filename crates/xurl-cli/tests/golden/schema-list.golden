@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8184
+stdout_len: 8509
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -23,21 +23,27 @@ broadcasts chat mute           ApiResponse<ChatMutedResult>
 broadcasts chat remove         ApiResponse<DeletedResult>
 broadcasts chat send           ApiResponse<ChatSentResult>
 broadcasts chat unmute         ApiResponse<ChatMutedResult>
+broadcasts end                 ApiResponse<BroadcastEnded>
 broadcasts get                 ApiResponse<Broadcast>
 broadcasts list                ApiResponse<Vec<Broadcast>>
 broadcasts moderators add      ApiResponse<ChatModeratorsResult>
 broadcasts moderators list     ApiResponse<Vec<User>>
 broadcasts moderators remove   ApiResponse<ChatModeratorsResult>
+broadcasts mutes add           ApiResponse<ChatMutedResult>
+broadcasts mutes list          ApiResponse<Vec<ChatMute>>
+broadcasts mutes remove        ApiResponse<ChatMutedResult>
+broadcasts remove              ApiResponse<DeletedResult>
 broadcasts scheduled add       ApiResponse<ScheduledBroadcast>
 broadcasts scheduled cancel    ApiResponse<DeletedResult>
 broadcasts scheduled get       ApiResponse<ScheduledBroadcast>
 broadcasts scheduled list      ApiResponse<Vec<ScheduledBroadcast>>
 broadcasts scheduled update    ApiResponse<ScheduledBroadcast>
-broadcasts sources add         ApiResponse<StreamSourceResult>
-broadcasts sources get         ApiResponse<StreamSourceResult>
-broadcasts sources list        ApiResponse<StreamSources>
+broadcasts sources add         ApiResponse<StreamSource>
+broadcasts sources get         ApiResponse<StreamSource>
+broadcasts sources list        ApiResponse<Vec<StreamSource>>
+broadcasts sources region      IngestRegion
 broadcasts sources remove      ApiResponse<StreamSourceDeleted>
-broadcasts sources update      ApiResponse<StreamSourceResult>
+broadcasts sources update      ApiResponse<StreamSource>
 calls get                      ApiResponse<XCall>
 calls scheduled add            ApiResponse<ScheduledCall>
 calls scheduled cancel         ApiResponse<ScheduledCallCancelled>

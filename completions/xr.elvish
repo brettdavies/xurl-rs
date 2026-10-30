@@ -3545,9 +3545,12 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
             cand list 'List your broadcasts'
             cand get 'Read one broadcast, by id'
+            cand end 'End one of your broadcasts'
+            cand remove 'Delete one of your broadcasts and its replay'
             cand scheduled 'Schedule broadcasts and change or cancel them'
             cand chat 'Read and moderate a broadcast''s chat'
             cand moderators 'Manage who moderates your broadcast chats'
+            cand mutes 'Mute people in every chat of your broadcasts'
             cand sources 'Manage the RTMP and RTMPS ingest points you stream to'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
@@ -3603,6 +3606,66 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
             cand --page 'Documented alias for `--cursor`'
             cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;end'= {
+            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
+            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --force 'Skip the confirmation prompt; required under `--no-interactive`'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;remove'= {
+            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
+            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --force 'Skip the confirmation prompt; required under `--no-interactive`'
             cand -t 'Add X-B3-Flags trace header'
             cand --trace 'Add X-B3-Flags trace header'
             cand --json 'Shorthand for `--output json` (P2 alias)'
@@ -4151,6 +4214,141 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;moderators;help;help'= {
         }
+        &'xr;broadcasts;mutes'= {
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
+            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+            cand list 'List who is muted in your broadcast chats, and until when'
+            cand add 'Mute someone in every chat of your broadcasts'
+            cand remove 'Unmute someone in your broadcast chats'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;broadcasts;mutes;list'= {
+            cand -n 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --max-results 'Number of results (1-100). Overrides global `--limit` when set'
+            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
+            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;mutes;add'= {
+            cand --until 'When the mute ends (RFC 3339 with a zone); for good when unset'
+            cand --broadcast 'A broadcast you moderate: mute them in its host''s chats'
+            cand --message 'A message of theirs in that broadcast''s chat to remove, by id'
+            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
+            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;mutes;remove'= {
+            cand --broadcast 'A broadcast you moderate: unmute them in its host''s chats'
+            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
+            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;mutes;help'= {
+            cand list 'List who is muted in your broadcast chats, and until when'
+            cand add 'Mute someone in every chat of your broadcasts'
+            cand remove 'Unmute someone in your broadcast chats'
+            cand help 'Print this message or the help of the given subcommand(s)'
+        }
+        &'xr;broadcasts;mutes;help;list'= {
+        }
+        &'xr;broadcasts;mutes;help;add'= {
+        }
+        &'xr;broadcasts;mutes;help;remove'= {
+        }
+        &'xr;broadcasts;mutes;help;help'= {
+        }
         &'xr;broadcasts;sources'= {
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
@@ -4176,6 +4374,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
+            cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
             cand remove 'Delete a stream source; an encoder sending to it is no longer received'
@@ -4239,8 +4438,37 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand -h 'Print help (see more with ''--help'')'
             cand --help 'Print help (see more with ''--help'')'
         }
+        &'xr;broadcasts;sources;region'= {
+            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
+            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
         &'xr;broadcasts;sources;add'= {
-            cand --region 'Ingest region: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2'
+            cand --region 'Ingest region: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2; `xr broadcasts sources region` names the nearest'
             cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
@@ -4332,6 +4560,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;sources;help'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
+            cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
             cand remove 'Delete a stream source; an encoder sending to it is no longer received'
@@ -4340,6 +4569,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;sources;help;list'= {
         }
         &'xr;broadcasts;sources;help;get'= {
+        }
+        &'xr;broadcasts;sources;help;region'= {
         }
         &'xr;broadcasts;sources;help;add'= {
         }
@@ -4352,15 +4583,22 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;help'= {
             cand list 'List your broadcasts'
             cand get 'Read one broadcast, by id'
+            cand end 'End one of your broadcasts'
+            cand remove 'Delete one of your broadcasts and its replay'
             cand scheduled 'Schedule broadcasts and change or cancel them'
             cand chat 'Read and moderate a broadcast''s chat'
             cand moderators 'Manage who moderates your broadcast chats'
+            cand mutes 'Mute people in every chat of your broadcasts'
             cand sources 'Manage the RTMP and RTMPS ingest points you stream to'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;broadcasts;help;list'= {
         }
         &'xr;broadcasts;help;get'= {
+        }
+        &'xr;broadcasts;help;end'= {
+        }
+        &'xr;broadcasts;help;remove'= {
         }
         &'xr;broadcasts;help;scheduled'= {
             cand list 'List your scheduled broadcasts'
@@ -4407,9 +4645,21 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;broadcasts;help;moderators;remove'= {
         }
+        &'xr;broadcasts;help;mutes'= {
+            cand list 'List who is muted in your broadcast chats, and until when'
+            cand add 'Mute someone in every chat of your broadcasts'
+            cand remove 'Unmute someone in your broadcast chats'
+        }
+        &'xr;broadcasts;help;mutes;list'= {
+        }
+        &'xr;broadcasts;help;mutes;add'= {
+        }
+        &'xr;broadcasts;help;mutes;remove'= {
+        }
         &'xr;broadcasts;help;sources'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
+            cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
             cand remove 'Delete a stream source; an encoder sending to it is no longer received'
@@ -4417,6 +4667,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;help;sources;list'= {
         }
         &'xr;broadcasts;help;sources;get'= {
+        }
+        &'xr;broadcasts;help;sources;region'= {
         }
         &'xr;broadcasts;help;sources;add'= {
         }
@@ -6361,7 +6613,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;validate'= {
-            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection'
+            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `broadcast-ended`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -6717,14 +6969,21 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;broadcasts'= {
             cand list 'List your broadcasts'
             cand get 'Read one broadcast, by id'
+            cand end 'End one of your broadcasts'
+            cand remove 'Delete one of your broadcasts and its replay'
             cand scheduled 'Schedule broadcasts and change or cancel them'
             cand chat 'Read and moderate a broadcast''s chat'
             cand moderators 'Manage who moderates your broadcast chats'
+            cand mutes 'Mute people in every chat of your broadcasts'
             cand sources 'Manage the RTMP and RTMPS ingest points you stream to'
         }
         &'xr;help;broadcasts;list'= {
         }
         &'xr;help;broadcasts;get'= {
+        }
+        &'xr;help;broadcasts;end'= {
+        }
+        &'xr;help;broadcasts;remove'= {
         }
         &'xr;help;broadcasts;scheduled'= {
             cand list 'List your scheduled broadcasts'
@@ -6771,9 +7030,21 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;help;broadcasts;moderators;remove'= {
         }
+        &'xr;help;broadcasts;mutes'= {
+            cand list 'List who is muted in your broadcast chats, and until when'
+            cand add 'Mute someone in every chat of your broadcasts'
+            cand remove 'Unmute someone in your broadcast chats'
+        }
+        &'xr;help;broadcasts;mutes;list'= {
+        }
+        &'xr;help;broadcasts;mutes;add'= {
+        }
+        &'xr;help;broadcasts;mutes;remove'= {
+        }
         &'xr;help;broadcasts;sources'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
+            cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
             cand remove 'Delete a stream source; an encoder sending to it is no longer received'
@@ -6781,6 +7052,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;broadcasts;sources;list'= {
         }
         &'xr;help;broadcasts;sources;get'= {
+        }
+        &'xr;help;broadcasts;sources;region'= {
         }
         &'xr;help;broadcasts;sources;add'= {
         }

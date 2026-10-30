@@ -3826,46 +3826,49 @@ complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "place" -d 'List the trends for a place, by its Yahoo WOEID (1 is worldwide)'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "personal" -d 'List the trends X picks for you'
 complete -c xr -n "__fish_xr_using_subcommand trends; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l app -d 'Use a specific registered app (overrides default)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
 json\t'Machine-readable JSON, no color'
 jsonl\t'JSON Lines (useful for streaming)'
 ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
 yaml\t'YAML document (best-effort serialization of the JSON shape)'
 csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
 tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l timeout -d 'Request timeout in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
 always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
 never\t'Never emit ANSI color escapes'"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
 false\t''"
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l page -d 'Documented alias for `--cursor`' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l json -d 'Shorthand for `--output json` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "list" -d 'List your broadcasts'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "get" -d 'Read one broadcast, by id'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "scheduled" -d 'Schedule broadcasts and change or cancel them'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "chat" -d 'Read and moderate a broadcast\'s chat'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "sources" -d 'Manage the RTMP and RTMPS ingest points you stream to'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get scheduled chat moderators sources help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "list" -d 'List your broadcasts'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "get" -d 'Read one broadcast, by id'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "end" -d 'End one of your broadcasts'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "remove" -d 'Delete one of your broadcasts and its replay'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "scheduled" -d 'Schedule broadcasts and change or cancel them'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "chat" -d 'Read and moderate a broadcast\'s chat'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "mutes" -d 'Mute people in every chat of your broadcasts'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "sources" -d 'Manage the RTMP and RTMPS ingest points you stream to'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and not __fish_seen_subcommand_from list get end remove scheduled chat moderators mutes sources help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s n -l max-results -d 'Number of results (1-100). Overrides global `--limit` when set' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from list" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
@@ -3939,6 +3942,80 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from get" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from end" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l force -d 'Skip the confirmation prompt; required under `--no-interactive`'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s t -l trace -d 'Add X-B3-Flags trace header'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from remove" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from scheduled" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -4054,6 +4131,43 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "add" -d 'Add a broadcast chat moderator'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "remove" -d 'Remove a broadcast chat moderator'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from moderators" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l app -d 'Use a specific registered app (overrides default)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l output -d 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`' -r -f -a "text\t'Default: colored, human-readable'
+json\t'Machine-readable JSON, no color'
+jsonl\t'JSON Lines (useful for streaming)'
+ndjson\t'Newline-delimited JSON; alias of `jsonl`. Same wire shape, different name'
+yaml\t'YAML document (best-effort serialization of the JSON shape)'
+csv\t'Comma-separated values (best-effort flattening of the top-level shape)'
+tsv\t'Tab-separated values (best-effort flattening of the top-level shape)'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l raw -d 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -s q -l quiet -d 'Suppress all non-essential output (errors still go to stderr)' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l no-interactive -d 'Disable interactive prompts; fail with error instead' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l timeout -d 'Request timeout in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l wait-on-rate-limit -d 'Wait out a rate limit and retry once, instead of failing with `rate-limited`' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l rate-limit-max-wait -d 'Longest `--wait-on-rate-limit` waits before its retry, in seconds' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l color -d 'Colorize output: auto (TTY-aware), always, or never' -r -f -a "auto\t'Enable color when stderr is a TTY and `NO_COLOR` is unset'
+always\t'Always emit ANSI color escapes (still suppressed by `NO_COLOR`)'
+never\t'Never emit ANSI color escapes'"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l dry-run -d 'Check inputs and credentials offline, and send nothing' -r -f -a "true\t''
+false\t''"
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l limit -d 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l cursor -d 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l page -d 'Documented alias for `--cursor`' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l after -d 'Documented alias for `--cursor` (`--after <token>`)' -r
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l json -d 'Shorthand for `--output json` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -s h -l help -d 'Print help (see more with \'--help\')'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -f -a "list" -d 'List who is muted in your broadcast chats, and until when'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -f -a "add" -d 'Mute someone in every chat of your broadcasts'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -f -a "remove" -d 'Unmute someone in your broadcast chats'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from mutes" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -4089,15 +4203,19 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "list" -d 'List your stream sources'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "get" -d 'Show one stream source, and whether it is receiving video'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "region" -d 'Show the ingest region nearest the X server that answers'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "add" -d 'Create a stream source'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "update" -d 'Rename a stream source'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "remove" -d 'Delete a stream source; an encoder sending to it is no longer received'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "list" -d 'List your broadcasts'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "get" -d 'Read one broadcast, by id'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "end" -d 'End one of your broadcasts'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "remove" -d 'Delete one of your broadcasts and its replay'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "scheduled" -d 'Schedule broadcasts and change or cancel them'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "chat" -d 'Read and moderate a broadcast\'s chat'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "mutes" -d 'Mute people in every chat of your broadcasts'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "sources" -d 'Manage the RTMP and RTMPS ingest points you stream to'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand calls; and not __fish_seen_subcommand_from get scheduled help" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
@@ -5392,7 +5510,7 @@ complete -c xr -n "__fish_xr_using_subcommand examples" -l json -d 'Shorthand fo
 complete -c xr -n "__fish_xr_using_subcommand examples" -l jsonl -d 'Shorthand for `--output jsonl` (P2 alias)'
 complete -c xr -n "__fish_xr_using_subcommand examples" -l no-pager -d 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
 complete -c xr -n "__fish_xr_using_subcommand examples" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection' -r
+complete -c xr -n "__fish_xr_using_subcommand validate" -l schema -d 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `broadcast-ended`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection' -r
 complete -c xr -n "__fish_xr_using_subcommand validate" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''
 false\t''"
 complete -c xr -n "__fish_xr_using_subcommand validate" -l app -d 'Use a specific registered app (overrides default)' -r
@@ -5538,9 +5656,12 @@ complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_f
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from trends" -f -a "personal" -d 'List the trends X picks for you'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "list" -d 'List your broadcasts'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "get" -d 'Read one broadcast, by id'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "end" -d 'End one of your broadcasts'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "remove" -d 'Delete one of your broadcasts and its replay'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "scheduled" -d 'Schedule broadcasts and change or cancel them'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "chat" -d 'Read and moderate a broadcast\'s chat'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "moderators" -d 'Manage who moderates your broadcast chats'
+complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "mutes" -d 'Mute people in every chat of your broadcasts'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from broadcasts" -f -a "sources" -d 'Manage the RTMP and RTMPS ingest points you stream to'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from calls" -f -a "get" -d 'Show an X call: its title, join policy, host, and who is in it'
 complete -c xr -n "__fish_xr_using_subcommand help; and __fish_seen_subcommand_from calls" -f -a "scheduled" -d 'The calls on your calendar: schedule, change, cancel, and answer them'

@@ -827,6 +827,8 @@ const CONFIRMED_COMMANDS: &[&str] = &[
     "webhooks subscriptions remove",
     "webhooks stream-links remove",
     "broadcasts sources remove",
+    "broadcasts end",
+    "broadcasts remove",
     "calls scheduled cancel",
     "dm-events remove",
     "lists remove",

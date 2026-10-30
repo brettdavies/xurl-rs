@@ -1,7 +1,7 @@
 args: ["validate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8496
+stdout_len: 8546
 stderr_len: 0
 --- stdout ---
 Validate a JSON document against a bundled response schema.
@@ -16,7 +16,7 @@ Arguments:
 
 Options:
       --schema <NAME>
-          Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection
+          Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `broadcast-ended`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection
 
   -h, --help
           Print help (see a summary with '-h')

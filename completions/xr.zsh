@@ -5110,6 +5110,88 @@ never\:"Never emit ANSI color escapes"))' \
 ':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
 && ret=0
 ;;
+(end)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
+&& ret=0
+;;
 (scheduled)
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -5902,6 +5984,209 @@ esac
     ;;
 esac
 ;;
+(mutes)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__broadcasts__subcmd__mutes_commands" \
+"*::: :->mutes" \
+&& ret=0
+
+    case $state in
+    (mutes)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-mutes-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'--until=[When the mute ends (RFC 3339 with a zone); for good when unset]:TIME:_default' \
+'--broadcast=[A broadcast you moderate\: mute them in its host'\''s chats]:BROADCAST_ID:_default' \
+'--message=[A message of theirs in that broadcast'\''s chat to remove, by id]:MESSAGE_ID:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':target_username -- The account to mute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--broadcast=[A broadcast you moderate\: unmute them in its host'\''s chats]:BROADCAST_ID:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':target_username -- The account to unmute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-mutes-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
 (sources)
 _arguments "${_arguments_options[@]}" : \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -6020,12 +6305,51 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':source_id -- Source ID, as `xr broadcasts sources list` prints it; it is also the stream key:_default' \
+':source_id -- Source ID, as `xr broadcasts sources list` prints it:_default' \
+&& ret=0
+;;
+(region)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
 (add)
 _arguments "${_arguments_options[@]}" : \
-'--region=[Ingest region\: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2]:REGION:_default' \
+'--region=[Ingest region\: us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1, sa-east-1, eu-west-1, eu-west-3, eu-central-1, ap-south-1, ap-southeast-1, ap-southeast-2, ap-northeast-1, or ap-northeast-2; \`xr broadcasts sources region\` names the nearest]:REGION:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -6166,6 +6490,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(region)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (add)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -6207,6 +6535,14 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(end)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -6310,6 +6646,34 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(mutes)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes_commands" \
+"*::: :->mutes" \
+&& ret=0
+
+    case $state in
+    (mutes)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-broadcasts-help-mutes-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
 (sources)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__broadcasts__subcmd__help__subcmd__sources_commands" \
@@ -6327,6 +6691,10 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(region)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -9308,7 +9676,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-sent\`, \`chat-muted\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-deleted\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
+'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`broadcast-ended\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-sent\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-deleted\`, \`ingest-region\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -9962,6 +10330,14 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(end)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (scheduled)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled_commands" \
@@ -10062,6 +10438,34 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(mutes)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes_commands" \
+"*::: :->mutes" \
+&& ret=0
+
+    case $state in
+    (mutes)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-broadcasts-mutes-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
 (sources)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__help__subcmd__broadcasts__subcmd__sources_commands" \
@@ -10079,6 +10483,10 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(region)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -10952,9 +11360,12 @@ _xr__subcmd__broadcasts_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'end:End one of your broadcasts' \
+'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read and moderate a broadcast'\''s chat' \
 'moderators:Manage who moderates your broadcast chats' \
+'mutes:Mute people in every chat of your broadcasts' \
 'sources:Manage the RTMP and RTMPS ingest points you stream to' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -11039,6 +11450,11 @@ _xr__subcmd__broadcasts__subcmd__chat__subcmd__unmute_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts chat unmute commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts__subcmd__end_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__end_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts end commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__get_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__get_commands() {
     local commands; commands=()
@@ -11049,9 +11465,12 @@ _xr__subcmd__broadcasts__subcmd__help_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'end:End one of your broadcasts' \
+'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read and moderate a broadcast'\''s chat' \
 'moderators:Manage who moderates your broadcast chats' \
+'mutes:Mute people in every chat of your broadcasts' \
 'sources:Manage the RTMP and RTMPS ingest points you stream to' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
@@ -11093,6 +11512,11 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__chat__subcmd__unmute_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help chat unmute commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__end_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__end_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help end commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__get_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__help__subcmd__get_commands() {
     local commands; commands=()
@@ -11131,6 +11555,35 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__list_commands
 _xr__subcmd__broadcasts__subcmd__help__subcmd__moderators__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help moderators remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes_commands() {
+    local commands; commands=(
+'list:List who is muted in your broadcast chats, and until when' \
+'add:Mute someone in every chat of your broadcasts' \
+'remove:Unmute someone in your broadcast chats' \
+    )
+    _describe -t commands 'xr broadcasts help mutes commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help mutes add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help mutes list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__mutes__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help mutes remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help remove commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__help__subcmd__scheduled_commands() {
@@ -11173,6 +11626,7 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
+'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
 'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
@@ -11193,6 +11647,11 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__get_commands() {
 _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help sources list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__region_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__region_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help sources region commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove_commands() {
@@ -11263,6 +11722,66 @@ _xr__subcmd__broadcasts__subcmd__moderators__subcmd__list_commands() {
 _xr__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts moderators remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes_commands() {
+    local commands; commands=(
+'list:List who is muted in your broadcast chats, and until when' \
+'add:Mute someone in every chat of your broadcasts' \
+'remove:Unmute someone in your broadcast chats' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts mutes commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help_commands() {
+    local commands; commands=(
+'list:List who is muted in your broadcast chats, and until when' \
+'add:Mute someone in every chat of your broadcasts' \
+'remove:Unmute someone in your broadcast chats' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr broadcasts mutes help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes help list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes help remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__list_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__mutes__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__mutes__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts mutes remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__remove_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts remove commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__scheduled_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__scheduled_commands() {
@@ -11348,6 +11867,7 @@ _xr__subcmd__broadcasts__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
+'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
 'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
@@ -11370,6 +11890,7 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__help_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
+'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
 'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
@@ -11397,6 +11918,11 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__list_commands() 
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources help list commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__region_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__region_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources help region commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove_commands() {
     local commands; commands=()
@@ -11411,6 +11937,11 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__update_commands(
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__region_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__sources__subcmd__region_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts sources region commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands() {
@@ -12028,9 +12559,12 @@ _xr__subcmd__help__subcmd__broadcasts_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'end:End one of your broadcasts' \
+'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read and moderate a broadcast'\''s chat' \
 'moderators:Manage who moderates your broadcast chats' \
+'mutes:Mute people in every chat of your broadcasts' \
 'sources:Manage the RTMP and RTMPS ingest points you stream to' \
     )
     _describe -t commands 'xr help broadcasts commands' commands "$@"
@@ -12071,6 +12605,11 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__chat__subcmd__unmute_commands() {
     local commands; commands=()
     _describe -t commands 'xr help broadcasts chat unmute commands' commands "$@"
 }
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__end_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__end_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts end commands' commands "$@"
+}
 (( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__get_commands] )) ||
 _xr__subcmd__help__subcmd__broadcasts__subcmd__get_commands() {
     local commands; commands=()
@@ -12104,6 +12643,35 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__list_commands
 _xr__subcmd__help__subcmd__broadcasts__subcmd__moderators__subcmd__remove_commands() {
     local commands; commands=()
     _describe -t commands 'xr help broadcasts moderators remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes_commands() {
+    local commands; commands=(
+'list:List who is muted in your broadcast chats, and until when' \
+'add:Mute someone in every chat of your broadcasts' \
+'remove:Unmute someone in your broadcast chats' \
+    )
+    _describe -t commands 'xr help broadcasts mutes commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts mutes add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__list_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts mutes list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__mutes__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts mutes remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts remove commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled_commands] )) ||
 _xr__subcmd__help__subcmd__broadcasts__subcmd__scheduled_commands() {
@@ -12146,6 +12714,7 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
+'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
 'update:Rename a stream source' \
 'remove:Delete a stream source; an encoder sending to it is no longer received' \
@@ -12166,6 +12735,11 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__get_commands() {
 _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__list_commands() {
     local commands; commands=()
     _describe -t commands 'xr help broadcasts sources list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__region_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__region_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts sources region commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands] )) ||
 _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove_commands() {

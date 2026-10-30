@@ -68,6 +68,7 @@ pub const ROWS: &[Row] = &[
         "broadcasts chat unmute",
         &[ep::LOOKUP_USERS_BY_USERNAME, ep::UNMUTE_CHAT_USER],
     ),
+    row("broadcasts end", &[ep::END_BROADCAST]),
     row("broadcasts get", &[ep::GET_BROADCAST]),
     row("broadcasts list", &[ep::LIST_BROADCASTS]),
     row(
@@ -79,6 +80,16 @@ pub const ROWS: &[Row] = &[
         "broadcasts moderators remove",
         &[ep::LOOKUP_USERS_BY_USERNAME, ep::REMOVE_CHAT_MODERATOR],
     ),
+    row(
+        "broadcasts mutes add",
+        &[ep::LOOKUP_USERS_BY_USERNAME, ep::ADD_CHAT_MUTE],
+    ),
+    row("broadcasts mutes list", &[ep::GET_CHAT_MUTES]),
+    row(
+        "broadcasts mutes remove",
+        &[ep::LOOKUP_USERS_BY_USERNAME, ep::REMOVE_CHAT_MUTE],
+    ),
+    row("broadcasts remove", &[ep::DELETE_BROADCAST]),
     row(
         "broadcasts scheduled add",
         &[ep::CREATE_SCHEDULED_BROADCAST],
@@ -99,6 +110,7 @@ pub const ROWS: &[Row] = &[
     row("broadcasts sources add", &[ep::CREATE_STREAM_SOURCE]),
     row("broadcasts sources get", &[ep::GET_STREAM_SOURCE]),
     row("broadcasts sources list", &[ep::GET_STREAM_SOURCES]),
+    row("broadcasts sources region", &[ep::GET_REGION]),
     row("broadcasts sources remove", &[ep::DELETE_STREAM_SOURCE]),
     row("broadcasts sources update", &[ep::RENAME_STREAM_SOURCE]),
     row("calls get", &[ep::GET_CALL]),
