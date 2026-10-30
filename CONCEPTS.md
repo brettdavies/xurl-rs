@@ -136,6 +136,13 @@ A noun that owns several operations and groups them as subcommands, such as `xr 
 domain gets a top-level word instead. Adding one touches the surfaces AGENTS.md § "Adding a command family" lists, each
 guarded by a walk.
 
+### Live session
+
+A broadcast or call while it is running. No `xr` command acts inside one: going live, ending it, and taking part in its
+chat or audio belong to the app that drives the session, while commands manage the resources around it and read what it
+leaves behind. The library keeps its calls for those endpoints for a program that drives a session, and raw mode
+reaches them.
+
 ### Dry-run envelope
 
 The answer any command gives under `--dry-run`, on stdout at exit 0 with nothing sent to X or stored:
