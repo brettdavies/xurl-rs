@@ -274,9 +274,6 @@ where
     let port = redirect_uri
         .port_or_known_default()
         .ok_or_else(|| Error::auth("redirect URI has no port"))?;
-    let expected_state = expected_state.to_string();
-    let uri_path = callback_path_from(redirect_uri);
-
     let addrs = address_list(&host, port);
     let (bound, failed) = bind_all(&addrs).await;
 
@@ -304,6 +301,72 @@ where
             format_partial_bind_warning(bound_addr, failed_addr, failed_err)
         );
     }
+
+    serve(bound, redirect_uri, expected_state, cancel, on_bound).await
+}
+
+/// [`wait_for_callback_with`] on a listener the caller has already bound,
+/// at the port `redirect_uri` names, instead of binding that port itself.
+///
+/// For a caller that holds its own socket: one bound before privileges
+/// drop, one handed over by a service manager, or one a test binds so no
+/// other process can take the port between the choice and the bind.
+/// `redirect_uri` still gives the request path; the listener is the only
+/// address served, and `on_bound` runs once it is accepting.
+///
+/// # Errors
+///
+/// Returns an error if `listener` cannot be made non-blocking or is bound to
+/// a port other than the one `redirect_uri` names, and otherwise as
+/// [`wait_for_callback_with`] does once its listeners are bound.
+pub async fn wait_for_callback_on<F>(
+    listener: std::net::TcpListener,
+    redirect_uri: &Url,
+    expected_state: &str,
+    cancel: CancellationToken,
+    on_bound: F,
+) -> Result<String>
+where
+    F: FnOnce() + Send + 'static,
+{
+    let addr = listener
+        .local_addr()
+        .map_err(|e| Error::auth_with_cause("ListenerError", &e).with_source(e))?;
+    let port = redirect_uri
+        .port_or_known_default()
+        .ok_or_else(|| Error::auth("redirect URI has no port"))?;
+    if addr.port() != port {
+        return Err(Error::auth(format!(
+            "the callback listener is bound to port {}, but the redirect URI names port {port}",
+            addr.port()
+        )));
+    }
+    listener
+        .set_nonblocking(true)
+        .map_err(|e| Error::auth_with_cause("ListenerError", &e).with_source(e))?;
+    let listener = TcpListener::from_std(listener)
+        .map_err(|e| Error::auth_with_cause("ListenerError", &e).with_source(e))?;
+    let bound = vec![BoundAddress {
+        listener,
+        addr: addr.to_string(),
+    }];
+    serve(bound, redirect_uri, expected_state, cancel, on_bound).await
+}
+
+/// Runs the accept loops on `bound`, runs `on_bound` once the first is
+/// accepting, and waits for the authorization code.
+async fn serve<F>(
+    bound: Vec<BoundAddress>,
+    redirect_uri: &Url,
+    expected_state: &str,
+    cancel: CancellationToken,
+    on_bound: F,
+) -> Result<String>
+where
+    F: FnOnce() + Send + 'static,
+{
+    let expected_state = expected_state.to_string();
+    let uri_path = callback_path_from(redirect_uri);
 
     let (result_tx, result_rx) = oneshot::channel::<std::result::Result<String, String>>();
     let result_tx = Arc::new(Mutex::new(Some(result_tx)));

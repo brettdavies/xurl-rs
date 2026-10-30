@@ -857,20 +857,12 @@ pub mod broadcasts_scheduled {
         json_caption: "Move (JSON envelope)",
     };
 
-    /// `xr broadcasts scheduled remove`.
-    pub const REMOVE: Verb = Verb {
-        name: "remove",
+    /// `xr broadcasts scheduled cancel`.
+    pub const CANCEL: Verb = Verb {
+        name: "cancel",
         example_args: "1850000000000000001 --force --no-interactive",
         text_caption: "Cancel a scheduled broadcast without a prompt (text)",
         json_caption: "Cancel (JSON envelope)",
-    };
-
-    /// `xr broadcasts scheduled live`.
-    pub const LIVE: Verb = Verb {
-        name: "live",
-        example_args: "1850000000000000001 --force --no-interactive",
-        text_caption: "Start a scheduled broadcast now, without a prompt (text)",
-        json_caption: "Go live (JSON envelope)",
     };
 
     /// The page under `xr broadcasts scheduled --help`.
@@ -879,8 +871,8 @@ pub mod broadcasts_scheduled {
         const SECTIONS: &[Section<'static>] = &[
             ("Your scheduled broadcasts (text)", &[Example::text(&LIST)]),
             (
-                "Schedule one, then start it early, JSON envelope",
-                &[Example::json(&ADD), Example::json(&LIVE)],
+                "Schedule one, then move it, JSON envelope",
+                &[Example::json(&ADD), Example::json(&UPDATE)],
             ),
         ];
         FAMILY.page(SECTIONS)
@@ -1149,10 +1141,10 @@ pub mod broadcast_sources {
         json_caption: "Create (JSON envelope)",
     };
 
-    /// `xr broadcasts sources rename`.
-    pub const RENAME: Verb = Verb {
-        name: "rename",
-        example_args: "1x2y3z4w5v6u \"Studio B\"",
+    /// `xr broadcasts sources update`.
+    pub const UPDATE: Verb = Verb {
+        name: "update",
+        example_args: "1x2y3z4w5v6u --name \"Studio B\"",
         text_caption: "Rename a source (text)",
         json_caption: "Rename (JSON envelope)",
     };

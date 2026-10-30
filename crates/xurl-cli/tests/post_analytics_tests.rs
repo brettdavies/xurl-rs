@@ -103,7 +103,7 @@ async fn analytics_refuses_a_window_out_of_order_or_without_a_zone() {
         assert_eq!(code, 0, "{start} {end}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{start} {end}");
-        assert_eq!(body["reason"], "invalid-time-window", "{start} {end}");
+        assert_eq!(body["rule"], "invalid-time-window", "{start} {end}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

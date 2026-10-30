@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "search-users", "rust-lang"]
 store: empty
 exit_code: 0
-stdout_len: 341
+stdout_len: 412
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,9 @@ stderr_len: 0
     "command": "xr search-users --help"
   },
   "query": "rust-lang",
-  "reason": "invalid-user-query",
+  "reason": "validation",
+  "response_schema": "xr schema search-users",
+  "rule": "invalid-user-query",
   "status": "dry_run",
   "would_succeed": false
 }

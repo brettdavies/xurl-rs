@@ -67,13 +67,9 @@ impl ProgramTarget {
     pub(super) fn resolve(argv: &[String], search: &ProgramSearch) -> Result<Self, Error> {
         let (name, args) = argv
             .split_first()
-            .ok_or_else(|| Error::validation("-- names no program"))?;
-        let program = find(name, search).ok_or_else(|| {
-            Error::validation(format!(
-                "the program after -- was not found: {name} is not a path to a file, and no \
-                 directory on PATH holds it"
-            ))
-        })?;
+            .ok_or_else(|| Error::validation("missing-program"))?;
+        let program = find(name, search)
+            .ok_or_else(|| Error::validation_of("program-not-found", name.as_str()))?;
         Ok(Self {
             program,
             args: args.to_vec(),

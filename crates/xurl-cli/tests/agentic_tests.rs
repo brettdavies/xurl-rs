@@ -611,7 +611,7 @@ fn test_raw_with_output_json_emits_compact_json() {
     // --raw under JSON mode produces compact JSON (no whitespace) on stderr
     // for the envelope path. Schema lookup is a clean stdout-emitting verb.
     let output = common::xr()
-        .args(["schema", "envelope", "--output", "json", "--raw"])
+        .args(["schema", "--envelope", "--output", "json", "--raw"])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -626,7 +626,7 @@ fn test_raw_with_output_json_emits_compact_json() {
 #[test]
 fn test_raw_without_flag_pretty_prints() {
     let output = common::xr()
-        .args(["schema", "envelope", "--output", "json"])
+        .args(["schema", "--envelope", "--output", "json"])
         .output()
         .unwrap();
     assert!(output.status.success());
@@ -832,8 +832,7 @@ const CONFIRMED_COMMANDS: &[&str] = &[
     "calls scheduled cancel",
     "dm-events remove",
     "lists remove",
-    "broadcasts scheduled remove",
-    "broadcasts scheduled live",
+    "broadcasts scheduled cancel",
     "broadcasts chat remove",
     "notes remove",
     "articles publish",
@@ -841,20 +840,23 @@ const CONFIRMED_COMMANDS: &[&str] = &[
 ];
 
 /// Each command that confirms a destructive op is on the list above, so a new
-/// one cannot escape the example check below. A command confirms either by
-/// calling `gate_destructive` itself or by handing its request to
-/// `send_confirmed`, whose own gate call is not a command.
+/// one cannot escape the example check below. A command confirms by calling
+/// `gate_destructive` or `confirmed_context` itself, or by handing its
+/// request to `send_confirmed`. The helpers' own calls are not commands:
+/// `confirmed_context` calls the gate, and `send_confirmed` calls
+/// `confirmed_context`.
 #[test]
 fn every_confirmed_command_is_listed() {
     let call_sites: usize = common::workspace_sources()
         .iter()
         .map(|file| {
             let source = std::fs::read_to_string(file).unwrap();
-            let gated = source.matches("gate_destructive(").count()
-                - source.matches("fn gate_destructive(").count()
-                - source.matches("fn send_confirmed").count();
-            gated + source.matches("send_confirmed(").count()
-                - source.matches("fn send_confirmed(").count()
+            let count = |pattern: &str| source.matches(pattern).count();
+            let helpers = count("fn confirmed_context(") + count("fn send_confirmed");
+            count("gate_destructive(") - count("fn gate_destructive(") + count("confirmed_context(")
+                - count("fn confirmed_context(")
+                + count("send_confirmed(")
+                - helpers
         })
         .sum();
     assert_eq!(

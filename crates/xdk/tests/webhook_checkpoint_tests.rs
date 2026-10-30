@@ -9,7 +9,9 @@ use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tempfile::TempDir;
-use xdk::webhooks::{CheckpointWriter, ReplayWindow, read_checkpoint, replay_window};
+use xdk::webhooks::{
+    CHECKPOINT_SHAPE, CheckpointWriter, ReplayWindow, read_checkpoint, replay_window,
+};
 
 /// 2026-10-22T15:04:10Z and the seconds around it, computed with Python's
 /// `datetime`.
@@ -146,4 +148,51 @@ fn a_checkpoint_file_ahead_of_the_clock_is_refused() {
     let err = read_checkpoint(&path, at(AT_15_04_10)).expect_err("ahead of now");
 
     assert_eq!(err.kind(), "validation", "{err}");
+}
+
+/// The shape `xr` prints in its help, with a time where the placeholder is.
+fn shaped(secs: u64) -> String {
+    CHECKPOINT_SHAPE.replace("<Unix seconds>", &secs.to_string())
+}
+
+/// A file written by hand in the documented shape reads back as the time it
+/// names, so a listener other than `xr` can write one.
+#[test]
+fn a_file_in_the_documented_shape_reads_back() {
+    let tmp = TempDir::new().expect("tempdir");
+    let path = tmp.path().join("checkpoint.json");
+    std::fs::write(&path, shaped(AT_15_05_02)).expect("write the file");
+
+    assert_eq!(
+        read_checkpoint(&path, at(AT_15_31_10)).expect("readable"),
+        at(AT_15_05_02)
+    );
+}
+
+/// The writer records the keys the documented shape names, and no other.
+#[test]
+fn the_writer_writes_the_documented_shape() {
+    let tmp = TempDir::new().expect("tempdir");
+    let path = tmp.path().join("checkpoint.json");
+    CheckpointWriter::new(&path)
+        .record(at(AT_15_04_10))
+        .expect("written");
+
+    let written: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).expect("the file")).expect("JSON");
+    let documented: serde_json::Value =
+        serde_json::from_str(&shaped(AT_15_04_10)).expect("the shape is JSON once filled in");
+    assert_eq!(written, documented);
+}
+
+/// A file that is not a checkpoint is refused naming the shape it should hold.
+#[test]
+fn a_refusal_names_the_documented_shape() {
+    let tmp = TempDir::new().expect("tempdir");
+    let path = tmp.path().join("checkpoint.json");
+    std::fs::write(&path, "{}").expect("write the file");
+
+    let err = read_checkpoint(&path, at(AT_15_31_10)).expect_err("refused");
+
+    assert!(err.to_string().contains(CHECKPOINT_SHAPE), "{err}");
 }

@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 12418
+stdout_len: 12216
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -179,12 +179,7 @@ BROADCASTS:
     xr broadcasts moderators add @helper
     xr broadcasts moderators remove @helper --output json
 
-  Time someone out of every chat of your broadcasts, then see who is muted:
-    xr broadcasts mutes add @troll --until 2026-11-02T17:00:00Z --output json
-    xr broadcasts mutes list --output json
-
-  Create a stream source in the nearest region, stream to its rtmps_url with its stream_key, and check it is live:
-    xr broadcasts sources region --output json
+  Create a stream source, stream to its rtmps_url with its id as the key, and check it is live:
     xr broadcasts sources add "Studio A" --region us-east-1 --output json
     xr broadcasts sources get 1x2y3z4w5v6u --output json
 
@@ -195,10 +190,6 @@ BROADCASTS:
   Your broadcasts, and one by id:
     xr broadcasts list --output json
     xr broadcasts get 1YqKDqWqdPLGV --output json
-
-  End a broadcast, then delete it and its replay:
-    xr broadcasts end 1YqKDqWqdPLGV --force --output json
-    xr broadcasts remove 1YqKDqWqdPLGV --force --output json
 
 CALLS:
   The calls on your calendar in a week, then one with its invitees' answers:
@@ -282,8 +273,13 @@ INSPECT SCHEMAS:
   List response schemas:
     xr schema --list --output json
 
-  Get a single schema:
+  Get a single schema, named by the command's words:
     xr schema post --output json
+    xr schema webhooks subscriptions count --output json
+
+  Read a command's fields, then filter its output by them:
+    xr schema search
+    xr search "from:jack" --output json | jaq -r '.data[].text'
 
   Validate a JSON document against a response schema:
     cat post.json | xr validate --schema post --output json

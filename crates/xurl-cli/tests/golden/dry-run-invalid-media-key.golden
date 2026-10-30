@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "media", "get", "1146654567674912769"]
 store: empty
 exit_code: 0
-stdout_len: 363
+stdout_len: 431
 stderr_len: 0
 --- stdout ---
 {
@@ -15,7 +15,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr media get --help"
   },
-  "reason": "invalid-media-key",
+  "reason": "validation",
+  "response_schema": "xr schema media get",
+  "rule": "invalid-media-key",
   "status": "dry_run",
   "would_succeed": false
 }

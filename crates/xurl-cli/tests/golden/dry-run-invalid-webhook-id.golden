@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "webhooks", "validate", "not-an-id"]
 store: empty
 exit_code: 0
-stdout_len: 309
+stdout_len: 385
 stderr_len: 0
 --- stdout ---
 {
@@ -12,7 +12,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr webhooks validate --help"
   },
-  "reason": "invalid-webhook-id",
+  "reason": "validation",
+  "response_schema": "xr schema webhooks validate",
+  "rule": "invalid-webhook-id",
   "status": "dry_run",
   "webhook_id": "not-an-id",
   "would_succeed": false

@@ -91,7 +91,58 @@ async fn inputs_outside_the_spec_are_refused_before_any_request() {
         assert_eq!(code, 0, "{:?}: {stderr}", &args[..2]);
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{:?}", &args[..2]);
-        assert_eq!(body["reason"], reason, "{:?}", &args[..2]);
+        assert_eq!(body["rule"], reason, "{:?}", &args[..2]);
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+/// X refuses a lookup of one account with a 200 that carries `errors` and no
+/// `data`. The refusal reads by X's problem `type`, never as `xr`'s own bug:
+/// no `rule`, X's body in `message`, and no `report-issue` step.
+#[rstest::rstest]
+#[case::not_found("resource-not-found", "not-found", 4, Some("fix-input"))]
+#[case::not_authorized("not-authorized-for-resource", "forbidden", 1, None)]
+#[case::other("invalid-request", "invalid-request", 1, Some("fix-input"))]
+#[tokio::test]
+async fn an_errors_only_answer_reads_as_its_problem_type(
+    #[case] problem: &str,
+    #[case] reason: &str,
+    #[case] exit_code: i32,
+    #[case] action: Option<&str>,
+) {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by/username/ghost"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "errors": [{
+                "value": "ghost",
+                "detail": "Could not find user with username: [ghost].",
+                "title": "Not Found Error",
+                "resource_type": "user",
+                "parameter": "username",
+                "type": format!("https://api.x.com/2/problems/{problem}")
+            }]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let (code, _stdout, stderr) = run_json(&server, &["user", "ghost"]).await;
+
+    assert_eq!(code, exit_code, "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
+    assert_eq!(envelope["reason"], reason, "{envelope}");
+    assert_eq!(
+        envelope["next_step"]["action"].as_str(),
+        action,
+        "{envelope}"
+    );
+    assert!(envelope.get("rule").is_none(), "{envelope}");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .is_some_and(|m| m.contains("Could not find user")),
+        "{envelope}"
+    );
 }

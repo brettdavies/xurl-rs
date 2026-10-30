@@ -80,9 +80,9 @@ async fn bare_invocation_prints_help_to_stdout() {
 }
 
 #[tokio::test]
-async fn missing_url_exits_one_and_writes_no_url_to_stderr() {
+async fn missing_url_exits_two_and_writes_no_url_to_stderr() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "-X", "POST"]).await;
-    assert_eq!(code, 1);
+    assert_eq!(code, 2);
     assert!(
         stderr.contains("No URL provided"),
         "stderr missing expected message: {stderr}"
@@ -137,9 +137,9 @@ async fn schema_post_emits_json_schema_directly_not_wrapped_in_message() {
 }
 
 #[tokio::test]
-async fn schema_unknown_command_exits_general_error() {
+async fn schema_unknown_command_exits_usage_error() {
     let (code, _stdout, stderr) = run_isolated(&["xr", "schema", "nope-not-a-command"]).await;
-    assert_eq!(code, 1);
+    assert_eq!(code, 2);
     assert!(
         stderr.contains("unknown command"),
         "stderr should explain unknown command: {stderr}"

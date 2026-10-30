@@ -130,7 +130,38 @@ async fn search_users_refuses_a_query_outside_the_spec_pattern_before_any_reques
         assert_eq!(code, 0, "{query:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{query:?}");
-        assert_eq!(body["reason"], "invalid-user-query", "{query:?}");
+        assert_eq!(body["rule"], "invalid-user-query", "{query:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+/// `<QUERY>` states, under Arguments, the rule the validator enforces, with
+/// the limit read from the validator's own constant; the examples do not
+/// repeat it.
+#[tokio::test]
+async fn the_query_help_states_the_rule_its_validator_enforces() {
+    let tmp = TempDir::new().expect("tempdir");
+    let rule = format!(
+        "1 to {} letters, digits, underscores, apostrophes, or spaces",
+        xdk::api::shortcuts::USER_SEARCH_QUERY_MAX_CHARS
+    );
+    let (code, stdout, stderr) = run(
+        &tmp.path().join(".xurl"),
+        "http://127.0.0.1:9",
+        &["search-users", "--help"],
+    )
+    .await;
+    assert_eq!(code, 0, "{stderr}");
+
+    let arguments = stdout
+        .split("Arguments:")
+        .nth(1)
+        .and_then(|rest| rest.split("Options:").next())
+        .expect("an Arguments section");
+    assert!(arguments.contains(&rule), "{arguments}");
+    let examples = stdout
+        .split("Examples:")
+        .nth(1)
+        .expect("an Examples section");
+    assert!(!examples.contains("letters, digits"), "{examples}");
 }

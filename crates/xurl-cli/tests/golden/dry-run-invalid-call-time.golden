@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02 16:00"]
 store: empty
 exit_code: 0
-stdout_len: 366
+stdout_len: 444
 stderr_len: 0
 --- stdout ---
 {
@@ -12,7 +12,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr calls scheduled add --help"
   },
-  "reason": "invalid-call-time",
+  "reason": "validation",
+  "response_schema": "xr schema calls scheduled add",
+  "rule": "invalid-call-time",
   "start_time": "2026-11-02 16:00",
   "status": "dry_run",
   "would_succeed": false

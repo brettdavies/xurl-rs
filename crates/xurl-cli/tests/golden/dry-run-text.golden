@@ -1,12 +1,13 @@
 args: ["--dry-run", "whoami"]
 store: oauth2
 exit_code: 0
-stdout_len: 164
+stdout_len: 200
 stderr_len: 0
 --- stdout ---
 Dry run of `whoami`: nothing was sent.
 The real run would succeed, as far as an offline check can tell.
   credential: oauth2, app myapp, login alice, token current
+  response schema: xr schema whoami
 
 --- stderr ---
 

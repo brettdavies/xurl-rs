@@ -106,7 +106,7 @@ async fn get_refuses_an_id_outside_the_spec_pattern_before_any_request() {
         assert_eq!(code, 0, "{id:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{id:?}");
-        assert_eq!(body["reason"], "invalid-news-id", "{id:?}");
+        assert_eq!(body["rule"], "invalid-news-id", "{id:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

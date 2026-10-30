@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "media", "alt-text", "not-an-id", "A dog"]
 store: empty
 exit_code: 0
-stdout_len: 316
+stdout_len: 389
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr media alt-text --help"
   },
-  "reason": "invalid-media-id",
+  "reason": "validation",
+  "response_schema": "xr schema media alt-text",
+  "rule": "invalid-media-id",
   "status": "dry_run",
   "text": "A dog",
   "would_succeed": false

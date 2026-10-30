@@ -1,7 +1,7 @@
 args: ["broadcasts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8137
+stdout_len: 7590
 stderr_len: 0
 --- stdout ---
 Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources
@@ -11,16 +11,17 @@ Usage: xr broadcasts [OPTIONS] <COMMAND>
 Commands:
   list        List your broadcasts
   get         Read one broadcast, by id
-  end         End one of your broadcasts
-  remove      Delete one of your broadcasts and its replay
-  scheduled   Schedule broadcasts, change or cancel them, and start them early
+  scheduled   Schedule broadcasts and change or cancel them
   chat        Read and moderate a broadcast's chat
   moderators  Manage who moderates your broadcast chats
-  mutes       Mute people in every chat of your broadcasts
   sources     Manage the RTMP and RTMPS ingest points you stream to
   help        Print this message or the help of the given subcommand(s)
 
 Options:
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -126,16 +127,16 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100.
+          Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it
           
-          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
+          It is clamped to the range that command's `-n` takes, and `-n` wins when both are given. A raw request carries its page size in its own query string.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
-          Pagination cursor / `pagination_token` for list endpoints.
+          The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
+          A command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.
           
           [env: XURL_CURSOR=]
 
@@ -153,15 +154,9 @@ Options:
           
           [env: XURL_AFTER=]
 
-  -h, --help
-          Print help (see a summary with '-h')
-
 Examples:
   Your broadcasts (text):
     xr broadcasts list
-  End one, then delete it and its replay, JSON envelope:
-    xr broadcasts end 1YqKDqWqdPLGV --force --no-interactive --output json
-    xr broadcasts remove 1YqKDqWqdPLGV --force --no-interactive --output json
   Schedule one, JSON envelope:
     xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --title "Launch day" --output json
   Who moderates your broadcast chats (text):
@@ -169,8 +164,6 @@ Examples:
   Add and remove a moderator, JSON envelope:
     xr broadcasts moderators add @helper --output json
     xr broadcasts moderators remove @helper --output json
-  Time someone out of every chat of your broadcasts, JSON envelope:
-    xr broadcasts mutes add @troll --until 2026-11-02T17:00:00Z --output json
   The ingest points you stream to (text):
     xr broadcasts sources list
   Create one, JSON envelope:

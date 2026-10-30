@@ -113,10 +113,13 @@ noticing. #414, #416, #417, and #418 have the same shape: a hand-written stateme
 - R8. `--cursor` help states that it applies to every command whose endpoint pages, whose response carries
   `meta.next_token`, and that other commands and raw requests ignore it; a raw request carries its token in its URL.
 - R10. The first line of the `--limit` and `--cursor` help, the only line `-h` prints, carries each rule on its own.
+- R11. Each `-n/--max-results` help states no maximum above the page size the command sends. `stream rules list` and
+  `broadcasts chat history` state 1-100, the clamp `effective_limit` applies; Brett chose narrowing the help over
+  raising the clamp per endpoint.
 
 **Drift**
 
-- R9. A test fails when R1, R3, R4, R5, R6, R7, R8, or R10 stops matching the binary.
+- R9. A test fails when R1, R3, R4, R5, R6, R7, R8, R10, or R11 stops matching the binary.
 
 ### Success Criteria
 
@@ -139,12 +142,6 @@ noticing. #414, #416, #417, and #418 have the same shape: a hand-written stateme
 - Not built: modeling optional flags that add a request with fewer schemes. Across all 140 commands only `--of` changes
   the accepted set, measured by dry-running each command with each scheme. A future flag that adds such a request would
   show in the walk only if the synthesized invocation used it.
-
-#### Deferred to Follow-Up Work
-
-- The `-n` ranges of `stream rules list` (help says 1-1000) and `broadcasts chat history` (help says 1-200) disagree
-  with `effective_limit`, which clamps every `-n` to 1..=100. Fixing it means either raising the clamp per endpoint (a
-  behavior change) or narrowing the help. Reported to release for Brett; outside the six issues.
 
 ---
 
@@ -273,12 +270,12 @@ flowchart LR
 
 Each PR body's `## Changelog` carries the user-visible change, so the generated changelog says what moved:
 
-| PR       | Section | Entry                                                                                                   |
-| -------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| U1       | Changed | Help pages list global flags under their own `Global Options` heading                                   |
-| U2       | Fixed   | `webhooks add`, `search-users`, `webhooks replay`, and `webhooks listen` help state their input rules   |
-| U4 (+U3) | Fixed   | `--limit` and `--cursor` help describe every command that pages; `calls scheduled list` takes `--limit` |
-| U5       | Added   | Each command's `--auth` help lists the schemes that command accepts                                     |
+| PR       | Section | Entry                                                                                                                                    |
+| -------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| U1       | Changed | Help pages list global flags under their own `Global Options` heading                                                                    |
+| U2       | Fixed   | `webhooks add`, `search-users`, `webhooks replay`, and `webhooks listen` help state their input rules                                    |
+| U4 (+U3) | Fixed   | `--limit` and `--cursor` help describe every command that pages; `calls scheduled list` takes `--limit`; two `-n` help lines state 1-100 |
+| U5       | Added   | Each command's `--auth` help lists the schemes that command accepts                                                                      |
 
 ---
 
@@ -364,7 +361,7 @@ Each PR body's `## Changelog` carries the user-visible change, so the generated 
 
 - **Goal:** `--limit` and `--cursor` describe exactly the commands that honor them, now and after the next family lands
   (#425).
-- **Requirements:** R7, R8, R9, R10
+- **Requirements:** R7, R8, R9, R10, R11
 - **Dependencies:** U1, U3
 - **Files:**
   - Modify: `crates/xurl-cli/src/cli/mod.rs`, `crates/xurl-cli/src/cli/commands/calls.rs`
@@ -383,6 +380,8 @@ Each PR body's `## Changelog` carries the user-visible change, so the generated 
      `the_limit_and_cursor_help_name_exactly_the_commands_that_page`, which the walk supersedes. `PAGING_COMMANDS` stays
      for the empty-page test, with its doc comment saying it samples paged commands.
   5. Name the walk in AGENTS.md's "Dispatch arm" bullet.
+  6. State 1-100 in the `-n` help of `stream rules list` and `broadcasts chat history` (R11), and add the page-size
+     walk: every command whose `-n` help states a range runs at that range's maximum, and the request must send it.
 - **Patterns to follow:** `a_dry_run_reports_the_credential_the_real_run_uses` in
   `crates/xurl-cli/tests/dry_run_guard.rs`; `Cause:` walks such as `crates/xurl-cli/tests/dispatch_guard.rs`.
 - **Test scenarios:**
@@ -398,6 +397,8 @@ Each PR body's `## Changelog` carries the user-visible change, so the generated 
     its dry run reports the same values.
   - `--limit` long help mentions `-n/--max-results`, `--cursor` long help mentions `meta.next_token`, and neither names
     a command.
+  - Every command whose `-n` help states a range sends that range's maximum under `-n <max>`; on the 1-1000 and 1-200
+    help the walk names `stream rules list` and `broadcasts chat history`.
   - `xr search -h` prints, for each flag, a first line that states its rule and names raw requests (R10).
 - **Verification:** The walk passes at `dev` plus this unit, and it fails, naming `calls scheduled list`, when KTD5 is
   reverted.

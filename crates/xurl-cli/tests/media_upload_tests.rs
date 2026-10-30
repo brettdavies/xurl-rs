@@ -69,7 +69,7 @@ async fn a_processing_failure_after_finalize_still_prints_the_media_id() {
         "the FINALIZE envelope with the media id reaches stdout first: {stdout}"
     );
     assert!(
-        stderr.contains("media processing failed"),
+        stderr.contains("failed processing"),
         "the processing error is reported: {stderr}"
     );
 }
@@ -229,8 +229,15 @@ async fn a_failed_status_is_not_a_timeout() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert_eq!(output.status.code(), Some(1), "stderr: {stderr}");
     let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
-    assert_eq!(v["reason"], "validation", "got: {v}");
-    assert_eq!(v["message"], "media processing failed", "got: {v}");
+    assert_eq!(v["reason"], "invalid-request", "got: {v}");
+    assert_eq!(v["media_id"], "777", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "fix-input", "got: {v}");
+    assert!(
+        v["message"]
+            .as_str()
+            .is_some_and(|m| m.contains("failed processing")),
+        "got: {v}"
+    );
     assert_eq!(status_calls(&server).await, 1);
 }
 

@@ -120,6 +120,8 @@ pub use generated::{AUTH_MATRIX, SHORTCUT_TEMPLATES};
 /// The named endpoint declarations `build.rs` emits, one per
 /// `SHORTCUT_TEMPLATES` row. The request layer and the testing mock read an
 /// endpoint's method and path from here rather than spelling them.
+// `xr` reads them to list each command's accepted schemes in its `--auth`
+// help (`crates/xurl-cli/src/cli/accepted_auth.rs`).
 #[doc(hidden)]
 pub use generated::endpoints;
 

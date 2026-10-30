@@ -1,5 +1,5 @@
 //! `xr broadcasts scheduled`: the caller's scheduled broadcasts, scheduling
-//! one, moving it, cancelling it, and starting it early.
+//! one, moving it, and cancelling it. X publishes each one at its start time.
 
 use serde_json::json;
 
@@ -37,7 +37,6 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
             title,
             description,
             replay,
-            manual_publish,
             common,
         } => {
             let broadcast = NewScheduledBroadcast {
@@ -47,7 +46,7 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
                 title,
                 description,
                 available_for_replay: replay.then_some(true),
-                manual_publish: manual_publish.then_some(true),
+                manual_publish: None,
             };
             let ctx = json!({
                 "command": "broadcasts-scheduled-add",
@@ -75,7 +74,6 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
             title,
             description,
             replay,
-            manual_publish,
             common,
         } => {
             let changes = ScheduledBroadcastChanges {
@@ -85,7 +83,7 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
                 title,
                 description,
                 available_for_replay: replay.then_some(true),
-                manual_publish: manual_publish.then_some(true),
+                manual_publish: None,
             };
             let ctx = json!({
                 "command": "broadcasts-scheduled-update",
@@ -102,30 +100,17 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
             })
             .await
         }
-        ScheduledBroadcastsCommands::Remove {
+        ScheduledBroadcastsCommands::Cancel {
             scheduled_id,
             force,
             common,
         } => {
             let ctx =
-                json!({"command": "broadcasts-scheduled-remove", "scheduled_id": scheduled_id});
+                json!({"command": "broadcasts-scheduled-cancel", "scheduled_id": scheduled_id});
             let prompt = format!("Cancel scheduled broadcast {scheduled_id}?");
             let validate = || shortcuts::validate_scheduled_broadcast_id(&scheduled_id);
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.delete_scheduled_broadcast(&scheduled_id)
-            })
-            .await
-        }
-        ScheduledBroadcastsCommands::Live {
-            scheduled_id,
-            force,
-            common,
-        } => {
-            let ctx = json!({"command": "broadcasts-scheduled-live", "scheduled_id": scheduled_id});
-            let prompt = format!("Start scheduled broadcast {scheduled_id} now?");
-            let validate = || shortcuts::validate_scheduled_broadcast_id(&scheduled_id);
-            send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
-                client.go_live(&scheduled_id)
             })
             .await
         }

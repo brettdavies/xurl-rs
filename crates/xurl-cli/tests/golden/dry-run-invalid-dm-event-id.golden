@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "dm-events", "get", "dm-1"]
 store: empty
 exit_code: 0
-stdout_len: 308
+stdout_len: 380
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr dm-events get --help"
   },
-  "reason": "invalid-dm-event-id",
+  "reason": "validation",
+  "response_schema": "xr schema dm-events get",
+  "rule": "invalid-dm-event-id",
   "status": "dry_run",
   "would_succeed": false
 }

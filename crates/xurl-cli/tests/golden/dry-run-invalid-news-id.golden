@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "news", "get", "story-1"]
 store: empty
 exit_code: 0
-stdout_len: 287
+stdout_len: 354
 stderr_len: 0
 --- stdout ---
 {
@@ -12,7 +12,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr news get --help"
   },
-  "reason": "invalid-news-id",
+  "reason": "validation",
+  "response_schema": "xr schema news get",
+  "rule": "invalid-news-id",
   "status": "dry_run",
   "story_id": "story-1",
   "would_succeed": false

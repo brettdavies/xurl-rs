@@ -297,8 +297,13 @@ INSPECT SCHEMAS:
   List response schemas:
     xr schema --list --output json
 
-  Get a single schema:
+  Get a single schema, named by the command's words:
     xr schema post --output json
+    xr schema webhooks subscriptions count --output json
+
+  Read a command's fields, then filter its output by them:
+    xr schema search
+    xr search \"from:jack\" --output json | jaq -r '.data[].text'
 
   Validate a JSON document against a response schema:
     cat post.json | xr validate --schema post --output json

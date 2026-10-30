@@ -84,11 +84,6 @@ pub const UNVALIDATED_TYPES: &[(&str, &str)] = &[
         "RedirectUriSetResponse",
         "the CLI's own redirect-uri update",
     ),
-    ("InstallEnvelope", "the skill installer's own report"),
-    (
-        "InstallMultiEnvelope",
-        "the skill installer's own multi-host report",
-    ),
 ];
 
 /// Every schema `xr validate` accepts, in the order the `--schema` help and

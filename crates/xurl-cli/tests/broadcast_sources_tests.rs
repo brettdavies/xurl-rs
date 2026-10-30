@@ -154,7 +154,7 @@ async fn sources_get_reads_one_source() {
 }
 
 #[tokio::test]
-async fn sources_rename_puts_the_new_name() {
+async fn sources_update_puts_the_new_name() {
     let server = MockServer::start().await;
     Mock::given(method("PUT"))
         .and(path(format!("/2/sources/{SOURCE_ID}")))
@@ -175,8 +175,9 @@ async fn sources_rename_puts_the_new_name() {
         &[
             "broadcasts",
             "sources",
-            "rename",
+            "update",
             SOURCE_ID,
+            "--name",
             "Studio B",
             "--output",
             "json",
@@ -186,6 +187,29 @@ async fn sources_rename_puts_the_new_name() {
 
     assert_eq!(code, 0, "stderr: {stderr}");
     assert_eq!(json_out(&stdout)["data"]["name"], "Studio B");
+}
+
+/// The label is a flag, as `lists update --name` takes it, and `update`
+/// sends nothing without one.
+#[tokio::test]
+async fn sources_update_needs_the_name_flag() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for args in [
+        &["broadcasts", "sources", "update", SOURCE_ID][..],
+        &["broadcasts", "sources", "update", SOURCE_ID, "Studio B"][..],
+    ] {
+        let mut argv = vec!["--output", "json"];
+        argv.extend(args);
+        let (code, _stdout, stderr) = run(&store, &server.uri(), &argv).await;
+        assert_eq!(code, 2, "{args:?}: {stderr}");
+        let envelope: serde_json::Value =
+            serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
+        assert_eq!(envelope["reason"], "invalid-args", "{args:?}");
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
 #[tokio::test]
@@ -312,6 +336,6 @@ async fn sources_add_refuses_an_empty_name_before_any_request() {
     assert_eq!(code, 0, "stderr: {stderr}");
     let body = json_out(&stdout);
     assert_eq!(body["would_succeed"], false);
-    assert_eq!(body["reason"], "empty-source-name");
+    assert_eq!(body["rule"], "empty-source-name");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

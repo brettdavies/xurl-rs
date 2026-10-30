@@ -262,6 +262,10 @@ xr unblock @user                               # Unblock
 xr blocked                                     # Users you have blocked
 ```
 
+Every command that names one account, here and in the sections below, takes a handle (`@jack` or `jack`) or a numeric
+user ID. An argument made only of digits is read as an ID and sent as it is, so an all-digit handle takes its `@`
+(`xr follow @1234`). A handle is looked up in one request before the command's own.
+
 ### Direct Messages
 
 ```bash
@@ -289,20 +293,35 @@ xr examples                                    # Curated invocation examples
 ### Schema Discovery
 
 ```bash
-xr schema post                                 # JSON Schema for post response
-xr schema whoami                               # JSON Schema for whoami response
+xr schema post                                 # post's data, every reference resolved in place
+xr schema webhooks subscriptions count         # a command's schema, named by the words you run it with
+xr schema post --path public_metrics           # one node of data, through arrays and nullable values
+xr schema post --full                          # the complete schema, as committed under schema/responses/
+xr schema --common                             # the wrapper every typed command shares: includes, meta, errors
 xr schema --list                               # All commands and response types
-xr schema --all                                # All schemas as one JSON document
+xr schema --list --output json                 # one record per command: command, type, file
+xr schema --all                                # every command's default view in one JSON document
+xr schema --envelope                           # the output envelope every command prints
 ```
+
+By default `xr schema <command>` prints the schema of the command's `data` with every `$ref` resolved, labelled with
+`command`, `data_cardinality` (`object`, or `array` when the body describes one element of a list), `data_type`,
+`common_schema` (`xr schema --common`) when the command answers with the API wrapper, and `data_nullable` when `data`
+may be null. A `--path` segment that names no property is refused with `invalid-args`, `path`, `known_properties`, and a
+`fix-input` step whose `template` ends in `<property>`.
+
+`xr schema` names a command by the same words `xr` and `xr help` take. A word that names no command is refused the way
+`xr help` refuses it (`unknown-command`). A hyphen-joined name from before, such as `webhooks-subscriptions-count`, and
+a bare `envelope`, are refused with `invalid-args` and a `fix-input` step that carries the invocation that works.
 
 Generate typed clients from schema output:
 
 ```bash
 # TypeScript
-xr schema post | bunx json-schema-to-typescript > types.ts
+xr schema post --full | bunx json-schema-to-typescript > types.ts
 
 # Python
-xr schema post | uvx --from datamodel-code-generator datamodel-codegen --output models.py
+xr schema post --full | uvx --from datamodel-code-generator datamodel-codegen --output models.py
 ```
 
 ### Raw API Access
@@ -371,8 +390,7 @@ xr broadcasts remove 1YqKDqWqdPLGV                 # Delete a broadcast and its 
 xr broadcasts scheduled list                       # Your scheduled broadcasts
 xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z
 xr broadcasts scheduled update 1850000000000000001 --start 2026-11-02T17:00:00Z --end 2026-11-02T18:00:00Z
-xr broadcasts scheduled live 1850000000000000001   # Start now (asks first)
-xr broadcasts scheduled remove 1850000000000000001 # Cancel (asks first)
+xr broadcasts scheduled cancel 1850000000000000001 # Cancel (asks first)
 xr broadcasts chat history 1YqKDqWqdPLGV           # A broadcast's chat
 xr broadcasts chat send 1YqKDqWqdPLGV "Welcome!"   # Up to 140 characters
 xr broadcasts chat mute 1YqKDqWqdPLGV @troll --until 2026-11-02T17:00:00Z
@@ -386,12 +404,13 @@ xr broadcasts sources list                         # Your RTMP and RTMPS ingest 
 xr broadcasts sources region                       # The ingest region to pass to add --region
 xr broadcasts sources add "Studio A" --region us-east-1
 xr broadcasts sources get 1x2y3z4w5v6u             # Whether the source is receiving video
-xr broadcasts sources rename 1x2y3z4w5v6u "Studio B"
+xr broadcasts sources update 1x2y3z4w5v6u --name "Studio B"
 xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force skips)
 ```
 
 A scheduled broadcast takes its video from a stream source, so `add` names one with `--source`; its times are RFC 3339,
-and `xr` sends them as the milliseconds since the Unix epoch X takes. X takes both times on every `update`.
+and `xr` sends them as the milliseconds since the Unix epoch X takes. X takes both times on every `update`, and takes the
+broadcast live at its start time.
 
 `xr broadcasts chat mute` mutes someone in one broadcast's chat; `xr broadcasts mutes add` mutes them in every chat of
 your broadcasts, until `--until` or for good. A moderator adds `--broadcast` to mute or unmute someone in every chat of
@@ -420,9 +439,10 @@ xr calls get 8a6f1c2e                              # Who is in a call, and wheth
 ```
 
 Times are RFC 3339 with a zone, such as `2026-11-02T16:00:00Z`, and one that is not is refused before any request.
-`--invite` takes a numeric user ID (`xr user @handle` prints one) and repeats for each person, at most 25 on a new
-call; on `update` it replaces the whole invite list. Invitees get an email about a new, changed, or cancelled call
-unless `--no-notify` is given. A recurring call takes `--recurrence` (an RFC 5545 RRULE such as `FREQ=WEEKLY;BYDAY=MO`)
+`--invite` takes a handle or a numeric user ID and repeats for each person, at most 25 on a new call; on `update` it
+replaces the whole invite list. Every handle is looked up in one request before the call is sent. Invitees get an
+email about a new, changed, or cancelled call unless `--no-notify` is given. A recurring call takes `--recurrence` (an
+RFC 5545 RRULE such as `FREQ=WEEKLY;BYDAY=MO`)
 and `--time-zone`. To change, cancel, or answer some occurrences of it, name one with `--occurrence`, its
 `occurrence_start_time` as `list` prints it, and `--scope this` or `--scope this-and-following`; with neither flag, the
 request applies to every occurrence. `update` with no field to change is refused with `no-call-changes`.
@@ -692,7 +712,8 @@ as `XDG_CONFIG_HOME` for OpenCode) relocates its part of the path. Codex's desti
 ```bash
 xr schema --list                               # Discover all commands + response types
 xr schema post                                 # Get JSON Schema for any command's output
-xr schema --all                                # All schemas for MCP tool definitions
+xr schema webhooks subscriptions count         # Same, for a command of several words
+xr schema --all                                # Every command's default view; schema/responses/ holds the full ones
 ```
 
 ### Machine-Readable Output
@@ -772,6 +793,7 @@ xr --output json --dry-run post "Hello"
   "command": "post",
   "exit_code": 0,
   "media_ids": [],
+  "response_schema": "xr schema post",
   "status": "dry_run",
   "would_succeed": true
 }
@@ -780,20 +802,25 @@ xr --output json --dry-run post "Hello"
 - `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
   send. `reason` says which, and `exit_code` is the code the real run would end on. Either refusal also carries the keys
   of the real run's error envelope: `message` and the `next_step` the real run would name, plus, for a credential,
-  `endpoint`, `supported`, and `available_in_app`. An invalid input's `message` is the rule it broke and its `reason`
-  the validator's code, such as `webhook-url-has-port`. A step that reruns the invocation keeps `--dry-run`, so
-  following it sends nothing either.
+  `endpoint`, `supported`, and `available_in_app`. An invalid input's `reason` is `validation`, as in the real run, its
+  `rule` the validator's code, such as `webhook-url-has-port`, its `message` the sentence for that rule, and its `value`
+  the offending input when the rule names one. A step that reruns the invocation keeps `--dry-run`, so following it
+  sends nothing either.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
   the credential is not checked, since nothing is sent to find out.
 - `confirmation_required: true` marks a destructive command that would stop to ask. The flag outranks `--force` and the
   prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
+- `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
+  typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
+  ends with a `Response schema:` block naming it.
 
 A command that only reads local state, such as `auth status`, `schema`, or `version`, has nothing to hold back and
 answers as it always does. Text output summarizes the same facts in lines: that nothing was sent, whether the real run
-would succeed and, when it would not, the exit code and why, then the command's inputs, the credential, and whether it
-would stop to ask. A refusal prints the advice the real run's error prints, which `--quiet` leaves out.
+would succeed and, when it would not, the exit code and why, then the command's inputs, the credential, the response
+schema, and whether it would stop to ask. A refusal prints the advice the real run's error prints, which `--quiet`
+leaves out.
 
 ```text
 $ xr --dry-run bookmark-folders add ""
@@ -879,50 +906,56 @@ a value you do not recognize as your default branch. A step carries a `command`,
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
 fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
 carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
-and `inspect-store` when a store command is what failed. Two `fix-input` steps carry an invocation: `listen` again on a
-free port, under `address-in-use`, and the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
-before, under `invalid-args`. Text mode prints the same advice as prose instead; the two need not match word for word.
+and `inspect-store` when a store command is what failed. Three `fix-input` steps carry an invocation: `listen` again on
+a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
+before, and the `xr schema` invocation that works for an old name or a scope word, both under `invalid-args`; the
+`xr schema --path` invocation with the segment that named nothing left as `<property>`, a template, also under
+`invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen` lacks. A
+`validation` refusal names the input rule it broke in `rule`, the validator's kebab-case code (`invalid-username`,
+`no-list-changes`, ...), with the sentence for it in `message`, and `value` carries the offending input when the rule
+names one: an app name, a redirect URI, or a header's position among the `-H` headers. Branch on `rule`, not on the
+sentence. Text mode prints the same advice as prose instead; the two need not match word for word.
 
 ### Which Errors Carry a Step
 
-| `reason`                     | `next_step.action`                                                                                       |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; none when X answers a 401                   |
-| `client-credentials-missing` | `register-app` or `select-app`                                                                           |
-| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                |
-| `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise |
-| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                     |
-| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                            |
-| `processing-timeout`         | `resume-wait`                                                                                            |
-| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it           |
-| `unknown-command`            | `show-help`                                                                                              |
-| `invalid-method`             | `show-help`                                                                                              |
-| `invalid-url`                | `show-help`                                                                                              |
-| `invalid-path-param`         | `show-help`                                                                                              |
-| `unsupported-pagination`     | `show-help`                                                                                              |
-| `invalid-json`               | `show-help`                                                                                              |
-| `unknown-schema`             | `show-help`                                                                                              |
-| `missing-host`               | `show-help`                                                                                              |
-| `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                          |
-| `no-tty`                     | `select-app`, as a template that takes the app's name                                                    |
-| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                             |
-| `network-error`              | `retry`                                                                                                  |
-| `server-error`               | `retry`                                                                                                  |
-| `git-clone-failed`           | `retry`                                                                                                  |
-| `not-found`                  | `fix-input`                                                                                              |
-| `invalid-request`            | `fix-input`                                                                                              |
-| `validation-failed`          | `fix-input`                                                                                              |
-| `io`                         | `fix-input`                                                                                              |
-| `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                |
-| `home-not-set`               | `fix-input`                                                                                              |
-| `destination-is-file`        | `fix-input`                                                                                              |
-| `remove-failed`              | `fix-input`                                                                                              |
-| `git-not-found`              | `fix-input`                                                                                              |
-| `destination-not-empty`      | `run-command`: `xr skill update <host>`                                                                  |
-| `not-installed`              | `run-command`: `xr skill install <host>`                                                                 |
-| `internal`                   | `report-issue`                                                                                           |
-| `serialization`              | `report-issue`                                                                                           |
-| `api-error`                  | `report-issue`                                                                                           |
+| `reason`                     | `next_step.action`                                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; `fix-input` when `webhooks listen` has no signing secret; none when X answers a 401 |
+| `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
+| `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
+| `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
+| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
+| `processing-timeout`         | `resume-wait`                                                                                                                                    |
+| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
+| `unknown-command`            | `show-help`                                                                                                                                      |
+| `invalid-method`             | `show-help`                                                                                                                                      |
+| `invalid-url`                | `show-help`                                                                                                                                      |
+| `invalid-path-param`         | `show-help`                                                                                                                                      |
+| `unsupported-pagination`     | `show-help`                                                                                                                                      |
+| `invalid-json`               | `show-help`                                                                                                                                      |
+| `unknown-schema`             | `show-help`                                                                                                                                      |
+| `missing-host`               | `show-help`                                                                                                                                      |
+| `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                  |
+| `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                            |
+| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                                                                     |
+| `network-error`              | `retry`                                                                                                                                          |
+| `server-error`               | `retry`                                                                                                                                          |
+| `git-clone-failed`           | `retry`                                                                                                                                          |
+| `not-found`                  | `fix-input`                                                                                                                                      |
+| `invalid-request`            | `fix-input`                                                                                                                                      |
+| `validation-failed`          | `fix-input`                                                                                                                                      |
+| `io`                         | `fix-input`                                                                                                                                      |
+| `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                                                        |
+| `home-not-set`               | `fix-input`                                                                                                                                      |
+| `destination-is-file`        | `fix-input`                                                                                                                                      |
+| `remove-failed`              | `fix-input`                                                                                                                                      |
+| `git-not-found`              | `fix-input`                                                                                                                                      |
+| `destination-not-empty`      | `run-command`: `xr skill update <host>`                                                                                                          |
+| `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                         |
+| `internal`                   | `report-issue`                                                                                                                                   |
+| `serialization`              | `report-issue`                                                                                                                                   |
+| `api-error`                  | `report-issue`                                                                                                                                   |
 
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 

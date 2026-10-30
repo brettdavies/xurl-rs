@@ -1,7 +1,7 @@
 args: ["bookmark-folders", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6942
+stdout_len: 7050
 stderr_len: 0
 --- stdout ---
 Create a bookmark folder
@@ -14,7 +14,7 @@ Arguments:
 
 Options:
       --auth <AUTH_TYPE>
-          Authentication type (oauth1, oauth2, app)
+          Authentication type (this command accepts: oauth2). Unset, xr uses the first of these it holds a credential for
 
   -u, --username <USERNAME>
           `OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`
@@ -22,6 +22,10 @@ Options:
   -t, --trace
           Add X-B3-Flags trace header
 
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -127,16 +131,16 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100.
+          Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it
           
-          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
+          It is clamped to the range that command's `-n` takes, and `-n` wins when both are given. A raw request carries its page size in its own query string.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
-          Pagination cursor / `pagination_token` for list endpoints.
+          The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
+          A command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.
           
           [env: XURL_CURSOR=]
 
@@ -154,14 +158,14 @@ Options:
           
           [env: XURL_AFTER=]
 
-  -h, --help
-          Print help (see a summary with '-h')
-
 Examples:
   Create a folder (text):
     xr bookmark-folders add "Reading list"
   Create (JSON envelope):
     xr bookmark-folders add "Reading list" --output json
+
+Response schema:
+  xr schema bookmark-folders add
 
 --- stderr ---
 

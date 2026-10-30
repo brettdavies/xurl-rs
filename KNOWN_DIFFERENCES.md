@@ -258,6 +258,19 @@ without one, so it cannot name a different account. The username and display nam
 every login the store holds for that id, in every app, so a rename seen through one login shows through all of them.
 Another user's handle is looked up on every run in both tools.
 
+## An all-digit account is a user ID (intentional difference)
+
+Go `xurl` looks every account it is given up as a username (`cli/shortcuts.go`, `resolveUserID`), so
+`xurl follow 783214` asks `/2/users/by/username/783214` for a user named `783214`. The Rust version reads an argument
+made only of digits as a numeric user ID and sends it with no lookup, and looks a handle up, with or without its `@`, as
+Go does. The rule covers the Go commands that take an account (`follow`, `unfollow`, `mute`, `unmute`, `block`,
+`unblock`, `dm`, `xr user-posts` for Go's `posts USERNAME`, and `--of` on `following` and `followers`) and every other
+`xr` command that names one. An all-digit handle takes its `@` in `xr`: `xr follow @1234`.
+
+The lookup itself differs too: `xr` asks `/2/users/by?usernames=<name>`, the endpoint that answers several handles in
+one request, where Go asks `/2/users/by/username/<name>`. Both take the same credentials. `xr user USERNAME` still asks
+`/2/users/by/username/<name>`, as Go's `user` does, since that lookup is the command itself.
+
 ## `--dry-run` checks any command offline (intentional improvement)
 
 Go `xurl` has no `--dry-run`: `xurl --dry-run /2/users/me` and `xurl delete --dry-run ID` exit 1 with

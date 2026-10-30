@@ -852,7 +852,9 @@ pub fn user_ids_for_accounts<S: AsRef<str>>(
                 .iter()
                 .find(|user| user.username.eq_ignore_ascii_case(&name))
                 .map(|user| user.id.clone())
-                .ok_or_else(|| crate::error::Error::validation(format!("user @{name} not found")))
+                .ok_or_else(|| crate::error::Error::AccountNotFound {
+                    account: name.clone(),
+                })
         })
         .collect()
 }

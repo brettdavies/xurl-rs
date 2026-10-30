@@ -3,11 +3,8 @@
 
 use serde_json::json;
 
-use super::{
-    Gate, Run, destructive_dry_run_context, dry_run_or_validate, gate_destructive, make_client,
-    send_or_report, with_flags,
-};
-use crate::cli::failure::{CommandResult, Failure};
+use super::{Run, dry_run_or_validate, make_client, send_confirmed, send_or_report, with_flags};
+use crate::cli::failure::CommandResult;
 use crate::cli::{Commands, CommonFlags};
 use xdk::api::shortcuts;
 
@@ -129,34 +126,11 @@ async fn delete(
     force: bool,
     common: &CommonFlags,
 ) -> CommandResult<()> {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     let ctx = json!({"command": "delete", "post_id": post_id});
-    let client = make_client(cfg, auth)?;
-    let call = with_flags(client.delete_post(post_id), common, None);
-    if flags.dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        let dry_run = dry_run_or_validate(true, ctx, || shortcuts::validate_post_id(post_id))?;
-        send_or_report(out, stdout, dry_run, call).await?;
-        return Ok(());
-    }
-    match gate_destructive(
-        force,
-        flags.no_interactive,
-        flags.quiet,
-        &format!("Delete post {post_id}?"),
-    )? {
-        Gate::Proceed => {}
-        Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
-    }
-    let dry_run = dry_run_or_validate(false, ctx, || shortcuts::validate_post_id(post_id))?;
-    send_or_report(out, stdout, dry_run, call).await?;
-    Ok(())
+    let prompt = format!("Delete post {post_id}?");
+    let validate = || shortcuts::validate_post_id(post_id);
+    send_confirmed(run, ctx, &prompt, force, validate, common, |client| {
+        client.delete_post(post_id)
+    })
+    .await
 }

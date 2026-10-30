@@ -25,9 +25,10 @@ fn error_envelope(stderr: &str) -> serde_json::Value {
 
 async fn answer_lookup(server: &MockServer, username: &str, id: &str) {
     Mock::given(method("GET"))
-        .and(path(format!("/2/users/by/username/{username}")))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", username))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": id, "name": username, "username": username}
+            "data": [{"id": id, "name": username, "username": username}]
         })))
         .expect(1)
         .mount(server)
@@ -112,7 +113,7 @@ async fn start_refuses_a_group_outside_two_to_forty_nine_before_any_request() {
         assert_eq!(code, 0, "{} participants: {stderr}", participants.len());
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false);
-        assert_eq!(body["reason"], "invalid-participant-count");
+        assert_eq!(body["rule"], "invalid-participant-count");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
@@ -235,7 +236,7 @@ async fn ids_outside_the_spec_patterns_are_refused_before_any_request() {
         assert_eq!(code, 0, "{args:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{args:?}");
-        assert_eq!(body["reason"], reason, "{args:?}");
+        assert_eq!(body["rule"], reason, "{args:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
@@ -324,9 +325,10 @@ async fn dm_events_remove_asks_first_and_deletes_with_force() {
 async fn dm_block_and_unblock_put_the_named_users_id_in_the_path() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/alice"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "alice"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "11", "name": "alice", "username": "alice"}
+            "data": [{"id": "11", "name": "alice", "username": "alice"}]
         })))
         .expect(2)
         .mount(&server)

@@ -1729,15 +1729,14 @@ pub(crate) fn decode<T: serde::de::DeserializeOwned>(mut value: Value) -> crate:
             "response body is not a JSON object — expected JSON with a \"data\" field, got: {body}"
         )));
     }
-    // X API v2 returns errors-only 200 responses with no `data` field
-    // (e.g., {"errors": [{"title": "Not Found Error", ...}]}). Surface
-    // the raw JSON as a validation error — these are not HTTP errors
-    // (status was 200) but semantic failures from the API.
+    // X answers a request it refuses with a 200 that carries `errors` and
+    // no `data` (e.g., {"errors": [{"type": ".../resource-not-found", ...}]}).
+    // That is X's refusal, classified by its problem type like any other.
     if let Some(obj) = value.as_object()
         && !obj.contains_key("data")
         && obj.contains_key("errors")
     {
-        return Err(crate::error::Error::validation(value.to_string()));
+        return Err(crate::error::Error::api(200, value.to_string()));
     }
     super::vocabulary::normalize(&mut value);
     if is_page_with_no_results(&value) {
@@ -2385,9 +2384,9 @@ mod tests {
     }
 
     #[test]
-    fn errors_only_response_returns_validation_error() {
-        // X API v2 returns {"errors": [...]} with no "data" on 200 for not-found resources.
-        // deserialize_response should return Error::Validation with the raw JSON.
+    fn errors_only_response_is_x_refusing_the_request() {
+        // X answers a lookup of a resource that does not exist with a 200 that
+        // carries `errors` and no `data`; it reads by its problem type.
         let json = json!({
             "errors": [{
                 "detail": "Could not find tweet with id: [123].",
@@ -2399,7 +2398,9 @@ mod tests {
         let result = deserialize_response::<Post>(json);
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.is_validation(), "Expected Validation error, got: {err}");
+        assert!(err.is_api(), "Expected X's refusal, got: {err:?}");
+        assert_eq!(err.kind(), "not-found", "{err}");
+        assert_eq!(err.exit_code(), crate::error::EXIT_NOT_FOUND, "{err}");
         let msg = err.to_string();
         assert!(
             msg.contains("Not Found Error"),

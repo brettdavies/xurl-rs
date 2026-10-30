@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "chat", "remove", "1YqKDqWqdPLGV", "msg-1"]
 store: empty
 exit_code: 0
-stdout_len: 393
+stdout_len: 474
 stderr_len: 0
 --- stdout ---
 {
@@ -15,7 +15,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr broadcasts chat remove --help"
   },
-  "reason": "invalid-chat-message-id",
+  "reason": "validation",
+  "response_schema": "xr schema broadcasts chat remove",
+  "rule": "invalid-chat-message-id",
   "status": "dry_run",
   "would_succeed": false
 }

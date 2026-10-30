@@ -13,10 +13,14 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Http { message, .. } => format!("HTTP Error: {message}"),
         Error::Io { message, .. } => format!("IO Error: {message}"),
         Error::InvalidMethod(method) => format!("Invalid Method: Invalid HTTP method: {method}"),
+        Error::Validation { rule, value } => {
+            super::validation::sentence(rule, value.as_deref()).unwrap_or_else(|| error.to_string())
+        }
         Error::Api { .. }
-        | Error::Validation(_)
         | Error::ProcessingTimeout { .. }
-        | Error::AddressInUse { .. } => error.to_string(),
+        | Error::AddressInUse { .. }
+        | Error::MediaProcessingFailed { .. }
+        | Error::AccountNotFound { .. } => error.to_string(),
         Error::InvalidUrl { message, .. } => format!("Invalid URL: {message}"),
         Error::InvalidPathParam { name, value } => {
             format!(

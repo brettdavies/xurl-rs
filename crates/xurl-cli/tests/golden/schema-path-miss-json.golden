@@ -1,0 +1,28 @@
+args: ["--output", "json", "schema", "post", "--path", "public_metrics.nope"]
+store: empty
+exit_code: 2
+stdout_len: 0
+stderr_len: 598
+--- stdout ---
+
+--- stderr ---
+{
+  "exit_code": 2,
+  "known_properties": [
+    "bookmark_count",
+    "impression_count",
+    "like_count",
+    "quote_count",
+    "reply_count",
+    "repost_count"
+  ],
+  "message": "no property 'nope' in 'public_metrics.nope'; it has bookmark_count, impression_count, like_count, quote_count, reply_count, repost_count. Fill in <property> and run: xr schema post --path public_metrics.<property>",
+  "next_step": {
+    "action": "fix-input",
+    "template": "xr schema post --path public_metrics.<property>"
+  },
+  "path": "public_metrics.nope",
+  "reason": "invalid-args",
+  "status": "error"
+}
+

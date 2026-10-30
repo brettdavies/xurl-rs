@@ -11,7 +11,7 @@
 //! the runtime-emitted schema; regenerate via:
 //!
 //! ```text
-//! cargo run -p xurl-rs --bin xr -- schema envelope --output json > schema/output.schema.json
+//! cargo run -p xurl-rs --bin xr -- schema --envelope --output json > schema/output.schema.json
 //! ```
 //!
 //! Field shape mirrors the corpus pattern documented in
@@ -44,6 +44,10 @@ pub enum Envelope {
         would_succeed: bool,
         /// Exit code the verb would have returned on actual execution.
         exit_code: i32,
+        /// The `xr schema` invocation that describes the command's response,
+        /// on a command with a typed response. A raw request carries none.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        response_schema: Option<String>,
         /// Verb-specific context payload, flattened at the top level.
         #[serde(flatten)]
         payload: Value,
@@ -187,6 +191,18 @@ pub struct ErrorBody {
     /// Human-readable message. Omitted entirely (not `null`) when absent.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// The input rule a `validation` refusal broke, as the validator's
+    /// kebab-case code (`invalid-username`, `no-list-changes`, ...);
+    /// `message` is the sentence for it. Present under `validation`, and on
+    /// a dry run that refuses its input.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rule: Option<String>,
+    /// The offending input, as it was given, when the broken `rule` names
+    /// one: an app name, a redirect URI, a header's position among the `-H`
+    /// headers (counted from 1), the seconds a checkpoint runs ahead. Always
+    /// a string; a number goes in as its decimal digits.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 
     /// What the caller should do next, when a recovery step exists.
     ///
@@ -202,16 +218,20 @@ pub struct ErrorBody {
     /// recovery is not an `xr` invocation carries neither, and `docs` when
     /// a page covers it: `enroll-app`, `wait-and-retry`, `retry`,
     /// `fix-input`, `report-issue`, and `inspect-store` when a store
-    /// command is what failed. Two `fix-input` steps carry an invocation:
-    /// `listen` again on a free port, under `address-in-use`, and the
-    /// invocation with `-u`, `--auth`, or `-t` moved after the command word
-    /// it came before, under `invalid-args`.
+    /// command is what failed. Three `fix-input` steps carry an invocation:
+    /// `listen` again on a free port, under `address-in-use`, and two under
+    /// `invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved
+    /// after the command word it came before, and the `xr schema`
+    /// invocation that works for an old name or a scope word. One carries a
+    /// template: the `xr schema --path` invocation with the segment that
+    /// named nothing left as `<property>`, under `invalid-args`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// The offending value, echoed verbatim.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
-    /// The nearest real command, when one is within the threshold.
+    /// The nearest real command, when one is within the threshold, or the
+    /// command that replaced a retired word.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suggestion: Option<String>,
 
@@ -244,9 +264,15 @@ pub struct ErrorBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub other_apps_with_creds: Option<Vec<String>>,
 
-    /// Media id whose processing a wait gave up on; the upload is intact.
+    /// Media id whose processing a wait gave up on, under
+    /// `processing-timeout`, where the upload is intact; or the one X
+    /// refused after processing it, under `invalid-request`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub media_id: Option<String>,
+
+    /// The handle a lookup found no account for, under `not-found`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account: Option<String>,
 
     /// Seconds until the rate limit resets, zero once it has; present on a
     /// `rate-limited` error whose own response named the reset.
@@ -283,6 +309,12 @@ pub struct ErrorBody {
     /// Schema name a `validate` invocation named.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub schema: Option<String>,
+    /// Dot path an `xr schema --path` invocation named.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Property names at the last node an `xr schema --path` resolved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub known_properties: Option<Vec<String>>,
     /// Schema names `validate` accepts.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub known_schemas: Option<Vec<String>>,

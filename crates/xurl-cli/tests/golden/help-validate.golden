@@ -1,7 +1,7 @@
 args: ["validate", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8559
+stdout_len: 8496
 stderr_len: 0
 --- stdout ---
 Validate a JSON document against a bundled response schema.
@@ -16,8 +16,12 @@ Arguments:
 
 Options:
       --schema <NAME>
-          Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `broadcast-ended`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection
+          Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-sent`, `chat-muted`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-deleted`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection
 
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -123,16 +127,16 @@ Options:
           [possible values: true, false]
 
       --limit <LIMIT>
-          Global result-set limit, clamped to 1..=100.
+          Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it
           
-          Applies to `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms`; other commands ignore it. The per-command `-n/--max-results` flag takes precedence when both are set.
+          It is clamped to the range that command's `-n` takes, and `-n` wins when both are given. A raw request carries its page size in its own query string.
           
           [env: XURL_LIMIT=]
 
       --cursor <TOKEN>
-          Pagination cursor / `pagination_token` for list endpoints.
+          The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it
           
-          The X API uses cursor-based pagination: each list response carries a `meta.next_token` field, and the next page is fetched by re-running the same command with `--cursor <token>` (or `XURL_CURSOR=<token>`). Threads through to the `pagination_token` query parameter on every `search`, `timeline`, `mentions`, `bookmarks`, `likes`, `following`, `followers`, `muted`, `blocked`, and `dms` invocation; other commands ignore it.
+          A command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.
           
           [env: XURL_CURSOR=]
 
@@ -149,9 +153,6 @@ Options:
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
           [env: XURL_AFTER=]
-
-  -h, --help
-          Print help (see a summary with '-h')
 
 Examples:
   Read JSON from stdin (no file argument):

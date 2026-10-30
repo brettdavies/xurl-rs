@@ -132,7 +132,7 @@ async fn inputs_outside_the_spec_bounds_are_refused_before_any_request() {
         assert_eq!(code, 0, "{args:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{args:?}");
-        assert_eq!(body["reason"], reason, "{args:?}");
+        assert_eq!(body["rule"], reason, "{args:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
@@ -168,8 +168,8 @@ async fn list_of_reads_the_lists_another_account_owns() {
     answer(
         &server,
         "GET",
-        "/2/users/by/username/jack",
-        serde_json::json!({"id": "12", "name": "jack", "username": "jack"}),
+        "/2/users/by",
+        serde_json::json!([{"id": "12", "name": "jack", "username": "jack"}]),
     )
     .await;
     answer(
@@ -192,8 +192,8 @@ async fn members_add_resolves_the_handle_and_sends_its_id() {
     answer(
         &server,
         "GET",
-        "/2/users/by/username/jack",
-        serde_json::json!({"id": "12", "name": "jack", "username": "jack"}),
+        "/2/users/by",
+        serde_json::json!([{"id": "12", "name": "jack", "username": "jack"}]),
     )
     .await;
     Mock::given(method("POST"))
@@ -220,8 +220,8 @@ async fn members_remove_puts_both_ids_in_the_path() {
     answer(
         &server,
         "GET",
-        "/2/users/by/username/jack",
-        serde_json::json!({"id": "12", "name": "jack", "username": "jack"}),
+        "/2/users/by",
+        serde_json::json!([{"id": "12", "name": "jack", "username": "jack"}]),
     )
     .await;
     answer(
