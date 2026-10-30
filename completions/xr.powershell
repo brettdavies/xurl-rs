@@ -1234,7 +1234,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;following' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
-            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username to list following for (default: you)')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'The account to list following for (default: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -1267,7 +1267,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;followers' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
-            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username to list followers for (default: you)')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'The account to list followers for (default: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -2002,7 +2002,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;lists;list' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
-            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username whose own lists to read (default: you)')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'The account whose own lists to read (default: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -2035,7 +2035,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;lists;followed' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
-            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username whose followed lists to read (default: you)')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'The account whose followed lists to read (default: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -2068,7 +2068,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;lists;memberships' {
             [CompletionResult]::new('-n', '-n', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
             [CompletionResult]::new('--max-results', '--max-results', [CompletionResultType]::ParameterName, 'Number of results (1-100). Overrides global `--limit` when set')
-            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'Username whose list memberships to read (default: you)')
+            [CompletionResult]::new('--of', '--of', [CompletionResultType]::ParameterName, 'The account whose list memberships to read (default: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for')
             [CompletionResult]::new('-u', '-u', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
             [CompletionResult]::new('--username', '--username', [CompletionResultType]::ParameterName, '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`')
@@ -4855,7 +4855,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--title', '--title', [CompletionResultType]::ParameterName, 'The title invitees see (100 characters at most)')
             [CompletionResult]::new('--description', '--description', [CompletionResultType]::ParameterName, 'What the call is about (1000 characters at most)')
             [CompletionResult]::new('--duration', '--duration', [CompletionResultType]::ParameterName, 'How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30')
-            [CompletionResult]::new('--invite', '--invite', [CompletionResultType]::ParameterName, 'Numeric user ID of someone to invite; repeat for each person')
+            [CompletionResult]::new('--invite', '--invite', [CompletionResultType]::ParameterName, 'Someone to invite; repeat for each person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.')
             [CompletionResult]::new('--recurrence', '--recurrence', [CompletionResultType]::ParameterName, 'The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO')
             [CompletionResult]::new('--time-zone', '--time-zone', [CompletionResultType]::ParameterName, 'The IANA time zone the recurrence follows, such as America/Chicago')
             [CompletionResult]::new('--auth', '--auth', [CompletionResultType]::ParameterName, 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for')
@@ -4893,7 +4893,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--title', '--title', [CompletionResultType]::ParameterName, 'The title invitees see (100 characters at most)')
             [CompletionResult]::new('--description', '--description', [CompletionResultType]::ParameterName, 'What the call is about (1000 characters at most)')
             [CompletionResult]::new('--duration', '--duration', [CompletionResultType]::ParameterName, 'How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30')
-            [CompletionResult]::new('--invite', '--invite', [CompletionResultType]::ParameterName, 'Numeric user ID of someone to invite; repeat for each person')
+            [CompletionResult]::new('--invite', '--invite', [CompletionResultType]::ParameterName, 'Someone to invite; repeat for each person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.')
             [CompletionResult]::new('--recurrence', '--recurrence', [CompletionResultType]::ParameterName, 'The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO')
             [CompletionResult]::new('--time-zone', '--time-zone', [CompletionResultType]::ParameterName, 'The IANA time zone the recurrence follows, such as America/Chicago')
             [CompletionResult]::new('--scope', '--scope', [CompletionResultType]::ParameterName, 'Which occurrences, counted from `--occurrence`: X assumes `all` without it and `this` with it')

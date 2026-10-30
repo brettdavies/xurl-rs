@@ -1,19 +1,19 @@
 args: ["lists", "members", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7125
+stdout_len: 7332
 stderr_len: 0
 --- stdout ---
 Take an account off a list you own
 
-Usage: xr lists members remove [OPTIONS] <LIST_ID> <USERNAME>
+Usage: xr lists members remove [OPTIONS] <LIST_ID> <ACCOUNT>
 
 Arguments:
   <LIST_ID>
           List ID, as `xr lists list` prints it
 
-  <USERNAME>
-          Username of the account
+  <ACCOUNT>
+          The account to remove from the list. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
       --auth <AUTH_TYPE>

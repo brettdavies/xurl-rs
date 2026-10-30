@@ -5,7 +5,7 @@
 mod common;
 
 use tempfile::TempDir;
-use wiremock::matchers::{body_json, method, path};
+use wiremock::matchers::{body_json, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::{oauth1_store, run_in_process as run};
@@ -41,9 +41,10 @@ async fn moderators_list_prints_the_users_as_json() {
 async fn moderators_add_resolves_the_handle_and_posts_the_user_id() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/helper"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "helper"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "2244994945", "name": "Helper", "username": "helper"}
+            "data": [{"id": "2244994945", "name": "Helper", "username": "helper"}]
         })))
         .expect(1)
         .mount(&server)
@@ -83,9 +84,10 @@ async fn moderators_add_resolves_the_handle_and_posts_the_user_id() {
 async fn moderators_remove_deletes_by_the_resolved_user_id() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/helper"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "helper"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "2244994945", "name": "Helper", "username": "helper"}
+            "data": [{"id": "2244994945", "name": "Helper", "username": "helper"}]
         })))
         .expect(1)
         .mount(&server)

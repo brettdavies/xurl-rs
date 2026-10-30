@@ -25,9 +25,10 @@ fn error_envelope(stderr: &str) -> serde_json::Value {
 
 async fn answer_lookup(server: &MockServer, username: &str, id: &str) {
     Mock::given(method("GET"))
-        .and(path(format!("/2/users/by/username/{username}")))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", username))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": id, "name": username, "username": username}
+            "data": [{"id": id, "name": username, "username": username}]
         })))
         .expect(1)
         .mount(server)
@@ -324,9 +325,10 @@ async fn dm_events_remove_asks_first_and_deletes_with_force() {
 async fn dm_block_and_unblock_put_the_named_users_id_in_the_path() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/alice"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "alice"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "11", "name": "alice", "username": "alice"}
+            "data": [{"id": "11", "name": "alice", "username": "alice"}]
         })))
         .expect(2)
         .mount(&server)

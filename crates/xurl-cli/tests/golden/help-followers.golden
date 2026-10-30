@@ -1,7 +1,7 @@
 args: ["followers", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7166
+stdout_len: 7365
 stderr_len: 0
 --- stdout ---
 List your followers
@@ -12,8 +12,8 @@ Options:
   -n, --max-results <MAX_RESULTS>
           Number of results (1-100). Overrides global `--limit` when set
 
-      --of <USERNAME>
-          Username to list followers for (default: you)
+      --of <ACCOUNT>
+          The account to list followers for (default: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
       --auth <AUTH_TYPE>
           Authentication type (this command accepts: oauth2, oauth1; with --of: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for

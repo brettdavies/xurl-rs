@@ -7,7 +7,7 @@ use serde_json::json;
 
 use super::secret::{self, SecretArg, SecretError};
 use super::{
-    AuthCtx, Gate, RedirectUriGetResponse, RedirectUriSetResponse, build_app_status_entries,
+    AuthCtx, RedirectUriGetResponse, RedirectUriSetResponse, build_app_status_entries,
     destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
 };
 use crate::cli::failure::{CommandResult, Failure};
@@ -158,15 +158,9 @@ fn remove(ctx: AuthCtx<'_>, name: &str, force: bool) -> CommandResult<()> {
         out.print_dry_run(stdout, true, 0, &ctx);
         return Ok(());
     }
-    match gate_destructive(
-        force,
-        flags.no_interactive,
-        flags.quiet,
-        &format!("Remove app {name:?}?"),
-    )? {
-        Gate::Proceed => {}
-        Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
+    let prompt = format!("Remove app {name:?}?");
+    if !gate_destructive(force, flags.no_interactive, flags.quiet, &prompt, &ctx)? {
+        return Ok(());
     }
     auth.token_store.remove_app(name)?;
     out.print_ok_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));

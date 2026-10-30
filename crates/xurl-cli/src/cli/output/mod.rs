@@ -17,6 +17,7 @@ mod dry_run;
 mod format;
 mod message;
 mod validation;
+pub(crate) use validation::account_rule;
 
 pub(crate) use diagnostics::Diagnostics;
 pub(crate) use validation::user_search_rule;

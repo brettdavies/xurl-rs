@@ -1,16 +1,16 @@
 args: ["follow", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6992
+stdout_len: 7190
 stderr_len: 0
 --- stdout ---
 Follow a user
 
-Usage: xr follow [OPTIONS] <USERNAME>
+Usage: xr follow [OPTIONS] <ACCOUNT>
 
 Arguments:
-  <USERNAME>
-          Username to follow
+  <ACCOUNT>
+          The account to follow. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
       --auth <AUTH_TYPE>

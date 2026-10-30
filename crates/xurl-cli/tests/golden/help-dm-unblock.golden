@@ -1,16 +1,16 @@
 args: ["dm-unblock", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6998
+stdout_len: 7196
 stderr_len: 0
 --- stdout ---
 Let a user send you direct messages again
 
-Usage: xr dm-unblock [OPTIONS] <USERNAME>
+Usage: xr dm-unblock [OPTIONS] <ACCOUNT>
 
 Arguments:
-  <USERNAME>
-          Username to unblock
+  <ACCOUNT>
+          The account to unblock. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
       --auth <AUTH_TYPE>

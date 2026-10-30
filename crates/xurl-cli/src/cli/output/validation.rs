@@ -37,10 +37,7 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
              separately."
                 .to_string()
         }
-        "invalid-username" => {
-            "A username is 1 to 15 letters, digits, or underscores, with or without a leading @."
-                .to_string()
-        }
+        "invalid-username" => username_rule(),
         "too-many-ids" => format!("A lookup takes at most {LOOKUP_IDS_MAX} ids."),
         "invalid-time-window" => "A time is RFC 3339 with seconds and a zone, such as \
              2026-11-02T15:00:00Z, and the start comes before the end."
@@ -54,7 +51,7 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         "invalid-space-id" => "A Space id is 1 to 13 letters or digits.".to_string(),
         "invalid-rule-id" => "A filtered-stream rule id is 1 to 19 digits.".to_string(),
         "invalid-webhook-id" => "A webhook id is 1 to 19 digits.".to_string(),
-        "invalid-user-id" => "A user id is 1 to 19 digits; a handle is not one.".to_string(),
+        "invalid-user-id" => format!("{}; a handle is not one.", user_id_rule()),
         "invalid-folder-id" => "A bookmark folder id is 1 to 19 digits.".to_string(),
         "invalid-news-id" => "A news story id is 1 to 19 digits.".to_string(),
         "invalid-community-id" => "A community id is 1 to 19 digits.".to_string(),
@@ -143,6 +140,29 @@ pub(crate) fn sentence(code: &str) -> Option<String> {
         _ => return None,
     };
     Some(text)
+}
+
+/// The rule `validate_username` enforces, as text output prints it for
+/// `invalid-username`.
+fn username_rule() -> String {
+    "A username is 1 to 15 letters, digits, or underscores, with or without a leading @."
+        .to_string()
+}
+
+/// The rule a numeric user id follows; text output prints it, with the note
+/// that a handle is not one, for `invalid-user-id`.
+fn user_id_rule() -> String {
+    "A user id is 1 to 19 digits".to_string()
+}
+
+/// The rules for an account given as a username or a user id, as the help
+/// of every argument that takes one states them.
+pub(crate) fn account_rule() -> String {
+    format!(
+        "{} {}. An account made only of digits is a user id, so an all-digit username takes its @.",
+        username_rule(),
+        user_id_rule()
+    )
 }
 
 #[cfg(test)]

@@ -168,8 +168,8 @@ async fn list_of_reads_the_lists_another_account_owns() {
     answer(
         &server,
         "GET",
-        "/2/users/by/username/jack",
-        serde_json::json!({"id": "12", "name": "jack", "username": "jack"}),
+        "/2/users/by",
+        serde_json::json!([{"id": "12", "name": "jack", "username": "jack"}]),
     )
     .await;
     answer(
@@ -192,8 +192,8 @@ async fn members_add_resolves_the_handle_and_sends_its_id() {
     answer(
         &server,
         "GET",
-        "/2/users/by/username/jack",
-        serde_json::json!({"id": "12", "name": "jack", "username": "jack"}),
+        "/2/users/by",
+        serde_json::json!([{"id": "12", "name": "jack", "username": "jack"}]),
     )
     .await;
     Mock::given(method("POST"))
@@ -220,8 +220,8 @@ async fn members_remove_puts_both_ids_in_the_path() {
     answer(
         &server,
         "GET",
-        "/2/users/by/username/jack",
-        serde_json::json!({"id": "12", "name": "jack", "username": "jack"}),
+        "/2/users/by",
+        serde_json::json!([{"id": "12", "name": "jack", "username": "jack"}]),
     )
     .await;
     answer(

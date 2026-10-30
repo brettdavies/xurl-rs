@@ -1,16 +1,16 @@
 args: ["conversations", "with", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7132
+stdout_len: 7315
 stderr_len: 0
 --- stdout ---
 List the messages between you and one person
 
-Usage: xr conversations with [OPTIONS] <USERNAME>
+Usage: xr conversations with [OPTIONS] <ACCOUNT>
 
 Arguments:
-  <USERNAME>
-          Username of the other person
+  <ACCOUNT>
+          The other person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
   -n, --max-results <MAX_RESULTS>

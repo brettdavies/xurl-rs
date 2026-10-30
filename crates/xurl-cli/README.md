@@ -262,6 +262,10 @@ xr unblock @user                               # Unblock
 xr blocked                                     # Users you have blocked
 ```
 
+Every command that names one account, here and in the sections below, takes a handle (`@jack` or `jack`) or a numeric
+user ID. An argument made only of digits is read as an ID and sent as it is, so an all-digit handle takes its `@`
+(`xr follow @1234`). A handle is looked up in one request before the command's own.
+
 ### Direct Messages
 
 ```bash
@@ -407,9 +411,10 @@ xr calls get 8a6f1c2e                              # Who is in a call, and wheth
 ```
 
 Times are RFC 3339 with a zone, such as `2026-11-02T16:00:00Z`, and one that is not is refused before any request.
-`--invite` takes a numeric user ID (`xr user @handle` prints one) and repeats for each person, at most 25 on a new
-call; on `update` it replaces the whole invite list. Invitees get an email about a new, changed, or cancelled call
-unless `--no-notify` is given. A recurring call takes `--recurrence` (an RFC 5545 RRULE such as `FREQ=WEEKLY;BYDAY=MO`)
+`--invite` takes a handle or a numeric user ID and repeats for each person, at most 25 on a new call; on `update` it
+replaces the whole invite list. Every handle is looked up in one request before the call is sent. Invitees get an
+email about a new, changed, or cancelled call unless `--no-notify` is given. A recurring call takes `--recurrence` (an
+RFC 5545 RRULE such as `FREQ=WEEKLY;BYDAY=MO`)
 and `--time-zone`. To change, cancel, or answer some occurrences of it, name one with `--occurrence`, its
 `occurrence_start_time` as `list` prints it, and `--scope this` or `--scope this-and-following`; with neither flag, the
 request applies to every occurrence. `update` with no field to change is refused with `no-call-changes`.

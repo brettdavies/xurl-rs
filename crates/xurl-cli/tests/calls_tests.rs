@@ -442,3 +442,202 @@ async fn scheduled_rsvp_posts_the_answer() {
     assert_eq!(code, 0, "stderr: {stderr}");
     assert_eq!(json_out(&stdout)["data"]["response"], "declined");
 }
+
+/// The lookup that answers `jack`: one account, id 12.
+async fn answer_jack(server: &MockServer) {
+    Mock::given(method("GET"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "jack"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [{"id": "12", "name": "Jack", "username": "jack"}]
+        })))
+        .expect(1)
+        .mount(server)
+        .await;
+}
+
+#[tokio::test]
+async fn scheduled_add_looks_each_handle_invitee_up_and_keeps_the_rest_of_the_call() {
+    let server = MockServer::start().await;
+    answer_jack(&server).await;
+    Mock::given(method("POST"))
+        .and(path("/2/calls/scheduled"))
+        .and(body_json(serde_json::json!({
+            "start_time": START,
+            "invitee_ids": ["12", "2244994945"],
+            "notify_invitees": false
+        })))
+        .respond_with(
+            ResponseTemplate::new(201).set_body_json(serde_json::json!({"data": scheduled_call()})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "calls",
+            "scheduled",
+            "add",
+            "--start",
+            START,
+            "--invite",
+            "@jack",
+            "--invite",
+            "2244994945",
+            "--no-notify",
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+#[tokio::test]
+async fn scheduled_update_replaces_the_invite_list_with_the_handles_ids() {
+    let server = MockServer::start().await;
+    answer_jack(&server).await;
+    Mock::given(method("PUT"))
+        .and(path(format!("/2/calls/scheduled/{SCHEDULED_ID}")))
+        .and(body_json(serde_json::json!({"invitee_ids": ["12"]})))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"data": {"updated": true}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "calls",
+            "scheduled",
+            "update",
+            SCHEDULED_ID,
+            "--invite",
+            "jack",
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+}
+
+#[tokio::test]
+async fn a_handle_invitee_x_does_not_know_fails_before_the_call_is_scheduled() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/by"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "data": [{"id": "12", "name": "Jack", "username": "jack"}],
+            "errors": [{"value": "nobody_here", "detail": "Could not find user with usernames: [nobody_here].", "title": "Not Found Error", "resource_type": "user", "parameter": "usernames", "resource_id": "nobody_here", "type": "https://api.x.com/2/problems/resource-not-found"}]
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--output",
+            "json",
+            "calls",
+            "scheduled",
+            "add",
+            "--start",
+            START,
+            "--invite",
+            "@jack",
+            "--invite",
+            "@nobody_here",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert!(stderr.contains("nobody_here"), "{stderr}");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 1);
+}
+
+#[tokio::test]
+async fn a_handle_invitee_under_dry_run_is_named_as_given_and_nothing_is_sent() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "calls",
+            "scheduled",
+            "add",
+            "--start",
+            START,
+            "--invite",
+            "@jack",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let answer = json_out(&stdout);
+    assert_eq!(answer["would_succeed"], true, "{answer}");
+    assert_eq!(
+        answer["invitee_ids"],
+        serde_json::json!(["@jack"]),
+        "{answer}"
+    );
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn invitees_outside_the_spec_are_refused_before_any_request() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let mut too_many: Vec<String> = (1..=13).map(|n| format!("@user{n}")).collect();
+    too_many.extend((1..=13).map(|n| n.to_string()));
+
+    for (invitees, reason) in [
+        (vec!["bad-handle!".to_string()], "invalid-username"),
+        (vec!["12345678901234567890".to_string()], "invalid-user-id"),
+        (too_many, "too-many-invitees"),
+    ] {
+        let mut args = vec![
+            "--output",
+            "json",
+            "calls",
+            "scheduled",
+            "add",
+            "--start",
+            START,
+        ];
+        for invitee in &invitees {
+            args.extend(["--invite", invitee.as_str()]);
+        }
+        let (code, _stdout, stderr) = run(&store, &server.uri(), &args).await;
+
+        assert_eq!(code, 1, "{reason}: {stderr}");
+        assert_eq!(error_envelope(&stderr)["message"], reason, "{stderr}");
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}

@@ -1,19 +1,19 @@
 args: ["broadcasts", "chat", "mute", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7374
+stdout_len: 7572
 stderr_len: 0
 --- stdout ---
 Mute someone in a broadcast's chat
 
-Usage: xr broadcasts chat mute [OPTIONS] <BROADCAST_ID> <USERNAME>
+Usage: xr broadcasts chat mute [OPTIONS] <BROADCAST_ID> <ACCOUNT>
 
 Arguments:
   <BROADCAST_ID>
           Broadcast ID, as `xr broadcasts list` prints it
 
-  <USERNAME>
-          Username to mute
+  <ACCOUNT>
+          The account to mute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
 Options:
       --until <TIME>

@@ -442,7 +442,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'*::accounts -- Handles (@jack or jack) or numeric user ids, 1 to 100; not both:_default' \
+'*::accounts -- The accounts to look up, 1 to 100\: all usernames or all user ids. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (user-posts)
@@ -484,7 +484,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username, with or without the leading @:_default' \
+':target_username -- The account whose posts to read. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (posts)
@@ -1497,7 +1497,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to follow:_default' \
+':target_username -- The account to follow. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (unfollow)
@@ -1537,14 +1537,14 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unfollow:_default' \
+':target_username -- The account to unfollow. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (following)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username to list following for (default\: you)]:USERNAME:_default' \
+'--of=[The account to list following for (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -1586,7 +1586,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username to list followers for (default\: you)]:USERNAME:_default' \
+'--of=[The account to list followers for (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -1661,7 +1661,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to mute:_default' \
+':target_username -- The account to mute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (unmute)
@@ -1701,7 +1701,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unmute:_default' \
+':target_username -- The account to unmute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (muted)
@@ -1782,7 +1782,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to block:_default' \
+':target_username -- The account to block. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (unblock)
@@ -1822,7 +1822,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unblock:_default' \
+':target_username -- The account to unblock. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (blocked)
@@ -2017,7 +2017,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to DM:_default' \
+':target_username -- The account to message. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 ':text -- Message text:_default' \
 && ret=0
 ;;
@@ -2101,7 +2101,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'*::participants -- The people to start it with besides you, 2 to 49\: each a handle, or a numeric user id:_default' \
+'*::participants -- The people to start it with besides you, 2 to 49. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (send)
@@ -2226,7 +2226,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username of the other person:_default' \
+':target_username -- The other person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)
@@ -2461,7 +2461,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to block from sending you direct messages:_default' \
+':target_username -- The account to block from sending you direct messages. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (dm-unblock)
@@ -2501,7 +2501,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to unblock:_default' \
+':target_username -- The account to unblock. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (dms)
@@ -2591,7 +2591,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username whose own lists to read (default\: you)]:USERNAME:_default' \
+'--of=[The account whose own lists to read (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -2633,7 +2633,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username whose followed lists to read (default\: you)]:USERNAME:_default' \
+'--of=[The account whose followed lists to read (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -2675,7 +2675,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--of=[Username whose list memberships to read (default\: you)]:USERNAME:_default' \
+'--of=[The account whose list memberships to read (default\: you). A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1; with --of\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -2998,7 +2998,7 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':list_id -- List ID, as `xr lists list` prints it:_default' \
-':target_username -- Username of the account:_default' \
+':target_username -- The account to add to the list. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (remove)
@@ -3039,7 +3039,7 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':list_id -- List ID, as `xr lists list` prints it:_default' \
-':target_username -- Username of the account:_default' \
+':target_username -- The account to remove from the list. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)
@@ -3948,7 +3948,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-'*::accounts -- Handles (@jack or jack) or numeric user ids, 1 to 100, in any mix:_default' \
+'*::accounts -- The accounts whose Spaces to read, 1 to 100, in any mix. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (posts)
@@ -5617,7 +5617,7 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
-':target_username -- Username to mute:_default' \
+':target_username -- The account to mute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (unmute)
@@ -5658,7 +5658,7 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
-':target_username -- Username to unmute:_default' \
+':target_username -- The account to unmute. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)
@@ -5823,7 +5823,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to add:_default' \
+':target_username -- The account to add. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (remove)
@@ -5863,7 +5863,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':target_username -- Username to remove:_default' \
+':target_username -- The account to remove. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)
@@ -6571,7 +6571,7 @@ _arguments "${_arguments_options[@]}" : \
 '--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
 '--description=[What the call is about (1000 characters at most)]:DESCRIPTION:_default' \
 '--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
-'*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
+'*--invite=[Someone to invite; repeat for each person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
 '--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
@@ -6618,7 +6618,7 @@ _arguments "${_arguments_options[@]}" : \
 '--title=[The title invitees see (100 characters at most)]:TITLE:_default' \
 '--description=[What the call is about (1000 characters at most)]:DESCRIPTION:_default' \
 '--duration=[How long the call lasts, in minutes (at most 44640, 31 days); X assumes 30]:MINUTES:_default' \
-'*--invite=[Numeric user ID of someone to invite; repeat for each person]:USER_ID:_default' \
+'*--invite=[Someone to invite; repeat for each person. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.]:ACCOUNT:_default' \
 '--recurrence=[The RFC 5545 RRULE to repeat the call by, such as FREQ=WEEKLY;BYDAY=MO]:RRULE:_default' \
 '--time-zone=[The IANA time zone the recurrence follows, such as America/Chicago]:ZONE:_default' \
 '--scope=[Which occurrences, counted from \`--occurrence\`\: X assumes \`all\` without it and \`this\` with it]:SCOPE:((all\:"Every occurrence"
@@ -7315,7 +7315,7 @@ never\:"Never emit ANSI color escapes"))' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
 ':webhook_id -- Webhook ID, as `xr webhooks list` prints it:_default' \
-':user_id -- Numeric user ID of the subscribed account, as `subscriptions list` prints it:_default' \
+':account -- The subscribed account, by username or by the user id `subscriptions list` prints. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.:_default' \
 && ret=0
 ;;
 (help)

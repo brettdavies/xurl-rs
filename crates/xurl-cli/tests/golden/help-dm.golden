@@ -1,16 +1,16 @@
 args: ["dm", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7043
+stdout_len: 7246
 stderr_len: 0
 --- stdout ---
 Send a direct message
 
-Usage: xr dm [OPTIONS] <USERNAME> <TEXT>
+Usage: xr dm [OPTIONS] <ACCOUNT> <TEXT>
 
 Arguments:
-  <USERNAME>
-          Username to DM
+  <ACCOUNT>
+          The account to message. A username is 1 to 15 letters, digits, or underscores, with or without a leading @. A user id is 1 to 19 digits. An account made only of digits is a user id, so an all-digit username takes its @.
 
   <TEXT>
           Message text

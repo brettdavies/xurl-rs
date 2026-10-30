@@ -104,17 +104,6 @@ fn confirm_destructive(prompt: &str) -> Result<bool> {
     Ok(matches!(answer.as_str(), "y" | "yes"))
 }
 
-/// Outcome of the force/confirmation gate for a destructive op.
-pub(super) enum Gate {
-    /// User confirmed (or supplied `--force`); proceed with the op.
-    Proceed,
-    /// User declined / unable to prompt: emit nothing further, return Ok(()).
-    Declined,
-    /// `--no-interactive` set without `--force`: caller must emit a
-    /// `confirmation-required` envelope on stderr and return an error code.
-    ConfirmationRequired,
-}
-
 /// The dry-run context of a destructive command: `ctx`, with
 /// `confirmation_required` set when the invocation carries no `--force`.
 ///
@@ -131,34 +120,47 @@ pub(super) fn destructive_dry_run_context(
     ctx
 }
 
-/// Gates a destructive op on `--force` / TTY confirmation.
+/// Gates a destructive op on `--force` / TTY confirmation: `true` to go
+/// ahead, `false` when the person declined, and the `confirmation-required`
+/// refusal, carrying `ctx`, when nobody can be asked.
 ///
 /// Callers answer `--dry-run` before they reach this gate.
 ///
 /// Rules:
 /// - `--force` → proceed.
-/// - `--no-interactive` without `--force` → ConfirmationRequired.
+/// - `--no-interactive` without `--force` → confirmation required.
 /// - Interactive terminal without `--force` → dialoguer confirm.
 pub(super) fn gate_destructive(
     force: bool,
     no_interactive: bool,
     quiet: bool,
     prompt: &str,
-) -> Result<Gate> {
+    ctx: &serde_json::Value,
+) -> CommandResult<bool> {
     if force {
-        return Ok(Gate::Proceed);
+        return Ok(true);
     }
-    if no_interactive {
-        return Ok(Gate::ConfirmationRequired);
+    if no_interactive || !is_interactive(no_interactive, quiet) {
+        return Err(Failure::Unconfirmed(ctx.clone()));
     }
-    if !is_interactive(no_interactive, quiet) {
-        return Ok(Gate::ConfirmationRequired);
+    Ok(confirm_destructive(prompt)?)
+}
+
+/// The context a destructive command goes on with: under `--dry-run`, `ctx`
+/// marked with whether the real run would ask; otherwise `ctx` once
+/// [`gate_destructive`] lets the run go ahead, or `None` when the person
+/// declined.
+fn confirmed_context(
+    flags: &GlobalFlags,
+    ctx: serde_json::Value,
+    force: bool,
+    prompt: &str,
+) -> CommandResult<Option<serde_json::Value>> {
+    if flags.dry_run {
+        return Ok(Some(destructive_dry_run_context(ctx, force)));
     }
-    if confirm_destructive(prompt)? {
-        Ok(Gate::Proceed)
-    } else {
-        Ok(Gate::Declined)
-    }
+    let proceed = gate_destructive(force, flags.no_interactive, flags.quiet, prompt, &ctx)?;
+    Ok(proceed.then_some(ctx))
 }
 
 /// The id a dry run puts where the real run would have looked one up.
@@ -320,30 +322,10 @@ async fn send_confirmed<T>(
 where
     T: Serialize + DeserializeOwned,
 {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
-    let client = make_client(cfg, auth)?;
-    let call = with_flags(build(&client), common, None);
-    if flags.dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        let dry_run = dry_run_or_validate(true, ctx, validator)?;
-        send_or_report(out, stdout, dry_run, call).await?;
+    let Some(ctx) = confirmed_context(&run.flags, ctx, force, prompt)? else {
         return Ok(());
-    }
-    match gate_destructive(force, flags.no_interactive, flags.quiet, prompt)? {
-        Gate::Proceed => {}
-        Gate::Declined => return Ok(()),
-        Gate::ConfirmationRequired => return Err(Failure::Unconfirmed(ctx)),
-    }
-    let dry_run = dry_run_or_validate(false, ctx, validator)?;
-    send_or_report(out, stdout, dry_run, call).await?;
-    Ok(())
+    };
+    send_validated(run, ctx, validator, common, build).await
 }
 
 /// Converts a typed response to Value and prints it.
@@ -807,24 +789,32 @@ where
     if let Some(target) = of {
         ctx["of"] = json!(target);
     }
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+        of.map_or(Ok(()), validate_account)?;
+        validator()
+    })?;
     let n = effective_limit(max_results, flags.global_limit);
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {
-        let owner = match of {
-            Some(target) => user_id_call(&client, target, common),
-            None => my_id_call(&client, common),
-        };
+        let mut credentials = Vec::new();
+        match of {
+            Some(target) => {
+                if let Some(lookup) = account_lookup_call(&client, target, common) {
+                    credentials.push(lookup.auth_preflight().await);
+                }
+            }
+            None => credentials.push(my_id_call(&client, common).auth_preflight().await),
+        }
         let list = with_flags(
             shortcut(&client, UNRESOLVED_ID, n),
             common,
             flags.cursor.as_deref(),
         );
-        let credentials = [owner.auth_preflight().await, list.auth_preflight().await];
+        credentials.push(list.auth_preflight().await);
         return dry_run.answer(out, stdout, credentials);
     }
     let user_id = match of {
-        Some(target) => resolve_user_id(&client, target, common).await?,
+        Some(target) => resolve_account_id(&client, target, common).await?,
         None => resolve_my_user_id(&client, common).await?,
     };
     let call = shortcut(&client, &user_id, n);
@@ -836,8 +826,8 @@ where
 }
 
 /// A verb that acts on another user from the caller's account: gate on the
-/// handle, resolve the caller's id and the target's, call one shortcut with
-/// both, and print the typed response.
+/// account, a handle or a numeric user id, resolve the caller's id and the
+/// target's, call one shortcut with both, and print the typed response.
 async fn act_from_me_on_user<T>(
     run: Run<'_>,
     command: &str,
@@ -857,23 +847,17 @@ where
         ..
     } = run;
     let ctx = json!({"command": command, "target_username": target_username});
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_target_username(target_username)
-    })?;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || validate_account(target_username))?;
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {
         let act = shortcut(&client, UNRESOLVED_ID, UNRESOLVED_ID);
-        let credentials = [
-            my_id_call(&client, common).auth_preflight().await,
-            user_id_call(&client, target_username, common)
-                .auth_preflight()
-                .await,
-            with_flags(act, common, None).auth_preflight().await,
-        ];
+        let target = [target_username.to_string()];
+        let mut credentials = vec![my_id_call(&client, common).auth_preflight().await];
+        credentials.extend(account_credentials(&client, &target, common, act).await);
         return dry_run.answer(out, stdout, credentials);
     }
     let my_id = resolve_my_user_id(&client, common).await?;
-    let target_id = resolve_user_id(&client, target_username, common).await?;
+    let target_id = resolve_account_id(&client, target_username, common).await?;
     let response = with_flags(shortcut(&client, &my_id, &target_id), common, None)
         .send()
         .await?;
@@ -882,7 +866,8 @@ where
 }
 
 /// A verb that acts on another user without naming the caller: gate on the
-/// handle, resolve it, call one shortcut, and print the typed response.
+/// account, a handle or a numeric user id, resolve it, call one shortcut,
+/// and print the typed response.
 async fn act_on_user<T>(
     run: Run<'_>,
     command: &str,
@@ -899,7 +884,7 @@ where
 
 /// [`act_on_user`] for a verb whose other inputs ride along, such as the
 /// list a member joins: `ctx` names them in a dry run's answer, and
-/// `validator` checks them, after the handle, before any request.
+/// `validator` checks them, after the account, before any request.
 async fn act_on_user_with<T>(
     run: Run<'_>,
     mut ctx: serde_json::Value,
@@ -911,36 +896,12 @@ async fn act_on_user_with<T>(
 where
     T: Serialize + DeserializeOwned + Default,
 {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     ctx["target_username"] = json!(target_username);
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_target_username(target_username)?;
+    let validate = || {
+        validate_account(target_username)?;
         validator()
-    })?;
-    let client = make_client(cfg, auth)?;
-    if let Some(dry_run) = dry_run {
-        let act = shortcut(&client, UNRESOLVED_ID);
-        let credentials = [
-            user_id_call(&client, target_username, common)
-                .auth_preflight()
-                .await,
-            with_flags(act, common, None).auth_preflight().await,
-        ];
-        return dry_run.answer(out, stdout, credentials);
-    }
-    let target_id = resolve_user_id(&client, target_username, common).await?;
-    let response = with_flags(shortcut(&client, &target_id), common, None)
-        .send()
-        .await?;
-    print_typed(out, stdout, &response)?;
-    Ok(())
+    };
+    send_to_account(run, ctx, validate, target_username, common, shortcut).await
 }
 
 /// A verb that acts on a post from the caller's account: gate on the post
@@ -1003,13 +964,11 @@ where
     Ok(())
 }
 
-/// The request that resolves a username to a user id.
-fn user_id_call(
-    client: &Client,
-    username: &str,
-    common: &CommonFlags,
-) -> Call<api::ApiResponse<api::User>> {
-    with_flags(client.lookup_user(username), common, None)
+/// Validates the one account a command names, a numeric user id or a
+/// handle, each in its spec form; an empty handle is `empty-username`.
+fn validate_account(account: &str) -> std::result::Result<(), &'static str> {
+    shortcuts::validate_target_username(account)?;
+    shortcuts::validate_accounts(&[account])
 }
 
 /// The request that resolves every handle among `accounts` at once, or
@@ -1041,13 +1000,116 @@ async fn resolve_account_ids(
     shortcuts::user_ids_for_accounts(accounts, &found)
 }
 
-/// Resolves a username to a user ID.
-async fn resolve_user_id(client: &Client, username: &str, common: &CommonFlags) -> Result<String> {
-    let resp = user_id_call(client, username, common).send().await?;
-    let id = &resp.data.id;
-    if id.is_empty() {
-        let clean = username.trim_start_matches('@');
-        return Err(Error::validation(format!("user @{clean} not found")));
+/// The request that looks `account` up when it is a handle, or `None` when
+/// it is a numeric user id.
+fn account_lookup_call(
+    client: &Client,
+    account: &str,
+    common: &CommonFlags,
+) -> Option<Call<api::ApiResponse<Vec<api::User>>>> {
+    handles_lookup_call(client, &[account.to_string()], common)
+}
+
+/// Resolves one account, a numeric user id or a handle, to a user id.
+async fn resolve_account_id(
+    client: &Client,
+    account: &str,
+    common: &CommonFlags,
+) -> Result<String> {
+    let ids = resolve_account_ids(client, &[account.to_string()], common).await?;
+    // One account, so the lookup answers with one id.
+    Ok(ids.concat())
+}
+
+/// The ids a dry run puts in a request that names `accounts`: a numeric id
+/// as it is, and [`UNRESOLVED_ID`] where the real run looks a handle up.
+fn stand_in_ids(accounts: &[String]) -> Vec<String> {
+    accounts
+        .iter()
+        .map(|account| {
+            if shortcuts::is_user_id_form(account) {
+                account.clone()
+            } else {
+                UNRESOLVED_ID.to_string()
+            }
+        })
+        .collect()
+}
+
+/// The credentials a dry run checks for `request`, which names `accounts`:
+/// the lookup's when a handle is among them, then the request's.
+async fn account_credentials<T>(
+    client: &Client,
+    accounts: &[String],
+    common: &CommonFlags,
+    request: Call<T>,
+) -> Vec<Credential>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let mut credentials = Vec::new();
+    if let Some(lookup) = handles_lookup_call(client, accounts, common) {
+        credentials.push(lookup.auth_preflight().await);
     }
-    Ok(id.clone())
+    credentials.push(with_flags(request, common, None).auth_preflight().await);
+    credentials
+}
+
+/// Sends the one request `build` makes for `accounts`, numeric ids and
+/// handles in any mix, once `validator` passes the inputs: every handle is
+/// resolved first, all in one lookup, and an id goes out as it is. Under
+/// `--dry-run` nothing is sent, and the answer names the credentials the
+/// lookup and the request would go out with.
+async fn send_to_accounts<T>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    accounts: &[String],
+    common: &CommonFlags,
+    build: impl FnOnce(&Client, &[String]) -> Call<T>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
+    let client = make_client(cfg, auth)?;
+    if let Some(dry_run) = dry_run {
+        let request = build(&client, &stand_in_ids(accounts));
+        let credentials = account_credentials(&client, accounts, common, request).await;
+        return dry_run.answer(out, stdout, credentials);
+    }
+    let ids = resolve_account_ids(&client, accounts, common).await?;
+    let response = with_flags(build(&client, &ids), common, None)
+        .send()
+        .await?;
+    print_typed(out, stdout, &response)?;
+    Ok(())
+}
+
+/// [`send_to_accounts`] for a request that names one account.
+async fn send_to_account<T>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    account: &str,
+    common: &CommonFlags,
+    build: impl FnOnce(&Client, &str) -> Call<T>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let accounts = [account.to_string()];
+    // One account, so the lookup answers with one id.
+    send_to_accounts(run, ctx, validator, &accounts, common, |client, ids| {
+        build(client, &ids.concat())
+    })
+    .await
 }

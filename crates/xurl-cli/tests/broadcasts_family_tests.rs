@@ -294,9 +294,10 @@ async fn chat_send_history_and_remove_reach_the_broadcasts_chat() {
 async fn chat_mute_resolves_the_user_and_sends_the_expiry_in_milliseconds() {
     let server = MockServer::start().await;
     Mock::given(method("GET"))
-        .and(path("/2/users/by/username/troll"))
+        .and(path("/2/users/by"))
+        .and(query_param("usernames", "troll"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "99", "name": "troll", "username": "troll"}
+            "data": [{"id": "99", "name": "troll", "username": "troll"}]
         })))
         .expect(2)
         .mount(&server)

@@ -3,10 +3,7 @@
 
 use serde_json::json;
 
-use super::{
-    Run, UNRESOLVED_ID, dry_run_or_validate, effective_limit, handles_lookup_call, list_paged,
-    make_client, print_typed, resolve_account_ids, send_validated, with_flags,
-};
+use super::{Run, effective_limit, list_paged, send_to_accounts, send_validated};
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, SpacesCommands};
 use xdk::api::{Client, shortcuts};
@@ -62,32 +59,10 @@ pub(super) async fn run(action: SpacesCommands, run: Run<'_>) -> CommandResult<(
 /// `xr spaces by-creator`: numeric ids go out as they are, and handles
 /// resolve to ids first, every one of them in one lookup.
 async fn by_creator(run: Run<'_>, accounts: &[String], common: &CommonFlags) -> CommandResult<()> {
-    let Run {
-        cfg,
-        auth,
-        flags,
-        out,
-        stdout,
-        ..
-    } = run;
     let ctx = json!({"command": "spaces-by-creator", "accounts": accounts});
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_accounts(accounts)
-    })?;
-    let client = make_client(cfg, auth)?;
-    if let Some(dry_run) = dry_run {
-        let mut credentials = Vec::new();
-        if let Some(lookup) = handles_lookup_call(&client, accounts, common) {
-            credentials.push(lookup.auth_preflight().await);
-        }
-        let spaces = client.get_spaces_by_creator(&[UNRESOLVED_ID]);
-        credentials.push(with_flags(spaces, common, None).auth_preflight().await);
-        return dry_run.answer(out, stdout, credentials);
-    }
-    let user_ids = resolve_account_ids(&client, accounts, common).await?;
-    let response = with_flags(client.get_spaces_by_creator(&user_ids), common, None)
-        .send()
-        .await?;
-    print_typed(out, stdout, &response)?;
-    Ok(())
+    let validate = || shortcuts::validate_accounts(accounts);
+    send_to_accounts(run, ctx, validate, accounts, common, |client, ids| {
+        client.get_spaces_by_creator(ids)
+    })
+    .await
 }
