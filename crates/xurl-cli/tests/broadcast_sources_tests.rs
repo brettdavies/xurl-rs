@@ -291,6 +291,6 @@ async fn sources_add_refuses_an_empty_name_before_any_request() {
     assert_eq!(code, 0, "stderr: {stderr}");
     let body = json_out(&stdout);
     assert_eq!(body["would_succeed"], false);
-    assert_eq!(body["reason"], "empty-source-name");
+    assert_eq!(body["rule"], "empty-source-name");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

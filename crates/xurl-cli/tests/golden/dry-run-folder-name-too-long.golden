@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "bookmark-folders", "add", "A name that runs past the limit"]
 store: empty
 exit_code: 0
-stdout_len: 350
+stdout_len: 374
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr bookmark-folders add --help"
   },
-  "reason": "folder-name-too-long",
+  "reason": "validation",
+  "rule": "folder-name-too-long",
   "status": "dry_run",
   "would_succeed": false
 }

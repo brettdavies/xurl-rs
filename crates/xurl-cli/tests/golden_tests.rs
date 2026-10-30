@@ -1523,21 +1523,22 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     }
 }
 
-/// The `reason` of the one JSON envelope a capture carries, on either stream.
+/// The string under `key` (`reason` or `rule`) of the one JSON envelope a
+/// capture carries, on either stream.
 ///
-/// A multi-host envelope carries its reasons per host under `results`; the
-/// first one is the case's reason when every host reports the same.
-fn envelope_reason(captured: &Captured) -> Option<String> {
+/// A multi-host envelope carries its values per host under `results`; the
+/// first one is the case's when every host reports the same.
+fn envelope_field(captured: &Captured, key: &str) -> Option<String> {
     let value = [&captured.stderr, &captured.stdout]
         .into_iter()
         .filter(|stream| !stream.trim().is_empty())
         .find_map(|stream| serde_json::from_str::<serde_json::Value>(stream).ok())?;
-    let reason_of = |v: &serde_json::Value| v.get("reason")?.as_str().map(str::to_string);
-    reason_of(&value).or_else(|| {
+    let field_of = |v: &serde_json::Value| v.get(key)?.as_str().map(str::to_string);
+    field_of(&value).or_else(|| {
         let results = value.get("installations")?.as_array()?;
-        let mut reasons = results.iter().map(reason_of);
-        let first = reasons.next()??;
-        reasons
+        let mut values = results.iter().map(field_of);
+        let first = values.next()??;
+        values
             .all(|r| r.as_deref() == Some(first.as_str()))
             .then_some(first)
     })
@@ -1707,17 +1708,19 @@ fn xr_output_matches_the_golden_fixtures() {
         let actual = capture(case, &bin, &api, &scratch);
 
         // A `dry-run-<code>` case exists to pin that validator's refusal, so
-        // its envelope must still name the code: a bless would otherwise
-        // re-capture whatever a renamed verb or a widened input now prints.
+        // its envelope must still name the code as its `rule`: a bless would
+        // otherwise re-capture whatever a renamed verb or a widened input now
+        // prints.
         let pinned = case
             .name
             .strip_prefix("dry-run-")
             .filter(|code| validators.contains(*code));
-        if let Some(reason) = case.reason.or(pinned) {
-            let found = envelope_reason(&actual);
-            if found.as_deref() != Some(reason) {
+        for (key, expected) in [("reason", case.reason), ("rule", pinned)] {
+            let Some(expected) = expected else { continue };
+            let found = envelope_field(&actual, key);
+            if found.as_deref() != Some(expected) {
                 failures.push(format!(
-                    "== {} ==\ntrigger no longer yields reason {reason:?}: found {found:?}\nstdout:\n{}\nstderr:\n{}",
+                    "== {} ==\ntrigger no longer yields {key} {expected:?}: found {found:?}\nstdout:\n{}\nstderr:\n{}",
                     case.name, actual.stdout, actual.stderr
                 ));
             }
@@ -2021,15 +2024,19 @@ fn step_without_dry_run(step: &serde_json::Value) -> serde_json::Value {
 
 /// A dry run that refuses answers as its real run's error does: every
 /// refusing JSON case in [`dry_run_cases`] carries a `message`, and the
-/// `next_step` and `exit_code` the same invocation gets without
-/// `--dry-run` (with `--force` when it would stop to ask). Every validator
-/// code has a case there, so a validator added later is held here too.
+/// `reason`, `next_step`, and `exit_code` the same invocation gets without
+/// `--dry-run` (with `--force` when it would stop to ask). A validation
+/// refusal carries the validator's code as `rule` and the sentence for it as
+/// `message`, the same in both runs. Every validator code has a case there,
+/// and each must turn up as a `rule`, so a validator added later is held
+/// here too.
 #[test]
 fn a_refusing_dry_run_carries_the_message_and_step_of_its_real_run() {
     let bin = common::xr_bin().to_string();
     let api = MockApi::start();
     let scratch = Scratch::new();
     let mut checked = 0;
+    let mut rules = std::collections::BTreeSet::new();
     let mut failures = Vec::new();
     for case in dry_run_cases() {
         let is_json_dry_run = case.args.iter().any(|a| a == "--dry-run")
@@ -2100,6 +2107,38 @@ fn a_refusing_dry_run_carries_the_message_and_step_of_its_real_run() {
             failures.push(format!(
                 "{}: the dry run's step {} differs from the real run's {}",
                 case.name, answer["next_step"], error["next_step"]
+            ));
+        }
+        if answer["reason"] != error["reason"] {
+            failures.push(format!(
+                "{}: the dry run's reason {} differs from the real run's {}",
+                case.name, answer["reason"], error["reason"]
+            ));
+        }
+        if error["reason"] == "validation" {
+            for key in ["rule", "message"] {
+                if answer[key] != error[key] {
+                    failures.push(format!(
+                        "{}: the dry run's {key} {} differs from the real run's {}",
+                        case.name, answer[key], error[key]
+                    ));
+                }
+            }
+            match error["rule"].as_str() {
+                Some(rule) if error["message"].as_str() != Some(rule) => {
+                    rules.insert(rule.to_string());
+                }
+                _ => failures.push(format!(
+                    "{}: a validation refusal needs a rule and a message apart from it: {error}",
+                    case.name
+                )),
+            }
+        }
+    }
+    for code in validator_reasons() {
+        if !rules.contains(&code) {
+            failures.push(format!(
+                "validator code {code:?} reached no refusing dry run as its `rule`"
             ));
         }
     }

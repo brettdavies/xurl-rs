@@ -515,7 +515,6 @@ impl OutputConfig {
         hint: Option<&crate::cli::hints::Hint>,
     ) {
         let reworded;
-        let mut code = None;
         let error = match error {
             // A dry run looks no id up, so a path it rendered would carry a
             // stand-in. Without one the message names the endpoint's template.
@@ -526,14 +525,15 @@ impl OutputConfig {
                 });
                 &reworded
             }
-            Error::Validation(text) => match validation::sentence(text) {
-                Some(sentence) => {
-                    code = Some(text.as_str());
-                    reworded = Error::validation(sentence);
-                    &reworded
+            Error::Validation(text) if !self.format.is_structured() => {
+                match validation::sentence(text) {
+                    Some(sentence) => {
+                        reworded = Error::validation(sentence);
+                        &reworded
+                    }
+                    None => error,
                 }
-                None => error,
-            },
+            }
             other => other,
         };
         let exit_code = error.exit_code();
@@ -562,9 +562,6 @@ impl OutputConfig {
                 body.into_iter()
                     .filter(|(key, _)| key != "status" && key != "exit_code"),
             );
-        }
-        if let Some(code) = code {
-            merged.insert("reason".into(), Value::String(code.to_string()));
         }
         self.print_dry_run(out, false, exit_code, &Value::Object(merged));
     }
@@ -787,6 +784,12 @@ fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
         }
         Error::ProcessingTimeout { media_id, .. } => {
             body.media_id = Some(media_id.clone());
+        }
+        Error::Validation(code) => {
+            if let Some(sentence) = validation::sentence(code) {
+                body.message = Some(sentence);
+                body.rule = Some(code.clone());
+            }
         }
         Error::Api {
             status: 429,

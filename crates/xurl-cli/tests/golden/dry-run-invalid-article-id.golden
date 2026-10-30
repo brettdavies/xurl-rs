@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "articles", "publish", "draft-1"]
 store: empty
 exit_code: 0
-stdout_len: 339
+stdout_len: 363
 stderr_len: 0
 --- stdout ---
 {
@@ -14,7 +14,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr articles publish --help"
   },
-  "reason": "invalid-article-id",
+  "reason": "validation",
+  "rule": "invalid-article-id",
   "status": "dry_run",
   "would_succeed": false
 }

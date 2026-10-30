@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "articles", "draft", "--title", "Why Rust", "--body-file", "blank.md"]
 store: empty
 exit_code: 0
-stdout_len: 356
+stdout_len: 380
 stderr_len: 0
 --- stdout ---
 {
@@ -15,7 +15,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr articles draft --help"
   },
-  "reason": "empty-article-body",
+  "reason": "validation",
+  "rule": "empty-article-body",
   "status": "dry_run",
   "title": "Why Rust",
   "would_succeed": false

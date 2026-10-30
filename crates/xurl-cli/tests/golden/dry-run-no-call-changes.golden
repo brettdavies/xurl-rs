@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "update", "1849302018273645", "--scope", "this"]
 store: empty
 exit_code: 0
-stdout_len: 374
+stdout_len: 398
 stderr_len: 0
 --- stdout ---
 {
@@ -12,7 +12,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr calls scheduled update --help"
   },
-  "reason": "no-call-changes",
+  "reason": "validation",
+  "rule": "no-call-changes",
   "scheduled_call_id": "1849302018273645",
   "scope": "this",
   "status": "dry_run",

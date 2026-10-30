@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "calls", "scheduled", "add", "--start", "2026-11-02T16:00:00Z", "--time-zone", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 419
+stdout_len: 443
 stderr_len: 0
 --- stdout ---
 {
@@ -12,7 +12,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr calls scheduled add --help"
   },
-  "reason": "call-time-zone-too-long",
+  "reason": "validation",
+  "rule": "call-time-zone-too-long",
   "start_time": "2026-11-02T16:00:00Z",
   "status": "dry_run",
   "time_zone": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",

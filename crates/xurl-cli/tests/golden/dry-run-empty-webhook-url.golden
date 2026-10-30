@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "webhooks", "add", ""]
 store: empty
 exit_code: 0
-stdout_len: 276
+stdout_len: 300
 stderr_len: 0
 --- stdout ---
 {
@@ -12,7 +12,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr webhooks add --help"
   },
-  "reason": "empty-webhook-url",
+  "reason": "validation",
+  "rule": "empty-webhook-url",
   "status": "dry_run",
   "url": "",
   "would_succeed": false

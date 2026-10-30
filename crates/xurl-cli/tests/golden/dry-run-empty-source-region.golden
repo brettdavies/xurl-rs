@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "sources", "add", "Studio A", "--region", ""]
 store: empty
 exit_code: 0
-stdout_len: 325
+stdout_len: 349
 stderr_len: 0
 --- stdout ---
 {
@@ -13,8 +13,9 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr broadcasts sources add --help"
   },
-  "reason": "empty-source-region",
+  "reason": "validation",
   "region": "",
+  "rule": "empty-source-region",
   "status": "dry_run",
   "would_succeed": false
 }

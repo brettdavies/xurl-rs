@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "articles", "draft", "--title", "", "--body-file", "why-rust.md"]
 store: empty
 exit_code: 0
-stdout_len: 348
+stdout_len: 372
 stderr_len: 0
 --- stdout ---
 {
@@ -15,7 +15,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr articles draft --help"
   },
-  "reason": "empty-article-title",
+  "reason": "validation",
+  "rule": "empty-article-title",
   "status": "dry_run",
   "title": "",
   "would_succeed": false

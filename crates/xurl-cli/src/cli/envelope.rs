@@ -187,6 +187,12 @@ pub struct ErrorBody {
     /// Human-readable message. Omitted entirely (not `null`) when absent.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// The input rule a `validation` refusal broke, as the validator's
+    /// kebab-case code (`invalid-username`, `no-list-changes`, ...);
+    /// `message` is the sentence for it. Present under `validation`, and on
+    /// a dry run that refuses its input.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rule: Option<String>,
 
     /// What the caller should do next, when a recovery step exists.
     ///

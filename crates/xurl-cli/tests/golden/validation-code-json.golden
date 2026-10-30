@@ -2,18 +2,19 @@ args: ["--output", "json", "post", ""]
 store: empty
 exit_code: 1
 stdout_len: 0
-stderr_len: 176
+stderr_len: 237
 --- stdout ---
 
 --- stderr ---
 {
   "exit_code": 1,
-  "message": "empty-body",
+  "message": "The text is empty; give at least one character.",
   "next_step": {
     "action": "show-help",
     "command": "xr post --help"
   },
   "reason": "validation",
+  "rule": "empty-body",
   "status": "error"
 }
 

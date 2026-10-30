@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "users", "12", "@jack"]
 store: empty
 exit_code: 0
-stdout_len: 357
+stdout_len: 381
 stderr_len: 0
 --- stdout ---
 {
@@ -16,7 +16,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr users --help"
   },
-  "reason": "mixed-ids-and-handles",
+  "reason": "validation",
+  "rule": "mixed-ids-and-handles",
   "status": "dry_run",
   "would_succeed": false
 }

@@ -113,7 +113,7 @@ async fn start_refuses_a_group_outside_two_to_forty_nine_before_any_request() {
         assert_eq!(code, 0, "{} participants: {stderr}", participants.len());
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false);
-        assert_eq!(body["reason"], "invalid-participant-count");
+        assert_eq!(body["rule"], "invalid-participant-count");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
@@ -236,7 +236,7 @@ async fn ids_outside_the_spec_patterns_are_refused_before_any_request() {
         assert_eq!(code, 0, "{args:?}: {stderr}");
         let body = json_out(&stdout);
         assert_eq!(body["would_succeed"], false, "{args:?}");
-        assert_eq!(body["reason"], reason, "{args:?}");
+        assert_eq!(body["rule"], reason, "{args:?}");
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

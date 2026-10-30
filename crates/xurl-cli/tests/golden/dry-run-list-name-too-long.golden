@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "lists", "add", "xxxxxxxxxxxxxxxxxxxxxxxxxx"]
 store: empty
 exit_code: 0
-stdout_len: 328
+stdout_len: 352
 stderr_len: 0
 --- stdout ---
 {
@@ -15,7 +15,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr lists add --help"
   },
-  "reason": "list-name-too-long",
+  "reason": "validation",
+  "rule": "list-name-too-long",
   "status": "dry_run",
   "would_succeed": false
 }

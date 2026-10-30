@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "like", ""]
 store: empty
 exit_code: 0
-stdout_len: 282
+stdout_len: 306
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,8 @@ stderr_len: 0
     "command": "xr like --help"
   },
   "post_id": "",
-  "reason": "empty-post-id",
+  "reason": "validation",
+  "rule": "empty-post-id",
   "status": "dry_run",
   "would_succeed": false
 }

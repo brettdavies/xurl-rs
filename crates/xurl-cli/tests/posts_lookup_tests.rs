@@ -117,12 +117,7 @@ async fn read_posts_takes_100_ids_and_refuses_101_before_any_request() {
     let envelope: serde_json::Value =
         serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
     assert_eq!(envelope["reason"], "validation");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .is_some_and(|m| m.contains("too-many-ids")),
-        "{envelope}"
-    );
+    assert_eq!(envelope["rule"], "too-many-ids", "{envelope}");
 }
 
 #[tokio::test]
@@ -142,6 +137,6 @@ async fn read_posts_refuses_an_empty_id_among_the_others() {
     let body = json_out(&stdout);
     assert_eq!(body["command"], "posts");
     assert_eq!(body["would_succeed"], false);
-    assert_eq!(body["reason"], "empty-post-id");
+    assert_eq!(body["rule"], "empty-post-id");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }

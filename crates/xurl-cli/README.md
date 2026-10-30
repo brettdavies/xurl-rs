@@ -772,9 +772,9 @@ xr --output json --dry-run post "Hello"
 - `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
   send. `reason` says which, and `exit_code` is the code the real run would end on. Either refusal also carries the keys
   of the real run's error envelope: `message` and the `next_step` the real run would name, plus, for a credential,
-  `endpoint`, `supported`, and `available_in_app`. An invalid input's `message` is the rule it broke and its `reason`
-  the validator's code, such as `webhook-url-has-port`. A step that reruns the invocation keeps `--dry-run`, so
-  following it sends nothing either.
+  `endpoint`, `supported`, and `available_in_app`. An invalid input's `reason` is `validation`, as in the real run, its
+  `rule` the validator's code, such as `webhook-url-has-port`, and its `message` the sentence for that rule. A step that
+  reruns the invocation keeps `--dry-run`, so following it sends nothing either.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
@@ -874,7 +874,9 @@ carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry
 and `inspect-store` when a store command is what failed. Three `fix-input` steps carry an invocation: `listen` again on
 a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
 before, under `invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen`
-lacks. Text mode prints the same advice as prose instead; the two need not match word for word.
+lacks. A `validation` refusal names the input rule it broke in `rule`, the validator's kebab-case code
+(`invalid-username`, `no-list-changes`, ...), with the sentence for it in `message`; branch on `rule`, not on the
+sentence. Text mode prints the same advice as prose instead; the two need not match word for word.
 
 ### Which Errors Carry a Step
 

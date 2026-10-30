@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "stream", "rules", "remove", "rule-1"]
 store: empty
 exit_code: 0
-stdout_len: 387
+stdout_len: 411
 stderr_len: 0
 --- stdout ---
 {
@@ -13,7 +13,8 @@ stderr_len: 0
     "action": "show-help",
     "command": "xr stream rules remove --help"
   },
-  "reason": "invalid-rule-id",
+  "reason": "validation",
+  "rule": "invalid-rule-id",
   "rule_ids": [
     "rule-1"
   ],
