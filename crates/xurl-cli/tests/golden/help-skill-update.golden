@@ -1,7 +1,7 @@
 args: ["skill", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6586
+stdout_len: 6602
 stderr_len: 0
 --- stdout ---
 Refresh an existing skill-bundle install in place.
@@ -23,6 +23,10 @@ Options:
       --dry-run
           Print the resolved plan without removing or cloning
 
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -145,9 +149,6 @@ Options:
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
           [env: XURL_AFTER=]
-
-  -h, --help
-          Print help (see a summary with '-h')
 
 Examples:
   xr skill update claude_code                      # refresh Claude Code's xurl-rs bundle

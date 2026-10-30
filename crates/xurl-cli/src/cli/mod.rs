@@ -917,6 +917,11 @@ Examples:
     xr post \"Beach day\" --media-id <media_id>
 ";
 
+/// The heading every global flag sits under. clap copies a global flag into
+/// each subcommand at the place it holds on the root, so without a heading of
+/// its own it lands between that command's options.
+const GLOBAL_OPTIONS: &str = "Global Options";
+
 /// Auth-enabled curl-like interface for the X API.
 #[derive(Parser, Debug)]
 #[command(
@@ -991,7 +996,7 @@ pub struct Cli {
     #[arg(
         short = 'v',
         long = "verbose",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_VERBOSE",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1014,7 +1019,7 @@ pub struct Cli {
     pub file: Option<String>,
 
     /// Use a specific registered app (overrides default)
-    #[arg(long = "app", global = true, env = "XURL_APP")]
+    #[arg(long = "app", global = true, help_heading = GLOBAL_OPTIONS, env = "XURL_APP")]
     pub app: Option<String>,
 
     /// Output format. text (default), json, jsonl, ndjson (alias of jsonl),
@@ -1022,7 +1027,7 @@ pub struct Cli {
     /// at exit 2 with a JSON envelope whose reason is `invalid-args`.
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         default_value = "text",
         value_enum,
         env = "XURL_OUTPUT"
@@ -1032,7 +1037,7 @@ pub struct Cli {
     /// Shorthand for `--output json` (P2 alias).
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         conflicts_with = "output",
         conflicts_with = "jsonl",
         env = "XURL_JSON",
@@ -1044,7 +1049,7 @@ pub struct Cli {
     /// Shorthand for `--output jsonl` (P2 alias).
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         conflicts_with = "output",
         conflicts_with = "json",
         env = "XURL_JSONL",
@@ -1057,7 +1062,7 @@ pub struct Cli {
     /// `json` output on one line, as `jsonl` and `ndjson` always are.
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_RAW",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1072,7 +1077,7 @@ pub struct Cli {
     /// unconditionally without xr rejecting it.
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_NO_PAGER",
         value_parser = FalseyValueParser::new(),
         action = clap::ArgAction::SetTrue,
@@ -1083,7 +1088,7 @@ pub struct Cli {
     #[arg(
         long,
         short = 'q',
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_QUIET",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1096,7 +1101,7 @@ pub struct Cli {
     /// Disable interactive prompts; fail with error instead
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_NO_INTERACTIVE",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1107,7 +1112,7 @@ pub struct Cli {
     pub no_interactive: bool,
 
     /// Request timeout in seconds
-    #[arg(long, global = true, default_value = "30", env = "XURL_TIMEOUT")]
+    #[arg(long, global = true, help_heading = GLOBAL_OPTIONS, default_value = "30", env = "XURL_TIMEOUT")]
     pub timeout: u64,
 
     /// Wait out a rate limit and retry once, instead of failing with `rate-limited`
@@ -1118,7 +1123,7 @@ pub struct Cli {
     /// response is final whatever it is.
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_WAIT_ON_RATE_LIMIT",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1131,7 +1136,7 @@ pub struct Cli {
     /// Longest `--wait-on-rate-limit` waits before its retry, in seconds
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         value_name = "SECS",
         default_value = "60",
         env = "XURL_RATE_LIMIT_MAX_WAIT"
@@ -1141,7 +1146,7 @@ pub struct Cli {
     /// Colorize output: auto (TTY-aware), always, or never
     #[arg(
         long,
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         value_enum,
         default_value_t = ColorChoice::Auto,
         env = "XURL_COLOR"
@@ -1164,7 +1169,7 @@ pub struct Cli {
     /// output prints the same context without the envelope's own keys.
     #[arg(
         long = "dry-run",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_DRY_RUN",
         value_parser = FalseyValueParser::new(),
         num_args = 0..=1,
@@ -1180,7 +1185,7 @@ pub struct Cli {
     /// `following`, `followers`, `muted`, `blocked`, and `dms`; other commands
     /// ignore it. The per-command `-n/--max-results` flag takes precedence when
     /// both are set.
-    #[arg(long = "limit", global = true, env = "XURL_LIMIT")]
+    #[arg(long = "limit", global = true, help_heading = GLOBAL_OPTIONS, env = "XURL_LIMIT")]
     pub limit: Option<i32>,
 
     /// Pagination cursor / `pagination_token` for list endpoints.
@@ -1194,7 +1199,7 @@ pub struct Cli {
     /// ignore it.
     #[arg(
         long = "cursor",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_CURSOR",
         value_name = "TOKEN"
     )]
@@ -1209,7 +1214,7 @@ pub struct Cli {
     /// get a structured error rather than a silent no-op.
     #[arg(
         long = "page",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_PAGE",
         value_name = "N",
         conflicts_with = "cursor"
@@ -1223,7 +1228,7 @@ pub struct Cli {
     /// from other CLIs (`gh`, `kubectl`) get a working flag.
     #[arg(
         long = "after",
-        global = true,
+        global = true, help_heading = GLOBAL_OPTIONS,
         env = "XURL_AFTER",
         value_name = "TOKEN",
         conflicts_with = "cursor",

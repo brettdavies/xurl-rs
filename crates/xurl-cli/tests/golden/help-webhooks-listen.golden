@@ -1,7 +1,7 @@
 args: ["webhooks", "listen", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 9310
+stdout_len: 9326
 stderr_len: 0
 --- stdout ---
 Receive webhook deliveries on a local address
@@ -45,13 +45,6 @@ Options:
       --max-events <N>
           Exit 0 once this many events have printed
 
-  -v, --verbose[=<VERBOSE>]
-          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
-          
-          [env: XURL_VERBOSE=]
-          [default: false]
-          [possible values: true, false]
-
       --forward <URL>
           Also POST each verified event to this http or https URL, after X has its answer: the body and signature header as X sent them, an Idempotency-Key, and each -H. Each delivery is reported on stderr
 
@@ -61,13 +54,24 @@ Options:
       --forward-timeout <SECS>
           Seconds one forward attempt may take before it is tried again (four attempts, 1, 2, then 4 seconds apart). Unset, 30
 
+      --checkpoint <FILE>
+          Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
+  -v, --verbose[=<VERBOSE>]
+          Print request and response lines, and a note for each key X sent in its legacy post vocabulary
+          
+          [env: XURL_VERBOSE=]
+          [default: false]
+          [possible values: true, false]
+
       --app <APP>
           Use a specific registered app (overrides default)
           
           [env: XURL_APP=]
-
-      --checkpoint <FILE>
-          Record, at most once a minute, when the oldest event not yet delivered to every target arrived (the newest event when none is waiting), so `xr webhooks replay --from-checkpoint` can request what a stop missed
 
       --output <OUTPUT>
           Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`
@@ -188,9 +192,6 @@ Options:
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
           [env: XURL_AFTER=]
-
-  -h, --help
-          Print help (see a summary with '-h')
 
 Examples:
   Answer X's CRC check and print each event as a JSON line (text notices):

@@ -1,7 +1,7 @@
 args: ["auth", "oauth1", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7797
+stdout_len: 7813
 stderr_len: 0
 --- stdout ---
 Configure `OAuth1` authentication
@@ -27,15 +27,19 @@ Options:
       --token-secret <TOKEN_SECRET>
           Token secret
 
+      --token-secret-file <PATH>
+          File holding the token secret; '-' reads it from stdin
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
           [env: XURL_VERBOSE=]
           [default: false]
           [possible values: true, false]
-
-      --token-secret-file <PATH>
-          File holding the token secret; '-' reads it from stdin
 
       --app <APP>
           Use a specific registered app (overrides default)
@@ -161,9 +165,6 @@ Options:
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
           [env: XURL_AFTER=]
-
-  -h, --help
-          Print help (see a summary with '-h')
 
 Examples:
   Configure OAuth1 with one secret piped from a vault and the others read

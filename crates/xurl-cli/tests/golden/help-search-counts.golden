@@ -1,7 +1,7 @@
 args: ["search-counts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7535
+stdout_len: 7551
 stderr_len: 0
 --- stdout ---
 Count the recent posts that match a query, per time bucket
@@ -33,6 +33,10 @@ Options:
   -t, --trace
           Add X-B3-Flags trace header
 
+  -h, --help
+          Print help (see a summary with '-h')
+
+Global Options:
   -v, --verbose[=<VERBOSE>]
           Print request and response lines, and a note for each key X sent in its legacy post vocabulary
           
@@ -164,9 +168,6 @@ Options:
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
           [env: XURL_AFTER=]
-
-  -h, --help
-          Print help (see a summary with '-h')
 
 Examples:
   Posts matching a query per hour over the last seven days (text):
