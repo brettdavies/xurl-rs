@@ -5931,8 +5931,18 @@
       "CreateUserBroadcastRequest": {
         "properties": {
           "is_low_latency": {
-            "description": "Ignored.",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Ignored."
           },
           "region": {
             "description": "Ignored: the source sets the region.",
@@ -21206,16 +21216,33 @@
       "UpdateUserBroadcastStateRequest": {
         "properties": {
           "chat_option": {
-            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows. `PUBLISH` only.",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows. A numeric string is also accepted. `PUBLISH` only."
           },
           "locale": {
             "description": "Broadcast language. `PUBLISH` only.",
             "type": "string"
           },
           "should_not_tweet": {
-            "description": "Skip the announcing Post. Unset keeps the broadcast's setting, which defaults to posting. `PUBLISH` only.",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "description": "Skip the announcing Post. Unset keeps the broadcast's setting, which defaults to posting. `\"true\"`, `\"false\"`, `1` and `0` are also accepted. `PUBLISH` only."
           },
           "state": {
             "description": "`PUBLISH` or `END`.",
@@ -23608,7 +23635,7 @@
         ]
       },
       "post": {
-        "description": "Creates a bot account in the calling app's project and returns its bearer token. Idempotent on handle: repeating the request for a handle that already names one of the project's bots returns that bot with a freshly minted token, revoking the previous one — safe to retry when a response was lost, since the replaced token was never seen.",
+        "description": "Creates a bot account in the calling app's project and returns its bearer token. Idempotent on handle: repeating the request for a handle that already names one of the project's bots returns that bot with a freshly minted token, revoking the previous one — safe to retry when a response was lost, since the replaced token was never seen. With an OAuth 2.0 user token, the user must be an admin of the project's developer account. On API Connect, where the request bills the user's own account, the bot is created in the user's project instead; its token is still minted for the calling app.",
         "operationId": "createBot",
         "requestBody": {
           "content": {
@@ -23650,6 +23677,9 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
           }
         ],
         "summary": "Create a Bot",
@@ -23882,6 +23912,9 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
           }
         ],
         "summary": "Rotate Bot Token",
@@ -40706,12 +40739,11 @@
             "style": "simple"
           },
           {
-            "description": "`next_token.offset` from the previous page.",
+            "description": "`next_token.offset` from the previous page. Empty reads the first page.",
             "in": "query",
             "name": "pagination_token",
             "required": false,
             "schema": {
-              "minLength": 1,
               "type": "string"
             },
             "style": "form"
