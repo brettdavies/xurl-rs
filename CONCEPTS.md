@@ -18,13 +18,22 @@ Divergence between the vendored spec and the live upstream document. Detected by
 sides; raw-byte comparison is meaningless because upstream serializes set-valued arrays in nondeterministic per-request
 order. Drift is informational, never build-blocking: it triggers the refresh process rather than failing anything.
 
+### Drift report
+
+The comparison of the vendored spec against the live upstream document that a refresh PR's agent runbook carries, as do
+the drift workflow's PR comment and the local pre-push warning. It gives each kind of change its own section: the path
+and schema inventories, categorical values, auth methods, and every other field added, removed, or changed in place,
+grouped by location. Prose edits are counted rather than listed, so each change appears in exactly one place. No
+section's silence stands in for another's: the section for changes in place is built from those changes alone, so it
+appears beside an auth change as readily as by itself.
+
 ### Refresh PR
 
 The automation-owned pull request that carries a new vendored spec revision toward the integration branch. Its
 head branch belongs to the workflow: the branch is regenerated rather than manually maintained, and at most one refresh
 PR is open at a time — a human-owned refresh PR takes precedence and the automation stands down.
 
-The body starts workflow-owned (an agent runbook, rewritten with fresh drift detail whenever the vendored content
+The body starts workflow-owned (an agent runbook, rewritten with a fresh drift report whenever the vendored content
 changes) and becomes agent-owned once the reconciling agent rewrites it to the repository's PR template; a no-change
 pass updates only the run reference so agent-authored sections survive.
 
@@ -49,10 +58,11 @@ the runbook is read.
 
 ### Auth-method matrix
 
-The mapping from API endpoint to the authentication methods it accepts, derived from the vendored spec's security
-declarations at build time. It exists to reject a request client-side when the chosen auth method cannot succeed, and it
-fails the build loudly when a shortcut's endpoint disappears from the spec — the earliest tripwire that a spec revision
-broke the command surface.
+The mapping from each endpoint a shortcut command calls to the authentication methods it accepts, derived from the
+vendored spec's security declarations at build time. It exists to reject a request client-side when the chosen auth
+method cannot succeed, and it fails the build loudly when a shortcut's endpoint disappears from the spec, which makes it
+the earliest tripwire that a spec revision broke the command surface. An endpoint outside it, and every raw-mode
+request, is permissive: the request goes out under the preferred stored credential, or the one named, and X judges it.
 
 ### Endpoint decision
 
@@ -145,10 +155,11 @@ reaches them.
 
 ### Dry-run envelope
 
-The answer any command gives under `--dry-run`, on stdout at exit 0 with nothing sent to X or stored:
-`status: dry_run`, whether the real run would succeed, the exit code it would end on, and the command's inputs. When
-the real run would fail, `reason` names why; a command that would stop to ask for confirmation says so rather than
-asking.
+The answer any command gives under `--dry-run`, on stdout at exit 0 with nothing sent to X or stored: `status: dry_run`,
+whether the real run would succeed, the exit code it would end on, and the command's inputs. A command that would send a
+request also names the credential it would go out under, read offline: an expired token is reported rather than
+refreshed, and whether X still accepts the credential is not checked. When the real run would fail, `reason` names why;
+a command that would stop to ask for confirmation says so rather than asking.
 
 ### Error envelope
 
