@@ -32,10 +32,18 @@
 #     (scheme name plus sorted scopes) for operations present in both
 #     snapshots, with a verdict on whether any changed operation is in the
 #     `SHORTCUT_TEMPLATES` allowlist that build.rs turns into the auth
-#     matrix. `security` is the one spec field the build consumes.
-#   - Refresh-locally footer: rendered only when none of the structural
-#     diffs surfaced anything. Means X edited descriptions, types, or
-#     other fields the structural diff doesn't model.
+#     matrix. `security` is the field the generated auth matrix reads.
+#   - In-place field changes: every other field added, removed, or changed
+#     at a location present in both snapshots (a property's `type`, a
+#     parameter's `minLength`, an operation added to an existing path),
+#     grouped by location. A change a section above reports is not
+#     repeated here.
+#   - Prose edits: a count of changed `description`, `summary`, and
+#     `externalDocs` fields.
+#   - Refresh-locally footer: rendered with either of the two sections
+#     above, which name the changed fields but not their values. When no
+#     section found anything, a line says the snapshots differ only in
+#     formatting or ordering.
 
 set -uo pipefail
 
@@ -140,10 +148,9 @@ enum_diff_tsv="$(jq -n -r \
 # `security` requirements rendered as `Scheme` or `Scheme[scope ...]` with
 # scopes sorted, so the upstream endpoint's nondeterministic scope order
 # never reads as drift. Emits TSV rows (`METHOD /path\tadded\tremoved`)
-# for operations whose requirement set differs. `security` is the one spec
-# field build.rs consumes, so a change here can move the generated auth
-# matrix. Added or removed paths belong to the path inventory and are
-# skipped here.
+# for operations whose requirement set differs. The generated auth matrix
+# is built from `security`, so a change here can move it. Added or removed
+# paths belong to the path inventory and are skipped here.
 auth_diff_tsv="$(jq -n -r \
     --slurpfile local "${VENDOR_PATH}" \
     --slurpfile upstream "${UPSTREAM_PATH}" \
@@ -177,6 +184,70 @@ auth_diff_tsv="$(jq -n -r \
        (if ($removed | length) > 0 then ($removed | join(",")) else "-" end)] | @tsv
     ')"
 
+# In-place field diff: walks both specs together and emits one TSV row
+# (`location\tfield\tkind`, kind `+` added, `-` removed, `~` changed) for
+# each field that differs at a location present in both. It skips what the
+# sections above report (`security`, `enum`, discriminator mappings, added
+# or removed paths and schemas, `info.version`) and does not descend into a
+# prose field. Array elements match by `in:name` when every element has a
+# unique `name` (parameters, tags) and by index otherwise. An array of
+# scalars compares as a set, because upstream does not keep the order of
+# set-valued arrays stable between fetches.
+PROSE_FIELDS='["description","summary","externalDocs"]'
+field_diff_tsv="$(jq -n -r \
+    --slurpfile local "${VENDOR_PATH}" \
+    --slurpfile upstream "${UPSTREAM_PATH}" \
+    --argjson prose "${PROSE_FIELDS}" \
+    '
+    def covered($parent): IN("security", "enum") or (. == "mapping" and $parent == "discriminator");
+    def scalar: type != "object" and type != "array";
+    def keyed:
+      if length > 0 and all(.[]; type == "object" and (.name | type) == "string") then
+        (map({ key: ((if (.in | type) == "string" then .in + ":" else "" end) + .name), value: . })
+          | from_entries) as $o
+        | if ($o | length) == length then $o else null end
+      else null end;
+    def indexed: to_entries | map({ key: (.key | tostring), value: .value }) | from_entries;
+    def changes($a; $b; $loc):
+      ($loc | last // "") as $parent
+      | (($a | keys) + ($b | keys) | unique)[] as $k
+      | select($k | covered($parent) | not)
+      | if ($a | has($k) | not) then [$loc, $k, "+"]
+        elif ($b | has($k) | not) then [$loc, $k, "-"]
+        elif $a[$k] == $b[$k] then empty
+        elif ($k | IN($prose[])) then [$loc, $k, "~"]
+        else $a[$k] as $x | $b[$k] as $y
+          | if ($x | type) == "object" and ($y | type) == "object" then changes($x; $y; $loc + [$k])
+            elif ($x | type) == "array" and ($y | type) == "array" then
+              ($x | keyed) as $xk | ($y | keyed) as $yk
+              | if $xk != null and $yk != null then changes($xk; $yk; $loc + [$k])
+                elif ($x | length) == ($y | length) and all($x[], $y[]; type == "object") then
+                  changes($x | indexed; $y | indexed; $loc + [$k])
+                elif all($x[], $y[]; scalar) and ($x | map(tojson) | sort) == ($y | map(tojson) | sort) then empty
+                else [$loc, $k, "~"] end
+            else [$loc, $k, "~"] end
+        end;
+
+    changes($local[0]; $upstream[0]; [])
+    | select((.[0] == ["paths"] or .[0] == ["components", "schemas"]) | not)
+    | select((.[0] == ["info"] and .[1] == "version") | not)
+    | [(.[0] | join(".")), .[1], .[2]] | @tsv
+    ')"
+
+# The non-prose rows grouped by location into `location\tadded\tremoved\tchanged`
+# rows ("-" marking an empty column), the shape render_signed_rows prints.
+in_place_tsv="$(printf '%s\n' "${field_diff_tsv}" | jq -R -r -s \
+    --argjson prose "${PROSE_FIELDS}" \
+    '
+    def col($kind): [.[] | select(.[2] == $kind) | .[1]] | if length > 0 then join(",") else "-" end;
+    [split("\n")[] | select(length > 0) | split("\t") | select(.[1] | IN($prose[]) | not)]
+    | group_by(.[0])[]
+    | [.[0][0], col("+"), col("-"), col("~")] | @tsv
+    ')"
+prose_count="$(printf '%s\n' "${field_diff_tsv}" | jq -R -s \
+    --argjson prose "${PROSE_FIELDS}" \
+    '[split("\n")[] | select(length > 0) | split("\t") | select(.[1] | IN($prose[]))] | length')"
+
 # The allowlist feeds the generated auth matrix, so an auth change on an
 # allowlisted operation changes what `xr` enforces; every other operation is
 # permissive at runtime. Parsed from build.rs, where each row is the constant
@@ -201,6 +272,7 @@ schemas_added_count="$(count_lines "${schemas_added}")"
 schemas_removed_count="$(count_lines "${schemas_removed}")"
 enum_changes_count="$(count_lines "${enum_diff_tsv}")"
 auth_changes_count="$(count_lines "${auth_diff_tsv}")"
+in_place_count="$(count_lines "${in_place_tsv}")"
 auth_matrix_hits=""
 if [ "${auth_changes_count}" -gt 0 ] && [ -n "${allowlist}" ]; then
     auth_matrix_hits="$(comm -12 \
@@ -240,13 +312,14 @@ fmt_signed_values() {
     printf '%s' "${input}" | sed "s|,|\`, ${sign}\`|g; s|^|${sign}\`|; s|\$|\`|"
 }
 
-# Render TSV rows (`key\tadded\tremoved`, "-" marking an empty column) as
-# signed markdown bullets, capped at 10 rows with a `+N more` tail.
+# Render TSV rows (`key\tadded\tremoved`, with an optional `\tchanged`
+# column; "-" marking an empty column) as signed markdown bullets, capped at
+# 10 rows with a `+N more` tail.
 render_signed_rows() {
     local tsv="$1" count="$2"
     # awk reads to EOF; head would exit after 10 lines and SIGPIPE the
     # printf under pipefail when the drift is large.
-    printf '%s\n' "${tsv}" | awk 'NR<=10' | while IFS=$'\t' read -r key added removed; do
+    printf '%s\n' "${tsv}" | awk 'NR<=10' | while IFS=$'\t' read -r key added removed changed; do
         line="- \`${key}\`"
         sep=": "
         # "-" is the explicit empty marker: tab is IFS whitespace, so an
@@ -258,6 +331,10 @@ render_signed_rows() {
         fi
         if [ "${removed}" != "-" ]; then
             line="${line}${sep}$(fmt_signed_values "${removed}" "-")"
+            sep=", "
+        fi
+        if [ -n "${changed}" ] && [ "${changed}" != "-" ]; then
+            line="${line}${sep}$(fmt_signed_values "${changed}" "~")"
         fi
         echo "${line}"
     done
@@ -313,13 +390,27 @@ if [ "${auth_changes_count}" -gt 0 ]; then
     fi
 fi
 
-total_structural=$(( paths_added_count + paths_removed_count + schemas_added_count + schemas_removed_count + enum_changes_count + auth_changes_count ))
-if [ "${total_structural}" = "0" ]; then
+if [ "${in_place_count}" -gt 0 ]; then
     echo ""
-    echo "Neither paths, schemas, categorical values, nor auth methods changed but the file still differs. X likely edited descriptions, types, or other in-place fields. Refresh locally to see the field-level diff:"
+    echo "**In-place field changes:** ${in_place_count} location(s) where a field the sections above do not cover was added (+), removed (-), or changed (~)."
+    echo ""
+    render_signed_rows "${in_place_tsv}" "${in_place_count}"
+fi
+if [ "${prose_count}" -gt 0 ]; then
+    echo ""
+    echo "**Prose edits:** ${prose_count} field(s) among \`description\`, \`summary\`, and \`externalDocs\` changed, counted here rather than listed."
+fi
+
+total_structural=$(( paths_added_count + paths_removed_count + schemas_added_count + schemas_removed_count + enum_changes_count + auth_changes_count ))
+if [ "${in_place_count}" -gt 0 ] || [ "${prose_count}" -gt 0 ]; then
+    echo ""
+    echo "Refresh locally to read the changed values:"
     echo ""
     echo '```bash'
     echo 'scripts/refresh-x-openapi.sh'
     echo 'git diff crates/xdk/vendor/x-api-openapi.json'
     echo '```'
+elif [ "${total_structural}" = "0" ]; then
+    echo ""
+    echo "Neither paths, schemas, categorical values, auth methods, nor any other field changed. The snapshots differ only in formatting or in the order of keys and set-valued arrays."
 fi
