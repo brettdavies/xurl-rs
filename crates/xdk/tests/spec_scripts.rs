@@ -1,6 +1,6 @@
-//! Guards for the spec-drift shell tooling: the auth-method section of the
-//! drift report (`scripts/diff-x-openapi-spec.sh`) and the vendored README
-//! renderer (`scripts/render-vendor-readme.sh`).
+//! Guards for the spec-drift shell tooling: the auth-method, in-place, and
+//! prose sections of the drift report (`scripts/diff-x-openapi-spec.sh`) and
+//! the vendored README renderer (`scripts/render-vendor-readme.sh`).
 #![cfg(unix)]
 
 use std::fs;
@@ -64,7 +64,7 @@ fn drift_report(local: &Value, upstream: &Value) -> String {
 }
 
 const NOTHING_STRUCTURAL: &str =
-    "Neither paths, schemas, categorical values, nor auth methods changed";
+    "Neither paths, schemas, categorical values, auth methods, nor any other field changed";
 
 #[test]
 fn drift_report_lists_auth_method_changes_outside_the_allowlist() {
@@ -165,6 +165,97 @@ fn drift_report_shows_scope_changes_on_a_requirement() {
         report.contains("1 of these are in the shortcut allowlist"),
         "{report}"
     );
+}
+
+#[test]
+fn drift_report_lists_in_place_field_changes_beside_an_auth_change() {
+    let ops = |bots_security: Value| {
+        spec(&[
+            ("post", "/2/bots", bots_security),
+            (
+                "get",
+                "/2/users/{id}/broadcasts",
+                json!([{ "OAuth2UserToken": ["users.read"] }]),
+            ),
+        ])
+    };
+    let mut local = ops(json!([{ "BearerToken": [] }]));
+    let mut upstream = ops(json!([{ "BearerToken": [] }, { "OAuth2UserToken": [] }]));
+    local["components"]["schemas"]["CreateUserBroadcastRequest"] = json!({
+        "properties": { "is_low_latency": { "description": "Ignored.", "type": "boolean" } }
+    });
+    upstream["components"]["schemas"]["CreateUserBroadcastRequest"] = json!({
+        "properties": { "is_low_latency": {
+            "description": "Ignored.",
+            "anyOf": [{ "type": "boolean" }, { "type": "string" }]
+        } }
+    });
+    local["paths"]["/2/users/{id}/broadcasts"]["get"]["parameters"] = json!([
+        { "name": "pagination_token", "in": "query", "schema": { "minLength": 1, "type": "string" } }
+    ]);
+    upstream["paths"]["/2/users/{id}/broadcasts"]["get"]["parameters"] = json!([
+        { "name": "pagination_token", "in": "query", "description": "Empty reads the first page.",
+          "schema": { "type": "string" } }
+    ]);
+
+    let report = drift_report(&local, &upstream);
+    assert!(
+        report.contains("- `POST /2/bots`: +`OAuth2UserToken`"),
+        "{report}"
+    );
+    assert!(
+        report.contains("**In-place field changes:** 2 location(s)"),
+        "{report}"
+    );
+    assert!(
+        report.contains(
+            "- `components.schemas.CreateUserBroadcastRequest.properties.is_low_latency`: +`anyOf`, -`type`"
+        ),
+        "{report}"
+    );
+    assert!(
+        report.contains(
+            "- `paths./2/users/{id}/broadcasts.get.parameters.query:pagination_token.schema`: -`minLength`"
+        ),
+        "{report}"
+    );
+    assert!(report.contains("**Prose edits:** 1 field(s)"), "{report}");
+    assert!(report.contains("scripts/refresh-x-openapi.sh"), "{report}");
+    assert!(!report.contains(NOTHING_STRUCTURAL), "{report}");
+}
+
+#[test]
+fn drift_report_counts_prose_edits_without_listing_them() {
+    let local = spec(&[("get", "/2/users/me", json!([{ "UserToken": [] }]))]);
+    let mut upstream = local.clone();
+    upstream["paths"]["/2/users/me"]["get"]["summary"] = json!("Get my user");
+    upstream["paths"]["/2/users/me"]["get"]["description"] = json!("Retrieves the caller.");
+
+    let report = drift_report(&local, &upstream);
+    assert!(report.contains("**Prose edits:** 2 field(s)"), "{report}");
+    assert!(!report.contains("In-place field changes"), "{report}");
+    assert!(report.contains("scripts/refresh-x-openapi.sh"), "{report}");
+    assert!(!report.contains(NOTHING_STRUCTURAL), "{report}");
+}
+
+#[test]
+fn drift_report_keeps_each_change_in_one_section() {
+    let mut local = spec(&[("get", "/2/users/me", json!([{ "UserToken": [] }]))]);
+    let mut upstream = spec(&[
+        ("get", "/2/users/me", json!([{ "UserToken": [] }])),
+        ("get", "/2/users/search", json!([{ "UserToken": [] }])),
+    ]);
+    upstream["info"]["version"] = json!("2.169");
+    local["components"]["schemas"]["Kind"] = json!({ "type": "string", "enum": ["a"] });
+    upstream["components"]["schemas"]["Kind"] = json!({ "type": "string", "enum": ["a", "b"] });
+    upstream["components"]["schemas"]["Added"] = json!({ "type": "object" });
+
+    let report = drift_report(&local, &upstream);
+    assert!(report.contains("Added: `/2/users/search`"), "{report}");
+    assert!(report.contains("Added: `Added`"), "{report}");
+    assert!(report.contains("+`b`"), "{report}");
+    assert!(!report.contains("In-place field changes"), "{report}");
+    assert!(!report.contains("Prose edits"), "{report}");
 }
 
 #[test]
