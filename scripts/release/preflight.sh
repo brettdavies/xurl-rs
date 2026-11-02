@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Canonical version: 2026.11.01 (generic)
+#
 # Run release preflight gates against the current checkout.
 #
 # Usage:
@@ -19,12 +21,14 @@
 #                 (and surface-smoke if present)
 #
 # Post-tag verification (release.yml + homebrew dispatch + finalize-release) lives in
-# scripts/release/postflight.sh, which runs AFTER the tag push, not before.
+# scripts/release/postflight.sh, that runs AFTER the tag push, not before.
 #
 # Flags:
 #   --smoke-home PATH   Reuse an existing seeded $SMOKE_HOME instead of creating + seeding
 #   --no-cleanup        Keep $SMOKE_HOME after exit (default: shred on exit)
 #   --tag TAG           Override LAST_TAG resolution (default: the newest `v[0-9]*` tag)
+#   --staging-url URL   Run surface-smoke against this deployed URL (default: STAGING_URL_DEFAULT
+#                       from release.env; with neither, the local server at $LOCAL_URL)
 #
 # Environment:
 #   CHANGELOG_PR_BASE   Branch whose merged PRs changelog-sections reads (default: dev, or main
@@ -542,12 +546,23 @@ gate_surface_smoke() {
   surface_script="$(dirname "$0")/surface-smoke.sh"
   [[ -x "$surface_script" ]] || return 0
   header "Surface smoke (delegated to surface-smoke.sh)"
-  local local_url="${LOCAL_URL:-http://localhost:8787}"
-  if ! curl -fsS --max-time 2 "$local_url/" >/dev/null 2>&1; then
-    gate_skip "surface-smoke" "local server not running at $local_url (start it and re-run)"
-    return
+  # Project picks the local URL the surface runs against; common defaults:
+  #   bunx wrangler dev   → http://localhost:8787
+  #   uvicorn / fastapi   → http://localhost:8000
+  #   cargo run --release → http://localhost:3000
+  # A deployed staging URL (--staging-url, else STAGING_URL_DEFAULT from
+  # release.env, the same default postflight reads) is smoked as given: an
+  # unreachable deployment is a failure, not a skip. Without one, the local
+  # server is the target, and a local server that is not running skips.
+  local url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
+  if [[ -z "$url" ]]; then
+    url="${LOCAL_URL:-http://localhost:8787}"
+    if ! curl -fsS --max-time 2 "$url/" >/dev/null 2>&1; then
+      gate_skip "surface-smoke" "local server not running at $url (start it and re-run)"
+      return
+    fi
   fi
-  delegate_to_subscript "$surface_script" "$local_url"
+  delegate_to_subscript "$surface_script" "$url"
 }
 
 # Gate: changelog-sections ---------------------------------------------------
@@ -785,12 +800,15 @@ gate_mechanics() {
 
 # Main dispatcher ------------------------------------------------------------
 
+# usage [CODE]: prints the header and exits CODE, 2 (a usage error) by default;
+# --help passes 0.
 usage() {
-  sed -n '2,38p' "$0" | sed 's/^# \?//'
-  exit 2
+  print_usage_header
+  exit "${1:-2}"
 }
 
 LAST_TAG=""
+STAGING_URL=""
 SUBCMD=""
 
 while [[ $# -gt 0 ]]; do
@@ -809,13 +827,17 @@ while [[ $# -gt 0 ]]; do
       LAST_TAG="$2"
       shift 2
       ;;
-    -h | --help) usage ;;
+    --staging-url)
+      STAGING_URL="$2"
+      shift 2
+      ;;
+    -h | --help) usage 0 ;;
     drift | surface | api-contract | smoke | multi-app | changelog-sections | mechanics | surface-smoke | all)
       SUBCMD="$1"
       shift
       ;;
     post-tag)
-      echo "post-tag moved to scripts/release/postflight.sh; run that after the tag push" >&2
+      echo "post-tag moved to scripts/release/postflight.sh, run that after the tag push" >&2
       exit 2
       ;;
     *)
