@@ -94,7 +94,7 @@ callers pass the path explicitly.
 
 Loading an up-to-date store never rewrites it: credentials supplied through the environment are backfilled in memory and
 reach disk only on the next explicit save. Only converting a legacy-format file writes during load. Every sibling file
-the auth flow needs, such as the headless OAuth2 pending state, derives its path from the store's path.
+the auth flow needs, such as the pending state of a headless sign-in, derives its path from the store's path.
 
 A missing or blank file is a fresh store with no apps; no placeholder app stands in for them, and an app named `default`
 appears only when a sign-in or token save needs one. A file that exists but cannot be read or parsed also loads with no
@@ -129,6 +129,27 @@ The CI check that runs the differential conformance suite: each case runs agains
 built at a pinned commit, and their results are compared. Without the original named, the suite skips rather than
 passing, so this gate is the only run that compares the two; cases that need the live API stay skipped there as well.
 The pinned commit is also the version every known difference is stated against.
+
+## Sign-in
+
+### Interactive sign-in
+
+The OAuth2 sign-in that opens the provider's authorize page in a browser and receives the redirect on a loopback
+callback listener the CLI binds at the app's registered redirect address. It runs only when output goes to a terminal
+and the caller has not asked for the headless form.
+
+The listener opens the browser only once it is bound, and serves one redirect: a request for another path is answered
+not-found and the wait goes on, while a request on the callback path ends the sign-in, completing it when the state
+matches and a code is present and refusing it otherwise. The refusal is shown in the browser.
+
+### Headless sign-in
+
+The two-step OAuth2 sign-in for a host where no browser can reach a local listener: the first step prints the authorize
+URL and records the flow's pending state beside the token store, and the second takes the redirect URL the operator
+pastes back, checks it against that pending state, and exchanges the code. No listener is bound. The CLI switches to it
+on its own when output is not a terminal.
+
+*Avoid:* remote flow, copy-paste flow
 
 ## Command surface
 
