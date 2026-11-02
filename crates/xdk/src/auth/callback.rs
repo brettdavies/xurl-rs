@@ -14,7 +14,8 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use tokio::net::TcpListener;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, oneshot};
 use tokio_util::sync::CancellationToken;
 use url::Url;
@@ -23,6 +24,10 @@ use crate::error::{Error, Result};
 
 /// Hardcoded 5-minute timeout matching upstream Go xurl.
 const CALLBACK_TIMEOUT: Duration = Duration::from_secs(300);
+
+/// The most of one request the listener reads: a callback is a GET whose
+/// request line and headers fit inside it.
+const REQUEST_HEAD_LIMIT: usize = 4096;
 
 /// One-shot delivery slot for the authorization code (or an error string).
 ///
@@ -126,6 +131,33 @@ fn format_partial_bind_warning(bound_addr: &str, failed_addr: &str, failed_err: 
     )
 }
 
+/// Reads `stream` into `buf` up to the blank line that ends the request head,
+/// the peer's end of stream, or a full buffer, and returns the length read.
+///
+/// Reading the whole head leaves nothing unread when the connection closes:
+/// closing with unread bytes sends a reset in place of a clean close (RFC
+/// 1122 section 4.2.2.13), and the client can lose the response to it.
+async fn read_request_head(stream: &mut TcpStream, buf: &mut [u8]) -> std::io::Result<usize> {
+    let mut filled = 0;
+    while filled < buf.len() && !buf[..filled].windows(4).any(|w| w == b"\r\n\r\n") {
+        let n = stream.read(&mut buf[filled..]).await?;
+        if n == 0 {
+            break;
+        }
+        filled += n;
+    }
+    Ok(filled)
+}
+
+/// Writes an HTTP/1.1 response with `status` and a plain-text `body`.
+async fn respond(stream: &mut TcpStream, status: &str, body: &str) {
+    let response = format!(
+        "HTTP/1.1 {status}\r\nContent-Length: {}\r\n\r\n{body}",
+        body.len()
+    );
+    let _ = stream.write_all(response.as_bytes()).await;
+}
+
 /// Drives one listener's accept loop.
 ///
 /// Reads a single HTTP request, validates state, and writes the response.
@@ -154,29 +186,22 @@ async fn run_accept_loop(
             () = cancel.cancelled() => return,
             res = listener.accept() => res,
         };
-        let Ok((stream, _)) = accept_result else {
+        let Ok((mut stream, _)) = accept_result else {
             continue;
         };
 
-        let mut buf = [0u8; 4096];
-        if stream.readable().await.is_err() {
-            continue;
-        }
-        let Ok(n) = stream.try_read(&mut buf) else {
-            continue;
+        let mut buf = [0u8; REQUEST_HEAD_LIMIT];
+        let n = match read_request_head(&mut stream, &mut buf).await {
+            Ok(n) if n > 0 => n,
+            _ => continue,
         };
-        if n == 0 {
-            continue;
-        }
 
         let request = String::from_utf8_lossy(&buf[..n]);
         let first_line = request.lines().next().unwrap_or("");
         let request_path = first_line.split_whitespace().nth(1).unwrap_or("");
 
         if !path_matches(&uri_path, request_path) {
-            let response = "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found";
-            let _ = stream.writable().await;
-            let _ = stream.try_write(response.as_bytes());
+            respond(&mut stream, "404 Not Found", "Not Found").await;
             continue;
         }
 
@@ -188,13 +213,12 @@ async fn run_accept_loop(
         let received_state = params.get("state").copied().unwrap_or("");
 
         if received_state != expected_state {
-            let body = "Error: invalid state parameter";
-            let response = format!(
-                "HTTP/1.1 400 Bad Request\r\nContent-Length: {}\r\n\r\n{body}",
-                body.len()
-            );
-            let _ = stream.writable().await;
-            let _ = stream.try_write(response.as_bytes());
+            respond(
+                &mut stream,
+                "400 Bad Request",
+                "Error: invalid state parameter",
+            )
+            .await;
             if let Some(tx) = result_tx.lock().await.take() {
                 let _ = tx.send(Err("invalid state parameter".to_string()));
             }
@@ -203,13 +227,12 @@ async fn run_accept_loop(
         }
 
         if code.is_empty() {
-            let body = "Error: empty authorization code";
-            let response = format!(
-                "HTTP/1.1 400 Bad Request\r\nContent-Length: {}\r\n\r\n{body}",
-                body.len()
-            );
-            let _ = stream.writable().await;
-            let _ = stream.try_write(response.as_bytes());
+            respond(
+                &mut stream,
+                "400 Bad Request",
+                "Error: empty authorization code",
+            )
+            .await;
             if let Some(tx) = result_tx.lock().await.take() {
                 let _ = tx.send(Err("empty authorization code".to_string()));
             }
@@ -217,13 +240,12 @@ async fn run_accept_loop(
             return;
         }
 
-        let body = "Authentication successful! You can close this window.";
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{body}",
-            body.len()
-        );
-        let _ = stream.writable().await;
-        let _ = stream.try_write(response.as_bytes());
+        respond(
+            &mut stream,
+            "200 OK",
+            "Authentication successful! You can close this window.",
+        )
+        .await;
 
         if let Some(tx) = result_tx.lock().await.take() {
             let _ = tx.send(Ok(code.to_string()));
