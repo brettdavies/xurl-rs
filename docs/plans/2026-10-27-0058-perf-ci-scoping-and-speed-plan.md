@@ -149,7 +149,7 @@ powerset, and four of the six feature cells caught nothing (Appendix).
 - The PR tier's slowest job takes 90 s or less on a warm cache, from 271 s, and the hook on a scoped change 30 s or
   less, from 370 s for the full sweep.
 - A PR into `dev` runs at most 10 jobs (11 with two test partitions), a docs-only PR 2, and none waits for a runner when
-  no other PR is running.
+  no other PR or post-merge run is running.
 - Every job has a job-table row, and the guard fails on a seeded job without a row and a row without a job.
 - A PR's first run, with no cache of its own, compiles no dependency crate when `dev` has a matching warm cache.
 - Every guard named in KTD4, KTD8, and KTD9 fails on a seeded violation and passes on the repo as merged.
@@ -290,11 +290,12 @@ powerset, and four of the six feature cells caught nothing (Appendix).
     required cells would wait forever. The `ci` job that calls the reusable keeps `if: !cancelled()` for the same
     reason, and passes `jobs` as a JSON array string, the only list shape a reusable input takes.
 - KTD11. **The reusable gains three inputs, in one PR that lands before U1:** `warm_cache` (KTD2), `test_runner`
-  (`cargo` or `nextest`, which also splits the test job, KTD4), and `jobs`, a list of the reusable jobs to run, empty
-  meaning all (KTD10). Each defaults to today's behavior (KD3), so landing them together changes no caller, and every
-  xurl-rs unit after it opts in without another cross-repo wait (R1 in the Decision ledger). `jobs` replaces the
-  narrower `test_packages`, because the tiers have to switch the reusable's Windows, package, audit, and shellcheck jobs
-  on and off, not only scope the tests.
+  (`cargo` or `nextest`, which also splits the test job, KTD4), and `jobs`, the reusable jobs to run: `all` by default,
+  and an empty list meaning none, so a docs-only PR turns every reusable job off while the caller job still runs and
+  each skipped required check reports success (KTD10). Each defaults to today's behavior (KD3), so landing them together
+  changes no caller, and every xurl-rs unit after it opts in without another cross-repo wait (R1 in the Decision
+  ledger). `jobs` replaces the narrower `test_packages`, because the tiers have to switch the reusable's Windows,
+  package, audit, and shellcheck jobs on and off, not only scope the tests.
 - KTD12. **`ci.yml` sets no `CARGO_HTTP_MULTIPLEXING`.** (session-settled: user-directed — chosen over setting it on
   xurl-rs's own jobs: Brett declined it.) Conflict call-out: `brettdavies/.github#100` (2026-10-27) sets
   `CARGO_HTTP_MULTIPLEXING: "false"` in every reusable job, citing the same curl error 16. xurl-rs's own jobs still
@@ -676,8 +677,10 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
   - `.github/rulesets/protect-dev.json` and `protect-main.json`: the PR-tier jobs and every job, for Brett to apply.
   - `scripts/hooks/pre-push`: runs the PR-tier jobs the classifier names for the push, and prints `--jobs`'s lists.
 - **Approach:**
-  1. `Change scope` runs the classifier for the event's tier on the event's diff (the PR's diff, or the pushed range on
-     `dev`) and outputs one boolean per job; on a PR into `main` every output is true.
+  1. `Change scope` runs the classifier for the event's tier on the event's diff (the PR's diff, or the pushed range
+     `github.event.before..github.sha` on `dev`) and outputs one boolean per job; on a PR into `main` every output is
+     true. A push whose `before` is all zeros (a new ref) or is not an ancestor of the pushed commit (a force-push) runs
+     every job, as any unknown change does (KD4).
   2. Each job's condition reads its own output; the `Library features` job and any matrix keep `if: !cancelled()` and
      skip steps.
   3. A scope job that fails or never reports runs everything, as today.
@@ -691,6 +694,10 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
   - A PR into `main` runs every row, and `protect-main` requires them all.
   - A PR touching `.github/workflows/ci.yml` runs every job of the PR tier.
   - The scheduled run reports the advisory audit on `dev`.
+  - The scope step given a push with an all-zero `before`, or a `before` that is not an ancestor, outputs true for every
+    job (KD4).
+  - A docs-only PR passes `jobs: []` to the reusable, which runs none of its jobs, and each of their required checks
+    reports skipped (KTD11).
   - A seeded slow-tier failure after merge shows as a red check on the `dev` commit, and the release PR cannot merge
     over it.
   - Two pushes to `dev` minutes apart both run to completion, each with its own checks on its own commit, and
@@ -770,23 +777,23 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 ## Verification Contract
 
-| Gate                                                                            | Applies to         | Pass                                                          |
-| ------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------- |
-| `cargo nextest run --workspace --profile ci` and `cargo test --doc --workspace` | U3 onward          | All pass; test count equals the `cargo test` count            |
-| The `change_classes_tests` module under nextest                                 | U7                 | All pass                                                      |
-| `ci_jobs_table_guard` and `dev_setup_tests`                                     | U7, U11            | Each fails on its seeded violations and passes on the tree    |
-| `scripts/hooks/pre-push`                                                        | every xurl-rs unit | Passes with nextest; without it, stops naming the install     |
-| `nextest_config_guard`, `test_layout_guard`, `test_invocation_guard`            | U3, U6             | Each fails on its seeded violations and passes on the tree    |
-| Test list before and after the move                                             | U6                 | Identical, file mapped to module                              |
-| actionlint on changed workflows, in both repos                                  | U1, U3, U8         | Clean                                                         |
-| Push to PR verdict, hook included, on two scoped PRs                            | after U3 and U8    | Under 2 minutes (KD5), or the per-job times go to Brett       |
-| PR tier's slowest job on a warm PR (`gh run view --json jobs`)                  | after U6           | 90 s or less                                                  |
-| `gtime scripts/hooks/pre-push` on a scoped change                               | after U8           | 30 s or less                                                  |
-| Test compile phase (`Finished test profile`)                                    | U5, U6             | 50 s or less                                                  |
-| Test-running phase                                                              | U3, U4             | 40 s or less                                                  |
-| Dependency compilation in a fresh PR's test job                                 | U1                 | None when `dev` has a matching warm cache                     |
-| Jobs on a PR into `dev`                                                         | U8                 | 9 at most, 2 for docs only, none queued when no other PR runs |
-| A fresh clone after `scripts/dev-setup.sh`                                      | U11                | pre-push passes                                               |
+| Gate                                                                            | Applies to         | Pass                                                                                                           |
+| ------------------------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `cargo nextest run --workspace --profile ci` and `cargo test --doc --workspace` | U3 onward          | All pass; test count equals the `cargo test` count                                                             |
+| The `change_classes_tests` module under nextest                                 | U7                 | All pass                                                                                                       |
+| `ci_jobs_table_guard` and `dev_setup_tests`                                     | U7, U11            | Each fails on its seeded violations and passes on the tree                                                     |
+| `scripts/hooks/pre-push`                                                        | every xurl-rs unit | Passes with nextest; without it, stops naming the install                                                      |
+| `nextest_config_guard`, `test_layout_guard`, `test_invocation_guard`            | U3, U6             | Each fails on its seeded violations and passes on the tree                                                     |
+| Test list before and after the move                                             | U6                 | Identical, file mapped to module                                                                               |
+| actionlint on changed workflows, in both repos                                  | U1, U3, U8         | Clean                                                                                                          |
+| Push to PR verdict, hook included, on two scoped PRs                            | after U3 and U8    | Under 2 minutes (KD5), or the per-job times go to Brett                                                        |
+| PR tier's slowest job on a warm PR (`gh run view --json jobs`)                  | after U6           | 90 s or less                                                                                                   |
+| `gtime scripts/hooks/pre-push` on a scoped change                               | after U8           | 30 s or less                                                                                                   |
+| Test compile phase (`Finished test profile`)                                    | U5, U6             | 50 s or less                                                                                                   |
+| Test-running phase                                                              | U3, U4             | 40 s or less                                                                                                   |
+| Dependency compilation in a fresh PR's test job                                 | U1                 | None when `dev` has a matching warm cache                                                                      |
+| Jobs on a PR into `dev`                                                         | U8                 | 10 at most (11 with two test partitions), 2 for docs only, none queued when no other PR or post-merge run runs |
+| A fresh clone after `scripts/dev-setup.sh`                                      | U11                | pre-push passes                                                                                                |
 
 ## Definition of Done
 
@@ -1201,13 +1208,27 @@ Second pass:
   U11.
 - **Warm jobs are named apart** (confidence 9/10): a job built with execution off carries `(warm cache)`, so a push run
   never reports a required check's name for tests that did not run. Necessary for KD1 and R6. Applied to KTD2.
+- **An empty `jobs` list means none** (Section 1 finding A3, confidence 9/10, KTD11 as written: "`jobs`, a list of the
+  reusable jobs to run, empty meaning all"): the caller job always runs (KTD10), so a docs-only PR has to pass a list
+  that turns every reusable job off, and "empty means all" would run them all instead. The default becomes `all`, which
+  keeps today's behavior for every other caller (KD3), and an empty list means none. Necessary for R6 and U8's docs-only
+  scenario. Applied to KTD11.
+- **The pushed range has two fallbacks** (Section 1 finding A4, confidence 8/10, GitHub's push payload sends an all-zero
+  `before` for a new ref, and a force-push's `before` is not an ancestor): either runs every job. Necessary for KD4.
+  Applied to U8.
+- **A post-merge run shares the runner pool** (Section 4 finding P1, confidence 7/10, KTD1's 20-job account against the
+  Appendix table's 11 post-merge rows and 10 PR rows): a PR pushed while a merge's slow tier runs can wait for a runner,
+  and with D3 two overlapping merges can hold more. The success criterion and verification row now say "no other PR or
+  post-merge run", the condition the design meets. No behavior change. Applied to Success Criteria and the Verification
+  Contract.
 - **`scripts/cargo-inputs.sh` is now a canon** (confidence 10/10, brettdavies/agent-skills#219, merged 2026-11-01):
   rust-tool-release ships one copy merged from bird's and xurl-rs's, and the vendored-canon wave re-vendors xurl-rs's.
   The classifier keeps calling the vendored copy, and `cargo_inputs_tests` stays the holder of xurl-rs's verdicts, so
   the re-vendor's behavior change shows there. No plan change beyond this record.
 
-Approval readiness: PASS. R1 (D2), R2 (D3), and T1 (D4) cite their own answers; the corrections cite the approvals they
-implement (R1, R13, KTD4, KTD8, and the supply-chain rule).
+Approval readiness: PASS. First pass: R1 (D2), R2 (D3), and T1 (D4) cite their own answers. Second pass: R3 (second-pass
+D2) and R4 (second-pass D3) cite theirs. The corrections cite the approvals they implement (R1, R6, R11, R13, R14, R15,
+R17, KD1, KD4, KTD4, KTD8, KTD9, KTD10, KTD11, and the supply-chain rule).
 
 ## Eng Review Body
 
@@ -1256,7 +1277,8 @@ Three lanes could run in parallel; this session runs them in sequence (one sessi
 - [ ] **T1 (P1, human: ~3h / CC: ~20 min)** — shared workflow — add the three inputs and pin the toolchain action
   - Surfaced by: Scope Challenge, R1 (D2) and T1 (D4)
   - Files: `brettdavies/.github: .github/workflows/rust-ci.yml`
-  - Verify: the reusable's own CI passes; a caller passing no new input shows the same jobs and steps
+  - Verify: the reusable's own CI passes; a caller passing no new input shows the same jobs and steps; a caller passing
+    `jobs: []` runs none of them
 - [ ] **T2 (P1, human: ~2h / CC: ~15 min)** — U1 warm mode — reuse each job's build command with execution off; push
   runs save only on success
   - Surfaced by: Architecture finding 1
@@ -1297,6 +1319,149 @@ None.
 ### Suppressed findings
 
 None.
+
+### Second pass (2026-10-28 to 2026-11-01)
+
+The DX review added the tiers (KD6), the job table and classifier (KTD9, U7), the tier wiring (KTD10, U8), the setup
+command (KTD15, U11), stable codes (KTD14), and `Library features` (KTD16). This pass reviewed those additions.
+
+**Architecture.**
+
+- `[CRITICAL] (confidence: 9/10)` Appendix job table, `Tests` row: its hand list leaves out the scripts two tests run
+  (`crates/xurl-cli/tests/agentic_tests.rs:647`, `surface_bump_tests.rs:17`). Resolved by R3 (D2).
+- `[CRITICAL] (confidence: 9/10)` `.github/workflows/ci.yml:26-28`: one cancelling group per ref would let the next
+  merge cancel a push run, losing R15's per-commit verdict. Resolved by R4 (D3).
+- `[INFORMATIONAL] (confidence: 9/10)` KTD11: `jobs` "empty meaning all" leaves a docs-only PR no way to turn the
+  reusable's jobs off. Corrected: `all` by default, `[]` none.
+- `[INFORMATIONAL] (confidence: 8/10)` U8: the pushed range needs fallbacks for a new ref and a force-push. Corrected.
+- `[INFORMATIONAL] (confidence: 9/10)` KTD10: a scheduled run starts on `main`, so the audit checks out `dev`.
+  Corrected.
+- `[INFORMATIONAL] (confidence: 9/10)` KTD9: a renamed required check strands the rulesets. Corrected: rulesets travel
+  with the PR, and `ci_jobs_table_guard` reads their contexts.
+- Design twice. Shape A (the plan): `.github/ci-jobs.tsv` plus `scripts/change-classes.sh <tier>`, read by
+  `Change scope`, the pre-push hook, and `--jobs`. Shape B: per-job `paths` filters in `ci.yml` through a paths-filter
+  action, with the hook keeping its own list. A hides the trigger policy, the fallbacks, and the docs-only verdict
+  behind one call; B writes the same policy in two places. Pick A. Red flags on A: hand-synced lists (the table,
+  `ci.yml`'s jobs, and the rulesets) are held by `ci_jobs_table_guard`, now including ruleset contexts;
+  `scripts/cargo-inputs.sh` and the classifier compose rather than duplicate, since the classifier calls it; no other
+  flag.
+
+**Code quality.**
+
+- `[INFORMATIONAL] (confidence: 8/10)` KTD10: the reusable's caller job needs `if: !cancelled()`, and `jobs` is a JSON
+  array string. Corrected.
+- `[INFORMATIONAL] (confidence: 8/10)` U11: the nextest version reaches the reusable only as an input. Corrected.
+- `[INFORMATIONAL] (confidence: 9/10)` KTD2: a warm job reporting a required check's name would read as a passing test.
+  Corrected: `(warm cache)` names.
+- `[INFORMATIONAL] (confidence: 9/10)` Appendix table: `crates/xurl-cli/src/cli/env.rs` changes
+  `Windows program target`'s verdict. Corrected.
+- `[INFORMATIONAL] (confidence: 10/10)` Goal Capsule, Success Criteria, U8, Verification Contract: 10 PR-tier rows,
+  not 9. Corrected.
+
+**Test review.**
+
+```text
+CODE PATHS                                                 USER FLOWS
+[+] scripts/change-classes.sh (U7)                         [+] Contributor opens a PR into dev
+  ├── [★★★ PLANNED] path → rows, per tier (TSV fixture)       ├── [★★★ PLANNED] docs-only: 2 jobs, reusable gets [] (U8)
+  ├── [★★★ PLANNED] unknown path → every job (KD4)            ├── [★★★ PLANNED] CLI-only: 3 jobs, rest skipped (U8)
+  ├── [★★★ PLANNED] workflow/table/classifier → every job     └── [★★★ PLANNED] script a test runs → Tests (R3)
+  ├── [★★★ PLANNED] docs-only via cargo-inputs.sh           [+] Merge to dev
+  └── [★★  PLANNED] --jobs preview, empty diff                ├── [★★★ PLANNED] slow tier for the pushed range (U8)
+[+] Change scope job (U8)                                     ├── [★★★ PLANNED] two merges both finish (R4, D3)
+  ├── [★★★ PLANNED] PR diff / pushed range                    └── [★★★ PLANNED] seeded failure → red check on commit
+  ├── [★★★ ADDED]   all-zero or non-ancestor before → all  [+] Release PR into main
+  └── [★★  PLANNED] scope job fails → run everything          └── [★★★ PLANNED] every row, unscoped (U8)
+[+] ci_jobs_table_guard (U7)                               [+] Daily schedule
+  └── [★★★ PLANNED] job/row/reason/ruleset seeded cases       └── [★★  PLANNED] advisory audit on dev's lockfile
+[+] reusable jobs input (T1)                               [+] Fresh clone (U11)
+  └── [★★★ ADDED]   all default / list / [] → none            └── [★★★ PLANNED] dev-setup.sh, rerun, failure code
+
+COVERAGE: 19/19 paths have a planned test (2 added as required proof of approved behavior)
+QUALITY: ★★★:15 ★★:4  |  GAPS: 0
+```
+
+The two `ADDED` proofs carry approved behavior (KD4, KTD11) and need no question. Test plan artifact:
+`~/.gstack/projects/brettdavies-xurl-rs/brett-dev-eng-review-test-plan-20261102-000154.md`.
+
+**Performance.**
+
+- `[INFORMATIONAL] (confidence: 7/10)` KTD1's 20-job account against 11 post-merge and 10 PR-tier rows: a PR pushed
+  during a merge's slow tier can wait for a runner, and D3 lets two merges overlap. Corrected the success criterion's
+  condition; no behavior change. Two overlapping push runs that save the same `rust-cache` key: the second save is
+  refused without failing its job.
+
+**Failure modes (new paths).**
+
+| New path                 | Realistic failure                              | Covered by                                    | Silent? |
+| ------------------------ | ---------------------------------------------- | --------------------------------------------- | ------- |
+| Push run on `dev`        | the next merge lands mid-run                   | one group per push (D3), U8 two-push scenario | no      |
+| Pushed range             | a new ref or a force-push                      | fallback to every job (U8 scenario)           | no      |
+| Reusable `jobs: []`      | read as all, running every reusable job        | `all` default, `[]` none (T1 verification)    | no      |
+| Renamed required check   | the ruleset still requires the old name        | `ci_jobs_table_guard` ruleset case            | no      |
+| Scheduled advisory audit | audits `main`'s lockfile, not the next release | `ref: dev` (U8 scenario)                      | no      |
+
+Critical gaps: 0.
+
+**Implementation tasks (second pass).**
+
+- [ ] **T5 (P1, human: ~30 min / CC: ~5 min)** — U8 — give each push run its own concurrency group
+  - Surfaced by: Architecture, R4 (D3)
+  - Files: `.github/workflows/ci.yml`
+  - Verify: two pushes to `dev` minutes apart both finish with their own checks; `scripts/check-workflow-concurrency.sh`
+    passes
+- [ ] **T6 (P1, human: ~1h / CC: ~10 min)** — U8 — the pushed range's fallbacks and `jobs: []` for a docs-only PR
+  - Surfaced by: Architecture A3 and A4
+  - Files: `.github/workflows/ci.yml`, `scripts/change-classes.sh`
+  - Verify: the fixture's all-zero and non-ancestor cases output every job; a docs-only PR runs 2 jobs
+- [ ] **T7 (P2, human: ~1h / CC: ~10 min)** — U7 — the job table's corrected rows and the ruleset case in the guard
+  - Surfaced by: R3 (D2), Code quality (env.rs), Architecture (rulesets)
+  - Files: `.github/ci-jobs.tsv`, `crates/xurl-cli/tests/` (the guard), `.github/rulesets/`
+  - Verify: the guard fails on a seeded stale ruleset context; the fixture's new rows pass
+- T1 also carries the `jobs` default (`all`, `[]` none) and its verification.
+
+**Unresolved decisions.** None.
+
+**Reality rows.**
+
+| Premise                                                | Receipt                                          | Verdict    |
+| ------------------------------------------------------ | ------------------------------------------------ | ---------- |
+| A PR runs at most 9 jobs                               | Appendix table: 10 `pr` rows                     | false      |
+| The schedule runs on `dev`                             | scheduled runs start on the default branch       | false      |
+| `jobs` "empty meaning all" serves a docs-only PR       | KTD10: the caller job always runs                | false      |
+| Only webhooks paths change `Windows program target`    | `crates/xurl-cli/src/cli/env.rs` (PATH, PATHEXT) | false      |
+| No PR job waits when no other PR runs                  | 11 post-merge rows + 10 PR rows > 20 jobs        | false      |
+| `ci.yml` cancels in progress per ref                   | `.github/workflows/ci.yml:26-28`                 | true       |
+| The reusable lacks `jobs`, `warm_cache`, `test_runner` | `brettdavies/.github` `rust-ci.yml` on `main`    | true       |
+| The account runs 20 jobs at once                       | KTD1, no receipt                                 | unverified |
+| Push runs cost nothing on a public repository          | Risks table, no receipt                          | unverified |
+
+```text
+REALITY: premise-table finding 5 false premises corrected, unverified=2 docs/plans/2026-10-27-0058-perf-ci-scoping-and-speed-plan.md:151
+REALITY: already-done pass #408 and #431 are the only changes to the named files since 2026-10-27, both folded in (U1, U5) .github/workflows/ci.yml:26
+REALITY: surface-check pass `cargo nextest run --partition` exists; `queue: max` is documented and rejected beside `cancel-in-progress: true` .github/workflows/ci.yml:28
+REALITY: binding-decisions pass the 2026-10-27 eng decision holds and KTD12 keeps Brett's no-multiplexing call docs/plans/2026-10-27-0058-perf-ci-scoping-and-speed-plan.md:298
+REALITY: numbers finding PR-tier job count re-derived as 10 [measured: Appendix job table]; 271 s and 90 s stay [re-measure before gate] docs/plans/2026-10-27-0058-perf-ci-scoping-and-speed-plan.md:151
+REALITY: deferred-asks pass no linked issue docs/plans/2026-10-27-0058-perf-ci-scoping-and-speed-plan.md:1
+REALITY: pr-count pass no ship policy, one PR per wave by default; the plan's 13 PRs keep its stacked per-repository order docs/plans/2026-10-27-0058-perf-ci-scoping-and-speed-plan.md:393
+```
+
+**Completion summary (second pass).**
+
+- Step 0: Scope Challenge — scope accepted as-is (second-pass D1, original arrangement)
+- Reality rows: 7/7 applicable rows emitted, 2 unverified premises
+- Architecture Review: 6 issues found
+- Code Quality Review: 5 issues found
+- Test Review: diagram produced, 2 gaps identified (both added as required proof)
+- Performance Review: 1 issue found
+- NOT in scope: unchanged from the first pass
+- What already exists: unchanged, plus `scripts/cargo-inputs.sh` as a rust-tool-release canon
+- TODOS.md updates: 0 items proposed to user
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: codex, disabled (`codex_reviews: disabled`)
+- Parallelization: 3 lanes, 0 parallel / 3 sequential (unchanged)
+- Lake Score: 2/2 (D2 and D3 picked the 10/10 option; D1 differs in kind)
 
 ## DX Review Record
 
@@ -1393,7 +1558,7 @@ T+4:30  PR verdict green on free runners, about 2 to 3 minutes estimated        
 [ ] Every guard failure and hook stop carries a code, the file, and the exact fix
 [ ] Documented test commands work after the move (test_invocation_guard)
 [ ] Every CI job has a job-table row with its reason, triggers, and tier
-[ ] A PR into dev runs 9 jobs at most; docs only, 2
+[ ] A PR into dev runs 10 jobs at most (11 with two test partitions); docs only, 2
 [ ] Works for fork PRs on free runners
 ```
 
@@ -1466,16 +1631,17 @@ Unresolved decisions: none.
 
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger               | Why                             | Runs | Status      | Findings                                              |
-| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ----------------------------------------------------- |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                                     |
-| Outside Review | codex, plan review    | Independent 2nd opinion         | 20   | skipped     | session rule: no outside model                        |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 14   | ISSUES OPEN | 5 issues, 0 critical gaps (all fixed)                 |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | —                                                     |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 7    | ISSUES OPEN | score: 5/10 → 7/10, push to verdict: 11.5-19 min → <2 |
+| Review | Trigger | Why | Runs | Status | Findings |
+| ------ | ------- | --- | ---- | ------ | -------- |
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
+| Outside Review | codex, plan review | Independent 2nd opinion | 30 | disabled | `codex_reviews: disabled`; no outside findings |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 20 | ISSUES OPEN | 14 issues, 0 critical gaps (all resolved: R3 D2, R4 D3, 12 corrections) |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 12 | ISSUES OPEN | this plan: score 5/10 → 7/10, push to verdict 11.5-19 min → <2 (2026-10-28) |
 
-- **OUTSIDE COVERAGE:** codex, plan review phase, skipped by the session's rule in both reviews; no outside findings.
-- **VERDICT:** no review CLEAR; the DX review moved the slow checks to new tiers, changed the required checks, and added
-  units U7, U8, and U11, so the eng review predates them — eng review required.
+- **OUTSIDE COVERAGE:** codex, plan review phase, disabled by `codex_reviews` in the second eng pass and skipped by the
+  session's rule before it; no outside findings.
+- **VERDICT:** no review CLEAR. The second eng pass's 14 findings are resolved in the plan and mapped to T1 and T5 to
+  T7, and its stored status stays ISSUES OPEN; eng review required.
 
 NO UNRESOLVED DECISIONS
