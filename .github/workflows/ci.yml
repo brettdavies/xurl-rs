@@ -128,7 +128,7 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
       - name: cargo doc
@@ -201,7 +201,7 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
       - name: Verify completions match the CLI definition
@@ -223,7 +223,7 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
       - name: Program-target tests
@@ -246,7 +246,7 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
       - name: Build and run the consumer crate's read
@@ -302,7 +302,7 @@ jobs:
         run: rustup toolchain install
       - name: Cache dependencies
         if: needs.scope.outputs.rust != 'false'
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
           key: ${{ matrix.name }}
@@ -376,7 +376,7 @@ jobs:
           rustup toolchain install "$msrv" --profile minimal --no-self-update
           echo "version=$msrv" >> "$GITHUB_OUTPUT"
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
           key: msrv-${{ steps.msrv.outputs.version }}
@@ -406,7 +406,7 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
       - name: Install Go xurl at the pinned commit
@@ -436,11 +436,11 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@8a2045612414e945291083f820cd50b4d8fc2218 # v1.26.0
+        uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
       - name: Install cargo-hack
         # A second binstall attempt covers a transient release-asset fetch
         # failure; a source build is the fallback after that.
@@ -502,11 +502,11 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install
       - name: Cache dependencies
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           cache-on-failure: true
       - name: Install cargo-binstall
-        uses: cargo-bins/cargo-binstall@8a2045612414e945291083f820cd50b4d8fc2218 # v1.26.0
+        uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
       - name: Install anc
         # A second binstall attempt covers a transient release-asset fetch
         # failure; a source build is the fallback after that.

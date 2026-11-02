@@ -7,7 +7,7 @@
 # Subcommands:
 #   drift         Branch drift: what main carries that dev never received (delegated to drift.sh)
 #   surface       Establish surface: commits + diff vs last tag, breaking markers
-#   api-contract  xr help command surface diff, public API semver check vs last tag
+#   api-contract  xr help command surface diff, public API semver check vs last tag, stale semver overrides
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
 #   multi-app     Multi-app credential routing (reuses or seeds $SMOKE_HOME)
 #   changelog-sections
@@ -190,6 +190,34 @@ gate_surface() {
 
 # Gate: api-contract ---------------------------------------------------------
 
+# A required-update entry in crates/xdk/Cargo.toml reclassifies one release's
+# break. Once a tag moves the baseline past that break its lint stops firing,
+# and the entry would reclassify the next break of the same kind unseen, so an
+# entry whose lint the patch-level probe does not name fails here.
+check_semver_overrides() {
+  local lib_tag="$1" overridden probe fired stale
+  overridden=$(cargo metadata --no-deps --format-version 1 --offline 2>/dev/null \
+    | jaq -r '.packages[] | select(.name == "xdk-rs") | .metadata["cargo-semver-checks"].lints // {}
+      | to_entries[] | select(.value["required-update"] != null) | .key' | sort -u)
+  if [[ -z "$overridden" ]]; then
+    gate_pass "semver overrides: crates/xdk/Cargo.toml reclassifies no break"
+    return
+  fi
+  probe=$(cargo semver-checks check-release --package xdk-rs \
+    --baseline-rev "$lib_tag" --release-type patch 2>&1) || true
+  if ! grep -q '^ *Checked' <<<"$probe"; then
+    gate_skip "semver overrides" "the patch-level probe did not compare xdk-rs with $lib_tag"
+    return
+  fi
+  fired=$(sed -n 's/^--- failure \([a-z_]*\):.*/\1/p' <<<"$probe" | sort -u)
+  stale=$(comm -23 <(printf '%s\n' "$overridden") <(printf '%s\n' "$fired") | paste -sd ' ')
+  if [[ -n "$stale" ]]; then
+    gate_fail "semver overrides whose lint no longer fires vs $lib_tag: $stale (delete them from crates/xdk/Cargo.toml)"
+  else
+    gate_pass "semver overrides: each still reclassifies a break vs $lib_tag"
+  fi
+}
+
 gate_api_contract() {
   header "API contract surface"
   require_built_binary
@@ -247,6 +275,7 @@ gate_api_contract() {
         gate_skip "cargo-semver-checks" \
           "did not compare xdk-rs with $lib_tag (exit $semver_rc): $(grep -m1 '^error:' <<<"$semver_out" || tail -n 1 <<<"$semver_out"); CI's public-API semver gate decides on the PR"
       fi
+      check_semver_overrides "$lib_tag"
     fi
   else
     gate_skip "cargo-semver-checks" "not installed (cargo binstall cargo-semver-checks)"
