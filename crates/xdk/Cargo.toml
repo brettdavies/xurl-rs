@@ -54,7 +54,7 @@ testing = ["dep:wiremock", "hyper/client"]
 reqwest.workspace = true
 futures-core = "0.3"
 bytes = "1"
-tokio = { workspace = true, features = ["net"] }
+tokio = { workspace = true, features = ["io-util", "net"] }
 tokio-util.workspace = true
 # The webhook receiver's HTTP server. reqwest already brings all three into
 # every build as its client stack; the receiver adds hyper's server half.
