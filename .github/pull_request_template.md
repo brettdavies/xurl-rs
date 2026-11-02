@@ -1,3 +1,4 @@
+<!-- Canonical version: 2026.10.22 (generic) -->
 ## Summary
 
 <!-- Provide a brief overview of the changes in this PR. What feature/fix/improvement does this introduce?
@@ -38,8 +39,9 @@
      reordering, cargo_bin migration, cfg gates, etc.). Document those in
      the PR body text or Files Modified section, NOT here.
 
-     THE SECTION SETS THE VERSION (RELEASES.md § Versioning). Breaking changes:
-     major. Added or Deprecated: minor. Changed, Fixed, Documentation: patch.
+     THE SECTION SETS THE VERSION (RELEASES.md § Versioning). Breaking changes
+     or Removed: major. Added or Deprecated: minor. Changed, Fixed,
+     Documentation: patch.
      A change to the contract (a command, flag, env var, exit code, or a
      structured-output field, reason, or action) never goes under Changed.
      An MSRV bump sets a minor wherever it is filed. The Changelog bump
@@ -49,6 +51,8 @@
      RULES:
 - 1-5 bullets per crate. Fewer is better. One-line fixes get one bullet.
 - Delete empty ### sections entirely; don't leave blank categories.
+- Keep the sections in this order, the one generate-changelog.py emits: Breaking changes, Added, Changed, Deprecated,
+  Removed, Fixed, Documentation.
 - Each bullet starts with a verb: Add, Fix, Change, Remove, Deprecate.
 - Don't duplicate the PR title; expand on it or provide context.
 - If a crate has NO user-facing change in this PR, leave its section heading
@@ -71,6 +75,10 @@
 
 -
 
+### Removed
+
+-
+
 ### Fixed
 
 -
@@ -82,9 +90,9 @@
 ## Changelog (xdk-rs)
 
 <!-- The library's changelog. Same rules as above, for `xdk-rs` API consumers.
-     While xdk-rs is 0.x, Breaking changes moves the middle number (0.1.x to
-     0.2.0) and every other section moves the last (0.1.0 to 0.1.1), which
-     Cargo reads as the compatible position of a 0.x crate.
+     While xdk-rs is 0.x, Breaking changes or Removed moves the middle number
+     (0.1.x to 0.2.0) and every other section moves the last (0.1.0 to
+     0.1.1), which Cargo reads as the compatible position of a 0.x crate.
 
      BREAKING ENTRIES CARRY A BEFORE/AFTER SNIPPET. crates/xdk/README.md makes
      this a release gate: a release that breaks something and ships no snippet
@@ -118,6 +126,10 @@
 -
 
 ### Deprecated
+
+-
+
+### Removed
 
 -
 

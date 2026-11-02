@@ -246,7 +246,7 @@ prior squash, it's a false positive (no action). Otherwise cherry-pick the commi
 `scripts/generate-changelog.py` (vendored from the `github-repo-setup` skill, with the repo-local `cliff.toml`) is the
 only sanctioned way to update `CHANGELOG.md`. On an overlay-built release branch it runs as `--from-dev-prs`: the PRs
 merged into `dev` since the previous release are the entries, and each PR's body supplies its `## Changelog → ###
-Breaking changes / Added / Changed / Deprecated / Fixed / Documentation` subsections (with author and PR-link
+Breaking changes / Added / Changed / Deprecated / Removed / Fixed / Documentation` subsections (with author and PR-link
 attribution). On a cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's
 commits, then expands the same way.
 
