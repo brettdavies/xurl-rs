@@ -1146,6 +1146,7 @@
               "profile_image_url",
               "protected",
               "public_metrics",
+              "receives_your_chat",
               "receives_your_dm",
               "subscriber_count",
               "subscribes_to_you",
@@ -18512,14 +18513,103 @@
         ],
         "type": "object"
       },
-      "SendChatMessageRequest": {
+      "SendChatMessageContent": {
+        "additionalProperties": false,
         "properties": {
+          "message": {
+            "$ref": "#/components/schemas/SendChatMessageContentMessage",
+            "description": "A text message."
+          },
+          "reaction_add": {
+            "$ref": "#/components/schemas/SendChatMessageContentReactionAdd",
+            "description": "Adds a reaction to a message."
+          },
+          "reaction_remove": {
+            "$ref": "#/components/schemas/SendChatMessageContentReactionRemove",
+            "description": "Removes a reaction from a message."
+          }
+        },
+        "type": "object"
+      },
+      "SendChatMessageContentMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "description": "Text of the message.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "SendChatMessageContentReactionAdd": {
+        "additionalProperties": false,
+        "properties": {
+          "emoji": {
+            "description": "Emoji of the reaction.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "event_id": {
+            "description": "ID of the message event the reaction is on.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "emoji"
+        ],
+        "type": "object"
+      },
+      "SendChatMessageContentReactionRemove": {
+        "additionalProperties": false,
+        "properties": {
+          "emoji": {
+            "description": "Emoji of the reaction.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "event_id": {
+            "description": "ID of the message event the reaction is on.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "emoji"
+        ],
+        "type": "object"
+      },
+      "SendChatMessageRequest": {
+        "anyOf": [
+          {
+            "required": [
+              "encoded_message_create_event"
+            ]
+          },
+          {
+            "required": [
+              "content"
+            ]
+          }
+        ],
+        "description": "At least one of `encoded_message_create_event`, `content` is required.",
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/SendChatMessageContent",
+            "description": "Plaintext message or reaction, sent unencrypted. Set exactly one of `message`, `reaction_add`, or `reaction_remove`. Omit when sending `encoded_message_create_event`."
+          },
           "conversation_token": {
             "description": "Optional conversation token.",
             "type": "string"
           },
           "encoded_message_create_event": {
-            "description": "Base64-encoded Thrift MessageCreateEvent containing encrypted message contents.",
+            "description": "Base64-encoded Thrift MessageCreateEvent containing encrypted message contents. Omit when sending `content`.",
             "type": "string"
           },
           "encoded_message_event_signature": {
@@ -18536,8 +18626,7 @@
           }
         },
         "required": [
-          "message_id",
-          "encoded_message_create_event"
+          "message_id"
         ],
         "type": "object"
       },
@@ -21730,8 +21819,12 @@
           "public_metrics": {
             "$ref": "#/components/schemas/UserPublicMetrics"
           },
+          "receives_your_chat": {
+            "description": "How you can send a Chat message to this User: encrypted, unencrypted, or none.",
+            "type": "string"
+          },
           "receives_your_dm": {
-            "description": "Indicates if you can send a DM to this User.",
+            "description": "Indicates if you can send a DM to this User. Omitted when the DM permission can't be determined, so it is never reported as false in that case.",
             "type": "boolean"
           },
           "subscriber_count": {
@@ -28112,7 +28205,7 @@
     },
     "/2/chat/conversations/{id}/messages": {
       "post": {
-        "description": "Sends an encrypted message to a specific Chat conversation. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. A recipient who cannot be messaged (closed inbox, system/notification account, or a 1:1 block) returns HTTP 403 with type https://api.x.com/2/problems/recipient-not-messageable.",
+        "description": "Sends a message or reaction to a specific Chat conversation. Send either `encoded_message_create_event`, an encrypted event built with the Chat XDK, or `content`, a plaintext message or reaction that is sent unencrypted. Use the recipient's `receives_your_chat` user field to choose: `encrypted` takes `encoded_message_create_event`, `unencrypted` takes `content`, and `none` means the recipient cannot be messaged. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. A recipient who cannot be messaged (closed inbox, system/notification account, or a 1:1 block) returns HTTP 403 with type https://api.x.com/2/problems/recipient-not-messageable.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
