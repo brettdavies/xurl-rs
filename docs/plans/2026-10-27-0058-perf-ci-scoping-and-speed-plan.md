@@ -41,11 +41,11 @@ execution: code
 ### Summary
 
 A push to a PR into `dev` runs a fast tier: format, clippy, nextest in parallel jobs, the guards, and whatever lint the
-change's paths call for, about 9 jobs at most. The slow checks (release build and size ceiling, Windows, Go parity,
-MSRV, the library's feature matrix, semver, packaging, the consumer check, completions) run after each merge to `dev`
-and gate the release PR into `main`. One job table says why each job exists and which paths trigger it; CI, the pre-push
-hook, and a `--jobs` preview all read it. Push runs keep dependency caches warm, and the tests build and run faster
-after an audit.
+change's paths call for, 10 jobs at most (11 if U3 splits the tests into two partitions). The slow checks (release build
+and size ceiling, Windows, Go parity, MSRV, the library's feature matrix, semver, packaging, the consumer check,
+completions) run after each merge to `dev` and gate the release PR into `main`. One job table says why each job exists
+and which paths trigger it; CI, the pre-push hook, and a `--jobs` preview all read it. Push runs keep dependency caches
+warm, and the tests build and run faster after an audit.
 
 ### Problem Frame
 
@@ -148,7 +148,8 @@ powerset, and four of the six feature cells caught nothing (Appendix).
   free runners (KD7) the estimate is 2 to 3 minutes; a measured miss is reported to Brett with the per-job times.
 - The PR tier's slowest job takes 90 s or less on a warm cache, from 271 s, and the hook on a scoped change 30 s or
   less, from 370 s for the full sweep.
-- A PR into `dev` runs at most 9 jobs, a docs-only PR 2, and none waits for a runner when no other PR is running.
+- A PR into `dev` runs at most 10 jobs (11 with two test partitions), a docs-only PR 2, and none waits for a runner when
+  no other PR is running.
 - Every job has a job-table row, and the guard fails on a seeded job without a row and a row without a job.
 - A PR's first run, with no cache of its own, compiles no dependency crate when `dev` has a matching warm cache.
 - Every guard named in KTD4, KTD8, and KTD9 fails on a seeded violation and passes on the repo as merged.
@@ -200,7 +201,9 @@ powerset, and four of the six feature cells caught nothing (Appendix).
   environment, and toolchain as a PR run, `Swatinem/rust-cache` derives the same keys by construction; a separate
   workflow would have to copy every job's key inputs by hand and drift. GitHub lets a PR run restore from its own ref,
   its base branch, and the default branch, and only `push`, `schedule`, and dispatch runs can write those scopes
-  (`docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching`).
+  (`docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching`). A job that builds with execution
+  off carries a `(warm cache)` suffix in its name, so a push run never reports a required check's name for a job whose
+  tests did not run.
 - KTD3. **PR runs keep saving their caches.** `Swatinem/rust-cache` saves nothing after restoring an exact match (the
   warm run in the Appendix logged `Cache up-to-date.`), so a PR whose lockfile and toolchain match `dev` writes no
   entry. Only a PR that changes them saves its own set, and #408's `cache-on-failure` keeps that useful. One full set of
@@ -264,19 +267,28 @@ powerset, and four of the six feature cells caught nothing (Appendix).
   `--jobs` prints them for a person or agent before a push (D8). The `Change scope` job and the pre-push hook both call
   it (R8). Trigger paths are the narrowest that can change the job's verdict, as the Appendix's job table records;
   `scripts/cargo-inputs.sh` keeps the docs-only verdict, and a path that reaches cargo but matches no narrower row runs
-  every Rust job of the tier. A path no row names, and any change to a workflow, the classifier, the table, or a build
-  input, runs every job of the tier (KD4). `ci_jobs_table_guard` fails for a job in `ci.yml` or the reusable call with
-  no row, a row naming no job, and a row with no trigger or no reason.
+  every Rust job of the tier. The `Tests` row's trigger is any path `scripts/cargo-inputs.sh` reports (R3 in the
+  Decision ledger), since tests read and run files outside `crates/`. A path no row names, and any change to a workflow,
+  the classifier, the table, or a build input, runs every job of the tier (KD4). `ci_jobs_table_guard` fails for a job
+  in `ci.yml` or the reusable call with no row, a row naming no job, a row with no trigger or no reason, and a required
+  check in `.github/rulesets/protect-dev.json` or `protect-main.json` that names no job. A PR that renames a required
+  check carries the ruleset change with it, for Brett to apply when it merges.
 - KTD10. **Which tier runs where.** The workflow triggers own the tiers, and each job's condition reads the classifier's
   output for its tier.
   - `pull_request` into `dev` runs the `pr` rows the diff triggers; `protect-dev` requires them, and a skipped one
     reports success (R6).
   - `push` to `dev` runs the `post-merge` rows the pushed diff triggers, for real (KD1), and warms the `pr` rows'
-    caches.
+    caches. A push run is never cancelled: the concurrency group is
+    `ci-${{ github.event_name == 'push' && github.sha || github.ref }}`, so each push has a group of its own and each
+    `dev` commit keeps its post-merge verdict (R15), while PR runs keep one cancelling group per ref (R4 in the Decision
+    ledger).
   - `pull_request` into `main` runs every row, unscoped; `protect-main` requires them all (R11).
-  - `schedule` (daily, on `dev`) runs the advisory audit, since a new advisory arrives without any change to the repo.
+  - `schedule` (daily) runs the advisory audit, since a new advisory arrives without any change to the repo. A scheduled
+    run starts on the default branch, `main`, so the audit job checks out `dev` (`ref: dev`) to audit the lockfile the
+    next release ships.
   - A matrix keeps its job-level `if: !cancelled()` and skips steps, since a matrix skipped whole never expands and its
-    required cells would wait forever.
+    required cells would wait forever. The `ci` job that calls the reusable keeps `if: !cancelled()` for the same
+    reason, and passes `jobs` as a JSON array string, the only list shape a reusable input takes.
 - KTD11. **The reusable gains three inputs, in one PR that lands before U1:** `warm_cache` (KTD2), `test_runner`
   (`cargo` or `nextest`, which also splits the test job, KTD4), and `jobs`, a list of the reusable jobs to run, empty
   meaning all (KTD10). Each defaults to today's behavior (KD3), so landing them together changes no caller, and every
@@ -387,8 +399,8 @@ precedes U5, which measures debug info on the merged layout. U11 lands before U3
 The PRs, by repository, in merge order:
 
 1. `brettdavies/.github`: the `warm_cache`, `test_runner`, and `jobs` inputs, each defaulting to today's behavior, and
-   every toolchain install switched to `rustup toolchain install` behind a `toolchain` input defaulting to `stable`
-   (T1 in the Decision ledger), with the job-level debug-info setting that xurl-rs#431 measured.
+   every toolchain install switched to `rustup toolchain install` behind a `toolchain` input defaulting to `stable` (T1
+   in the Decision ledger), with the job-level debug-info setting that xurl-rs#431 measured.
 2. xurl-rs U1: push triggers and warm mode.
 3. xurl-rs U2: no code; its findings go to Brett, and each removal he approves lands as its own PR.
 4. xurl-rs U11: `.github/tool-versions` and `scripts/dev-setup.sh`.
@@ -553,10 +565,10 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 - **Files:** the shared workflow's job environment; `ci.yml`'s own jobs already build with
   `CARGO_PROFILE_DEV_DEBUG=line-tables-only` (xurl-rs#431).
 - **Approach:** xurl-rs#431 measured debug info on cold builds (run 40780555611, medians of 3, Ubuntu / Windows): full
-  169 / 436 s and 15.2 GB; `line-tables-only` 109 / 252 s and 6.8 GB with file-and-line backtraces kept; `0` 134 /
-  268 s and 3.1 GB with them lost. `ci.yml` adopted `line-tables-only`. The setting does not reach the reusable's jobs
-  from `ci.yml`'s workflow env, so the shared-workflow PR carries it to `Fmt, clippy, test`; after U6, measure whether
-  no debug info for dependencies alone shortens the warm compile phase by 5% or more, and keep it only then.
+  169 / 436 s and 15.2 GB; `line-tables-only` 109 / 252 s and 6.8 GB with file-and-line backtraces kept; `0` 134 / 268 s
+  and 3.1 GB with them lost. `ci.yml` adopted `line-tables-only`. The setting does not reach the reusable's jobs from
+  `ci.yml`'s workflow env, so the shared-workflow PR carries it to `Fmt, clippy, test`; after U6, measure whether no
+  debug info for dependencies alone shortens the warm compile phase by 5% or more, and keep it only then.
 - **Test expectation:** none -- a build setting; the suite's pass state is the check.
 - **Verification:** each kept setting's measurement is recorded, and a panicking test still prints its file and line;
   each dropped setting has its measurement recorded.
@@ -635,26 +647,30 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
   - `crates/xurl-cli/src/cli/mod.rs` alone triggers `Fmt, clippy`, `Tests` (with the anc score step), and post-merge
     `Completions freshness`, `Agent-native audit`, `Go parity`, `Doc build`, `MSRV`, and `Windows check`, and not
     `Library features`, `Public API semver`, or `Consumer check`.
-  - `crates/xdk/src/webhooks/program.rs` adds post-merge `Windows program target`; no other path does.
-  - `docs/plans/x.md` triggers only `markdownlint`; `scripts/lint-stdio.sh` triggers `Shellcheck` and
-    `Output discipline`; a script no row names triggers every job of the tier.
+  - `crates/xdk/src/webhooks/program.rs` and `crates/xurl-cli/src/cli/env.rs` add post-merge `Windows program target`;
+    no other path does.
+  - `docs/plans/x.md` triggers only `markdownlint`; `scripts/lint-stdio.sh` triggers `Shellcheck`, `Output discipline`,
+    and `Tests`; `scripts/check-surface-bump.sh` and `.github/rulesets/protect-dev.json` each trigger `Tests` (R3); a
+    script no row names triggers every job of the tier.
   - `Cargo.lock` triggers every job of the tier, including the dependency-policy audits.
   - `.github/workflows/ci.yml`, `.github/ci-jobs.tsv`, and a path in a new top-level directory each trigger every job.
   - `--jobs` prints the two tiers' lists for a diff, and an empty diff prints none.
-  - The guard fails on a seeded job with no row, a row with no job, and a row with no reason.
+  - The guard fails on a seeded job with no row, a row with no job, a row with no reason, and a ruleset context that
+    names no job.
 - **Verification:** the fixture covers every row's triggers and the fallbacks; the guard fails on its seeded cases;
   shellcheck passes.
 
 ### U8. Run the tiers
 
-- **Goal:** a PR into `dev` runs only the PR-tier jobs its diff triggers (9 at most, 2 for docs only), the slow tier
-  runs after each merge and in full on the release PR, and both rulesets require the right jobs.
+- **Goal:** a PR into `dev` runs only the PR-tier jobs its diff triggers (10 at most, 11 with two test partitions, 2 for
+  docs only), the slow tier runs after each merge and in full on the release PR, and both rulesets require the right
+  jobs.
 - **Requirements:** R6, R7, R8, R9, R11, R15; KD1, KD6, KD8, KTD10, KTD11, KTD16.
 - **Dependencies:** U7, U1 (the push trigger), and U3 (the split PR-tier jobs).
 - **Files:**
   - `.github/workflows/ci.yml`: the `Change scope` job's per-job outputs, each job's condition, the `schedule` trigger,
-    the `jobs` list passed to the reusable, and `Library features` replacing the six `Features` cells, the powerset, and
-    the no-backend guard.
+    the `jobs` list passed to the reusable, the concurrency group that gives each push run its own group (R4), and
+    `Library features` replacing the six `Features` cells, the powerset, and the no-backend guard.
   - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `jobs` input, landed with the shared-workflow PR (KTD11);
     the advisory audit runs without the caller's toolchain override.
   - `.github/rulesets/protect-dev.json` and `protect-main.json`: the PR-tier jobs and every job, for Brett to apply.
@@ -677,6 +693,8 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
   - The scheduled run reports the advisory audit on `dev`.
   - A seeded slow-tier failure after merge shows as a red check on the `dev` commit, and the release PR cannot merge
     over it.
+  - Two pushes to `dev` minutes apart both run to completion, each with its own checks on its own commit, and
+    `scripts/check-workflow-concurrency.sh` still passes on the group key's literal `ci-` (R4).
 - **Verification:** each scenario observed on a real PR or push; Brett has applied both rulesets.
 
 ### U9. Record how CI behaves now
@@ -731,7 +749,9 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 - **Files:**
   - `.github/tool-versions`, new: the exact versions of nextest, cargo-hack, anc, and the linters the hooks run.
   - `scripts/dev-setup.sh`, new.
-  - `.github/workflows/ci.yml`: the binstall steps read their versions from `.github/tool-versions`.
+  - `.github/workflows/ci.yml`: the binstall steps read their versions from `.github/tool-versions`, and the
+    `Change scope` job outputs the nextest version for the reusable's nextest install, since a caller's file reaches a
+    reusable only through an input.
   - `crates/xurl-cli/tests/dev_setup_tests.rs`, new: every tool CI pins is in the list.
   - `CONTRIBUTING.md`: the dev setup becomes clone, `scripts/dev-setup.sh`, `git config core.hooksPath scripts/hooks`.
 - **Approach:** the script installs each missing or older tool by binstall (Rust tools) or the platform's package
@@ -818,31 +838,31 @@ All binaries: 2002 tests, 160 s inside binaries, run one binary at a time.
 Job table: the initial rows of `.github/ci-jobs.tsv` (U7). Catches are each job's real failures in the last 300 CI runs
 (2026-09-24 to 2026-10-27, latest attempt of each run; reruns hide earlier flakes); times are the warm baseline run.
 
-| Job                         | Tier                   | Triggers (narrowest paths that can change its verdict)                                                                        | What only it protects                        | Catches                     | Warm  |
-| --------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------- | ----- |
-| Change scope                | pr                     | every PR and push                                                                                                             | decides what runs                            | n/a                         | 4 s   |
-| Fmt, clippy                 | pr                     | `crates/**/*.rs`, `rustfmt.toml`, `clippy.toml`                                                                               | formatting and lints                         | in the test job's 6         | ~40 s |
-| Tests (anc score on CLI)    | pr                     | `crates/**`, files Rust tests read, `endpoint-decisions.json`, `completions/`, `schema/`, `.anc.toml`, `.config/nextest.toml` | every test; the agent-native score (D12)     | 6, plus anc score 5         | ~90 s |
-| markdownlint                | pr                     | `**/*.md`                                                                                                                     | markdown style                               | 0                           | 6 s   |
-| actionlint                  | pr                     | `.github/workflows/**`                                                                                                        | workflow syntax                              | 0                           | 10 s  |
-| Shellcheck                  | pr                     | `**/*.sh`, `scripts/hooks/*`                                                                                                  | shell scripts                                | 0                           | 16 s  |
-| Output discipline           | pr                     | `crates/xdk/src/**`, `.github/workflows/**`, its two scripts                                                                  | the library never prints; concurrency groups | 1                           | 11 s  |
-| Security audit (bans etc.)  | pr                     | `Cargo.lock`, any `Cargo.toml`, `deny.toml`                                                                                   | dependency licenses, bans, sources           | 0                           | 40 s  |
-| Security audit (advisories) | pr, schedule (daily)   | `Cargo.lock`, `deny.toml`                                                                                                     | known vulnerabilities                        | 0 (11 toolchain failures)   | 36 s  |
-| Surface growth              | pr                     | `schema/**`, `completions/**`, the CLI's clap definitions                                                                     | a surface change carries a minor section     | not in the 300 CI runs      | ~10 s |
-| Library features            | post-merge             | `crates/xdk/**`, dependency inputs                                                                                            | each TLS backend and feature combination     | 1, also caught by Tests     | ~5 m  |
-| MSRV                        | post-merge             | `crates/**/*.rs`, dependency inputs                                                                                           | the declared `rust-version` holds            | 0                           | 43 s  |
-| Doc build                   | post-merge             | `crates/*/src/**`, crate READMEs, dependency inputs                                                                           | rustdoc warnings, the docs.rs feature set    | 1                           | 45 s  |
-| Package check               | post-merge             | every `Cargo.toml`, crate READMEs, `crates/xdk/build.rs`, `codegen/`, `vendor/`                                               | the crates still package                     | 0                           | 48 s  |
-| Go parity                   | post-merge             | `crates/xurl-cli/src/**`, `crates/xdk/src/api/**`, `crates/xdk/src/auth/**`, the runner                                       | behavior matches Go `xurl`                   | 0                           | 56 s  |
-| Public API semver           | post-merge             | `crates/xdk/src/**`, `crates/xdk/Cargo.toml`                                                                                  | the library's API against its last release   | 2                           | 68 s  |
-| Consumer check              | post-merge             | `crates/xdk/src/**`, `crates/xdk-consumer-check/**`                                                                           | an outside embedder compiles                 | 0                           | 106 s |
-| Completions freshness       | post-merge             | the CLI's clap definitions, `completions/**`, `scripts/generate-completions.sh`                                               | completions match the CLI                    | 1                           | 112 s |
-| Windows check               | post-merge             | `crates/**/*.rs`, dependency inputs                                                                                           | compiles and lints on Windows                | 0                           | 154 s |
-| Agent-native audit (size)   | post-merge             | `crates/*/src/**`, dependency inputs, `.anc.toml`, `[profile.release]`                                                        | the release binary's size ceiling            | 8                           | 189 s |
-| Windows program target      | post-merge             | `crates/xdk/src/webhooks/**`, the CLI's webhooks commands, their program tests                                                | `webhooks listen` program runs on Windows    | 3, plus 2 off-path failures | 270 s |
-| Release guards and matrix   | release                | every PR into `main`                                                                                                          | release provenance, docs, branch, targets    | not in the 300 CI runs      | —     |
-| Spec drift                  | schedule; spec changes | `crates/xdk/vendor/**`                                                                                                        | the vendored X spec against upstream         | not in the 300 CI runs      | —     |
+| Job                         | Tier                   | Triggers (narrowest paths that can change its verdict)                                                           | What only it protects                        | Catches                     | Warm  |
+| --------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------- | ----- |
+| Change scope                | pr                     | every PR and push                                                                                                | decides what runs                            | n/a                         | 4 s   |
+| Fmt, clippy                 | pr                     | `crates/**/*.rs`, `rustfmt.toml`, `clippy.toml`                                                                  | formatting and lints                         | in the test job's 6         | ~40 s |
+| Tests (anc score on CLI)    | pr                     | any path `scripts/cargo-inputs.sh` reports (R3)                                                                  | every test; the agent-native score (D12)     | 6, plus anc score 5         | ~90 s |
+| markdownlint                | pr                     | `**/*.md`                                                                                                        | markdown style                               | 0                           | 6 s   |
+| actionlint                  | pr                     | `.github/workflows/**`                                                                                           | workflow syntax                              | 0                           | 10 s  |
+| Shellcheck                  | pr                     | `**/*.sh`, `scripts/hooks/*`                                                                                     | shell scripts                                | 0                           | 16 s  |
+| Output discipline           | pr                     | `crates/xdk/src/**`, `.github/workflows/**`, its two scripts                                                     | the library never prints; concurrency groups | 1                           | 11 s  |
+| Security audit (bans etc.)  | pr                     | `Cargo.lock`, any `Cargo.toml`, `deny.toml`                                                                      | dependency licenses, bans, sources           | 0                           | 40 s  |
+| Security audit (advisories) | pr, schedule (daily)   | `Cargo.lock`, `deny.toml`                                                                                        | known vulnerabilities                        | 0 (11 toolchain failures)   | 36 s  |
+| Surface growth              | pr                     | `schema/**`, `completions/**`, the CLI's clap definitions                                                        | a surface change carries a minor section     | not in the 300 CI runs      | ~10 s |
+| Library features            | post-merge             | `crates/xdk/**`, dependency inputs                                                                               | each TLS backend and feature combination     | 1, also caught by Tests     | ~5 m  |
+| MSRV                        | post-merge             | `crates/**/*.rs`, dependency inputs                                                                              | the declared `rust-version` holds            | 0                           | 43 s  |
+| Doc build                   | post-merge             | `crates/*/src/**`, crate READMEs, dependency inputs                                                              | rustdoc warnings, the docs.rs feature set    | 1                           | 45 s  |
+| Package check               | post-merge             | every `Cargo.toml`, crate READMEs, `crates/xdk/build.rs`, `codegen/`, `vendor/`                                  | the crates still package                     | 0                           | 48 s  |
+| Go parity                   | post-merge             | `crates/xurl-cli/src/**`, `crates/xdk/src/api/**`, `crates/xdk/src/auth/**`, the runner                          | behavior matches Go `xurl`                   | 0                           | 56 s  |
+| Public API semver           | post-merge             | `crates/xdk/src/**`, `crates/xdk/Cargo.toml`                                                                     | the library's API against its last release   | 2                           | 68 s  |
+| Consumer check              | post-merge             | `crates/xdk/src/**`, `crates/xdk-consumer-check/**`                                                              | an outside embedder compiles                 | 0                           | 106 s |
+| Completions freshness       | post-merge             | the CLI's clap definitions, `completions/**`, `scripts/generate-completions.sh`                                  | completions match the CLI                    | 1                           | 112 s |
+| Windows check               | post-merge             | `crates/**/*.rs`, dependency inputs                                                                              | compiles and lints on Windows                | 0                           | 154 s |
+| Agent-native audit (size)   | post-merge             | `crates/*/src/**`, dependency inputs, `.anc.toml`, `[profile.release]`                                           | the release binary's size ceiling            | 8                           | 189 s |
+| Windows program target      | post-merge             | `crates/xdk/src/webhooks/**`, the CLI's webhooks commands, their program tests, `crates/xurl-cli/src/cli/env.rs` | `webhooks listen` program runs on Windows    | 3, plus 2 off-path failures | 270 s |
+| Release guards and matrix   | release                | every PR into `main`                                                                                             | release provenance, docs, branch, targets    | not in the 300 CI runs      | —     |
+| Spec drift                  | schedule; spec changes | `crates/xdk/vendor/**`                                                                                           | the vendored X spec against upstream         | not in the 300 CI runs      | —     |
 
 Every row also runs on a PR into `main`, and a path no row names runs every row of its tier.
 
@@ -855,6 +875,11 @@ Target: this plan, reviewed with `/plan-eng-review`.
 
 Scope record: feature answers: none proposed (U5 and U7-U8 were considered for a cut and kept); structure: A, the
 original arrangement (D1); accepted scope: the plan as written; pending remedies: none (R1 approved in D2, R2 in D3).
+
+Second pass (2026-10-28), after the DX review added the tiers, the job table, and U11. Scope record: feature answers:
+none proposed; structure: A, the original arrangement (second-pass D1, 2026-10-28: `ci_jobs_table_guard` and
+`dev_setup_tests` stay two modules, sharing a `ci.yml` reader in the tests' `common` module); accepted scope: the plan
+as written; pending remedies: none (R3 approved in second-pass D2, R4 in second-pass D3, 2026-11-01).
 
 ## Decision ledger
 
@@ -1019,6 +1044,123 @@ Pin every dtolnay/rust-toolchain use in rust-ci.yml to a commit SHA with the ver
   therefore installs with `rustup toolchain install "${toolchain:-stable}"` (a repo without `rust-toolchain.toml` needs
   the input) instead of a SHA pin, which removes the third-party action the D4 answer pinned.
 
+### R3: how the PR tier decides the tests must run
+
+- **Finding:** second-pass Section 1 finding A1, CRITICAL, confidence 9/10, the Appendix job table's `Tests` row and
+  U7's scenario "`scripts/lint-stdio.sh` triggers `Shellcheck` and `Output discipline`", plan-eng-review.
+- **Plan baseline:** KTD9 and the DX review's D5 (approved): trigger paths are the narrowest that can change a job's
+  verdict. The `Tests` row lists `crates/**`, "files Rust tests read", `endpoint-decisions.json`, `completions/`,
+  `schema/`, `.anc.toml`, and `.config/nextest.toml`.
+- **Runtime evidence:** `crates/xurl-cli/tests/agentic_tests.rs:647` runs `scripts/lint-stdio.sh`;
+  `crates/xurl-cli/tests/surface_bump_tests.rs:17` runs `scripts/check-surface-bump.sh`, and `:317` copies
+  `scripts/generate-changelog.py`. `scripts/cargo-inputs.sh` calls every path outside `crates/` that is not unread
+  markdown a cargo input, and collects the markdown names Rust source reads on every run; `cargo_inputs_tests` holds it.
+- **Comparison grid:**
+
+| Choice                                 | Current                  | A                                          | B                                                                                    |
+| -------------------------------------- | ------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------ |
+| R3 `Tests` trigger                     | hand list, no `scripts/` | any path `scripts/cargo-inputs.sh` reports | hand list plus `scripts/**` and the PR template, held by a guard scanning test paths |
+| Other rows' narrow triggers (KTD9, D5) | narrowest paths          | unchanged                                  | unchanged                                                                            |
+| R4 push-run coverage                   | pending                  | pending                                    | pending                                                                              |
+| Structure (second-pass D1, approved)   | original arrangement     | original arrangement                       | original arrangement                                                                 |
+
+```text
+Question D2:
+D2 — How should the PR tier decide that the tests must run?
+Project/branch/task: dev, second eng review of the CI scoping and speed plan, the job table's Tests row.
+ELI10: The job table runs the Tests job only when certain paths change, and its list leaves out the scripts two tests run (scripts/lint-stdio.sh and scripts/check-surface-bump.sh). A PR that edits only one of those scripts would run Shellcheck, skip Tests, and go green with a broken test, found only at the release PR. The repo already has scripts/cargo-inputs.sh, which answers "can this change reach cargo?" by treating everything except markdown no Rust source reads as an input, and it re-derives that every run.
+Stakes if we pick wrong: a hand list of files the tests read goes stale the day a test opens a new file, and that PR skips Tests without a word.
+Recommendation: A because the verdict is derived from the source, already tested by cargo_inputs_tests, and adds Tests runs only on rare non-doc config edits such as a ruleset or .gitignore change.
+Completeness: A=10/10, B=8/10
+Pros / cons:
+A) Tests runs on any cargo input (recommended)
+  ✅ no hand list: a test that starts reading a new file is covered the day it lands
+  ✅ reuses scripts/cargo-inputs.sh, the verdict the scope job and pre-push already trust
+  ❌ Tests also runs on a ruleset, .gitignore, or issue-template edit, about 40-90 s it could skip
+B) Narrow list plus a guard
+  ✅ Tests skips every path no test reads, the narrowest the table can be
+  ✅ the guard fails when a test opens a repo path the Tests row does not cover
+  ❌ the guard scans string literals, so a path built at runtime (root.join("scripts")) slips past it
+Net: a derived rule with a few extra runs, against the narrowest list held by a scan that can miss built paths.
+Header: Test trigger
+Options:
+A) Tests runs on any cargo input (recommended)
+The Tests row's trigger becomes "any path scripts/cargo-inputs.sh reports"; Fmt, clippy and every other row keep their narrow triggers; U7's fixture gains rows for scripts/lint-stdio.sh, scripts/check-surface-bump.sh, and a ruleset JSON, each triggering Tests (human: ~1h / CC: ~10 min).
+B) Narrow list plus a guard
+The Tests row adds scripts/** and .github/pull_request_template.md; a new guard scans tests for repo paths in string literals and fails for one the row does not cover; U7's fixture gains the same rows (human: ~3h / CC: ~25 min).
+```
+
+- **State:** approved
+- **Actual answer:** A) Tests runs on any cargo input (second-pass D2, 2026-10-28)
+- **Accepted scope:** the `Tests` row's trigger becomes "any path `scripts/cargo-inputs.sh` reports"; `Fmt, clippy` and
+  every other row keep their narrow triggers; U7's fixture gains rows for `scripts/lint-stdio.sh`,
+  `scripts/check-surface-bump.sh`, and a ruleset JSON, each triggering `Tests` (KTD9, U7, the Appendix job table).
+- **History:** none
+
+### R4: whether a push run on `dev` can be cancelled by the next push
+
+- **Finding:** second-pass Section 1 finding A2, CRITICAL, confidence 9/10, `.github/workflows/ci.yml:26-28`
+  (`group: ci-${{ github.ref }}`, `cancel-in-progress: true`) against KTD2 (push on `dev` added to `ci.yml`) and R15,
+  plan-eng-review.
+- **Plan baseline:** KTD2 adds `push` on `dev` and `main` to `ci.yml`; KTD10 runs the post-merge rows the pushed diff
+  triggers; R15 and KD8 (approved): "A post-merge failure shows as a red check on the `dev` commit". The plan leaves
+  `ci.yml`'s concurrency block as it is.
+- **Runtime evidence:** `ci.yml` puts every run of a ref in one group and cancels the one in progress. GitHub's
+  concurrency docs: a run queued behind one in progress is pending, a newer queued run replaces a pending one, and
+  `cancel-in-progress: true` also cancels the running one; `queue: max` keeps up to 100 pending but is rejected with
+  `cancel-in-progress: true`. So a second merge to `dev` before the first push run finishes cancels it, and the second
+  run is scoped to its own diff: the first commit's post-merge rows never run, and no check marks its commit. The
+  release PR's full slow tier still runs them, without naming the commit.
+- **Comparison grid:**
+
+| Choice                               | Current                       | A                                                                    | B                                                               | C                     |
+| ------------------------------------ | ----------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------- |
+| R4 push-run concurrency              | one group per ref, cancelling | push runs: one group per commit, never cancelled; PR runs: unchanged | push runs: own group, queued (`queue: max`); PR runs: unchanged | unchanged, cancelling |
+| Per-commit post-merge verdict (R15)  | lost when superseded          | every `dev` commit                                                   | every `dev` commit, later when pushes queue                     | lost when superseded  |
+| R3 `Tests` trigger (D2, approved)    | any cargo input               | unchanged                                                            | unchanged                                                       | unchanged             |
+| Structure (second-pass D1, approved) | original arrangement          | original arrangement                                                 | original arrangement                                            | original arrangement  |
+
+```text
+Question D3:
+D3 — Should a push run on dev be cancelled when the next merge lands?
+Project/branch/task: dev, second eng review of the CI scoping and speed plan, ci.yml's concurrency block (ci.yml:26-28) once KTD2 adds push runs on dev.
+ELI10: ci.yml puts every run of a branch in one group and cancels the running one when a newer one starts. That is right for PRs, where only the newest push matters. On dev it loses work: the plan runs the slow checks after each merge, scoped to that merge's own changes, so if two PRs merge a few minutes apart, the second run cancels the first, and the first PR's slow checks never run. Its commit gets no red or green check; a failure surfaces only at the release PR, without saying which merge caused it.
+Stakes if we pick wrong: the plan's promise (R15) that a post-merge failure shows as a red check on its dev commit breaks whenever merges land close together, which a stacked merge wave does routinely.
+Recommendation: A because one expression keeps every dev commit's verdict, needs no newer GitHub feature, and the overlapping runs it allows cost nothing on a public repository.
+Completeness: A=10/10, B=9/10, C=6/10
+Pros / cons:
+A) One group per commit for push runs (recommended)
+  ✅ every merge to dev gets its own post-merge verdict on its own commit, as R15 promises
+  ✅ one change to the group key; PR runs keep cancelling superseded pushes exactly as today
+  ❌ two merges minutes apart run their slow checks in parallel, using more of the 20-job runner pool at once
+B) Queue push runs instead
+  ✅ every merge still gets its verdict, and push runs never overlap on the runner pool
+  ✅ uses GitHub's documented `queue: max` for exactly this case
+  ❌ needs separate push and PR groups, since `queue: max` is rejected beside `cancel-in-progress: true`, and later merges wait
+C) Keep cancelling
+  ✅ no change, and dev never runs two slow tiers at once
+  ✅ the release PR's full slow tier still catches any failure before main
+  ❌ a superseded merge gets no post-merge check, so R15's red check on the failing commit silently goes missing
+Net: a per-commit verdict through one key change and occasional parallel runs, against queued runs with more config, or giving the verdict up.
+Header: Push cancels
+Options:
+A) One group per commit for push runs (recommended)
+The concurrency group becomes `ci-${{ github.event_name == 'push' && github.sha || github.ref }}` with `cancel-in-progress: true`, so a push run has a group of its own and is never cancelled, and PR runs keep one cancelling group per ref; U8 gains a verification that two pushes to dev minutes apart both finish with their own checks, and the namespacing check still passes on the literal `ci-` (human: ~30 min / CC: ~5 min).
+B) Queue push runs instead
+Push runs move to their own group, `ci-push-${{ github.ref }}`, with `queue: max` and no cancellation, while PR runs keep `ci-${{ github.ref }}` cancelling; U8 gains the same two-push verification, and later pushes wait for the one running (human: ~1 h / CC: ~10 min).
+C) Keep cancelling
+No change to ci.yml's concurrency block; the plan records that a superseded push run's commit gets no post-merge check and that the release PR's full slow tier is the backstop, and R15's wording narrows to "the newest dev commit" (human: ~10 min / CC: ~2 min).
+```
+
+- **State:** approved
+- **Actual answer:** A) One group per commit for push runs (second-pass D3, 2026-11-01)
+- **Accepted scope:** `ci.yml`'s concurrency group becomes
+  `ci-${{ github.event_name == 'push' && github.sha || github.ref }}` with `cancel-in-progress: true`, so a push run has
+  a group of its own and is never cancelled, and PR runs keep one cancelling group per ref; U8 gains a verification that
+  two pushes to `dev` minutes apart both finish with their own checks, and the namespacing check still passes on the
+  literal `ci-` (KTD10, U8).
+- **History:** none
+
 ### Corrections under existing approvals
 
 - **Pinned installs** (Scope Challenge finding 1, INFORMATIONAL, confidence 9/10, `.github/workflows/ci.yml:425`):
@@ -1035,6 +1177,34 @@ Pin every dtolnay/rust-toolchain use in rust-ci.yml to a commit SHA with the ver
   gain a `../`. Applied to U6.
 - **Slow-timeout under the job timeout** (Section 3, from nextest's documented CI pitfall): `period` × `terminate-after`
   × 2 plus the build stays under the test job's 20 minutes. Necessary for KTD4's hung-test naming. Applied to KTD4.
+
+Second pass:
+
+- **R3 applied** (D2, approved): the Appendix job table's `Tests` row, KTD9, and U7's scenarios carry the cargo-input
+  trigger and the three fixture rows.
+- **PR-tier job count** (numbers row, confidence 10/10): the Appendix job table has ten `pr` rows (`Change scope`
+  through `Surface growth`), so the Goal Capsule, Success Criteria, and U8 say 10 jobs at most, 11 when U3 splits the
+  tests into two partitions, not 9. Applied there.
+- **The schedule runs on `main`** (confidence 9/10, GitHub's scheduled-event docs; observed on 2026-11-01, when the
+  daily spec-drift run checked out `main`): the advisory audit job checks out `dev`. Necessary for KTD10's daily audit
+  of the lockfile the next release ships. Applied to KTD10.
+- **Rulesets travel with renamed checks** (confidence 9/10, `.github/rulesets/protect-dev.json`): a PR that renames or
+  splits a required check carries the ruleset change, and `ci_jobs_table_guard` fails for a ruleset context that names
+  no job. Necessary for R11 and R14. Applied to KTD9 and U7.
+- **The reusable's caller keeps `if: !cancelled()`** (confidence 8/10): the `ci` job that calls the reusable keeps it,
+  like a matrix, and `jobs` is passed as a JSON array string. Necessary for KTD10 and KTD11. Applied to KTD10.
+- **`env.rs` triggers `Windows program target`** (confidence 9/10, `crates/xurl-cli/src/cli/env.rs` reads the `PATH` and
+  `PATHEXT` that find a `webhooks listen` program): added to the row's triggers and U7's scenario. Necessary for KTD9's
+  narrowest-verdict rule.
+- **The nextest version reaches the reusable through the scope job** (confidence 8/10): a caller's file reaches a
+  reusable only as an input, so `Change scope` outputs it from `.github/tool-versions`. Necessary for R17. Applied to
+  U11.
+- **Warm jobs are named apart** (confidence 9/10): a job built with execution off carries `(warm cache)`, so a push run
+  never reports a required check's name for tests that did not run. Necessary for KD1 and R6. Applied to KTD2.
+- **`scripts/cargo-inputs.sh` is now a canon** (confidence 10/10, brettdavies/agent-skills#219, merged 2026-11-01):
+  rust-tool-release ships one copy merged from bird's and xurl-rs's, and the vendored-canon wave re-vendors xurl-rs's.
+  The classifier keeps calling the vendored copy, and `cargo_inputs_tests` stays the holder of xurl-rs's verdicts, so
+  the re-vendor's behavior change shows there. No plan change beyond this record.
 
 Approval readiness: PASS. R1 (D2), R2 (D3), and T1 (D4) cite their own answers; the corrections cite the approvals they
 implement (R1, R13, KTD4, KTD8, and the supply-chain rule).
