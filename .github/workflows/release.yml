@@ -1,4 +1,5 @@
 # Source repo release wrapper — calls the centralized reusable workflow.
+# Copy to .github/workflows/release.yml in the tool repo.
 #
 # Pipeline: check-version -> build (7 targets) -> attest (build provenance, and a
 # CycloneDX SBOM of the binary) -> crates.io -> release (visible, not latest) ->
@@ -30,13 +31,13 @@ jobs:
       # Each crate keeps its changelog beside its own manifest, so the release
       # notes are not at the repository root the reusable defaults to.
       changelog: crates/xurl-cli/CHANGELOG.md
-      # Both musl rows build clean (verified by release-matrix-check), so a
-      # musl failure now blocks the release instead of silently omitting two
-      # artifacts from it.
+      # A musl failure blocks the release instead of silently omitting two
+      # archives from it. release-matrix-check.yml builds both rows before a
+      # tag exists.
       linux_musl_required: true
-      # The Homebrew formula installs the darwin and musl archives, and the tap
-      # verifies each against its attestation before it pins the checksum, so
-      # a release without attestations never reaches Homebrew.
+      # A Homebrew formula that installs release archives needs this: the tap
+      # verifies each archive against its attestation before it pins the
+      # checksum, so a release without attestations never reaches Homebrew.
       attest: true
     secrets:
       CI_RELEASE_TOKEN: ${{ secrets.CI_RELEASE_TOKEN }}
