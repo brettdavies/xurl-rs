@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.5.1] - 2026-11-02
+
+### Fixed
+
+- Fix `xr auth oauth2` failing with `invalid state parameter` when the browser's callback request reaches the listener in more than one piece. by @brettdavies in [#473](https://github.com/brettdavies/xurl-rs/pull/473)
+
+**Full Changelog**: [v4.5.0...v4.5.1](https://github.com/brettdavies/xurl-rs/compare/v4.5.0...v4.5.1)
+
 ## [4.5.0] - 2026-10-30
 
 ### Added
