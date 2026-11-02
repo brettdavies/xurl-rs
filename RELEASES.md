@@ -69,11 +69,11 @@ Breaking Changes` on a major, delete the rest when they do not apply.
 - **Zero verification artifacts in the body.** No triple-diff stats, leak-check output ("`guard-main-docs` runs clean"),
   patch-id cherry-check counts, pre-push gate results, CI status, or prose-scrub findings. Anomalies get fixed before
   push, not audit-trailed.
-- **Changelog** subsections (`### Breaking changes` / `### Added` / `### Changed` / `### Deprecated` / `### Removed` /
-  `### Fixed` / `### Documentation`): 1-5 bullets each, delete empty subsections, each bullet starts with a verb. The
-  subsection an entry sits under sets the release's version (§ Versioning). A crate's `## Changelog (<crate>)` heading
-  left standing with no bullets under it says the PR ships nothing user-facing for that crate, and
-  `generate-changelog.py` adds nothing for it, whatever the PR title says.
+- **Changelog** subsections (`### Breaking changes` / `### Added` / `### Changed` / `### Deprecated` / `### Fixed` /
+  `### Documentation`): 1-5 bullets each, delete empty subsections, each bullet starts with a verb. The subsection an
+  entry sits under sets the release's version (§ Versioning). A crate's `## Changelog (<crate>)` heading left standing
+  with no bullets under it says the PR ships nothing user-facing for that crate, and `generate-changelog.py` adds
+  nothing for it, whatever the PR title says.
 - **Type of Change**: one checkbox. Prefer `feat`/`fix` over `chore` for any user-observable change.
 - **Related Issues/Stories**: four labels (`Story:` / `Issue:` / `Architecture:` / `Related PRs:`). All four required
   even when empty (`- None.` / `n/a`).
@@ -148,15 +148,15 @@ adopts new library API and the `xdk-rs` requirement in the root `Cargo.toml` mov
 
 ### The changelog section decides
 
-- `### Breaking changes`, `### Removed`: major. `xdk-rs` before 1.0: the middle number (`0.1.x` to `0.2.0`).
+- `### Breaking changes`: major. `xdk-rs` before 1.0: the middle number (`0.1.x` to `0.2.0`).
 - `### Added`, `### Deprecated`: minor. `xdk-rs` before 1.0: the last number (`0.1.0` to `0.1.1`).
 - `### Changed`, `### Fixed`, `### Documentation`: patch. `xdk-rs` before 1.0: the last number.
 
 `### Changed` holds a visible change outside the contract, or a change back to conformance with it. A change to the
-contract belongs under `### Added`, `### Deprecated`, `### Removed`, or `### Breaking changes`. An MSRV bump is the one
-entry whose bump its section does not decide: it sets a minor for `xr` and the breaking position for `xdk-rs` before
-1.0, wherever it is filed, because `rust-version` is shared by both crates. The section is checked when the PR is
-reviewed, and a maintainer-tooling PR carries no entry under either crate.
+contract belongs under `### Added`, `### Deprecated`, or `### Breaking changes`. An MSRV bump is the one entry whose
+bump its section does not decide: it sets a minor for `xr` and the breaking position for `xdk-rs` before 1.0, wherever
+it is filed, because `rust-version` is shared by both crates. The section is checked when the PR is reviewed, and a
+maintainer-tooling PR carries no entry under either crate.
 
 The `Changelog bump` workflow backs the review for `xr`. It compares the commands, flags, and flag values in
 `completions/xr.bash` and every schema under `schema/` against the PR's base, and fails when that surface grows while
@@ -169,8 +169,8 @@ version.
 
 At release time, list each crate's entries with `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag
 <tag> --dry-run` and set the version from the highest section present. The script emits the sections in the PR
-template's order (`### Breaking changes`, `### Added`, `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`,
-`### Documentation`) and any other heading after them.
+template's order (`### Breaking changes`, `### Added`, `### Changed`, `### Deprecated`, `### Fixed`, `###
+Documentation`) and any other heading after them.
 
 → Rationale: [`RELEASES-RATIONALE.md` § Versioning](./RELEASES-RATIONALE.md#versioning).
 
