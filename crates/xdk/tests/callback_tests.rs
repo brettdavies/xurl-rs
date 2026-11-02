@@ -2,8 +2,8 @@
 //!
 //! Drives `xdk::auth::callback::wait_for_callback_with` and
 //! `wait_for_callback_on` on a worker thread's own runtime and exercises bind,
-//! path-match, state-validation, partial-bind warning, and cancellation
-//! behaviour from a client-side `tokio::net::TcpStream`.
+//! request reading, path-match, state-validation, partial-bind warning, and
+//! cancellation behaviour from a client-side `std::net::TcpStream`.
 
 use std::io::{Read, Write};
 use std::net::{TcpListener as StdTcpListener, TcpStream as StdTcpStream};
@@ -206,13 +206,30 @@ fn callback_uri(host: &str, path: &str) -> impl Fn(u16) -> Url {
 
 // ── HTTP helpers ──────────────────────────────────────────────────────────
 
+/// How long a client that is slow to send waits before each part of its
+/// request: long enough for the listener to accept the connection and try to
+/// read before the bytes arrive.
+const SLOW_CLIENT_PAUSE: Duration = Duration::from_millis(200);
+
 /// Sends one GET to a listener [`start_listener`] reported bound.
 fn send_request(addr: &str, path: &str) -> String {
+    send_parts(addr, &[&get_request(addr, path)], Duration::ZERO)
+}
+
+fn get_request(addr: &str, path: &str) -> String {
+    format!("GET {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n")
+}
+
+/// Connects to `addr`, writes each of `parts` after waiting `pause`, and
+/// returns everything the listener answers.
+fn send_parts(addr: &str, parts: &[&str], pause: Duration) -> String {
     let mut stream =
         StdTcpStream::connect(addr).unwrap_or_else(|e| panic!("connect to {addr}: {e}"));
     stream.set_read_timeout(Some(WAIT)).unwrap();
-    let req = format!("GET {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n");
-    stream.write_all(req.as_bytes()).expect("write request");
+    for part in parts {
+        thread::sleep(pause);
+        stream.write_all(part.as_bytes()).expect("write request");
+    }
     let mut buf = String::new();
     let _ = stream.read_to_string(&mut buf);
     buf
@@ -366,6 +383,37 @@ fn root_path_uri_matches_only_root() {
     let ok = send_request(&addr, "/?code=rootcode&state=STATE");
     assert_eq!(http_status_code(&ok), 200);
     assert_eq!(listener.finish().expect("ok code"), "rootcode");
+}
+
+#[test]
+fn request_sent_after_the_connect_is_answered() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+    let addr = format!("127.0.0.1:{}", listener.port);
+
+    let request = get_request(&addr, "/callback?code=latecode&state=STATE");
+    let resp = send_parts(&addr, &[&request], SLOW_CLIENT_PAUSE);
+    assert_eq!(http_status_code(&resp), 200, "response: {resp:?}");
+    assert_eq!(listener.finish().expect("ok code"), "latecode");
+}
+
+#[test]
+fn request_split_across_writes_is_read_whole() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+    let addr = format!("127.0.0.1:{}", listener.port);
+
+    let request = get_request(&addr, "/callback?code=splitcode&state=STATE");
+    let (head, rest) = request.split_at(request.find("state").expect("a state parameter"));
+    let resp = send_parts(&addr, &[head, rest], SLOW_CLIENT_PAUSE);
+    assert_eq!(http_status_code(&resp), 200, "response: {resp:?}");
+    assert_eq!(listener.finish().expect("ok code"), "splitcode");
 }
 
 #[test]

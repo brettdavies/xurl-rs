@@ -126,6 +126,11 @@ Run immediately after the tag push triggers `release.yml`.
   ([`RELEASES.md` § After publish](./RELEASES.md#after-publish-sync-dev-with-the-release)). Keeps the next release's
   PREFLIGHT `diff-B` step quiet so a real missed change stands out instead of hiding in expected divergence noise.
 
+  When the release moved `xdk-rs`, the same PR deletes each `required-update` entry in `crates/xdk/Cargo.toml` that the
+  new `xdk-rs-v<X.Y.Z>` tag moves the baseline past ([`RELEASES.md` § After
+  publish](./RELEASES.md#after-publish-sync-dev-with-the-release)); `scripts/release/preflight.sh api-contract` fails
+  while one stands.
+
   The gate (`scripts/release/postflight.sh backport`) is signal-agnostic about which files moved: it searches merged PRs
   to `dev` by the tag (the search index tokenizes `v3.0.0` as one word, so a bare `3.0.0` misses it) and accepts either
   spelling in the title. The binary's sync PR carries the library's changelog too, so for an `xdk-rs-vX.Y.Z` tag no PR

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2026-11-02
+
+### Changed
+
+- Change the vendored X API spec to the 2026-10-31 upstream content of 2.173, which lets `POST /2/bots` and `POST /2/bots/{id}/token` take an OAuth 2.0 user token, lets three broadcast request fields take strings and integers, and lets `GET /2/users/{id}/broadcasts` take an empty `pagination_token`. `API_SPEC_SHA256` and `API_SPEC_DATE` follow; no typed response or shortcut changes. by @brettdavies in [#466](https://github.com/brettdavies/xurl-rs/pull/466)
+
+### Fixed
+
+- Fix the OAuth2 callback listener (`auth::callback::wait_for_callback_with` and `wait_for_callback_on`) closing a connection without an answer when the request arrives after the connection is accepted, which `tokio` 1.54 and later make common, and failing with `invalid state parameter` when a request arrives in more than one piece. by @brettdavies in [#473](https://github.com/brettdavies/xurl-rs/pull/473)
+
+**Full Changelog**: [xdk-rs-v0.4.0...xdk-rs-v0.4.1](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.4.0...xdk-rs-v0.4.1)
+
 ## [0.4.0] - 2026-10-30
 
 ### Breaking changes
