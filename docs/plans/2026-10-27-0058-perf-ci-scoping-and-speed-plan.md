@@ -268,11 +268,12 @@ powerset, and four of the six feature cells caught nothing (Appendix).
   it (R8). Trigger paths are the narrowest that can change the job's verdict, as the Appendix's job table records;
   `scripts/cargo-inputs.sh` keeps the docs-only verdict, and a path that reaches cargo but matches no narrower row runs
   every Rust job of the tier. The `Tests` row's trigger is any path `scripts/cargo-inputs.sh` reports (R3 in the
-  Decision ledger), since tests read and run files outside `crates/`. A path no row names, and any change to a workflow,
-  the classifier, the table, or a build input, runs every job of the tier (KD4). `ci_jobs_table_guard` fails for a job
-  in `ci.yml` or the reusable call with no row, a row naming no job, a row with no trigger or no reason, and a required
-  check in `.github/rulesets/protect-dev.json` or `protect-main.json` that names no job. A PR that renames a required
-  check carries the ruleset change with it, for Brett to apply when it merges.
+  Decision ledger), since tests read and run files outside `crates/`, plus `.github/rulesets/**`: the canon
+  `scripts/cargo-inputs.sh` calls rulesets documentation, and `ci_jobs_table_guard` reads them. A path no row names, and
+  any change to a workflow, the classifier, the table, or a build input, runs every job of the tier (KD4).
+  `ci_jobs_table_guard` fails for a job in `ci.yml` or the reusable call with no row, a row naming no job, a row with no
+  trigger or no reason, and a required check in `.github/rulesets/protect-dev.json` or `protect-main.json` that names no
+  job. A PR that renames a required check carries the ruleset change with it, for Brett to apply when it merges.
 - KTD10. **Which tier runs where.** The workflow triggers own the tiers, and each job's condition reads the classifier's
   output for its tier.
   - `pull_request` into `dev` runs the `pr` rows the diff triggers; `protect-dev` requires them, and a skipped one
@@ -568,8 +569,11 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 - **Approach:** xurl-rs#431 measured debug info on cold builds (run 40780555611, medians of 3, Ubuntu / Windows): full
   169 / 436 s and 15.2 GB; `line-tables-only` 109 / 252 s and 6.8 GB with file-and-line backtraces kept; `0` 134 / 268 s
   and 3.1 GB with them lost. `ci.yml` adopted `line-tables-only`. The setting does not reach the reusable's jobs from
-  `ci.yml`'s workflow env, so the shared-workflow PR carries it to `Fmt, clippy, test`; after U6, measure whether no
-  debug info for dependencies alone shortens the warm compile phase by 5% or more, and keep it only then.
+  `ci.yml`'s workflow env; `brettdavies/.github#105` (merged 2026-11-02) sets `CARGO_INCREMENTAL=0` and
+  `line-tables-only` for the dev and test profiles in the reusable itself, and xurl-rs #470's run shows both in
+  `ci / Fmt, clippy, test`'s environment (354 s, against 437, 667, and 599 s for the three PRs before it). What remains:
+  after U6, measure whether no debug info for dependencies alone shortens the warm compile phase by 5% or more, and keep
+  it only then.
 - **Test expectation:** none -- a build setting; the suite's pass state is the check.
 - **Verification:** each kept setting's measurement is recorded, and a panicking test still prints its file and line;
   each dropped setting has its measurement recorded.
@@ -676,6 +680,16 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
     the advisory audit runs without the caller's toolchain override.
   - `.github/rulesets/protect-dev.json` and `protect-main.json`: the PR-tier jobs and every job, for Brett to apply.
   - `scripts/hooks/pre-push`: runs the PR-tier jobs the classifier names for the push, and prints `--jobs`'s lists.
+  - `ci.yml` takes the rust-tool-release template's shape where it fits (R5): the canonical-version stamp and header,
+    and the inline jobs a rust-ci input already covers moved onto that input in the same PR that renames their required
+    checks, with the ruleset change (`Output discipline` and its concurrency step, `Completions freshness`, `MSRV`,
+    `Agent-native audit`). Before each move, confirm the input runs what the inline job runs: `MSRV`'s
+    `--workspace --all-features --locked`, and the audit's blocking on MUST-tier rows. `Doc build` keeps an inline job
+    for the README doctests and the docs.rs feature set, which no input covers. `semver`, `Windows program target`,
+    `consumer`, `Library features`, `parity`, and `lint` stay inline. The template's `scope` reusable
+    (`rust-change-scope.yml`) answers docs-only alone, so `Change scope` stays inline to run the job table unless that
+    reusable gains a table input. `release-matrix-check.yml` takes the template's comments only; its triggers already
+    match.
 - **Approach:**
   1. `Change scope` runs the classifier for the event's tier on the event's diff (the PR's diff, or the pushed range
      `github.event.before..github.sha` on `dev`) and outputs one boolean per job; on a PR into `main` every output is
@@ -849,7 +863,7 @@ Job table: the initial rows of `.github/ci-jobs.tsv` (U7). Catches are each job'
 | --------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------- | ----- |
 | Change scope                | pr                     | every PR and push                                                                                                | decides what runs                            | n/a                         | 4 s   |
 | Fmt, clippy                 | pr                     | `crates/**/*.rs`, `rustfmt.toml`, `clippy.toml`                                                                  | formatting and lints                         | in the test job's 6         | ~40 s |
-| Tests (anc score on CLI)    | pr                     | any path `scripts/cargo-inputs.sh` reports (R3)                                                                  | every test; the agent-native score (D12)     | 6, plus anc score 5         | ~90 s |
+| Tests (anc score on CLI)    | pr                     | any path `scripts/cargo-inputs.sh` reports, and `.github/rulesets/**` (R3)                                       | every test; the agent-native score (D12)     | 6, plus anc score 5         | ~90 s |
 | markdownlint                | pr                     | `**/*.md`                                                                                                        | markdown style                               | 0                           | 6 s   |
 | actionlint                  | pr                     | `.github/workflows/**`                                                                                           | workflow syntax                              | 0                           | 10 s  |
 | Shellcheck                  | pr                     | `**/*.sh`, `scripts/hooks/*`                                                                                     | shell scripts                                | 0                           | 16 s  |
@@ -1166,6 +1180,22 @@ No change to ci.yml's concurrency block; the plan records that a superseded push
   a group of its own and is never cancelled, and PR runs keep one cancelling group per ref; U8 gains a verification that
   two pushes to `dev` minutes apart both finish with their own checks, and the namespacing check still passes on the
   literal `ci-` (KTD10, U8).
+- **History:** none
+
+### R5: who reshapes `ci.yml` to the rust-tool-release template
+
+- **Finding:** post-review, 2026-11-02. The canon re-vendor wave's xurl-rs slot (xurl-rs #470) would have put `ci.yml`
+  on the rust-tool-release template's shape and moved inline jobs onto rust-ci inputs, renaming required checks the
+  rulesets pin and moving the ground this plan's job table stands on. It held `ci.yml` and `release-matrix-check.yml`
+  back and listed the changes instead.
+- **Plan baseline:** the job table, tiers, and inputs above, built on `ci.yml`'s current jobs (KTD9 to KTD11).
+- **Runtime evidence:** the slot's list of the changes it held back; `brettdavies/.github#105`, merged 2026-11-02.
+- **State:** approved
+- **Actual answer:** "CI plan absorbs it (Recommended)" (Brett, 2026-11-02): the re-vendor PR skips `ci.yml` and
+  `release-matrix-check.yml`, and this plan's PRs adopt the template shape where it fits, so `ci.yml` has one owner and
+  each required-check rename lands once with its ruleset.
+- **Accepted scope:** U8's `ci.yml` entry (the moves, the checks before each, and what stays inline), U5's note
+  that #105 already carries line tables to the reusable, and the `Tests` row's `.github/rulesets/**`.
 - **History:** none
 
 ### Corrections under existing approvals
@@ -1631,13 +1661,13 @@ Unresolved decisions: none.
 
 ## GSTACK REVIEW REPORT
 
-| Review | Trigger | Why | Runs | Status | Findings |
-| ------ | ------- | --- | ---- | ------ | -------- |
-| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
-| Outside Review | codex, plan review | Independent 2nd opinion | 30 | disabled | `codex_reviews: disabled`; no outside findings |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 20 | ISSUES OPEN | 14 issues, 0 critical gaps (all resolved: R3 D2, R4 D3, 12 corrections) |
-| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
-| DX Review | `/plan-devex-review` | Developer experience gaps | 12 | ISSUES OPEN | this plan: score 5/10 → 7/10, push to verdict 11.5-19 min → <2 (2026-10-28) |
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                                                                    |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | --------------------------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                                                           |
+| Outside Review | codex, plan review    | Independent 2nd opinion         | 30   | disabled    | `codex_reviews: disabled`; no outside findings                              |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 20   | ISSUES OPEN | 14 issues, 0 critical gaps (all resolved: R3 D2, R4 D3, 12 corrections)     |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | —                                                                           |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 12   | ISSUES OPEN | this plan: score 5/10 → 7/10, push to verdict 11.5-19 min → <2 (2026-10-28) |
 
 - **OUTSIDE COVERAGE:** codex, plan review phase, disabled by `codex_reviews` in the second eng pass and skipped by the
   session's rule before it; no outside findings.
