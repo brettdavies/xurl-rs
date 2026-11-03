@@ -83,6 +83,14 @@ only: new upstream fields never fail the gate, since forward compatibility is ha
 capture. Documented divergences from a buggy upstream spec are carried on an explicit allowlist with reasons. It cannot
 see the spec itself diverging from what the API sends on the wire; that is the live smoke gate's job.
 
+### Spec bounds gate
+
+The test-suite gate that holds each limit a shortcut validator checks before sending (an item count, a text length, a
+maximum value) to the bound the vendored spec states for the request field it guards, so a refresh that moves a bound
+fails it in either direction. A bound the spec lowered is a change in behavior, because a call that passed before is now
+refused. The gate is also a walk over the library's declared limits: each one records where the spec states it or
+carries the reason it mirrors none, so a limit added later cannot sit outside the gate.
+
 ## Credential store and test isolation
 
 ### Token store
