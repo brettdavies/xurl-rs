@@ -15,11 +15,11 @@ cargo test                                 # unit + integration
 git config core.hooksPath scripts/hooks    # activate the pre-push battery
 ```
 
-That one command activates both hooks. `pre-commit` is staged-file-scoped and fast: `rustfmt --check` on staged `.rs`,
-`actionlint` on a staged workflow, `markdownlint-cli2` on staged `.md`, `shellcheck` on staged shell. It runs no cargo
-step, so a markdown-only commit runs `markdownlint-cli2` alone, even for a document a test reads; those tests run at
-push. Both hooks share `scripts/hooks/_lib.sh`, which owns how each tool runs while each hook owns which files it runs
-on.
+That one command activates both hooks. `pre-commit` is fast and runs a check only when a file it reads is staged:
+`cargo fmt -- --check` over every crate when a `.rs` file is staged, `actionlint` on a staged workflow,
+`markdownlint-cli2` on staged `.md`, `shellcheck` on staged shell. It builds nothing, so a markdown-only commit runs
+`markdownlint-cli2` alone, even for a document a test reads; those tests run at push. Both hooks share
+`scripts/hooks/_lib.sh`, which owns how each tool runs while each hook owns which files it runs on.
 
 `pre-push` mirrors CI over the repo: `cargo fmt`, `cargo clippy` with warnings denied, `cargo test --workspace`, the
 MSRV check, the doc build, the examples build, the credential-free example run against the `testing` mock, the TLS
