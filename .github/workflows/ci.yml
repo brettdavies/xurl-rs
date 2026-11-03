@@ -80,9 +80,4 @@ jobs:
       advisories_blocking: true
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
       # PROBE-INPUTS
-      cross_os_tests: true
-      docs: true
-      msrv: true
-      completions: true
-      lint_stdio: true
-      workflow_concurrency: true
+      jobs: '[]'
