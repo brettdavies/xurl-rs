@@ -41,10 +41,11 @@ const STORE_DIR_NAME: &str = ".xurl";
 /// resolved. This names the path and touches nothing.
 #[must_use]
 pub fn default_store_path() -> PathBuf {
-    dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("."))
-        .join(STORE_DIR_NAME)
-        .join(AUTH_FILE_NAME)
+    store_path_under(&dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
+}
+
+pub(crate) fn store_path_under(home: &Path) -> PathBuf {
+    home.join(STORE_DIR_NAME).join(AUTH_FILE_NAME)
 }
 
 /// The path to open for `store_path`, moving nothing.
