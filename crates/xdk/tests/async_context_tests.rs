@@ -9,11 +9,21 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 use xdk::api::Client;
 use xdk::auth::Auth;
-use xdk::config::Config;
+use xdk::config::{Config, EnvOverrides};
 use xdk::store::{App, LoadState, OAuth2Token, Token, TokenStore, TokenType};
 
+/// An `Auth` over a store in `tmp`, built with no environment, so a variable
+/// the shell exports never reaches the test.
+fn auth_in(cfg: &Config, tmp: &TempDir) -> Auth {
+    Auth::new_with_store_path_and_overrides(
+        cfg,
+        &tmp.path().join(".xurl"),
+        &EnvOverrides::default(),
+    )
+}
+
 fn config_for(server: &MockServer) -> Config {
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = "cid".to_string();
     cfg.client_secret = "csec".to_string();
     cfg.redirect_uri = "http://localhost:8080/callback".to_string();
@@ -86,8 +96,7 @@ async fn a_shortcut_completes_inside_a_caller_runtime() {
     mount_me(&server).await;
     let cfg = config_for(&server);
     let tmp = TempDir::new().unwrap();
-    let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
-        .with_token_store(store_with_oauth2(&tmp, now_secs() + 3600));
+    let auth = auth_in(&cfg, &tmp).with_token_store(store_with_oauth2(&tmp, now_secs() + 3600));
     let client = Client::new(&cfg, auth).expect("client builds");
 
     let me = client.get_me().send().await.expect("the read completes");
@@ -109,8 +118,7 @@ async fn a_refresh_completes_inside_a_caller_runtime() {
         .await;
     let cfg = config_for(&server);
     let tmp = TempDir::new().unwrap();
-    let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
-        .with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
+    let auth = auth_in(&cfg, &tmp).with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
     let client = Client::new(&cfg, auth).expect("client builds");
 
     let me = client
@@ -146,8 +154,7 @@ async fn a_refresh_the_server_rejects_is_an_auth_error_with_exit_77() {
         .await;
     let cfg = config_for(&server);
     let tmp = TempDir::new().unwrap();
-    let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
-        .with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
+    let auth = auth_in(&cfg, &tmp).with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
     let client = Client::new(&cfg, auth).expect("client builds");
 
     let err = client
@@ -178,8 +185,7 @@ async fn a_refresh_against_a_silent_server_gives_up_at_the_configured_timeout() 
     let mut cfg = config_for(&server);
     cfg.http_timeout_secs = 1;
     let tmp = TempDir::new().unwrap();
-    let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
-        .with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
+    let auth = auth_in(&cfg, &tmp).with_token_store(store_with_oauth2(&tmp, now_secs() - 10));
     let client = Client::new(&cfg, auth).expect("client builds");
 
     let started = std::time::Instant::now();
@@ -217,8 +223,7 @@ async fn a_media_processing_poll_sleeps_without_blocking_other_tasks() {
         .await;
     let cfg = config_for(&server);
     let tmp = TempDir::new().unwrap();
-    let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"))
-        .with_token_store(store_with_oauth2(&tmp, now_secs() + 3600));
+    let auth = auth_in(&cfg, &tmp).with_token_store(store_with_oauth2(&tmp, now_secs() + 3600));
     let client = Client::new(&cfg, auth).expect("client builds");
 
     // A sibling task keeps ticking while the poll sleeps; a blocking sleep
@@ -304,10 +309,10 @@ async fn slow_line_server() -> (String, tokio::sync::oneshot::Receiver<bool>) {
 #[tokio::test]
 async fn dropping_a_stream_mid_response_releases_its_connection() {
     let (base_url, hung_up) = slow_line_server().await;
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.api_base_url = base_url;
     let tmp = TempDir::new().unwrap();
-    let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"));
+    let auth = auth_in(&cfg, &tmp);
     let client = Client::new(&cfg, auth).expect("client builds");
 
     let options = xdk::api::RequestOptions {

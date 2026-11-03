@@ -13,7 +13,7 @@ use xdk::api::auth_matrix::{AuthScheme, SHORTCUT_TEMPLATES, supported_auth};
 use xdk::auth::oauth1::{encode, generate_nonce, generate_timestamp};
 use xdk::auth::oauth2::{generate_code_verifier_and_challenge, get_oauth2_scopes};
 use xdk::auth::{Auth, resolve_bearer_token};
-use xdk::config::Config;
+use xdk::config::{Config, EnvOverrides};
 use xdk::store::{App, TokenStore};
 
 // ── Test helpers ───────────────────────────────────────────────────────────
@@ -24,10 +24,10 @@ fn http() -> reqwest::Client {
 
 fn test_config() -> Config {
     // `Config` has `pub(crate)` resolver fields that external test code cannot
-    // name in a struct literal (or fill via `..Config::new()` from an external
-    // crate); assign the public fields after `Config::new()`. The resolver
-    // fields are overwritten by `Auth::new_with_store_path` anyway.
-    let mut cfg = Config::new();
+    // name in a struct literal; start from `Config::from_overrides` with no
+    // overrides, which reads no environment, and assign the public fields.
+    // The resolver fields are overwritten when the `Auth` is built anyway.
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = "test-client-id".to_string();
     cfg.client_secret = "test-client-secret".to_string();
     cfg.redirect_uri = "http://localhost:8080/callback".to_string();
@@ -40,14 +40,16 @@ fn test_config() -> Config {
 }
 
 /// Builds an `Auth` on the temp-dir store it will carry, so construction never
-/// resolves the real `~/.xurl`.
+/// resolves the real `~/.xurl`, and with no environment, so a variable the
+/// shell or a test beside this one exports never reaches it.
 fn auth_for(cfg: &Config, token_store: TokenStore) -> Auth {
     let store_path = token_store.file_path.clone();
-    Auth::new_with_store_path(cfg, &store_path).with_token_store(token_store)
+    Auth::new_with_store_path_and_overrides(cfg, &store_path, &EnvOverrides::default())
+        .with_token_store(token_store)
 }
 
 fn empty_config() -> Config {
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = String::new();
     cfg.client_secret = String::new();
     cfg.redirect_uri = String::new();
@@ -104,7 +106,11 @@ fn test_new_auth() {
 fn test_with_token_store() {
     let cfg = test_config();
     let tmp = TempDir::new().expect("temp dir");
-    let auth = Auth::new_with_store_path(&cfg, &tmp.path().join(".xurl"));
+    let auth = Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &tmp.path().join(".xurl"),
+        &EnvOverrides::default(),
+    );
 
     let (token_store, _tmp) = create_temp_token_store();
     let new_auth = auth.with_token_store(token_store);
@@ -480,7 +486,8 @@ fn test_new_with_store_path_honors_explicit_path() {
         .expect("Failed to read back bearer header");
     assert_eq!(header, "Bearer explicit-path-bearer");
 
-    let reopened = Auth::new_with_store_path(&cfg, &store_path);
+    let reopened =
+        Auth::new_with_store_path_and_overrides(&cfg, &store_path, &EnvOverrides::default());
     let reopened_header = reopened
         .get_bearer_token_header()
         .expect("Failed to read bearer token from reopened store");
@@ -709,11 +716,10 @@ fn resolve_bearer_errors_when_env_empty_and_store_empty() {
 #[serial_test::serial]
 #[test]
 fn get_bearer_token_header_reads_real_env() {
-    // Production wrapper covers the path that pulls from `std::env`. Mutates
-    // env behind an `unsafe` guard to mirror the existing
-    // `test_env_redirect_uri_wins_over_app_stored` pattern. The var name is
-    // unique enough that parallel-test contamination is unlikely; the cleanup
-    // is unconditional so a panic mid-test still restores process state.
+    // Production wrapper covers the path that pulls from `std::env`, so this
+    // test exports the variable. Every other test in this binary builds its
+    // `Auth` with explicit `EnvOverrides` and reads no environment, so none
+    // of them sees the export.
     let cfg = empty_config();
     let (token_store, _tmp) = create_temp_token_store();
 
@@ -724,7 +730,8 @@ fn get_bearer_token_header_reads_real_env() {
     unsafe {
         std::env::set_var("XURL_BEARER_TOKEN", "integration-env-bearer");
     }
-    let auth = auth_for(&cfg, token_store);
+    let store_path = token_store.file_path.clone();
+    let auth = Auth::new_with_store_path(&cfg, &store_path).with_token_store(token_store);
     let header_with_env = auth.get_bearer_token_header();
     unsafe {
         std::env::remove_var("XURL_BEARER_TOKEN");
@@ -1251,6 +1258,7 @@ mod refresh_across_processes {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
     use xdk::auth::Auth;
+    use xdk::config::EnvOverrides;
     use xdk::store::TokenStore;
 
     use super::{http, test_config};
@@ -1285,7 +1293,7 @@ mod refresh_across_processes {
     fn auth_on(server: &MockServer, store_path: &Path) -> Auth {
         let mut cfg = test_config();
         cfg.token_url = format!("{}{TOKEN_PATH}", server.uri());
-        Auth::new_with_store_path(&cfg, store_path)
+        Auth::new_with_store_path_and_overrides(&cfg, store_path, &EnvOverrides::default())
     }
 
     /// The token endpoint answering with a new pair after `delay`, long
