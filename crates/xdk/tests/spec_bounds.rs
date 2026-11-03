@@ -1,6 +1,8 @@
 //! Every bound a validator in `xdk::api::shortcuts` checks is the one the
 //! vendored spec sets, so a refresh that moves a bound fails here rather than
 //! leaving the validator refusing what X accepts, or passing what X refuses.
+//! Every integer constant `shortcuts.rs` declares has a row here or a reason
+//! it mirrors no bound, so a bound added later cannot skip the check.
 
 use serde_json::Value;
 use xdk::api::shortcuts::{
@@ -9,8 +11,15 @@ use xdk::api::shortcuts::{
     CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX,
     DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
-    WEBHOOK_URL_MAX_CHARS,
+    USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
 };
+
+/// Integer constants in `shortcuts.rs` that mirror no spec bound, each with
+/// the reason.
+const NOT_SPEC_BOUNDS: &[(&str, &str)] = &[(
+    "POST_BODY_MAX_CHARS",
+    "deprecated: X sets a post's length per account, and the spec states none",
+)];
 
 /// Where the spec states a bound.
 enum Site {
@@ -170,7 +179,28 @@ const BOUNDS: &[Bound] = &[
         keyword: "maxItems",
         sites: &[Site::Property("UpdateScheduledCallRequest", "invitee_ids")],
     },
+    Bound {
+        constant: "USER_SEARCH_QUERY_MAX_CHARS",
+        value: n(USER_SEARCH_QUERY_MAX_CHARS),
+        keyword: "pattern",
+        sites: &[Site::Query("/2/users/search", "query")],
+    },
 ];
+
+/// The bound `keyword` sets in `schema`. For `pattern`, the upper count of
+/// the pattern's last `{m,n}` quantifier.
+fn stated_bound(schema: &Value, keyword: &str) -> Option<u64> {
+    if keyword != "pattern" {
+        return schema[keyword].as_u64();
+    }
+    let pattern = schema["pattern"].as_str()?;
+    let quantifier = &pattern[pattern.rfind('{')? + 1..];
+    quantifier[..quantifier.find('}')?]
+        .split(',')
+        .nth(1)?
+        .parse()
+        .ok()
+}
 
 fn spec() -> Value {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("vendor/x-api-openapi.json");
@@ -211,7 +241,7 @@ fn every_validator_bound_is_the_one_the_vendored_spec_sets() {
     for bound in BOUNDS {
         for site in bound.sites {
             let (at, schema) = schema_at(&spec, site);
-            let stated = schema.and_then(|schema| schema[bound.keyword].as_u64());
+            let stated = schema.and_then(|schema| stated_bound(schema, bound.keyword));
             if stated != Some(bound.value) {
                 drift.push(format!(
                     "{} is {}, and the spec's {} at {at} is {}",
@@ -225,7 +255,56 @@ fn every_validator_bound_is_the_one_the_vendored_spec_sets() {
     }
     assert!(
         drift.is_empty(),
-        "a validator bound in crates/xdk/src/api/shortcuts.rs differs from the vendored spec:\n{}",
+        "a validator bound in crates/xdk/src/api/shortcuts.rs differs from the vendored spec:\n{}\n\
+         Set each constant to the spec's value. A bound the spec lowered refuses calls that \
+         passed before, so the PR's Changelog records it as a change in behavior.",
         drift.join("\n")
+    );
+}
+
+#[test]
+fn every_integer_constant_in_shortcuts_has_a_bound_row() {
+    let source = include_str!("../src/api/shortcuts.rs");
+    let declared: Vec<&str> = source
+        .lines()
+        .filter_map(|line| line.strip_prefix("pub const "))
+        .filter_map(|rest| rest.split_once(": "))
+        .filter(|(_, rest)| {
+            ["usize", "u64", "u32", "u16", "u8", "isize", "i64", "i32"]
+                .iter()
+                .any(|ty| rest.starts_with(&format!("{ty} =")))
+        })
+        .map(|(name, _)| name)
+        .collect();
+    assert!(
+        declared.contains(&"POST_MEDIA_MAX"),
+        "the walk found no constants in crates/xdk/src/api/shortcuts.rs: {declared:?}"
+    );
+
+    let unpinned: Vec<&str> = declared
+        .iter()
+        .copied()
+        .filter(|name| {
+            !BOUNDS.iter().any(|bound| bound.constant == *name)
+                && !NOT_SPEC_BOUNDS.iter().any(|(exempt, _)| exempt == name)
+        })
+        .collect();
+    assert!(
+        unpinned.is_empty(),
+        "crates/xdk/src/api/shortcuts.rs declares integer constants this file does not hold to \
+         the vendored spec: {unpinned:?}. Give each a BOUNDS row naming the spec keyword and \
+         the request schema or query parameter it mirrors, or a NOT_SPEC_BOUNDS entry saying \
+         why it mirrors none."
+    );
+
+    let stale: Vec<&str> = BOUNDS
+        .iter()
+        .map(|bound| bound.constant)
+        .chain(NOT_SPEC_BOUNDS.iter().map(|(name, _)| *name))
+        .filter(|name| !declared.contains(name))
+        .collect();
+    assert!(
+        stale.is_empty(),
+        "rows here name constants crates/xdk/src/api/shortcuts.rs no longer declares: {stale:?}"
     );
 }
