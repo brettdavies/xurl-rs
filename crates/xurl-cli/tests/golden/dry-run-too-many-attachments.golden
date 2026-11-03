@@ -1,7 +1,7 @@
-args: ["--output", "json", "--dry-run", "post", "hi", "--media-id=1", "--media-id=2", "--media-id=3", "--media-id=4", "--media-id=5"]
+args: ["--output", "json", "--dry-run", "post", "hi", "--media-id=1", "--media-id=2", "--media-id=3", "--media-id=4", "--media-id=5", "--media-id=6", "--media-id=7", "--media-id=8", "--media-id=9", "--media-id=10", "--media-id=11", "--media-id=12", "--media-id=13", "--media-id=14", "--media-id=15", "--media-id=16", "--media-id=17", "--media-id=18", "--media-id=19", "--media-id=20", "--media-id=21"]
 store: empty
 exit_code: 0
-stdout_len: 403
+stdout_len: 560
 stderr_len: 0
 --- stdout ---
 {
@@ -13,9 +13,25 @@ stderr_len: 0
     "2",
     "3",
     "4",
-    "5"
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "19",
+    "20",
+    "21"
   ],
-  "message": "A post takes at most 4 media ids.",
+  "message": "A post takes at most 20 media ids.",
   "next_step": {
     "action": "show-help",
     "command": "xr post --help"
