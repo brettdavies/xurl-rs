@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.2] - 2026-11-03
+
+### Added
+
+- Add `error::CALLBACK_INVALID_STATE`, `CALLBACK_EMPTY_CODE`, `CALLBACK_TIMED_OUT`, and `BROWSER_OPEN_FAILED`, the messages of the `Error::Auth` an interactive sign-in returns when its callback is refused or never arrives, or when the browser cannot be opened, and `CALLBACK_PROVIDER_REFUSED`, the start of the message of a sign-in the authorization server refused. by @brettdavies in [#480](https://github.com/brettdavies/xurl-rs/pull/480)
+
+### Changed
+
+- Change the vendored X API spec to the 2026-11-03 content of upstream 2.173, which adds `receives_your_chat` to the user object (read into `User.extra` when a request asks for it) and a plaintext `content` body to the Chat send-message request. `API_SPEC_SHA256` and `API_SPEC_DATE` follow. by @brettdavies in [#474](https://github.com/brettdavies/xurl-rs/pull/474)
+
+### Fixed
+
+- Fix `POST_MEDIA_MAX`, and with it `validate_media_attachments`, holding a post to 4 media. X takes up to 20. by @brettdavies in [#474](https://github.com/brettdavies/xurl-rs/pull/474)
+- Fix `auth::callback::wait_for_callback_with` and `wait_for_callback_on` comparing the callback's `state` without decoding it: they decode `code` and `state` as form-urlencoded, as `run_remote_step2` does, and both sign-in flows generate `state` in the URL-safe base64 alphabet without padding, so no character of it is encoded. by @brettdavies in [#480](https://github.com/brettdavies/xurl-rs/pull/480)
+- Fix `wait_for_callback_with`, `wait_for_callback_on`, `run_oauth2_flow`, and `run_oauth2_flow_on` cancelling the caller's `CancellationToken` when they end: they stop on a child of it, so a token shared with a signal handler or other work stays as the caller left it.
+- Fix the callback listener and `run_remote_step2` ignoring the `error` a redirect carries: a denied consent returns an `Error::Auth` whose message starts with `error::CALLBACK_PROVIDER_REFUSED` and names `error` and `error_description`, where it used to read as a missing code.
+- Fix the callback listener answering one connection at a time, which let a connection that sends nothing hold up the redirect: each connection is answered on its own task.
+
+### Documentation
+
+- Remove the claim from `StreamSource::is_stream_active` that publishing a broadcast needs it; X no longer states it. by @brettdavies in [#474](https://github.com/brettdavies/xurl-rs/pull/474)
+
+**Full Changelog**: [xdk-rs-v0.4.1...xdk-rs-v0.4.2](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.4.1...xdk-rs-v0.4.2)
+
 ## [0.4.1] - 2026-11-02
 
 ### Changed

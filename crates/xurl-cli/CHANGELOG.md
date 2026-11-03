@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.5.2] - 2026-11-03
+
+### Fixed
+
+- Fix `xr post` and `xr reply` refusing more than 4 `--media-id` values. X takes up to 20 media on a post, and `xr` refuses from 21. by @brettdavies in [#474](https://github.com/brettdavies/xurl-rs/pull/474)
+- Fix `xr broadcasts sources add --help`, which left `eu-west-2` and `eu-north-1` out of the ingest regions `--region` takes.
+- Fix `xr auth oauth2` failing with `cancelled by signal` when the browser's redirect percent-encodes `state`: the sign-in completes however the redirect encodes it. by @brettdavies in [#480](https://github.com/brettdavies/xurl-rs/pull/480)
+- Fix `xr auth oauth2` printing `Cancelled: oauth callback cancelled by signal` when the redirect is refused, the callback times out, the browser cannot be opened, or the token exchange fails: it prints the real error, and a refused redirect or a timeout carries a `sign-in` step that runs the same sign-in again (with `--no-browser` when the browser could not be opened).
+- Fix `xr auth oauth2` reporting a denied consent as `empty authorization code`, and `--step 2` as `MissingCode`: both name the error the authorization server sent and its description, and carry a `sign-in` step, which for `--step 2` starts over at step 1.
+- Fix `xr auth oauth2` answering the browser's redirect only once an idle connection to its callback port closes.
+
+### Documentation
+
+- Remove the claim from `xr schema broadcasts sources get`, `list`, `add`, and `update` that publishing a broadcast needs the source's stream to be active; X no longer states it. by @brettdavies in [#474](https://github.com/brettdavies/xurl-rs/pull/474)
+
+**Full Changelog**: [v4.5.1...v4.5.2](https://github.com/brettdavies/xurl-rs/compare/v4.5.1...v4.5.2)
+
 ## [4.5.1] - 2026-11-02
 
 ### Fixed
