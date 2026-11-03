@@ -30,11 +30,11 @@ documented with every feature), `cargo deny check`, `shellcheck`, a Windows comp
 `pre-push` scopes each step to what the push actually changes, so a docs-only push skips the Rust battery entirely and
 finishes in seconds. A document counts as docs only when it is markdown outside `crates/`, not a README, and named by
 no Rust source: tests read `AGENTS.md` and the PR template, so a push touching one of those runs the battery. The
-gitignored `.context/`, the license texts, the issue forms, the rulesets, and the Dependabot config count as docs too;
-workflows do not. `scripts/cargo-inputs.sh` makes that call, and CI's `Change scope` job applies the same filter to a
-pull request, skipping every Rust job on a docs-only PR while lint still runs. The scoping fails open: an unrecognized
-path runs everything, and running the hook by hand sweeps the whole repo. Every step that is skipped says so on its own
-line, so a skip never reads as a pass.
+gitignored `.context/`, the license texts, the issue forms, the rulesets, and the Dependabot config count as docs too,
+unless a Rust source names the file or a directory above it; workflows do not. `scripts/cargo-inputs.sh` makes that
+call, and CI's `Change scope` job applies the same filter to a pull request, skipping every Rust job on a docs-only PR
+while lint still runs. The scoping fails open: an unrecognized path runs everything, and running the hook by hand
+sweeps the whole repo. Every step that is skipped says so on its own line, so a skip never reads as a pass.
 
 Six CI gates have no hook counterpart, because each needs a clean checkout, a released baseline, a release build, a
 second binary, or a Windows machine: completions freshness (`./scripts/generate-completions.sh --check`), the package

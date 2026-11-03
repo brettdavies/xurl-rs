@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.02 (generic)
+# Canonical version: 2026.11.03 (generic)
 #
 # Local CI mirror: the whole-repo pre-push gate. Runs the same checks as the
 # GitHub Actions CI pipeline, so a push that survives the hook passes CI and a
@@ -17,6 +17,9 @@
 # not pay for a full Rust battery. The scoping fails open (an unrecognized path
 # runs everything, and a hand-run hook sweeps the whole repo) because a guard
 # that wrongly skips is worse than one that wrongly runs.
+#
+# A commit any remote-tracking branch of the pushed remote reaches counts as
+# already checked, so a tag or new branch at one runs nothing.
 #
 # Activate per clone via: git config core.hooksPath scripts/hooks
 # core.hooksPath is machine-local git config: it does NOT travel with the
@@ -65,7 +68,8 @@ set -uo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root" || exit 1
-# shellcheck source=scripts/hooks/_lib.sh
+# A CI action that checks one file at a time without -x reports SC1091 here.
+# shellcheck source=scripts/hooks/_lib.sh disable=SC1091
 . ./scripts/hooks/_lib.sh || exit 1
 
 if push_only_deletes; then
@@ -81,6 +85,13 @@ if [ "$#" -ge 2 ] && [ -z "${HOOK_PUSH_REFS:-}" ]; then
   exit 0
 fi
 
+# A tag, or a new branch, at a commit the remote already has brings no commit
+# for any check to read.
+if push_only_known_commits "${1:-}"; then
+  echo "Nothing to check: every pushed commit is already on $1."
+  exit 0
+fi
+
 # `fail` exits: the Rust battery below is ordered by cost, so continuing past a
 # failed fmt to run clippy, the test suite and a cross-target type-check would
 # spend minutes restating what the first line already said. Every `step` below
@@ -92,12 +103,13 @@ fail() {
 
 # ── What this push changes ────────────────────────────────────────────────
 #
-# pushed_paths reads the ref lines push_only_deletes kept. A hand run, a new
-# branch with no origin/dev to compare with, or a range git cannot read sweeps
-# everything.
+# pushed_paths reads the ref lines push_only_deletes kept, and a new ref by
+# the commits no remote-tracking branch of the pushed remote reaches. A hand
+# run, a remote with no remote-tracking branch, or a range git cannot read
+# sweeps everything.
 scope_all=false
 changed=""
-changed=$(pushed_paths) || scope_all=true
+changed=$(pushed_paths "${1:-}") || scope_all=true
 
 # touched <extended-regex>: true when the push carries a matching path.
 # Every test below reads a string rather than a pipe: `grep -q` exits at its

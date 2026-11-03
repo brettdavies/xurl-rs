@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.01 (generic)
+# Canonical version: 2026.11.03 (generic)
 #
 # Pre-commit hook: fast, staged-file-scoped checks that catch the cheap
 # mistakes before they reach a commit. The whole-repo CI mirror lives in the
@@ -53,7 +53,8 @@ set -uo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root" || exit 1
-# shellcheck source=scripts/hooks/_lib.sh
+# A CI action that checks one file at a time without -x reports SC1091 here.
+# shellcheck source=scripts/hooks/_lib.sh disable=SC1091
 . ./scripts/hooks/_lib.sh || exit 1
 
 fail=0
@@ -69,11 +70,11 @@ fail=0
 # takes a build lock, and markdownlint, the one that writes, writes only the
 # markdown no other check reads, so they all run together and the slowest one
 # sets the wall-clock. step_wait replays them in the order queued below.
-#
-# rustfmt runs per file rather than through `cargo fmt`, so it takes no build
-# lock either and belongs in the queue with the rest.
+# `cargo fmt` compiles nothing, so it takes no build lock and belongs in the
+# queue with the rest.
 
-# Rust: format-check the staged .rs files.
+# Rust: format check when a .rs file is staged, each crate under its own
+# edition.
 mapfile -t rs_files < <(staged '*.rs')
 step_bg "rustfmt" "cargo fmt" without_git_repo_env check_rustfmt "${rs_files[@]}"
 
