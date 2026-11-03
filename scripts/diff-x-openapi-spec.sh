@@ -263,8 +263,9 @@ if [ -f "${BUILD_RS}" ]; then
         | sort)"
 fi
 
+# BSD wc, the one macOS ships, right-aligns its count in a padded field.
 count_lines() {
-    if [ -z "$1" ]; then echo 0; else printf '%s\n' "$1" | wc -l; fi
+    if [ -z "$1" ]; then echo 0; else printf '%s\n' "$1" | wc -l | tr -d '[:space:]'; fi
 }
 paths_added_count="$(count_lines "${paths_added}")"
 paths_removed_count="$(count_lines "${paths_removed}")"
