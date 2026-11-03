@@ -1673,7 +1673,11 @@ fn a_temp_file_from_an_interrupted_save_is_swept() {
     let path = tmp.path().join(".xurl");
     let stale = tmp.path().join(".xurl.tmp.1.1");
     fs::write(&stale, b"apps: {\n").unwrap();
-    fs::File::open(&stale)
+    // Windows sets file times only through a handle opened for writing:
+    // SetFileTime needs FILE_WRITE_ATTRIBUTES, which a read-only open lacks.
+    fs::File::options()
+        .write(true)
+        .open(&stale)
         .unwrap()
         .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(3600))
         .unwrap();
