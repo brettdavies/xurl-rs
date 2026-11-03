@@ -516,8 +516,8 @@ pub fn resolve_username(input: &str) -> String {
 )]
 pub const POST_BODY_MAX_CHARS: usize = 280;
 
-/// X API media attachment cap per post.
-pub const POST_MEDIA_MAX: usize = 4;
+/// The most media one post takes, the spec's `maxItems` on `media_ids`.
+pub const POST_MEDIA_MAX: usize = 20;
 
 /// The fewest people a group conversation starts with besides the caller,
 /// the spec's `minItems` on `participant_ids`.
