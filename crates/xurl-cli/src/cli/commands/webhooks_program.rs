@@ -119,9 +119,9 @@ impl ProgramTarget {
 ///
 /// `xr` keeps SIGPIPE's default action, which ends the process on a write
 /// to a pipe nobody reads, and a program may exit without reading. On Unix
-/// the write therefore runs on a thread of its own with SIGPIPE blocked: the
-/// signal is directed at that thread, the write returns `EPIPE` instead, and
-/// the pending signal ends with the thread.
+/// the write therefore runs on a thread of its own that keeps the signal
+/// from `xr` (see [`quiet_broken_pipe`]), and the write returns `EPIPE`
+/// instead.
 async fn write_stdin(stdin: Option<ChildStdin>, body: Vec<u8>) {
     let Some(stdin) = stdin else {
         return;
@@ -134,7 +134,7 @@ async fn write_stdin(stdin: Option<ChildStdin>, body: Vec<u8>) {
         };
         let (done, finished) = tokio::sync::oneshot::channel();
         std::thread::spawn(move || {
-            block_sigpipe();
+            quiet_broken_pipe(&fd);
             let _ = std::fs::File::from(fd).write_all(&body);
             let _ = done.send(());
         });
@@ -146,6 +146,29 @@ async fn write_stdin(stdin: Option<ChildStdin>, body: Vec<u8>) {
         let mut stdin = stdin;
         let _ = stdin.write_all(&body).await;
     }
+}
+
+/// Makes a write through `fd` on the calling thread return `EPIPE`, rather
+/// than raise SIGPIPE, once the program has stopped reading.
+///
+/// Linux directs the signal at the writing thread, so blocking it in that
+/// thread's mask holds it pending until the thread ends. macOS raises it on
+/// the process, where any other thread's mask lets it through, so there the
+/// descriptor's `F_SETNOSIGPIPE` flag turns it off for writes through `fd`.
+#[cfg(unix)]
+fn quiet_broken_pipe(fd: &std::os::fd::OwnedFd) {
+    block_sigpipe();
+    #[cfg(target_vendor = "apple")]
+    {
+        use std::os::fd::AsRawFd as _;
+        // SAFETY: `fd` is open for the whole call, and F_SETNOSIGPIPE only
+        // sets a flag on it.
+        unsafe {
+            libc::fcntl(fd.as_raw_fd(), libc::F_SETNOSIGPIPE, 1);
+        }
+    }
+    #[cfg(not(target_vendor = "apple"))]
+    let _ = fd;
 }
 
 /// Blocks SIGPIPE for the calling thread alone.
