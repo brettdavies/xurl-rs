@@ -21,7 +21,8 @@ use tokio_util::sync::CancellationToken;
 use url::Url;
 
 use crate::error::{
-    CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_TIMED_OUT, Error, Result,
+    CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED, CALLBACK_TIMED_OUT,
+    Error, Result,
 };
 
 /// Hardcoded 5-minute timeout matching upstream Go xurl.
@@ -39,27 +40,49 @@ const REQUEST_HEAD_LIMIT: usize = 4096;
 type ResultSlot = Arc<Mutex<Option<oneshot::Sender<std::result::Result<String, Refusal>>>>>;
 
 /// Why the listener refused a callback that reached its path.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 enum Refusal {
     InvalidState,
     EmptyCode,
+    /// The authorization server's own refusal, from the redirect's `error`
+    /// and `error_description`.
+    Provider {
+        error: String,
+        description: Option<String>,
+    },
 }
 
 impl Refusal {
     /// The page the browser shows.
-    fn page(self) -> &'static str {
+    fn page(&self) -> String {
         match self {
-            Self::InvalidState => "Error: invalid state parameter",
-            Self::EmptyCode => "Error: empty authorization code",
+            Self::InvalidState => "Error: invalid state parameter".to_string(),
+            Self::EmptyCode => "Error: empty authorization code".to_string(),
+            Self::Provider { error, .. } => {
+                format!("Error: the authorization server refused the sign-in: {error}")
+            }
         }
     }
 
     /// The message of the error the caller gets.
-    fn message(self) -> &'static str {
+    fn message(&self) -> String {
         match self {
-            Self::InvalidState => CALLBACK_INVALID_STATE,
-            Self::EmptyCode => CALLBACK_EMPTY_CODE,
+            Self::InvalidState => CALLBACK_INVALID_STATE.to_string(),
+            Self::EmptyCode => CALLBACK_EMPTY_CODE.to_string(),
+            Self::Provider { error, description } => {
+                provider_refusal(error, description.as_deref())
+            }
         }
+    }
+}
+
+/// The message of a sign-in the authorization server refused with `error`
+/// and, when it sent one, `description`: [`CALLBACK_PROVIDER_REFUSED`] and
+/// then both.
+pub(crate) fn provider_refusal(error: &str, description: Option<&str>) -> String {
+    match description.filter(|description| !description.is_empty()) {
+        Some(description) => format!("{CALLBACK_PROVIDER_REFUSED}: {error} ({description})"),
+        None => format!("{CALLBACK_PROVIDER_REFUSED}: {error}"),
     }
 }
 
@@ -74,14 +97,18 @@ struct Callback {
     done: CancellationToken,
 }
 
-/// The `code` and `state` an authorization redirect carries.
+/// What an authorization redirect carries: `code` and `state`, or, when the
+/// authorization server refused, `error` and `error_description` with
+/// `state` (RFC 6749 section 4.1.2.1).
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct RedirectParams {
     pub(crate) code: Option<String>,
     pub(crate) state: Option<String>,
+    pub(crate) error: Option<String>,
+    pub(crate) error_description: Option<String>,
 }
 
-/// Reads `code` and `state` from a redirect's query string, decoded as
+/// Reads [`RedirectParams`] from a redirect's query string, decoded as
 /// `application/x-www-form-urlencoded`, the encoding the authorize URL sends
 /// `state` in. The listener and the headless step 2 both read the redirect
 /// through it, so the two agree on a state whatever encoding the redirect
@@ -92,6 +119,8 @@ pub(crate) fn redirect_params(query: &str) -> RedirectParams {
         match key.as_ref() {
             "code" => params.code = Some(value.into_owned()),
             "state" => params.state = Some(value.into_owned()),
+            "error" => params.error = Some(value.into_owned()),
+            "error_description" => params.error_description = Some(value.into_owned()),
             _ => {}
         }
     }
@@ -212,9 +241,13 @@ async fn read_request_head(stream: &mut TcpStream, buf: &mut [u8]) -> std::io::R
 }
 
 /// Writes an HTTP/1.1 response with `status` and a plain-text `body`.
+///
+/// The body can carry the provider's `error`, so the type is declared and
+/// `nosniff` keeps a browser from rendering it as anything but text.
 async fn respond(stream: &mut TcpStream, status: &str, body: &str) {
     let response = format!(
-        "HTTP/1.1 {status}\r\nContent-Length: {}\r\n\r\n{body}",
+        "HTTP/1.1 {status}\r\nContent-Type: text/plain; charset=utf-8\r\n\
+         X-Content-Type-Options: nosniff\r\nContent-Length: {}\r\n\r\n{body}",
         body.len()
     );
     let _ = stream.write_all(response.as_bytes()).await;
@@ -256,7 +289,8 @@ async fn run_accept_loop(
 
 /// Reads one request from `stream` and answers it. A callback on the
 /// listener's path delivers its code, or its refusal, through `callback` and
-/// ends the listener; any other path gets a 404 and leaves it serving.
+/// ends the listener; any other path gets a 404 and leaves it serving. The
+/// state is checked before anything else the callback carries.
 async fn answer(mut stream: TcpStream, callback: Arc<Callback>) {
     let mut buf = [0u8; REQUEST_HEAD_LIMIT];
     let n = match read_request_head(&mut stream, &mut buf).await {
@@ -274,9 +308,19 @@ async fn answer(mut stream: TcpStream, callback: Arc<Callback>) {
     }
 
     let query = request_path.split_once('?').map_or("", |(_, query)| query);
-    let RedirectParams { code, state } = redirect_params(query);
+    let RedirectParams {
+        code,
+        state,
+        error,
+        error_description,
+    } = redirect_params(query);
     let outcome = if state.as_deref().unwrap_or("") != callback.expected_state {
         Err(Refusal::InvalidState)
+    } else if let Some(error) = error {
+        Err(Refusal::Provider {
+            error,
+            description: error_description,
+        })
     } else {
         code.filter(|code| !code.is_empty())
             .ok_or(Refusal::EmptyCode)
@@ -291,7 +335,7 @@ async fn answer(mut stream: TcpStream, callback: Arc<Callback>) {
             )
             .await;
         }
-        Err(refusal) => respond(&mut stream, "400 Bad Request", refusal.page()).await,
+        Err(refusal) => respond(&mut stream, "400 Bad Request", &refusal.page()).await,
     }
     if let Some(tx) = callback.result_tx.lock().await.take() {
         let _ = tx.send(outcome);

@@ -826,6 +826,13 @@ pub const CALLBACK_EMPTY_CODE: &str = "CallbackError: empty authorization code";
 /// within five minutes.
 pub const CALLBACK_TIMED_OUT: &str = "Timeout: authentication timed out";
 
+/// The start of the message of a sign-in whose redirect carried the
+/// authorization server's `error` in place of a code (RFC 6749 section
+/// 4.1.2.1), as a denied consent does. The provider's `error` follows, and
+/// its `error_description` when it sent one.
+pub const CALLBACK_PROVIDER_REFUSED: &str =
+    "CallbackError: the authorization server refused the sign-in";
+
 /// The message of an interactive sign-in that could not open the browser.
 pub const BROWSER_OPEN_FAILED: &str =
     "browser-open failed; re-run with --no-browser to paste the URL manually";

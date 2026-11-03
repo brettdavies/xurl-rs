@@ -769,3 +769,51 @@ fn an_idle_connection_does_not_hold_up_the_redirect() {
 fn a_pending_flow_with_a_standard_alphabet_state_still_resumes() {
     assert!(headless_step_accepts("code=resumed&state=ab%2B%2Fcd%3D%3D"));
 }
+
+// ── A refusal from the authorization server ──────────────────────────────
+
+/// A redirect for a denied consent carries `error` and `state` in place of
+/// `code` (RFC 6749 section 4.1.2.1), and the listener refuses it with the
+/// provider's error.
+#[test]
+fn a_provider_error_is_refused_with_its_reason() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        "/callback?error=access_denied&error_description=The+user+denied+access&state=STATE",
+    );
+    assert_eq!(http_status_code(&resp), 400, "response: {resp:?}");
+    assert!(
+        resp.contains("access_denied"),
+        "the page names the error: {resp:?}"
+    );
+    let refused = listener.finish().expect_err("a denied consent").to_string();
+    assert!(
+        refused.contains("access_denied") && refused.contains("The user denied access"),
+        "{refused}"
+    );
+}
+
+/// The state is checked first: a provider error under another state is a
+/// refused state, as any callback under another state is.
+#[test]
+fn a_provider_error_under_another_state_is_refused_for_its_state() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        "/callback?error=access_denied&state=NOT-THE-STATE",
+    );
+    assert_eq!(http_status_code(&resp), 400, "response: {resp:?}");
+    let refused = listener.finish().expect_err("a refused state").to_string();
+    assert!(refused.contains("invalid state parameter"), "{refused}");
+}

@@ -851,11 +851,16 @@ async fn run_interactive(
 /// Follows the redirect to `target` the way a browser does: one GET carrying
 /// a code and `state`.
 fn follow_redirect(target: &str, state: &str) -> std::io::Result<()> {
+    send_callback(target, &format!("code=AUTHCODE&state={state}"))
+}
+
+/// Sends the callback request a browser sends for a redirect carrying
+/// `query` to `target`.
+fn send_callback(target: &str, query: &str) -> std::io::Result<()> {
     let mut stream = StdTcpStream::connect(target)?;
     stream.set_read_timeout(Some(Duration::from_secs(30)))?;
-    let request = format!(
-        "GET /callback?code=AUTHCODE&state={state} HTTP/1.1\r\nHost: {target}\r\nConnection: close\r\n\r\n"
-    );
+    let request =
+        format!("GET /callback?{query} HTTP/1.1\r\nHost: {target}\r\nConnection: close\r\n\r\n");
     stream.write_all(request.as_bytes())?;
     let mut answer = String::new();
     let _ = stream.read_to_string(&mut answer);
@@ -925,6 +930,75 @@ async fn a_failed_exchange_after_the_callback_leaves_the_callers_token_alone() {
         !cancel.is_cancelled(),
         "the flow cancelled the caller's token, which xr reads as Ctrl-C"
     );
+}
+
+/// A denied consent: the redirect carries the provider's `error` with the
+/// state and no code (RFC 6749 section 4.1.2.1).
+const DENIAL: &str = "error=access_denied&error_description=The+user+denied+access";
+
+#[tokio::test]
+async fn a_denied_consent_returns_the_providers_error() {
+    let (returned, cancel) = run_interactive(|url, target| {
+        send_callback(target, &format!("{DENIAL}&state={}", state_of(url)))
+    })
+    .await;
+
+    let refused = returned.expect_err("the provider refused").to_string();
+    assert!(
+        refused.contains("access_denied") && refused.contains("The user denied access"),
+        "{refused}"
+    );
+    assert!(
+        !cancel.is_cancelled(),
+        "the flow cancelled the caller's token, which xr reads as Ctrl-C"
+    );
+}
+
+#[tokio::test]
+async fn step2_reports_a_denied_consent_with_the_providers_error_and_step_one_again() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+    let closed = closed_port();
+    let overrides = step2_overrides(
+        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+    );
+    let denied = format!("http://localhost:8080/callback?{DENIAL}&state={PENDING_STATE}");
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &denied,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    let message = v["message"].as_str().unwrap_or_default();
+    assert!(
+        message.contains("access_denied") && message.contains("The user denied access"),
+        "envelope: {v}"
+    );
+    assert_eq!(v["reason"], "auth-required", "envelope: {v}");
+    assert_eq!(v["next_step"]["action"], "sign-in", "envelope: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr --output json auth oauth2 --no-browser --step 1",
+        "a denied consent starts the sign-in over: {v}"
+    );
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
 }
 
 #[tokio::test]

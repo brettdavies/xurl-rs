@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 
 pub use xdk::error::NextAction;
 use xdk::error::{
-    BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_TIMED_OUT, Error,
+    BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED,
+    CALLBACK_TIMED_OUT, Error,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -122,11 +123,40 @@ impl NextStep {
     /// The sign-in `invocation` started, run again as given, with
     /// `--no-browser` added when `no_browser` asks for the paste-the-URL form
     /// and the invocation does not already carry it.
+    ///
+    /// A headless step 2 starts over at step 1: its redirect URL answers the
+    /// pending flow it failed on, so `--auth-url` and its value are dropped
+    /// and `--step 2` becomes `--step 1`.
     #[must_use]
     pub fn sign_in_again(invocation: &[String], no_browser: bool) -> Self {
-        let mut words: Vec<String> = invocation.iter().map(|arg| shell_word(arg)).collect();
-        if let Some(program) = words.first_mut() {
-            *program = ROOT_COMMAND.to_string();
+        let restep = |step: &str| {
+            if step == "2" {
+                "1".to_string()
+            } else {
+                shell_word(step)
+            }
+        };
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        let mut args = invocation.iter().skip(1);
+        while let Some(arg) = args.next() {
+            if arg == "--auth-url" {
+                args.next();
+                continue;
+            }
+            if arg.starts_with("--auth-url=") {
+                continue;
+            }
+            if arg == "--step" {
+                words.push(arg.clone());
+                if let Some(step) = args.next() {
+                    words.push(restep(step));
+                }
+                continue;
+            }
+            match arg.strip_prefix("--step=") {
+                Some(step) => words.push(format!("--step={}", restep(step))),
+                None => words.push(shell_word(arg)),
+            }
         }
         if no_browser && !invocation.iter().any(|arg| arg == "--no-browser") {
             words.push("--no-browser".to_string());
@@ -659,9 +689,10 @@ fn requested_secret(invocation: &[String]) -> Option<&str> {
     None
 }
 
-/// Builds the hint for an interactive sign-in that ended without a code:
-/// the callback was refused or never came, so the step is the same sign-in
-/// again, and when the browser could not be opened, its paste-the-URL form.
+/// Builds the hint for a sign-in that ended without a code: the callback was
+/// refused, by the listener or by the authorization server, or never came,
+/// so the step is the same sign-in again, and when the browser could not be
+/// opened, its paste-the-URL form.
 #[must_use]
 pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
     let Error::Auth { message, .. } = error else {
@@ -670,6 +701,7 @@ pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> 
     let no_browser = match message.as_str() {
         CALLBACK_INVALID_STATE | CALLBACK_EMPTY_CODE | CALLBACK_TIMED_OUT => false,
         BROWSER_OPEN_FAILED => true,
+        refused if refused.starts_with(CALLBACK_PROVIDER_REFUSED) => false,
         _ => return None,
     };
     let next_step = NextStep::sign_in_again(invocation, no_browser);
@@ -948,6 +980,35 @@ mod tests {
             hint.next_step.command.as_deref(),
             Some("xr auth oauth2 --app work --no-browser")
         );
+    }
+
+    #[test]
+    fn a_sign_in_the_authorization_server_refused_runs_again() {
+        let refused =
+            format!("{CALLBACK_PROVIDER_REFUSED}: access_denied (The user denied access)");
+        let hint = sign_in_again_hint(&Error::auth(refused), &argv("xr auth oauth2 --app work"))
+            .expect("a hint");
+        assert_eq!(hint.next_step.action, NextAction::SignIn);
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr auth oauth2 --app work")
+        );
+    }
+
+    #[test]
+    fn a_headless_step_two_starts_over_at_step_one() {
+        for invocation in [
+            "xr --output json auth oauth2 --no-browser --step 2 --auth-url http://localhost:8080/callback?error=access_denied --app work",
+            "xr --output json auth oauth2 --no-browser --step=2 --auth-url=- --app work",
+        ] {
+            let step = NextStep::sign_in_again(&argv(invocation), false);
+            let command = step.command.expect("a command");
+            assert!(
+                command == "xr --output json auth oauth2 --no-browser --step 1 --app work"
+                    || command == "xr --output json auth oauth2 --no-browser --step=1 --app work",
+                "{invocation} -> {command}"
+            );
+        }
     }
 
     #[test]

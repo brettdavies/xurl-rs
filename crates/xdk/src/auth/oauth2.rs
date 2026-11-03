@@ -463,8 +463,12 @@ pub async fn run_remote_step2(
             .with_source(e)
     })?;
 
-    let callback::RedirectParams { code, state } =
-        callback::redirect_params(parsed.query().unwrap_or(""));
+    let callback::RedirectParams {
+        code,
+        state,
+        error,
+        error_description,
+    } = callback::redirect_params(parsed.query().unwrap_or(""));
 
     // Validate state first (CSRF check before revealing anything about code)
     let state = state
@@ -476,6 +480,13 @@ pub async fn run_remote_step2(
              the pending auth flow. This may indicate a CSRF attack or that step 1 \
              was re-run. Please start over with step 1",
         ));
+    }
+
+    if let Some(error) = error {
+        return Err(Error::auth(callback::provider_refusal(
+            &error,
+            error_description.as_deref(),
+        )));
     }
 
     // Extract authorization code
