@@ -99,6 +99,7 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
         out,
         stdout,
         stderr,
+        ..
     } = run;
     let client = make_client(cfg, auth)?;
     let auth_type = auth_type.unwrap_or_default();

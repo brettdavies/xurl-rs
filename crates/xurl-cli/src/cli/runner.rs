@@ -151,11 +151,47 @@ where
     I: IntoIterator<Item = S>,
     S: Into<OsString> + Clone,
 {
+    run_with_hooks(
+        args,
+        stdout,
+        stderr,
+        store_path,
+        overrides,
+        &RunHooks::default(),
+    )
+    .await
+}
+
+/// Values an in-process run takes in place of the ones a process uses.
+#[derive(Clone, Default)]
+pub struct RunHooks {
+    /// The clock `webhooks listen` stamps each arrival with, in place of the
+    /// system clock.
+    pub arrival_clock: Option<xdk::webhooks::ArrivalClock>,
+}
+
+/// [`run_with_overrides`] with `hooks` in place of what a process uses.
+pub async fn run_with_hooks<I, S>(
+    args: I,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    store_path: &Path,
+    overrides: &xdk::config::EnvOverrides,
+    hooks: &RunHooks,
+) -> i32
+where
+    I: IntoIterator<Item = S>,
+    S: Into<OsString> + Clone,
+{
     let skill_env = SkillEnv {
         home: overrides.home.clone(),
         ..SkillEnv::default()
     };
-    run_with_env(args, stdout, stderr, store_path, overrides, &skill_env).await
+    let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
+    run_inner(
+        args_vec, stdout, stderr, store_path, overrides, &skill_env, hooks,
+    )
+    .await
 }
 
 /// [`run_with_overrides`] with the skill-destination environment supplied as
@@ -174,7 +210,27 @@ where
     S: Into<OsString> + Clone,
 {
     let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
+    run_inner(
+        args_vec,
+        stdout,
+        stderr,
+        store_path,
+        overrides,
+        skill_env,
+        &RunHooks::default(),
+    )
+    .await
+}
 
+async fn run_inner(
+    args_vec: Vec<OsString>,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    store_path: &Path,
+    overrides: &xdk::config::EnvOverrides,
+    skill_env: &SkillEnv,
+    hooks: &RunHooks,
+) -> i32 {
     // Parsed in two steps, formatting a failure as `Cli::try_parse_from`
     // does, so the matches stay to name the command that ran.
     let parsed = Cli::command()
@@ -351,7 +407,7 @@ where
     // turns them into the stderr lines the flags call for, for this dispatch
     // and this thread only.
     let diagnostics = Diagnostics::new(out.clone());
-    let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides)
+    let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides, hooks)
         .with_subscriber(diagnostics)
         .await;
     let invocation = || -> Vec<String> {

@@ -368,6 +368,7 @@ pub(crate) async fn run(
     stderr: &mut dyn Write,
     mut auth: Auth,
     overrides: &xdk::config::EnvOverrides,
+    hooks: &crate::cli::runner::RunHooks,
 ) -> CommandResult<()> {
     let mut cfg = Config::from_overrides(overrides);
     // Honour --timeout / XURL_TIMEOUT for every HTTP path: API client,
@@ -422,6 +423,7 @@ pub(crate) async fn run(
                 out,
                 stdout,
                 stderr,
+                arrival_clock: hooks.arrival_clock.clone(),
             };
             run_subcommand(cmd, run).await
         }
@@ -452,6 +454,9 @@ struct Run<'a> {
     out: &'a OutputConfig,
     stdout: &'a mut dyn Write,
     stderr: &'a mut dyn Write,
+    /// What `webhooks listen` stamps arrivals with in place of the system
+    /// clock; set only by an in-process run.
+    arrival_clock: Option<xdk::webhooks::ArrivalClock>,
 }
 
 /// Runs raw curl-style mode.
