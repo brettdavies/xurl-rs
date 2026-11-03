@@ -42,38 +42,13 @@ const ALLOWLIST: &[Allowed] = &[
         reason: "Client::from_env's contract is reading the environment",
     },
     Allowed {
-        file: "crates/xdk/tests/api_tests.rs",
-        test: "test_from_env_with_client_id_set_returns_ok",
-        reason: "Client::from_env's contract is reading the environment",
-    },
-    Allowed {
-        file: "crates/xdk/tests/api_tests.rs",
-        test: "test_from_env_with_client_id_but_no_secret_returns_ok",
-        reason: "Client::from_env's contract is reading the environment",
-    },
-    Allowed {
         file: "crates/xdk/tests/config_tests.rs",
         test: "test_config_defaults",
         reason: "Config::new's contract is reading the environment",
     },
     Allowed {
         file: "crates/xdk/tests/config_tests.rs",
-        test: "test_config_from_env_client_id",
-        reason: "Config::new's contract is reading the environment",
-    },
-    Allowed {
-        file: "crates/xdk/tests/config_tests.rs",
-        test: "test_config_from_env_client_secret",
-        reason: "Config::new's contract is reading the environment",
-    },
-    Allowed {
-        file: "crates/xdk/tests/config_tests.rs",
         test: "test_config_from_env_all",
-        reason: "Config::new's contract is reading the environment",
-    },
-    Allowed {
-        file: "crates/xdk/tests/config_tests.rs",
-        test: "test_config_from_env_api_base_url",
         reason: "Config::new's contract is reading the environment",
     },
     Allowed {
@@ -85,11 +60,6 @@ const ALLOWLIST: &[Allowed] = &[
         file: "crates/xurl-cli/tests/conformance_runner.rs",
         test: "run_differential_conformance_suite",
         reason: "sole test in its binary; the variable points a comparison harness at the Go binary, not the CLI under test",
-    },
-    Allowed {
-        file: "crates/xurl-cli/tests/output_writer_tests.rs",
-        test: "no_color_env_reaches_the_resolved_color_decision",
-        reason: "the only proof that the binary reads NO_COLOR from the process",
     },
     Allowed {
         file: "crates/xdk/src/config/mod.rs",

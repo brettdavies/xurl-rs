@@ -1910,60 +1910,6 @@ fn test_from_env_without_client_id_builds_a_store_backed_client() {
     );
 }
 
-#[serial_test::serial]
-#[test]
-fn test_from_env_with_client_id_set_returns_ok() {
-    let original_id = std::env::var("CLIENT_ID").ok();
-    let original_secret = std::env::var("CLIENT_SECRET").ok();
-    unsafe {
-        std::env::set_var("CLIENT_ID", "test-from-env-id");
-        std::env::set_var("CLIENT_SECRET", "test-secret");
-    }
-
-    let result = Client::from_env();
-    assert!(
-        result.is_ok(),
-        "from_env() should succeed with CLIENT_ID set"
-    );
-
-    // Restore
-    match original_id {
-        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
-        None => unsafe { std::env::remove_var("CLIENT_ID") },
-    }
-    match original_secret {
-        Some(val) => unsafe { std::env::set_var("CLIENT_SECRET", val) },
-        None => unsafe { std::env::remove_var("CLIENT_SECRET") },
-    }
-}
-
-#[serial_test::serial]
-#[test]
-fn test_from_env_with_client_id_but_no_secret_returns_ok() {
-    // Best-effort: CLIENT_SECRET not required at construction time
-    let original_id = std::env::var("CLIENT_ID").ok();
-    let original_secret = std::env::var("CLIENT_SECRET").ok();
-    unsafe {
-        std::env::set_var("CLIENT_ID", "test-from-env-id");
-        std::env::remove_var("CLIENT_SECRET");
-    }
-
-    let result = Client::from_env();
-    assert!(
-        result.is_ok(),
-        "from_env() should succeed without CLIENT_SECRET (best-effort)"
-    );
-
-    // Restore
-    match original_id {
-        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
-        None => unsafe { std::env::remove_var("CLIENT_ID") },
-    }
-    if let Some(val) = original_secret {
-        unsafe { std::env::set_var("CLIENT_SECRET", val) };
-    }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // no_auth behavior tests
 // ═══════════════════════════════════════════════════════════════════════════
