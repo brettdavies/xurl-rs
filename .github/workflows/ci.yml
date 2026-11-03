@@ -69,7 +69,7 @@ jobs:
             echo "::notice title=Change scope::every changed path is documentation no Rust source reads, so the Rust jobs skip"
           fi
 
-  warm:
+  ci:
     needs: scope
     if: ${{ !cancelled() }}
     uses: brettdavies/.github/.github/workflows/rust-ci.yml@feat/rust-ci-tier-inputs
@@ -80,4 +80,4 @@ jobs:
       advisories_blocking: true
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
       # PROBE-INPUTS
-      warm_cache: true
+      jobs: '[]'
