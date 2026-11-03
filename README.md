@@ -112,8 +112,8 @@ Both crates follow [SemVer 2.0.0](https://semver.org/) and version independently
   judges its blast radius small, and either way its release has a guide under [`docs/migrating`](docs/migrating)
   that maps each old invocation to its replacement.
 - **`xdk-rs`:** the contract is the public Rust API and the behavior its rustdoc documents. The crate is `0.x`, so a
-  break moves the middle number (`0.1.x` to `0.2.0`), and every breaking changelog entry carries a before/after
-  snippet.
+  break or an addition moves the middle number (`0.4.x` to `0.5.0`) and a fix moves the last, and every breaking
+  changelog entry carries a before/after snippet.
 
 [`RELEASES.md` § Versioning](RELEASES.md#versioning) is the full policy.
 
