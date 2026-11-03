@@ -235,23 +235,16 @@ async fn a_target_that_never_answers_is_cut_at_the_timeout_on_every_attempt() {
     );
 }
 
-/// An address that refuses connections while the returned socket lives:
-/// bound, so no test running beside this one can take the port, and never
-/// listening. A port bound and released can be taken by such a test, which
-/// then answers.
-fn closed_port() -> (tokio::net::TcpSocket, SocketAddr) {
-    let socket = tokio::net::TcpSocket::new_v4().expect("a socket");
-    socket
-        .bind("127.0.0.1:0".parse().expect("an address"))
-        .expect("a port");
-    let address = socket.local_addr().expect("its address");
-    (socket, address)
-}
+/// An address no connection can reach: port 0 names no port, so connecting
+/// fails at once on every platform (Linux refuses it, macOS and Windows
+/// reject the address), and no test running beside this one can listen
+/// there. A port bound and never listening would not do: macOS drops the
+/// SYN sent to it, so the attempt times out instead of failing to connect.
+const CLOSED_PORT: &str = "127.0.0.1:0";
 
 #[tokio::test]
 async fn a_closed_port_is_retried_and_its_cause_never_names_the_url() {
-    let (_socket, address) = closed_port();
-    let url = format!("http://{address}/hook");
+    let url = format!("http://{CLOSED_PORT}/hook");
     let event = signed_event().await;
     let target = UrlTarget::new(&url, &[] as &[&str]).expect("a valid target");
 
@@ -264,7 +257,7 @@ async fn a_closed_port_is_retried_and_its_cause_never_names_the_url() {
     assert!(!cause.is_empty());
     let shown = format!("{outcome:?} {}", outcome.result.clone().unwrap_err());
     assert!(!shown.contains(&url), "{shown}");
-    assert!(!shown.contains(&address.to_string()), "{shown}");
+    assert!(!shown.contains(CLOSED_PORT), "{shown}");
 }
 
 #[rstest::rstest]
