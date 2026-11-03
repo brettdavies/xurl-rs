@@ -813,6 +813,30 @@ pub const NO_AUTH_METHOD: &str = "NoAuthMethod: no authentication method availab
 /// The message every missing-`OAuth2`-token failure carries.
 pub const NO_OAUTH2_TOKEN: &str = "TokenNotFound: oauth2 token not found";
 
+/// The message of an interactive sign-in whose callback carried a `state`
+/// other than the one its authorize URL sent: a stale browser tab, a second
+/// sign-in, or a forged request.
+pub const CALLBACK_INVALID_STATE: &str = "CallbackError: invalid state parameter";
+
+/// The message of an interactive sign-in whose callback carried no
+/// authorization code.
+pub const CALLBACK_EMPTY_CODE: &str = "CallbackError: empty authorization code";
+
+/// The message of an interactive sign-in whose callback did not arrive
+/// within five minutes.
+pub const CALLBACK_TIMED_OUT: &str = "Timeout: authentication timed out";
+
+/// The start of the message of a sign-in whose redirect carried the
+/// authorization server's `error` in place of a code (RFC 6749 section
+/// 4.1.2.1), as a denied consent does. The provider's `error` follows, and
+/// its `error_description` when it sent one.
+pub const CALLBACK_PROVIDER_REFUSED: &str =
+    "CallbackError: the authorization server refused the sign-in";
+
+/// The message of an interactive sign-in that could not open the browser.
+pub const BROWSER_OPEN_FAILED: &str =
+    "browser-open failed; re-run with --no-browser to paste the URL manually";
+
 // ── Exit codes ─────────────────────────────────────────────────────
 
 /// Structured exit codes for machine-readable error handling.

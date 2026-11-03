@@ -6,14 +6,14 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::Engine;
-use base64::engine::general_purpose::{STANDARD as BASE64_STANDARD, URL_SAFE_NO_PAD};
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use sha2::{Digest, Sha256};
 use url::Url;
 
 use super::Auth;
 use super::callback;
 use super::pending;
-use crate::error::{Error, Result};
+use crate::error::{BROWSER_OPEN_FAILED, Error, Result};
 use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
 
@@ -93,6 +93,15 @@ pub fn generate_code_verifier_and_challenge() -> (String, String) {
     hasher.update(verifier.as_bytes());
     let challenge = URL_SAFE_NO_PAD.encode(hasher.finalize());
     (verifier, challenge)
+}
+
+/// A fresh CSRF state nonce: 32 random bytes in the URL-safe base64 alphabet
+/// without padding. No character of it is encoded in the authorize URL or in
+/// the redirect, so the listener and the headless step read it back the same
+/// whatever encoding the provider's redirect uses.
+fn new_state() -> String {
+    let bytes: [u8; 32] = rand::random();
+    URL_SAFE_NO_PAD.encode(bytes)
 }
 
 /// Builds the `OAuth2` authorization URL with all required query parameters.
@@ -244,8 +253,9 @@ pub(crate) async fn exchange_code_for_token(
 /// waiting out the callback timeout.
 ///
 /// `cancel` is the caller's stop: the binary cancels it on a shutdown
-/// signal, a library caller passes a child of its own token. The flow
-/// registers no signal handler of its own.
+/// signal. The flow never cancels it itself, however the sign-in ends, so a
+/// cancelled token means the caller stopped it. The flow registers no signal
+/// handler of its own.
 ///
 /// # Errors
 ///
@@ -297,9 +307,7 @@ async fn run_flow<F>(
 where
     F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
 {
-    // Generate state parameter
-    let state_bytes: [u8; 32] = rand::random();
-    let state = BASE64_STANDARD.encode(state_bytes);
+    let state = new_state();
 
     let (verifier, challenge) = generate_code_verifier_and_challenge();
 
@@ -312,31 +320,40 @@ where
         .map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
 
     // The opener runs on the listener's bind-success hook. A failed open
-    // cancels the listener immediately rather than waiting out the callback
-    // timeout, and the flag below turns that cancellation into the
-    // browser-open error the caller can act on.
+    // stops the listener immediately rather than waiting out the callback
+    // timeout, through a child token so the caller's stays as it was, and the
+    // flag below turns that stop into the browser-open error the caller can
+    // act on.
+    let listener_stop = cancel.child_token();
     let opener_failed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let opener_failed_for_closure = std::sync::Arc::clone(&opener_failed);
-    let cancel_for_closure = cancel.clone();
+    let stop_for_closure = listener_stop.clone();
     let on_bound = move || {
         if browser_opener(&auth_url_str).is_err() {
             opener_failed_for_closure.store(true, std::sync::atomic::Ordering::SeqCst);
-            cancel_for_closure.cancel();
+            stop_for_closure.cancel();
         }
     };
 
     let code_result = match listener {
         Some(listener) => {
-            callback::wait_for_callback_on(listener, &redirect_parsed, &state, cancel, on_bound)
+            callback::wait_for_callback_on(
+                listener,
+                &redirect_parsed,
+                &state,
+                listener_stop,
+                on_bound,
+            )
+            .await
+        }
+        None => {
+            callback::wait_for_callback_with(&redirect_parsed, &state, listener_stop, on_bound)
                 .await
         }
-        None => callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound).await,
     };
 
     if opener_failed.load(std::sync::atomic::Ordering::SeqCst) {
-        return Err(Error::auth(
-            "browser-open failed; re-run with --no-browser to paste the URL manually",
-        ));
+        return Err(Error::auth(BROWSER_OPEN_FAILED));
     }
 
     let code = code_result?;
@@ -361,8 +378,7 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
         tracing::warn!(target: "xdk::auth", "overwriting previous pending auth flow");
     }
 
-    let state_bytes: [u8; 32] = rand::random();
-    let state = BASE64_STANDARD.encode(state_bytes);
+    let state = new_state();
     let (verifier, challenge) = generate_code_verifier_and_challenge();
 
     let auth_url_str = build_auth_url(auth, &state, &challenge)?;
@@ -447,17 +463,18 @@ pub async fn run_remote_step2(
             .with_source(e)
     })?;
 
-    let params: std::collections::HashMap<String, String> = parsed
-        .query_pairs()
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .collect();
+    let callback::RedirectParams {
+        code,
+        state,
+        error,
+        error_description,
+    } = callback::redirect_params(parsed.query().unwrap_or(""));
 
     // Validate state first (CSRF check before revealing anything about code)
-    let state = params
-        .get("state")
+    let state = state
         .ok_or_else(|| Error::auth("MissingState: no 'state' parameter found in redirect URL"))?;
 
-    if *state != pending_state.state {
+    if state != pending_state.state {
         return Err(Error::auth(
             "StateMismatch: the state parameter in the redirect URL does not match \
              the pending auth flow. This may indicate a CSRF attack or that step 1 \
@@ -465,8 +482,15 @@ pub async fn run_remote_step2(
         ));
     }
 
+    if let Some(error) = error {
+        return Err(Error::auth(callback::provider_refusal(
+            &error,
+            error_description.as_deref(),
+        )));
+    }
+
     // Extract authorization code
-    let code = params.get("code").ok_or_else(|| {
+    let code = code.ok_or_else(|| {
         Error::auth(
             "MissingCode: no 'code' parameter found in redirect URL. \
              Make sure you copied the full URL from your browser's address bar",
@@ -475,7 +499,7 @@ pub async fn run_remote_step2(
 
     // Exchange code for token
     let access_token =
-        exchange_code_for_token(auth, http, code, &pending_state.code_verifier, username).await?;
+        exchange_code_for_token(auth, http, &code, &pending_state.code_verifier, username).await?;
 
     // Only delete on success
     pending::delete(pending_path)?;
