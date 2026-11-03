@@ -28,7 +28,7 @@
 mod common;
 
 use common::{
-    Allowed, enclosing_test, member_dirs, rust_files, stale_allowlist_entries, workspace_root,
+    Allowed, enclosing_test, member_dirs, rust_files, stale_allowlist_entries, workspace_name,
     workspace_sources,
 };
 
@@ -141,13 +141,6 @@ const PROCESS_READS: &[&str] = &[
 /// workspace root. Guard files are skipped because their pattern strings would
 /// match themselves.
 fn scanned_files() -> Vec<(String, std::path::PathBuf)> {
-    let root = workspace_root();
-    let name_of = |path: &std::path::Path| {
-        path.strip_prefix(root)
-            .expect("under the workspace")
-            .to_string_lossy()
-            .into_owned()
-    };
     let mut files = Vec::new();
     for member in member_dirs() {
         for path in rust_files(&member.join("tests")) {
@@ -155,12 +148,12 @@ fn scanned_files() -> Vec<(String, std::path::PathBuf)> {
                 .file_name()
                 .is_some_and(|n| n.to_string_lossy().ends_with("_guard.rs"));
             if !is_guard {
-                files.push((name_of(&path), path));
+                files.push((workspace_name(&path), path));
             }
         }
     }
     for path in workspace_sources() {
-        files.push((name_of(&path), path));
+        files.push((workspace_name(&path), path));
     }
     files.sort();
     files
@@ -201,11 +194,7 @@ fn integration_tests_do_not_read_the_process_environment() {
 
     for member in member_dirs() {
         for path in rust_files(&member.join("tests")) {
-            let file = path
-                .strip_prefix(workspace_root())
-                .expect("under the workspace")
-                .to_string_lossy()
-                .into_owned();
+            let file = workspace_name(&path);
             if file.ends_with("_guard.rs") {
                 continue;
             }

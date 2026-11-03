@@ -128,6 +128,18 @@ pub fn workspace_root() -> &'static Path {
     Path::new(env!("CARGO_WORKSPACE_DIR"))
 }
 
+/// `path` relative to the workspace root, its components joined with `/`
+/// on every platform: the form allowlists and documents name files in,
+/// where Windows would render `crates\xdk\tests\...`.
+pub fn workspace_name(path: &Path) -> String {
+    path.strip_prefix(workspace_root())
+        .expect("under the workspace")
+        .components()
+        .map(|part| part.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
 /// Every member crate directory under `crates/`, sorted.
 pub fn member_dirs() -> Vec<PathBuf> {
     let crates = workspace_root().join("crates");
