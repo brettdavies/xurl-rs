@@ -80,3 +80,4 @@ jobs:
       advisories_blocking: true
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
       # PROBE-INPUTS
+      warm_cache: true
