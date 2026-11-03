@@ -71,9 +71,9 @@ minutes.
 
 Most jobs catch nothing most of the time. Over the last 300 CI runs, real failures came from the test job, the
 agent-native audit (size ceiling 8, score 5), Public API semver (2), Doc build, Output discipline, and
-`Windows program target` (on webhooks branches); `Security audit (advisories)` failed 11 times, all on a broken
-toolchain install, never on an advisory; MSRV, Go parity, the consumer, package, and Windows checks, shellcheck, the
-powerset, and four of the six feature cells caught nothing (Appendix).
+`Windows program target` (on webhooks branches), and `Security audit (advisories)` (11, every one a real advisory);
+MSRV, Go parity, the consumer, package, and Windows checks, shellcheck, the powerset, and four of the six feature cells
+caught nothing (Appendix).
 
 ### Requirements
 
@@ -317,12 +317,15 @@ powerset, and four of the six feature cells caught nothing (Appendix).
   CI installs by binstall or download (nextest, cargo-hack, anc) and of the linters the hooks run; CI's install steps
   and `scripts/dev-setup.sh` both read it, so a local tool never differs from CI's. The script installs what is missing
   or older, reports each tool, and reruns safely; a test fails when CI pins a tool the list does not name.
-- KTD16. **Fold the library's feature matrix into one slow-tier job, and repair the advisory audit.** The six `Features`
-  cells, the feature powerset, and the no-backend compile guard become one `Library features` job running each in
-  sequence: in 300 runs their only unique catch (mock coverage) was also caught by the test job, so they keep their
-  coverage after merge in one runner slot instead of seven. `Security audit (advisories)` failed 11 times on
-  `override toolchain '1.96.0-x86_64-unknown-linux-musl' is not installed` and never on an advisory; it runs without the
-  repository's toolchain override, on dependency changes, daily, and on the release PR.
+- KTD16. **Fold the library's feature matrix into one slow-tier job, and run the advisory audit where advisories
+  arrive.** The six `Features` cells, the feature powerset, and the no-backend compile guard become one
+  `Library features` job running each in sequence: in 300 runs their only unique catch (mock coverage) was also caught
+  by the test job, so they keep their coverage after merge in one runner slot instead of seven.
+  `Security audit (advisories)` failed 11 times in the same window, each on a real advisory (RUSTSEC-2024-0449 five
+  times, RUSTSEC-2026-0385 four, RUSTSEC-2026-0382 two; runs 38293852116 through 40336900423). Each log also shows
+  `override toolchain '1.96.0-x86_64-unknown-linux-musl' is not installed`, which is cargo-deny-action's
+  `rustup show || rustup toolchain install` probe before an install that succeeds, not the failure. The audit runs on
+  dependency changes, daily, and on the release PR, unchanged in how it installs.
 
 ### High-Level Technical Design
 
@@ -411,8 +414,8 @@ The PRs, by repository, in merge order:
 7. xurl-rs U6: the merged test layout, its two guards, and their codes.
 8. xurl-rs U5: each debug-info setting kept on measurement, or none.
 9. xurl-rs U7: the job table, the classifier and its `--jobs` preview, and the table guard.
-10. xurl-rs U8: the tiers: triggers, job conditions, the `jobs` opt-in, `Library features`, the advisory audit's repair,
-    and the two rulesets for Brett to apply.
+10. xurl-rs U8: the tiers: triggers, job conditions, the `jobs` opt-in, `Library features`, the scheduled audit on
+    `dev`, and the two rulesets for Brett to apply.
 11. `brettdavies/agent-skills`: the completions template builds a dev binary.
 12. xurl-rs U10: the completions script derived again, and the other jobs' levers.
 13. xurl-rs U9: the docs.
@@ -676,9 +679,11 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
   - `.github/workflows/ci.yml`: the `Change scope` job's per-job outputs, each job's condition, the `schedule` trigger,
     the `jobs` list passed to the reusable, the concurrency group that gives each push run its own group (R4), and
     `Library features` replacing the six `Features` cells, the powerset, and the no-backend guard.
-  - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `jobs` input, landed with the shared-workflow PR (KTD11);
-    the advisory audit runs without the caller's toolchain override.
+  - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `jobs` and `audit_ref` inputs, landed with the
+    shared-workflow PR (KTD11); the scheduled run passes `audit_ref: dev`.
   - `.github/rulesets/protect-dev.json` and `protect-main.json`: the PR-tier jobs and every job, for Brett to apply.
+    Both require `ci / Inputs`, the reusable's check of the `jobs` list, so a mistyped job id fails the merge instead of
+    skipping a required check.
   - `scripts/hooks/pre-push`: runs the PR-tier jobs the classifier names for the push, and prints `--jobs`'s lists.
   - `ci.yml` takes the rust-tool-release template's shape where it fits (R5): the canonical-version stamp and header,
     and the inline jobs a rust-ci input already covers moved onto that input in the same PR that renames their required
@@ -869,7 +874,7 @@ Job table: the initial rows of `.github/ci-jobs.tsv` (U7). Catches are each job'
 | Shellcheck                  | pr                     | `**/*.sh`, `scripts/hooks/*`                                                                                     | shell scripts                                | 0                           | 16 s  |
 | Output discipline           | pr                     | `crates/xdk/src/**`, `.github/workflows/**`, its two scripts                                                     | the library never prints; concurrency groups | 1                           | 11 s  |
 | Security audit (bans etc.)  | pr                     | `Cargo.lock`, any `Cargo.toml`, `deny.toml`                                                                      | dependency licenses, bans, sources           | 0                           | 40 s  |
-| Security audit (advisories) | pr, schedule (daily)   | `Cargo.lock`, `deny.toml`                                                                                        | known vulnerabilities                        | 0 (11 toolchain failures)   | 36 s  |
+| Security audit (advisories) | pr, schedule (daily)   | `Cargo.lock`, `deny.toml`                                                                                        | known vulnerabilities                        | 11 (advisories)             | 36 s  |
 | Surface growth              | pr                     | `schema/**`, `completions/**`, the CLI's clap definitions                                                        | a surface change carries a minor section     | not in the 300 CI runs      | ~10 s |
 | Library features            | post-merge             | `crates/xdk/**`, dependency inputs                                                                               | each TLS backend and feature combination     | 1, also caught by Tests     | ~5 m  |
 | MSRV                        | post-merge             | `crates/**/*.rs`, dependency inputs                                                                              | the declared `rust-version` holds            | 0                           | 43 s  |
@@ -1223,8 +1228,8 @@ Second pass:
   through `Surface growth`), so the Goal Capsule, Success Criteria, and U8 say 10 jobs at most, 11 when U3 splits the
   tests into two partitions, not 9. Applied there.
 - **The schedule runs on `main`** (confidence 9/10, GitHub's scheduled-event docs; observed on 2026-11-01, when the
-  daily spec-drift run checked out `main`): the advisory audit job checks out `dev`. Necessary for KTD10's daily audit
-  of the lockfile the next release ships. Applied to KTD10.
+  daily spec-drift run checked out `main`): the advisory audit job checks out `dev`, through the reusable's `audit_ref`
+  input. Necessary for KTD10's daily audit of the lockfile the next release ships. Applied to KTD10.
 - **Rulesets travel with renamed checks** (confidence 9/10, `.github/rulesets/protect-dev.json`): a PR that renames or
   splits a required check carries the ruleset change, and `ci_jobs_table_guard` fails for a ruleset context that names
   no job. Necessary for R11 and R14. Applied to KTD9 and U7.
@@ -1255,6 +1260,24 @@ Second pass:
   rust-tool-release ships one copy merged from bird's and xurl-rs's, and the vendored-canon wave re-vendors xurl-rs's.
   The classifier keeps calling the vendored copy, and `cargo_inputs_tests` stays the holder of xurl-rs's verdicts, so
   the re-vendor's behavior change shows there. No plan change beyond this record.
+
+Implementation pass (the shared-workflow PR):
+
+- **The advisory audit needs no repair** (confidence 10/10, the logs of every failed `Security audit (advisories)` job
+  among the 82 failed runs `gh run list --workflow CI --status failure --limit 300` returns: 19 of 22 show the toolchain
+  installed and a RUSTSEC id reported, and the other three logs have expired): KTD16, U8, the Problem Frame, and the
+  Appendix job table count its 11 failures as advisories caught. No behavior change; the audit's tier and triggers
+  stand. Applied there.
+- **`audit_ref`** (confidence 9/10, the reusable's audit job owns its checkout): a default-off input names the ref the
+  audit checks out, and the scheduled run passes `dev`. Necessary for KTD10's daily audit. Applied to U8.
+- **`ci / Inputs` is required** (confidence 9/10): the reusable checks the `jobs` list in a job of its own and fails on
+  an id it does not have; a ruleset that requires the check turns a mistyped id into a failed merge, where an unchecked
+  one would skip a required check that then reports success. Necessary for R6. Applied to U8.
+- **Two skipped entries for every caller** (confidence 9/10, `gh run view --json jobs` lists skipped jobs): a caller
+  that passes no new input keeps every running job's name and steps, and its job list gains `ci / Inputs` and the
+  nextest `ci / Tests` matrix, both skipped. The shared PR also carries `nextest_version`, `test_partitions` (default
+  1), and a default-off anc audit of the debug binary inside `Tests`, so U3's measurement and D12 need no second
+  shared-workflow PR. Necessary for KD3 and KTD11. No plan change beyond this record.
 
 Approval readiness: PASS. First pass: R1 (D2), R2 (D3), and T1 (D4) cite their own answers. Second pass: R3 (second-pass
 D2) and R4 (second-pass D3) cite theirs. The corrections cite the approvals they implement (R1, R6, R11, R13, R14, R15,
