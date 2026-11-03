@@ -17,6 +17,10 @@
 
 set -euo pipefail
 
+# PROBE (do not merge): show this runner's rg and whether it searches with PCRE2.
+rg --version
+if rg --pcre2 -e 'x' <<<x; then echo "PROBE: rg --pcre2 -e 'x' <<<x succeeded"; else echo "PROBE: rg --pcre2 -e 'x' <<<x failed"; exit 3; fi
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 

@@ -44,4 +44,4 @@ jobs:
   check:
     # `scripts/sync-dev-after-release.sh` names the backport's branch.
     if: ${{ !startsWith(github.head_ref, 'chore/sync-dev') }}
-    uses: brettdavies/.github/.github/workflows/rust-release-matrix-check.yml@probe/u15-unset-target
+    uses: brettdavies/.github/.github/workflows/rust-release-matrix-check.yml@main
