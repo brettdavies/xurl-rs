@@ -1239,8 +1239,7 @@ pub struct StreamSource {
     /// the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub stream_key: Option<String>,
-    /// Whether an encoder is sending video to the source now. Publishing a
-    /// broadcast on the source needs it.
+    /// Whether an encoder is sending video to the source now.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_stream_active: Option<bool>,
     /// When the source was created, in milliseconds since the Unix epoch,
