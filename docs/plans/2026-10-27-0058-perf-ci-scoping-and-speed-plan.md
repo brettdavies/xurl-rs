@@ -201,9 +201,16 @@ caught nothing (Appendix).
   environment, and toolchain as a PR run, `Swatinem/rust-cache` derives the same keys by construction; a separate
   workflow would have to copy every job's key inputs by hand and drift. GitHub lets a PR run restore from its own ref,
   its base branch, and the default branch, and only `push`, `schedule`, and dispatch runs can write those scopes
-  (`docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching`). A job that builds with execution
-  off carries a `(warm cache)` suffix in its name, so a push run never reports a required check's name for a job whose
-  tests did not run.
+  (`docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching`). Every job name in the reusable is
+  literal: GitHub reports a skipped job under its raw `name:` text, so a name built from an expression renames every
+  skipped check, and a required one never reports under the name its ruleset expects (probe run 41693027711). A warm run
+  is told apart by the caller's job id instead. `ci.yml` calls the reusable for warming from a `warm:` job, whose checks
+  report as `warm / <job>` and never under a required `ci / <job>` name, while rust-cache keys on the reusable's own job
+  ids, so warm and PR keys match (probe run 41701755907). The reusable's concurrency group carries the `warm_cache`
+  value, so a `dev` push that both warms and checks does not cancel itself. Each reusable job's condition tests `jobs`
+  in the full form `(inputs.jobs == 'all' || contains(fromJSON(inputs.jobs), '<id>'))`, and `brettdavies/.github`'s
+  `scripts/check-rust-ci-jobs.sh` holds the job ids, the `Inputs` job's known list, and those conditions to each other
+  (brettdavies/.github#109).
 - KTD3. **PR runs keep saving their caches.** `Swatinem/rust-cache` saves nothing after restoring an exact match (the
   warm run in the Appendix logged `Cache up-to-date.`), so a PR whose lockfile and toolchain match `dev` writes no
   entry. Only a PR that changes them saves its own set, and #408's `cache-on-failure` keeps that useful. One full set of
@@ -438,8 +445,8 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 - **Approach:**
   1. In the reusable, `warm_cache: true` makes each caching job compile its dependencies (a build of the targets it
      checks, with no test run, lint gate, or package check) and skip its checks; the default is `false`.
-  2. In `ci.yml`, add `push` on `dev` and `main` and `workflow_dispatch`. Pass
-     `warm_cache: ${{ github.event_name != 'pull_request' }}` to the reusable. On `dev`, U8 later turns the slow-tier
+  2. In `ci.yml`, add `push` on `dev` and `main` and `workflow_dispatch`. On push, a `warm:` job calls the reusable with
+     `warm_cache: true` (KTD2), and the `ci:` job runs only on pull requests. On `dev`, U8 later turns the slow-tier
      jobs from warm mode to real checks (KD1); the PR-tier jobs stay in warm mode there, since they ran on the PR.
   3. Give each of the nine local rust-cache jobs a warm mode that runs the job's own build command with execution
      switched off: `--no-run` on a test command, and `cargo check` with the same target and feature flags in place of
@@ -1278,6 +1285,10 @@ Implementation pass (the shared-workflow PR):
   nextest `ci / Tests` matrix, both skipped. The shared PR also carries `nextest_version`, `test_partitions` (default
   1), and a default-off anc audit of the debug binary inside `Tests`, so U3's measurement and D12 need no second
   shared-workflow PR. Necessary for KD3 and KTD11. No plan change beyond this record.
+- **Warm runs are named by the caller's job, not a suffix** (confidence 10/10, probe run 41693027711, where every
+  skipped job reported its raw `name:` expression): the reusable's job names stay literal, a `warm:` caller job tells
+  warm checks apart, and the concurrency group carries `warm_cache`. Necessary for KD1 and R6; it replaces the
+  `(warm cache)` suffix. Applied to KTD2 and U1.
 
 Approval readiness: PASS. First pass: R1 (D2), R2 (D3), and T1 (D4) cite their own answers. Second pass: R3 (second-pass
 D2) and R4 (second-pass D3) cite theirs. The corrections cite the approvals they implement (R1, R6, R11, R13, R14, R15,
