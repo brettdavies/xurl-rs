@@ -19,9 +19,21 @@ fn repo_root() -> PathBuf {
 /// panics so a script error never reads as a passing assertion on empty
 /// output.
 fn run_script(name: &str, args: &[&Path]) -> String {
+    run_script_with(name, args, None)
+}
+
+/// [`run_script`] with `path_first`, when given, searched before the
+/// inherited `PATH`.
+fn run_script_with(name: &str, args: &[&Path], path_first: Option<&Path>) -> String {
     let script = repo_root().join("scripts").join(name);
     assert!(script.exists(), "scripts/{name} is missing");
-    let output = Command::new("bash")
+    let mut command = Command::new("bash");
+    if let Some(dir) = path_first {
+        let inherited = std::env::var_os("PATH").unwrap_or_default();
+        let dirs = std::iter::once(dir.to_path_buf()).chain(std::env::split_paths(&inherited));
+        command.env("PATH", std::env::join_paths(dirs).expect("a joinable PATH"));
+    }
+    let output = command
         .arg(&script)
         .args(args)
         .current_dir(repo_root())
@@ -53,14 +65,38 @@ fn spec(ops: &[(&str, &str, Value)]) -> Value {
     })
 }
 
-/// Write both snapshots to a temp dir and run the drift report over them.
-fn drift_report(local: &Value, upstream: &Value) -> String {
+/// Write both snapshots to a temp dir, which lives as long as the returned
+/// handle, and return their paths.
+fn snapshots(local: &Value, upstream: &Value) -> (tempfile::TempDir, PathBuf, PathBuf) {
     let dir = tempfile::TempDir::new().expect("tempdir");
     let local_path = dir.path().join("local.json");
     let upstream_path = dir.path().join("upstream.json");
     fs::write(&local_path, local.to_string()).expect("write local");
     fs::write(&upstream_path, upstream.to_string()).expect("write upstream");
+    (dir, local_path, upstream_path)
+}
+
+/// Write both snapshots to a temp dir and run the drift report over them.
+fn drift_report(local: &Value, upstream: &Value) -> String {
+    let (_dir, local_path, upstream_path) = snapshots(local, upstream);
     run_script("diff-x-openapi-spec.sh", &[&local_path, &upstream_path])
+}
+
+/// A directory holding a `wc` that right-aligns each count in an
+/// eight-column field, as the BSD `wc` macOS ships does, so a run on Linux
+/// sees the counts a run on macOS sees.
+fn padding_wc_dir() -> tempfile::TempDir {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::TempDir::new().expect("tempdir");
+    let wc = dir.path().join("wc");
+    fs::write(
+        &wc,
+        "#!/bin/sh\ncommand -p wc \"$@\" | awk '{ $1 = sprintf(\"%8d\", $1); print }'\n",
+    )
+    .expect("write wc");
+    fs::set_permissions(&wc, fs::Permissions::from_mode(0o755)).expect("make wc executable");
+    dir
 }
 
 const NOTHING_STRUCTURAL: &str =
@@ -256,6 +292,34 @@ fn drift_report_keeps_each_change_in_one_section() {
     assert!(report.contains("+`b`"), "{report}");
     assert!(!report.contains("In-place field changes"), "{report}");
     assert!(!report.contains("Prose edits"), "{report}");
+}
+
+#[test]
+fn drift_report_counts_carry_no_padding_from_wc() {
+    let local = spec(&[("get", "/2/users/me", json!([{ "UserToken": [] }]))]);
+    let mut upstream = spec(&[
+        (
+            "get",
+            "/2/users/me",
+            json!([{ "UserToken": [] }, { "OAuth2UserToken": [] }]),
+        ),
+        ("get", "/2/users/search", json!([{ "UserToken": [] }])),
+    ]);
+    upstream["components"]["schemas"]["Added"] = json!({ "type": "object" });
+    let (_dir, local_path, upstream_path) = snapshots(&local, &upstream);
+    let snapshot_args: [&Path; 2] = [&local_path, &upstream_path];
+    let wc = padding_wc_dir();
+
+    let padded = run_script_with("diff-x-openapi-spec.sh", &snapshot_args, Some(wc.path()));
+    assert!(
+        padded.contains("**Path inventory:** 1 added, 0 removed (1 -> 2)."),
+        "{padded}"
+    );
+    assert!(
+        padded.contains("**Auth-method changes:** 1 operation(s)"),
+        "{padded}"
+    );
+    assert_eq!(padded, run_script("diff-x-openapi-spec.sh", &snapshot_args));
 }
 
 #[test]
