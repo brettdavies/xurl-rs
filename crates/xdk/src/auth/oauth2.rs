@@ -13,7 +13,7 @@ use url::Url;
 use super::Auth;
 use super::callback;
 use super::pending;
-use crate::error::{Error, Result};
+use crate::error::{BROWSER_OPEN_FAILED, Error, Result};
 use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
 
@@ -253,8 +253,9 @@ pub(crate) async fn exchange_code_for_token(
 /// waiting out the callback timeout.
 ///
 /// `cancel` is the caller's stop: the binary cancels it on a shutdown
-/// signal, a library caller passes a child of its own token. The flow
-/// registers no signal handler of its own.
+/// signal. The flow never cancels it itself, however the sign-in ends, so a
+/// cancelled token means the caller stopped it. The flow registers no signal
+/// handler of its own.
 ///
 /// # Errors
 ///
@@ -319,31 +320,40 @@ where
         .map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
 
     // The opener runs on the listener's bind-success hook. A failed open
-    // cancels the listener immediately rather than waiting out the callback
-    // timeout, and the flag below turns that cancellation into the
-    // browser-open error the caller can act on.
+    // stops the listener immediately rather than waiting out the callback
+    // timeout, through a child token so the caller's stays as it was, and the
+    // flag below turns that stop into the browser-open error the caller can
+    // act on.
+    let listener_stop = cancel.child_token();
     let opener_failed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let opener_failed_for_closure = std::sync::Arc::clone(&opener_failed);
-    let cancel_for_closure = cancel.clone();
+    let stop_for_closure = listener_stop.clone();
     let on_bound = move || {
         if browser_opener(&auth_url_str).is_err() {
             opener_failed_for_closure.store(true, std::sync::atomic::Ordering::SeqCst);
-            cancel_for_closure.cancel();
+            stop_for_closure.cancel();
         }
     };
 
     let code_result = match listener {
         Some(listener) => {
-            callback::wait_for_callback_on(listener, &redirect_parsed, &state, cancel, on_bound)
+            callback::wait_for_callback_on(
+                listener,
+                &redirect_parsed,
+                &state,
+                listener_stop,
+                on_bound,
+            )
+            .await
+        }
+        None => {
+            callback::wait_for_callback_with(&redirect_parsed, &state, listener_stop, on_bound)
                 .await
         }
-        None => callback::wait_for_callback_with(&redirect_parsed, &state, cancel, on_bound).await,
     };
 
     if opener_failed.load(std::sync::atomic::Ordering::SeqCst) {
-        return Err(Error::auth(
-            "browser-open failed; re-run with --no-browser to paste the URL manually",
-        ));
+        return Err(Error::auth(BROWSER_OPEN_FAILED));
     }
 
     let code = code_result?;

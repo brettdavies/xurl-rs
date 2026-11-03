@@ -713,6 +713,35 @@ fn the_listener_and_the_headless_step_read_a_redirect_alike(#[case] state: &str)
     );
 }
 
+// ── The caller's token ────────────────────────────────────────────────────
+
+/// The token is the caller's stop: it may be a signal handler's, so the
+/// listener ending for any reason of its own must leave it as it was.
+#[rstest]
+#[case::refused_state("code=abc&state=NOT-THE-STATE", 400)]
+#[case::empty_code("code=&state=STATE", 400)]
+#[case::delivered_code("code=abc&state=STATE", 200)]
+fn the_listener_leaves_the_callers_token_alone(#[case] query: &str, #[case] status: u16) {
+    let cancel = CancellationToken::new();
+    let listener = serve_on(
+        callback_uri("127.0.0.1", "/callback"),
+        "STATE",
+        cancel.clone(),
+        || {},
+    );
+
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        &format!("/callback?{query}"),
+    );
+    assert_eq!(http_status_code(&resp), status, "response: {resp:?}");
+    let returned = listener.finish();
+    assert!(
+        !cancel.is_cancelled(),
+        "the listener cancelled the caller's token; it returned {returned:?}"
+    );
+}
+
 /// A pending headless flow saved before the state moved to the URL-safe
 /// alphabet holds a standard-alphabet state. Its redirect carries that state
 /// form-encoded, as the authorize URL sent it, so step 2 still resumes it.

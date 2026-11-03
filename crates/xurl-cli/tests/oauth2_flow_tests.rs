@@ -802,7 +802,11 @@ fn urlencode(value: &str) -> String {
     url::form_urlencoded::byte_serialize(value.as_bytes()).collect()
 }
 
-// ── The state a sign-in sends ────────────────────────────────────────────
+// ── What the interactive sign-in returns ─────────────────────────────────
+//
+// `xr` hands the flow the token its signal handler cancels and reads a
+// cancelled token as Ctrl-C, so the flow ending for any reason of its own
+// must leave that token as it was.
 
 /// A loopback port nothing listens on.
 fn closed_port() -> u16 {
@@ -873,6 +877,54 @@ fn needs_no_encoding(state: &str) -> bool {
         && state
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
+#[tokio::test]
+async fn a_refused_callback_returns_its_reason_and_leaves_the_callers_token_alone() {
+    let (returned, cancel) =
+        run_interactive(|_url, target| follow_redirect(target, "NOT-THE-STATE")).await;
+
+    let refused = returned.expect_err("the listener refuses the state");
+    assert!(
+        refused.to_string().contains("invalid state parameter"),
+        "{refused}"
+    );
+    assert!(
+        !cancel.is_cancelled(),
+        "the flow cancelled the caller's token, which xr reads as Ctrl-C"
+    );
+}
+
+#[tokio::test]
+async fn a_failed_browser_open_returns_its_reason_and_leaves_the_callers_token_alone() {
+    let (returned, cancel) =
+        run_interactive(|_url, _target| Err(std::io::Error::other("no browser"))).await;
+
+    let refused = returned.expect_err("the opener fails");
+    assert!(
+        refused.to_string().contains("browser-open failed"),
+        "{refused}"
+    );
+    assert!(
+        !cancel.is_cancelled(),
+        "the flow cancelled the caller's token, which xr reads as Ctrl-C"
+    );
+}
+
+#[tokio::test]
+async fn a_failed_exchange_after_the_callback_leaves_the_callers_token_alone() {
+    let (returned, cancel) =
+        run_interactive(|url, target| follow_redirect(target, &state_of(url))).await;
+
+    let refused = returned.expect_err("the closed token endpoint fails the exchange");
+    assert!(
+        !refused.to_string().contains("CallbackError"),
+        "the listener took the callback: {refused}"
+    );
+    assert!(
+        !cancel.is_cancelled(),
+        "the flow cancelled the caller's token, which xr reads as Ctrl-C"
+    );
 }
 
 #[tokio::test]

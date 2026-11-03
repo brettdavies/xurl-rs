@@ -3,11 +3,10 @@
 //! Binds host, port, and path from the resolved redirect URI. For `localhost`,
 //! attempts to bind both `127.0.0.1:port` and `[::1]:port`. When only one
 //! succeeds the listener proceeds with a warning; when both fail an error is
-//! returned. Coordinates shutdown via a caller-supplied
-//! [`tokio_util::sync::CancellationToken`]; the success path triggers
-//! cancellation immediately after the code is delivered. Times out after 5
-//! minutes, matching the Go implementation. The library registers no signal
-//! handler: the caller cancels the token when its own shutdown arrives.
+//! returned. Stops when a caller-supplied [`tokio_util::sync::CancellationToken`] is cancelled, a
+//! token the listener never cancels itself. Times out after 5 minutes,
+//! matching the Go implementation. The library registers no signal handler:
+//! the caller cancels the token when its own shutdown arrives.
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -19,7 +18,9 @@ use tokio::sync::{Mutex, oneshot};
 use tokio_util::sync::CancellationToken;
 use url::Url;
 
-use crate::error::{Error, Result};
+use crate::error::{
+    CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_TIMED_OUT, Error, Result,
+};
 
 /// Hardcoded 5-minute timeout matching upstream Go xurl.
 const CALLBACK_TIMEOUT: Duration = Duration::from_secs(300);
@@ -28,12 +29,48 @@ const CALLBACK_TIMEOUT: Duration = Duration::from_secs(300);
 /// request line and headers fit inside it.
 const REQUEST_HEAD_LIMIT: usize = 4096;
 
-/// One-shot delivery slot for the authorization code (or an error string).
+/// One-shot delivery slot for the authorization code (or the refusal).
 ///
-/// Wrapped in `Arc<Mutex<Option<_>>>` so the multiple accept-loop tasks can
-/// race for the slot; whichever task receives the valid callback takes the
-/// sender, sends, and the sibling tasks see `None` on cancellation.
-type ResultSlot = Arc<Mutex<Option<oneshot::Sender<std::result::Result<String, String>>>>>;
+/// Wrapped in `Arc<Mutex<Option<_>>>` so the connection tasks of every
+/// accept loop can race for the slot; whichever answers a callback first
+/// takes the sender, sends, and the others find `None`.
+type ResultSlot = Arc<Mutex<Option<oneshot::Sender<std::result::Result<String, Refusal>>>>>;
+
+/// Why the listener refused a callback that reached its path.
+#[derive(Debug, Clone, Copy)]
+enum Refusal {
+    InvalidState,
+    EmptyCode,
+}
+
+impl Refusal {
+    /// The page the browser shows.
+    fn page(self) -> &'static str {
+        match self {
+            Self::InvalidState => "Error: invalid state parameter",
+            Self::EmptyCode => "Error: empty authorization code",
+        }
+    }
+
+    /// The message of the error the caller gets.
+    fn message(self) -> &'static str {
+        match self {
+            Self::InvalidState => CALLBACK_INVALID_STATE,
+            Self::EmptyCode => CALLBACK_EMPTY_CODE,
+        }
+    }
+}
+
+/// What every connection to one listener checks its request against and
+/// reports through.
+struct Callback {
+    expected_state: String,
+    uri_path: String,
+    result_tx: ResultSlot,
+    /// The listener's own stop, a child of the caller's token: a delivered
+    /// code or a refusal ends the listener without cancelling the caller's.
+    done: CancellationToken,
+}
 
 /// The `code` and `state` an authorization redirect carries.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -181,18 +218,11 @@ async fn respond(stream: &mut TcpStream, status: &str, body: &str) {
     let _ = stream.write_all(response.as_bytes()).await;
 }
 
-/// Drives one listener's accept loop.
-///
-/// Reads a single HTTP request, validates state, and writes the response.
-/// Delivers the code (or an error string) through the shared `result_tx`,
-/// then cancels the token to broadcast shutdown to the sibling task.
-#[allow(clippy::too_many_arguments)] // local helper, internal to wait_for_callback
+/// Drives one listener's accept loop, answering one connection at a time
+/// until a callback ends the listener.
 async fn run_accept_loop(
     listener: TcpListener,
-    expected_state: String,
-    uri_path: String,
-    result_tx: ResultSlot,
-    cancel: CancellationToken,
+    callback: Arc<Callback>,
     ready_flag: Arc<AtomicBool>,
     ready_tx: ReadySlot,
 ) {
@@ -205,74 +235,60 @@ async fn run_accept_loop(
     }
 
     loop {
-        let accept_result = tokio::select! {
-            () = cancel.cancelled() => return,
-            res = listener.accept() => res,
-        };
-        let Ok((mut stream, _)) = accept_result else {
-            continue;
-        };
-
-        let mut buf = [0u8; REQUEST_HEAD_LIMIT];
-        let n = match read_request_head(&mut stream, &mut buf).await {
-            Ok(n) if n > 0 => n,
-            _ => continue,
-        };
-
-        let request = String::from_utf8_lossy(&buf[..n]);
-        let first_line = request.lines().next().unwrap_or("");
-        let request_path = first_line.split_whitespace().nth(1).unwrap_or("");
-
-        if !path_matches(&uri_path, request_path) {
-            respond(&mut stream, "404 Not Found", "Not Found").await;
-            continue;
-        }
-
-        let query = request_path.split_once('?').map_or("", |(_, query)| query);
-        let RedirectParams { code, state } = redirect_params(query);
-        let code = code.unwrap_or_default();
-
-        if state.as_deref().unwrap_or("") != expected_state {
-            respond(
-                &mut stream,
-                "400 Bad Request",
-                "Error: invalid state parameter",
-            )
-            .await;
-            if let Some(tx) = result_tx.lock().await.take() {
-                let _ = tx.send(Err("invalid state parameter".to_string()));
+        tokio::select! {
+            () = callback.done.cancelled() => return,
+            accepted = listener.accept() => {
+                if let Ok((stream, _)) = accepted {
+                    answer(stream, Arc::clone(&callback)).await;
+                }
             }
-            cancel.cancel();
-            return;
         }
+    }
+}
 
-        if code.is_empty() {
-            respond(
-                &mut stream,
-                "400 Bad Request",
-                "Error: empty authorization code",
-            )
-            .await;
-            if let Some(tx) = result_tx.lock().await.take() {
-                let _ = tx.send(Err("empty authorization code".to_string()));
-            }
-            cancel.cancel();
-            return;
-        }
+/// Reads one request from `stream` and answers it. A callback on the
+/// listener's path delivers its code, or its refusal, through `callback` and
+/// ends the listener; any other path gets a 404 and leaves it serving.
+async fn answer(mut stream: TcpStream, callback: Arc<Callback>) {
+    let mut buf = [0u8; REQUEST_HEAD_LIMIT];
+    let n = match read_request_head(&mut stream, &mut buf).await {
+        Ok(n) if n > 0 => n,
+        _ => return,
+    };
 
-        respond(
-            &mut stream,
-            "200 OK",
-            "Authentication successful! You can close this window.",
-        )
-        .await;
+    let request = String::from_utf8_lossy(&buf[..n]);
+    let first_line = request.lines().next().unwrap_or("");
+    let request_path = first_line.split_whitespace().nth(1).unwrap_or("");
 
-        if let Some(tx) = result_tx.lock().await.take() {
-            let _ = tx.send(Ok(code));
-        }
-        cancel.cancel();
+    if !path_matches(&callback.uri_path, request_path) {
+        respond(&mut stream, "404 Not Found", "Not Found").await;
         return;
     }
+
+    let query = request_path.split_once('?').map_or("", |(_, query)| query);
+    let RedirectParams { code, state } = redirect_params(query);
+    let outcome = if state.as_deref().unwrap_or("") != callback.expected_state {
+        Err(Refusal::InvalidState)
+    } else {
+        code.filter(|code| !code.is_empty())
+            .ok_or(Refusal::EmptyCode)
+    };
+
+    match &outcome {
+        Ok(_) => {
+            respond(
+                &mut stream,
+                "200 OK",
+                "Authentication successful! You can close this window.",
+            )
+            .await;
+        }
+        Err(refusal) => respond(&mut stream, "400 Bad Request", refusal.page()).await,
+    }
+    if let Some(tx) = callback.result_tx.lock().await.take() {
+        let _ = tx.send(outcome);
+    }
+    callback.done.cancel();
 }
 
 /// Starts a callback server, runs `on_bound` once binds succeed, and waits
@@ -294,10 +310,11 @@ async fn run_accept_loop(
 /// `application/x-www-form-urlencoded`, so a redirect that percent-encodes it
 /// still matches.
 ///
-/// `cancel` is the only external stop: the success path cancels it
-/// immediately after delivering the code, the 5-minute timeout cancels it,
-/// and the caller cancels it on its own shutdown. Dropping the returned
-/// future releases the listener's port.
+/// `cancel` is the caller's stop: cancelling it ends the wait. The listener
+/// never cancels it itself, whether it delivers a code, refuses a callback,
+/// or times out, so the caller can pass a token it shares with other work,
+/// a signal handler's among them. Dropping the returned future releases the
+/// listener's port.
 ///
 /// # Errors
 ///
@@ -411,41 +428,31 @@ async fn serve<F>(
 where
     F: FnOnce() + Send + 'static,
 {
-    let expected_state = expected_state.to_string();
-    let uri_path = callback_path_from(redirect_uri);
-
-    let (result_tx, result_rx) = oneshot::channel::<std::result::Result<String, String>>();
-    let result_tx = Arc::new(Mutex::new(Some(result_tx)));
+    let (result_tx, result_rx) = oneshot::channel::<std::result::Result<String, Refusal>>();
+    let callback = Arc::new(Callback {
+        expected_state: expected_state.to_string(),
+        uri_path: callback_path_from(redirect_uri),
+        result_tx: Arc::new(Mutex::new(Some(result_tx))),
+        done: cancel.child_token(),
+    });
 
     let (ready_tx, ready_rx) = oneshot::channel::<()>();
     let ready_tx = Arc::new(Mutex::new(Some(ready_tx)));
     let ready_flag = Arc::new(AtomicBool::new(false));
 
     let mut tasks = ListenerTasks {
-        cancel: cancel.clone(),
+        cancel: callback.done.clone(),
         handles: Vec::with_capacity(bound.len()),
     };
     for b in bound {
-        let result_tx = Arc::clone(&result_tx);
-        let cancel = cancel.clone();
+        let callback = Arc::clone(&callback);
         let ready_tx = Arc::clone(&ready_tx);
         let ready_flag = Arc::clone(&ready_flag);
-        let expected_state = expected_state.clone();
-        let uri_path = uri_path.clone();
         // The accept loops are polled outside the caller's future, so they
         // carry its dispatcher or their warnings never reach the binary.
         tasks.handles.push(tokio::spawn(
             tracing::instrument::WithSubscriber::with_current_subscriber(async move {
-                run_accept_loop(
-                    b.listener,
-                    expected_state,
-                    uri_path,
-                    result_tx,
-                    cancel,
-                    ready_flag,
-                    ready_tx,
-                )
-                .await;
+                run_accept_loop(b.listener, callback, ready_flag, ready_tx).await;
             }),
         ));
     }
@@ -463,7 +470,7 @@ where
         res = result_rx => {
             match res {
                 Ok(Ok(code)) => Ok(code),
-                Ok(Err(e)) => Err(Error::auth(format!("CallbackError: {e}"))),
+                Ok(Err(refusal)) => Err(Error::auth(refusal.message())),
                 Err(_) => Err(Error::auth("ListenerError: oauth2 listener failed")),
             }
         }
@@ -471,7 +478,7 @@ where
             Err(Error::auth("ListenerError: cancelled before code received"))
         }
         () = tokio::time::sleep(CALLBACK_TIMEOUT) => {
-            Err(Error::auth("Timeout: authentication timed out"))
+            Err(Error::auth(CALLBACK_TIMED_OUT))
         }
     };
 
