@@ -80,4 +80,9 @@ jobs:
       advisories_blocking: true
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
       # PROBE-INPUTS
-      jobs: '["chek"]'
+      test_runner: nextest
+      nextest_version: 0.9.150
+      anc_version: 0.6.0
+      anc_bin: xr
+      anc_score_floor: 98
+      anc_debug_audit: true
