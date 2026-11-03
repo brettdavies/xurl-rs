@@ -353,7 +353,14 @@ fn test_xr_seam_default_store_rejects_writes() {
         "a spawn that never asked for a store must not be able to write one"
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("No such file"), "stderr: {stderr}");
+    // The wording of a missing directory is the platform's: Windows says
+    // "The system cannot find the path specified." where Unix says "No
+    // such file or directory".
+    let scratch = TempDir::new().expect("tempdir");
+    let missing = std::fs::File::create(scratch.path().join("absent").join(".xurl.lock"))
+        .expect_err("the directory does not exist")
+        .to_string();
+    assert!(stderr.contains(&missing), "stderr: {stderr}");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
