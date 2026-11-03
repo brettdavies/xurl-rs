@@ -228,6 +228,48 @@ where
     (code, String::from_utf8_lossy(&stderr).into_owned(), driven)
 }
 
+/// [`listen_tapped`] under `hooks`, ended by dropping the run once `drive`
+/// returns instead of letting it finish: the in-process counterpart of
+/// killing the process, after which nothing the run would do on its way out
+/// happens. Returns stderr up to the drop and what `drive` returned.
+pub async fn listen_tapped_until_dropped<T, F>(
+    store: &Path,
+    extra: &[&str],
+    hooks: &xurl::cli::runner::RunHooks,
+    drive: impl FnOnce(tokio::sync::mpsc::UnboundedReceiver<String>) -> F,
+) -> (String, T)
+where
+    F: std::future::Future<Output = T>,
+{
+    let mut argv = vec![
+        "xr", "--output", "json", "webhooks", "listen", "--port", "0",
+    ];
+    argv.extend_from_slice(extra);
+    let (sender, lines) = tokio::sync::mpsc::unbounded_channel();
+    let mut stdout = LineTap::new(sender);
+    let mut stderr: Vec<u8> = Vec::new();
+    let overrides = overrides();
+    let driven = {
+        let run = xurl::cli::runner::run_with_hooks(
+            argv,
+            &mut stdout,
+            &mut stderr,
+            store,
+            &overrides,
+            hooks,
+        );
+        tokio::select! {
+            code = run => Err(code),
+            driven = drive(lines) => Ok(driven),
+        }
+    };
+    let stderr = String::from_utf8_lossy(&stderr).into_owned();
+    match driven {
+        Ok(driven) => (stderr, driven),
+        Err(code) => panic!("listen ended with exit {code} before it was dropped: {stderr}"),
+    }
+}
+
 /// The next line `listen` printed, as JSON.
 pub async fn next_record(
     lines: &mut tokio::sync::mpsc::UnboundedReceiver<String>,

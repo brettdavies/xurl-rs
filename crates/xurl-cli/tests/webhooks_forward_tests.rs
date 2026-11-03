@@ -720,16 +720,21 @@ async fn a_checkpoint_that_cannot_be_written_is_reported_and_listen_goes_on() {
 
 /// An event that waits on a stalled target holds the checkpoint at its
 /// minute, so a hard stop with a backlog leaves the backlog replayable. The
-/// second event arrives in a later minute, so this waits for a minute to
-/// turn, at most a minute.
-#[cfg(unix)]
-#[tokio::test(flavor = "multi_thread")]
+/// run's clock moves a minute ahead before the second event arrives, so the
+/// two land in different minutes, and the run is dropped while the first is
+/// still being forwarded, so nothing on its way out writes the file.
+#[tokio::test]
 async fn a_hard_stop_leaves_the_checkpoint_at_the_oldest_undelivered_minute() {
-    use common::listen::ListenProcess;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{Duration, SystemTime};
+
+    use common::listen::{listen_tapped_until_dropped, listening_port, next_record};
+    use xurl::cli::runner::RunHooks;
 
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(120)))
+        .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(120)))
         .mount(&server)
         .await;
     let tmp = TempDir::new().expect("tempdir");
@@ -745,20 +750,28 @@ async fn a_hard_stop_leaves_the_checkpoint_at_the_oldest_undelivered_minute() {
         "--checkpoint",
         checkpoint.to_str().expect("utf-8 path"),
     ];
-    let listen = ListenProcess::start(&store, &flags);
-    let port = listen.port;
+    let ahead = Arc::new(AtomicU64::new(0));
+    let clock = Arc::clone(&ahead);
+    let hooks = RunHooks {
+        arrival_clock: Some(Arc::new(move || {
+            SystemTime::now() + Duration::from_secs(clock.load(Ordering::SeqCst))
+        })),
+    };
 
-    let before = now_secs();
-    assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
-    let after = now_secs();
-    listen.next_line();
-    while now_secs() / 60 == after / 60 {
-        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-    }
-    assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
-    listen.next_line();
-    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-    let stderr = listen.kill();
+    let (stderr, (before, after)) =
+        listen_tapped_until_dropped(&store, &flags, &hooks, |mut lines| async move {
+            let port = listening_port(&next_record(&mut lines).await);
+            let before = now_secs();
+            assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+            let after = now_secs();
+            next_record(&mut lines).await;
+            ahead.store(60, Ordering::SeqCst);
+            assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+            next_record(&mut lines).await;
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            (before, after)
+        })
+        .await;
 
     let minute = checkpoint_minute(&checkpoint);
     assert!(

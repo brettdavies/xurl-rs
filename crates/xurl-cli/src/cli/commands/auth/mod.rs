@@ -155,6 +155,7 @@ pub(super) async fn run(cmd: AuthCommands, run: Run<'_>) -> CommandResult<()> {
         out,
         stdout,
         stderr,
+        ..
     } = run;
     let flags = AuthGlobalFlags::from(&flags);
     // Sign-in is the one auth command that talks to X, so it builds the

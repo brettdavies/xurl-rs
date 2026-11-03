@@ -43,6 +43,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
         out,
         stdout,
         stderr,
+        arrival_clock,
         ..
     } = run;
     let mut secrets = SigningSecrets::for_app(&auth);
@@ -122,7 +123,10 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     config.path.clone_from(&listener.path);
     config.allow_unsigned = listener.allow_unsigned;
     let cancel = crate::cli::shutdown::cancel_on_shutdown();
-    let mut receiver = Receiver::bind(config, cancel).await?;
+    let mut receiver = match arrival_clock {
+        Some(clock) => Receiver::bind_with_clock(config, cancel, clock).await?,
+        None => Receiver::bind(config, cancel).await?,
+    };
     let url = format!("http://{}{}", receiver.local_addr(), listener.path);
     let test_command = test_command(&url, &sample);
     if out.format.is_structured() {
