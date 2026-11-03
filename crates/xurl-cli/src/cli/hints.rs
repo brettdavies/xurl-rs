@@ -7,8 +7,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use xdk::error::Error;
 pub use xdk::error::NextAction;
+use xdk::error::{
+    BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED,
+    CALLBACK_TIMED_OUT, Error,
+};
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
 
@@ -112,6 +115,55 @@ impl NextStep {
         Self {
             action: NextAction::SignIn,
             command: Some(command),
+            template: None,
+            docs: None,
+        }
+    }
+
+    /// The sign-in `invocation` started, run again as given, with
+    /// `--no-browser` added when `no_browser` asks for the paste-the-URL form
+    /// and the invocation does not already carry it.
+    ///
+    /// A headless step 2 starts over at step 1: its redirect URL answers the
+    /// pending flow it failed on, so `--auth-url` and its value are dropped
+    /// and `--step 2` becomes `--step 1`.
+    #[must_use]
+    pub fn sign_in_again(invocation: &[String], no_browser: bool) -> Self {
+        let restep = |step: &str| {
+            if step == "2" {
+                "1".to_string()
+            } else {
+                shell_word(step)
+            }
+        };
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        let mut args = invocation.iter().skip(1);
+        while let Some(arg) = args.next() {
+            if arg == "--auth-url" {
+                args.next();
+                continue;
+            }
+            if arg.starts_with("--auth-url=") {
+                continue;
+            }
+            if arg == "--step" {
+                words.push(arg.clone());
+                if let Some(step) = args.next() {
+                    words.push(restep(step));
+                }
+                continue;
+            }
+            match arg.strip_prefix("--step=") {
+                Some(step) => words.push(format!("--step={}", restep(step))),
+                None => words.push(shell_word(arg)),
+            }
+        }
+        if no_browser && !invocation.iter().any(|arg| arg == "--no-browser") {
+            words.push("--no-browser".to_string());
+        }
+        Self {
+            action: NextAction::SignIn,
+            command: Some(words.join(" ")),
             template: None,
             docs: None,
         }
@@ -637,6 +689,29 @@ fn requested_secret(invocation: &[String]) -> Option<&str> {
     None
 }
 
+/// Builds the hint for a sign-in that ended without a code: the callback was
+/// refused, by the listener or by the authorization server, or never came,
+/// so the step is the same sign-in again, and when the browser could not be
+/// opened, its paste-the-URL form.
+#[must_use]
+pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    let no_browser = match message.as_str() {
+        CALLBACK_INVALID_STATE | CALLBACK_EMPTY_CODE | CALLBACK_TIMED_OUT => false,
+        BROWSER_OPEN_FAILED => true,
+        refused if refused.starts_with(CALLBACK_PROVIDER_REFUSED) => false,
+        _ => return None,
+    };
+    let next_step = NextStep::sign_in_again(invocation, no_browser);
+    let command = next_step.command.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!("Sign in again. Run: {command}")],
+        next_step,
+    })
+}
+
 /// Builds the retry hint when `error` is a 429 that named its reset.
 ///
 /// A 429 that named no reset gets no hint: there is no time to state.
@@ -868,6 +943,85 @@ mod tests {
         assert_eq!(quote_app_name("my app"), "'my app'");
         assert_eq!(quote_app_name(""), "''");
         assert_eq!(quote_app_name("it's"), r"'it'\''s'");
+    }
+
+    fn argv(invocation: &str) -> Vec<String> {
+        invocation.split(' ').map(str::to_string).collect()
+    }
+
+    #[test]
+    fn a_sign_in_that_ended_without_a_code_runs_again_as_given() {
+        let invocation = argv("xurl-rs auth oauth2 work --app my.app --output json");
+        for message in [
+            CALLBACK_INVALID_STATE,
+            CALLBACK_EMPTY_CODE,
+            CALLBACK_TIMED_OUT,
+        ] {
+            let hint = sign_in_again_hint(&Error::auth(message), &invocation).expect("a hint");
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{message}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr auth oauth2 work --app my.app --output json"),
+                "{message}"
+            );
+            assert!(hint.next_step.template.is_none(), "never both");
+        }
+    }
+
+    #[test]
+    fn a_sign_in_that_could_not_open_the_browser_runs_without_one() {
+        let hint = sign_in_again_hint(
+            &Error::auth(BROWSER_OPEN_FAILED),
+            &argv("xr auth oauth2 --app work"),
+        )
+        .expect("a hint");
+        assert_eq!(hint.next_step.action, NextAction::SignIn);
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr auth oauth2 --app work --no-browser")
+        );
+    }
+
+    #[test]
+    fn a_sign_in_the_authorization_server_refused_runs_again() {
+        let refused =
+            format!("{CALLBACK_PROVIDER_REFUSED}: access_denied (The user denied access)");
+        let hint = sign_in_again_hint(&Error::auth(refused), &argv("xr auth oauth2 --app work"))
+            .expect("a hint");
+        assert_eq!(hint.next_step.action, NextAction::SignIn);
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr auth oauth2 --app work")
+        );
+    }
+
+    #[test]
+    fn a_headless_step_two_starts_over_at_step_one() {
+        for invocation in [
+            "xr --output json auth oauth2 --no-browser --step 2 --auth-url http://localhost:8080/callback?error=access_denied --app work",
+            "xr --output json auth oauth2 --no-browser --step=2 --auth-url=- --app work",
+        ] {
+            let step = NextStep::sign_in_again(&argv(invocation), false);
+            let command = step.command.expect("a command");
+            assert!(
+                command == "xr --output json auth oauth2 --no-browser --step 1 --app work"
+                    || command == "xr --output json auth oauth2 --no-browser --step=1 --app work",
+                "{invocation} -> {command}"
+            );
+        }
+    }
+
+    #[test]
+    fn another_auth_failure_gets_no_sign_in_again() {
+        let invocation = argv("xr auth oauth2");
+        assert!(
+            sign_in_again_hint(
+                &Error::auth("could not bind callback listener"),
+                &invocation
+            )
+            .is_none()
+        );
+        assert!(sign_in_again_hint(&Error::http(CALLBACK_INVALID_STATE), &invocation).is_none());
     }
 
     fn step(error: &Error) -> Option<NextStep> {
