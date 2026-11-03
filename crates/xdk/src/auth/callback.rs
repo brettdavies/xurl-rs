@@ -9,7 +9,6 @@
 //! minutes, matching the Go implementation. The library registers no signal
 //! handler: the caller cancels the token when its own shutdown arrives.
 
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -35,6 +34,30 @@ const REQUEST_HEAD_LIMIT: usize = 4096;
 /// race for the slot; whichever task receives the valid callback takes the
 /// sender, sends, and the sibling tasks see `None` on cancellation.
 type ResultSlot = Arc<Mutex<Option<oneshot::Sender<std::result::Result<String, String>>>>>;
+
+/// The `code` and `state` an authorization redirect carries.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct RedirectParams {
+    pub(crate) code: Option<String>,
+    pub(crate) state: Option<String>,
+}
+
+/// Reads `code` and `state` from a redirect's query string, decoded as
+/// `application/x-www-form-urlencoded`, the encoding the authorize URL sends
+/// `state` in. The listener and the headless step 2 both read the redirect
+/// through it, so the two agree on a state whatever encoding the redirect
+/// gives it. A repeated parameter takes its last value.
+pub(crate) fn redirect_params(query: &str) -> RedirectParams {
+    let mut params = RedirectParams::default();
+    for (key, value) in url::form_urlencoded::parse(query.as_bytes()) {
+        match key.as_ref() {
+            "code" => params.code = Some(value.into_owned()),
+            "state" => params.state = Some(value.into_owned()),
+            _ => {}
+        }
+    }
+    params
+}
 
 /// One-shot delivery slot for the listener-ready signal.
 type ReadySlot = Arc<Mutex<Option<oneshot::Sender<()>>>>;
@@ -205,14 +228,11 @@ async fn run_accept_loop(
             continue;
         }
 
-        let query = request_path.split('?').nth(1).unwrap_or("");
-        let params: HashMap<&str, &str> =
-            query.split('&').filter_map(|p| p.split_once('=')).collect();
+        let query = request_path.split_once('?').map_or("", |(_, query)| query);
+        let RedirectParams { code, state } = redirect_params(query);
+        let code = code.unwrap_or_default();
 
-        let code = params.get("code").copied().unwrap_or("");
-        let received_state = params.get("state").copied().unwrap_or("");
-
-        if received_state != expected_state {
+        if state.as_deref().unwrap_or("") != expected_state {
             respond(
                 &mut stream,
                 "400 Bad Request",
@@ -248,7 +268,7 @@ async fn run_accept_loop(
         .await;
 
         if let Some(tx) = result_tx.lock().await.take() {
-            let _ = tx.send(Ok(code.to_string()));
+            let _ = tx.send(Ok(code));
         }
         cancel.cancel();
         return;
@@ -269,6 +289,10 @@ async fn run_accept_loop(
 /// `localhost`, dual-binds `127.0.0.1` and `[::1]`; if exactly one bind
 /// succeeds the function emits a warning and proceeds; if both fail it
 /// returns an error. For explicit IPs / hostnames, single-binds.
+///
+/// `expected_state` is compared with the callback's `state` decoded as
+/// `application/x-www-form-urlencoded`, so a redirect that percent-encodes it
+/// still matches.
 ///
 /// `cancel` is the only external stop: the success path cancels it
 /// immediately after delivering the code, the 5-minute timeout cancels it,
