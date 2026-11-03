@@ -73,7 +73,7 @@ fn a_panic_under_json_writes_one_internal_envelope_and_exits_1() {
     );
     let message = record["message"].as_str().expect("a message");
     assert!(
-        message.contains("panicked at crates/xurl-cli/tests/panic_hook_tests.rs:"),
+        message.contains(&format!("panicked at {}:", file!())),
         "Rust's wording and the location: {message}"
     );
     assert!(message.contains("the probe panics"), "{message}");
