@@ -91,10 +91,10 @@
             "context": "Public API semver"
           },
           {
-            "context": "Surface growth needs a minor section"
+            "context": "Windows program target"
           },
           {
-            "context": "Windows program target"
+            "context": "changelog-bump / Surface growth needs a minor section"
           },
           {
             "context": "ci / Fmt, clippy, test"

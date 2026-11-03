@@ -1,6 +1,7 @@
 //! `scripts/check-surface-bump.sh` fails a pull request whose `xr` surface
 //! grows while its `## Changelog (xurl-rs)` block names no minor-or-higher
-//! section. The head tree in every case is the repository itself, so the
+//! section, or shrinks while it names neither `### Breaking changes` nor
+//! `### Fixed`. The head tree in every case is the repository itself, so the
 //! parser runs against the committed completions, schemas, and PR template
 //! rather than hand-written copies of their formats.
 #![cfg(unix)]
@@ -256,33 +257,54 @@ fn a_crlf_body_is_read() {
     assert_eq!(out.code, 0, "{}", out.stderr);
 }
 
-#[test]
-fn a_removal_passes_with_a_warning_naming_breaking_changes() {
-    let base_has_more = base_tree();
-    let path = base_has_more.path().join("completions/xr.bash");
+/// A base tree whose `xr` has one more command than the repository, so the
+/// head tree has lost it.
+fn base_with_a_retired_command() -> TempDir {
+    let base = base_tree();
+    let path = base.path().join("completions/xr.bash");
     let text = fs::read_to_string(&path).expect("read completions");
-    fs::write(
-        &path,
-        text.replace(
-            " examples validate help\"",
-            " examples validate retired help\"",
-        ),
-    )
-    .expect("write completions");
-    let out = check(&base_has_more, &body(&base_has_more, &changelog("Fixed")));
-    assert_eq!(out.code, 0, "{}", out.stderr);
+    let edited = text.replace(
+        " examples validate help\"",
+        " examples validate retired help\"",
+    );
+    assert_ne!(
+        edited, text,
+        "the completions no longer list `examples validate help`"
+    );
+    fs::write(&path, edited).expect("write completions");
+    base
+}
+
+#[test]
+fn a_removal_filed_under_changed_fails_naming_both_sections() {
+    let base = base_with_a_retired_command();
+    let out = check(&base, &body(&base, &changelog("Changed")));
+    assert_eq!(
+        out.code, 1,
+        "stdout: {}\nstderr: {}",
+        out.stdout, out.stderr
+    );
     assert!(out.stderr.contains("xr\tretired"), "{}", out.stderr);
     assert!(
-        out.stderr.contains("### Breaking changes"),
+        out.stderr.contains("### Breaking changes") && out.stderr.contains("### Fixed"),
         "{}",
         out.stderr
     );
 }
 
+#[test]
+fn a_removal_filed_under_breaking_changes_or_fixed_passes() {
+    let base = base_with_a_retired_command();
+    for section in ["Breaking changes", "Fixed"] {
+        let out = check(&base, &body(&base, &changelog(section)));
+        assert_eq!(out.code, 0, "{section}: {}", out.stderr);
+    }
+}
+
 /// A change list larger than a pipe buffer is still listed and counted,
 /// rather than ending the script when the truncated listing stops reading.
 #[test]
-fn a_removal_too_large_for_a_pipe_still_passes() {
+fn a_removal_too_large_for_a_pipe_still_fails_with_a_count() {
     let base = base_tree();
     let fields: serde_json::Map<String, Value> = (0..4000)
         .map(|i| {
@@ -297,8 +319,12 @@ fn a_removal_too_large_for_a_pipe_still_passes() {
         serde_json::json!({ "properties": fields }).to_string(),
     )
     .expect("write the retired schema");
-    let out = check(&base, &body(&base, &changelog("Fixed")));
-    assert_eq!(out.code, 0, "{}", out.stderr);
+    let out = check(&base, &body(&base, &changelog("Changed")));
+    assert_eq!(
+        out.code, 1,
+        "stdout: {}\nstderr: {}",
+        out.stdout, out.stderr
+    );
     assert!(
         out.stderr.contains("more"),
         "the listing is truncated with a count: {}",
