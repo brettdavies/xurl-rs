@@ -742,6 +742,26 @@ fn the_listener_leaves_the_callers_token_alone(#[case] query: &str, #[case] stat
     );
 }
 
+// ── Connections ───────────────────────────────────────────────────────────
+
+/// A connection that sends nothing, as a browser's preconnect or a port
+/// scan opens, must not keep the listener from answering the redirect.
+#[test]
+fn an_idle_connection_does_not_hold_up_the_redirect() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+    let addr = format!("127.0.0.1:{}", listener.port);
+
+    let idle = StdTcpStream::connect(&addr).expect("an idle connection");
+    let resp = send_request(&addr, "/callback?code=afteridle&state=STATE");
+    drop(idle);
+    assert_eq!(http_status_code(&resp), 200, "response: {resp:?}");
+    assert_eq!(listener.finish().expect("ok code"), "afteridle");
+}
+
 /// A pending headless flow saved before the state moved to the URL-safe
 /// alphabet holds a standard-alphabet state. Its redirect carries that state
 /// form-encoded, as the authorize URL sent it, so step 2 still resumes it.

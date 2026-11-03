@@ -3,7 +3,8 @@
 //! Binds host, port, and path from the resolved redirect URI. For `localhost`,
 //! attempts to bind both `127.0.0.1:port` and `[::1]:port`. When only one
 //! succeeds the listener proceeds with a warning; when both fail an error is
-//! returned. Stops when a caller-supplied [`tokio_util::sync::CancellationToken`] is cancelled, a
+//! returned. Each connection is answered on its own task. Stops when a
+//! caller-supplied [`tokio_util::sync::CancellationToken`] is cancelled, a
 //! token the listener never cancels itself. Times out after 5 minutes,
 //! matching the Go implementation. The library registers no signal handler:
 //! the caller cancels the token when its own shutdown arrives.
@@ -15,6 +16,7 @@ use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{Mutex, oneshot};
+use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 use url::Url;
 
@@ -218,8 +220,12 @@ async fn respond(stream: &mut TcpStream, status: &str, body: &str) {
     let _ = stream.write_all(response.as_bytes()).await;
 }
 
-/// Drives one listener's accept loop, answering one connection at a time
-/// until a callback ends the listener.
+/// Drives one listener's accept loop.
+///
+/// Answers each connection on its own task, so a connection that sends
+/// nothing (a browser's preconnect, a port scan) cannot hold up the one that
+/// carries the redirect. The tasks belong to the loop: when it ends, the set
+/// drops and aborts them.
 async fn run_accept_loop(
     listener: TcpListener,
     callback: Arc<Callback>,
@@ -234,12 +240,14 @@ async fn run_accept_loop(
         let _ = tx.send(());
     }
 
+    let mut connections = JoinSet::new();
     loop {
         tokio::select! {
             () = callback.done.cancelled() => return,
+            Some(_) = connections.join_next(), if !connections.is_empty() => {}
             accepted = listener.accept() => {
                 if let Ok((stream, _)) = accepted {
-                    answer(stream, Arc::clone(&callback)).await;
+                    connections.spawn(answer(stream, Arc::clone(&callback)));
                 }
             }
         }
