@@ -339,3 +339,48 @@ async fn sources_add_refuses_an_empty_name_before_any_request() {
     assert_eq!(body["rule"], "empty-source-name");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
+
+/// The region names in `text`, such as `us-east-1` or `ap-northeast-2`.
+fn region_names(text: &str) -> std::collections::BTreeSet<String> {
+    regex::Regex::new(r"\b[a-z]{2}-[a-z]+-[0-9]\b")
+        .expect("a pattern")
+        .find_iter(text)
+        .map(|found| found.as_str().to_string())
+        .collect()
+}
+
+#[test]
+fn sources_add_region_help_names_the_regions_the_spec_accepts() {
+    use clap::CommandFactory;
+
+    let path = common::workspace_root().join("crates/xdk/vendor/x-api-openapi.json");
+    let spec: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&path).expect("the vendored spec"))
+            .expect("the vendored spec is JSON");
+    let accepted = region_names(
+        spec.pointer("/components/schemas/CreateSourceRequest/properties/region/description")
+            .and_then(serde_json::Value::as_str)
+            .expect("the spec describes the region a new source takes"),
+    );
+
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let add = ["broadcasts", "sources", "add"]
+        .iter()
+        .fold(&root, |cmd, name| {
+            cmd.find_subcommand(name).expect("clap has the command")
+        });
+    let help = add
+        .get_arguments()
+        .find(|arg| arg.get_id() == "region")
+        .and_then(|arg| arg.get_help())
+        .map(ToString::to_string)
+        .expect("--region has help");
+
+    assert_eq!(
+        region_names(&help),
+        accepted,
+        "`xr broadcasts sources add --region` help and the spec's CreateSourceRequest.region \
+         description name different regions; edit the help in crates/xurl-cli/src/cli/mod.rs"
+    );
+}

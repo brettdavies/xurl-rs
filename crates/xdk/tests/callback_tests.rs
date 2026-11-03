@@ -10,12 +10,16 @@ use std::net::{TcpListener as StdTcpListener, TcpStream as StdTcpStream};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use rstest::rstest;
 use tokio_util::sync::CancellationToken;
 use url::Url;
 
+use xdk::auth::Auth;
 use xdk::auth::callback::{wait_for_callback_on, wait_for_callback_with};
+use xdk::auth::pending::{self, PendingOAuth2State};
+use xdk::config::{Config, EnvOverrides};
 use xdk::error::Result as XurlResult;
 
 #[path = "support/port_band.rs"]
@@ -138,12 +142,23 @@ fn start_on(
     cancel: &CancellationToken,
     on_bound: impl Fn() + Send + 'static,
 ) -> Running {
+    serve_on(uri_for, "STATE", cancel.child_token(), on_bound)
+}
+
+/// [`start_on`] expecting `state`, with `cancel` handed to the listener as
+/// the caller's own token rather than a child of it, so the test can read
+/// what the listener did to it.
+fn serve_on(
+    uri_for: impl Fn(u16) -> Url,
+    state: &'static str,
+    cancel: CancellationToken,
+    on_bound: impl Fn() + Send + 'static,
+) -> Running {
     let listener = StdTcpListener::bind("127.0.0.1:0").expect("a loopback port");
     let port = listener.local_addr().expect("its address").port();
     let uri = uri_for(port);
-    let cancel = cancel.child_token();
     let (running, bound) = spawn_listener(port, on_bound, move |on_bound| async move {
-        wait_for_callback_on(listener, &uri, "STATE", cancel, on_bound).await
+        wait_for_callback_on(listener, &uri, state, cancel, on_bound).await
     });
     if bound.recv_timeout(WAIT).is_err() {
         panic!("the listener did not start: {:?}", running.finish());
@@ -571,4 +586,234 @@ async fn a_held_listener_on_a_port_the_uri_does_not_name_is_refused() {
         )),
         "{refused}"
     );
+}
+
+// ── Reading the redirect ──────────────────────────────────────────────────
+
+/// A state in the standard base64 alphabet, carrying each character a query
+/// string encodes: `+`, `/`, and the `=` padding.
+const STANDARD_ALPHABET_STATE: &str = "ab+/cd==";
+
+#[rstest]
+#[case::uppercase_hex("ab%2B%2Fcd%3D%3D")]
+#[case::lowercase_hex("ab%2b%2fcd%3d%3d")]
+fn a_percent_encoded_state_matches(#[case] state: &str) {
+    let listener = serve_on(
+        callback_uri("127.0.0.1", "/callback"),
+        STANDARD_ALPHABET_STATE,
+        CancellationToken::new(),
+        || {},
+    );
+
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        &format!("/callback?code=encoded&state={state}"),
+    );
+    assert_eq!(http_status_code(&resp), 200, "response: {resp:?}");
+    assert_eq!(listener.finish().expect("ok code"), "encoded");
+}
+
+#[test]
+fn a_percent_encoded_code_is_delivered_decoded() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        "/callback?code=a%2Fb%3D&state=STATE",
+    );
+    assert_eq!(http_status_code(&resp), 200, "response: {resp:?}");
+    assert_eq!(listener.finish().expect("ok code"), "a/b=");
+}
+
+/// Whether the listener, expecting [`STANDARD_ALPHABET_STATE`], answers a
+/// callback carrying `query` with the code.
+fn listener_accepts(query: &str) -> bool {
+    let listener = serve_on(
+        callback_uri("127.0.0.1", "/callback"),
+        STANDARD_ALPHABET_STATE,
+        CancellationToken::new(),
+        || {},
+    );
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        &format!("/callback?{query}"),
+    );
+    let accepted = http_status_code(&resp) == 200;
+    let _ = listener.finish();
+    accepted
+}
+
+/// A loopback port nothing listens on.
+fn closed_port() -> u16 {
+    StdTcpListener::bind("127.0.0.1:0")
+        .expect("a loopback port")
+        .local_addr()
+        .expect("its address")
+        .port()
+}
+
+/// Whether headless step 2, resuming a flow that expects
+/// [`STANDARD_ALPHABET_STATE`], gets past its state check for a redirect
+/// carrying `query`. The token endpoint is a closed port, so a step whose
+/// state matches fails at the exchange instead.
+fn headless_step_accepts(query: &str) -> bool {
+    let tmp = tempfile::TempDir::new().expect("a temp dir");
+    let store_path = tmp.path().join("auth.yml");
+    let pending_path = pending::pending_path_for_store(&store_path);
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("a clock after the epoch")
+        .as_secs();
+    let flow = PendingOAuth2State {
+        code_verifier: "test-code-verifier".to_string(),
+        state: STANDARD_ALPHABET_STATE.to_string(),
+        client_id: "test-client-id".to_string(),
+        app_name: "default".to_string(),
+        created_at,
+        scopes: Vec::new(),
+    };
+    pending::save(&flow, &pending_path).expect("the pending flow is saved");
+
+    let mut cfg = Config::new();
+    cfg.client_id = "test-client-id".to_string();
+    cfg.client_secret = "test-client-secret".to_string();
+    cfg.token_url = format!("http://127.0.0.1:{}/token", closed_port());
+    let mut auth =
+        Auth::new_with_store_path_and_overrides(&cfg, &store_path, &EnvOverrides::default());
+
+    let redirect = format!("http://127.0.0.1:8080/callback?{query}");
+    let refused = block_on_listener(auth.remote_oauth2_step2(
+        &reqwest::Client::new(),
+        &redirect,
+        "agree",
+        &pending_path,
+    ))
+    .expect_err("the closed token endpoint fails the exchange");
+    !refused.to_string().contains("StateMismatch")
+}
+
+/// The interactive listener and the headless step read the same redirect, so
+/// they must agree on whether its state matches, however it is encoded.
+#[rstest]
+#[case::form_encoded("ab%2B%2Fcd%3D%3D")]
+#[case::lowercase_hex("ab%2b%2fcd%3d%3d")]
+#[case::half_encoded("ab%2B/cd==")]
+#[case::unencoded("ab+/cd==")]
+fn the_listener_and_the_headless_step_read_a_redirect_alike(#[case] state: &str) {
+    let query = format!("code=agree&state={state}");
+    let listener = listener_accepts(&query);
+    let headless = headless_step_accepts(&query);
+    assert_eq!(
+        listener, headless,
+        "for state={state}, the listener accepts: {listener}, the headless step accepts: {headless}"
+    );
+}
+
+// ── The caller's token ────────────────────────────────────────────────────
+
+/// The token is the caller's stop: it may be a signal handler's, so the
+/// listener ending for any reason of its own must leave it as it was.
+#[rstest]
+#[case::refused_state("code=abc&state=NOT-THE-STATE", 400)]
+#[case::empty_code("code=&state=STATE", 400)]
+#[case::delivered_code("code=abc&state=STATE", 200)]
+fn the_listener_leaves_the_callers_token_alone(#[case] query: &str, #[case] status: u16) {
+    let cancel = CancellationToken::new();
+    let listener = serve_on(
+        callback_uri("127.0.0.1", "/callback"),
+        "STATE",
+        cancel.clone(),
+        || {},
+    );
+
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        &format!("/callback?{query}"),
+    );
+    assert_eq!(http_status_code(&resp), status, "response: {resp:?}");
+    let returned = listener.finish();
+    assert!(
+        !cancel.is_cancelled(),
+        "the listener cancelled the caller's token; it returned {returned:?}"
+    );
+}
+
+// ── Connections ───────────────────────────────────────────────────────────
+
+/// A connection that sends nothing, as a browser's preconnect or a port
+/// scan opens, must not keep the listener from answering the redirect.
+#[test]
+fn an_idle_connection_does_not_hold_up_the_redirect() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+    let addr = format!("127.0.0.1:{}", listener.port);
+
+    let idle = StdTcpStream::connect(&addr).expect("an idle connection");
+    let resp = send_request(&addr, "/callback?code=afteridle&state=STATE");
+    drop(idle);
+    assert_eq!(http_status_code(&resp), 200, "response: {resp:?}");
+    assert_eq!(listener.finish().expect("ok code"), "afteridle");
+}
+
+/// A pending headless flow saved before the state moved to the URL-safe
+/// alphabet holds a standard-alphabet state. Its redirect carries that state
+/// form-encoded, as the authorize URL sent it, so step 2 still resumes it.
+#[test]
+fn a_pending_flow_with_a_standard_alphabet_state_still_resumes() {
+    assert!(headless_step_accepts("code=resumed&state=ab%2B%2Fcd%3D%3D"));
+}
+
+// ── A refusal from the authorization server ──────────────────────────────
+
+/// A redirect for a denied consent carries `error` and `state` in place of
+/// `code` (RFC 6749 section 4.1.2.1), and the listener refuses it with the
+/// provider's error.
+#[test]
+fn a_provider_error_is_refused_with_its_reason() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        "/callback?error=access_denied&error_description=The+user+denied+access&state=STATE",
+    );
+    assert_eq!(http_status_code(&resp), 400, "response: {resp:?}");
+    assert!(
+        resp.contains("access_denied"),
+        "the page names the error: {resp:?}"
+    );
+    let refused = listener.finish().expect_err("a denied consent").to_string();
+    assert!(
+        refused.contains("access_denied") && refused.contains("The user denied access"),
+        "{refused}"
+    );
+}
+
+/// The state is checked first: a provider error under another state is a
+/// refused state, as any callback under another state is.
+#[test]
+fn a_provider_error_under_another_state_is_refused_for_its_state() {
+    let listener = start_on(
+        callback_uri("127.0.0.1", "/callback"),
+        &CancellationToken::new(),
+        || {},
+    );
+
+    let resp = send_request(
+        &format!("127.0.0.1:{}", listener.port),
+        "/callback?error=access_denied&state=NOT-THE-STATE",
+    );
+    assert_eq!(http_status_code(&resp), 400, "response: {resp:?}");
+    let refused = listener.finish().expect_err("a refused state").to_string();
+    assert!(refused.contains("invalid state parameter"), "{refused}");
 }

@@ -792,7 +792,8 @@ fn dry_run_cases() -> Vec<Case> {
         .iter()
         .map(|a| (*a).to_string())
         .collect();
-    too_many.extend((1..=5).map(|i| format!("--media-id={i}")));
+    too_many
+        .extend((1..=xdk::api::shortcuts::POST_MEDIA_MAX + 1).map(|i| format!("--media-id={i}")));
     vec![
         case(
             "dry-run-empty-body",

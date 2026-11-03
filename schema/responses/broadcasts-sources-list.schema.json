@@ -250,7 +250,7 @@
           "type": "string"
         },
         "is_stream_active": {
-          "description": "Whether an encoder is sending video to the source now. Publishing a\nbroadcast on the source needs it.",
+          "description": "Whether an encoder is sending video to the source now.",
           "type": [
             "boolean",
             "null"

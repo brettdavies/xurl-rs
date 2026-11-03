@@ -17,7 +17,7 @@
 
 use std::io::{Read, Write};
 use std::net::TcpStream as StdTcpStream;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use tempfile::TempDir;
@@ -27,7 +27,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use tokio_util::sync::CancellationToken;
 use xdk::auth::Auth;
-use xdk::auth::oauth2::run_oauth2_flow;
+use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::Config;
 
 #[path = "../../xdk/tests/support/port_band.rs"]
@@ -800,4 +800,229 @@ async fn step2_reuses_the_scopes_step1_saved() {
 /// Percent-encodes a query value the way a browser's address bar shows it.
 fn urlencode(value: &str) -> String {
     url::form_urlencoded::byte_serialize(value.as_bytes()).collect()
+}
+
+// ── What the interactive sign-in returns ─────────────────────────────────
+//
+// `xr` hands the flow the token its signal handler cancels and reads a
+// cancelled token as Ctrl-C, so the flow ending for any reason of its own
+// must leave that token as it was.
+
+/// A loopback port nothing listens on.
+fn closed_port() -> u16 {
+    std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("a loopback port")
+        .local_addr()
+        .expect("its address")
+        .port()
+}
+
+/// Runs the interactive flow on a loopback listener handed over to it, with
+/// `opener` as the browser (given the authorize URL and the listener's
+/// address) and token and user endpoints nothing listens on. Returns what the
+/// flow returned and the token it was handed.
+async fn run_interactive(
+    opener: impl Fn(&str, &str) -> std::io::Result<()> + Send + Sync + 'static,
+) -> (xdk::error::Result<String>, CancellationToken) {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+    let target = listener.local_addr().expect("its address").to_string();
+    let redirect_uri = format!("http://{target}/callback");
+    let closed = closed_port();
+    let tmp = TempDir::new().unwrap();
+    let cfg = test_config(
+        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+        &redirect_uri,
+    );
+    let mut auth = test_auth(cfg, &tmp, &redirect_uri);
+    let cancel = CancellationToken::new();
+    let returned = run_oauth2_flow_on(
+        &mut auth,
+        &reqwest::Client::new(),
+        "testuser",
+        listener,
+        cancel.clone(),
+        move |url| opener(url, &target),
+    )
+    .await;
+    (returned, cancel)
+}
+
+/// Follows the redirect to `target` the way a browser does: one GET carrying
+/// a code and `state`.
+fn follow_redirect(target: &str, state: &str) -> std::io::Result<()> {
+    send_callback(target, &format!("code=AUTHCODE&state={state}"))
+}
+
+/// Sends the callback request a browser sends for a redirect carrying
+/// `query` to `target`.
+fn send_callback(target: &str, query: &str) -> std::io::Result<()> {
+    let mut stream = StdTcpStream::connect(target)?;
+    stream.set_read_timeout(Some(Duration::from_secs(30)))?;
+    let request =
+        format!("GET /callback?{query} HTTP/1.1\r\nHost: {target}\r\nConnection: close\r\n\r\n");
+    stream.write_all(request.as_bytes())?;
+    let mut answer = String::new();
+    let _ = stream.read_to_string(&mut answer);
+    Ok(())
+}
+
+/// The state an authorize URL carries, decoded.
+fn state_of(auth_url: &str) -> String {
+    query_param(
+        &Url::parse(auth_url).expect("the authorize URL parses"),
+        "state",
+    )
+}
+
+/// Whether `state` holds only characters a query string carries unencoded,
+/// so it reads back the same whatever encoding the redirect uses.
+fn needs_no_encoding(state: &str) -> bool {
+    !state.is_empty()
+        && state
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
+
+#[tokio::test]
+async fn a_refused_callback_returns_its_reason_and_leaves_the_callers_token_alone() {
+    let (returned, cancel) =
+        run_interactive(|_url, target| follow_redirect(target, "NOT-THE-STATE")).await;
+
+    let refused = returned.expect_err("the listener refuses the state");
+    assert!(
+        refused.to_string().contains("invalid state parameter"),
+        "{refused}"
+    );
+    assert!(
+        !cancel.is_cancelled(),
+        "the flow cancelled the caller's token, which xr reads as Ctrl-C"
+    );
+}
+
+#[tokio::test]
+async fn a_failed_browser_open_returns_its_reason_and_leaves_the_callers_token_alone() {
+    let (returned, cancel) =
+        run_interactive(|_url, _target| Err(std::io::Error::other("no browser"))).await;
+
+    let refused = returned.expect_err("the opener fails");
+    assert!(
+        refused.to_string().contains("browser-open failed"),
+        "{refused}"
+    );
+    assert!(
+        !cancel.is_cancelled(),
+        "the flow cancelled the caller's token, which xr reads as Ctrl-C"
+    );
+}
+
+#[tokio::test]
+async fn a_failed_exchange_after_the_callback_leaves_the_callers_token_alone() {
+    let (returned, cancel) =
+        run_interactive(|url, target| follow_redirect(target, &state_of(url))).await;
+
+    let refused = returned.expect_err("the closed token endpoint fails the exchange");
+    assert!(
+        !refused.to_string().contains("CallbackError"),
+        "the listener took the callback: {refused}"
+    );
+    assert!(
+        !cancel.is_cancelled(),
+        "the flow cancelled the caller's token, which xr reads as Ctrl-C"
+    );
+}
+
+/// A denied consent: the redirect carries the provider's `error` with the
+/// state and no code (RFC 6749 section 4.1.2.1).
+const DENIAL: &str = "error=access_denied&error_description=The+user+denied+access";
+
+#[tokio::test]
+async fn a_denied_consent_returns_the_providers_error() {
+    let (returned, cancel) = run_interactive(|url, target| {
+        send_callback(target, &format!("{DENIAL}&state={}", state_of(url)))
+    })
+    .await;
+
+    let refused = returned.expect_err("the provider refused").to_string();
+    assert!(
+        refused.contains("access_denied") && refused.contains("The user denied access"),
+        "{refused}"
+    );
+    assert!(
+        !cancel.is_cancelled(),
+        "the flow cancelled the caller's token, which xr reads as Ctrl-C"
+    );
+}
+
+#[tokio::test]
+async fn step2_reports_a_denied_consent_with_the_providers_error_and_step_one_again() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+    let closed = closed_port();
+    let overrides = step2_overrides(
+        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+    );
+    let denied = format!("http://localhost:8080/callback?{DENIAL}&state={PENDING_STATE}");
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &denied,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    let message = v["message"].as_str().unwrap_or_default();
+    assert!(
+        message.contains("access_denied") && message.contains("The user denied access"),
+        "envelope: {v}"
+    );
+    assert_eq!(v["reason"], "auth-required", "envelope: {v}");
+    assert_eq!(v["next_step"]["action"], "sign-in", "envelope: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr --output json auth oauth2 --no-browser --step 1",
+        "a denied consent starts the sign-in over: {v}"
+    );
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+}
+
+#[tokio::test]
+async fn the_interactive_state_needs_no_encoding() {
+    let sent = Arc::new(Mutex::new(None::<String>));
+    let recorded = Arc::clone(&sent);
+    let _ = run_interactive(move |url, target| {
+        let state = state_of(url);
+        *recorded.lock().unwrap() = Some(state.clone());
+        follow_redirect(target, &state)
+    })
+    .await;
+
+    let state = sent.lock().unwrap().clone().expect("the opener ran");
+    assert!(needs_no_encoding(&state), "state {state:?}");
+}
+
+#[tokio::test]
+async fn the_headless_state_needs_no_encoding() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let state = query_param(&step1_url(&store, &[]).await, "state");
+
+    assert!(needs_no_encoding(&state), "state {state:?}");
 }
