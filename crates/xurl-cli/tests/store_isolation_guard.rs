@@ -49,16 +49,6 @@ const ALLOWLIST: &[Allowed] = &[
         reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
     },
     Allowed {
-        file: "crates/xdk/tests/api_tests.rs",
-        test: "test_from_env_with_client_id_set_returns_ok",
-        reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
-    },
-    Allowed {
-        file: "crates/xdk/tests/api_tests.rs",
-        test: "test_from_env_with_client_id_but_no_secret_returns_ok",
-        reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
-    },
-    Allowed {
         file: "crates/xurl-cli/tests/wiring_tests.rs",
         test: "test_xurl_token_store_env_selects_store_file",
         reason: "proves the variable the spawn seam relies on, so it spawns raw on purpose",
