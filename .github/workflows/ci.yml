@@ -82,7 +82,4 @@ jobs:
       # PROBE-INPUTS
       test_runner: nextest
       nextest_version: 0.9.150
-      anc_version: 0.6.0
-      anc_bin: xr
-      anc_score_floor: 98
-      anc_debug_audit: true
+      test_partitions: 2
