@@ -1,3 +1,4 @@
+<!-- Canonical version: 2026.11.03 (generic) -->
 # Pre-release verification: `xurl-rs`
 
 Operational pre-flight checklist. Walk it before step 1 of
@@ -97,8 +98,10 @@ PR the previous release left out of its notes on purpose either, so it comes bac
 way.
 
 `cargo semver-checks` determines the required bump from the code itself, so the `!:` marker records a break rather than
-detecting one: a break reaches `dev` whether or not its commit carried the marker. Every `!:` commit still gets a row in
-the release's `### Breaking changes` section, and so does every break the semver gate reports.
+detecting one: a break reaches `dev` whether or not its commit carried the marker. A `!:` commit is a cross-check hint
+only: the PRs' changelog sections set the bump ([`RELEASES.md` § Versioning](./RELEASES.md#versioning)). A `!:` commit
+whose PR filed no `### Breaking changes` bullet is a question for its author, not a major on its own. Every break the
+semver gate reports gets a row in the release's `### Breaking changes` section.
 
 ## Checklist
 
@@ -112,18 +115,27 @@ Dependabot raises the same fix again.
 
 <!-- canonical:begin drift-gate -->
 
-- [ ] The previous release's own bookkeeping reached `dev` (gate 0: the version carriers and `CHANGELOG.md` as the
-  release left them). It fails when a backport never ran; run `scripts/sync-dev-after-release.sh v<previous>`, merge its
-  PR, and rerun.
-- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1 lists the ones that do not, as
-  `differs` or `missing`). Backport them by PR into `dev` first, merge, and rerun.
-- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2). `.github/` reaches `main` through the release,
-  so config that has reached `dev` and not `main` is what this release delivers, and the gate counts it. The gate fails
-  on the other direction, where `main` holds workflow or ruleset config `dev` never received, and names each path as
-  `missing` or `differs`.
-- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3, which reads `package-lock.json`, `bun.lock`,
-  and `Cargo.lock`). The one benign case is a version still inside the local package manager's release-age window when
-  the advisory is already patched at `dev`'s version.
+- [ ] The previous release's own bookkeeping reached `dev` (gate 0).
+
+  Gate 0 checks the version carriers and `CHANGELOG.md` as the release left them. It fails when a backport never ran;
+  run `scripts/sync-dev-after-release.sh v<previous>`, merge its PR, and rerun.
+
+- [ ] Every commit on `main` since the last release has its changes on `dev` (gate 1).
+
+  Gate 1 lists each commit that does not, as `differs` or `missing`. Backport them by PR into `dev` first, merge, and
+  rerun.
+
+- [ ] Nothing under `.github/` on `main` is missing from `dev` (gate 2).
+
+  `.github/` reaches `main` through the release, so config that has reached `dev` and not `main` is what this release
+  delivers, and the gate counts it. The gate fails on the other direction, where `main` holds workflow or ruleset
+  config `dev` never received, and names each path as `missing` or `differs`.
+
+- [ ] No lockfile package resolves newer on `main` than on `dev` (gate 3).
+
+  Gate 3 reads `package-lock.json`, `bun.lock`, and `Cargo.lock`. The one benign case is a version still inside the
+  local package manager's release-age window when the advisory is already patched at `dev`'s version.
+
 - [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
 
 <!-- canonical:end drift-gate -->
@@ -154,10 +166,9 @@ xurl-rs is a thin client over the live X API. The contract that ships is the uni
 library re-exports in `crates/xdk/src/lib.rs`.
 
 - [ ] `xr help` lists the same shortcut commands as the previous release plus any net additions / removals. Diff
-  `$LAST_TAG`'s `xr help` against `dev`'s and confirm every removed or renamed command has a `!:` commit and a `###
-  Breaking changes` bullet in the release changelog: a removal or rename is a major (RELEASES.md § Versioning). A
-  break the maintainer takes into a minor has an `### Added` bullet instead, and a row in the release's guide under
-  `docs/migrating/`.
+  `$LAST_TAG`'s `xr help` against `dev`'s and confirm every removed or renamed command has a `### Breaking changes`
+  bullet starting "Remove" in the release changelog: a removal or rename is a major (RELEASES.md § Versioning), or a
+  minor under the small-break exception with its guide under `docs/migrating/`.
 - [ ] `xr schema` (typed response introspection) still emits a parseable JSON shape; downstream agents feature-detect
   from this. Diff the shape against `$LAST_TAG`'s output and surface any field rename / removal as a breaking row.
 - [ ] Public library surface (`xdk::*`, the `xdk-rs` package): `cargo semver-checks check-release --package xdk-rs
@@ -433,6 +444,15 @@ These items duplicate steps in `RELEASES.md` deliberately: easy to skip, expensi
   workflow's `extra_paths` and removed from the branch.
 - [ ] `crates/xurl-cli/CHANGELOG.md`, and `crates/xdk/CHANGELOG.md` while a library release is pending, open on a
   versioned section that matches the crate's manifest version, with no `[Unreleased]` placeholder.
+- [ ] **Each crate's version is the one its changelog sections call for.** `scripts/release/cut-release-branch.sh`
+  prints the version `scripts/generate-changelog.py --bump` computes beside the one it was given, and
+  `scripts/generate-changelog.py --bump --crate xdk-rs` does the same for the library
+  ([`RELEASES.md` § Versioning](./RELEASES.md#versioning)); a difference is the maintainer's call, made before the
+  release commit.
+- [ ] **An `xr` release that keeps its major ships a migration guide for its breaking changes.**
+  `scripts/release/preflight.sh mechanics` fails a release whose changelog carries `### Breaking changes` when it keeps
+  the previous tag's major and has no `docs/migrating/v<version>.md` opening with a line that names the small-break
+  exception. `xdk-rs`, still 0.x, needs no guide.
 
 ### Workspace library member (when the release moves `xdk-rs`)
 
