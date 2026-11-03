@@ -66,12 +66,12 @@ fail=0
 # call its tool makes in another directory finds that directory's repository
 # rather than this one.
 
-# Every check here is a file-scoped linter over a disjoint set of paths: none
-# takes a build lock, and markdownlint, the one that writes, writes only the
-# markdown no other check reads, so they all run together and the slowest one
-# sets the wall-clock. step_wait replays them in the order queued below.
-# `cargo fmt` compiles nothing, so it takes no build lock and belongs in the
-# queue with the rest.
+# The checks here read disjoint sets of paths: cargo fmt every crate's Rust
+# sources, the others the staged files of their kind. None takes a build lock
+# (`cargo fmt` compiles nothing), and markdownlint, the one that writes, writes
+# only the markdown no other check reads, so they all run together and the
+# slowest one sets the wall-clock. step_wait replays them in the order queued
+# below.
 
 # Rust: format check when a .rs file is staged, each crate under its own
 # edition.
