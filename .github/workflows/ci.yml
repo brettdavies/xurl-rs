@@ -72,7 +72,7 @@ jobs:
   ci:
     needs: scope
     if: ${{ !cancelled() }}
-    uses: brettdavies/.github/.github/workflows/rust-ci.yml@feat/rust-ci-tier-inputs
+    uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
     with:
       # An advisory turns this run red rather than leaving it green with one
       # failed job. The ruleset already blocks the merge; this is so the run's
@@ -80,6 +80,9 @@ jobs:
       advisories_blocking: true
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
       # PROBE-INPUTS
-      test_runner: nextest
-      nextest_version: 0.9.150
-      test_partitions: 2
+      cross_os_tests: true
+      docs: true
+      msrv: true
+      completions: true
+      lint_stdio: true
+      workflow_concurrency: true
