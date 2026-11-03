@@ -1,0 +1,57 @@
+# Draft-PR probe only: never merges. Runs the workspace suite on Windows and
+# macOS, failing fast by default: one build, then the source-scan guards,
+# which finish in seconds, then the rest, stopping at the first failing
+# test binary. CATALOGUE=1 runs every binary to the end instead, to list
+# every failure at once.
+name: Cross-OS probe
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-os-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+  CARGO_TERM_COLOR: always
+  CATALOGUE: ""
+
+jobs:
+  test:
+    name: Probe (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust
+        run: rustup toolchain install
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          cache-on-failure: true
+      - name: Build the tests
+        run: cargo test --workspace --locked --no-run
+      # The guards that only read source files: each finishes in well under a
+      # second, so a path or platform assumption they hold fails here first.
+      - name: Source-scan guards
+        if: ${{ env.CATALOGUE == '' }}
+        run: >-
+          cargo test --workspace --locked
+          --test comment_citation_guard --test dispatch_guard
+          --test env_mutation_guard --test recipe_guard
+          --test store_isolation_guard --test http_client_guard
+          --test path_literal_guard --test vocabulary_event_guard
+      - name: Tests
+        run: cargo test --workspace --locked ${CATALOGUE:+--no-fail-fast}
