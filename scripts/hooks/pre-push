@@ -226,8 +226,14 @@ if $run_cargo; then
 
   # 12. Output discipline: the same guard CI's `lint-stdio` job runs. No naked
   # stdio macro outside the output module, no terminal handle in library code.
-  bash scripts/lint-stdio.sh >/dev/null 2>&1 || fail "scripts/lint-stdio.sh"
-  pass "lint-stdio"
+  # Its stderr carries each offending file and line, or rg's own error and the
+  # fix line, so only its OK line is silenced.
+  if have rg; then
+    bash scripts/lint-stdio.sh >/dev/null || fail "scripts/lint-stdio.sh"
+    pass "lint-stdio"
+  else
+    skip "lint-stdio" "install via \`brew install ripgrep\`"
+  fi
 
   # 13. Windows cross-check (fast): verify no unconditional use of unix-only
   # APIs. Catches the libc::SIGPIPE class of issue without invoking a Windows
