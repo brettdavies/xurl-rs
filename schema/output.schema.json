@@ -104,6 +104,25 @@
         "action"
       ],
       "type": "object"
+    },
+    "Warning": {
+      "additionalProperties": false,
+      "description": "A diagnostic the library raised during a run, as a structured document\ncarries it. It did not end the run: a failure is the envelope itself.",
+      "properties": {
+        "message": {
+          "description": "What the library reported, in its own words. The wording is not\ncontract; branch on `target`.",
+          "type": "string"
+        },
+        "target": {
+          "description": "The part of `xr` that raised it, such as `xdk::config` or `xdk::store`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "target"
+      ],
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -116,6 +135,16 @@
         "status": {
           "const": "ok",
           "type": "string"
+        },
+        "warnings": {
+          "description": "What the library warned about during the run, on the document a\nsuccessful run writes on stderr when a warning fired. Stdout's\ndocument never carries it.",
+          "items": {
+            "$ref": "#/$defs/Warning"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         }
       },
       "required": [
@@ -423,6 +452,16 @@
           "description": "The offending input, as it was given, when the broken `rule` names\none: an app name, a redirect URI, a header's position among the `-H`\nheaders (counted from 1), the seconds a checkpoint runs ahead. Always\na string; a number goes in as its decimal digits.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "warnings": {
+          "description": "What the library warned about before the run failed, each distinct\nwarning once. Omitted when none fired.",
+          "items": {
+            "$ref": "#/$defs/Warning"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },

@@ -194,8 +194,8 @@ a command that would stop to ask for confirmation says so rather than asking.
 
 The structured error object every machine-readable output mode emits on stderr: `status`, a typed kebab-case `reason`
 from a closed vocabulary, `exit_code`, and an optional `message`, plus per-error fields such as `next_step`, `command`,
-and `suggestion`. Agents branch on `reason` and `exit_code`; the text-mode rendering of the same error may add hints
-that never appear in the envelope.
+and `suggestion`, and `warnings` when the library warned before the run failed. Agents branch on `reason` and
+`exit_code`; the text-mode rendering of the same error may add hints that never appear in the envelope.
 
 ### Errors-only answer
 

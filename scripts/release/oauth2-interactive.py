@@ -235,7 +235,8 @@ class Run:
         return [call for call in self.calls if call in (TOKEN_CALL, USERS_ME_CALL)]
 
     def envelope(self) -> dict:
-        # A warning prints as a text line ahead of the envelope, in every format.
+        # This gate also drives the previous release, and through 4.5.2 a warning
+        # prints as a text line ahead of the envelope, in every format.
         try:
             document, _ = json.JSONDecoder().raw_decode(self.stderr, self.stderr.index("{"))
         except ValueError:
