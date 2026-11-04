@@ -176,6 +176,17 @@ caught nothing (Appendix).
 
 - A weekly scheduled warm run on `main`: only if stacked PRs, which restore from `main`, keep missing after its entries
   expire.
+- Cross-OS tests for xurl-rs (`cross_os_tests: true`), once the Windows and macOS suites pass (they do on dev since the
+  cross-OS fixes, apart from the lint-stdio test #470 gates as unix-only; probe run 41742791660). A proposal for the
+  reusable's `Windows test` and `macOS test` jobs, measured on the probe workflow (#487), each run with one seeded guard
+  failure:
+  - **Shape:** build once with `--no-run`, then the source-scan guard binaries named in a `guard_tests` input, then the
+    suite with cargo's default fail-fast; an opt-in `no_fail_fast` input keeps the cataloguing run.
+  - **Time to the first failure (Windows):** 3m30s with `--no-fail-fast` ending at 7m10s (run 41734886856); 5m14s cold,
+    ending at 5m38s, and 3m48s warm, ending at 3m52s, guards first (run 41740426141). A guard failure in xurl-cli moved
+    from 2m25s after the compile to under 1 s.
+  - **Floor:** a warm Windows build still spends about 3 minutes on the workspace's crates and linking about 116 test
+    executables, so U6's layout is the larger lever there, and a full warm Windows pass runs about 8 minutes.
 
 ### Open Questions
 
@@ -1289,6 +1300,12 @@ Implementation pass (the shared-workflow PR):
   skipped job reported its raw `name:` expression): the reusable's job names stay literal, a `warm:` caller job tells
   warm checks apart, and the concurrency group carries `warm_cache`. Necessary for KD1 and R6; it replaces the
   `(warm cache)` suffix. Applied to KTD2 and U1.
+- **The cache is full of PR entries before U1 lands** (confidence 9/10, `gh cache list` on 2026-11-03 during the
+  cross-OS probes): the repository's Actions cache held 11.0 GB against the 10 GB limit, every entry under a
+  `refs/pull/<n>/merge` ref and none on `dev`, and a probe's entries were evicted within about 20 minutes. A new PR
+  reads only its own and its base's scopes, so it starts cold. This is the evidence KTD3's check looks for: U1 reads
+  `gh cache list` after its first warm push, and with entries this short-lived it sets `save-if` to non-PR events in the
+  same PR. No change to KTD3's rule. Applied to U1's verification.
 
 Approval readiness: PASS. First pass: R1 (D2), R2 (D3), and T1 (D4) cite their own answers. Second pass: R3 (second-pass
 D2) and R4 (second-pass D3) cite theirs. The corrections cite the approvals they implement (R1, R6, R11, R13, R14, R15,
