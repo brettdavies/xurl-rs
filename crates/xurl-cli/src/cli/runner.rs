@@ -442,9 +442,14 @@ async fn run_inner(
             out.print_dry_run_refusal(stdout, &ctx, &error, Some(&hint));
             EXIT_SUCCESS
         }
-        Err(Failure::AfterUpload { error, media_id }) => {
+        Err(Failure::AfterUpload {
+            error,
+            media_id,
+            waited,
+        }) => {
             let code = error.exit_code();
-            let hint = recovery_hint(&error, &snapshot, &args_vec, structured);
+            let hint = crate::cli::hints::resume_after_upload_hint(&error, &media_id, waited)
+                .or_else(|| recovery_hint(&error, &snapshot, &args_vec, structured));
             out.print_error_after_upload(stderr, &error, code, hint.as_ref(), &media_id);
             code
         }

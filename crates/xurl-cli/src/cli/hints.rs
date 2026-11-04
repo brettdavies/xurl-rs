@@ -632,14 +632,35 @@ pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
     else {
         return None;
     };
-    let next_step = NextStep::resume_wait(media_id, waited.as_secs().saturating_mul(2));
+    Some(resume_hint(media_id, waited.as_secs().saturating_mul(2)))
+}
+
+/// Builds the resume hint when a request that says "try again" failed during
+/// the wait after an upload finished. The request that failed was a status
+/// read, so what to run again is the wait: running the command again would send
+/// the whole file, which X bills for again.
+///
+/// The command waits as long as the wait that failed, whose deadline had not
+/// run out. A step that says more, such as when a rate limit resets, stays.
+#[must_use]
+pub fn resume_after_upload_hint(
+    error: &Error,
+    media_id: &str,
+    waited: std::time::Duration,
+) -> Option<Hint> {
+    (error.next_action() == Some(NextAction::Retry))
+        .then(|| resume_hint(media_id, waited.as_secs()))
+}
+
+fn resume_hint(media_id: &str, secs: u64) -> Hint {
+    let next_step = NextStep::resume_wait(media_id, secs);
     let command = next_step.command.clone().unwrap_or_default();
-    Some(Hint {
+    Hint {
         text_lines: vec![format!(
             "The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: {command}"
         )],
         next_step,
-    })
+    }
 }
 
 /// Builds the hint for a webhook receiver whose address another socket
@@ -1026,6 +1047,26 @@ pub fn quote_app_name(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_failure_that_says_try_again_resumes_the_wait_after_an_upload() {
+        let waited = std::time::Duration::from_secs(90);
+        for error in [Error::http("connection reset"), Error::api(503, "{}")] {
+            let hint = resume_after_upload_hint(&error, "777", waited).expect("a resume hint");
+            assert_eq!(hint.next_step.action, NextAction::ResumeWait, "{error}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr media status 777 --wait=90"),
+                "{error}"
+            );
+        }
+        for error in [Error::api(401, "{}"), Error::api(404, "{}")] {
+            assert!(
+                resume_after_upload_hint(&error, "777", waited).is_none(),
+                "{error}"
+            );
+        }
+    }
 
     #[test]
     fn register_app_offers_a_template_and_no_command() {

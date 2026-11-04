@@ -417,6 +417,159 @@ async fn a_status_read_that_fails_names_the_media_id_in_text(#[case] args: &[&st
     assert!(stderr.contains("777"), "stderr names the media: {stderr}");
 }
 
+/// A status read that fails after the upload finished waits again rather than
+/// inviting another upload, whose file X would bill for again. The new wait
+/// has the deadline of the one that failed, which had not run out.
+#[rstest::rstest]
+#[case::default_wait(&[], "xr media status 777 --wait=60")]
+#[case::own_wait(&["--wait=300"], "xr media status 777 --wait=300")]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_status_read_x_failed_resumes_the_wait(#[case] wait: &[&str], #[case] command: &str) {
+    let mut args = vec!["--output", "json"];
+    args.extend_from_slice(wait);
+    let (output, _tmp) = upload_then_status(ResponseTemplate::new(500), &args).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "server-error", "got: {v}");
+    assert_eq!(v["media_id"], "777", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
+    assert_eq!(v["next_step"]["command"], command, "got: {v}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_status_read_x_failed_prints_the_resume_command_in_text() {
+    let (output, _tmp) = upload_then_status(ResponseTemplate::new(500), &[]).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("xr media status 777 --wait=60"),
+        "the resume command is printed: {stderr}"
+    );
+}
+
+/// Answers an upload's requests, one connection each, and drops the connection
+/// of any status read without a byte of answer: what a network failure looks
+/// like from the client.
+fn serve_upload_then_drop_status(listener: &std::net::TcpListener) {
+    use std::io::{BufRead, BufReader, Read, Write};
+    for stream in listener.incoming() {
+        let Ok(stream) = stream else { return };
+        let mut reader = BufReader::new(stream);
+        let mut line = String::new();
+        if reader.read_line(&mut line).is_err() {
+            continue;
+        }
+        let request = line.clone();
+        let mut length = 0usize;
+        loop {
+            line.clear();
+            if reader.read_line(&mut line).is_err() || line.trim().is_empty() {
+                break;
+            }
+            let lower = line.to_ascii_lowercase();
+            if let Some(value) = lower.strip_prefix("content-length:") {
+                length = value.trim().parse().unwrap_or(0);
+            }
+        }
+        let mut body = vec![0u8; length];
+        let _ = reader.read_exact(&mut body);
+        if request.starts_with("GET ") {
+            continue;
+        }
+        let answer = if request.contains("/initialize") {
+            r#"{"data":{"id":"777","media_key":"7_777","expires_after_secs":86400}}"#
+        } else {
+            r#"{"data":{"id":"777","processing_info":{"state":"pending","check_after_secs":1}}}"#
+        };
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\
+             Connection: close\r\n\r\n{answer}",
+            answer.len()
+        );
+        let _ = reader.into_inner().write_all(response.as_bytes());
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_status_read_the_network_dropped_resumes_the_wait() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a free port");
+    let base_url = format!("http://{}", listener.local_addr().expect("an address"));
+    std::thread::spawn(move || serve_upload_then_drop_status(&listener));
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth2_store(tmp.path());
+    let video = tmp.path().join("clip.mp4");
+    std::fs::write(&video, b"not really a video").expect("write clip");
+    let output = tokio::task::spawn_blocking(move || {
+        common::xr_with_store(&store)
+            .env("API_BASE_URL", &base_url)
+            .args(["--output", "json", "media", "upload"])
+            .arg(&video)
+            .timeout(std::time::Duration::from_secs(30))
+            .output()
+    })
+    .await
+    .expect("spawn_blocking joins")
+    .expect("xr runs");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "", "{stderr}");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "network-error", "got: {v}");
+    assert_eq!(v["media_id"], "777", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr media status 777 --wait=60",
+        "got: {v}"
+    );
+}
+
+/// A failure before the upload finished leaves nothing to wait on, so running
+/// the upload again is the right step, and there is no id to name.
+#[rstest::rstest]
+#[case::at_initialize("/2/media/upload/initialize")]
+#[case::at_finalize("/2/media/upload/777/finalize")]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_failure_before_the_upload_finished_keeps_retry(#[case] failing: &str) {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path(failing))
+        .respond_with(ResponseTemplate::new(500))
+        .mount(&server)
+        .await;
+    mount_upload(&server, serde_json::json!({"id": "777"})).await;
+    let tmp = TempDir::new().expect("tempdir");
+    let video = tmp.path().join("clip.mp4");
+    std::fs::write(&video, b"not really a video").expect("write clip");
+    let video = video.to_str().expect("utf-8 path").to_string();
+
+    let output = run_xr(
+        &server,
+        oauth2_store(tmp.path()),
+        &["--output", "json", "media", "upload", video.as_str()],
+    )
+    .await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "server-error", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "retry", "got: {v}");
+    assert_eq!(v.get("media_id"), None, "got: {v}");
+}
+
+/// A step that says more than "try again" stays: a 429 names when to come back.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_rate_limited_status_read_keeps_its_own_step() {
+    let limited = ResponseTemplate::new(429).insert_header("x-rate-limit-reset", "1767225599");
+    let (output, _tmp) = upload_then_status(limited, &["--output", "json"]).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "rate-limited", "got: {v}");
+    assert_eq!(v["media_id"], "777", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "wait-and-retry", "got: {v}");
+}
+
 /// Every JSON document on `stdout`, in order.
 fn documents(stdout: &[u8]) -> Vec<serde_json::Value> {
     serde_json::Deserializer::from_slice(stdout)
