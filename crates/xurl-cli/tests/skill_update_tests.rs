@@ -544,6 +544,8 @@ fn legacy_not_a_bundle(home: &Home) {
 }
 
 /// Each destination and legacy state, with the answer a dry run owes for it.
+/// A dry run ends at exit 0 either way, as on every other command, and reports
+/// in `exit_code` the code the real run ends on.
 #[rstest::rstest]
 #[case::absent(HOST, absent, true)]
 #[case::empty_dir(HOST, empty_dir, true)]
@@ -563,6 +565,8 @@ fn the_dry_run_answers_what_the_real_run_does_and_touches_nothing(
     let (dry_code, dry) = planned.dry_run(host);
     assert_eq!(tree(planned.dir.path()), before, "the dry run wrote");
     assert!(planned.clones().is_empty(), "the dry run cloned");
+    assert_eq!(dry_code, 0, "a dry run answers at exit 0: {dry}");
+    assert_eq!(dry["status"], "dry_run", "{dry}");
     assert_eq!(dry["would_succeed"], would_succeed, "{dry}");
 
     let ran = Home::new(CLONING_GIT);
@@ -573,7 +577,7 @@ fn the_dry_run_answers_what_the_real_run_does_and_touches_nothing(
         would_succeed,
         "the real run disagrees with the plan: {real}"
     );
-    assert_eq!(dry_code, real_code, "{dry} / {real}");
+    assert_eq!(dry["exit_code"], real_code, "{dry} / {real}");
 
     let strip = |envelope: &Value, home: &Home| {
         let text = envelope.to_string();
@@ -668,6 +672,120 @@ fn a_failed_clone_says_the_install_is_as_it_was() {
     let message = v["message"].as_str().expect("a message");
     assert!(message.contains(&*dest.to_string_lossy()), "{message}");
     assert!(message.contains("128"), "it names git's code: {message}");
+}
+
+/// `skill install` refuses an occupied directory and a file, and its dry run
+/// says so the same way.
+#[rstest::rstest]
+#[case::occupied(not_a_bundle, "destination-not-empty", "run-command")]
+#[case::file(a_file, "destination-is-file", "fix-input")]
+fn an_install_dry_run_that_would_be_refused_answers_at_exit_zero(
+    #[case] arrange: fn(&Home),
+    #[case] reason: &str,
+    #[case] action: &str,
+) {
+    let home = Home::new(CLONING_GIT);
+    arrange(&home);
+    let before = tree(home.dir.path());
+
+    let (code, v) = home.update_with(
+        &["skill", "install", HOST, "--dry-run", "--output", "json"],
+        None,
+    );
+
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 1, "the real run's code: {v}");
+    assert_eq!(v["reason"], reason, "{v}");
+    assert_eq!(v["next_step"]["action"], action, "{v}");
+    assert_eq!(tree(home.dir.path()), before, "the dry run wrote");
+    assert!(home.clones().is_empty(), "the dry run cloned");
+
+    let (real_code, real) = home.update_with(&["skill", "install", HOST, "--output", "json"], None);
+    assert_eq!(real_code, 1, "{real}");
+    assert!(v["message"].is_string(), "{v}");
+    for key in [
+        "reason",
+        "exit_code",
+        "message",
+        "next_step",
+        "destination_status",
+    ] {
+        assert_eq!(v[key], real[key], "{key}: {v} / {real}");
+    }
+}
+
+/// `--all` answers at exit 0 too, and names the worst code the real run would
+/// end on, whichever host it comes from.
+#[rstest::rstest]
+#[case::update("update", false)]
+#[case::install("install", false)]
+fn an_all_hosts_dry_run_that_would_be_refused_answers_at_exit_zero(
+    #[case] verb: &str,
+    #[case] would_succeed: bool,
+) {
+    let home = Home::new(CLONING_GIT);
+    plain_files(&home.dest(HOST));
+    let before = tree(home.dir.path());
+
+    let (code, v) = home.update_with(
+        &["skill", verb, "--all", "--dry-run", "--output", "json"],
+        None,
+    );
+
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], would_succeed, "{v}");
+    assert_eq!(v["exit_code"], 1, "the real run's worst code: {v}");
+    let refused = v["installations"]
+        .as_array()
+        .expect("installations")
+        .iter()
+        .find(|entry| entry["host"] == HOST)
+        .expect("the refused host");
+    assert_eq!(refused["status"], "dry_run", "{v}");
+    assert_eq!(refused["would_succeed"], false, "{v}");
+    assert_eq!(refused["exit_code"], 1, "{v}");
+    assert_eq!(refused["reason"], "destination-not-empty", "{v}");
+    assert_eq!(tree(home.dir.path()), before, "the dry run wrote");
+    assert!(home.clones().is_empty(), "the dry run cloned");
+}
+
+#[rstest::rstest]
+#[case::update("update")]
+#[case::install("install")]
+fn an_all_hosts_dry_run_that_would_succeed_says_so(#[case] verb: &str) {
+    let home = Home::new(CLONING_GIT);
+
+    let (code, v) = home.update_with(
+        &["skill", verb, "--all", "--dry-run", "--output", "json"],
+        None,
+    );
+
+    assert_eq!(code, 0, "{v}");
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], true, "{v}");
+    assert_eq!(v["exit_code"], 0, "{v}");
+}
+
+/// In text a refused dry run says what the real run would do, and exits 0.
+#[test]
+fn a_refused_dry_run_in_text_says_the_real_run_would_fail() {
+    let home = Home::new(CLONING_GIT);
+    let dest = home.dest(HOST);
+    plain_files(&dest);
+
+    let out = home.run_raw(&["skill", "update", HOST, "--dry-run"], None);
+
+    assert_eq!(out.status.code(), Some(0));
+    let text = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        text.contains("The real run would fail with exit code 1: destination-not-empty"),
+        "{text}"
+    );
+    assert!(text.contains(&*dest.to_string_lossy()), "{text}");
+    assert!(text.contains("xurl-rs skill bundle"), "{text}");
 }
 
 #[test]

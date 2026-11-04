@@ -23,19 +23,22 @@ pub(super) fn render_envelope(env: &InstallEnvelope, format: &OutputFormat) -> S
     if format.is_structured() {
         return render_structured(env, format);
     }
+    let dir = env.refused_dir.as_deref().unwrap_or(&env.install_dir);
+    let reason = env.reason.unwrap_or("unknown");
     let summary = match env.status {
+        STATUS_DRY_RUN if env.would_succeed == Some(false) => format!(
+            "The real run would fail with exit code {}: {reason}: {dir}",
+            env.exit_code.unwrap_or(1)
+        ),
         STATUS_DRY_RUN => env.command_preview.clone(),
         STATUS_OK => format!("Installed xurl-rs skill bundle into {}", env.install_dir),
-        _ => {
-            let reason = env.reason.unwrap_or("unknown");
-            let dir = env.refused_dir.as_deref().unwrap_or(&env.install_dir);
-            format!("error: {reason}: {dir}")
-        }
+        _ => format!("error: {reason}: {dir}"),
     };
     let mut lines = vec![summary];
     lines.extend(env.message.clone());
     if env.action == ACTION_UPDATE
         && env.status == STATUS_DRY_RUN
+        && env.would_succeed == Some(true)
         && env.destination_status == DestinationStatus::NonEmptyDir.as_envelope_str()
     {
         lines.push(format!(
