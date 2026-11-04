@@ -2,17 +2,12 @@
 //! invocation the dry-run guard and the help-claims walks share.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::num::NonZero;
-use std::path::PathBuf;
-use std::sync::LazyLock;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::CommandFactory;
-use serde_json::{Value, json};
+use serde_json::Value;
 use tempfile::TempDir;
 use xdk::config::EnvOverrides;
 use xdk::store::TokenStore;
-use xdk::testing::MockX;
 use xurl::cli::skill_install::SkillEnv;
 
 /// The value every synthesized argument takes. The seeded app and its
@@ -99,22 +94,6 @@ pub const OVERRIDES: &[(&str, &[&str])] = &[
     ("calls scheduled update", &[SAMPLE, "--title", "Retro"]),
 ];
 
-/// The command tree, built once and read by every thread of a walk: building
-/// it costs more than most of what a walk asks of it.
-static TREE: LazyLock<clap::Command> = LazyLock::new(|| {
-    let mut root = xurl::cli::Cli::command();
-    root.build();
-    root
-});
-
-/// The command at `path` in the built tree.
-pub fn command_at(path: &str) -> &'static clap::Command {
-    path.split(' ').fold(&*TREE, |cmd, name| {
-        cmd.find_subcommand(name)
-            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
-    })
-}
-
 /// Arguments that let the command at `path` parse and reach the point where
 /// it would act: each required positional and option, one member of each
 /// required group, and `--force` where the command takes it.
@@ -122,7 +101,12 @@ pub fn arguments_for(path: &str) -> Vec<String> {
     if let Some((_, args)) = OVERRIDES.iter().find(|(name, _)| *name == path) {
         return args.iter().map(|arg| (*arg).to_string()).collect();
     }
-    let cmd = command_at(path);
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+    });
     let sample = |arg: &clap::Arg| {
         let id = arg.get_id().as_str();
         if let Some(value) = arg.get_possible_values().first() {
@@ -236,26 +220,6 @@ pub fn live_oauth2_only(ts: &mut TokenStore) {
         .expect("save oauth2");
 }
 
-/// A store saved once and copied into each run's directory, since a save
-/// syncs the file and its directory and a walk would pay for that every run.
-pub struct Seed {
-    _dir: TempDir,
-    store: PathBuf,
-}
-
-impl Seed {
-    /// The store `fill` seeds under the one app.
-    pub fn of(fill: Fill) -> Self {
-        let dir = TempDir::new().expect("tempdir");
-        let store = dir.path().join(".xurl");
-        let mut ts = TokenStore::new_with_path(&store.to_string_lossy());
-        ts.add_app(SAMPLE, "CLIENT-ID", "CLIENT-SECRET")
-            .expect("add app");
-        fill(&mut ts);
-        Self { _dir: dir, store }
-    }
-}
-
 /// One in-process run of `xr`.
 pub struct Ran {
     /// The exit code, or `None` for a run that did not return.
@@ -274,12 +238,15 @@ impl Ran {
     }
 }
 
-/// Runs `name` with `args` over a copy of `seed`, every URL the run could
-/// reach pointed at `origin`.
-pub async fn run_xr(origin: &str, seed: &Seed, name: &str, args: &[String], dry_run: bool) -> Ran {
+/// Runs `name` with `args` over a store `fill` seeds, every URL the run
+/// could reach pointed at `origin`.
+pub async fn run_xr(origin: &str, fill: Fill, name: &str, args: &[String], dry_run: bool) -> Ran {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    std::fs::copy(&seed.store, &store).expect("copy the store");
+    let mut ts = TokenStore::new_with_path(&store.to_string_lossy());
+    ts.add_app(SAMPLE, "CLIENT-ID", "CLIENT-SECRET")
+        .expect("add app");
+    fill(&mut ts);
     let before = std::fs::read(&store).expect("read the store");
     let file = tmp.path().join("input.json");
     std::fs::write(&file, b"{\"status\":\"ok\"}").expect("write the input file");
@@ -338,75 +305,11 @@ pub async fn run_xr(origin: &str, seed: &Seed, name: &str, args: &[String], dry_
 /// Whether the command at `path` sends a request under a credential: the
 /// ones that do take `--auth`.
 pub fn takes_a_credential(path: &str) -> bool {
-    command_at(path)
-        .get_arguments()
-        .any(|arg| arg.get_id() == "auth_type")
-}
-
-/// A local X API that answers every endpoint, for a walk that runs commands
-/// for real.
-pub async fn answering_mock() -> MockX {
-    let mock = MockX::start().await;
-    // The media fixtures report processing under way, which a real upload
-    // waits on. A finished one has nothing to wait for.
-    let done = json!({"data": {"id": SAMPLE, "processing_info": {"state": "succeeded"}}});
-    mock.stub("POST", "/finalize$", 200, done.clone()).await;
-    mock.stub("GET", "^/2/media/upload$", 200, done).await;
-    mock
-}
-
-/// The most threads a walk runs on. A binary's walks run side by side, and
-/// each thread's mock answers from a thread of its own.
-const WALK_THREADS: usize = 8;
-
-/// Calls `visit` for each of `items` on up to [`WALK_THREADS`] threads, with
-/// the state `start` makes for that thread, and returns the results in the
-/// order of `items`, so a failure message reads the same on every run.
-///
-/// Each thread drives its own current-thread runtime because a run of `xr`
-/// holds `&mut dyn Write` across its awaits, so its future is not `Send`.
-pub fn walk<T, S, R>(
-    items: &[T],
-    start: impl AsyncFn() -> S + Sync,
-    visit: impl AsyncFn(&S, &T) -> R + Sync,
-) -> Vec<R>
-where
-    T: Sync,
-    R: Send,
-{
-    let threads = std::thread::available_parallelism()
-        .map_or(1, NonZero::get)
-        .min(WALK_THREADS)
-        .min(items.len());
-    let next = AtomicUsize::new(0);
-    let worker = || {
-        tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("a runtime")
-            .block_on(async {
-                let state = start().await;
-                let mut done = Vec::new();
-                loop {
-                    let index = next.fetch_add(1, Ordering::Relaxed);
-                    let Some(item) = items.get(index) else {
-                        return done;
-                    };
-                    done.push((index, visit(&state, item).await));
-                }
-            })
-    };
-    let mut done: Vec<(usize, R)> = std::thread::scope(|scope| {
-        let workers: Vec<_> = (0..threads).map(|_| scope.spawn(worker)).collect();
-        workers
-            .into_iter()
-            .flat_map(|handle| {
-                handle
-                    .join()
-                    .unwrap_or_else(|panic| std::panic::resume_unwind(panic))
-            })
-            .collect()
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
     });
-    done.sort_unstable_by_key(|(index, _)| *index);
-    done.into_iter().map(|(_, result)| result).collect()
+    cmd.get_arguments().any(|arg| arg.get_id() == "auth_type")
 }

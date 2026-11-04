@@ -19,12 +19,12 @@ mod common;
 use std::collections::BTreeSet;
 
 use clap::CommandFactory;
-use serde_json::Value;
+use serde_json::{Value, json};
 use xdk::testing::{MockX, Received};
 
 use common::invoke::{
-    Ran, SAMPLE, Seed, answering_mock, arguments_for, bearer_only, command_at, live_oauth2_only,
-    oauth1_only, run_xr, runnable_paths, takes_a_credential, walk,
+    Ran, SAMPLE, arguments_for, bearer_only, live_oauth2_only, oauth1_only, run_xr, runnable_paths,
+    takes_a_credential,
 };
 
 /// The page size the walk asks for: inside every `-n` range the CLI
@@ -110,9 +110,13 @@ fn query_value(request: &Received, name: &str) -> Option<String> {
 
 /// Whether the command at `path` declares `-n/--max-results`.
 fn takes_a_page_size(path: &str) -> bool {
-    command_at(path)
-        .get_arguments()
-        .any(|arg| arg.get_id() == "max_results")
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+    });
+    cmd.get_arguments().any(|arg| arg.get_id() == "max_results")
 }
 
 fn every_kind(ts: &mut xdk::store::TokenStore) {
@@ -121,83 +125,91 @@ fn every_kind(ts: &mut xdk::store::TokenStore) {
     bearer_only(ts);
 }
 
-/// What the command at `path` sent with both paging flags set, held to what
-/// their help says.
-async fn paging_faults(
-    mock: &MockX,
-    seed: &Seed,
-    operations: &[Operation],
-    path: &str,
-) -> Vec<String> {
-    let origin = mock.base_url();
-    let mut found = Vec::new();
-    let mut args = arguments_for(path);
-    args.extend(["--limit", PAGE_SIZE, "--cursor", CURSOR].map(str::to_string));
-    let seen = mock.requests().await.len();
-    let ran = run_xr(&origin, seed, path, &args, false).await;
-    let sent = mock.requests().await.split_off(seen);
-    if sent.is_empty() {
-        found.push(format!(
-            "{path}: sent no request (exit {:?}): {}\n  \
-             Cause: the synthesized arguments stop the command before it sends.\n  \
-             Fix: give it an OVERRIDES row in crates/xurl-cli/tests/common/invoke.rs.",
-            ran.code,
-            String::from_utf8_lossy(&ran.stderr).trim()
-        ));
-        return found;
-    }
-
-    let mut sized = false;
-    let mut paged = false;
-    let mut carried_cursor = false;
-    for request in &sent {
-        let Some(operation) = operation_of(operations, request) else {
-            found.push(format!(
-                "{path}: {} {} matches no operation in the vendored spec",
-                request.method, request.path
-            ));
-            continue;
-        };
-        sized |= operation
-            .size_params
-            .iter()
-            .any(|name| query_value(request, name).as_deref() == Some(PAGE_SIZE));
-        paged |= !operation.token_params.is_empty();
-        carried_cursor |= operation
-            .token_params
-            .iter()
-            .any(|name| query_value(request, name).as_deref() == Some(CURSOR));
-    }
-    if takes_a_page_size(path) && !sized {
-        found.push(format!(
-            "{path}: takes -n/--max-results, but --limit {PAGE_SIZE} did not reach its page size.\n  \
-             Cause: its arm reads -n alone, so the global --limit never applies.\n  \
-             Fix: resolve the size from -n, then --limit, in its arm under \
-             crates/xurl-cli/src/cli/commands/, as list_paged does with effective_limit."
-        ));
-    }
-    if paged && !carried_cursor {
-        found.push(format!(
-            "{path}: its endpoint declares a page token, but --cursor did not reach it.\n  \
-             Cause: its arm builds the request without the cursor (send_validated drops it).\n  \
-             Fix: route it through list_paged or list_owned_by in \
-             crates/xurl-cli/src/cli/commands/mod.rs."
-        ));
-    }
-    if !paged && carried_cursor {
-        found.push(format!(
-            "{path}: sent --cursor to an endpoint whose spec declares no page token.\n  \
-             Cause: its arm threads the cursor into a request that does not page.\n  \
-             Fix: send that request without the cursor."
-        ));
-    }
-    found
+async fn answering_mock() -> MockX {
+    let mock = MockX::start().await;
+    // The media fixtures report processing under way, which a real upload
+    // waits on. A finished one has nothing to wait for.
+    let done = json!({"data": {"id": "1234567890", "processing_info": {"state": "succeeded"}}});
+    mock.stub("POST", "/finalize$", 200, done.clone()).await;
+    mock.stub("GET", "^/2/media/upload$", 200, done).await;
+    mock
 }
 
-/// What a raw request carried of the paging flags, which only a command reads.
-async fn raw_paging_faults(mock: &MockX, seed: &Seed) -> Vec<String> {
+#[tokio::test]
+async fn the_paging_flags_reach_exactly_the_commands_their_help_names() {
+    let mock = answering_mock().await;
     let origin = mock.base_url();
+    let operations = operations();
     let mut found = Vec::new();
+
+    let paths: BTreeSet<String> = runnable_paths()
+        .into_iter()
+        .filter(|path| takes_a_credential(path))
+        .collect();
+    assert!(!paths.is_empty(), "no command takes --auth");
+    for path in &paths {
+        let mut args = arguments_for(path);
+        args.extend(["--limit", PAGE_SIZE, "--cursor", CURSOR].map(str::to_string));
+        let seen = mock.requests().await.len();
+        let ran = run_xr(&origin, every_kind, path, &args, false).await;
+        let sent = mock.requests().await.split_off(seen);
+        if sent.is_empty() {
+            found.push(format!(
+                "{path}: sent no request (exit {:?}): {}\n  \
+                 Cause: the synthesized arguments stop the command before it sends.\n  \
+                 Fix: give it an OVERRIDES row in crates/xurl-cli/tests/common/invoke.rs.",
+                ran.code,
+                String::from_utf8_lossy(&ran.stderr).trim()
+            ));
+            continue;
+        }
+
+        let mut sized = false;
+        let mut paged = false;
+        let mut carried_cursor = false;
+        for request in &sent {
+            let Some(operation) = operation_of(&operations, request) else {
+                found.push(format!(
+                    "{path}: {} {} matches no operation in the vendored spec",
+                    request.method, request.path
+                ));
+                continue;
+            };
+            sized |= operation
+                .size_params
+                .iter()
+                .any(|name| query_value(request, name).as_deref() == Some(PAGE_SIZE));
+            paged |= !operation.token_params.is_empty();
+            carried_cursor |= operation
+                .token_params
+                .iter()
+                .any(|name| query_value(request, name).as_deref() == Some(CURSOR));
+        }
+        if takes_a_page_size(path) && !sized {
+            found.push(format!(
+                "{path}: takes -n/--max-results, but --limit {PAGE_SIZE} did not reach its page size.\n  \
+                 Cause: its arm reads -n alone, so the global --limit never applies.\n  \
+                 Fix: resolve the size from -n, then --limit, in its arm under \
+                 crates/xurl-cli/src/cli/commands/, as list_paged does with effective_limit."
+            ));
+        }
+        if paged && !carried_cursor {
+            found.push(format!(
+                "{path}: its endpoint declares a page token, but --cursor did not reach it.\n  \
+                 Cause: its arm builds the request without the cursor (send_validated drops it).\n  \
+                 Fix: route it through list_paged or list_owned_by in \
+                 crates/xurl-cli/src/cli/commands/mod.rs."
+            ));
+        }
+        if !paged && carried_cursor {
+            found.push(format!(
+                "{path}: sent --cursor to an endpoint whose spec declares no page token.\n  \
+                 Cause: its arm threads the cursor into a request that does not page.\n  \
+                 Fix: send that request without the cursor."
+            ));
+        }
+    }
+
     let seen = mock.requests().await.len();
     let raw: Vec<String> = [
         "--limit",
@@ -208,7 +220,7 @@ async fn raw_paging_faults(mock: &MockX, seed: &Seed) -> Vec<String> {
     ]
     .map(str::to_string)
     .to_vec();
-    run_xr(&origin, seed, "raw GET", &raw, false).await;
+    run_xr(&origin, every_kind, "raw GET", &raw, false).await;
     for request in mock.requests().await.split_off(seen) {
         let query = request.query.unwrap_or_default();
         if query.contains(PAGE_SIZE) || query.contains(CURSOR) {
@@ -218,26 +230,6 @@ async fn raw_paging_faults(mock: &MockX, seed: &Seed) -> Vec<String> {
             ));
         }
     }
-    found
-}
-
-#[test]
-fn the_paging_flags_reach_exactly_the_commands_their_help_names() {
-    let operations = operations();
-    let seed = Seed::of(every_kind);
-
-    let paths: Vec<String> = runnable_paths()
-        .into_iter()
-        .filter(|path| takes_a_credential(path))
-        .collect();
-    assert!(!paths.is_empty(), "no command takes --auth");
-    let commands = walk(&paths, answering_mock, async |mock, path: &String| {
-        paging_faults(mock, &seed, &operations, path).await
-    });
-    let raw = walk(&[()], answering_mock, async |mock, (): &()| {
-        raw_paging_faults(mock, &seed).await
-    });
-    let found: Vec<String> = commands.into_iter().chain(raw).flatten().collect();
 
     assert!(
         found.is_empty(),
@@ -249,7 +241,13 @@ fn the_paging_flags_reach_exactly_the_commands_their_help_names() {
 /// The largest page size a command's `-n/--max-results` help states, read
 /// from its `(min-max` range; `None` for a command without `-n`.
 fn stated_page_size_max(path: &str) -> Option<u32> {
-    let help = command_at(path)
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+    });
+    let help = cmd
         .get_arguments()
         .find(|arg| arg.get_id() == "max_results")?
         .get_help()?
@@ -259,66 +257,46 @@ fn stated_page_size_max(path: &str) -> Option<u32> {
     found[2].parse().ok()
 }
 
-/// What the command at `path` sent for the largest page size its help
-/// states, when that is not the size the help states.
-async fn page_size_fault(
-    mock: &MockX,
-    seed: &Seed,
-    operations: &[Operation],
-    path: &str,
-    max: u32,
-) -> Option<String> {
+#[tokio::test]
+async fn each_page_size_help_states_the_largest_size_the_command_sends() {
+    let mock = answering_mock().await;
     let origin = mock.base_url();
-    let mut args = arguments_for(path);
-    args.extend(["-n".to_string(), max.to_string()]);
-    let seen = mock.requests().await.len();
-    let ran = run_xr(&origin, seed, path, &args, false).await;
-    let sent = mock.requests().await.split_off(seen);
-    let sizes: Vec<String> = sent
-        .iter()
-        .filter_map(|request| {
-            let operation = operation_of(operations, request)?;
-            operation
-                .size_params
-                .iter()
-                .find_map(|name| query_value(request, name))
-        })
-        .collect();
-    (sizes != [max.to_string()]).then(|| {
-        format!(
-            "{path}: its -n help states sizes up to {max}, but -n {max} sent {sizes:?} \
-             (exit {:?}).\n  \
-             Cause: the command clamps the size below the range its help states.\n  \
-             Fix: state the range the command sends in its -n help in \
-             crates/xurl-cli/src/cli/mod.rs, or lift the clamp.",
-            ran.code
-        )
-    })
-}
-
-#[test]
-fn each_page_size_help_states_the_largest_size_the_command_sends() {
     let operations = operations();
-    let seed = Seed::of(every_kind);
+    let mut found = Vec::new();
 
-    let sized: Vec<(String, u32)> = runnable_paths()
+    for path in runnable_paths()
         .into_iter()
         .filter(|path| takes_a_credential(path))
-        .filter_map(|path| {
-            let max = stated_page_size_max(&path)?;
-            Some((path, max))
-        })
-        .collect();
-    let found: Vec<String> = walk(
-        &sized,
-        answering_mock,
-        async |mock, (path, max): &(String, u32)| {
-            page_size_fault(mock, &seed, &operations, path, *max).await
-        },
-    )
-    .into_iter()
-    .flatten()
-    .collect();
+    {
+        let Some(max) = stated_page_size_max(&path) else {
+            continue;
+        };
+        let mut args = arguments_for(&path);
+        args.extend(["-n".to_string(), max.to_string()]);
+        let seen = mock.requests().await.len();
+        let ran = run_xr(&origin, every_kind, &path, &args, false).await;
+        let sent = mock.requests().await.split_off(seen);
+        let sizes: Vec<String> = sent
+            .iter()
+            .filter_map(|request| {
+                let operation = operation_of(&operations, request)?;
+                operation
+                    .size_params
+                    .iter()
+                    .find_map(|name| query_value(request, name))
+            })
+            .collect();
+        if sizes != [max.to_string()] {
+            found.push(format!(
+                "{path}: its -n help states sizes up to {max}, but -n {max} sent {sizes:?} \
+                 (exit {:?}).\n  \
+                 Cause: the command clamps the size below the range its help states.\n  \
+                 Fix: state the range the command sends in its -n help in \
+                 crates/xurl-cli/src/cli/mod.rs, or lift the clamp.",
+                ran.code
+            ));
+        }
+    }
 
     assert!(
         found.is_empty(),
@@ -380,8 +358,13 @@ fn listed_schemes(help: &str) -> Option<(Vec<String>, Option<Vec<String>>)> {
 
 /// The `--auth` help of the command at `path`.
 fn auth_help(path: &str) -> String {
-    command_at(path)
-        .get_arguments()
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+    });
+    cmd.get_arguments()
         .find(|arg| arg.get_id() == "auth_type")
         .and_then(|arg| arg.get_help())
         .map(ToString::to_string)
@@ -390,25 +373,24 @@ fn auth_help(path: &str) -> String {
 
 /// Whether the command at `path` takes `--of`.
 fn takes_of(path: &str) -> bool {
-    command_at(path)
-        .get_arguments()
-        .any(|arg| arg.get_id() == "of")
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let cmd = path.split(' ').fold(&root, |cmd, name| {
+        cmd.find_subcommand(name)
+            .unwrap_or_else(|| panic!("clap has no command {path:?}"))
+    });
+    cmd.get_arguments().any(|arg| arg.get_id() == "of")
 }
 
 /// The schemes a dry run of `path` with `args` accepts, in preference order,
 /// and the endpoint that refused each other scheme.
-async fn dry_run_accepts(
-    origin: &str,
-    seed: &Seed,
-    path: &str,
-    args: &[String],
-) -> (Vec<String>, Vec<String>) {
+async fn dry_run_accepts(origin: &str, path: &str, args: &[String]) -> (Vec<String>, Vec<String>) {
     let mut accepted = Vec::new();
     let mut refused = Vec::new();
     for scheme in ["oauth2", "oauth1", "app"] {
         let mut with_scheme = args.to_vec();
         with_scheme.extend(["--auth".to_string(), scheme.to_string()]);
-        let ran = run_xr(origin, seed, path, &with_scheme, true).await;
+        let ran = run_xr(origin, every_kind, path, &with_scheme, true).await;
         let document = Ran::document(&ran.stdout);
         if document["reason"] == "auth-method-mismatch" {
             refused.push(format!(
@@ -423,52 +405,10 @@ async fn dry_run_accepts(
     (accepted, refused)
 }
 
-/// What the `--auth` help of the command at `path` says that its dry run does
-/// not do, with and without `--of`.
-async fn auth_help_faults(mock: &MockX, seed: &Seed, path: &str) -> Vec<String> {
+#[tokio::test]
+async fn each_auth_help_lists_the_schemes_its_dry_run_accepts() {
+    let mock = answering_mock().await;
     let origin = mock.base_url();
-    let mut found = Vec::new();
-    let help = auth_help(path);
-    let Some((listed, listed_of)) = listed_schemes(&help) else {
-        found.push(format!(
-            "{path}: its --auth help names no accepted schemes: {help}\n  \
-             Cause: the command takes --auth and has no row.\n  \
-             Fix: add a row in crates/xurl-cli/src/cli/accepted_auth.rs naming the \
-             endpoints its requests reach."
-        ));
-        return found;
-    };
-    let args = arguments_for(path);
-    let (accepted, refused) = dry_run_accepts(&origin, seed, path, &args).await;
-    if listed != accepted {
-        found.push(format!(
-            "{path}: --auth help lists {listed:?}, its dry run accepts {accepted:?} \
-             (refused: {refused:?}).\n  \
-             Cause: its row names endpoints other than the ones its requests reach.\n  \
-             Fix: correct its row in crates/xurl-cli/src/cli/accepted_auth.rs."
-        ));
-    }
-    if takes_of(path) {
-        let mut with_of = args.clone();
-        with_of.extend(["--of".to_string(), SAMPLE.to_string()]);
-        let (accepted_of, refused_of) = dry_run_accepts(&origin, seed, path, &with_of).await;
-        let expected = listed_of.clone().unwrap_or_else(|| listed.clone());
-        if expected != accepted_of {
-            found.push(format!(
-                "{path} --of: --auth help lists {expected:?}, its dry run accepts \
-                 {accepted_of:?} (refused: {refused_of:?}).\n  \
-                 Cause: its row's --of endpoints are not the ones --of reaches.\n  \
-                 Fix: correct the row's with_of endpoints in \
-                 crates/xurl-cli/src/cli/accepted_auth.rs."
-            ));
-        }
-    }
-    found
-}
-
-#[test]
-fn each_auth_help_lists_the_schemes_its_dry_run_accepts() {
-    let seed = Seed::of(every_kind);
     let mut found = Vec::new();
 
     let commands: BTreeSet<String> = runnable_paths()
@@ -487,14 +427,43 @@ fn each_auth_help_lists_the_schemes_its_dry_run_accepts() {
         ));
     }
 
-    let paths: Vec<String> = commands.into_iter().collect();
-    found.extend(
-        walk(&paths, answering_mock, async |mock, path: &String| {
-            auth_help_faults(mock, &seed, path).await
-        })
-        .into_iter()
-        .flatten(),
-    );
+    for path in &commands {
+        let help = auth_help(path);
+        let Some((listed, listed_of)) = listed_schemes(&help) else {
+            found.push(format!(
+                "{path}: its --auth help names no accepted schemes: {help}\n  \
+                 Cause: the command takes --auth and has no row.\n  \
+                 Fix: add a row in crates/xurl-cli/src/cli/accepted_auth.rs naming the \
+                 endpoints its requests reach."
+            ));
+            continue;
+        };
+        let args = arguments_for(path);
+        let (accepted, refused) = dry_run_accepts(&origin, path, &args).await;
+        if listed != accepted {
+            found.push(format!(
+                "{path}: --auth help lists {listed:?}, its dry run accepts {accepted:?} \
+                 (refused: {refused:?}).\n  \
+                 Cause: its row names endpoints other than the ones its requests reach.\n  \
+                 Fix: correct its row in crates/xurl-cli/src/cli/accepted_auth.rs."
+            ));
+        }
+        if takes_of(path) {
+            let mut with_of = args.clone();
+            with_of.extend(["--of".to_string(), SAMPLE.to_string()]);
+            let (accepted_of, refused_of) = dry_run_accepts(&origin, path, &with_of).await;
+            let expected = listed_of.clone().unwrap_or_else(|| listed.clone());
+            if expected != accepted_of {
+                found.push(format!(
+                    "{path} --of: --auth help lists {expected:?}, its dry run accepts \
+                     {accepted_of:?} (refused: {refused_of:?}).\n  \
+                     Cause: its row's --of endpoints are not the ones --of reaches.\n  \
+                     Fix: correct the row's with_of endpoints in \
+                     crates/xurl-cli/src/cli/accepted_auth.rs."
+                ));
+            }
+        }
+    }
 
     assert!(
         found.is_empty(),
