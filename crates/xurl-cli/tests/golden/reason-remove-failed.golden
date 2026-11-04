@@ -3,7 +3,7 @@ env: PATH={{SCRATCH}}/empty-git
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 402
+stdout_len: 612
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 0
   "status": "error",
   "exit_code": 1,
   "reason": "remove-failed",
+  "message": "A fresh clone could not be swapped in at {{SKILL_HOME}}/.claude/skills/xurl-rs, or the copy it replaced could not be removed. Check the permissions on its parent directory, then run this again.",
   "next_step": {
     "action": "fix-input"
   }

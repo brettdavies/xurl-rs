@@ -3,7 +3,7 @@ env: PATH={{SCRATCH}}/refusing-git
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 128
-stdout_len: 397
+stdout_len: 530
 stderr_len: 28
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 28
   "status": "error",
   "exit_code": 128,
   "reason": "git-clone-failed",
+  "message": "`git clone` exited with code 128, so {{SKILL_HOME}}/.claude/skills/xurl-rs is as it was. Its own error is on stderr.",
   "next_step": {
     "action": "retry"
   }

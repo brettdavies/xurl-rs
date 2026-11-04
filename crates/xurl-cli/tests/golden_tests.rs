@@ -795,6 +795,10 @@ fn skill_update_refusal_cases(scratch: &Scratch) -> Vec<Case> {
             &["--output", "json", "skill", "update", "claude_code"],
         ),
         refused(
+            "skill-update-all-refuses-what-is-not-a-bundle",
+            &["--output", "json", "skill", "update", "--all"],
+        ),
+        refused(
             "skill-update-dry-run-refuses-what-is-not-a-bundle",
             &[
                 "--output",

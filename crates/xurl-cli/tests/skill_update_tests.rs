@@ -603,6 +603,73 @@ fn the_dry_run_answers_what_the_real_run_does_and_touches_nothing(
     }
 }
 
+/// An `--all` run that fails on one host is an error like any other at its top
+/// level, and the validator an agent runs accepts it.
+#[rstest::rstest]
+#[case::update("update", "fix-input")]
+#[case::install("install", "run-command")]
+fn an_all_hosts_failure_is_a_whole_error_envelope(#[case] verb: &str, #[case] action: &str) {
+    let home = Home::new(CLONING_GIT);
+    plain_files(&home.dest(HOST));
+
+    let out = home.run_raw(&["skill", verb, "--all", "--output", "json"], None);
+
+    assert_eq!(out.status.code(), Some(1));
+    let v: Value = serde_json::from_slice(&out.stdout).expect("a JSON envelope");
+    assert_eq!(v["status"], "error", "{v}");
+    assert_eq!(v["exit_code"], 1, "{v}");
+    assert_eq!(v["reason"], "destination-not-empty", "{v}");
+    assert_eq!(v["next_step"]["action"], action, "{v}");
+    let message = v["message"].as_str().expect("a message");
+    assert!(message.contains(HOST), "it names the host: {message}");
+    assert!(v["installations"].is_array(), "{v}");
+
+    let validated = common::xr()
+        .args(["--output", "json", "validate", "--schema", "envelope"])
+        .write_stdin(out.stdout)
+        .output()
+        .expect("run xr");
+    assert!(
+        validated.status.success(),
+        "{}",
+        String::from_utf8_lossy(&validated.stderr)
+    );
+}
+
+/// The worst exit code decides which host the top level speaks for.
+#[test]
+fn an_all_hosts_failure_speaks_for_the_worst_exit_code() {
+    let home = Home::new(REFUSING_GIT);
+    plain_files(&home.dest(HOST));
+    write_bundle(&home.dest("cursor"));
+
+    let (code, v) = home.update_with(&["skill", "update", "--all", "--output", "json"], None);
+
+    assert_eq!(code, 128, "{v}");
+    assert_eq!(v["exit_code"], 128, "{v}");
+    assert_eq!(v["reason"], "git-clone-failed", "{v}");
+    assert_eq!(v["next_step"]["action"], "retry", "{v}");
+    let message = v["message"].as_str().expect("a message");
+    assert!(
+        message.contains(HOST) && message.contains("cursor"),
+        "both failures are named: {message}"
+    );
+}
+
+/// Each host's own entry says what went wrong with it too.
+#[test]
+fn a_failed_clone_says_the_install_is_as_it_was() {
+    let home = Home::new(REFUSING_GIT);
+    let dest = home.dest(HOST);
+    write_bundle(&dest);
+
+    let (_, v) = home.update(HOST);
+
+    let message = v["message"].as_str().expect("a message");
+    assert!(message.contains(&*dest.to_string_lossy()), "{message}");
+    assert!(message.contains("128"), "it names git's code: {message}");
+}
+
 #[test]
 fn text_output_says_what_was_refused_and_what_to_do() {
     let home = Home::new(CLONING_GIT);

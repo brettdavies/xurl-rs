@@ -642,11 +642,15 @@ impl OutputConfig {
         };
         let get_str = |k: &str| map.get(k).and_then(Value::as_str).map(str::to_string);
         let get_bool = |k: &str| map.get(k).and_then(Value::as_bool);
+        let command = get_str("command");
+        let target = command.as_deref().unwrap_or("operation");
         let body = ErrorBody {
             reason: Reason::ConfirmationRequired,
             exit_code,
-            message: None,
-            command: get_str("command"),
+            message: Some(format!(
+                "confirmation required for {target} — pass --force or run interactively"
+            )),
+            command,
             post_id: get_str("post_id"),
             name: get_str("name"),
             all: get_bool("all"),
@@ -656,24 +660,7 @@ impl OutputConfig {
             next_step: Some(next_step),
             ..ErrorBody::default()
         };
-        if self.format.is_structured() {
-            self.emit_error_envelope(err, body);
-        } else {
-            let cmd = map
-                .get("command")
-                .and_then(serde_json::Value::as_str)
-                .unwrap_or("operation");
-            let line = if self.no_color {
-                format!(
-                    "Error: confirmation required for {cmd} — pass --force or run interactively"
-                )
-            } else {
-                format!(
-                    "\x1b[31mError: confirmation required for {cmd} — pass --force or run interactively\x1b[0m"
-                )
-            };
-            let _ = writeln!(err, "{line}");
-        }
+        self.emit_error_envelope(err, body);
     }
 
     /// Emits a verbose diagnostic line to `err` when verbose is on, quiet is
