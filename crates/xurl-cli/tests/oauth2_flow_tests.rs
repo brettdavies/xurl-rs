@@ -297,20 +297,30 @@ fn seed_store_two_apps(store_path: &std::path::Path) {
 
 /// The pending state step 1 leaves beside the store, owned by `app_name`.
 fn seed_pending_for_app(store_path: &std::path::Path, app_name: &str) -> std::path::PathBuf {
-    let path = xdk::auth::pending::pending_path_for_store(store_path);
-    let created_at = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("clock after epoch")
-        .as_secs();
-    let state = xdk::auth::pending::PendingOAuth2State {
+    save_flow(store_path, &saved_flow(app_name, "test-client-id"))
+}
+
+/// What step 1 saves for `app_name` under `client_id`.
+fn saved_flow(app_name: &str, client_id: &str) -> xdk::auth::pending::PendingOAuth2State {
+    xdk::auth::pending::PendingOAuth2State {
         code_verifier: PENDING_VERIFIER.to_string(),
         state: PENDING_STATE.to_string(),
-        client_id: "test-client-id".to_string(),
+        client_id: client_id.to_string(),
         app_name: app_name.to_string(),
-        created_at,
+        created_at: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("clock after epoch")
+            .as_secs(),
         scopes: Vec::new(),
-    };
-    xdk::auth::pending::save(&state, &path).expect("seed pending state");
+    }
+}
+
+fn save_flow(
+    store: &std::path::Path,
+    state: &xdk::auth::pending::PendingOAuth2State,
+) -> std::path::PathBuf {
+    let path = xdk::auth::pending::pending_path_for_store(store);
+    xdk::auth::pending::save(state, &path).expect("seed pending state");
     path
 }
 
@@ -1074,6 +1084,320 @@ async fn step2_refusing_its_redirect_url_says_how_to_start_over_in_text() {
             "{refusal}: {stderr}"
         );
     }
+}
+
+/// Step 2 under `--output json`, with the token endpoint at a closed port so a
+/// run that reached the exchange would answer differently, and its envelope.
+async fn refused_step2(
+    store: &std::path::Path,
+    before: &[&str],
+    auth_url: &str,
+    after: &[&str],
+) -> serde_json::Value {
+    let closed = closed_port();
+    let overrides = step2_overrides(
+        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+    );
+    let mut args = vec!["xr", "--output", "json"];
+    args.extend_from_slice(before);
+    args.extend_from_slice(&[
+        "auth",
+        "oauth2",
+        "--no-browser",
+        "--step",
+        "2",
+        "--auth-url",
+        auth_url,
+    ]);
+    args.extend_from_slice(after);
+    let (code, _stdout, stderr) = run_cli(store, &overrides, &args).await;
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    assert_eq!(envelope["reason"], "auth-required", "{envelope}");
+    envelope
+}
+
+fn assert_step(envelope: &serde_json::Value, action: &str, key: &str, invocation: &str) {
+    let step = &envelope["next_step"];
+    assert_eq!(step["action"], action, "{envelope}");
+    assert_eq!(step[key], invocation, "{envelope}");
+    let other = if key == "command" {
+        "template"
+    } else {
+        "command"
+    };
+    assert!(step[other].is_null(), "never both: {envelope}");
+}
+
+const STEP_ONE: &str = "xr --output json auth oauth2 --no-browser --step 1";
+const ASK_FOR_THE_URL: &str =
+    "xr --output json auth oauth2 --no-browser --step 2 --auth-url <redirect-url>";
+
+#[tokio::test]
+async fn step2_with_no_saved_flow_starts_over_at_step_one() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let envelope = refused_step2(&store, &[], &redirect_url(), &[]).await;
+
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("PendingStateNotFound"),
+        "{envelope}"
+    );
+    assert_step(&envelope, "sign-in", "command", STEP_ONE);
+}
+
+#[tokio::test]
+async fn step2_with_an_expired_flow_starts_over_at_step_one() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let path = save_flow(
+        &store,
+        &xdk::auth::pending::PendingOAuth2State {
+            created_at: 0,
+            ..saved_flow("default", "test-client-id")
+        },
+    );
+
+    let envelope = refused_step2(&store, &[], &redirect_url(), &[]).await;
+
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("PendingStateExpired"),
+        "{envelope}"
+    );
+    assert_step(&envelope, "sign-in", "command", STEP_ONE);
+    assert!(
+        !path.exists(),
+        "an expired flow is gone, so nothing resumes"
+    );
+}
+
+/// The flow is still good, so the step asks for the URL again rather than for
+/// another consent, and does not repeat what it was refused.
+#[tokio::test]
+async fn step2_refusing_a_url_it_cannot_parse_asks_for_the_url_again() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+
+    let envelope = refused_step2(&store, &[], "not a url", &[]).await;
+
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("InvalidRedirectURL"),
+        "{envelope}"
+    );
+    assert_step(&envelope, "fix-input", "template", ASK_FOR_THE_URL);
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+}
+
+/// The consent went to the saved app, so finishing there asks nothing of the
+/// person who gave it. The URL holds an authorization code, so the step is a
+/// template that leaves it out.
+#[tokio::test]
+async fn step2_for_another_apps_flow_finishes_under_that_app() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_two_apps(&store);
+    let pending = save_flow(&store, &saved_flow("work", "work-client-id"));
+
+    let envelope = refused_step2(&store, &["--app", "default"], &redirect_url(), &[]).await;
+
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("AppMismatch"),
+        "{envelope}"
+    );
+    assert_step(
+        &envelope,
+        "fix-input",
+        "template",
+        "xr --app work --output json auth oauth2 --no-browser --step 2 --auth-url <redirect-url>",
+    );
+    assert!(!envelope.to_string().contains("AUTHCODE"), "{envelope}");
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+}
+
+/// `--app <saved>` cannot help when the saved app is this one, whose client id
+/// has moved on, or one the store no longer holds: the same refusal, or an
+/// unknown app. Both need a new flow.
+#[tokio::test]
+async fn step2_for_a_flow_no_stored_app_can_finish_starts_over_at_step_one() {
+    for (saved_app, why) in [("default", "this app"), ("gone", "an app no longer stored")] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store_two_apps(&store);
+        save_flow(&store, &saved_flow(saved_app, "another-client-id"));
+
+        let envelope = refused_step2(&store, &[], &redirect_url(), &[]).await;
+
+        assert!(
+            envelope["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("AppMismatch"),
+            "{why}: {envelope}"
+        );
+        assert_step(&envelope, "sign-in", "command", STEP_ONE);
+    }
+}
+
+/// The caller named these scopes, and the consent in the URL covers others.
+/// Finishing it would store a token that is not what the invocation asked
+/// for, so the step keeps the scopes and moves them to step 1, where the flag
+/// belongs.
+#[tokio::test]
+async fn step2_naming_other_scopes_starts_over_at_step_one_with_those_scopes() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = save_flow(
+        &store,
+        &xdk::auth::pending::PendingOAuth2State {
+            scopes: vec!["tweet.read".to_string(), "offline.access".to_string()],
+            ..saved_flow("default", "test-client-id")
+        },
+    );
+
+    let envelope = refused_step2(&store, &[], &redirect_url(), &["--scopes", "dm.read"]).await;
+
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("ScopeMismatch"),
+        "{envelope}"
+    );
+    assert_step(
+        &envelope,
+        "sign-in",
+        "command",
+        "xr --output json auth oauth2 --no-browser --step 1 --scopes dm.read",
+    );
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+}
+
+/// The step works when run: filling in the template finishes the sign-in, on
+/// the app whose flow it was.
+#[tokio::test]
+async fn the_step_for_another_apps_flow_finishes_the_sign_in_when_run() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200).mount(&server).await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    std::fs::write(
+        &store,
+        "apps:\n  default:\n    client_id: 'test-client-id'\n    client_secret: 'test-client-secret'\n    oauth2_tokens: {}\n  work:\n    client_id: 'work-client-id'\n    client_secret: 'work-client-secret'\n    oauth2_tokens: {}\ndefault_app: default\n",
+    )
+    .expect("write tempdir store");
+    let pending = save_flow(&store, &saved_flow("work", "work-client-id"));
+    let overrides = xdk::config::EnvOverrides {
+        token_url: Some(format!("{}/2/oauth2/token", server.uri())),
+        info_url: Some(format!("{}/2/users/me", server.uri())),
+        ..xdk::config::EnvOverrides::default()
+    };
+    let redirect = redirect_url();
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect,
+            "alice",
+        ],
+    )
+    .await;
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let refused: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    let template = refused["next_step"]["template"]
+        .as_str()
+        .unwrap_or_else(|| panic!("a template: {refused}"));
+
+    let filled = template.replace("<redirect-url>", &redirect);
+    let args: Vec<&str> = filled.split(' ').collect();
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &args).await;
+
+    assert_eq!(code, 0, "{filled}: {stderr}");
+    let saved = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    assert!(
+        saved.get_oauth2_token_for_app("work", "alice").is_some(),
+        "the login lands on the app whose flow it was"
+    );
+    assert!(!pending.exists(), "a finished flow is spent");
+}
+
+#[tokio::test]
+async fn text_output_names_the_same_steps_for_the_other_step2_refusals() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_two_apps(&store);
+    let closed = closed_port();
+    let overrides = step2_overrides(
+        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+    );
+    let redirect = redirect_url();
+    let args = |auth_url| {
+        [
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            auth_url,
+        ]
+    };
+
+    let (_, _, nothing_saved) = run_cli(&store, &overrides, &args(&redirect)).await;
+    assert!(
+        nothing_saved.contains("Sign in again. Run: xr auth oauth2 --no-browser --step 1"),
+        "{nothing_saved}"
+    );
+
+    save_flow(&store, &saved_flow("default", "test-client-id"));
+    let (_, _, unparsed) = run_cli(&store, &overrides, &args("not a url")).await;
+    assert!(
+        unparsed.contains(
+            "Fill in the redirect URL and run: xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>"
+        ),
+        "{unparsed}"
+    );
+
+    save_flow(&store, &saved_flow("work", "work-client-id"));
+    let (_, _, elsewhere) = run_cli(&store, &overrides, &args(&redirect)).await;
+    assert!(
+        elsewhere.contains(
+            r#"The pending sign-in belongs to app "work". Fill in the redirect URL and run: xr --app work auth oauth2 --no-browser --step 2 --auth-url <redirect-url>"#
+        ),
+        "{elsewhere}"
+    );
 }
 
 #[tokio::test]

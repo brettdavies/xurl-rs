@@ -14,7 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::{Error, Result};
+use crate::error::{Error, PENDING_EXPIRED, PENDING_NOT_FOUND, Result};
 
 /// Maximum age of a pending state file before it is considered expired.
 const PENDING_TTL_SECS: u64 = 900; // 15 minutes
@@ -135,9 +135,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         let meta = match fs::symlink_metadata(path) {
             Ok(m) => m,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                return Err(Error::auth(
-                    "PendingStateNotFound: no pending OAuth2 state file found",
-                ));
+                return Err(Error::auth(PENDING_NOT_FOUND));
             }
             Err(e) => return Err(e.into()),
         };
@@ -167,9 +165,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
     // On non-Unix, do a simple existence check.
     #[cfg(not(unix))]
     if !path.exists() {
-        return Err(Error::auth(
-            "PendingStateNotFound: no pending OAuth2 state file found",
-        ));
+        return Err(Error::auth(PENDING_NOT_FOUND));
     }
 
     let data = match fs::read_to_string(path) {
@@ -192,9 +188,7 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
 
     if now.saturating_sub(state.created_at) > PENDING_TTL_SECS {
         let _ = fs::remove_file(path);
-        return Err(Error::auth(
-            "PendingStateExpired: pending OAuth2 state is older than 15 minutes",
-        ));
+        return Err(Error::auth(PENDING_EXPIRED));
     }
 
     Ok(state)
