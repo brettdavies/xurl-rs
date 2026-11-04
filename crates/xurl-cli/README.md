@@ -830,8 +830,9 @@ xr --output json --dry-run post "Hello"
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
   the credential is not checked, since nothing is sent to find out.
-- `confirmation_required: true` marks a destructive command that would stop to ask. The flag outranks `--force` and the
-  prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
+- `confirmation_required: true` marks a destructive command whose real run would stop to ask, and the key appears only
+  then. The flag outranks `--force` and the prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries
+  the key, and `xr --dry-run delete <id> --force` leaves it out, since nothing would stop.
 - `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
   typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
   ends with a `Response schema:` block naming it.
