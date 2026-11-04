@@ -133,9 +133,11 @@ pub(super) async fn oauth2(
         match effective_step {
             Some(1) => {
                 if auth_url.is_some() {
-                    return Err(Failure::refused(Error::auth(
-                        "--auth-url is only used with --step 2, not --step 1",
-                    )));
+                    return Err(refused_argument(
+                        "--auth-url is only used with --step 2, not --step 1.",
+                        out,
+                        stderr,
+                    ));
                 }
                 let url = client.auth().await?.remote_oauth2_step1(&pending_path)?;
                 let app = client.auth().await?.app_name().to_string();
@@ -194,27 +196,32 @@ pub(super) async fn oauth2(
                 }
             }
             Some(2) => {
-                let url_value = auth_url.ok_or_else(|| {
-                    Failure::refused(Error::auth(
+                let Some(url_value) = auth_url else {
+                    return Err(refused_argument(
                         "--auth-url is required for step 2. Pass the redirect URL from your browser, \
-                         or use --auth-url - to read from stdin",
-                    ))
-                })?;
+                         or use --auth-url - to read from stdin.",
+                        out,
+                        stderr,
+                    ));
+                };
 
                 let redirect_url = if url_value == "-" {
                     let mut line = String::new();
-                    std::io::stdin().read_line(&mut line).map_err(|e| {
-                        Failure::refused(
-                            Error::auth_with_cause("Failed to read redirect URL from stdin", &e)
-                                .with_source(e),
-                        )
-                    })?;
+                    if let Err(e) = std::io::stdin().read_line(&mut line) {
+                        return Err(refused_argument(
+                            &format!("Failed to read redirect URL from stdin: {e}."),
+                            out,
+                            stderr,
+                        ));
+                    }
                     let trimmed = line.trim().to_string();
                     if trimmed.is_empty() {
-                        return Err(Failure::refused(Error::auth(
+                        return Err(refused_argument(
                             "No redirect URL provided on stdin. \
-                             Pipe the URL or paste it and press Enter",
-                        )));
+                             Pipe the URL or paste it and press Enter.",
+                            out,
+                            stderr,
+                        ));
                     }
                     trimmed
                 } else {
@@ -237,6 +244,16 @@ pub(super) async fn oauth2(
         }
     }
     Ok(())
+}
+
+/// Refuses an argument of `xr auth oauth2`: a usage error, closing on the
+/// command's help. `xr` parses its own arguments, so the library has no part in
+/// this one.
+fn refused_argument(message: &str, out: &OutputConfig, stderr: &mut dyn Write) -> Failure {
+    out.print_invalid_args(stderr, message, " ", "xr auth oauth2");
+    Failure::Emitted {
+        exit_code: EXIT_USAGE_ERROR,
+    }
 }
 
 /// Step 2 of the headless sign-in, reading the redirect URL from `auth_url`.

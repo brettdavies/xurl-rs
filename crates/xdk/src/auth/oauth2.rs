@@ -13,11 +13,11 @@ use url::Url;
 use super::Auth;
 use super::callback;
 use super::pending;
+use crate::api::api_error;
 use crate::error::{
     BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
     REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
     TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
-    TOKEN_EXCHANGE_UNANSWERED,
 };
 use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
@@ -131,6 +131,18 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
     Ok(auth_url.to_string())
 }
 
+/// Which refusal a token endpoint's error answer is: of the client (RFC 6749
+/// section 5.2 lets that arrive as a 400), or of the code.
+fn token_exchange_refusal(status: reqwest::StatusCode, error: &str) -> &'static str {
+    if status == reqwest::StatusCode::UNAUTHORIZED
+        || matches!(error, "invalid_client" | "unauthorized_client")
+    {
+        TOKEN_EXCHANGE_CLIENT_REFUSED
+    } else {
+        TOKEN_EXCHANGE_CODE_REFUSED
+    }
+}
+
 /// Exchanges an authorization code for an access token and saves it.
 ///
 /// Performs the full post-authorization pipeline: POST to token endpoint,
@@ -151,21 +163,6 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// Returns an error if the token-exchange request fails or the response is
 /// missing an access token. A failed `/2/users/me` lookup is warned, not
 /// returned.
-/// What a token endpoint's error answer says about the exchange: a status
-/// that says it was not processed, a refusal of the client (RFC 6749 section
-/// 5.2 lets that arrive as a 400), or a refusal of the code.
-fn token_exchange_refusal(status: reqwest::StatusCode, error: &str) -> &'static str {
-    if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
-        TOKEN_EXCHANGE_UNANSWERED
-    } else if status == reqwest::StatusCode::UNAUTHORIZED
-        || matches!(error, "invalid_client" | "unauthorized_client")
-    {
-        TOKEN_EXCHANGE_CLIENT_REFUSED
-    } else {
-        TOKEN_EXCHANGE_CODE_REFUSED
-    }
-}
-
 pub(crate) async fn exchange_code_for_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -186,11 +183,20 @@ pub(crate) async fn exchange_code_for_token(
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
         .await
-        .map_err(|e| Error::auth_with_cause(TOKEN_EXCHANGE_UNANSWERED, &e).with_source(e))?;
+        .map_err(|e| {
+            Error::http(format!(
+                "TokenExchangeError: the token endpoint did not answer (cause: {e})"
+            ))
+            .with_source(e)
+        })?;
 
     let status = token_resp.status();
-    // Read before the status decides anything, and judged after it: a proxy's
-    // 502 is an HTML page, and it must still read as a 5xx.
+    // The endpoint did not process these, so the single-use code is still good
+    // and nothing about the credentials is in question: the failure is the one
+    // any other request to X reports.
+    if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(api_error(token_resp).await?);
+    }
     let body = token_resp.json::<serde_json::Value>().await;
 
     if !status.is_success() {
