@@ -4,15 +4,33 @@
 # Windows dep check, and changelog verification (on PRs to main).
 # No secrets required — only needs contents: read and pull-requests: read.
 #
-# pull_request only: merges to main and dev are squash merges, so the merge
-# commit's tree equals the PR head this workflow already verified, and a push
-# run would re-check an identical tree for no new signal. The compensating
-# local gate is the hook pair at scripts/hooks/, which mirrors these jobs
-# before the push leaves the machine.
+# Checks run on pull requests: merges to main and dev are squash merges, so the
+# merge commit's tree equals the PR head these jobs already verified. The
+# compensating local gate is the hook pair at scripts/hooks/, which mirrors these
+# jobs before the push leaves the machine.
+#
+# A push to dev or main, or a manual dispatch, is a warm run. Each job that keeps
+# a Rust cache builds what its check compiles with execution off and saves the
+# cache, and the jobs that keep none skip. A pull request restores from its own
+# ref, its base branch, and the default branch, and only a run outside a pull
+# request can write those two branches' scopes, so without warm runs every new
+# PR starts cold.
+#
+# Swatinem/rust-cache keys each cache on the job id, the `key` input, and every
+# CARGO*, RUST*, CC*, CFLAGS*, CXX*, and CMAKE* variable in the job's environment.
+# A warm run matches a pull request's keys only while those stay the same in both
+# modes, so what differs between the modes lives in step conditions and commands.
+#
+# `cache-on-failure` applies to pull request runs alone. A warm run that fails
+# partway would leave a partial entry under the exact key, and rust-cache skips
+# saving after an exact-key restore, so no later run would refill it.
 name: CI
 
 on:
   pull_request:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -35,6 +53,8 @@ env:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
   CARGO_TERM_COLOR: always
+  # Differs between the modes, so its name stays outside rust-cache's prefixes.
+  TEST_NO_RUN: ${{ github.event_name != 'pull_request' && '--no-run' || '' }}
 
 jobs:
   # Whether this PR can reach cargo at all. A PR whose every path is
@@ -43,7 +63,8 @@ jobs:
   # runs. A job skipped by its condition reports success, so the required
   # checks pass. Each Rust job runs unless this job answered `false`, so a
   # scope job that fails or never reports runs the full battery instead of
-  # skipping it.
+  # skipping it. A warm run answers `true`: it fills every job's cache, whatever
+  # the push changed.
   scope:
     name: Change scope
     runs-on: ubuntu-latest
@@ -54,12 +75,17 @@ jobs:
       # The checkout is GitHub's test merge of the PR into its base, so the
       # diff against its first parent is exactly what the PR changes.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
         with:
           fetch-depth: 2
       - name: Classify the changed paths
         id: scope
         run: |
           set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo "rust=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           inputs="$(git diff --no-renames --name-only HEAD^1 HEAD | bash scripts/cargo-inputs.sh)"
           if [ -n "$inputs" ]; then
             echo "rust=true" >> "$GITHUB_OUTPUT"
@@ -71,7 +97,7 @@ jobs:
 
   ci:
     needs: scope
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
     with:
       # An advisory turns this run red rather than leaving it green with one
@@ -80,6 +106,15 @@ jobs:
       advisories_blocking: true
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
 
+  # A job of its own so its checks report as `warm / <job>`, never under a
+  # required `ci / <job>` name. rust-cache keys on the reusable's job ids, not
+  # this caller's, so these caches are the ones the `ci` call restores.
+  warm:
+    if: github.event_name != 'pull_request'
+    uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
+    with:
+      warm_cache: true
+
   # actionlint + markdownlint from the org reusable. The markdownlint glob set
   # matches scripts/hooks/pre-push step 10 verbatim, so the hook and this job
   # cannot reach different verdicts. A crate's CHANGELOG.md is generated and
@@ -87,6 +122,7 @@ jobs:
   # to them, so it is linted. .claude/ is a gitignored symlink to the global
   # template store, absent from this checkout and linted at its source.
   lint:
+    if: github.event_name == 'pull_request'
     uses: brettdavies/.github/.github/workflows/lint-basics.yml@main
     permissions:
       contents: read
@@ -100,7 +136,7 @@ jobs:
   lint-stdio:
     name: Output discipline
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -130,15 +166,17 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
       - name: cargo doc
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --workspace --no-deps --locked
       # The README is the crate doc, so its programs are doctests; this is the
-      # gate that fails when the landing example stops compiling.
+      # gate that fails when the landing example stops compiling. Cargo refuses
+      # `--no-run` on doc tests, so a warm run builds what they link against and
+      # has rustdoc list them instead.
       - name: README doctests
-        run: cargo test --doc -p xdk-rs --locked
+        run: cargo test --doc -p xdk-rs --locked${{ github.event_name != 'pull_request' && ' -- --list' || '' }}
       - name: cargo doc with every feature, as docs.rs documents it
         env:
           RUSTDOCFLAGS: -D warnings
@@ -164,7 +202,7 @@ jobs:
   semver:
     name: Public API semver
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.scope.outputs.rust != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -203,9 +241,11 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
+      # The script builds the binary in both modes. Without `--check` it writes
+      # the files and compares nothing, so a warm run reports no verdict.
       - name: Verify completions match the CLI definition
-        run: ./scripts/generate-completions.sh --check
+        run: ./scripts/generate-completions.sh ${{ github.event_name == 'pull_request' && '--check' || '' }}
 
   # `webhooks listen` stops a forward program with everything it started: a
   # process group on Unix, a kill-on-close Job Object on Windows. Only a
@@ -225,11 +265,11 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
       - name: Program-target tests
-        run: cargo test --locked -p xurl-rs --test webhooks_program_tests
+        run: cargo test --locked -p xurl-rs --test webhooks_program_tests ${{ env.TEST_NO_RUN }}
       - name: The signed test request
-        run: cargo test --locked -p xurl-rs --test webhooks_tests listen_hands_out_a_signed_test_request
+        run: cargo test --locked -p xurl-rs --test webhooks_tests listen_hands_out_a_signed_test_request ${{ env.TEST_NO_RUN }}
 
   # A package-scoped test run proves nothing about an out-of-package consumer,
   # so an embedder-shaped crate compiles and runs a read against the
@@ -248,9 +288,9 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
       - name: Build and run the consumer crate's read
-        run: cargo test -p xdk-consumer-check --locked
+        run: cargo test -p xdk-consumer-check --locked ${{ env.TEST_NO_RUN }}
 
   # Cargo features are additive: `--features native-tls` on top of the default
   # set compiles both backends together and never shows that native-tls stands
@@ -268,6 +308,10 @@ jobs:
   # A matrix job skipped whole never expands, and its required `Features (...)`
   # checks would wait forever; so on a documentation-only PR this job runs and
   # every step skips.
+  #
+  # A warm run builds through the same steps with `--no-run` on the tests and
+  # leaves the example unrun. Compiling is the whole check in the other steps, the
+  # no-backend cell's included, so it runs them as they are.
   features:
     name: Features (${{ matrix.name }})
     needs: scope
@@ -304,7 +348,7 @@ jobs:
         if: needs.scope.outputs.rust != 'false'
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
           key: ${{ matrix.name }}
       - name: cargo check
         if: ${{ needs.scope.outputs.rust != 'false' && !matrix.must_fail }}
@@ -326,11 +370,11 @@ jobs:
           FLAGS: ${{ matrix.flags }}
         run: |
           read -ra flags <<< "$FLAGS"
-          cargo test -p xdk-rs --locked "${flags[@]}"
+          cargo test -p xdk-rs --locked "${flags[@]}" ${{ env.TEST_NO_RUN }}
       # Compilation proves nothing about whether the example works; the run
       # asserts on what the mock served and what it received.
       - name: Run the credential-free example against the testing mock
-        if: ${{ needs.scope.outputs.rust != 'false' && matrix.example }}
+        if: ${{ github.event_name == 'pull_request' && needs.scope.outputs.rust != 'false' && matrix.example }}
         run: cargo run -p xdk-rs --example offline_search --features testing --locked
       - name: cargo check must fail on the TLS guard
         if: ${{ needs.scope.outputs.rust != 'false' && matrix.must_fail }}
@@ -348,12 +392,15 @@ jobs:
             exit 1
           fi
 
-  # Every other job compiles on the toolchain rust-toolchain.toml pins, which is
-  # newer than the `rust-version` the crates declare. A dependency bump or a
-  # language feature that needs a later compiler passes all of them and breaks
-  # a consumer still on the declared version. This job reads that version from
-  # the workspace manifest and checks the workspace on it, as step 4 of
-  # scripts/hooks/pre-push does.
+  # rust-toolchain.toml pins the compiler the other compiling jobs use, except
+  # `Public API semver`, whose action installs stable. `rust-version` is the
+  # promise a consumer builds against, and RELEASES.md § Versioning keeps it equal
+  # to the pin. This job reads the version from the workspace manifest rather than
+  # the pin, so a toolchain bump that leaves `rust-version` behind is still checked
+  # on the declared version: a dependency or language feature that needs the later
+  # compiler fails here alone. Step 4 of scripts/hooks/pre-push runs the same check
+  # on the default features. Compiling is the whole check, so a warm run runs it
+  # as it is.
   msrv:
     name: MSRV
     needs: scope
@@ -378,7 +425,7 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
           key: msrv-${{ steps.msrv.outputs.version }}
       - name: cargo check on the declared rust-version
         env:
@@ -391,7 +438,7 @@ jobs:
   # happens: it installs Go `xurl` at a pinned commit and names it in the
   # variable, and with the variable set a missing binary fails the suite
   # instead of skipping it. The cases that need the live API stay skipped, so
-  # the job spends nothing.
+  # the job spends nothing. A warm run compares nothing, so it needs no Go `xurl`.
   parity:
     name: Go parity
     needs: scope
@@ -408,8 +455,9 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
       - name: Install Go xurl at the pinned commit
+        if: github.event_name == 'pull_request'
         run: |
           set -euo pipefail
           go version
@@ -418,13 +466,14 @@ jobs:
           test -x "$original"
           echo "XURL_ORIGINAL_BIN=${original}" >> "$GITHUB_ENV"
       - name: Run the differential suite
-        run: cargo test -p xurl-rs --test conformance_runner --locked -- --nocapture
+        run: cargo test -p xurl-rs --test conformance_runner --locked ${{ env.TEST_NO_RUN }} -- --nocapture
 
   # The matrix above names the cells a reader expects; this job compiles every
   # remaining subset that carries a backend (`native-tls` with `testing`, both
   # backends without it), each from `--no-default-features`, so a feature added
   # later cannot break a pairing nobody listed. Subsets with no backend are
-  # left out: the matrix asserts that failure by name.
+  # left out: the matrix asserts that failure by name. Compiling is the whole
+  # check, so a warm run runs it as it is.
   feature-powerset:
     name: Feature powerset
     needs: scope
@@ -438,7 +487,7 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
       - name: Install cargo-hack
@@ -487,6 +536,8 @@ jobs:
   # command family the release `xr` measures about 12.6 MB, and a dropped
   # `strip` alone roughly doubles it, so the ceiling leaves room for ordinary
   # growth and none for a lost profile.
+  #
+  # A warm run builds the release binary and skips everything that grades it.
   anc:
     name: Agent-native audit
     needs: scope
@@ -504,10 +555,12 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
-          cache-on-failure: true
+          cache-on-failure: ${{ github.event_name == 'pull_request' }}
       - name: Install cargo-binstall
+        if: github.event_name == 'pull_request'
         uses: cargo-bins/cargo-binstall@81df5c23b0dc775b009efdfc9895c5965b7a4e40 # v1.26.1
       - name: Install anc
+        if: github.event_name == 'pull_request'
         # A second binstall attempt covers a transient release-asset fetch
         # failure; a source build is the fallback after that.
         run: |
@@ -523,6 +576,7 @@ jobs:
       - name: Build the release binary
         run: cargo build --release --locked --bin xr
       - name: Release binary size ceiling
+        if: github.event_name == 'pull_request'
         run: |
           size="$(stat -c %s target/release/xr)"
           echo "target/release/xr is ${size} bytes (ceiling ${XR_SIZE_CEILING_BYTES})"
@@ -531,6 +585,7 @@ jobs:
             exit 1
           fi
       - name: anc audit
+        if: github.event_name == 'pull_request'
         run: |
           set -euo pipefail
           # anc exits 0 when every audit passes, 1 when warnings are present
@@ -563,7 +618,7 @@ jobs:
             exit 1
           fi
       - name: Upload the scorecard
-        if: always()
+        if: ${{ always() && github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: anc-scorecard
