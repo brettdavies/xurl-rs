@@ -4949,8 +4949,11 @@ async fn test_read_verbs_report_a_damaged_store(#[case] args: &[&str]) {
         !stdout.contains("No apps registered"),
         "must not claim the store is empty; stdout: {stdout}"
     );
+    let path = store.to_str().expect("utf-8 path");
+    // A JSON envelope escapes the backslashes of a Windows path.
+    let escaped = serde_json::to_string(path).expect("a string serializes");
     assert!(
-        stderr.contains(store.to_str().expect("utf-8 path")),
+        stderr.contains(path) || stderr.contains(escaped.trim_matches('"')),
         "the error names the path; stderr: {stderr}"
     );
 }
