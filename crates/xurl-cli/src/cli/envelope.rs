@@ -41,26 +41,130 @@ pub enum Envelope {
         #[serde(flatten)]
         payload: Value,
     },
-    /// Dry-run envelope. `would_succeed` and `exit_code` are mandatory;
-    /// additional context (command name, body preview, etc.) lives in
-    /// `payload`.
-    DryRun {
-        /// True iff every precondition checked clean.
-        would_succeed: bool,
-        /// Exit code the verb would have returned on actual execution.
-        exit_code: i32,
-        /// The `xr schema` invocation that describes the command's response,
-        /// on a command with a typed response. A raw request carries none.
-        #[serde(skip_serializing_if = "Option::is_none")]
-        response_schema: Option<String>,
-        /// Verb-specific context payload, flattened at the top level.
-        #[serde(flatten)]
-        payload: Value,
-    },
+    /// Dry-run envelope. Its body declares the keys that are the envelope's
+    /// own; any other key is one of the command's inputs. Boxed like the
+    /// error body, for its size.
+    DryRun(Box<DryRunBody>),
     /// Error envelope. Every field the runtime emits is declared on
     /// [`ErrorBody`], so an undeclared key cannot reach a caller. Boxed
-    /// because that body is much larger than the other two variants.
+    /// because that body is much larger than the success variant.
     Error(Box<ErrorBody>),
+}
+
+/// Every key a dry run's answer carries of its own, beside the `status` tag.
+///
+/// The object stays open, because each command adds its inputs. A refusal
+/// carries the keys of the error envelope its real run would write, so `reason`
+/// and those beside it mean what they mean on [`ErrorBody`]; each is absent
+/// when the real run would succeed or the refusal does not name it.
+#[derive(Debug, Serialize, JsonSchema)]
+#[schemars(inline)]
+#[non_exhaustive]
+pub struct DryRunBody {
+    /// True iff every precondition checked clean.
+    pub would_succeed: bool,
+    /// Exit code the verb would have returned on actual execution.
+    pub exit_code: i32,
+    /// The `xr schema` invocation that describes the command's response,
+    /// on a command with a typed response. A raw request carries none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_schema: Option<String>,
+    /// The command the answer is about. A raw request carries none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command: Option<String>,
+    /// The credential the request would go out under, read offline. Absent
+    /// on a refusal, and on a command that sends no request.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth: Option<DryRunAuth>,
+    /// Present and `true` on a destructive command whose real run would stop
+    /// to ask. Absent under `--force`, where nothing would stop.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub confirmation_required: Option<bool>,
+    /// Why the real run would fail, when it would: the `reason` of its error.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<String>")]
+    pub reason: Option<Reason>,
+    /// The input rule the real run would refuse, under `validation`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rule: Option<String>,
+    /// The offending input, as it was given, when the broken `rule` names one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    /// The message the real run's error would carry.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// The step the real run's error would carry; one that reruns the
+    /// invocation keeps `--dry-run`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_step: Option<NextStep>,
+    /// Endpoint template the request would target, when no stored scheme
+    /// serves it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub endpoint: Option<String>,
+    /// HTTP method the request would use, on the same refusal or a raw
+    /// request.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    /// Auth scheme the caller asked for, on the same refusal; `null` when
+    /// auto-detect ran.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requested: Option<Value>,
+    /// Auth schemes the endpoint accepts, on the same refusal.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supported: Option<Vec<String>>,
+    /// Auth schemes available for the active app, on the same refusal.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub available_in_app: Option<Vec<String>>,
+    /// The active app name, on the same refusal.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app: Option<String>,
+    /// Other apps holding credentials, when the active one holds none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub other_apps_with_creds: Option<Vec<String>>,
+    /// The command's inputs, flattened at the top level.
+    #[serde(flatten)]
+    pub payload: Value,
+}
+
+/// The `auth` object of a dry-run envelope: the credential a request would go
+/// out under.
+#[derive(Debug, Serialize, JsonSchema)]
+#[non_exhaustive]
+pub struct DryRunAuth {
+    /// The auth scheme: `oauth1`, `oauth2`, or `app`.
+    pub scheme: String,
+    /// The app whose stored credential would be sent. Absent for a bearer
+    /// token the environment supplies, which belongs to no stored app.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app: Option<String>,
+    /// The `OAuth2` login, the one credential with a user name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
+    /// Whether the `OAuth2` login's token has expired. An expired token is
+    /// reported, not refreshed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token_expired: Option<bool>,
+}
+
+impl DryRunAuth {
+    /// The report of a credential, naming a login only on `OAuth2`.
+    #[must_use]
+    pub fn new(
+        scheme: &str,
+        app: Option<String>,
+        oauth2_login: Option<(Option<String>, bool)>,
+    ) -> Self {
+        let (username, token_expired) = match oauth2_login {
+            Some((username, expired)) => (username, Some(expired)),
+            None => (None, None),
+        };
+        Self {
+            scheme: scheme.to_string(),
+            app,
+            username,
+            token_expired,
+        }
+    }
 }
 
 /// The closed set of `reason` values, spelled in kebab-case on the wire.
@@ -359,6 +463,17 @@ pub struct ErrorBody {
     /// Directory a skill verb would install into.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub install_dir: Option<String>,
+    /// The `git clone` a skill verb would run, its hardening flags omitted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub command_preview: Option<String>,
+    /// What a skill verb found at `install_dir` before it cloned: `absent`,
+    /// `empty-dir`, `non-empty-dir`, or `file`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub destination_status: Option<String>,
+    /// A copy of the skill bundle at a location the host still reads but `xr`
+    /// does not install to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub legacy_install_dir: Option<String>,
     /// Directory `skill update` refused to replace, because it holds
     /// something other than the bundle.
     #[serde(skip_serializing_if = "Option::is_none")]
