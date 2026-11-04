@@ -10,12 +10,20 @@ either. A solo maintainer cannot promise merge windows; real PRs land. Which cra
 
 ```bash
 git clone https://github.com/brettdavies/xurl-rs && cd xurl-rs
-cargo build                                # binary at ./target/debug/xr
-cargo test                                 # unit + integration
+scripts/dev-setup.sh                       # install the tools CI and the hooks use
 git config core.hooksPath scripts/hooks    # activate the pre-push battery
 ```
 
-That one command activates both hooks. `pre-commit` is fast and runs a check only when a file it reads is staged:
+`cargo build` then puts the binary at `./target/debug/xr`, and `cargo test` runs the unit and integration tests.
+
+`scripts/dev-setup.sh` needs `cargo` and reads `.github/tool-versions`, the one list of tool versions, which CI's
+install steps read too. It installs each missing or older tool, Rust tools through `cargo binstall` and the rest through
+Homebrew, and prints one line per tool. It never uses `sudo`, and a rerun changes nothing. When an install fails, it
+exits 1 naming `dev-setup/<tool>` and the command to run by hand. `--dry-run` reports what it would install, and
+`--root DIR` puts the Rust tools under `DIR/bin`. To change a version, edit the list:
+`crates/xurl-cli/tests/dev_setup_tests.rs` fails for a `ci.yml` step that installs a tool any other way.
+
+The `git config` line activates both hooks. `pre-commit` is fast and runs a check only when a file it reads is staged:
 `cargo fmt -- --check` over every crate when a `.rs` file is staged, `actionlint` on a staged workflow,
 `markdownlint-cli2` on staged `.md`, `shellcheck` on staged shell. It builds nothing, so a markdown-only commit runs
 `markdownlint-cli2` alone, even for a document a test reads; those tests run at push. Both hooks share
