@@ -20,14 +20,15 @@
 
 mod common;
 
-use serde_json::{Value, json};
+use serde_json::Value;
 use wiremock::MockServer;
 use xdk::testing::MockX;
 use xurl::cli::commands::schema::{invocation, registered_commands};
 
 use common::invoke::{
-    Fill, OVERRIDES, Ran, SAMPLE, arguments_for, bearer_only, every_kind_with_the_login_expired,
-    live_oauth2_only, nothing, oauth1_only, run_xr, runnable_paths, takes_a_credential,
+    OVERRIDES, Ran, SAMPLE, Seed, answering_mock, arguments_for, bearer_only,
+    every_kind_with_the_login_expired, live_oauth2_only, nothing, oauth1_only, run_xr,
+    runnable_paths, takes_a_credential, walk,
 };
 
 /// The commands that only read local state or print what the binary knows.
@@ -83,16 +84,14 @@ const RAW_INVOCATIONS: &[(&str, &[&str])] = &[
 
 /// What one dry run did that it must not do, as lines for the failure
 /// message, and the document it answered with.
-async fn violations(server: &MockServer, name: &str, args: &[String]) -> (Vec<String>, Value) {
+async fn violations(
+    server: &MockServer,
+    seed: &Seed,
+    name: &str,
+    args: &[String],
+) -> (Vec<String>, Value) {
     server.reset().await;
-    let ran = run_xr(
-        &server.uri(),
-        every_kind_with_the_login_expired,
-        name,
-        args,
-        true,
-    )
-    .await;
+    let ran = run_xr(&server.uri(), seed, name, args, true).await;
     let Some(code) = ran.code else {
         return (
             vec![format!("{name}: did not return within 10 seconds")],
@@ -170,53 +169,69 @@ fn every_row_names_a_command() {
     );
 }
 
-#[tokio::test]
-async fn a_dry_run_sends_nothing_and_stores_nothing() {
-    let server = MockServer::start().await;
+/// What a dry run of the command at `path` did wrong, with and without
+/// `--force`.
+async fn command_faults(server: &MockServer, seed: &Seed, path: &str) -> Vec<String> {
     let mut found = Vec::new();
-    for path in runnable_paths() {
-        let args = arguments_for(&path);
-        let (violations_found, document) = violations(&server, &path, &args).await;
-        found.extend(violations_found);
-        if takes_a_credential(&path)
-            && let Some(fault) = credential_report_fault(&document)
-        {
-            found.push(format!("{path}: {fault}"));
-        }
-        if let Some(fault) = pointer_fault(&path, &document) {
-            found.push(format!("{path}: {fault}"));
-        }
-        if !args.iter().any(|arg| arg == "--force") {
-            continue;
-        }
-        // The flag wins over the confirmation a destructive command asks
-        // for: without `--force` the dry run still answers, and says the
-        // real run would stop for confirmation.
-        if !document["confirmation_required"].is_null() {
-            found.push(format!(
-                "{path}: reports confirmation_required though --force was given: {document}"
-            ));
-        }
-        let unforced: Vec<String> = args.into_iter().filter(|arg| arg != "--force").collect();
-        let (violations_found, document) = violations(&server, &path, &unforced).await;
-        found.extend(violations_found);
-        if document["confirmation_required"] != true {
-            found.push(format!(
-                "{path}: without --force the dry run does not report confirmation_required: {document}"
-            ));
-        }
+    let args = arguments_for(path);
+    let (violations_found, document) = violations(server, seed, path, &args).await;
+    found.extend(violations_found);
+    if takes_a_credential(path)
+        && let Some(fault) = credential_report_fault(&document)
+    {
+        found.push(format!("{path}: {fault}"));
     }
-    for (name, args) in RAW_INVOCATIONS {
-        let args: Vec<String> = args.iter().map(|arg| (*arg).to_string()).collect();
-        let (violations_found, document) = violations(&server, name, &args).await;
-        found.extend(violations_found);
-        if let Some(fault) = credential_report_fault(&document) {
-            found.push(format!("{name}: {fault}"));
-        }
-        if document.get("response_schema").is_some() {
-            found.push(format!("{name}: a raw request names a schema: {document}"));
-        }
+    if let Some(fault) = pointer_fault(path, &document) {
+        found.push(format!("{path}: {fault}"));
     }
+    if !args.iter().any(|arg| arg == "--force") {
+        return found;
+    }
+    // The flag wins over the confirmation a destructive command asks
+    // for: without `--force` the dry run still answers, and says the
+    // real run would stop for confirmation.
+    if !document["confirmation_required"].is_null() {
+        found.push(format!(
+            "{path}: reports confirmation_required though --force was given: {document}"
+        ));
+    }
+    let unforced: Vec<String> = args.into_iter().filter(|arg| arg != "--force").collect();
+    let (violations_found, document) = violations(server, seed, path, &unforced).await;
+    found.extend(violations_found);
+    if document["confirmation_required"] != true {
+        found.push(format!(
+            "{path}: without --force the dry run does not report confirmation_required: {document}"
+        ));
+    }
+    found
+}
+
+/// What a dry run of one raw request did wrong.
+async fn raw_faults(server: &MockServer, seed: &Seed, name: &str, args: &[&str]) -> Vec<String> {
+    let args: Vec<String> = args.iter().map(|arg| (*arg).to_string()).collect();
+    let (mut found, document) = violations(server, seed, name, &args).await;
+    if let Some(fault) = credential_report_fault(&document) {
+        found.push(format!("{name}: {fault}"));
+    }
+    if document.get("response_schema").is_some() {
+        found.push(format!("{name}: a raw request names a schema: {document}"));
+    }
+    found
+}
+
+#[test]
+fn a_dry_run_sends_nothing_and_stores_nothing() {
+    let seed = Seed::of(every_kind_with_the_login_expired);
+    let paths: Vec<String> = runnable_paths().into_iter().collect();
+    let commands = walk(&paths, MockServer::start, async |server, path: &String| {
+        command_faults(server, &seed, path).await
+    });
+    let raw = walk(
+        RAW_INVOCATIONS,
+        MockServer::start,
+        async |server, (name, args): &(&str, &[&str])| raw_faults(server, &seed, name, args).await,
+    );
+    let found: Vec<String> = commands.into_iter().chain(raw).flatten().collect();
     assert!(
         found.is_empty(),
         "under --dry-run a command reached the network, changed local state, or left its \
@@ -239,21 +254,85 @@ fn scheme_sent(headers: &[(String, String)]) -> Option<&'static str> {
     }
 }
 
-#[tokio::test]
-async fn a_dry_run_reports_the_credential_the_real_run_uses() {
-    let mock = MockX::start().await;
-    // The media fixtures report processing under way, which a real upload
-    // waits on. A finished one has nothing to wait for.
-    let done = json!({"data": {"id": SAMPLE, "processing_info": {"state": "succeeded"}}});
-    mock.stub("POST", "/finalize$", 200, done.clone()).await;
-    mock.stub("GET", "^/2/media/upload$", 200, done).await;
-    let origin = mock.base_url();
+/// One command over one kind of stored credential.
+struct CredentialCase<'a> {
+    label: &'a str,
+    seed: &'a Seed,
+    name: &'a str,
+    args: &'a [String],
+}
 
-    let seeds: [(&str, Fill); 4] = [
-        ("no credential", nothing),
-        ("an app-only bearer", bearer_only),
-        ("an OAuth1 token", oauth1_only),
-        ("a live OAuth2 login", live_oauth2_only),
+/// Where the dry run of `case` disagrees with its real run on the credential.
+async fn credential_disagreements(mock: &MockX, case: &CredentialCase<'_>) -> Vec<String> {
+    let CredentialCase {
+        label,
+        seed,
+        name,
+        args,
+    } = *case;
+    let origin = mock.base_url();
+    let mut found = Vec::new();
+    let case = format!("{name} with {label}");
+    let seen = mock.requests().await.len();
+    let real = run_xr(&origin, seed, name, args, false).await;
+    let sent = mock.requests().await.split_off(seen);
+    let dry = run_xr(&origin, seed, name, args, true).await;
+    if mock.requests().await.len() != seen + sent.len() {
+        found.push(format!("{case}: the dry run sent a request"));
+    }
+    let Some(real_code) = real.code else {
+        found.push(format!("{case}: the real run did not return"));
+        return found;
+    };
+    let refusal = Ran::document(&real.stderr);
+    let document = Ran::document(&dry.stdout);
+    let stopped_on_a_credential = matches!(
+        refusal["reason"].as_str(),
+        Some("auth-required" | "auth-method-mismatch")
+    );
+    if stopped_on_a_credential {
+        if document["would_succeed"] != false
+            || document["reason"] != refusal["reason"]
+            || document["exit_code"] != real_code
+        {
+            found.push(format!(
+                "{case}: the real run stopped on {} at exit {real_code}, and the dry run \
+                 answered {document}",
+                refusal["reason"]
+            ));
+        }
+        return found;
+    }
+    let Some(scheme) = sent
+        .last()
+        .and_then(|request| scheme_sent(&request.headers))
+    else {
+        found.push(format!(
+            "{case}: the real run exited {real_code} without stopping on a credential \
+             and without sending one: {}",
+            String::from_utf8_lossy(&real.stderr).trim()
+        ));
+        return found;
+    };
+    if document["would_succeed"] != true
+        || document["auth"]["scheme"] != scheme
+        || document["auth"]["app"] != SAMPLE
+    {
+        found.push(format!(
+            "{case}: the real run sent {scheme} from app {SAMPLE}, and the dry run answered \
+             {document}"
+        ));
+    }
+    found
+}
+
+#[test]
+fn a_dry_run_reports_the_credential_the_real_run_uses() {
+    let seeds: [(&str, Seed); 4] = [
+        ("no credential", Seed::of(nothing)),
+        ("an app-only bearer", Seed::of(bearer_only)),
+        ("an OAuth1 token", Seed::of(oauth1_only)),
+        ("a live OAuth2 login", Seed::of(live_oauth2_only)),
     ];
     let mut invocations: Vec<(String, Vec<String>)> = runnable_paths()
         .into_iter()
@@ -272,62 +351,21 @@ async fn a_dry_run_reports_the_credential_the_real_run_uses() {
         "no command takes --auth; the filter reads the wrong argument id"
     );
 
-    let mut found = Vec::new();
-    for (label, fill) in seeds {
-        for (name, args) in &invocations {
-            let case = format!("{name} with {label}");
-            let seen = mock.requests().await.len();
-            let real = run_xr(&origin, fill, name, args, false).await;
-            let sent = mock.requests().await.split_off(seen);
-            let dry = run_xr(&origin, fill, name, args, true).await;
-            if mock.requests().await.len() != seen + sent.len() {
-                found.push(format!("{case}: the dry run sent a request"));
-            }
-            let Some(real_code) = real.code else {
-                found.push(format!("{case}: the real run did not return"));
-                continue;
-            };
-            let refusal = Ran::document(&real.stderr);
-            let document = Ran::document(&dry.stdout);
-            let stopped_on_a_credential = matches!(
-                refusal["reason"].as_str(),
-                Some("auth-required" | "auth-method-mismatch")
-            );
-            if stopped_on_a_credential {
-                if document["would_succeed"] != false
-                    || document["reason"] != refusal["reason"]
-                    || document["exit_code"] != real_code
-                {
-                    found.push(format!(
-                        "{case}: the real run stopped on {} at exit {real_code}, and the dry run \
-                         answered {document}",
-                        refusal["reason"]
-                    ));
-                }
-                continue;
-            }
-            let Some(scheme) = sent
-                .last()
-                .and_then(|request| scheme_sent(&request.headers))
-            else {
-                found.push(format!(
-                    "{case}: the real run exited {real_code} without stopping on a credential \
-                     and without sending one: {}",
-                    String::from_utf8_lossy(&real.stderr).trim()
-                ));
-                continue;
-            };
-            if document["would_succeed"] != true
-                || document["auth"]["scheme"] != scheme
-                || document["auth"]["app"] != SAMPLE
-            {
-                found.push(format!(
-                    "{case}: the real run sent {scheme} from app {SAMPLE}, and the dry run answered \
-                     {document}"
-                ));
-            }
-        }
-    }
+    let cases: Vec<CredentialCase> = seeds
+        .iter()
+        .flat_map(|(label, seed)| {
+            invocations.iter().map(move |(name, args)| CredentialCase {
+                label,
+                seed,
+                name,
+                args,
+            })
+        })
+        .collect();
+    let found: Vec<String> = walk(&cases, answering_mock, credential_disagreements)
+        .into_iter()
+        .flatten()
+        .collect();
     assert!(
         found.is_empty(),
         "a dry run and the real run disagree on the credential:\n{}",

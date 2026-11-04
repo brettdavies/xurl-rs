@@ -23,8 +23,8 @@ use serde_json::{Value, json};
 use xdk::testing::{MockX, Received};
 
 use common::invoke::{
-    Ran, SAMPLE, arguments_for, bearer_only, live_oauth2_only, oauth1_only, run_xr, runnable_paths,
-    takes_a_credential,
+    Ran, SAMPLE, Seed, arguments_for, bearer_only, live_oauth2_only, oauth1_only, run_xr,
+    runnable_paths, takes_a_credential,
 };
 
 /// The page size the walk asks for: inside every `-n` range the CLI
@@ -140,6 +140,7 @@ async fn the_paging_flags_reach_exactly_the_commands_their_help_names() {
     let mock = answering_mock().await;
     let origin = mock.base_url();
     let operations = operations();
+    let seed = Seed::of(every_kind);
     let mut found = Vec::new();
 
     let paths: BTreeSet<String> = runnable_paths()
@@ -151,7 +152,7 @@ async fn the_paging_flags_reach_exactly_the_commands_their_help_names() {
         let mut args = arguments_for(path);
         args.extend(["--limit", PAGE_SIZE, "--cursor", CURSOR].map(str::to_string));
         let seen = mock.requests().await.len();
-        let ran = run_xr(&origin, every_kind, path, &args, false).await;
+        let ran = run_xr(&origin, &seed, path, &args, false).await;
         let sent = mock.requests().await.split_off(seen);
         if sent.is_empty() {
             found.push(format!(
@@ -220,7 +221,7 @@ async fn the_paging_flags_reach_exactly_the_commands_their_help_names() {
     ]
     .map(str::to_string)
     .to_vec();
-    run_xr(&origin, every_kind, "raw GET", &raw, false).await;
+    run_xr(&origin, &seed, "raw GET", &raw, false).await;
     for request in mock.requests().await.split_off(seen) {
         let query = request.query.unwrap_or_default();
         if query.contains(PAGE_SIZE) || query.contains(CURSOR) {
@@ -262,6 +263,7 @@ async fn each_page_size_help_states_the_largest_size_the_command_sends() {
     let mock = answering_mock().await;
     let origin = mock.base_url();
     let operations = operations();
+    let seed = Seed::of(every_kind);
     let mut found = Vec::new();
 
     for path in runnable_paths()
@@ -274,7 +276,7 @@ async fn each_page_size_help_states_the_largest_size_the_command_sends() {
         let mut args = arguments_for(&path);
         args.extend(["-n".to_string(), max.to_string()]);
         let seen = mock.requests().await.len();
-        let ran = run_xr(&origin, every_kind, &path, &args, false).await;
+        let ran = run_xr(&origin, &seed, &path, &args, false).await;
         let sent = mock.requests().await.split_off(seen);
         let sizes: Vec<String> = sent
             .iter()
@@ -384,13 +386,18 @@ fn takes_of(path: &str) -> bool {
 
 /// The schemes a dry run of `path` with `args` accepts, in preference order,
 /// and the endpoint that refused each other scheme.
-async fn dry_run_accepts(origin: &str, path: &str, args: &[String]) -> (Vec<String>, Vec<String>) {
+async fn dry_run_accepts(
+    origin: &str,
+    seed: &Seed,
+    path: &str,
+    args: &[String],
+) -> (Vec<String>, Vec<String>) {
     let mut accepted = Vec::new();
     let mut refused = Vec::new();
     for scheme in ["oauth2", "oauth1", "app"] {
         let mut with_scheme = args.to_vec();
         with_scheme.extend(["--auth".to_string(), scheme.to_string()]);
-        let ran = run_xr(origin, every_kind, path, &with_scheme, true).await;
+        let ran = run_xr(origin, seed, path, &with_scheme, true).await;
         let document = Ran::document(&ran.stdout);
         if document["reason"] == "auth-method-mismatch" {
             refused.push(format!(
@@ -409,6 +416,7 @@ async fn dry_run_accepts(origin: &str, path: &str, args: &[String]) -> (Vec<Stri
 async fn each_auth_help_lists_the_schemes_its_dry_run_accepts() {
     let mock = answering_mock().await;
     let origin = mock.base_url();
+    let seed = Seed::of(every_kind);
     let mut found = Vec::new();
 
     let commands: BTreeSet<String> = runnable_paths()
@@ -439,7 +447,7 @@ async fn each_auth_help_lists_the_schemes_its_dry_run_accepts() {
             continue;
         };
         let args = arguments_for(path);
-        let (accepted, refused) = dry_run_accepts(&origin, path, &args).await;
+        let (accepted, refused) = dry_run_accepts(&origin, &seed, path, &args).await;
         if listed != accepted {
             found.push(format!(
                 "{path}: --auth help lists {listed:?}, its dry run accepts {accepted:?} \
@@ -451,7 +459,7 @@ async fn each_auth_help_lists_the_schemes_its_dry_run_accepts() {
         if takes_of(path) {
             let mut with_of = args.clone();
             with_of.extend(["--of".to_string(), SAMPLE.to_string()]);
-            let (accepted_of, refused_of) = dry_run_accepts(&origin, path, &with_of).await;
+            let (accepted_of, refused_of) = dry_run_accepts(&origin, &seed, path, &with_of).await;
             let expected = listed_of.clone().unwrap_or_else(|| listed.clone());
             if expected != accepted_of {
                 found.push(format!(
