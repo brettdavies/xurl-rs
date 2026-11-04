@@ -24,6 +24,7 @@
 # `cache-on-failure` applies to pull request runs alone. A warm run that fails
 # partway would leave a partial entry under the exact key, and rust-cache skips
 # saving after an exact-key restore, so no later run would refill it.
+# Restore probe.
 name: CI
 
 on:
