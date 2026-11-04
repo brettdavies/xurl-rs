@@ -4033,6 +4033,10 @@
             "pattern": "^[A-Za-z0-9_]{5,15}$",
             "type": "string"
           },
+          "org_only": {
+            "description": "Whether only members of the bot's developer account can add it to group chats. An org-only bot has no public profile and doesn't appear in public search. Defaults to false. Applies only when the request creates the bot: a handle that already names one of the project's bots keeps that bot's setting.",
+            "type": "boolean"
+          },
           "scopes": {
             "description": "Scopes for the bot's bearer token. Broadcast moderation additionally supports broadcast.read and broadcast.write. Defaults to the XChat scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
             "items": {

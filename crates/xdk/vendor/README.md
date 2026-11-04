@@ -10,9 +10,9 @@ matrix in `crates/xdk/src/api/auth_matrix.rs` (see `crates/xdk/build.rs`).
 | Upstream URL        | https://api.x.com/2/openapi.json                                   |
 | Spec `info.version` | 2.173                                                              |
 | Path count          | 200                                                                |
-| File size           | 1318617 bytes                                                      |
-| SHA256              | `3f75f884ab3bc371601c3caa6359ad3563f3aa83507d5a2ab949f3874681d7bf` |
-| Refreshed (UTC)     | 2026-11-03                                                         |
+| File size           | 1319014 bytes                                                      |
+| SHA256              | `d8bdea16314d2d599589b3fca8b43f899608ca1d5dcdd2466507bade52614e6b` |
+| Refreshed (UTC)     | 2026-11-04                                                         |
 
 ## Refresh
 
