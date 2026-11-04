@@ -50,6 +50,11 @@ const VERSION_PLACEHOLDER: &str = "{{CRATE_VERSION}}";
 const HELD_PORT_PLACEHOLDER: &str = "{{HELD_PORT}}";
 const BEARER: &str = "GOLDEN-BEARER-TOKEN";
 const FIXTURE_EXT: &str = "golden";
+/// The file `reason-io` asks `xr validate` to read, which exists nowhere.
+const MISSING_FILE: &str = "/nonexistent/xr-golden.json";
+/// How the platform the fixtures were captured on words a read of
+/// [`MISSING_FILE`]; another platform's wording reads as this one.
+const CAPTURED_MISSING_FILE_ERROR: &str = "No such file or directory (os error 2)";
 
 /// Reasons the schema names that no argv can reach, each with why.
 const UNTRIGGERABLE: &[(&str, &str)] = &[
@@ -114,6 +119,9 @@ struct Case {
     /// The envelope reason this case exists to capture.
     reason: Option<&'static str>,
     store: Store,
+    /// Why the case holds only on Unix, when it does. Elsewhere the run
+    /// skips it and keeps its fixture.
+    unix_only: Option<&'static str>,
 }
 
 fn case(name: &str, args: &[&str]) -> Case {
@@ -622,15 +630,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
                 &["--output", "json", "media", "status", "4242", "--wait=1"],
             )
         },
-        reason_case(
-            "io",
-            &[
-                "--output",
-                "json",
-                "validate",
-                "/nonexistent/xr-golden.json",
-            ],
-        ),
+        reason_case("io", &["--output", "json", "validate", MISSING_FILE]),
         Case {
             env: vec![("CLIENT_SECRET", "GOLDEN-CLIENT-SECRET".to_string())],
             ..reason_case(
@@ -731,6 +731,10 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
         Case {
             skill_home: Some(scratch.empty_skill_home()),
             env: vec![("PATH", scratch.path_with_refusing_git())],
+            unix_only: Some(
+                "the refusing git is a `#!/bin/sh` script, and on Windows \
+                 `Command::new(\"git\")` runs only a `git.exe`",
+            ),
             ..reason_case(
                 "git-clone-failed",
                 &["--output", "json", "skill", "install", "claude_code"],
@@ -1601,6 +1605,16 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
     }
     let output = child.wait_with_output().expect("wait for xr");
 
+    // `xr` names itself in a usage line as it was invoked, `xr.exe` on
+    // Windows; the fixtures carry `xr`.
+    let invoked = Path::new(bin)
+        .file_name()
+        .expect("a binary has a file name")
+        .to_string_lossy()
+        .into_owned();
+    let missing_file_error = std::fs::read(MISSING_FILE)
+        .expect_err("the missing file exists nowhere")
+        .to_string();
     let substitute = |bytes: Vec<u8>| {
         let mut text = String::from_utf8(bytes).expect("xr output is utf-8");
         text = text.replace(&api.uri, BASE_URL_PLACEHOLDER);
@@ -1608,11 +1622,27 @@ fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured
             &format!("127.0.0.1:{held_port}"),
             &format!("127.0.0.1:{HELD_PORT_PLACEHOLDER}"),
         );
-        if let Some(skill_home) = &case.skill_home {
+        for end in [' ', '\n'] {
             text = text.replace(
-                skill_home.to_str().expect("utf-8 path"),
-                SKILL_HOME_PLACEHOLDER,
+                &format!("Usage: {invoked}{end}"),
+                &format!("Usage: xr{end}"),
             );
+        }
+        text = text.replace(&missing_file_error, CAPTURED_MISSING_FILE_ERROR);
+        if let Some(skill_home) = &case.skill_home {
+            let home = skill_home.to_str().expect("utf-8 path");
+            let in_json = serde_json::to_string(home).expect("a path serializes");
+            text = text
+                .replace(home, SKILL_HOME_PLACEHOLDER)
+                .replace(in_json.trim_matches('"'), SKILL_HOME_PLACEHOLDER);
+            // Windows joins the host's directory onto the home with `\`,
+            // which JSON escapes.
+            for separator in ["\\\\", "\\"] {
+                text = text.replace(
+                    &format!("{SKILL_HOME_PLACEHOLDER}{separator}"),
+                    &format!("{SKILL_HOME_PLACEHOLDER}/"),
+                );
+            }
         }
         text.replace(env!("CARGO_PKG_VERSION"), VERSION_PLACEHOLDER)
     };
@@ -1805,6 +1835,9 @@ fn xr_output_matches_the_golden_fixtures() {
     for case in &cases {
         let file = dir.join(format!("{}.{FIXTURE_EXT}", case.name));
         expected_files.insert(file.clone());
+        if !cfg!(unix) && case.unix_only.is_some() {
+            continue;
+        }
         let actual = capture(case, &bin, &api, &scratch);
 
         // A `dry-run-<code>` case exists to pin that validator's refusal, so
@@ -2228,6 +2261,7 @@ fn a_refusing_dry_run_carries_the_message_and_step_of_its_real_run() {
             cwd: case.cwd.clone(),
             reason: None,
             store: case.store,
+            unix_only: case.unix_only,
         };
         let real = capture(&real_case, &bin, &api, &scratch);
         let error: serde_json::Value = match serde_json::from_str(real.stderr.trim()) {
