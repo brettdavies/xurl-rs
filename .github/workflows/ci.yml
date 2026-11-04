@@ -65,17 +65,20 @@ jobs:
   # scope job that fails or never reports runs the full battery instead of
   # skipping it. A warm run answers `true`: it fills every job's cache, whatever
   # the push changed.
+  #
+  # It also outputs the nextest version from .github/tool-versions on every event,
+  # since a reusable workflow takes a value from its caller's tree only as an input.
   scope:
     name: Change scope
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       rust: ${{ steps.scope.outputs.rust }}
+      nextest_version: ${{ steps.tools.outputs.nextest_version }}
     steps:
       # The checkout is GitHub's test merge of the PR into its base, so the
       # diff against its first parent is exactly what the PR changes.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: github.event_name == 'pull_request'
         with:
           fetch-depth: 2
       - name: Classify the changed paths
@@ -94,6 +97,12 @@ jobs:
             echo "rust=false" >> "$GITHUB_OUTPUT"
             echo "::notice title=Change scope::every changed path is documentation no Rust source reads, so the Rust jobs skip"
           fi
+      - name: Read the nextest version
+        id: tools
+        run: |
+          set -euo pipefail
+          version="$(bash scripts/tool-version.sh cargo-nextest)"
+          echo "nextest_version=${version}" >> "$GITHUB_OUTPUT"
 
   ci:
     needs: scope
@@ -494,10 +503,17 @@ jobs:
         # A second binstall attempt covers a transient release-asset fetch
         # failure; a source build is the fallback after that.
         run: |
-          cargo binstall cargo-hack --force --no-confirm \
-            || cargo binstall cargo-hack --force --no-confirm \
-            || cargo install cargo-hack --locked
-          cargo hack --version
+          set -euo pipefail
+          version="$(bash scripts/tool-version.sh cargo-hack)"
+          cargo binstall "cargo-hack@${version}" --force --no-confirm \
+            || cargo binstall "cargo-hack@${version}" --force --no-confirm \
+            || cargo install "cargo-hack@${version}" --locked
+          installed="$(cargo hack --version)"
+          echo "${installed} (pinned ${version})"
+          if [ "$installed" != "cargo-hack ${version}" ]; then
+            echo "::error title=Install cargo-hack::found '${installed}', expected cargo-hack ${version}"
+            exit 1
+          fi
       - name: cargo hack check
         run: cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features --locked
 
@@ -525,9 +541,9 @@ jobs:
   # - `p2-should-consistent-envelope` (skip): the success probe is `--help
   #   --output json`, which prints text for the reason the first row gives.
   #
-  # anc is pinned to ANC_VERSION. A new anc release can add rows or change how
-  # one scores, so it reaches this gate only through a PR that bumps the pin
-  # and settles the score and the floor together.
+  # anc is pinned in .github/tool-versions. A new anc release can add rows or
+  # change how one scores, so it reaches this gate only through a PR that bumps
+  # the pin and settles the score and the floor together.
   #
   # The same job checks the release binary's size against a standing ceiling.
   # Cargo honors [profile.release] only in the workspace root, and a profile
@@ -545,7 +561,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      ANC_VERSION: "0.6.0"
       ANC_SCORE_FLOOR: "98"
       XR_SIZE_CEILING_BYTES: "15000000"
     steps:
@@ -564,13 +579,15 @@ jobs:
         # A second binstall attempt covers a transient release-asset fetch
         # failure; a source build is the fallback after that.
         run: |
-          cargo binstall "agentnative@${ANC_VERSION}" --force --no-confirm \
-            || cargo binstall "agentnative@${ANC_VERSION}" --force --no-confirm \
-            || cargo install "agentnative@${ANC_VERSION}" --locked
+          set -euo pipefail
+          version="$(bash scripts/tool-version.sh agentnative)"
+          cargo binstall "agentnative@${version}" --force --no-confirm \
+            || cargo binstall "agentnative@${version}" --force --no-confirm \
+            || cargo install "agentnative@${version}" --locked
           installed="$(anc --version)"
-          echo "${installed} (pinned ${ANC_VERSION})"
-          if [ "$installed" != "anc ${ANC_VERSION}" ]; then
-            echo "::error title=Install anc::found '${installed}' on PATH, expected anc ${ANC_VERSION}"
+          echo "${installed} (pinned ${version})"
+          if [ "$installed" != "anc ${version}" ]; then
+            echo "::error title=Install anc::found '${installed}' on PATH, expected anc ${version}"
             exit 1
           fi
       - name: Build the release binary
