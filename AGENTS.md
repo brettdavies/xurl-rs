@@ -378,7 +378,7 @@ released `xr` 4.3.0 or earlier cannot read the store afterwards. Set `XURL_TOKEN
 run unless the move is intended.
 
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
-(`TokenStore::new_with_path`, `Auth::new_with_store_path`, `run_with_store_path`).
+(`TokenStore::new_with_path`, `Auth::new_with_store_path_and_overrides`, `run_with_store_path`).
 `crates/xurl-cli/tests/store_isolation_guard.rs` fails the suite when a test file names `Auth::new(`,
 `TokenStore::new()`, `TokenStore::with_credentials(`, `Client::from_env(`, `default_store_path()`,
 `default_pending_path()`, any `dirs::` call or `env::home_dir(`, sets, removes, or reads `HOME` or another home variable
@@ -387,6 +387,13 @@ or spawns the `xr` binary outside `common::xr()` and `common::xr_with_store` (wh
 unwritable scratch path or the test's own temp store); a test that must touch the real path goes on its allowlist with
 the reason. A companion guard in `crates/xurl-cli/tests/agentic_tests.rs` derives every environment variable either
 crate reads and fails when `xr --help` does not advertise one.
+
+Tests never read the process environment either: they pass `EnvOverrides`, empty or carrying the values the test names,
+to `Config::from_overrides` and `Auth::new_with_store_path_and_overrides`. `#[serial]` orders the few tests that export
+a variable against one another, not against a test beside them that reads the process, and a reading test also picks up
+whatever the developer's shell exports. `crates/xurl-cli/tests/env_mutation_guard.rs` fails the suite when a test sets
+or removes a variable, or calls `Config::new()`, `Config::default()`, `Auth::new_with_store_path(`,
+`EnvOverrides::from_env()`, or `env::from_process(`, outside its allowlists of the tests that prove the process read.
 
 `scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
 format, workflow, and markdown checks over the staged files only, and `pre-push` runs the CI mirror over the repo. Run

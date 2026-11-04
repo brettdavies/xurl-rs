@@ -89,9 +89,9 @@ fn store_auth_and_client_types_redact_every_secret() {
     assert_redacted("TokenStore", &format!("{store:?}"));
     assert_redacted("TokenStore::apps", &format!("{:?}", store.apps));
 
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_secret = SECRET.into();
-    let auth = Auth::new_with_store_path(&cfg, &path);
+    let auth = Auth::new_with_store_path_and_overrides(&cfg, &path, &EnvOverrides::default());
     assert_redacted("Auth", &format!("{auth:?}"));
 
     let builder = Client::builder()

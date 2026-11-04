@@ -28,7 +28,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 use tokio_util::sync::CancellationToken;
 use xdk::auth::Auth;
 use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
-use xdk::config::Config;
+use xdk::config::{Config, EnvOverrides};
 
 #[path = "../../xdk/tests/support/port_band.rs"]
 mod port_band;
@@ -140,7 +140,7 @@ fn recording_opener(url: &str) -> std::io::Result<()> {
 // ── Test scaffolding ──────────────────────────────────────────────────────
 
 fn test_config(token_url: &str, info_url: &str, redirect_uri: &str) -> Config {
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = "test-client-id".to_string();
     cfg.client_secret = "test-client-secret".to_string();
     cfg.redirect_uri = redirect_uri.to_string();
@@ -156,7 +156,7 @@ fn test_auth(cfg: Config, tmp: &TempDir, redirect_uri: &str) -> Auth {
     let store_path = tmp.path().join(".xurl");
 
     // Pre-stage the store with the test app's redirect_uri so the resolver
-    // (run by Auth::new_with_store_path) returns it instead of the built-in
+    // (run when the Auth is built) returns it instead of the built-in
     // default. The YAML is written directly, past the redirect-URI
     // validator, which has tests of its own.
     let yaml = format!(
@@ -164,7 +164,7 @@ fn test_auth(cfg: Config, tmp: &TempDir, redirect_uri: &str) -> Auth {
     );
     std::fs::write(&store_path, yaml).expect("write tempdir store");
 
-    Auth::new_with_store_path(&cfg, &store_path)
+    Auth::new_with_store_path_and_overrides(&cfg, &store_path, &EnvOverrides::default())
 }
 
 // ── The pivotal ordering test ─────────────────────────────────────────────

@@ -678,7 +678,7 @@ fn headless_step_accepts(query: &str) -> bool {
     };
     pending::save(&flow, &pending_path).expect("the pending flow is saved");
 
-    let mut cfg = Config::new();
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = "test-client-id".to_string();
     cfg.client_secret = "test-client-secret".to_string();
     cfg.token_url = format!("http://127.0.0.1:{}/token", closed_port());
