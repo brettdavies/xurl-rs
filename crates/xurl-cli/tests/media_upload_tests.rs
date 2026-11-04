@@ -368,6 +368,8 @@ async fn a_job_x_failed_carries_the_media_id_in_its_envelope() {
     assert_eq!(v["reason"], "invalid-request", "got: {v}");
     assert_eq!(v["media_id"], "777", "got: {v}");
     assert_eq!(v["next_step"]["action"], "fix-input", "got: {v}");
+    let message = v["message"].as_str().expect("a message");
+    assert!(!message.contains(AFTER_UPLOAD), "the read worked: {v}");
 }
 
 /// A wait that runs out is a failed command too, with the upload intact.
@@ -402,19 +404,34 @@ async fn a_status_read_that_fails_names_the_media_id_in_the_envelope(#[case] arg
     let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
     assert_eq!(v["reason"], "server-error", "got: {v}");
     assert_eq!(v["media_id"], "777", "got: {v}");
+    let message = v["message"].as_str().expect("a message");
+    assert!(message.starts_with(AFTER_UPLOAD), "says what failed: {v}");
 }
+
+/// What a status read's error opens with: the operation that failed and that
+/// the upload finished, which X's answer alone does not say. An empty 5xx
+/// otherwise reads `Error: {}`.
+const AFTER_UPLOAD: &str = "media 777 finished uploading, but reading its status failed: ";
 
 #[rstest::rstest]
 #[case::plain(&[])]
 #[case::quiet(&["--quiet"])]
 #[tokio::test(flavor = "multi_thread")]
-async fn a_status_read_that_fails_names_the_media_id_in_text(#[case] args: &[&str]) {
-    let (output, _tmp) = upload_then_status(ResponseTemplate::new(500), args).await;
+async fn a_status_read_that_fails_says_what_failed_in_text(#[case] args: &[&str]) {
+    let (output, _tmp) = upload_then_status(ResponseTemplate::new(503), args).await;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert_ne!(output.status.code(), Some(0), "stderr: {stderr}");
     assert_eq!(String::from_utf8_lossy(&output.stdout), "");
-    assert!(stderr.contains("777"), "stderr names the media: {stderr}");
+    assert!(
+        stderr.contains(&format!("Error: {AFTER_UPLOAD}")),
+        "the error says the upload finished and names it: {stderr}"
+    );
+    assert_eq!(
+        stderr.matches("Media ID").count(),
+        0,
+        "the error line already names the media: {stderr}"
+    );
 }
 
 /// A status read that fails after the upload finished waits again rather than
@@ -517,6 +534,8 @@ async fn a_status_read_the_network_dropped_resumes_the_wait() {
     let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
     assert_eq!(v["reason"], "network-error", "got: {v}");
     assert_eq!(v["media_id"], "777", "got: {v}");
+    let message = v["message"].as_str().expect("a message");
+    assert!(message.starts_with(AFTER_UPLOAD), "says what failed: {v}");
     assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
     assert_eq!(
         v["next_step"]["command"], "xr media status 777 --wait=60",

@@ -3916,7 +3916,8 @@ pub enum MediaCommands {
         /// `--wait=false` or `--wait=0` returns after FINALIZE. The value
         /// follows `=`. A wait that reaches its deadline exits 1 with reason
         /// `processing-timeout`; the upload itself is intact, and the error
-        /// names the `xr media status` command that resumes the wait.
+        /// names the `xr media status` command that resumes the wait. So does
+        /// a status read that fails for a 5xx or a network error.
         #[arg(
             long = "wait",
             value_name = "SECS",

@@ -363,9 +363,9 @@ information, as an image's does.
 An upload that succeeds answers one JSON document on stdout: FINALIZE's response, with `data.processing_info` holding
 the final state when the upload waited for one. One that fails leaves stdout empty, in every format. Anything that ends
 the wait after the upload finished, a job X failed or a status read that failed among them, names the media in the
-envelope's `media_id`, and in the text on stderr. A status read that failed for a 5xx or a network error carries
-`resume-wait` as its step, the same `xr media status <id> --wait=<secs>` for as long as the wait that failed, so the file
-is not sent again.
+envelope's `media_id` and in `message`. A status read that failed for a 5xx or a network error carries `resume-wait` as
+its step, the same `xr media status <id> --wait=<secs>` for as long as the wait that failed, so the file is not sent
+again.
 
 A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
 media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:
