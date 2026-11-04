@@ -68,7 +68,7 @@ annotate() {
 
 # surface <tree> — one line per contract element, unsorted.
 surface() {
-  local tree="$1" completions="$1/completions/$BIN.bash" cli file
+  local tree="$1" completions="$1/completions/$BIN.bash" cli file files
   [ -f "$completions" ] || die "no completions/$BIN.bash under $tree; set BIN in this script"
 
   # clap_complete writes one `case "${cmd}"` arm per command path, labelled
@@ -98,15 +98,28 @@ surface() {
   [ -n "$cli" ] || die "found no commands in $completions; did the clap_complete output format change?"
   printf '%s\n' "$cli"
 
-  # Array indices become `[]` so reordering a list is not growth; the value
-  # is JSON-encoded so every leaf stays on one line.
+  [ -d "$tree/$SCHEMA_DIR" ] || return 0
+  files=()
   while IFS= read -r file; do
-    jq -r --arg file "$file" '
+    files+=("$file")
+  done < <(cd "$tree" && find "$SCHEMA_DIR" -type f -name '*.json' | LC_ALL=C sort)
+  [ "${#files[@]}" -gt 0 ] || return 0
+
+  # Array indices become `[]` so reordering a list is not growth; the value
+  # is JSON-encoded so every leaf stays on one line. One jq reads every file
+  # from inside the tree, which names each file as the tree does and costs
+  # half the CPU of starting one per file. A failure goes file by file, so jq
+  # reports the line within the file it could not read.
+  (cd "$tree" && jq -r '
             paths(scalars) as $p
             | select($p[-1] != "description" and $p[-1] != "title")
-            | "schema\t\($file)\t\($p | map(if type == "number" then "[]" else . end) | join("."))=\(getpath($p) | tojson)"
-        ' "$tree/$file" || die "cannot read $tree/$file as JSON"
-  done < <([ -d "$tree/$SCHEMA_DIR" ] && cd "$tree" && find "$SCHEMA_DIR" -type f -name '*.json' | LC_ALL=C sort)
+            | "schema\t\(input_filename)\t\($p | map(if type == "number" then "[]" else . end) | join("."))=\(getpath($p) | tojson)"
+        ' "${files[@]}" 2>/dev/null) || {
+    for file in "${files[@]}"; do
+      jq empty "$tree/$file" || die "cannot read $tree/$file as JSON"
+    done
+    die "jq could not read the schemas under $tree/$SCHEMA_DIR"
+  }
 }
 
 # filled_sections <head-tree> <body-file> — each `###` heading in the
