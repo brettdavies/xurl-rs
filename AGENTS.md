@@ -396,7 +396,8 @@ or removes a variable, or calls `Config::new()`, `Config::default()`, `Auth::new
 `EnvOverrides::from_env()`, or `env::from_process(`, outside its allowlists of the tests that prove the process read.
 
 `scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
-format, workflow, and markdown checks over the staged files only, and `pre-push` runs the CI mirror over the repo. Run
+format, workflow, and markdown checks when a file of their kind is staged (the format check is `cargo fmt -- --check`
+over every crate, the others read only the staged files), and `pre-push` runs the CI mirror over the repo. Run
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 

@@ -1,3 +1,4 @@
+<!-- canonical: repo-owned (one Changelog per crate) -->
 ## Summary
 
 <!-- Provide a brief overview of the changes in this PR. What feature/fix/improvement does this introduce?
@@ -41,14 +42,18 @@
      THE SECTION SETS THE VERSION (RELEASES.md § Versioning). Breaking changes:
      major. Added or Deprecated: minor. Changed, Fixed, Documentation: patch.
      A change to the contract (a command, flag, env var, exit code, or a
-     structured-output field, reason, or action) never goes under Changed.
+     structured-output field, reason, or action) never goes under Changed,
+     and removing one is a Breaking changes bullet that starts with "Remove".
      An MSRV bump sets a minor wherever it is filed. The Changelog bump
      check fails a PR whose xr commands, flags, or schemas grow while this
-     block has no bullet under Added, Deprecated, or Breaking changes.
+     block has no bullet under Added, Deprecated, or Breaking changes, or
+     shrink while it has none under Breaking changes or Fixed.
 
      RULES:
 - 1-5 bullets per crate. Fewer is better. One-line fixes get one bullet.
 - Delete empty ### sections entirely; don't leave blank categories.
+- Keep the sections in this order, the one generate-changelog.py emits: Breaking changes, Added, Changed, Deprecated,
+  Fixed, Documentation.
 - Each bullet starts with a verb: Add, Fix, Change, Remove, Deprecate.
 - Don't duplicate the PR title; expand on it or provide context.
 - If a crate has NO user-facing change in this PR, leave its section heading
@@ -82,9 +87,9 @@
 ## Changelog (xdk-rs)
 
 <!-- The library's changelog. Same rules as above, for `xdk-rs` API consumers.
-     While xdk-rs is 0.x, Breaking changes moves the middle number (0.1.x to
-     0.2.0) and every other section moves the last (0.1.0 to 0.1.1), which
-     Cargo reads as the compatible position of a 0.x crate.
+     While xdk-rs is 0.x, Breaking changes, Added, and Deprecated move the
+     middle number (0.4.x to 0.5.0) and every other section moves the last
+     (0.4.0 to 0.4.1), so a ^0.4 requirement receives only fixes.
 
      BREAKING ENTRIES CARRY A BEFORE/AFTER SNIPPET. crates/xdk/README.md makes
      this a release gate: a release that breaks something and ships no snippet

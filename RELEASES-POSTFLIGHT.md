@@ -1,3 +1,4 @@
+<!-- Canonical version: 2026.11.03 (generic) -->
 # Post-release verification: `xurl-rs`
 
 Operational post-flight checklist. Runs **after** the `release/v<version> → main` PR merges and you push the tag (`git
@@ -27,21 +28,23 @@ vendored (there is no deployed surface to smoke).
 
 Sub-commands let you re-run one verification in isolation:
 
-| Sub-command     | What it checks                                                                                                                                                      | Source of truth                                         |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `release`       | The tag's pipeline concluded `"success"`: `release.yml`, or `release-lib.yml` on an `xdk-rs-v*` tag                                                                 | `gh run view`                                           |
-| `tap`           | `brettdavies/homebrew-tap` `update-formula` (repository_dispatch) + `Publish formula` (workflow_run) ran SUCCESS. SKIPs on a library tag                            | `gh run list -R brettdavies/homebrew-tap`               |
-| `finalize`      | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed). SKIPs on a library tag                                                          | `gh run list -e repository_dispatch`                    |
-| `make-latest`   | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it. On an `xdk-rs-v*` tag the check inverts: latest must not be it          | `gh api /releases/latest`                               |
-| `crates`        | `crates.io` shows the tag's crate at its version: `xurl-rs` for `vX.Y.Z`, `xdk-rs` for `xdk-rs-vX.Y.Z`                                                              | `crates.io` index API                                   |
-| `tags`          | `xdk-rs-vX.Y.Z` is on `vX.Y.Z`'s commit whenever the release moved `xdk-rs`'s version                                                                               | `git rev-parse`, `cargo metadata`                       |
-| `backport`      | a merged PR to `dev` carrying the released tag in its title; for `xdk-rs-vX.Y.Z`, which the binary's sync carries, `dev` holding `main`'s `crates/xdk/CHANGELOG.md` | `gh pr list --base dev --state merged`, `git rev-parse` |
-| `surface-smoke` | auto-SKIPs: xurl-rs vendors no `surface-smoke.sh`                                                                                                                   | n/a                                                     |
-| `all`           | every above                                                                                                                                                         | all of the above                                        |
+| Sub-command     | What it checks                                                                                                                                                                                                                         | Source of truth                                         |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `release`       | The tag's pipeline concluded `"success"`: `release.yml`, or `release-lib.yml` on an `xdk-rs-v*` tag                                                                                                                                    | `gh run view`                                           |
+| `tap`           | `brettdavies/homebrew-tap` `update-formula` (repository_dispatch) + `Publish formula` (workflow_run) ran SUCCESS. SKIPs on a library tag                                                                                               | `gh run list -R brettdavies/homebrew-tap`               |
+| `finalize`      | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed). SKIPs on a library tag                                                                                                                             | `gh run list -e repository_dispatch`                    |
+| `make-latest`   | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it. On an `xdk-rs-v*` tag the check inverts: latest must not be it                                                                             | `gh api /releases/latest`                               |
+| `crates`        | `crates.io` shows the tag's crate at its version: `xurl-rs` for `vX.Y.Z`, `xdk-rs` for `xdk-rs-vX.Y.Z`                                                                                                                                 | `crates.io` index API                                   |
+| `tags`          | `xdk-rs-vX.Y.Z` is on `vX.Y.Z`'s commit whenever the release moved `xdk-rs`'s version                                                                                                                                                  | `git rev-parse`, `cargo metadata`                       |
+| `backport`      | the backport's own subject (`chore(release): sync dev after <tag>`) on `dev`'s first-parent history or a merged PR's title; for `xdk-rs-vX.Y.Z`, which the binary's backport carries, `dev` holding `main`'s `crates/xdk/CHANGELOG.md` | `gh pr list --base dev --state merged`, `git rev-parse` |
+| `surface-smoke` | auto-SKIPs: xurl-rs vendors no `surface-smoke.sh`                                                                                                                                                                                      | n/a                                                     |
+| `all`           | every above                                                                                                                                                                                                                            | all of the above                                        |
 
 The `tap` and `finalize` gates accept only downstream runs created at or after this tag's `release.yml` run, and SKIP
 until that run exists: the tap repo is shared across every CLI, so a name-only match would return another release's runs
-while this one is still queued.
+while this one is still queued. The `tap` gate also SKIPs when no workflow under `.github/workflows/` calls the
+`rust-release.yml` reusable or sends `update-formula` itself: a repo that dispatches nothing to the tap would otherwise
+pass on another CLI's formula bump. `release.yml` here calls the reusable, so the gate runs.
 
 Flags:
 
@@ -117,7 +120,7 @@ Run immediately after the tag push triggers `release.yml`.
 - [ ] **Rollback path confirmed.** If this release is bad, roll back at the surface first (`cargo yank`, re-point
   `releases/latest`, revert the formula bump), then land a `fix` or `revert` through the normal `dev` to `release/*` to
   `main` flow so `main` reconverges with what is live.
-- [ ] **Sync `dev` with the release** via a **merged PR to `dev` carrying the released tag in its title.**
+- [ ] **Sync `dev` with the release** via the PR `scripts/sync-dev-after-release.sh` opens, merged to `dev`.
   `scripts/sync-dev-after-release.sh v<X.Y.Z>` cuts the branch, writes the released version into
   `crates/xurl-cli/Cargo.toml`, copies each crate's changelog from `main`, adopts the release-prep paths it discovers
   since the previous tag, refreshes every workspace member's `Cargo.lock` entry from the synced manifests, and opens the
@@ -131,11 +134,13 @@ Run immediately after the tag push triggers `release.yml`.
   publish](./RELEASES.md#after-publish-sync-dev-with-the-release)); `scripts/release/preflight.sh api-contract` fails
   while one stands.
 
-  The gate (`scripts/release/postflight.sh backport`) is signal-agnostic about which files moved: it searches merged PRs
-  to `dev` by the tag (the search index tokenizes `v3.0.0` as one word, so a bare `3.0.0` misses it) and accepts either
-  spelling in the title. The binary's sync PR carries the library's changelog too, so for an `xdk-rs-vX.Y.Z` tag no PR
-  names, the gate passes when `dev`'s `crates/xdk/CHANGELOG.md` equals `main`'s and fails when they differ. Its SKIP
-  and FAIL name the sync command to run.
+  The gate (`scripts/release/postflight.sh backport`) is signal-agnostic about which files moved: it looks for the
+  subject the script gives the backport, `chore(release): sync dev after <tag>` (its PR title and squash commit) or
+  `chore(release): backport <tag> artifacts to dev` (its commit), first on `dev`'s first-parent history, so a backport
+  committed without a PR counts, then among merged PRs to `dev`. A feature PR that only mentions the version does not
+  count. The binary's backport carries the library's changelog too, so for an `xdk-rs-vX.Y.Z` tag no backport names,
+  the gate passes when `dev`'s `crates/xdk/CHANGELOG.md` equals `main`'s and fails when they differ. Its SKIP and FAIL
+  name the sync command to run.
 
   ```bash
   scripts/sync-dev-after-release.sh v<X.Y.Z>

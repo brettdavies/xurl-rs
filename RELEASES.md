@@ -1,3 +1,5 @@
+<!-- Canonical version: 2026.11.03 (generic) -->
+<!-- canonical: version-scheme semver -->
 # Releasing `xurl-rs`
 
 Operational runbook. Rationale lives in [`RELEASES-RATIONALE.md`](./RELEASES-RATIONALE.md). Pre-cut go/no-go checklist
@@ -70,7 +72,8 @@ Breaking Changes` on a major, delete the rest when they do not apply.
   patch-id cherry-check counts, pre-push gate results, CI status, or prose-scrub findings. Anomalies get fixed before
   push, not audit-trailed.
 - **Changelog** subsections (`### Breaking changes` / `### Added` / `### Changed` / `### Deprecated` / `### Fixed` /
-  `### Documentation`): 1-5 bullets each, delete empty subsections, each bullet starts with a verb. The subsection an
+  `### Documentation`, the six headings of [§ Versioning](#versioning)): 1-5 bullets each, delete empty subsections,
+  each bullet starts with a verb. The subsection an
   entry sits under sets the release's version (§ Versioning). A crate's `## Changelog (<crate>)` heading left standing
   with no bullets under it says the PR ships nothing user-facing for that crate, and `generate-changelog.py` adds
   nothing for it, whatever the PR title says.
@@ -86,12 +89,26 @@ Breaking Changes` on a major, delete the rest when they do not apply.
 
 ## Versioning
 
-Both crates follow [SemVer 2.0.0](https://semver.org/). A release's version comes from its changelog: each merged PR's
-`## Changelog (<crate>)` sections classify its change, and the release takes the highest bump any of its PRs calls for.
+The marked lines below are github-repo-setup's SemVer section of `references/versioning.md`, which the drift check
+compares, and line 2 declares the scheme. Both crates follow it, each on its own tag line: every PR files each crate's
+changes in that crate's `## Changelog (<crate>)` block, and each crate's release takes the highest bump its own PRs
+call for.
+
+<!-- canonical:begin versioning-semver -->
+
+This repo follows [SemVer 2.0.0](https://semver.org/). Its version comes from its changelog: every PR files each
+user-facing change under one of the six headings below, and a release takes the highest bump any of its PRs calls for.
+The rules cover only the surfaces § What the contract is names.
 
 ### What the contract is
 
-`xr`'s public API is its machine contract:
+<!-- canonical:repo-begin contract -->
+
+The repository releases two crates, each with its own contract and its own tag line.
+
+#### `xr`
+
+`xr` (package `xurl-rs`, tags `vX.Y.Z`) has its machine contract as its public API:
 
 - **Invocation:** command names and aliases, flags, positional forms, and every environment variable `xr --help` lists.
 - **Exit codes:** the table in `crates/xurl-cli/README.md`.
@@ -104,22 +121,66 @@ Text-mode output, help text, colors, `--verbose` diagnostics, suggestion wording
 bytes, passed through) are not contract. The one text-mode exception is the plain `xr --version` line, `xr X.Y.Z`, which
 scripts parse. A script that needs any other stable output reads a structured format.
 
-`xdk-rs`'s contract is its public Rust API, which `cargo semver-checks` reads, and the behavior its rustdoc documents.
+#### `xdk-rs`
 
-### The three bumps
+`xdk-rs` (tags `xdk-rs-vX.Y.Z`) has its public Rust API as its contract, which `cargo semver-checks` reads, and the
+behavior its rustdoc documents. Items marked `#[doc(hidden)]` are outside it.
+
+<!-- canonical:repo-end -->
+
+### The six headings
+
+| Heading            | Holds                                                                   | Bump  |
+| ------------------ | ----------------------------------------------------------------------- | ----- |
+| `Breaking changes` | a contract surface removed, renamed, or retyped, or its meaning changed | major |
+| `Added`            | a new contract surface                                                  | minor |
+| `Changed`          | a visible change outside the contract                                   | patch |
+| `Deprecated`       | a contract surface marked for removal                                   | minor |
+| `Fixed`            | behavior brought back to the documented contract                        | patch |
+| `Documentation`    | documentation only                                                      | patch |
+
+`generate-changelog.py` writes them in this order and any other heading after them. A contract removal is a
+`Breaking changes` bullet that starts with "Remove"; a removal outside the contract goes under `Changed`, or is left
+out. Removals ship when they are ready, with no deprecation schedule. A `type!:` commit is a prompt to check the PR's
+sections, never the bump itself.
+
+### The bump
+
+`scripts/generate-changelog.py --bump` prints the next version from the PRs merged since the last release, and
+`cut-release-branch.sh` prints it beside the version the cut is given:
+
+- The highest heading among their sections sets the bump.
+- A `rust-version` raised since the last tag is a minor-level change, so it lifts a patch to a minor. A Rust repo's
+  `rust-version` equals the toolchain `rust-toolchain.toml` pins, and CI's MSRV job builds on exactly that version.
+- Before 1.0, a major or a minor moves the middle number and a patch moves the last: `0.4.2` becomes `0.5.0` or `0.4.3`.
+  This is stricter than Cargo's convention on purpose: an addition never ships as a last-number bump, so a `^0.y`
+  dependent receives only fixes until it opts in.
+- From 1.0, when the sections call for a major, the release agent asks the maintainer: a major, or a minor under the
+  small-break exception. A minor ships `docs/migrating/v<version>.md`, whose first line names the exception, and
+  preflight fails a 1.0+ release that keeps its major and carries `### Breaking changes` without that guide.
+
+### Overrides
+
+<!-- canonical:repo-begin overrides -->
+
+None. A repo that departs from the bump, the pre-1.0 rule, or the MSRV rule states the rule it follows here.
+
+<!-- canonical:repo-end -->
+
+<!-- canonical:end versioning-semver -->
+
+### What each bump holds for `xr`
 
 - **Patch:** only fixes. Behavior brought back to the documented contract or to how the X API behaves, even when an exit
   code or a JSON key changes as a result. Documentation, text-mode changes, and dependency or security updates that
   leave the contract alone. Nothing new.
 - **Minor:** anything new that breaks nothing. A command, flag, environment variable, output field, output format,
-  `reason`, or `action`; endpoint coverage a spec refresh adds; a deprecation; an MSRV bump.
+  `reason`, or `action`; endpoint coverage a spec refresh adds; a deprecation; an MSRV raise.
 - **Major:** anything in the contract removed, renamed, or retyped, or its documented meaning changed.
 
-A minor can carry fixes, and a major can carry both.
-
-An `xr` break ships in a major, or in a minor when the maintainer judges its blast radius small. A break taken into a
-minor is filed under `### Added`, because `### Breaking changes` sets a major. Either way, the release ships a guide
-under `docs/migrating/` that maps each old invocation to its replacement, and `MIGRATING.md` lists it.
+A minor can carry fixes, and a major can carry both. A break taken into a minor under the small-break exception
+(§ The bump) ships a guide under `docs/migrating/` that maps each old invocation to its replacement, and `MIGRATING.md`
+lists it.
 
 ### X API changes
 
@@ -128,7 +189,7 @@ X ships additive API changes often and does not version them.
 - X adds an endpoint or a field: `xr` adds a command or a field, a minor.
 - X renames or drops something the contract names: read both spellings and keep emitting the contract's name, the way
   typed responses read X's legacy post vocabulary. When the contract's own name has to change, add the new name in a
-  minor, deprecate the old one, and remove it in a major that batches removals.
+  minor, deprecate the old one, and remove it in a major.
 - X changes behavior in a way that makes `xr` wrong: the fix is a patch.
 
 ### Closed sets
@@ -136,41 +197,28 @@ X ships additive API changes often and does not version them.
 `reason` and `next_step.action` are closed sets an agent branches on. A new member ships in a minor, and a consumer
 treats a value it does not recognize as its default branch. Removing or renaming a member is a major.
 
-### `xdk-rs` before 1.0
+### Two tag lines
 
-Cargo reads a `0.y.z` version with `y` as the breaking position: `^0.1.0` accepts `0.1.1`, never `0.2.0`. So a break
-ships as `0.(y+1).0`, filed under `### Breaking changes` with its before/after snippet (the policy in
-`crates/xdk/README.md`), and so does an MSRV bump. Anything additive or a fix ships as `0.y.(z+1)`. From `1.0.0` the
-library follows the three bumps above.
+The two tag lines stay independent. A library release moves the CLI's version only through an MSRV raise, which both
+crates share because `rust-version` is declared once in the root `Cargo.toml`, or when the CLI adopts new library API
+and the `xdk-rs` requirement in the root `Cargo.toml` moves. An `xdk-rs` break is filed under `### Breaking changes`
+with its before/after snippet (the policy in `crates/xdk/README.md`).
 
-The two tag lines stay independent. A library release moves the CLI's version only through an MSRV bump, or when the CLI
-adopts new library API and the `xdk-rs` requirement in the root `Cargo.toml` moves.
+### The changelog bump check
 
-### The changelog section decides
+The `Changelog bump` workflow backs the review for `xr`. It calls the shared `rust-changelog-bump.yml` reusable, which
+runs `scripts/check-surface-bump.sh` to compare the commands, flags, and flag values in `completions/xr.bash` and every
+schema under `schema/` against the PR's base. It fails when that surface grows while the `## Changelog (xurl-rs)` block
+has no bullet under `### Added`, `### Deprecated`, or `### Breaking changes`, and when the surface shrinks while the
+block has none under `### Breaking changes` or `### Fixed`. It reads the block with the changelog generator's own
+parser, re-runs when the PR body is edited, and is a required check on `dev`
+(`changelog-bump / Surface growth needs a minor section`). Env vars, exit codes, and the store format have no generated
+artifact to compare, so review alone covers them. The `xdk-rs` block is not read: the library's surface is its Rust
+API, which `cargo semver-checks` compares in CI's public-API semver job and in preflight's api-contract gate.
 
-- `### Breaking changes`: major. `xdk-rs` before 1.0: the middle number (`0.1.x` to `0.2.0`).
-- `### Added`, `### Deprecated`: minor. `xdk-rs` before 1.0: the last number (`0.1.0` to `0.1.1`).
-- `### Changed`, `### Fixed`, `### Documentation`: patch. `xdk-rs` before 1.0: the last number.
-
-`### Changed` holds a visible change outside the contract, or a change back to conformance with it. A change to the
-contract belongs under `### Added`, `### Deprecated`, or `### Breaking changes`. An MSRV bump is the one entry whose
-bump its section does not decide: it sets a minor for `xr` and the breaking position for `xdk-rs` before 1.0, wherever
-it is filed, because `rust-version` is shared by both crates. The section is checked when the PR is reviewed, and a
-maintainer-tooling PR carries no entry under either crate.
-
-The `Changelog bump` workflow backs the review for `xr`. It compares the commands, flags, and flag values in
-`completions/xr.bash` and every schema under `schema/` against the PR's base, and fails when that surface grows while
-the `## Changelog (xurl-rs)` block has no bullet under `### Added`, `### Deprecated`, or `### Breaking changes`. It
-reads the block with the changelog generator's own parser, re-runs when the PR body is edited, and is a required check
-on `dev`. A removal only warns, because a change back to the documented contract is a patch. Env vars, exit codes, and
-the store format have no generated artifact to compare, so review alone covers them. The `xdk-rs` block is not checked:
-before 1.0, an addition and a change both move the library's last number, so filing one as the other cannot change its
-version.
-
-At release time, list each crate's entries with `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag
-<tag> --dry-run` and set the version from the highest section present. The script emits the sections in the PR
-template's order (`### Breaking changes`, `### Added`, `### Changed`, `### Deprecated`, `### Fixed`, `###
-Documentation`) and any other heading after them.
+At release time, `scripts/generate-changelog.py --bump --crate <crate>` prints each crate's next version from the PRs
+merged since its last tag, and `scripts/generate-changelog.py --crate <crate> --from-dev-prs --tag <tag> --dry-run`
+lists the entries behind it.
 
 → Rationale: [`RELEASES-RATIONALE.md` § Versioning](./RELEASES-RATIONALE.md#versioning).
 

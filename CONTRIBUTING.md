@@ -15,11 +15,11 @@ cargo test                                 # unit + integration
 git config core.hooksPath scripts/hooks    # activate the pre-push battery
 ```
 
-That one command activates both hooks. `pre-commit` is staged-file-scoped and fast: `rustfmt --check` on staged `.rs`,
-`actionlint` on a staged workflow, `markdownlint-cli2` on staged `.md`, `shellcheck` on staged shell. It runs no cargo
-step, so a markdown-only commit runs `markdownlint-cli2` alone, even for a document a test reads; those tests run at
-push. Both hooks share `scripts/hooks/_lib.sh`, which owns how each tool runs while each hook owns which files it runs
-on.
+That one command activates both hooks. `pre-commit` is fast and runs a check only when a file it reads is staged:
+`cargo fmt -- --check` over every crate when a `.rs` file is staged, `actionlint` on a staged workflow,
+`markdownlint-cli2` on staged `.md`, `shellcheck` on staged shell. It builds nothing, so a markdown-only commit runs
+`markdownlint-cli2` alone, even for a document a test reads; those tests run at push. Both hooks share
+`scripts/hooks/_lib.sh`, which owns how each tool runs while each hook owns which files it runs on.
 
 `pre-push` mirrors CI over the repo: `cargo fmt`, `cargo clippy` with warnings denied, `cargo test --workspace`, the
 MSRV check, the doc build, the examples build, the credential-free example run against the `testing` mock, the TLS
@@ -28,12 +28,13 @@ documented with every feature), `cargo deny check`, `shellcheck`, a Windows comp
 `actionlint`. The feature powerset (`cargo hack`) runs only when the tool is installed and says so otherwise.
 
 `pre-push` scopes each step to what the push actually changes, so a docs-only push skips the Rust battery entirely and
-finishes in seconds. A document counts as docs only when it is markdown outside `crates/` that no Rust source names:
-tests read `AGENTS.md`, the root `README.md`, and the PR template, so a push touching one of those runs the battery.
-`scripts/cargo-inputs.sh` makes that call, and CI's `Change scope` job applies the same filter to a pull request,
-skipping every Rust job on a docs-only PR while lint still runs. The scoping fails open: an unrecognized path runs
-everything, and running the hook by hand sweeps the whole repo. Every step that is skipped says so on its own line, so
-a skip never reads as a pass.
+finishes in seconds. A document counts as docs only when it is markdown outside `crates/`, not a README, and named by
+no Rust source: tests read `AGENTS.md` and the PR template, so a push touching one of those runs the battery. The
+gitignored `.context/`, the license texts, the issue forms, the rulesets, and the Dependabot config count as docs too,
+unless a Rust source names the file or a directory above it; workflows do not. `scripts/cargo-inputs.sh` makes that
+call, and CI's `Change scope` job applies the same filter to a pull request, skipping every Rust job on a docs-only PR
+while lint still runs. The scoping fails open: an unrecognized path runs everything, and running the hook by hand
+sweeps the whole repo. Every step that is skipped says so on its own line, so a skip never reads as a pass.
 
 Six CI gates have no hook counterpart, because each needs a clean checkout, a released baseline, a release build, a
 second binary, or a Windows machine: completions freshness (`./scripts/generate-completions.sh --check`), the package
