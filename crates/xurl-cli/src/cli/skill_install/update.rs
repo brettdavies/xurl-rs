@@ -32,7 +32,9 @@ fn compute_update_envelope(
     dry_run: bool,
     skill_env: &SkillEnv,
 ) -> InstallEnvelope {
-    update_envelope(host, dry_run, skill_env).with_next_step()
+    update_envelope(host, dry_run, skill_env)
+        .with_next_step()
+        .with_message()
 }
 
 fn update_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> InstallEnvelope {
@@ -209,32 +211,20 @@ pub fn run_update_multi(
     skill_env: &SkillEnv,
 ) -> i32 {
     if all {
-        let mut installations = Vec::with_capacity(SkillHost::ALL.len());
-        let mut worst: i32 = 0;
-        for h in SkillHost::ALL {
-            let env = if is_installed(*h, skill_env) {
-                compute_update_envelope(*h, dry_run, skill_env)
-            } else {
-                skipped_envelope(*h, skill_env)
-            };
-            if env.status == STATUS_ERROR {
-                worst = worst.max(env.exit_code.unwrap_or(1));
-            }
-            installations.push(env);
-        }
-        let multi = InstallMultiEnvelope {
-            action: ACTION_UPDATE,
-            status: if worst == 0 {
-                if dry_run { STATUS_DRY_RUN } else { STATUS_OK }
-            } else {
-                STATUS_ERROR
-            },
-            installations,
-            exit_code: worst,
-        };
+        let installations = SkillHost::ALL
+            .iter()
+            .map(|h| {
+                if is_installed(*h, skill_env) {
+                    compute_update_envelope(*h, dry_run, skill_env)
+                } else {
+                    skipped_envelope(*h, skill_env)
+                }
+            })
+            .collect();
+        let multi = InstallMultiEnvelope::of(ACTION_UPDATE, dry_run, installations);
         let rendered = render_multi(&multi, &out.format);
         let _ = writeln!(stdout, "{rendered}");
-        return worst;
+        return multi.exit_code;
     }
     let Some(host) = host else {
         return emit_missing_host_envelope(out, stdout);

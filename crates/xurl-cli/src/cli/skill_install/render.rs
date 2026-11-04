@@ -62,6 +62,53 @@ pub(super) fn render_envelope(env: &InstallEnvelope, format: &OutputFormat) -> S
     lines.join("\n")
 }
 
+/// The sentence for a skill verb's failure, from the facts its envelope holds.
+pub(super) fn failure_message(env: &InstallEnvelope) -> Option<String> {
+    let dir = env.refused_dir.as_deref().unwrap_or(&env.install_dir);
+    let host = env.host;
+    Some(match env.reason? {
+        "home-not-set" => format!(
+            "{dir} starts at the home directory, and neither HOME nor XURL_SKILL_HOME is set. \
+             Set one, or the host's own config-directory variable; `xr --help` lists them."
+        ),
+        "destination-not-empty" => format!(
+            "{dir} already holds files, so nothing was cloned. `xr skill update {host}` replaces \
+             a clone of the bundle there and refuses anything else."
+        ),
+        "destination-is-file" => {
+            format!(
+                "{dir} is a file, so nothing was cloned. Move it elsewhere, then run this again."
+            )
+        }
+        "git-not-found" => {
+            "`git` was not found on PATH, so nothing was cloned. Install it, then run this again."
+                .to_string()
+        }
+        "git-clone-failed" => format!(
+            "`git clone` exited with code {}, so {dir} is as it was. Its own error is on stderr.",
+            env.exit_code.unwrap_or(1)
+        ),
+        "remove-failed" => format!(
+            "A fresh clone could not be swapped in at {dir}, or the copy it replaced could not be \
+             removed. Check the permissions on its parent directory, then run this again."
+        ),
+        _ => return None,
+    })
+}
+
+/// Which of `total` hosts failed in an `--all` run, and why.
+pub(super) fn hosts_failed_message(failed: &[&InstallEnvelope], total: usize) -> String {
+    let hosts: Vec<String> = failed
+        .iter()
+        .map(|env| format!("{} ({})", env.host, env.reason.unwrap_or("unknown")))
+        .collect();
+    format!(
+        "{} of {total} hosts failed: {}. Each entry in `installations` says what to do about it.",
+        failed.len(),
+        hosts.join(", ")
+    )
+}
+
 /// Render a multi-host envelope per the active output format.
 pub(super) fn render_multi(env: &InstallMultiEnvelope, format: &OutputFormat) -> String {
     if format.is_structured() {

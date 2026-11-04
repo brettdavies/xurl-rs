@@ -439,6 +439,14 @@
             "null"
           ]
         },
+        "installations": {
+          "description": "One report per host on a skill verb's `--all` run. The top-level\n`reason` and `next_step` speak for the host with the worst exit code.",
+          "items": true,
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "known_hosts": {
           "description": "Agent hosts `skill install` accepts.",
           "items": {

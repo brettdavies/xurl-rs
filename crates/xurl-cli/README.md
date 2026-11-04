@@ -713,6 +713,10 @@ a clone of the bundle's repository, over HTTPS or SSH. A fork, any other directo
 `refused_dir` naming it and nothing changed, and the same goes for a copy at a legacy location: move it elsewhere and
 run the command again.
 
+Under `--all`, each entry in `installations` reports one host. A failure is an error envelope at the top level as well:
+its `reason`, `exit_code`, and `next_step` speak for the first host with the worst exit code, and `message` names every
+host that failed.
+
 ### Response Schema Discovery
 
 ```bash

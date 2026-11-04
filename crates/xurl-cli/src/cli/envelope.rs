@@ -460,6 +460,10 @@ pub struct ErrorBody {
     /// Agent hosts `skill install` accepts.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub known_hosts: Option<Vec<String>>,
+    /// One report per host on a skill verb's `--all` run. The top-level
+    /// `reason` and `next_step` speak for the host with the worst exit code.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub installations: Option<Vec<Value>>,
     /// Agent host a skill verb targeted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub host: Option<String>,

@@ -167,7 +167,7 @@ pub struct InstallEnvelope {
     /// `legacy_install_dir`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub refused_dir: Option<String>,
-    /// What was refused and how to clear it, beside [`Self::refused_dir`].
+    /// What went wrong and how to clear it, on a failure.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     /// What to do about [`Self::reason`]; `None` on success.
@@ -201,6 +201,14 @@ impl InstallEnvelope {
         });
         self
     }
+
+    /// Fills [`Self::message`] on a failure that has no sentence of its own.
+    fn with_message(mut self) -> Self {
+        if self.status == STATUS_ERROR && self.message.is_none() {
+            self.message = render::failure_message(&self);
+        }
+        self
+    }
 }
 
 /// Multi-host envelope for `--all` invocations.
@@ -214,6 +222,51 @@ pub struct InstallMultiEnvelope {
     pub installations: Vec<InstallEnvelope>,
     /// Worst exit code observed across [`Self::installations`].
     pub exit_code: i32,
+    /// On a failure, the `reason` of the host with the worst exit code.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<&'static str>,
+    /// On a failure, which hosts failed and why.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// On a failure, the step of the host with the worst exit code. Each entry
+    /// in [`Self::installations`] carries its own.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_step: Option<NextStep>,
+}
+
+impl InstallMultiEnvelope {
+    /// Aggregates the hosts of one `--all` run. The first host with the worst
+    /// exit code speaks for the run at the top level.
+    fn of(action: &'static str, dry_run: bool, installations: Vec<InstallEnvelope>) -> Self {
+        let failed: Vec<&InstallEnvelope> = installations
+            .iter()
+            .filter(|env| env.status == STATUS_ERROR)
+            .collect();
+        let worst = failed
+            .iter()
+            .rev()
+            .max_by_key(|env| env.exit_code.unwrap_or(1));
+        let (status, exit_code, reason, next_step) = match worst {
+            Some(env) => (
+                STATUS_ERROR,
+                env.exit_code.unwrap_or(1),
+                env.reason,
+                env.next_step.clone(),
+            ),
+            None if dry_run => (STATUS_DRY_RUN, 0, None, None),
+            None => (STATUS_OK, 0, None, None),
+        };
+        let message = worst.map(|_| render::hosts_failed_message(&failed, installations.len()));
+        Self {
+            action,
+            status,
+            installations,
+            exit_code,
+            reason,
+            message,
+            next_step,
+        }
+    }
 }
 
 const ACTION_INSTALL: &str = "skill-install";
@@ -240,7 +293,7 @@ pub fn compute_install_envelope(
     envelope.legacy_install_dir = skill_env
         .legacy_copy(host)
         .map(|path| path.display().to_string());
-    envelope.with_next_step()
+    envelope.with_next_step().with_message()
 }
 
 fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> InstallEnvelope {
@@ -425,28 +478,14 @@ fn run_for_all_hosts(
     stdout: &mut dyn Write,
     skill_env: &SkillEnv,
 ) -> i32 {
-    let mut installations = Vec::with_capacity(SkillHost::ALL.len());
-    let mut worst: i32 = 0;
-    for host in SkillHost::ALL {
-        let env = compute_install_envelope(*host, dry_run, skill_env);
-        if env.status == STATUS_ERROR {
-            worst = worst.max(env.exit_code.unwrap_or(1));
-        }
-        installations.push(env);
-    }
-    let multi = InstallMultiEnvelope {
-        action: ACTION_INSTALL,
-        status: if worst == 0 {
-            if dry_run { STATUS_DRY_RUN } else { STATUS_OK }
-        } else {
-            STATUS_ERROR
-        },
-        installations,
-        exit_code: worst,
-    };
+    let installations = SkillHost::ALL
+        .iter()
+        .map(|host| compute_install_envelope(*host, dry_run, skill_env))
+        .collect();
+    let multi = InstallMultiEnvelope::of(ACTION_INSTALL, dry_run, installations);
     let rendered = render_multi(&multi, &out.format);
     let _ = writeln!(stdout, "{rendered}");
-    worst
+    multi.exit_code
 }
 
 /// Emit a hint envelope listing the known hosts. Returned when neither a host

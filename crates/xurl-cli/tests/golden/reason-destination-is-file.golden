@@ -2,7 +2,7 @@ args: ["--output", "json", "skill", "install", "claude_code"]
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 400
+stdout_len: 528
 stderr_len: 0
 --- stdout ---
 {
@@ -14,6 +14,7 @@ stderr_len: 0
   "status": "error",
   "exit_code": 1,
   "reason": "destination-is-file",
+  "message": "{{SKILL_HOME}}/.claude/skills/xurl-rs is a file, so nothing was cloned. Move it elsewhere, then run this again.",
   "next_step": {
     "action": "fix-input"
   }
