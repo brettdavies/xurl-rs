@@ -333,8 +333,10 @@ caught nothing (Appendix).
   heading (R16).
 - KTD15. **One setup command from one version list (D9).** `.github/tool-versions` names the exact version of every tool
   CI installs by binstall or download (nextest, cargo-hack, anc) and of the linters the hooks run; CI's install steps
-  and `scripts/dev-setup.sh` both read it, so a local tool never differs from CI's. The script installs what is missing
-  or older, reports each tool, and reruns safely; a test fails when CI pins a tool the list does not name.
+  and `scripts/dev-setup.sh` both read it, so a local tool never differs from CI's, with one exception: CI's actionlint
+  comes from the shared `lint-basics.yml` through reviewdog/action-actionlint (1.17.0 at its pinned commit) while the
+  hooks run Homebrew's, until that reusable takes the version from the caller. The script installs what is missing or
+  older, reports each tool, and reruns safely; a test fails when CI pins a tool the list does not name.
 - KTD16. **Fold the library's feature matrix into one slow-tier job, and run the advisory audit where advisories
   arrive.** The six `Features` cells, the feature powerset, and the no-backend compile guard become one
   `Library features` job running each in sequence: in 300 runs their only unique catch (mock coverage) was also caught
