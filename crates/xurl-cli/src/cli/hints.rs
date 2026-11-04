@@ -10,9 +10,11 @@ use serde::{Deserialize, Serialize};
 pub use xdk::error::NextAction;
 use xdk::error::{
     BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED,
-    CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_NOT_FOUND,
-    PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
-    REDIRECT_STATE_MISMATCH,
+    CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_INVALID,
+    PENDING_NOT_FOUND, PENDING_PERMISSIONS, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
+    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
+    TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
+    TOKEN_EXCHANGE_UNANSWERED,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -722,10 +724,11 @@ fn requested_secret(invocation: &[String]) -> Option<&str> {
 /// Builds the hint for a sign-in that ended without a code: the callback was
 /// refused, by the listener or by the authorization server, or never came, or
 /// a headless step 2 refused its redirect URL, found no live flow to finish,
-/// or named scopes its flow did not ask for. The step is the same sign-in
-/// again, and when the browser could not be opened, its paste-the-URL form. A
-/// step 2 starts over at step 1 with the scopes it named, because the consent
-/// in its URL covers others and finishing it would store a different token.
+/// or named scopes its flow did not ask for, or the token endpoint would not
+/// exchange the code, which is single-use. The step is the same sign-in again,
+/// and when the browser could not be opened, its paste-the-URL form. A step 2
+/// starts over at step 1 with the scopes it named, because the consent in its
+/// URL covers others and finishing it would store a different token.
 #[must_use]
 pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
     let Error::Auth { message, .. } = error else {
@@ -742,14 +745,55 @@ pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> 
         | PENDING_EXPIRED => false,
         BROWSER_OPEN_FAILED => true,
         refused
-            if refused.starts_with(CALLBACK_PROVIDER_REFUSED)
-                || refused.starts_with(PENDING_SCOPE_MISMATCH) =>
+            if [
+                CALLBACK_PROVIDER_REFUSED,
+                PENDING_SCOPE_MISMATCH,
+                PENDING_INVALID,
+                TOKEN_EXCHANGE_CODE_REFUSED,
+                TOKEN_EXCHANGE_NO_TOKEN,
+            ]
+            .iter()
+            .any(|start| refused.starts_with(start)) =>
         {
             false
         }
         _ => return None,
     };
     Some(sign_in_again(invocation, no_browser))
+}
+
+/// Builds the hint for a sign-in failure no other sign-in would fix: a token
+/// exchange the endpoint did not process, whose code is still good, so the
+/// request goes again; and a refused client or a saved flow's file `xr` will
+/// not read, where the message names what to change and no `xr` invocation
+/// could say more.
+#[must_use]
+pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    if message.starts_with(TOKEN_EXCHANGE_UNANSWERED) {
+        return Some(send_again(None));
+    }
+    let advice = if message.starts_with(TOKEN_EXCHANGE_CLIENT_REFUSED) {
+        "X refused the app's client credentials. Check its client id and secret."
+    } else if message.starts_with(PENDING_PERMISSIONS) {
+        "Restore the file's mode and owner, or remove it and start over at step 1."
+    } else {
+        return None;
+    };
+    Some(Hint {
+        text_lines: vec![advice.to_string()],
+        next_step: NextStep::fix_input(None),
+    })
+}
+
+/// The hint for a request nothing was wrong with.
+fn send_again(docs: Option<String>) -> Hint {
+    Hint {
+        text_lines: vec!["Nothing was wrong with the request. Send it again.".to_string()],
+        next_step: NextStep::retry(docs),
+    }
 }
 
 fn sign_in_again(invocation: &[String], no_browser: bool) -> Hint {
@@ -908,10 +952,7 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
     }
     let docs = error.docs_url().map(str::to_string);
     match error.next_action()? {
-        NextAction::Retry => Some(Hint {
-            text_lines: vec!["Nothing was wrong with the request. Send it again.".to_string()],
-            next_step: NextStep::retry(docs),
-        }),
+        NextAction::Retry => Some(send_again(docs)),
         NextAction::FixInput => Some(Hint {
             text_lines: Vec::new(),
             next_step: NextStep::fix_input(docs),
@@ -1274,6 +1315,60 @@ mod tests {
                 "{message}"
             );
         }
+    }
+
+    #[test]
+    fn a_saved_file_that_does_not_parse_or_a_code_x_would_not_exchange_starts_over() {
+        let invocation = argv("xr auth oauth2 --no-browser --step 2 --auth-url URL");
+        for message in [
+            format!("{PENDING_INVALID} (cause: bad yaml)"),
+            format!("{TOKEN_EXCHANGE_CODE_REFUSED}: HTTP 400 Bad Request — invalid_grant: spent"),
+            TOKEN_EXCHANGE_NO_TOKEN.to_string(),
+            format!("{TOKEN_EXCHANGE_NO_TOKEN} (cause: not JSON)"),
+        ] {
+            let hint =
+                sign_in_again_hint(&Error::auth(message.clone()), &invocation).expect("a hint");
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{message}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr auth oauth2 --no-browser --step 1"),
+                "{message}"
+            );
+        }
+    }
+
+    #[test]
+    fn an_exchange_the_endpoint_did_not_process_is_sent_again() {
+        for message in [
+            format!("{TOKEN_EXCHANGE_UNANSWERED} (cause: connection refused)"),
+            format!("{TOKEN_EXCHANGE_UNANSWERED}: HTTP 503 Service Unavailable — unknown: "),
+        ] {
+            let hint = sign_in_fault_hint(&Error::auth(message.clone())).expect("a hint");
+            assert_eq!(hint.next_step, NextStep::retry(None), "{message}");
+            assert!(
+                sign_in_again_hint(&Error::auth(message.clone()), &[]).is_none(),
+                "the code is still good, so no new consent: {message}"
+            );
+        }
+    }
+
+    /// The message names what to change, and another sign-in would end at the
+    /// same refusal, so the step sends nobody back to the browser.
+    #[test]
+    fn a_refused_client_or_a_file_xr_will_not_read_is_fixed_with_no_invocation() {
+        for message in [
+            format!("{TOKEN_EXCHANGE_CLIENT_REFUSED}: HTTP 401 Unauthorized — invalid_client: no"),
+            format!("{PENDING_PERMISSIONS}: /tmp/x.pending: expected mode 0600, got 0644"),
+        ] {
+            let hint = sign_in_fault_hint(&Error::auth(message.clone())).expect("a hint");
+            assert_eq!(hint.next_step, NextStep::fix_input(None), "{message}");
+            assert!(!hint.text_lines.is_empty(), "{message}");
+            assert!(
+                sign_in_again_hint(&Error::auth(message.clone()), &[]).is_none(),
+                "{message}"
+            );
+        }
+        assert!(sign_in_fault_hint(&Error::auth("something else")).is_none());
     }
 
     #[test]

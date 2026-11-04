@@ -16,6 +16,8 @@ use super::pending;
 use crate::error::{
     BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
     REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
+    TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
+    TOKEN_EXCHANGE_UNANSWERED,
 };
 use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
@@ -149,6 +151,21 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// Returns an error if the token-exchange request fails or the response is
 /// missing an access token. A failed `/2/users/me` lookup is warned, not
 /// returned.
+/// What a token endpoint's error answer says about the exchange: a status
+/// that says it was not processed, a refusal of the client (RFC 6749 section
+/// 5.2 lets that arrive as a 400), or a refusal of the code.
+fn token_exchange_refusal(status: reqwest::StatusCode, error: &str) -> &'static str {
+    if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        TOKEN_EXCHANGE_UNANSWERED
+    } else if status == reqwest::StatusCode::UNAUTHORIZED
+        || matches!(error, "invalid_client" | "unauthorized_client")
+    {
+        TOKEN_EXCHANGE_CLIENT_REFUSED
+    } else {
+        TOKEN_EXCHANGE_CODE_REFUSED
+    }
+}
+
 pub(crate) async fn exchange_code_for_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -169,25 +186,28 @@ pub(crate) async fn exchange_code_for_token(
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
         .await
-        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e).with_source(e))?;
+        .map_err(|e| Error::auth_with_cause(TOKEN_EXCHANGE_UNANSWERED, &e).with_source(e))?;
 
     let status = token_resp.status();
-    let token_data: serde_json::Value = token_resp
-        .json()
-        .await
-        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e).with_source(e))?;
+    // Read before the status decides anything, and judged after it: a proxy's
+    // 502 is an HTML page, and it must still read as a 5xx.
+    let body = token_resp.json::<serde_json::Value>().await;
 
     if !status.is_success() {
+        let token_data = body.unwrap_or_default();
         let api_error = token_data["error"].as_str().unwrap_or("unknown");
         let api_desc = token_data["error_description"].as_str().unwrap_or("");
+        let refusal = token_exchange_refusal(status, api_error);
         return Err(Error::auth(format!(
-            "TokenExchangeError: HTTP {status} — {api_error}: {api_desc}"
+            "{refusal}: HTTP {status} — {api_error}: {api_desc}"
         )));
     }
 
+    let token_data =
+        body.map_err(|e| Error::auth_with_cause(TOKEN_EXCHANGE_NO_TOKEN, &e).with_source(e))?;
     let access_token = token_data["access_token"]
         .as_str()
-        .ok_or_else(|| Error::auth("TokenExchangeError: no access_token in response"))?
+        .ok_or_else(|| Error::auth(TOKEN_EXCHANGE_NO_TOKEN))?
         .to_string();
 
     let refresh_token = token_data["refresh_token"]

@@ -14,7 +14,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::{Error, PENDING_EXPIRED, PENDING_NOT_FOUND, Result};
+use crate::error::{
+    Error, PENDING_EXPIRED, PENDING_INVALID, PENDING_NOT_FOUND, PENDING_PERMISSIONS, Result,
+};
 
 /// Maximum age of a pending state file before it is considered expired.
 const PENDING_TTL_SECS: u64 = 900; // 15 minutes
@@ -100,9 +102,10 @@ pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
     // one either, or a planted link turns the save into a write of the PKCE
     // verifier to a path the user did not choose.
     if fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink()) {
-        return Err(Error::auth(
-            "PendingStatePermissions: pending state path is a symlink (refusing to write through it)",
-        ));
+        return Err(Error::auth(format!(
+            "{PENDING_PERMISSIONS}: pending state path {} is a symlink (refusing to write through it)",
+            path.display()
+        )));
     }
     let data =
         crate::yaml::to_string(state).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
@@ -141,15 +144,17 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         };
 
         if meta.file_type().is_symlink() {
-            return Err(Error::auth(
-                "PendingStatePermissions: pending state file is a symlink (rejected for security)",
-            ));
+            return Err(Error::auth(format!(
+                "{PENDING_PERMISSIONS}: pending state file {} is a symlink (rejected for security)",
+                path.display()
+            )));
         }
 
         let mode = meta.permissions().mode() & 0o777;
         if mode != 0o600 {
             return Err(Error::auth(format!(
-                "PendingStatePermissions: expected mode 0600, got {mode:04o}"
+                "{PENDING_PERMISSIONS}: {}: expected mode 0600, got {mode:04o}",
+                path.display()
             )));
         }
 
@@ -157,7 +162,8 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         let current_uid = rustix::process::getuid().as_raw();
         if file_uid != current_uid {
             return Err(Error::auth(format!(
-                "PendingStatePermissions: file owned by uid {file_uid}, expected {current_uid}"
+                "{PENDING_PERMISSIONS}: {}: file owned by uid {file_uid}, expected {current_uid}",
+                path.display()
             )));
         }
     }
@@ -177,8 +183,8 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         }
         Err(e) => return Err(e.into()),
     };
-    let state: PendingOAuth2State =
-        serde_saphyr::from_str(&data).map_err(|e| Error::auth(e.to_string()).with_source(e))?;
+    let state: PendingOAuth2State = serde_saphyr::from_str(&data)
+        .map_err(|e| Error::auth_with_cause(PENDING_INVALID, &e).with_source(e))?;
 
     // TTL check.
     let now = SystemTime::now()
