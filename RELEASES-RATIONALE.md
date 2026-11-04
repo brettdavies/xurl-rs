@@ -295,6 +295,18 @@ the input, never to `CHANGELOG.md`.
 
 ## Release pipeline
 
+### Why the interactive sign-in is driven offline
+
+`xr auth oauth2` serves a callback only when stdout is a terminal and a browser opener succeeds, so no scripted run of
+the binary reaches that path by accident. The library's tests reach the listener, but not the shipped binary, its locked
+dependencies, or the opener it calls. A person signing in through a browser reaches all of it, and a check that depends
+on someone doing that goes unrun exactly when nobody does.
+
+The only human step on that path is a browser following a redirect. A fake `xdg-open`, a pty, and a stub provider
+synthesize it with no credential and no call to X, so `preflight.sh oauth2-interactive` runs on every release, and CI
+runs the same gate against the debug build. What it cannot show is that X itself still accepts the flow, which stays
+an optional human check in `RELEASES-PREFLIGHT.md`.
+
 ### Annotated tags + Trusted Publishing
 
 Always use annotated tags (`-a -m`). Bare `git tag <name>` silently fails with `fatal: no tag message?` on machines

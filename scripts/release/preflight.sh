@@ -12,13 +12,17 @@
 #   api-contract  xr help command surface diff, public API semver check vs last tag, stale semver overrides
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
 #   multi-app     Multi-app credential routing (reuses or seeds $SMOKE_HOME)
+#   oauth2-interactive
+#                 The release binary's interactive `xr auth oauth2`, offline: under a pty, with a
+#                 fake browser and a stub for X (oauth2-interactive.py). Also runs the previous
+#                 release's xr, when installed, and reports whether the two behave differently
 #   changelog-sections
 #                 No PR this release carries leaves its changelog entry to its title for want
 #                 of a ## Changelog section (generate-changelog.py --audit-sections)
 #   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check,
 #                 unguarded docs added to main, diff-B vs origin/dev)
-#   all           Run drift, surface, api-contract, smoke, multi-app, changelog-sections, mechanics
-#                 (and surface-smoke if present)
+#   all           Run drift, surface, api-contract, smoke, multi-app, oauth2-interactive,
+#                 changelog-sections, mechanics (and surface-smoke if present)
 #
 # Post-tag verification (release.yml + homebrew dispatch + finalize-release) lives in
 # scripts/release/postflight.sh, that runs AFTER the tag push, not before.
@@ -33,6 +37,8 @@
 # Environment:
 #   CHANGELOG_PR_BASE   Branch whose merged PRs changelog-sections reads (default: dev, or main
 #                       when origin/dev does not exist)
+#   PREVIOUS_BIN_PATH   The xr oauth2-interactive compares the release binary with (default:
+#                       Homebrew's)
 #
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
@@ -43,11 +49,12 @@
 #   - `xr` (built via cargo build --release --bin xr)
 #   - `yq`, `jaq`, `gh`, `cargo`, `git` on PATH
 #   - 1Password CLI service-account env (for smoke + multi-app)
+#   - Linux, `script` from util-linux, and `python3` for oauth2-interactive, which skips without them
 #   - ~/.claude/skills/1password/scripts/ for vault reads (via _lib.sh's read_1p)
 #
 # The shared scaffolding (gate helpers, 1Password reads, shred cleanup, dispatch, drift,
 # surface, changelog-sections, mechanics) is the github-repo-setup skill's skeleton; the api-contract, smoke,
-# and multi-app gates and the seed recipe are this project's.
+# multi-app, and oauth2-interactive gates and the seed recipe are this project's.
 
 set -euo pipefail
 
@@ -316,8 +323,9 @@ gate_smoke() {
     gate_fail "OAuth1 whoami" "no username returned"
   fi
 
-  # OAuth2 PKCE needs a human
-  gate_skip "OAuth2 PKCE end-to-end" "human-driven; see RELEASES-PREFLIGHT.md § OAuth2 PKCE path"
+  # The oauth2-interactive gate drives the sign-in against a stub. A real browser
+  # against X needs a person, so it stays an optional check.
+  gate_skip "OAuth2 PKCE against X" "optional real-browser check; see RELEASES-PREFLIGHT.md § OAuth2 PKCE path"
   gate_skip "OAuth2 headless (--no-browser)" "same recipe as PKCE; same skip"
 
   # Bearer env one-shot
@@ -443,7 +451,7 @@ gate_multi_app() {
   # OAuth2 sideload structural isolation
   out=$(yq '.apps | with_entries(select(.value.oauth2_tokens != null)) | keys | length' "$SMOKE_HOME/.xurl")
   if [[ "$out" -ge 1 ]]; then
-    gate_pass "OAuth2 per-app oauth2_tokens slot present (sideload-verifiable; PKCE end-to-end is human-driven)"
+    gate_pass "OAuth2 per-app oauth2_tokens slot present (sideload-verifiable; the oauth2-interactive gate drives a sign-in)"
   else
     gate_fail "OAuth2 isolation" "no oauth2_tokens slot found"
   fi
@@ -510,6 +518,89 @@ gate_multi_app() {
   else
     gate_fail "Auth-error envelope" "got '$out'"
   fi
+}
+
+# Gate: oauth2-interactive ----------------------------------------------------
+#
+# Project-authored: the one gate that makes the shipped binary serve an OAuth2
+# callback. smoke and multi-app seed their stores, and the headless flow never
+# binds the listener. The harness gives every process it starts an environment
+# it builds from nothing and a scratch store, so this gate needs no secret and
+# cannot reach the machine's own store or X.
+
+# Homebrew's `xr`: the previous release, on a machine that installs it. Empty
+# when Homebrew or the formula is missing.
+homebrew_xr() {
+  have_bin brew || return 0
+  local bin
+  bin="$(brew --prefix xurl-rs 2>/dev/null || true)/bin/xr"
+  if [[ -x "$bin" ]]; then
+    printf '%s\n' "$bin"
+  fi
+}
+
+oauth2_harness() {
+  python3 -B -I "$REPO_ROOT/scripts/release/oauth2-interactive.py" "$1"
+}
+
+# The modes a harness run reported failed, space-separated.
+failed_modes() {
+  awk -F'\t' '$1 == "FAIL" { print $2 }' <<<"$1" | paste -sd ' ' -
+}
+
+# Whether the harness tells the release binary from the previous release. It
+# informs and never fails the release: once the previous release carries every
+# fix, the two are meant to agree, and an older binary failing proves only that
+# the harness still discriminates.
+compare_with_previous_release() {
+  local failed="$1" previous results rc=0 previous_failed name
+  previous="${PREVIOUS_BIN_PATH:-$(homebrew_xr)}"
+  if [[ -z "$previous" ]]; then
+    gate_skip "previous release comparison" "no Homebrew xr installed; set PREVIOUS_BIN_PATH to name one"
+    return
+  fi
+  name=$("$previous" --version 2>/dev/null || printf '%s' "$previous")
+  results=$(oauth2_harness "$previous") || rc=$?
+  previous_failed=$(failed_modes "$results")
+  if [[ $rc -ne 0 && -z "$previous_failed" ]]; then
+    gate_skip "previous release comparison" "the harness could not run against $name (exit $rc)"
+  elif [[ "$previous_failed" == "$failed" ]]; then
+    gate_pass "previous release comparison: $name and this build fail the same modes [${failed:-none}], so the harness does not tell the two apart"
+  else
+    gate_pass "previous release comparison: $name fails [${previous_failed:-none}], this build [${failed:-none}], so the harness tells the two apart"
+  fi
+}
+
+gate_oauth2_interactive() {
+  header "OAuth2 interactive sign-in (offline)"
+  local tool
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    gate_skip "OAuth2 interactive sign-in" "needs Linux, for script(1) from util-linux and the fake xdg-open"
+    return
+  fi
+  for tool in script python3; do
+    if ! have_bin "$tool"; then
+      gate_skip "OAuth2 interactive sign-in" "$tool not installed"
+      return
+    fi
+  done
+  require_built_binary
+
+  local results rc=0 failed verdict mode detail
+  results=$(oauth2_harness "$BIN_PATH") || rc=$?
+  failed=$(failed_modes "$results")
+  if [[ $rc -ne 0 && -z "$failed" ]]; then
+    gate_fail "OAuth2 interactive harness" "could not run (exit $rc); its error is above"
+    return
+  fi
+  while IFS=$'\t' read -r verdict mode detail; do
+    if [[ "$verdict" == "PASS" ]]; then
+      gate_pass "$mode: $detail"
+    else
+      gate_fail "$mode" "$detail"
+    fi
+  done <<<"$results"
+  compare_with_previous_release "$failed"
 }
 
 # Gate: drift (delegated to drift.sh) ----------------------------------------
@@ -882,7 +973,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h | --help) usage 0 ;;
-    drift | surface | api-contract | smoke | multi-app | changelog-sections | mechanics | surface-smoke | all)
+    drift | surface | api-contract | smoke | multi-app | oauth2-interactive | changelog-sections | mechanics | surface-smoke | all)
       SUBCMD="$1"
       shift
       ;;
@@ -905,6 +996,7 @@ case "$SUBCMD" in
   api-contract) gate_api_contract ;;
   smoke) gate_smoke ;;
   multi-app) gate_multi_app ;;
+  oauth2-interactive) gate_oauth2_interactive ;;
   changelog-sections) gate_changelog_sections ;;
   mechanics) gate_mechanics ;;
   surface-smoke) gate_surface_smoke ;;
@@ -914,6 +1006,7 @@ case "$SUBCMD" in
     gate_api_contract
     gate_smoke
     gate_multi_app
+    gate_oauth2_interactive
     gate_surface_smoke
     gate_changelog_sections
     gate_mechanics
