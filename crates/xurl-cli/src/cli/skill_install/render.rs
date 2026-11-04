@@ -5,15 +5,20 @@ use std::io::Write;
 
 use crate::cli::output::OutputFormat;
 
-use super::{ACTION_UPDATE, InstallEnvelope, InstallMultiEnvelope, STATUS_DRY_RUN, STATUS_OK};
+use super::{
+    ACTION_UPDATE, DestinationStatus, InstallEnvelope, InstallMultiEnvelope, STATUS_DRY_RUN,
+    STATUS_OK,
+};
 
 /// Render a single install envelope per the active output format.
 ///
 /// Json pretty-prints JSON. Jsonl and Ndjson emit one compact JSON line. Yaml
 /// emits a YAML document. Csv/Tsv fall back to one compact JSON line because
-/// the envelope is nested by construction. Text mode emits the legacy
-/// human-readable summary, plus a note line when the envelope names a copy at
-/// the host's legacy location.
+/// the envelope is nested by construction. Text mode emits a human-readable
+/// summary, then the refusal's sentence when one was refused, a note line when
+/// a dry run would replace the bundle at the destination, and a note line when
+/// the envelope names a copy at the host's legacy location that update would
+/// remove.
 pub(super) fn render_envelope(env: &InstallEnvelope, format: &OutputFormat) -> String {
     if format.is_structured() {
         return render_structured(env, format);
@@ -23,21 +28,38 @@ pub(super) fn render_envelope(env: &InstallEnvelope, format: &OutputFormat) -> S
         STATUS_OK => format!("Installed xurl-rs skill bundle into {}", env.install_dir),
         _ => {
             let reason = env.reason.unwrap_or("unknown");
-            format!("error: {reason}: {}", env.install_dir)
+            let dir = env.refused_dir.as_deref().unwrap_or(&env.install_dir);
+            format!("error: {reason}: {dir}")
         }
     };
-    let Some(legacy) = &env.legacy_install_dir else {
-        return summary;
-    };
-    let note = if env.action == ACTION_UPDATE {
-        format!("note: {legacy} holds another copy; update removes it along with the destination")
-    } else {
-        format!(
-            "note: {legacy} holds another copy; `xr skill update {}` removes it",
-            env.host
-        )
-    };
-    format!("{summary}\n{note}")
+    let mut lines = vec![summary];
+    lines.extend(env.message.clone());
+    if env.action == ACTION_UPDATE
+        && env.status == STATUS_DRY_RUN
+        && env.destination_status == DestinationStatus::NonEmptyDir.as_envelope_str()
+    {
+        lines.push(format!(
+            "note: replaces the bundle at {}, along with any file added to it",
+            env.install_dir
+        ));
+    }
+    if let Some(legacy) = env
+        .legacy_install_dir
+        .as_ref()
+        .filter(|_| env.refused_dir.is_none())
+    {
+        lines.push(if env.action == ACTION_UPDATE {
+            format!(
+                "note: {legacy} holds another copy; update removes it along with the destination"
+            )
+        } else {
+            format!(
+                "note: {legacy} holds another copy; `xr skill update {}` removes it",
+                env.host
+            )
+        });
+    }
+    lines.join("\n")
 }
 
 /// Render a multi-host envelope per the active output format.
@@ -94,6 +116,8 @@ mod tests {
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: Some("/old/xurl-rs".to_string()),
+            refused_dir: None,
+            message: None,
             next_step: None,
         }
     }

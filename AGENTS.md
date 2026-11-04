@@ -105,7 +105,9 @@ signatures by, it carries a `template` that stores the secret `--secret` names: 
 `--secret oauth1`, the app's client secret otherwise. `report-issue` (`internal`, `serialization`, `api-error`) names
 the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
 `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a deletion by
-accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`.
+accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`. Under
+`destination-not-empty` from `skill update` itself, whose directory holds something other than the bundle, the step is
+`fix-input` and `refused_dir` names the directory, since nothing but the caller moves what `xr` did not install.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.

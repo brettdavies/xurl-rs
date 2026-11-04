@@ -1,4 +1,5 @@
 args: ["--output", "json", "skill", "update", "claude_code"]
+env: PATH={{SCRATCH}}/empty-git
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1

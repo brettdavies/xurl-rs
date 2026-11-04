@@ -705,6 +705,12 @@ variable when it is set (for example `CLAUDE_CONFIG_DIR`; `xr --help` lists them
 as `XDG_CONFIG_HOME` for OpenCode) relocates its part of the path. Codex's destination is `~/.agents/skills/xurl-rs`;
 `xr skill update codex` also removes a copy at `~/.codex/skills/xurl-rs`, a deprecated location Codex still reads.
 
+`xr skill update` clones beside the destination and swaps the clone in once it succeeds, so a failed clone leaves the
+current install as it was. The swap replaces the whole directory, along with any file you added to it. It replaces only
+a clone of the bundle's repository, over HTTPS or SSH. A fork, any other directory, a file, or a symlink is refused with
+`refused_dir` naming it and nothing changed, and the same goes for a copy at a legacy location: move it elsewhere and
+run the command again.
+
 ### Response Schema Discovery
 
 ```bash
@@ -949,7 +955,7 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `destination-is-file`        | `fix-input`                                                                                                                                      |
 | `remove-failed`              | `fix-input`                                                                                                                                      |
 | `git-not-found`              | `fix-input`                                                                                                                                      |
-| `destination-not-empty`      | `run-command`: `xr skill update <host>`                                                                                                          |
+| `destination-not-empty`      | `run-command`: `xr skill update <host>`, from `skill install`; `fix-input`, from `skill update`, for what is not a bundle                        |
 | `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                         |
 | `internal`                   | `report-issue`                                                                                                                                   |
 | `serialization`              | `report-issue`                                                                                                                                   |

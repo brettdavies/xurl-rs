@@ -126,7 +126,8 @@ pub enum Reason {
     MissingHost,
     /// A skill destination names the home directory and none is set.
     HomeNotSet,
-    /// The skill destination already holds files.
+    /// The skill destination already holds files: anything, under `skill
+    /// install`, or something other than the bundle, under `skill update`.
     DestinationNotEmpty,
     /// The skill destination exists and is not a directory.
     DestinationIsFile,
@@ -136,7 +137,8 @@ pub enum Reason {
     GitCloneFailed,
     /// `skill update --all` passed over a host with nothing installed.
     NotInstalled,
-    /// `skill update` could not remove the copy it was replacing.
+    /// `skill update` could not swap a fresh clone in for the copy it was
+    /// replacing, or remove that copy.
     RemoveFailed,
 }
 
@@ -334,6 +336,10 @@ pub struct ErrorBody {
     /// Directory a skill verb would install into.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub install_dir: Option<String>,
+    /// Directory `skill update` refused to replace, because it holds
+    /// something other than the bundle.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub refused_dir: Option<String>,
     /// Whether a dry-run skill verb would have succeeded.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub would_succeed: Option<bool>,
