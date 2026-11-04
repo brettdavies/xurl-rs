@@ -168,6 +168,9 @@ pub struct RunHooks {
     /// The clock `webhooks listen` stamps each arrival with, in place of the
     /// system clock.
     pub arrival_clock: Option<xdk::webhooks::ArrivalClock>,
+    /// The retry rule `webhooks listen` forwards under, in place of the one
+    /// `--forward-timeout` and the library's defaults make.
+    pub retry_budget: Option<xdk::webhooks::RetryBudget>,
 }
 
 /// [`run_with_overrides`] with `hooks` in place of what a process uses.

@@ -423,7 +423,7 @@ pub(crate) async fn run(
                 out,
                 stdout,
                 stderr,
-                arrival_clock: hooks.arrival_clock.clone(),
+                hooks,
             };
             run_subcommand(cmd, run).await
         }
@@ -454,9 +454,8 @@ struct Run<'a> {
     out: &'a OutputConfig,
     stdout: &'a mut dyn Write,
     stderr: &'a mut dyn Write,
-    /// What `webhooks listen` stamps arrivals with in place of the system
-    /// clock; set only by an in-process run.
-    arrival_clock: Option<xdk::webhooks::ArrivalClock>,
+    /// What an in-process run takes in place of what a process uses.
+    hooks: &'a crate::cli::runner::RunHooks,
 }
 
 /// Runs raw curl-style mode.
