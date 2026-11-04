@@ -348,12 +348,14 @@ jobs:
             exit 1
           fi
 
-  # Every other job compiles on the toolchain rust-toolchain.toml pins, which is
-  # newer than the `rust-version` the crates declare. A dependency bump or a
-  # language feature that needs a later compiler passes all of them and breaks
-  # a consumer still on the declared version. This job reads that version from
-  # the workspace manifest and checks the workspace on it, as step 4 of
-  # scripts/hooks/pre-push does.
+  # rust-toolchain.toml pins the compiler the other compiling jobs use, except
+  # `Public API semver`, whose action installs stable. `rust-version` is the
+  # promise a consumer builds against, and RELEASES.md § Versioning keeps it equal
+  # to the pin. This job reads the version from the workspace manifest rather than
+  # the pin, so a toolchain bump that leaves `rust-version` behind is still checked
+  # on the declared version: a dependency or language feature that needs the later
+  # compiler fails here alone. Step 4 of scripts/hooks/pre-push runs the same check
+  # on the default features.
   msrv:
     name: MSRV
     needs: scope
