@@ -241,9 +241,12 @@ pub struct ErrorBody {
     /// `listen` again on a free port, under `address-in-use`, and two under
     /// `invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved
     /// after the command word it came before, and the `xr schema`
-    /// invocation that works for an old name or a scope word. One carries a
+    /// invocation that works for an old name or a scope word. Three carry a
     /// template: the `xr schema --path` invocation with the segment that
-    /// named nothing left as `<property>`, under `invalid-args`.
+    /// named nothing left as `<property>`, under `invalid-args`, and two
+    /// under `auth-required`: the command that stores the secret `webhooks
+    /// listen` lacks, and `auth oauth2 --step 2` again with its redirect URL
+    /// left as `<redirect-url>`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// What the library warned about before the run failed, each distinct

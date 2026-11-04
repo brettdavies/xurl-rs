@@ -102,7 +102,9 @@ the flag after the word, and for an old `xr schema` name or a bare scope word (`
 that works; for an `xr schema --path` segment that names no property, it carries a `template` ending in `<property>`
 beside `known_properties`. Under `auth-required`, for a `webhooks listen` whose app has no secret to verify X's
 signatures by, it carries a `template` that stores the secret `--secret` names: the OAuth1 credentials under
-`--secret oauth1`, the app's client secret otherwise. `report-issue` (`internal`, `serialization`, `api-error`) names
+`--secret oauth1`, the app's client secret otherwise. For an `auth oauth2 --step 2` whose redirect URL did not parse, or
+whose saved flow belongs to another stored app, it carries a `template` that runs step 2 again with the URL, which holds
+an authorization code, left as `<redirect-url>`. `report-issue` (`internal`, `serialization`, `api-error`) names
 the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
 `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a deletion by
 accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`. Under

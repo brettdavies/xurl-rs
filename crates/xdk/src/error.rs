@@ -837,6 +837,25 @@ pub const CALLBACK_PROVIDER_REFUSED: &str =
 pub const BROWSER_OPEN_FAILED: &str =
     "browser-open failed; re-run with --no-browser to paste the URL manually";
 
+/// The message of a headless step 2 with no flow saved to finish.
+pub const PENDING_NOT_FOUND: &str = "PendingStateNotFound: no pending OAuth2 state file found";
+
+/// The message of a headless step 2 whose saved flow outlived its 15 minutes.
+pub const PENDING_EXPIRED: &str =
+    "PendingStateExpired: pending OAuth2 state is older than 15 minutes";
+
+/// The start of the message of a headless step 2 whose client id is not the
+/// one step 1 saved. The saved app's name follows, as a quoted string.
+pub const PENDING_APP_MISMATCH: &str = "AppMismatch: pending state was created for app";
+
+/// The start of the message of a headless step 2 that names scopes other than
+/// the ones step 1 saved.
+pub const PENDING_SCOPE_MISMATCH: &str = "ScopeMismatch: step 1 requested the scopes";
+
+/// The start of the message of a headless step 2 whose redirect URL does not
+/// parse. The parser's cause follows.
+pub const REDIRECT_INVALID_URL: &str = "InvalidRedirectURL: failed to parse redirect URL";
+
 /// The message of a headless step 2 whose redirect URL carried no `state`.
 pub const REDIRECT_MISSING_STATE: &str = "MissingState: no 'state' parameter found in redirect URL";
 

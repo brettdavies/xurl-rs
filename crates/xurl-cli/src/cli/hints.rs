@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 pub use xdk::error::NextAction;
 use xdk::error::{
     BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED,
-    CALLBACK_TIMED_OUT, Error, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
+    CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_NOT_FOUND,
+    PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
     REDIRECT_STATE_MISMATCH,
 };
 use xdk::store::snapshot::StoreSnapshot;
@@ -30,8 +31,9 @@ use crate::cli::classify::{ROOT_COMMAND, requested_login};
 /// [`NextAction::WaitAndRetry`], [`NextAction::Retry`],
 /// [`NextAction::FixInput`], [`NextAction::ReportIssue`], and
 /// [`NextAction::InspectStore`] when the command that failed is the one
-/// that reports on the store. Two [`NextAction::FixInput`] steps carry an
-/// invocation: [`Self::listen_on_free_port`] and [`Self::fix_input_with`].
+/// that reports on the store. Four [`NextAction::FixInput`] steps carry an
+/// invocation: [`Self::listen_on_free_port`], [`Self::fix_input_with`],
+/// [`Self::fix_input_template`], and [`Self::step_two_again`].
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -168,6 +170,33 @@ impl NextStep {
             template: None,
             docs: None,
         }
+    }
+
+    /// The headless step 2 `invocation` ran, again, under `app` when one is
+    /// given, with its redirect URL left as `<redirect-url>`. It is a template
+    /// because that URL holds an authorization code, and a step never echoes
+    /// a credential.
+    #[must_use]
+    pub fn step_two_again(invocation: &[String], app: Option<&str>) -> Self {
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        if let Some(app) = app {
+            words.extend(["--app".to_string(), quote_app_name(app)]);
+        }
+        let ask_for_the_url = ["--auth-url".to_string(), "<redirect-url>".to_string()];
+        let mut args = invocation.iter().skip(1);
+        while let Some(arg) = args.next() {
+            if arg == "--auth-url" {
+                args.next();
+                words.extend(ask_for_the_url.clone());
+            } else if arg.starts_with("--auth-url=") {
+                words.extend(ask_for_the_url.clone());
+            } else if app.is_some() && arg == "--app" {
+                args.next();
+            } else if !(app.is_some() && arg.starts_with("--app=")) {
+                words.push(shell_word(arg));
+            }
+        }
+        Self::fix_input_template(words.join(" "))
     }
 
     /// Rerun `command` against a different app.
@@ -692,8 +721,11 @@ fn requested_secret(invocation: &[String]) -> Option<&str> {
 
 /// Builds the hint for a sign-in that ended without a code: the callback was
 /// refused, by the listener or by the authorization server, or never came, or
-/// a headless step 2 refused its redirect URL, so the step is the same sign-in
-/// again, and when the browser could not be opened, its paste-the-URL form.
+/// a headless step 2 refused its redirect URL, found no live flow to finish,
+/// or named scopes its flow did not ask for. The step is the same sign-in
+/// again, and when the browser could not be opened, its paste-the-URL form. A
+/// step 2 starts over at step 1 with the scopes it named, because the consent
+/// in its URL covers others and finishing it would store a different token.
 #[must_use]
 pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
     let Error::Auth { message, .. } = error else {
@@ -705,15 +737,87 @@ pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> 
         | CALLBACK_TIMED_OUT
         | REDIRECT_MISSING_STATE
         | REDIRECT_STATE_MISMATCH
-        | REDIRECT_MISSING_CODE => false,
+        | REDIRECT_MISSING_CODE
+        | PENDING_NOT_FOUND
+        | PENDING_EXPIRED => false,
         BROWSER_OPEN_FAILED => true,
-        refused if refused.starts_with(CALLBACK_PROVIDER_REFUSED) => false,
+        refused
+            if refused.starts_with(CALLBACK_PROVIDER_REFUSED)
+                || refused.starts_with(PENDING_SCOPE_MISMATCH) =>
+        {
+            false
+        }
         _ => return None,
     };
+    Some(sign_in_again(invocation, no_browser))
+}
+
+fn sign_in_again(invocation: &[String], no_browser: bool) -> Hint {
     let next_step = NextStep::sign_in_again(invocation, no_browser);
     let command = next_step.command.clone().unwrap_or_default();
-    Some(Hint {
+    Hint {
         text_lines: vec![format!("Sign in again. Run: {command}")],
+        next_step,
+    }
+}
+
+/// Builds the hint for a headless step 2 refused a redirect URL it cannot
+/// parse. The saved flow is still good, so the step asks for the URL rather
+/// than for another consent.
+#[must_use]
+pub fn redirect_url_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    if !message.starts_with(REDIRECT_INVALID_URL) {
+        return None;
+    }
+    let next_step = NextStep::step_two_again(invocation, None);
+    let template = next_step.template.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!("Fill in the redirect URL and run: {template}")],
+        next_step,
+    })
+}
+
+/// Builds the hint for a headless step 2 whose client id is not the one step 1
+/// saved, from the flow step 1 saved beside the store.
+///
+/// ```text
+/// the store holds the saved app, and this run is not on it -> finish under that app
+/// this run is on the saved app, or the store no longer holds it -> a new flow
+/// ```
+///
+/// Finishing asks nothing of the person who consented. It cannot help when the
+/// saved app is this one, whose client id has moved on since step 1, or one
+/// the store no longer holds.
+#[must_use]
+pub fn pending_app_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    invocation: &[String],
+) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    if !message.starts_with(PENDING_APP_MISMATCH) {
+        return None;
+    }
+    let path =
+        xdk::auth::pending::pending_path_for_store(std::path::Path::new(&snapshot.store_path));
+    let finishes_on = xdk::auth::pending::load(&path)
+        .ok()
+        .map(|flow| flow.app_name)
+        .filter(|app| *app != snapshot.active_app && snapshot.apps.contains_key(app));
+    let Some(app) = finishes_on else {
+        return Some(sign_in_again(invocation, false));
+    };
+    let next_step = NextStep::step_two_again(invocation, Some(&app));
+    let template = next_step.template.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!(
+            "The pending sign-in belongs to app {app:?}. Fill in the redirect URL and run: {template}"
+        )],
         next_step,
     })
 }
@@ -1035,6 +1139,157 @@ mod tests {
                 "{message}"
             );
         }
+    }
+
+    /// The URL holds an authorization code, so no spelling of it survives,
+    /// and the template names the app once.
+    #[test]
+    fn step_two_again_leaves_the_url_to_the_caller_and_names_the_app_once() {
+        let url = "http://localhost:8080/callback?code=SECRET&state=s";
+        let again =
+            |given: &str, app| NextStep::step_two_again(&argv(&given.replace("URL", url)), app);
+        for given in [
+            "xr auth oauth2 alice --no-browser --step 2 --auth-url URL",
+            "xr auth oauth2 alice --no-browser --step 2 --auth-url=URL",
+            "xr auth oauth2 alice --no-browser --step 2 --auth-url -",
+        ] {
+            let step = again(given, None);
+            assert_eq!(step.action, NextAction::FixInput, "{given}");
+            assert!(step.command.is_none(), "{given}");
+            assert_eq!(
+                step.template.as_deref(),
+                Some("xr auth oauth2 alice --no-browser --step 2 --auth-url <redirect-url>"),
+                "{given}"
+            );
+        }
+        for given in [
+            "xr --app here auth oauth2 --no-browser --step 2 --auth-url URL",
+            "xr auth oauth2 --no-browser --step 2 --auth-url URL --app=here",
+        ] {
+            assert_eq!(
+                again(given, Some("my app")).template.as_deref(),
+                Some(
+                    "xr --app 'my app' auth oauth2 --no-browser --step 2 --auth-url <redirect-url>"
+                ),
+                "{given}"
+            );
+        }
+        assert_eq!(
+            again("xr --app here auth oauth2 --step 2 --auth-url URL", None)
+                .template
+                .as_deref(),
+            Some("xr --app here auth oauth2 --step 2 --auth-url <redirect-url>"),
+            "with no app to move to, the one given stays"
+        );
+    }
+
+    /// A store holding `work` and `home`, on `active`, beside a flow step 1
+    /// saved for `saved_app`.
+    fn snapshot_with_saved_flow(
+        tmp: &tempfile::TempDir,
+        saved_app: &str,
+        active: &str,
+    ) -> StoreSnapshot {
+        let path = tmp.path().join("auth.yml");
+        let mut store = xdk::store::TokenStore::new_with_path(&path.to_string_lossy());
+        store
+            .add_app("work", "CLIENT-ID", "SECRET")
+            .expect("add app");
+        store
+            .add_app("home", "CLIENT-ID", "SECRET")
+            .expect("add app");
+        let flow = xdk::auth::pending::PendingOAuth2State {
+            code_verifier: "verifier".to_string(),
+            state: "state".to_string(),
+            client_id: "saved-client-id".to_string(),
+            app_name: saved_app.to_string(),
+            created_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_secs(),
+            scopes: Vec::new(),
+        };
+        xdk::auth::pending::save(&flow, &xdk::auth::pending::pending_path_for_store(&path))
+            .expect("save the flow");
+        StoreSnapshot::new(&store, active, false)
+    }
+
+    #[test]
+    fn another_apps_flow_finishes_there_when_the_store_holds_that_app() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let snapshot = snapshot_with_saved_flow(&tmp, "work", "home");
+        let invocation = argv("xr auth oauth2 --no-browser --step 2 --auth-url URL");
+        let refused = Error::auth(format!("{PENDING_APP_MISMATCH} \"work\" (client_id: x)"));
+
+        let hint = pending_app_hint(&snapshot, &refused, &invocation).expect("a hint");
+
+        assert_eq!(hint.next_step.action, NextAction::FixInput);
+        assert_eq!(
+            hint.next_step.template.as_deref(),
+            Some("xr --app work auth oauth2 --no-browser --step 2 --auth-url <redirect-url>")
+        );
+        assert!(pending_app_hint(&snapshot, &Error::auth("something else"), &invocation).is_none());
+    }
+
+    /// `--app <saved>` would refuse the same way on this app, and name an
+    /// unknown app otherwise, so the only way on is a new flow.
+    #[test]
+    fn a_flow_no_stored_app_can_finish_starts_over_at_step_one() {
+        for (saved_app, active) in [("home", "home"), ("gone", "home")] {
+            let tmp = tempfile::TempDir::new().expect("tempdir");
+            let snapshot = snapshot_with_saved_flow(&tmp, saved_app, active);
+            let refused = Error::auth(format!("{PENDING_APP_MISMATCH} {saved_app:?}"));
+
+            let hint = pending_app_hint(
+                &snapshot,
+                &refused,
+                &argv("xr auth oauth2 --no-browser --step 2 --auth-url URL"),
+            )
+            .expect("a hint");
+
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{saved_app}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr auth oauth2 --no-browser --step 1"),
+                "{saved_app}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_flow_with_nothing_to_finish_or_other_scopes_starts_over_at_step_one() {
+        let invocation =
+            argv("xr auth oauth2 --no-browser --step 2 --auth-url URL --scopes dm.read");
+        for message in [
+            PENDING_NOT_FOUND.to_string(),
+            PENDING_EXPIRED.to_string(),
+            format!("{PENDING_SCOPE_MISMATCH} tweet.read, but this step names dm.read."),
+        ] {
+            let hint =
+                sign_in_again_hint(&Error::auth(message.clone()), &invocation).expect("a hint");
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{message}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr auth oauth2 --no-browser --step 1 --scopes dm.read"),
+                "{message}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_url_that_does_not_parse_is_asked_for_again() {
+        let refused = Error::auth_with_cause(REDIRECT_INVALID_URL, &"relative URL without a base");
+        let hint = redirect_url_again_hint(
+            &refused,
+            &argv("xr auth oauth2 --no-browser --step 2 --auth-url nope"),
+        )
+        .expect("a hint");
+        assert_eq!(hint.next_step.action, NextAction::FixInput);
+        assert_eq!(
+            hint.next_step.template.as_deref(),
+            Some("xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>")
+        );
+        assert!(redirect_url_again_hint(&Error::auth("other"), &[]).is_none());
     }
 
     #[test]

@@ -14,8 +14,8 @@ use super::Auth;
 use super::callback;
 use super::pending;
 use crate::error::{
-    BROWSER_OPEN_FAILED, Error, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
-    REDIRECT_STATE_MISMATCH, Result,
+    BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
+    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
 };
 use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
@@ -440,7 +440,7 @@ pub async fn run_remote_step2(
     // Validate client_id matches runtime context
     if pending_state.client_id != auth.client_id() {
         return Err(Error::auth(format!(
-            "AppMismatch: pending state was created for app {:?} (client_id: {}), \
+            "{PENDING_APP_MISMATCH} {:?} (client_id: {}), \
              but current context uses client_id: {}. Re-run step 1 with the correct --app",
             pending_state.app_name,
             pending_state.client_id,
@@ -452,7 +452,7 @@ pub async fn run_remote_step2(
         let saved = pending_state.requested_scopes();
         if chosen != saved {
             return Err(Error::auth(format!(
-                "ScopeMismatch: step 1 requested the scopes {}, but this step names {}. \
+                "{PENDING_SCOPE_MISMATCH} {}, but this step names {}. \
                  Drop the scope choice from step 2, or re-run step 1 with it",
                 saved.join(" "),
                 chosen.join(" ")
@@ -461,10 +461,8 @@ pub async fn run_remote_step2(
     }
 
     // Parse redirect URL to extract query parameters
-    let parsed = Url::parse(redirect_url).map_err(|e| {
-        Error::auth_with_cause("InvalidRedirectURL: failed to parse redirect URL", &e)
-            .with_source(e)
-    })?;
+    let parsed = Url::parse(redirect_url)
+        .map_err(|e| Error::auth_with_cause(REDIRECT_INVALID_URL, &e).with_source(e))?;
 
     let callback::RedirectParams {
         code,

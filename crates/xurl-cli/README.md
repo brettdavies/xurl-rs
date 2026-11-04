@@ -926,11 +926,14 @@ a value you do not recognize as your default branch. A step carries a `command`,
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
 fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
 carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
-and `inspect-store` when a store command is what failed. Three `fix-input` steps carry an invocation: `listen` again on
+and `inspect-store` when a store command is what failed. Some `fix-input` steps carry an invocation: `listen` again on
 a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
 before, and the `xr schema` invocation that works for an old name or a scope word, both under `invalid-args`; the
 `xr schema --path` invocation with the segment that named nothing left as `<property>`, a template, also under
-`invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen` lacks. A
+`invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen` lacks, and a
+template that runs `xr auth oauth2 --step 2` again with the redirect URL left as `<redirect-url>`, because that URL
+holds an authorization code: when the URL did not parse, or when the saved sign-in belongs to another app the store
+holds, which the template names. A
 `validation` refusal names the input rule it broke in `rule`, the validator's kebab-case code (`invalid-username`,
 `no-list-changes`, ...), with the sentence for it in `message`, and `value` carries the offending input when the rule
 names one: an app name, a redirect URI, or a header's position among the `-H` headers. Branch on `rule`, not on the
@@ -940,7 +943,7 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 
 | `reason`                     | `next_step.action`                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; `fix-input` when `webhooks listen` has no signing secret; none when X answers a 401 |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; `fix-input` for a `webhooks listen` secret or a step 2 it can finish; none on a 401 |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
 | `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
@@ -981,10 +984,11 @@ Every reason has a row. The five actions that are not about credentials or help 
 
 - `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
 - `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
-  `xr` command repairs it, with two exceptions. For a port another process holds, the step is `listen` again with
+  `xr` command repairs it, with these exceptions. For a port another process holds, the step is `listen` again with
   `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did.
   For `-u`, `--auth`, or `-t` given before a command word that takes it, the step is the invocation with the flag after
-  the word. `docs` names X's page on response codes for a 400, a 404, or a 422.
+  the word. For an `xr auth oauth2 --step 2` whose saved sign-in can still finish, the step is a `template` with the
+  redirect URL to fill in. `docs` names X's page on response codes for a 400, a 404, or a 422.
 - `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
 - `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
   the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by
