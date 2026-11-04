@@ -13,7 +13,10 @@ use url::Url;
 use super::Auth;
 use super::callback;
 use super::pending;
-use crate::error::{BROWSER_OPEN_FAILED, Error, Result};
+use crate::error::{
+    BROWSER_OPEN_FAILED, Error, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
+    REDIRECT_STATE_MISMATCH, Result,
+};
 use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
 
@@ -471,15 +474,10 @@ pub async fn run_remote_step2(
     } = callback::redirect_params(parsed.query().unwrap_or(""));
 
     // Validate state first (CSRF check before revealing anything about code)
-    let state = state
-        .ok_or_else(|| Error::auth("MissingState: no 'state' parameter found in redirect URL"))?;
+    let state = state.ok_or_else(|| Error::auth(REDIRECT_MISSING_STATE))?;
 
     if state != pending_state.state {
-        return Err(Error::auth(
-            "StateMismatch: the state parameter in the redirect URL does not match \
-             the pending auth flow. This may indicate a CSRF attack or that step 1 \
-             was re-run. Please start over with step 1",
-        ));
+        return Err(Error::auth(REDIRECT_STATE_MISMATCH));
     }
 
     if let Some(error) = error {
@@ -490,12 +488,7 @@ pub async fn run_remote_step2(
     }
 
     // Extract authorization code
-    let code = code.ok_or_else(|| {
-        Error::auth(
-            "MissingCode: no 'code' parameter found in redirect URL. \
-             Make sure you copied the full URL from your browser's address bar",
-        )
-    })?;
+    let code = code.ok_or_else(|| Error::auth(REDIRECT_MISSING_CODE))?;
 
     // Exchange code for token
     let access_token =

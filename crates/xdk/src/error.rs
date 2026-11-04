@@ -837,6 +837,20 @@ pub const CALLBACK_PROVIDER_REFUSED: &str =
 pub const BROWSER_OPEN_FAILED: &str =
     "browser-open failed; re-run with --no-browser to paste the URL manually";
 
+/// The message of a headless step 2 whose redirect URL carried no `state`.
+pub const REDIRECT_MISSING_STATE: &str = "MissingState: no 'state' parameter found in redirect URL";
+
+/// The message of a headless step 2 whose redirect URL carried a `state` other
+/// than the one step 1 saved: a stale URL, a later step 1, or a forged request.
+pub const REDIRECT_STATE_MISMATCH: &str = "StateMismatch: the state parameter in the redirect URL does not match \
+     the pending auth flow. This may indicate a CSRF attack or that step 1 \
+     was re-run. Please start over with step 1";
+
+/// The message of a headless step 2 whose redirect URL carried the saved
+/// `state` and no authorization code.
+pub const REDIRECT_MISSING_CODE: &str = "MissingCode: no 'code' parameter found in redirect URL. \
+     Make sure you copied the full URL from your browser's address bar";
+
 // ── Exit codes ─────────────────────────────────────────────────────
 
 /// Structured exit codes for machine-readable error handling.

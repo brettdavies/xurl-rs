@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 pub use xdk::error::NextAction;
 use xdk::error::{
     BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED,
-    CALLBACK_TIMED_OUT, Error,
+    CALLBACK_TIMED_OUT, Error, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
+    REDIRECT_STATE_MISMATCH,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -690,16 +691,21 @@ fn requested_secret(invocation: &[String]) -> Option<&str> {
 }
 
 /// Builds the hint for a sign-in that ended without a code: the callback was
-/// refused, by the listener or by the authorization server, or never came,
-/// so the step is the same sign-in again, and when the browser could not be
-/// opened, its paste-the-URL form.
+/// refused, by the listener or by the authorization server, or never came, or
+/// a headless step 2 refused its redirect URL, so the step is the same sign-in
+/// again, and when the browser could not be opened, its paste-the-URL form.
 #[must_use]
 pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
     let Error::Auth { message, .. } = error else {
         return None;
     };
     let no_browser = match message.as_str() {
-        CALLBACK_INVALID_STATE | CALLBACK_EMPTY_CODE | CALLBACK_TIMED_OUT => false,
+        CALLBACK_INVALID_STATE
+        | CALLBACK_EMPTY_CODE
+        | CALLBACK_TIMED_OUT
+        | REDIRECT_MISSING_STATE
+        | REDIRECT_STATE_MISMATCH
+        | REDIRECT_MISSING_CODE => false,
         BROWSER_OPEN_FAILED => true,
         refused if refused.starts_with(CALLBACK_PROVIDER_REFUSED) => false,
         _ => return None,
@@ -1007,6 +1013,26 @@ mod tests {
                 command == "xr --output json auth oauth2 --no-browser --step 1 --app work"
                     || command == "xr --output json auth oauth2 --no-browser --step=1 --app work",
                 "{invocation} -> {command}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_step_two_that_refused_its_redirect_url_starts_over_at_step_one() {
+        let invocation = argv(
+            "xr --output json auth oauth2 --no-browser --step 2 --auth-url http://localhost:8080/callback?code=abc --app work",
+        );
+        for message in [
+            REDIRECT_MISSING_STATE,
+            REDIRECT_STATE_MISMATCH,
+            REDIRECT_MISSING_CODE,
+        ] {
+            let hint = sign_in_again_hint(&Error::auth(message), &invocation).expect("a hint");
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{message}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr --output json auth oauth2 --no-browser --step 1 --app work"),
+                "{message}"
             );
         }
     }
