@@ -12,6 +12,10 @@
 //! base64-encoded) for those keys.
 
 use std::path::Path;
+use std::time::Duration;
+
+use xdk::webhooks::RetryBudget;
+use xurl::cli::runner::RunHooks;
 
 pub const CRC_TOKEN: &str = "challenge_string";
 pub const CRC_UNDER_CLIENT_SECRET: &str = "sha256=xT/YyTRZde5T1HbCK7K2bpcELYOIMkZVbgYjsESw+AM=";
@@ -19,6 +23,36 @@ pub const CRC_UNDER_CONSUMER_SECRET: &str = "sha256=9CnCWcBcOApA1LHdqkjWbF2DBNdB
 pub const EVENT: &str = r#"{"for_user_id":"2244994945","follow_events":[]}"#;
 pub const EVENT_UNDER_CLIENT_SECRET: &str = "sha256=jlSMkj72sqpIWJdl8rdKiEf1zPMRJkvY1VWxVhuPD4c=";
 pub const EVENT_UNDER_CONSUMER_SECRET: &str = "sha256=IdtPMVhr8Hql9OtN7YTX/+gknTMNOui0D4ixytI8bD0=";
+
+/// The wait before a second attempt in a run under [`quick_retries`] or
+/// [`quick_drain`], in place of the second a process waits.
+const QUICK_FIRST_WAIT: Duration = Duration::from_millis(10);
+
+/// The attempt timeout under [`quick_drain`]. The drain deadline falls just
+/// after a run's first attempt, so this is how long a program has to start and
+/// record its pid on a loaded machine. A stalled event stays undelivered at the
+/// deadline as long as the next one arrives within three of these.
+const QUICK_ATTEMPT_TIMEOUT: Duration = Duration::from_millis(900);
+
+/// Hooks for a run whose target answers at once: the waits between attempts
+/// are short and each attempt keeps the production timeout.
+pub fn quick_retries() -> RunHooks {
+    RunHooks {
+        retry_budget: Some(RetryBudget::default().with_first_wait(QUICK_FIRST_WAIT)),
+        ..RunHooks::default()
+    }
+}
+
+/// Hooks for a run that ends at the drain deadline with a target that never
+/// answers: it drains for one short attempt timeout plus the short waits.
+pub fn quick_drain() -> RunHooks {
+    RunHooks {
+        retry_budget: Some(
+            RetryBudget::new(QUICK_ATTEMPT_TIMEOUT).with_first_wait(QUICK_FIRST_WAIT),
+        ),
+        ..RunHooks::default()
+    }
+}
 
 /// A loopback port held for as long as the returned listener lives, for a
 /// run that must not bind: given this port, a run that tried would end with
@@ -62,6 +96,17 @@ pub async fn listen_as<T>(
     extra: &[&str],
     drive: impl AsyncFnOnce(u16) -> T,
 ) -> ((i32, String, String), T) {
+    listen_under(store, format, extra, &RunHooks::default(), drive).await
+}
+
+/// [`listen_as`] under `hooks`.
+pub async fn listen_under<T>(
+    store: &Path,
+    format: &str,
+    extra: &[&str],
+    hooks: &RunHooks,
+    drive: impl AsyncFnOnce(u16) -> T,
+) -> ((i32, String, String), T) {
     let mut argv = vec![
         "xr", "--output", format, "webhooks", "listen", "--port", "0",
     ];
@@ -71,12 +116,13 @@ pub async fn listen_as<T>(
     let run = async move {
         let mut stdout = LineTap::new(out_sender);
         let mut stderr = LineTap::new(err_sender);
-        let code = xurl::cli::runner::run_with_overrides(
+        let code = xurl::cli::runner::run_with_hooks(
             argv,
             &mut stdout,
             &mut stderr,
             store,
             &overrides(),
+            hooks,
         )
         .await;
         (
@@ -235,7 +281,7 @@ where
 pub async fn listen_tapped_until_dropped<T, F>(
     store: &Path,
     extra: &[&str],
-    hooks: &xurl::cli::runner::RunHooks,
+    hooks: &RunHooks,
     drive: impl FnOnce(tokio::sync::mpsc::UnboundedReceiver<String>) -> F,
 ) -> (String, T)
 where

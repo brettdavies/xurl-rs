@@ -13,8 +13,8 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::listen::{
-    EVENT, EVENT_UNDER_CLIENT_SECRET, OAUTH2_HEADER, crc_token_from, deliver, held_port, listen_as,
-    listen_while, post, stderr_records,
+    EVENT, EVENT_UNDER_CLIENT_SECRET, OAUTH2_HEADER, crc_token_from, deliver, held_port,
+    listen_under, listen_while, post, quick_drain, quick_retries, stderr_records,
 };
 use common::{oauth1_store, run_in_process as run};
 
@@ -182,15 +182,17 @@ async fn a_failed_forward_is_reported_on_stderr_and_changes_nothing_else() {
     let url = hook(&server);
     let flags = ["--allow-unsigned", "--max-events", "2", "--forward", &url];
 
-    let ((code, stdout, stderr), ()) = listen_as(&store, "jsonl", &flags, async |port| {
-        crc_token_from(port).await;
-        assert_eq!(
-            deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await,
-            200
-        );
-        assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
-    })
-    .await;
+    let hooks = quick_retries();
+    let ((code, stdout, stderr), ()) =
+        listen_under(&store, "jsonl", &flags, &hooks, async |port| {
+            crc_token_from(port).await;
+            assert_eq!(
+                deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await,
+                200
+            );
+            assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+        })
+        .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let lines: Vec<&str> = stdout.lines().collect();
@@ -611,21 +613,21 @@ async fn at_the_drain_deadline_the_checkpoint_names_the_first_undelivered_minute
         "2",
         "--forward",
         &url,
-        "--forward-timeout",
-        "1",
         "--checkpoint",
         checkpoint.to_str().expect("utf-8 path"),
     ];
 
-    let ((code, _stdout, stderr), (before, after)) = listen_while(&store, &flags, async |port| {
-        crc_token_from(port).await;
-        let before = now_secs();
-        assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
-        let after = now_secs();
-        assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
-        (before, after)
-    })
-    .await;
+    let hooks = quick_drain();
+    let ((code, _stdout, stderr), (before, after)) =
+        listen_under(&store, "json", &flags, &hooks, async |port| {
+            crc_token_from(port).await;
+            let before = now_secs();
+            assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+            let after = now_secs();
+            assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+            (before, after)
+        })
+        .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let incomplete = stderr_records(&stderr)
@@ -756,6 +758,7 @@ async fn a_hard_stop_leaves_the_checkpoint_at_the_oldest_undelivered_minute() {
         arrival_clock: Some(Arc::new(move || {
             SystemTime::now() + Duration::from_secs(clock.load(Ordering::SeqCst))
         })),
+        ..RunHooks::default()
     };
 
     let (stderr, (before, after)) =

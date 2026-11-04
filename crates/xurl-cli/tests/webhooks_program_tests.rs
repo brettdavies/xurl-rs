@@ -20,7 +20,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::listen::{
     EVENT, EVENT_UNDER_CLIENT_SECRET, ListenProcess, OAUTH2_HEADER, crc_token_from, deliver,
-    held_port, listen_while, post, stderr_records,
+    held_port, listen_under, listen_while, post, quick_drain, quick_retries, stderr_records,
 };
 use common::{oauth1_store, run_in_process as run};
 
@@ -389,8 +389,9 @@ async fn a_program_that_fails_is_reported_after_four_attempts_and_the_next_event
     let store = oauth1_store(tmp.path());
     let program = probe("exit", &[]);
     let args = listen_args(&["--allow-unsigned", "--max-events", "2"], &program);
+    let hooks = quick_retries();
 
-    let ((code, stdout, stderr), ()) = listen_while(&store, &args, async |port| {
+    let ((code, stdout, stderr), ()) = listen_under(&store, "json", &args, &hooks, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"exit":3}"#, &[]).await, 200);
         assert_eq!(post(port, r#"{"exit":0}"#, &[]).await, 200);
@@ -423,17 +424,12 @@ async fn a_program_past_the_timeout_is_stopped_and_leaves_nothing_running() {
     let store = oauth1_store(tmp.path());
     let pids = tmp.path().join("pids");
     let program = probe("hang", &[pids.to_str().expect("utf-8 path")]);
-    let flags = [
-        "--allow-unsigned",
-        "--max-events",
-        "1",
-        "--forward-timeout",
-        "1",
-    ];
+    let flags = ["--allow-unsigned", "--max-events", "1"];
     let args = listen_args(&flags, &program);
+    let hooks = quick_drain();
 
     let started = Instant::now();
-    let ((code, _stdout, stderr), ()) = listen_while(&store, &args, async |port| {
+    let ((code, _stdout, stderr), ()) = listen_under(&store, "json", &args, &hooks, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
     })
@@ -454,16 +450,11 @@ async fn a_program_is_stopped_with_the_children_it_started() {
     let store = oauth1_store(tmp.path());
     let children = tmp.path().join("children");
     let program = probe("spawn_and_hang", &[children.to_str().expect("utf-8 path")]);
-    let flags = [
-        "--allow-unsigned",
-        "--max-events",
-        "1",
-        "--forward-timeout",
-        "1",
-    ];
+    let flags = ["--allow-unsigned", "--max-events", "1"];
     let args = listen_args(&flags, &program);
+    let hooks = quick_drain();
 
-    let ((code, _stdout, stderr), ()) = listen_while(&store, &args, async |port| {
+    let ((code, _stdout, stderr), ()) = listen_under(&store, "json", &args, &hooks, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
     })
@@ -483,18 +474,13 @@ async fn a_program_that_never_reads_a_large_body_is_stopped_at_the_timeout() {
     let store = oauth1_store(tmp.path());
     let pids = tmp.path().join("pids");
     let program = probe("never_read", &[pids.to_str().expect("utf-8 path")]);
-    let flags = [
-        "--allow-unsigned",
-        "--max-events",
-        "2",
-        "--forward-timeout",
-        "1",
-    ];
+    let flags = ["--allow-unsigned", "--max-events", "2"];
     let args = listen_args(&flags, &program);
     let large = format!(r#"{{"pad":"{}"}}"#, "x".repeat(200 * 1024));
+    let hooks = quick_drain();
 
     let started = Instant::now();
-    let ((code, stdout, stderr), ()) = listen_while(&store, &args, async |port| {
+    let ((code, stdout, stderr), ()) = listen_under(&store, "json", &args, &hooks, async |port| {
         crc_token_from(port).await;
         assert_eq!(post(port, &large, &[]).await, 200);
         assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
@@ -590,31 +576,25 @@ async fn a_stalled_url_target_never_delays_the_program() {
     let out = tmp.path().join("events.jsonl");
     let program = probe("echo", &[out.to_str().expect("utf-8 path")]);
     let url = format!("{}/hook", server.uri());
-    let flags = [
-        "--allow-unsigned",
-        "--max-events",
-        "2",
-        "--forward",
-        &url,
-        "--forward-timeout",
-        "1",
-    ];
+    let flags = ["--allow-unsigned", "--max-events", "2", "--forward", &url];
     let args = listen_args(&flags, &program);
+    let hooks = quick_drain();
 
-    let ((code, _stdout, stderr), both_within) = listen_while(&store, &args, async |port| {
-        crc_token_from(port).await;
-        assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
-        assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
-        let deadline = Instant::now() + Duration::from_secs(5);
-        while echoed(&out).len() < 2 {
-            if Instant::now() >= deadline {
-                return false;
+    let ((code, _stdout, stderr), both_within) =
+        listen_under(&store, "json", &args, &hooks, async |port| {
+            crc_token_from(port).await;
+            assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+            assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while echoed(&out).len() < 2 {
+                if Instant::now() >= deadline {
+                    return false;
+                }
+                tokio::time::sleep(Duration::from_millis(50)).await;
             }
-            tokio::time::sleep(Duration::from_millis(50)).await;
-        }
-        true
-    })
-    .await;
+            true
+        })
+        .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     assert!(
