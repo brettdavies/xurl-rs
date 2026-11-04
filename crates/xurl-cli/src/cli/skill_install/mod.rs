@@ -52,6 +52,7 @@ use crate::cli::envelope::Reason;
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 
+mod bundle;
 mod destination;
 mod git;
 mod render;
@@ -102,6 +103,9 @@ pub enum InstallError {
         /// Exit code reported by the failed `git clone` invocation.
         code: i32,
     },
+    /// `skill update` could not swap a fresh clone in for the bundle at the
+    /// destination, or remove the copy it replaced.
+    RemoveFailed,
 }
 
 impl InstallError {
@@ -113,6 +117,15 @@ impl InstallError {
             InstallError::DestIsFile => "destination-is-file",
             InstallError::GitNotFound => "git-not-found",
             InstallError::GitCloneFailed { .. } => "git-clone-failed",
+            InstallError::RemoveFailed => "remove-failed",
+        }
+    }
+
+    /// The exit code a run that fails this way ends on.
+    fn exit_code(&self) -> i32 {
+        match self {
+            InstallError::GitCloneFailed { code } => *code,
+            _ => 1,
         }
     }
 }
@@ -149,6 +162,14 @@ pub struct InstallEnvelope {
     /// install` leaves it in place.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub legacy_install_dir: Option<String>,
+    /// The directory `skill update` refused to replace because it holds
+    /// something other than the bundle: `install_dir` or
+    /// `legacy_install_dir`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub refused_dir: Option<String>,
+    /// What was refused and how to clear it, beside [`Self::refused_dir`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
     /// What to do about [`Self::reason`]; `None` on success.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
@@ -157,14 +178,17 @@ pub struct InstallEnvelope {
 impl InstallEnvelope {
     /// Fills [`Self::next_step`] from the failure this envelope reports.
     ///
-    /// A destination that already holds files is `skill update`'s to
-    /// replace, and a host with nothing installed is `skill install`'s to
-    /// fill, so those two name the sibling verb. A clone that failed is
-    /// tried again. The rest are the machine's state, which no `xr` command
-    /// changes.
+    /// A destination that already holds files is `skill update`'s to look
+    /// at, since it replaces a bundle and refuses anything else, and a host
+    /// with nothing installed is `skill install`'s to fill, so those two name
+    /// the sibling verb. That refusal from `skill update` itself has no
+    /// sibling left to name. A clone that failed is tried again. The rest are
+    /// the machine's state, which no `xr` command changes.
     fn with_next_step(mut self) -> Self {
         let host = self.host;
+        let action = self.action;
         self.next_step = self.reason.and_then(|reason| match reason {
+            "destination-not-empty" if action == ACTION_UPDATE => Some(NextStep::fix_input(None)),
             "destination-not-empty" => {
                 Some(NextStep::run_command(format!("xr skill update {host}")))
             }
@@ -241,6 +265,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
                 exit_code: Some(1),
                 reason: Some(InstallError::MissingHome.reason()),
                 legacy_install_dir: None,
+                refused_dir: None,
+                message: None,
                 next_step: None,
             };
         }
@@ -270,6 +296,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
                 exit_code: Some(1),
                 reason: Some(e.reason()),
                 legacy_install_dir: None,
+                refused_dir: None,
+                message: None,
                 next_step: None,
             };
         }
@@ -290,6 +318,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: None,
+            refused_dir: None,
+            message: None,
             next_step: None,
         };
     }
@@ -308,6 +338,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: None,
+            refused_dir: None,
+            message: None,
             next_step: None,
         },
         Err(InstallError::GitCloneFailed { code }) => InstallEnvelope {
@@ -321,6 +353,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(code),
             reason: Some(InstallError::GitCloneFailed { code }.reason()),
             legacy_install_dir: None,
+            refused_dir: None,
+            message: None,
             next_step: None,
         },
         Err(InstallError::GitNotFound) => InstallEnvelope {
@@ -334,6 +368,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(1),
             reason: Some(InstallError::GitNotFound.reason()),
             legacy_install_dir: None,
+            refused_dir: None,
+            message: None,
             next_step: None,
         },
         Err(_) => unreachable!("spawn_git_clone only emits GitCloneFailed / GitNotFound"),
@@ -528,5 +564,6 @@ mod tests {
             InstallError::GitCloneFailed { code: 128 }.reason(),
             "git-clone-failed"
         );
+        assert_eq!(InstallError::RemoveFailed.reason(), "remove-failed");
     }
 }

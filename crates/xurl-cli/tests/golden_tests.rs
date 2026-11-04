@@ -370,10 +370,10 @@ impl Scratch {
         (dir, NAME)
     }
 
-    /// A skill home whose destination is a plain file, so removing the
-    /// directory that should be there fails.
+    /// A skill home whose destination is a plain file, which neither skill
+    /// verb clones over.
     fn skill_home_with_blocked_skill_dir(&self) -> PathBuf {
-        let home = self.dir.path().join("home-remove-failed");
+        let home = self.dir.path().join("home-blocked");
         let skills = home.join(".claude").join("skills");
         std::fs::create_dir_all(&skills).expect("skills dir");
         std::fs::write(skills.join("xurl-rs"), b"").expect("blocking file");
@@ -390,6 +390,24 @@ impl Scratch {
         home
     }
 
+    /// A skill home whose destination is a clone of the bundle, which an
+    /// update replaces.
+    fn skill_home_with_bundle(&self) -> PathBuf {
+        let home = self.dir.path().join("home-bundle");
+        let git_dir = home
+            .join(".claude")
+            .join("skills")
+            .join("xurl-rs")
+            .join(".git");
+        std::fs::create_dir_all(&git_dir).expect("git dir");
+        std::fs::write(
+            git_dir.join("config"),
+            "[remote \"origin\"]\n\turl = https://github.com/brettdavies/xurl-rs-skill.git\n",
+        )
+        .expect("git config");
+        home
+    }
+
     /// An empty skill home: nothing installed, nothing in the way.
     fn empty_skill_home(&self) -> PathBuf {
         let home = self.dir.path().join("home-empty");
@@ -401,21 +419,30 @@ impl Scratch {
     /// message, so the clone-failed envelope is byte-stable. Returned as the
     /// placeholder form a case's `env` carries.
     fn path_with_refusing_git(&self) -> String {
-        let bin = self.dir.path().join("refusing-git");
-        std::fs::create_dir_all(&bin).expect("bin dir");
-        let git = bin.join("git");
-        std::fs::write(
-            &git,
+        self.path_with_git(
+            "refusing-git",
             "#!/bin/sh\necho 'fatal: golden clone refused' >&2\nexit 128\n",
         )
-        .expect("fake git");
+    }
+
+    /// A `PATH` holding only a `git` that exits 0 and writes nothing, so a
+    /// clone reported as done is not there to swap in. Placeholder form.
+    fn path_with_git_that_writes_nothing(&self) -> String {
+        self.path_with_git("empty-git", "#!/bin/sh\nexit 0\n")
+    }
+
+    fn path_with_git(&self, dir: &str, script: &str) -> String {
+        let bin = self.dir.path().join(dir);
+        std::fs::create_dir_all(&bin).expect("bin dir");
+        let git = bin.join("git");
+        std::fs::write(&git, script).expect("fake git");
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             std::fs::set_permissions(&git, std::fs::Permissions::from_mode(0o755))
                 .expect("executable");
         }
-        format!("{SCRATCH_PLACEHOLDER}/refusing-git")
+        format!("{SCRATCH_PLACEHOLDER}/{dir}")
     }
 
     /// A `PATH` with no `git` on it at all, in placeholder form.
@@ -700,7 +727,12 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             )
         },
         Case {
-            skill_home: Some(scratch.skill_home_with_blocked_skill_dir()),
+            skill_home: Some(scratch.skill_home_with_bundle()),
+            env: vec![("PATH", scratch.path_with_git_that_writes_nothing())],
+            unix_only: Some(
+                "the empty git is a `#!/bin/sh` script, and on Windows \
+                 `Command::new(\"git\")` runs only a `git.exe`",
+            ),
             ..reason_case(
                 "remove-failed",
                 &["--output", "json", "skill", "update", "claude_code"],
@@ -747,6 +779,32 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
                 &["--output", "json", "skill", "update", "--all"],
             )
         },
+    ]
+}
+
+/// What `skill update` answers for a destination that holds something other
+/// than the bundle, in a real run and a dry run.
+fn skill_update_refusal_cases(scratch: &Scratch) -> Vec<Case> {
+    let refused = |name: &str, args: &[&str]| Case {
+        skill_home: Some(scratch.skill_home_with_populated_skill_dir()),
+        ..case(name, args)
+    };
+    vec![
+        refused(
+            "skill-update-refuses-what-is-not-a-bundle",
+            &["--output", "json", "skill", "update", "claude_code"],
+        ),
+        refused(
+            "skill-update-dry-run-refuses-what-is-not-a-bundle",
+            &[
+                "--output",
+                "json",
+                "skill",
+                "update",
+                "claude_code",
+                "--dry-run",
+            ],
+        ),
     ]
 }
 
@@ -1544,6 +1602,7 @@ fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
     cases.extend(verbose_cases());
     cases.extend(reason_cases(scratch));
     cases.extend(dry_run_cases());
+    cases.extend(skill_update_refusal_cases(scratch));
     cases.extend(text_cases());
     cases.extend(success_cases());
     let mut seen = BTreeSet::new();

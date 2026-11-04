@@ -3581,13 +3581,17 @@ pub enum SkillCmd {
 
     /// Refresh an existing skill-bundle install in place.
     ///
-    /// Removes the current destination and re-runs the install pipeline so
-    /// the bundle picks up upstream changes. The destination and hardening
-    /// surface are identical to `install`. A copy at a location the host still
-    /// reads but xr does not install to, such as Codex's
-    /// `~/.codex/skills/xurl-rs`, is removed too and named in
-    /// `legacy_install_dir`. The envelope's `action` is `"skill-update"` so
-    /// agents can distinguish from a first-time install.
+    /// Clones the bundle beside the destination and swaps the clone in once it
+    /// succeeds, so a failed clone leaves the current install as it was. The
+    /// swap replaces the whole directory, along with any file added to it. Only
+    /// a clone of the bundle's repository is replaced: anything else at the
+    /// destination is refused and left alone, and the `refused_dir` key names
+    /// it. The destination and hardening surface are identical to `install`. A
+    /// copy at a location the host still reads but xr does not install to, such
+    /// as Codex's `~/.codex/skills/xurl-rs`, follows the same rule, is removed
+    /// after the swap, and is named in `legacy_install_dir`. The envelope's
+    /// `action` is `"skill-update"` so agents can distinguish from a first-time
+    /// install.
     #[command(after_help = "Examples:
   xr skill update claude_code                      # refresh Claude Code's xurl-rs bundle
   xr skill update claude_code --dry-run            # show the resolved plan without touching disk

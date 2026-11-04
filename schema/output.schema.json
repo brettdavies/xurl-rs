@@ -351,6 +351,13 @@
           "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `address-in-use`, `token-store`, `internal`, `processing-timeout`,\n`confirmation-required`, `no-tty`, `unsupported-pagination`, and the\nverb-local `invalid-json`, `unknown-schema`, `validation-failed`,\n`missing-host`, `home-not-set`, `destination-not-empty`,\n`destination-is-file`, `git-not-found`, `git-clone-failed`,\n`not-installed`, and `remove-failed`. The set is closed, and a newer\nrelease can add to it: treat a value you do not recognize as your\ndefault branch.",
           "type": "string"
         },
+        "refused_dir": {
+          "description": "Directory `skill update` refused to replace, because it holds\nsomething other than the bundle.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "rendered_url": {
           "description": "Endpoint path with path parameters substituted.",
           "type": [
