@@ -161,7 +161,9 @@ impl Event {
 
 /// A bound webhook receiver.
 ///
-/// Dropping it stops the listener and releases the port.
+/// Dropping it stops the listener, ends the connections it is serving, and
+/// releases the port. The token given to [`Receiver::bind`] stays as the caller
+/// left it.
 ///
 /// # Example
 ///
@@ -190,7 +192,9 @@ impl Event {
 pub struct Receiver {
     local_addr: SocketAddr,
     events: mpsc::Receiver<Event>,
-    cancel: CancellationToken,
+    // A child of the caller's token: the caller's stop reaches every task
+    // through it, and `Drop` cancels it without touching the caller's token.
+    stop: CancellationToken,
     task: tokio::task::JoinHandle<()>,
 }
 
@@ -206,9 +210,11 @@ pub type ArrivalClock = Arc<dyn Fn() -> SystemTime + Send + Sync>;
 impl Receiver {
     /// Binds `config.bind` and starts answering.
     ///
-    /// `cancel` is the external stop: once it is cancelled the listener
-    /// closes and [`Receiver::next_event`] returns `None`. The library
-    /// registers no signal handler.
+    /// `cancel` is the caller's stop: once it is cancelled the listener
+    /// closes and [`Receiver::next_event`] returns `None`. The receiver never
+    /// cancels it itself, even when it is dropped, so the caller can pass a
+    /// token it shares with other work, a signal handler's among them. The
+    /// library registers no signal handler.
     ///
     /// # Errors
     ///
@@ -220,7 +226,8 @@ impl Receiver {
         Self::bind_with_clock(config, cancel, Arc::new(SystemTime::now)).await
     }
 
-    /// [`Receiver::bind`], stamping each arrival with `clock`.
+    /// [`Receiver::bind`], stamping each arrival with `clock`. `cancel` is the
+    /// caller's stop here too: the receiver never cancels it itself.
     // `webhooks listen` calls this when the in-process runner gives it an
     // `ArrivalClock`; see that type.
     #[doc(hidden)]
@@ -251,11 +258,12 @@ impl Receiver {
             sender,
             clock,
         });
-        let task = tokio::spawn(accept_loop(listener, shared, cancel.clone()));
+        let stop = cancel.child_token();
+        let task = tokio::spawn(accept_loop(listener, shared, stop.clone()));
         Ok(Self {
             local_addr,
             events,
-            cancel,
+            stop,
             task,
         })
     }
@@ -272,14 +280,14 @@ impl Receiver {
         tokio::select! {
             biased;
             event = self.events.recv() => event,
-            () = self.cancel.cancelled() => None,
+            () = self.stop.cancelled() => None,
         }
     }
 }
 
 impl Drop for Receiver {
     fn drop(&mut self) {
-        self.cancel.cancel();
+        self.stop.cancel();
         self.task.abort();
     }
 }
