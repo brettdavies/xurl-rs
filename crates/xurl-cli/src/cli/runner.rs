@@ -419,7 +419,7 @@ async fn run_inner(
             .map(|a| a.to_string_lossy().into_owned())
             .collect()
     };
-    match dispatched {
+    let code = match dispatched {
         Ok(()) => EXIT_SUCCESS,
         Err(Failure::Emitted { exit_code }) => exit_code,
         Err(Failure::Refused { error, reason }) => {
@@ -450,7 +450,10 @@ async fn run_inner(
             }
             code
         }
-    }
+    };
+    // Every failure above wrote its envelope, which took the warnings with it.
+    out.write_kept_warnings(stderr);
+    code
 }
 
 /// The recovery hint for a library error, chosen from the store as this

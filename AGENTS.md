@@ -146,6 +146,14 @@ oauth2 NAME` lets them choose. Another user's handle is never cached, since a ha
 Streaming endpoints emit a continuous JSONL stream when `--output jsonl` is set; non-streaming endpoints emit one record
 then close.
 
+Under a structured format, each stream carries at most one document, and warnings ride inside it. Only the record
+streams write more: `-s` prints one record per line on stdout, and `webhooks listen` prints one JSON record per line. A
+`tracing` event at WARN or ERROR never prints as a line of its own: `OutputConfig::keeps_warning`, the one place that
+decides how a warning renders, keeps it as `{message, target}`, each distinct pair once. A failed run's error envelope
+carries them as `warnings`. A run that exits 0, a dry run included, leaves stdout as it would be without the warning and
+closes stderr with `{"status":"ok","warnings":[...]}`, and writes nothing there when none fired. Text output prints a
+`warning:` line as each one fires, and `--quiet` changes neither form.
+
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
 kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A

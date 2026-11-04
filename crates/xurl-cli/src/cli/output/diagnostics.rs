@@ -1,6 +1,7 @@
 //! Renders the library's `tracing` events the way `xr` prints them: the
 //! `--verbose` wire lines and legacy-vocabulary notes, the media status
-//! lines, and warnings.
+//! lines, and warnings, which under a structured format wait for the run's
+//! one document on stderr.
 //!
 //! The library emits structured events and never touches a terminal. This
 //! subscriber, installed by the runner around one dispatch, is where the
@@ -43,12 +44,15 @@ impl Diagnostics {
         let meta = event.metadata();
         let colour = self.out.use_color;
 
-        match *meta.level() {
-            Level::ERROR => return Some(format!("error: {}", fields.message.unwrap_or_default())),
-            Level::WARN => {
-                return Some(format!("warning: {}", fields.message.unwrap_or_default()));
-            }
-            _ => {}
+        let label = match *meta.level() {
+            Level::ERROR => Some("error"),
+            Level::WARN => Some("warning"),
+            _ => None,
+        };
+        if let Some(label) = label {
+            let message = fields.message.unwrap_or_default();
+            return (!self.out.keeps_warning(&message, meta.target()))
+                .then(|| format!("{label}: {message}"));
         }
         match meta.target() {
             WIRE_TARGET => {
@@ -339,7 +343,43 @@ mod tests {
     }
 
     #[test]
-    fn wire_lines_are_silent_without_verbose_and_warnings_always_print() {
+    fn warnings_and_errors_wait_for_the_document_under_every_structured_format() {
+        for format in [
+            OutputFormat::Json,
+            OutputFormat::Jsonl,
+            OutputFormat::Ndjson,
+            OutputFormat::Yaml,
+            OutputFormat::Csv,
+            OutputFormat::Tsv,
+        ] {
+            let out = OutputConfig::new(format.clone(), false, false, ColorChoice::Never);
+            let lines = rendered(Diagnostics::new(out.clone()), || {
+                tracing::warn!(target: "xdk::auth", "token stored under unnamed slot");
+                tracing::warn!(target: "xdk::auth", "token stored under unnamed slot");
+                tracing::warn!(target: "xdk::store", "token stored under unnamed slot");
+                tracing::error!(target: "xdk::store", "the store could not be saved");
+            });
+            assert_eq!(lines, vec![None, None, None, None], "{format:?}");
+            let kept: Vec<(String, String)> = out
+                .warnings
+                .take()
+                .expect("kept")
+                .into_iter()
+                .map(|warning| (warning.message, warning.target))
+                .collect();
+            let expected = [
+                ("token stored under unnamed slot", "xdk::auth"),
+                ("token stored under unnamed slot", "xdk::store"),
+                ("the store could not be saved", "xdk::store"),
+            ]
+            .map(|(message, target)| (message.to_string(), target.to_string()));
+            assert_eq!(kept, expected, "{format:?}: a repeat of a pair collapses");
+            assert_eq!(out.warnings.take(), None, "one document carries them");
+        }
+    }
+
+    #[test]
+    fn wire_lines_are_silent_without_verbose_and_warnings_print_in_text_mode() {
         let lines = rendered(diagnostics(false, ColorChoice::Never), || {
             tracing::debug!(target: WIRE_TARGET, kind = "request", method = "GET", url = "u");
             tracing::warn!(target: "xdk::auth", "token stored under unnamed slot");

@@ -31,6 +31,11 @@ pub enum Envelope {
     /// Success envelope. `payload` holds verb-specific fields; agents
     /// merge them flat at the top level for legibility.
     Ok {
+        /// What the library warned about during the run, on the document a
+        /// successful run writes on stderr when a warning fired. Stdout's
+        /// document never carries it.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        warnings: Option<Vec<Warning>>,
         /// Verb-specific payload fields. Encoded as additional top-level
         /// keys via `#[serde(flatten)]` at the call site.
         #[serde(flatten)]
@@ -153,6 +158,18 @@ impl Reason {
     }
 }
 
+/// A diagnostic the library raised during a run, as a structured document
+/// carries it. It did not end the run: a failure is the envelope itself.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Warning {
+    /// What the library reported, in its own words. The wording is not
+    /// contract; branch on `target`.
+    pub message: String,
+    /// The part of `xr` that raised it, such as `xdk::config` or `xdk::store`.
+    pub target: String,
+}
+
 /// Every field an error envelope can carry, beside the `status` tag.
 ///
 /// The emitter in [`crate::cli::output`] constructs this value and serializes it,
@@ -229,6 +246,10 @@ pub struct ErrorBody {
     /// named nothing left as `<property>`, under `invalid-args`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
+    /// What the library warned about before the run failed, each distinct
+    /// warning once. Omitted when none fired.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub warnings: Option<Vec<Warning>>,
     /// The offending value, echoed verbatim.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,

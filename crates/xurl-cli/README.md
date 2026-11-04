@@ -734,6 +734,20 @@ legacy post vocabulary, the key is renamed to the spec's spelling and its value 
 `repost_count`, `referenced_tweets` as `referenced_posts`, and `includes.tweets` as `includes.posts`. `--verbose` notes
 each key it renamed. A raw `xr <URL>` request prints X's body unchanged.
 
+Under a structured format, each stream carries at most one document, and a warning rides inside it rather than printing
+as a line of its own. `warnings` is an array of `{message, target}`, where `target` names the part of `xr` that raised
+it, such as `xdk::config`, and each distinct warning appears once. A run that fails carries the array in its error
+envelope. A run that succeeds, a dry run included, leaves stdout as it would be without the warning and closes stderr
+with one document:
+
+```json
+{"status": "ok", "warnings": [{"message": "REDIRECT_URI env value rejected by validation; falling through to next precedence level", "target": "xdk::config"}]}
+```
+
+Stderr stays empty when no warning fired. Branch on `target`: the wording of `message` is not contract. Text output
+prints a `warning:` line as each one fires, and `--quiet` changes neither form. The record streams write more than one
+document: `-s` prints one record per line on stdout, and `xr webhooks listen` prints one JSON record per line.
+
 `xr --output json auth status` and `xr --output json auth apps list` emit `{"status": "ok", "apps": [...]}`, carrying
 one object per registered app under `apps`. An empty store emits `"apps": []`, so the array is iterable without a
 zero-app special case. Per-app fields:
