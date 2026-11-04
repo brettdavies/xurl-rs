@@ -1,5 +1,39 @@
 {
   "$defs": {
+    "DryRunAuth": {
+      "description": "The `auth` object of a dry-run envelope: the credential a request would go\nout under.",
+      "properties": {
+        "app": {
+          "description": "The app whose stored credential would be sent. Absent for a bearer\ntoken the environment supplies, which belongs to no stored app.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scheme": {
+          "description": "The auth scheme: `oauth1`, `oauth2`, or `app`.",
+          "type": "string"
+        },
+        "token_expired": {
+          "description": "Whether the `OAuth2` login's token has expired. An expired token is\nreported, not refreshed.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "username": {
+          "description": "The `OAuth2` login, the one credential with a user name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "scheme"
+      ],
+      "type": "object"
+    },
     "NextAction": {
       "description": "What the caller should do next. Closed set; agents branch on it.\n\nA newer release can add a member, so a caller treats one it does not\nrecognize as its default branch.",
       "oneOf": [
@@ -154,12 +188,106 @@
     },
     {
       "additionalProperties": true,
-      "description": "Dry-run envelope. `would_succeed` and `exit_code` are mandatory;\nadditional context (command name, body preview, etc.) lives in\n`payload`.",
+      "description": "Dry-run envelope. Its body declares the keys that are the envelope's\nown; any other key is one of the command's inputs. Boxed like the\nerror body, for its size.",
       "properties": {
+        "app": {
+          "description": "The active app name, on the same refusal.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DryRunAuth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The credential the request would go out under, read offline. Absent\non a refusal, and on a command that sends no request."
+        },
+        "available_in_app": {
+          "description": "Auth schemes available for the active app, on the same refusal.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "command": {
+          "description": "The command the answer is about. A raw request carries none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confirmation_required": {
+          "description": "Present and `true` on a destructive command whose real run would stop\nto ask. Absent under `--force`, where nothing would stop.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "endpoint": {
+          "description": "Endpoint template the request would target, when no stored scheme\nserves it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "exit_code": {
           "description": "Exit code the verb would have returned on actual execution.",
           "format": "int32",
           "type": "integer"
+        },
+        "message": {
+          "description": "The message the real run's error would carry.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "method": {
+          "description": "HTTP method the request would use, on the same refusal or a raw\nrequest.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_step": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NextStep"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The step the real run's error would carry; one that reruns the\ninvocation keeps `--dry-run`."
+        },
+        "other_apps_with_creds": {
+          "description": "Other apps holding credentials, when the active one holds none.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reason": {
+          "description": "Why the real run would fail, when it would: the `reason` of its error.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requested": {
+          "description": "Auth scheme the caller asked for, on the same refusal; `null` when\nauto-detect ran."
         },
         "response_schema": {
           "description": "The `xr schema` invocation that describes the command's response,\non a command with a typed response. A raw request carries none.",
@@ -168,9 +296,33 @@
             "null"
           ]
         },
+        "rule": {
+          "description": "The input rule the real run would refuse, under `validation`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "status": {
           "const": "dry_run",
           "type": "string"
+        },
+        "supported": {
+          "description": "Auth schemes the endpoint accepts, on the same refusal.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "The offending input, as it was given, when the broken `rule` names one.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "would_succeed": {
           "description": "True iff every precondition checked clean.",
@@ -186,7 +338,7 @@
     },
     {
       "additionalProperties": false,
-      "description": "Error envelope. Every field the runtime emits is declared on\n[`ErrorBody`], so an undeclared key cannot reach a caller. Boxed\nbecause that body is much larger than the other two variants.",
+      "description": "Error envelope. Every field the runtime emits is declared on\n[`ErrorBody`], so an undeclared key cannot reach a caller. Boxed\nbecause that body is much larger than the success variant.",
       "properties": {
         "account": {
           "description": "The handle, without its `@`, a lookup found no account for, under\n`not-found`: the first such handle when the lookup named several.",
@@ -247,6 +399,20 @@
             "null"
           ]
         },
+        "command_preview": {
+          "description": "The `git clone` a skill verb would run, its hardening flags omitted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "destination_status": {
+          "description": "What a skill verb found at `install_dir` before it cloned: `absent`,\n`empty-dir`, `non-empty-dir`, or `file`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "endpoint": {
           "description": "Endpoint template the request targeted.",
           "type": [
@@ -300,6 +466,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "legacy_install_dir": {
+          "description": "A copy of the skill bundle at a location the host still reads but `xr`\ndoes not install to.",
+          "type": [
+            "string",
             "null"
           ]
         },

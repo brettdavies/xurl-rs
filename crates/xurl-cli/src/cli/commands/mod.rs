@@ -42,7 +42,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::json;
 
-use crate::cli::envelope::Reason;
+use crate::cli::envelope::{DryRunAuth, Reason};
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::output::OutputConfig;
 use crate::cli::{Cli, Commands, CommonFlags};
@@ -223,22 +223,12 @@ impl DryRun {
     }
 }
 
-/// The `auth` object of a dry-run envelope. `app` is the app whose stored
-/// credential would be sent, absent for a bearer token the environment
-/// supplies. `username` and `token_expired` describe an `OAuth2` login, the
-/// one credential that has either.
+/// The `auth` object of a dry-run envelope.
 fn credential_value(found: &AuthPreflight) -> serde_json::Value {
-    let mut auth = json!({"scheme": found.scheme.as_wire()});
-    if let Some(app) = &found.app {
-        auth["app"] = json!(app);
-    }
-    if found.scheme == WireScheme::OAuth2 {
-        if let Some(username) = &found.username {
-            auth["username"] = json!(username);
-        }
-        auth["token_expired"] = json!(found.token_expired);
-    }
-    auth
+    let login =
+        (found.scheme == WireScheme::OAuth2).then(|| (found.username.clone(), found.token_expired));
+    let auth = DryRunAuth::new(found.scheme.as_wire(), found.app.clone(), login);
+    serde_json::to_value(auth).unwrap_or_default()
 }
 
 /// Checks a write's inputs: `validator` answers `Ok(())` or a kebab-case

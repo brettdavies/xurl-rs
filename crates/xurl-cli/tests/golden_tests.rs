@@ -1862,8 +1862,9 @@ fn schema_reasons() -> BTreeSet<String> {
         .as_array()
         .expect("envelope is a oneOf")
         .iter()
-        .find_map(|branch| branch["properties"]["reason"]["description"].as_str())
-        .expect("one branch declares reason with a description");
+        .find(|branch| branch["properties"]["status"]["const"] == "error")
+        .and_then(|branch| branch["properties"]["reason"]["description"].as_str())
+        .expect("the error branch declares reason with a description");
     description
         .split('`')
         .skip(1)
