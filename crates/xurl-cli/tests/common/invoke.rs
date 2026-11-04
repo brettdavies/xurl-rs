@@ -380,7 +380,7 @@ where
         .min(items.len());
     let next = AtomicUsize::new(0);
     let worker = || {
-        tokio::runtime::Builder::new_current_thread()
+        let (state, done) = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("a runtime")
@@ -390,11 +390,18 @@ where
                 loop {
                     let index = next.fetch_add(1, Ordering::Relaxed);
                     let Some(item) = items.get(index) else {
-                        return done;
+                        return (state, done);
                     };
                     done.push((index, visit(&state, item).await));
                 }
-            })
+            });
+        // A `MockServer`'s drop blocks this thread on a tokio lock. Inside the
+        // runtime, a task that has spent its coop budget gets its wake deferred
+        // to the scheduler this thread would have to run, so the drop would
+        // never return, and visits that send nothing do not yield on their own
+        // to refill it. No budget applies out here.
+        drop(state);
+        done
     };
     let mut done: Vec<(usize, R)> = std::thread::scope(|scope| {
         let workers: Vec<_> = (0..threads).map(|_| scope.spawn(worker)).collect();

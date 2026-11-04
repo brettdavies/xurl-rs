@@ -405,6 +405,12 @@ whatever the developer's shell exports. `crates/xurl-cli/tests/env_mutation_guar
 or removes a variable, or calls `Config::new()`, `Config::default()`, `Auth::new_with_store_path(`,
 `EnvOverrides::from_env()`, or `env::from_process(`, outside its allowlists of the tests that prove the process read.
 
+A test that awaits through a long loop and sends no request, such as a walk over every command or endpoint, can end with
+tokio's coop budget spent, and a `MockServer` dropped then never returns: its drop blocks on a tokio lock, whose wake
+tokio defers to the scheduler that blocked thread would have to run. Run such a loop through `walk` in
+`crates/xurl-cli/tests/common/invoke.rs`, which drops its state outside the runtime, or end the test with
+`tokio::task::yield_now().await`, which refills the budget. `crates/xurl-cli/tests/walk_tests.rs` holds `walk` to this.
+
 `scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
 format, workflow, and markdown checks when a file of their kind is staged (the format check is `cargo fmt -- --check`
 over every crate, the others read only the staged files), and `pre-push` runs the CI mirror over the repo. Run
