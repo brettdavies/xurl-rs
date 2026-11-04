@@ -426,8 +426,8 @@ PREVIOUS_BIN_PATH=$OLD/xr scripts/release/preflight.sh oauth2-interactive
 
 Off Linux, or without `script` or `python3`, the gate skips with a one-line reason. It builds nothing. On a failure, run
 one mode by hand with `python3 -B -I scripts/release/oauth2-interactive.py target/release/xr --mode encoded`.
-`crates/xurl-cli/tests/oauth2_interactive_gate_tests.rs` runs the same harness against the debug build, so CI exercises
-it on every PR that can reach cargo.
+`crates/xurl-cli/tests/oauth2_interactive_gate_tests.rs` runs this gate against the debug build, so CI exercises it on
+every PR that can reach cargo.
 
 ### Distribution and install paths
 

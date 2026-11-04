@@ -1,6 +1,6 @@
-//! Runs the harness behind `preflight.sh oauth2-interactive` against the built
-//! `xr`, so a change that breaks the interactive sign-in or the harness fails on
-//! its PR rather than at the release.
+//! Runs `preflight.sh oauth2-interactive` against the built `xr`, so a change
+//! that breaks the interactive sign-in, the harness, or the gate fails on its PR
+//! rather than at the release.
 //!
 //! Linux only: the harness needs util-linux `script(1)`, and a fake `xdg-open`
 //! stands in for the browser only where the `open` crate looks for one.
@@ -10,7 +10,7 @@ mod common;
 
 use std::process::Command;
 
-const HARNESS: &str = "scripts/release/oauth2-interactive.py";
+const GATE: &str = "scripts/release/preflight.sh";
 const MODES: [&str; 5] = ["decoded", "encoded", "refused", "denied", "idle"];
 
 fn runs(program: &str) -> bool {
@@ -21,7 +21,7 @@ fn runs(program: &str) -> bool {
 }
 
 #[test]
-fn every_mode_passes_against_the_built_binary() {
+fn the_gate_passes_every_mode_against_the_built_binary() {
     if !(runs("script") && runs("python3")) {
         assert!(
             std::env::var_os("CI").is_none(),
@@ -30,17 +30,20 @@ fn every_mode_passes_against_the_built_binary() {
         eprintln!("skipped: the harness needs script(1) and python3 on PATH");
         return;
     }
-    let output = Command::new("python3")
-        .args(["-B", "-I"])
-        .arg(common::workspace_root().join(HARNESS))
-        .arg(common::xr_bin())
+    let output = Command::new("bash")
+        .arg(common::workspace_root().join(GATE))
+        .arg("oauth2-interactive")
+        .env("BIN_PATH", common::xr_bin())
+        // A comparison binary that cannot run keeps the result off whatever
+        // Homebrew `xr` this machine has, and off that binary's run time.
+        .env("PREVIOUS_BIN_PATH", "/nonexistent")
         .output()
-        .expect("spawn the harness");
+        .expect("spawn the gate");
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     let passed: Vec<&str> = stdout
         .lines()
-        .filter_map(|line| line.strip_prefix("PASS\t")?.split('\t').next())
+        .filter_map(|line| line.trim_start().strip_prefix("✓ ")?.split(':').next())
         .collect();
     assert_eq!(passed, MODES, "stdout:\n{stdout}\nstderr:\n{stderr}");
     assert!(

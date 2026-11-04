@@ -304,7 +304,7 @@ on someone doing that goes unrun exactly when nobody does.
 
 The only human step on that path is a browser following a redirect. A fake `xdg-open`, a pty, and a stub provider
 synthesize it with no credential and no call to X, so `preflight.sh oauth2-interactive` runs on every release, and CI
-runs the same harness against the debug build. What it cannot show is that X itself still accepts the flow, which stays
+runs the same gate against the debug build. What it cannot show is that X itself still accepts the flow, which stays
 an optional human check in `RELEASES-PREFLIGHT.md`.
 
 ### Annotated tags + Trusted Publishing
