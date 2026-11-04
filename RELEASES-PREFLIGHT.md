@@ -26,7 +26,7 @@ Most of this checklist runs from one script. Build `xr` first, then:
 
 ```bash
 cargo build --release --bin xr
-scripts/release/preflight.sh all          # drift + surface + api-contract + smoke + multi-app + changelog-sections + mechanics
+scripts/release/preflight.sh all          # drift + surface + api-contract + smoke + multi-app + oauth2-interactive + changelog-sections + mechanics
 ```
 
 After `git push origin vX.Y.Z` triggers the release pipeline, run
@@ -34,11 +34,11 @@ After `git push origin vX.Y.Z` triggers the release pipeline, run
 
 The script (`scripts/release/preflight.sh`) is **project-authored** on the github-repo-setup skill's skeleton: the
 shared scaffolding (gate helpers, 1Password reads, `shred -u` tempdir cleanup, subcommand dispatch, and the drift,
-surface, changelog-sections, and mechanics gates) is the skeleton's; the api-contract, smoke, and multi-app gates and
-the seed recipe are this repo's. `all` runs the drift gate first, since nothing else matters while `main` holds changes
-`dev` never received. It exits non-zero if any gate fails; human-required gates (OAuth2 PKCE end-to-end, OAuth2
-headless, 429 rate-limit) are skipped with a `⊝` and a pointer to the recipe below. Sub-commands let you re-run one gate
-group in isolation:
+surface, changelog-sections, and mechanics gates) is the skeleton's; the api-contract, smoke, multi-app, and
+oauth2-interactive gates and the seed recipe are this repo's. `all` runs the drift gate first, since nothing else
+matters while `main` holds changes `dev` never received. It exits non-zero if any gate fails; the checks a script does
+not run (a real browser sign-in against X, OAuth2 headless against X, 429 rate-limit) are skipped with a `⊝` and a
+pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
 
 | Sub-command          | What it runs                                                                                                                                                                                                              | Live API?                     |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
@@ -47,6 +47,7 @@ group in isolation:
 | `api-contract`       | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` on `xdk-rs` vs its last `xdk-rs-v*` tag, and any `required-update` override that tag has made stale                                                     | no (builds prev tag once)     |
 | `smoke`              | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                                                           | yes                           |
 | `multi-app`          | OAuth1/Bearer/OAuth2 isolation, auto-detect, first-signed-in default, idempotence, auth-error envelope                                                                                                                    | yes                           |
+| `oauth2-interactive` | The release binary's interactive `xr auth oauth2` under a pty, with a fake browser and a stub for X: decoded, encoded, and refused state, denied consent, an idle connection; compares the previous release's `xr`        | no (stub on loopback)         |
 | `changelog-sections` | No PR this release carries leaves its changelog entry to its title for want of a `## Changelog (<crate>)` section (`generate-changelog.py --audit-sections`, for `xurl-rs` and for `xdk-rs` while its release is pending) | no (reads PR bodies via `gh`) |
 | `mechanics`          | CLI crate version, lockfile presence, `xr --version` match, CHANGELOG match, toolchain quarantine, advisories, leak check, unguarded docs added to `main`, diff-B vs `origin/dev`                                         | no                            |
 | `all`                | every above                                                                                                                                                                                                               | yes                           |
@@ -57,6 +58,8 @@ Flags:
 - `--no-cleanup`: keep the temp store after exit (useful for follow-up `xr` probes)
 - `--tag TAG`: override LAST_TAG auto-detection (default: the newest `v[0-9]*` tag, so an `xdk-rs-v*` tag never stands
   in for the CLI's)
+
+`PREVIOUS_BIN_PATH` names the `xr` that `oauth2-interactive` compares the release binary with (default: Homebrew's).
 
 The script seeds an isolated `$SMOKE_HOME` from 1Password (`secrets-dev` vault) and **`shred -u`s** every tempdir that
 held credentials on exit (overwrites bytes with three passes before unlinking; falls back to `dd if=/dev/urandom + rm`
@@ -230,8 +233,9 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
 - [ ] **OAuth1 path** (automatable): `xrs whoami --auth oauth1 --app bird_dev --output json | jaq -c
   '{u:.data.username}'` → expect `{"u":"BrettDavies"}` (or whichever account is seeded). Confirms HMAC-SHA1 signing
   didn't regress.
-- [ ] **OAuth2 PKCE path** (needs human ONLY for the browser approval): drive end-to-end with the recipe below. The
-  human's only job is opening a URL and pasting the redirect URL back; the agent handles every CLI step.
+- [ ] **OAuth2 PKCE path against X** (optional; needs a human for the browser approval): `preflight.sh
+  oauth2-interactive` drives the sign-in offline on every release, and this recipe is the check that X itself still
+  accepts it. The human's only job is opening a URL and pasting the redirect URL back; the agent handles every CLI step.
 
   ```bash
   FRESH=$(mktemp -d -t xr-pkce-XXXXXX)
@@ -276,9 +280,10 @@ auth status` (redacts) or `yq '... | path'` for shape probes only.
   falls back to a fresh PKCE attempt with `client_id=` (empty in the URL; the fallback misses the `--app NAME`
   threading). This looks like a bug but is just the case-sensitivity tripwire.
 
-- [ ] **OAuth2 headless** (`--no-browser`) path: identical to PKCE above on this machine; `--no-browser` auto-engages
-  when stdout isn't a TTY. The two-step ceremony is the same; passing `--no-browser` explicitly is the only difference.
-  The recipe above already uses `--no-browser`, so it satisfies both gates in one run.
+- [ ] **OAuth2 headless** (`--no-browser`) path against X (optional): identical to PKCE above on this machine;
+  `--no-browser` auto-engages when stdout isn't a TTY. The two-step ceremony is the same; passing `--no-browser`
+  explicitly is the only difference. The recipe above already uses `--no-browser`, so it satisfies both checks in one
+  run.
 - [ ] **Bearer token (env var, one-shot)** (automatable): with an empty store, run `XURL_TOKEN_STORE=$(mktemp -d)/.xurl
   XURL_BEARER_TOKEN=$(read_field 'X App - Bird (dev)' credential) xr search "rust" --max-results 1 --auth app`. Confirms
   `Auth::get_bearer_token_header` honors the env var without a persisted store entry.
@@ -344,12 +349,13 @@ All gates below use the isolated `$SMOKE_HOME` seed recipe from § Real-world sm
 use `xr auth status` for human inspection or `yq 'keys | .[]' "$SMOKE_HOME/.xurl"` / `yq '.. | path' ...` for structural
 probes.
 
-- [ ] **OAuth2 `--app NAME` save and read isolation** (sideload-verifiable; PKCE end-to-end needs human): the seed
+- [ ] **OAuth2 `--app NAME` save and read isolation** (sideload-verifiable): the seed
   recipe injects per-app `oauth2_tokens.brettdavies` for both `bird_dev` and `bird_prod`. Verify isolation by inspecting
   the structure without printing values: `yq '.apps | to_entries | map({app: .key, has_oauth2: (.value.oauth2_tokens !=
   null), users: (.value.oauth2_tokens // {} | keys)})' "$SMOKE_HOME/.xurl"`. Each app holds its own
-  `oauth2_tokens.brettdavies` entry and neither overwrites the other. End-to-end PKCE verification (live token issued
-  during this preflight) requires the human-driven authorize step described in § Real-world smoke.
+  `oauth2_tokens.brettdavies` entry and neither overwrites the other. `preflight.sh oauth2-interactive` drives a
+  sign-in that saves a login through the real listener against a stub; a live token from X takes the optional authorize
+  step in § Real-world smoke.
 - [ ] **OAuth1 `--app NAME` save and read isolation** (automatable): after the seed recipe puts OAuth1 only on
   `bird_dev`, run `xrs whoami --app bird_dev --auth oauth1 --output json | jaq -c '{u:.data.username}'` → expect
   `{"u":"BrettDavies"}`. Then `xrs whoami --app bird_prod --auth oauth1 --output json | jaq -c '{r:.reason,
@@ -381,6 +387,47 @@ probes.
   oauth1` against an app that has no OAuth1 entry), the error envelope is `auth-required` with `message:` mentioning
   `TokenNotFound` rather than a wrapped X 401 body. Confirms `ApiClient::send_request` propagates auth errors instead of
   silently sending an unauthenticated request that surfaces as an upstream rejection.
+
+### OAuth2 interactive sign-in (offline)
+
+Driven by `scripts/release/preflight.sh oauth2-interactive`, which runs `scripts/release/oauth2-interactive.py` against
+the release binary. It needs no secret, and no request leaves the machine.
+
+`smoke` and `multi-app` seed their stores, and the headless recipe pastes the redirect back on stdin, so this is the one
+gate where the shipped binary serves an OAuth2 callback. `xr auth oauth2` takes its interactive branch only when stdout
+is a terminal, so the harness runs it under a pty (`script` from util-linux), with a fake `xdg-open` first on `PATH` and
+a loopback stub for X that `AUTH_URL`, `TOKEN_URL`, `INFO_URL`, and `API_BASE_URL` all name. The fake browser requests
+the authorize URL and follows the stub's redirect to the listener the way a slow browser can: it connects, waits, and
+sends the request in two pieces cut inside `state`. Every process gets a scratch store and an environment built from
+nothing.
+
+- [ ] **Decoded state** (`decoded`): exit 0, the stub saw `POST /2/oauth2/token` then `GET /2/users/me`, and `xr auth
+  status --output json` lists the login.
+- [ ] **Percent-encoded state** (`encoded`): every byte of `state` percent-encoded, with the same result.
+- [ ] **Refused state** (`refused`): exit 77, and under `--output json` the reason is `auth-required` with
+  `next_step.action` `sign-in`. The stub sees no token exchange.
+- [ ] **Denied consent** (`denied`, `error=access_denied`): exit 77, and the message names `access_denied`. The stub
+  sees no token exchange.
+- [ ] **Idle connection** (`idle`): a connection that never sends a byte, opened before the redirect, leaves the sign-in
+  finishing in under 5 s.
+
+Each mode also holds what the listener answers the browser: 200 for a sign-in that succeeds, 400 for a refusal.
+
+The gate then runs the previous release's `xr`, Homebrew's unless `PREVIOUS_BIN_PATH` names another, and reports whether
+the harness tells the two apart. That line informs and never fails the release. `xr` 4.5.1 fails `encoded`, `refused`,
+`denied`, and `idle`, and 4.5.2 is the first release to pass all five, so any two releases from 4.5.2 on agree. To watch
+the harness discriminate, name an older binary:
+
+```bash
+OLD=$(mktemp -d -t xr-old-XXXXXX)
+gh release download v4.5.1 -p 'xurl-rs-x86_64-unknown-linux-gnu.tar.gz' -O - | tar -xz -C "$OLD" --strip-components=1
+PREVIOUS_BIN_PATH=$OLD/xr scripts/release/preflight.sh oauth2-interactive
+```
+
+Off Linux, or without `script` or `python3`, the gate skips with a one-line reason. It builds nothing. On a failure, run
+one mode by hand with `python3 -B -I scripts/release/oauth2-interactive.py target/release/xr --mode encoded`.
+`crates/xurl-cli/tests/oauth2_interactive_gate_tests.rs` runs the same harness against the debug build, so CI exercises
+it on every PR that can reach cargo.
 
 ### Distribution and install paths
 
