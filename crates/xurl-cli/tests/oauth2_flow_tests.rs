@@ -1001,6 +1001,81 @@ async fn step2_reports_a_denied_consent_with_the_providers_error_and_step_one_ag
     assert!(pending.exists(), "a refused step 2 keeps the pending state");
 }
 
+/// A step 2 refused on its redirect URL, under `--output`: the refusal's name
+/// and the URL's query, one case per way the URL can be wrong.
+fn refused_redirects() -> [(&'static str, String); 3] {
+    [
+        (
+            "StateMismatch",
+            "code=AUTHCODE&state=ANOTHER-NONCE".to_string(),
+        ),
+        ("MissingState", "code=AUTHCODE".to_string()),
+        ("MissingCode", format!("state={PENDING_STATE}")),
+    ]
+}
+
+async fn run_refused_step2(tmp: &TempDir, flags: &[&str], query: &str) -> (i32, String) {
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+    let closed = closed_port();
+    let overrides = step2_overrides(
+        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+    );
+    let redirect = format!("http://localhost:8080/callback?{query}");
+    let mut args = vec!["xr"];
+    args.extend_from_slice(flags);
+    args.extend_from_slice(&[
+        "auth",
+        "oauth2",
+        "--no-browser",
+        "--step",
+        "2",
+        "--auth-url",
+        &redirect,
+    ]);
+
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &args).await;
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+    (code, stderr)
+}
+
+#[tokio::test]
+async fn step2_refusing_its_redirect_url_starts_the_sign_in_over_at_step_one() {
+    for (refusal, query) in refused_redirects() {
+        let tmp = TempDir::new().unwrap();
+        let (code, stderr) = run_refused_step2(&tmp, &["--output", "json"], &query).await;
+
+        assert_eq!(code, 77, "{refusal}: {stderr}");
+        let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+        let message = v["message"].as_str().unwrap_or_default();
+        assert!(message.contains(refusal), "{refusal}: {v}");
+        assert_eq!(v["reason"], "auth-required", "{refusal}: {v}");
+        assert_eq!(v["next_step"]["action"], "sign-in", "{refusal}: {v}");
+        assert_eq!(
+            v["next_step"]["command"], "xr --output json auth oauth2 --no-browser --step 1",
+            "{refusal}: the step drops the URL it was refused on: {v}"
+        );
+        assert!(v["next_step"]["template"].is_null(), "{refusal}: {v}");
+    }
+}
+
+#[tokio::test]
+async fn step2_refusing_its_redirect_url_says_how_to_start_over_in_text() {
+    for (refusal, query) in refused_redirects() {
+        let tmp = TempDir::new().unwrap();
+        let (code, stderr) = run_refused_step2(&tmp, &[], &query).await;
+
+        assert_eq!(code, 77, "{refusal}: {stderr}");
+        assert!(stderr.contains(refusal), "{refusal}: {stderr}");
+        assert!(
+            stderr.contains("Sign in again. Run: xr auth oauth2 --no-browser --step 1"),
+            "{refusal}: {stderr}"
+        );
+    }
+}
+
 #[tokio::test]
 async fn the_interactive_state_needs_no_encoding() {
     let sent = Arc::new(Mutex::new(None::<String>));
