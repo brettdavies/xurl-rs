@@ -442,6 +442,12 @@ async fn run_inner(
             out.print_dry_run_refusal(stdout, &ctx, &error, Some(&hint));
             EXIT_SUCCESS
         }
+        Err(Failure::AfterUpload { error, media_id }) => {
+            let code = error.exit_code();
+            let hint = recovery_hint(&error, &snapshot, &args_vec, structured);
+            out.print_error_after_upload(stderr, &error, code, hint.as_ref(), &media_id);
+            code
+        }
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
             match recovery_hint(&e, &snapshot, &args_vec, structured) {

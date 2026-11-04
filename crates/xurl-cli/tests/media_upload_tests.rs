@@ -1,6 +1,7 @@
-//! `xr media upload --wait` against a mock whose processing fails: the
-//! upload itself completed at FINALIZE, so the caller still gets the media id
-//! on stdout before the processing error ends the run.
+//! `xr media upload` and `xr media status` against a mock X: what a wait on
+//! processing ends on, and which stream each outcome reaches. Stdout carries
+//! the command's result, so a run that fails leaves it empty and names the
+//! media id on stderr.
 
 mod common;
 
@@ -9,70 +10,6 @@ use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::oauth2_store;
-
-#[tokio::test(flavor = "multi_thread")]
-async fn a_processing_failure_after_finalize_still_prints_the_media_id() {
-    let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/2/media/upload/initialize"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "777", "media_key": "7_777", "expires_after_secs": 86400}
-        })))
-        .expect(1)
-        .mount(&server)
-        .await;
-    Mock::given(method("POST"))
-        .and(path("/2/media/upload/777/append"))
-        .respond_with(ResponseTemplate::new(204))
-        .expect(1)
-        .mount(&server)
-        .await;
-    Mock::given(method("POST"))
-        .and(path("/2/media/upload/777/finalize"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "777", "processing_info": {"state": "pending", "check_after_secs": 1}}
-        })))
-        .expect(1)
-        .mount(&server)
-        .await;
-    Mock::given(method("GET"))
-        .and(path("/2/media/upload"))
-        .and(query_param("command", "STATUS"))
-        .and(query_param("media_id", "777"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "data": {"id": "777", "processing_info": {"state": "failed"}}
-        })))
-        .expect(1)
-        .mount(&server)
-        .await;
-
-    let tmp = TempDir::new().expect("tempdir");
-    let store = oauth2_store(tmp.path());
-    let video = tmp.path().join("clip.mp4");
-    std::fs::write(&video, b"not really a video").expect("write clip");
-    let base_url = server.uri();
-    let output = tokio::task::spawn_blocking(move || {
-        let mut cmd = common::xr_with_store(&store);
-        cmd.env("API_BASE_URL", &base_url)
-            .args(["media", "upload", video.to_str().expect("utf-8 path")])
-            .output()
-    })
-    .await
-    .expect("spawn_blocking joins")
-    .expect("xr runs");
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert_ne!(output.status.code(), Some(0), "processing failed: {stderr}");
-    assert!(
-        stdout.contains("\"777\""),
-        "the FINALIZE envelope with the media id reaches stdout first: {stdout}"
-    );
-    assert!(
-        stderr.contains("failed processing"),
-        "the processing error is reported: {stderr}"
-    );
-}
 
 // ── A wait on media processing always ends ─────────────────────────────
 
@@ -355,6 +292,129 @@ async fn mount_upload(server: &MockServer, finalize: serde_json::Value) {
         )
         .mount(server)
         .await;
+}
+
+/// An upload whose FINALIZE reports processing under way, answered by
+/// `status` when it waits, run with `args` after the file. Returns the output
+/// and the test's scratch directory, which holds the store.
+async fn upload_then_status(
+    status: ResponseTemplate,
+    args: &[&str],
+) -> (std::process::Output, TempDir) {
+    let server = MockServer::start().await;
+    mount_upload(
+        &server,
+        serde_json::json!({
+            "id": "777",
+            "processing_info": {"state": "pending", "check_after_secs": 1}
+        }),
+    )
+    .await;
+    Mock::given(method("GET"))
+        .and(path("/2/media/upload"))
+        .and(query_param("command", "STATUS"))
+        .and(query_param("media_id", "777"))
+        .respond_with(status)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let video = tmp.path().join("clip.mp4");
+    std::fs::write(&video, b"not really a video").expect("write clip");
+    let video = video.to_str().expect("utf-8 path").to_string();
+    let mut full = vec!["media", "upload", video.as_str()];
+    full.extend_from_slice(args);
+    let output = run_xr(&server, oauth2_store(tmp.path()), &full).await;
+    (output, tmp)
+}
+
+fn failed_status() -> ResponseTemplate {
+    ResponseTemplate::new(200).set_body_json(serde_json::json!({
+        "data": {"id": "777", "processing_info": {"state": "failed"}}
+    }))
+}
+
+/// A job X failed is a failed command, so FINALIZE's pending document stays
+/// off stdout in every format, and stderr names the media.
+#[rstest::rstest]
+#[case::text(&[])]
+#[case::json(&["--output", "json"])]
+#[case::jsonl(&["--output", "jsonl"])]
+#[case::yaml(&["--output", "yaml"])]
+#[case::csv(&["--output", "csv"])]
+#[case::tsv(&["--output", "tsv"])]
+#[case::verbose_text(&["--verbose"])]
+#[case::verbose_json(&["--verbose", "--output", "json"])]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_job_x_failed_leaves_stdout_empty_in_every_format(#[case] args: &[&str]) {
+    let (output, _tmp) = upload_then_status(failed_status(), args).await;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "stderr: {stderr}");
+    assert_eq!(stdout, "", "a failed command prints no result");
+    assert!(stderr.contains("777"), "stderr names the media: {stderr}");
+    assert!(
+        stderr.contains("failed processing"),
+        "the processing error is reported: {stderr}"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_job_x_failed_carries_the_media_id_in_its_envelope() {
+    let (output, _tmp) = upload_then_status(failed_status(), &["--output", "json"]).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "invalid-request", "got: {v}");
+    assert_eq!(v["media_id"], "777", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "fix-input", "got: {v}");
+}
+
+/// A wait that runs out is a failed command too, with the upload intact.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_upload_wait_past_its_deadline_leaves_stdout_empty() {
+    let still_running = ResponseTemplate::new(200).set_body_json(serde_json::json!({
+        "data": {"id": "777", "processing_info": {"state": "in_progress", "check_after_secs": 1}}
+    }));
+    let (output, _tmp) = upload_then_status(still_running, &["--wait=1", "--output", "json"]).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "stderr: {stderr}");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "processing-timeout", "got: {v}");
+    assert_eq!(v["media_id"], "777", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
+}
+
+/// A status read that fails ends the wait with the upload complete and billed,
+/// so the id reaches the caller, whose other copy was the document on stdout.
+#[rstest::rstest]
+#[case::json(&["--output", "json"])]
+#[case::jsonl(&["--output", "jsonl"])]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_status_read_that_fails_names_the_media_id_in_the_envelope(#[case] args: &[&str]) {
+    let (output, _tmp) = upload_then_status(ResponseTemplate::new(500), args).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_ne!(output.status.code(), Some(0), "stderr: {stderr}");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "server-error", "got: {v}");
+    assert_eq!(v["media_id"], "777", "got: {v}");
+}
+
+#[rstest::rstest]
+#[case::plain(&[])]
+#[case::quiet(&["--quiet"])]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_status_read_that_fails_names_the_media_id_in_text(#[case] args: &[&str]) {
+    let (output, _tmp) = upload_then_status(ResponseTemplate::new(500), args).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_ne!(output.status.code(), Some(0), "stderr: {stderr}");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "");
+    assert!(stderr.contains("777"), "stderr names the media: {stderr}");
 }
 
 /// Every JSON document on `stdout`, in order.

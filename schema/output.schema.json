@@ -304,7 +304,7 @@
           ]
         },
         "media_id": {
-          "description": "Media id whose processing a wait gave up on, under\n`processing-timeout`, where the upload is intact; or the one X\nrefused after processing it, under `invalid-request`.",
+          "description": "Media id whose processing a wait gave up on, under\n`processing-timeout`, where the upload is intact; or the one X\nrefused after processing it, under `invalid-request`. `media upload`\ncarries it on any error that ends its wait, since the upload finished\nand stdout holds no result.",
           "type": [
             "string",
             "null"

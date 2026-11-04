@@ -317,6 +317,36 @@ impl OutputConfig {
         }
     }
 
+    /// Prints an error that ended a wait after an upload finished. The media
+    /// id goes in the envelope, and in text on a line of its own when the
+    /// message does not name it. `--quiet` keeps that line: a run that fails
+    /// prints no result, so nothing else names the upload.
+    pub(crate) fn print_error_after_upload(
+        &self,
+        err: &mut dyn Write,
+        error: &Error,
+        exit_code: i32,
+        hint: Option<&crate::cli::hints::Hint>,
+        media_id: &str,
+    ) {
+        if self.format.is_structured() {
+            let mut body = error_body(error, exit_code);
+            body.media_id = Some(media_id.to_string());
+            if let Some(hint) = hint {
+                body.next_step = Some(hint.next_step.clone());
+            }
+            self.emit_error_envelope(err, body);
+            return;
+        }
+        match hint {
+            Some(hint) => self.print_error_with_hint(err, error, exit_code, hint),
+            None => self.print_error(err, error, exit_code),
+        }
+        if !message::render(error).contains(media_id) {
+            let _ = writeln!(err, "The upload completed. Media ID: {media_id}");
+        }
+    }
+
     /// Prints the `internal` error a panic answers with: the issue tracker
     /// as its step, and the backtrace when `RUST_BACKTRACE` asked for one.
     pub(crate) fn print_panic(
