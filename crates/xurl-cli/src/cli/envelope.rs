@@ -268,7 +268,9 @@ pub struct ErrorBody {
 
     /// Media id whose processing a wait gave up on, under
     /// `processing-timeout`, where the upload is intact; or the one X
-    /// refused after processing it, under `invalid-request`.
+    /// refused after processing it, under `invalid-request`. `media upload`
+    /// carries it on any error that ends its wait, since the upload finished
+    /// and stdout holds no result.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub media_id: Option<String>,
 

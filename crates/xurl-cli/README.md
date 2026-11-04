@@ -360,8 +360,10 @@ upload X reports as still processing when it is finalized, such as an animated G
 returns at once. A wait ends when X reports the job finished or failed, or when the status carries no processing
 information, as an image's does.
 
-An upload answers one JSON document: FINALIZE's response, with `data.processing_info` holding the final state when the
-upload waited for one.
+An upload that succeeds answers one JSON document on stdout: FINALIZE's response, with `data.processing_info` holding
+the final state when the upload waited for one. One that fails leaves stdout empty, in every format. Anything that ends
+the wait after the upload finished, a job X failed or a status read that failed among them, names the media in the
+envelope's `media_id`, and in the text on stderr.
 
 A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
 media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:

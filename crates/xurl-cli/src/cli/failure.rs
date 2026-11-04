@@ -44,6 +44,15 @@ pub(crate) enum Failure {
         /// What the real run would refuse with.
         error: Error,
     },
+    /// A wait on processing that ended in `error` after `xr media upload`
+    /// finished the upload. Stdout carries no result, so the runner renders
+    /// the error as [`Failure::Error`] would and names the media as well.
+    AfterUpload {
+        /// What ended the wait.
+        error: Error,
+        /// The media the completed upload produced.
+        media_id: String,
+    },
     /// The handler wrote the envelope itself; only the exit code remains.
     Emitted {
         /// Exit code the process surfaces.
