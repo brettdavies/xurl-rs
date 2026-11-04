@@ -30,6 +30,8 @@ use xdk::auth::Auth;
 use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::{Config, EnvOverrides};
 
+mod common;
+
 #[path = "../../xdk/tests/support/port_band.rs"]
 mod port_band;
 
@@ -1398,6 +1400,441 @@ async fn text_output_names_the_same_steps_for_the_other_step2_refusals() {
         ),
         "{elsewhere}"
     );
+}
+
+const OAUTH2_HELP: &str = "xr auth oauth2 --help";
+
+#[tokio::test]
+async fn step2_with_no_auth_url_points_at_the_help() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let closed = closed_port();
+    let overrides = step2_overrides(
+        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("--auth-url is required"),
+        "{envelope}"
+    );
+    assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+}
+
+#[tokio::test]
+async fn step1_given_an_auth_url_points_at_the_help() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &step1_overrides(),
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+            "--auth-url",
+            "http://localhost:8080/callback",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("--auth-url is only used with --step 2"),
+        "{envelope}"
+    );
+    assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+}
+
+/// `--auth-url -` reads the process's stdin, so this spawns the built binary
+/// to give it one.
+#[test]
+fn step2_reading_no_url_from_stdin_points_at_the_help() {
+    for (stdin, says) in [
+        (&b""[..], "No redirect URL provided on stdin"),
+        (&b"  \n"[..], "No redirect URL provided on stdin"),
+        (&[0xff, b'\n'][..], "Failed to read redirect URL from stdin"),
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+
+        let output = common::xr_with_store(&store)
+            .env("API_BASE_URL", "http://127.0.0.1:1")
+            .args([
+                "--output",
+                "json",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                "-",
+            ])
+            .write_stdin(stdin)
+            .output()
+            .expect("xr runs");
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert_eq!(output.status.code(), Some(77), "{says}: {stderr}");
+        let envelope: serde_json::Value =
+            serde_json::from_str(stderr.trim()).expect("one envelope");
+        assert!(
+            envelope["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains(says),
+            "{envelope}"
+        );
+        assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+    }
+}
+
+/// The message names the file and what is wrong with it, which is all an
+/// `xr` invocation could add, so the step carries no invocation.
+#[cfg(unix)]
+#[tokio::test]
+async fn step2_refusing_the_saved_file_names_it_and_asks_for_it_to_be_fixed() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let path = seed_pending(&store);
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+
+    let envelope = refused_step2(&store, &[], &redirect_url(), &[]).await;
+
+    let message = envelope["message"].as_str().unwrap_or_default();
+    assert!(message.contains("PendingStatePermissions"), "{envelope}");
+    assert!(message.contains(&*path.to_string_lossy()), "{envelope}");
+    assert!(message.contains("0644"), "{envelope}");
+    assert_eq!(
+        envelope["next_step"],
+        serde_json::json!({"action": "fix-input"}),
+        "{envelope}"
+    );
+
+    std::fs::remove_file(&path).unwrap();
+    let elsewhere = tmp.path().join("elsewhere");
+    std::fs::write(&elsewhere, "x").unwrap();
+    std::os::unix::fs::symlink(&elsewhere, &path).unwrap();
+
+    let envelope = refused_step2(&store, &[], &redirect_url(), &[]).await;
+
+    let message = envelope["message"].as_str().unwrap_or_default();
+    assert!(message.contains("symlink"), "{envelope}");
+    assert!(message.contains(&*path.to_string_lossy()), "{envelope}");
+    assert_eq!(
+        envelope["next_step"],
+        serde_json::json!({"action": "fix-input"}),
+        "{envelope}"
+    );
+}
+
+/// The step works when run: step 1 replaces the file it could not read.
+#[tokio::test]
+async fn step2_with_a_saved_file_that_does_not_parse_starts_over_and_step_one_replaces_it() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let path = seed_pending(&store);
+    std::fs::write(&path, "not: [yaml").unwrap();
+
+    let envelope = refused_step2(&store, &[], &redirect_url(), &[]).await;
+
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("PendingStateInvalid"),
+        "{envelope}"
+    );
+    assert_step(&envelope, "sign-in", "command", STEP_ONE);
+
+    let url = step1_url(&store, &[]).await;
+    let replaced = xdk::auth::pending::load(&path).expect("step 1 replaced the file");
+    assert_eq!(replaced.state, query_param(&url, "state"));
+}
+
+/// Step 2 with the token endpoint answering `response`, and its envelope. The
+/// pending state survives each refusal, so the code is the only thing spent.
+async fn step2_answered_with(response: ResponseTemplate) -> serde_json::Value {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(response)
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+            "alice",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("TokenExchangeError"),
+        "{envelope}"
+    );
+    assert_eq!(envelope["reason"], "auth-required", "{envelope}");
+    envelope
+}
+
+fn oauth_error(status: u16, error: &str) -> ResponseTemplate {
+    ResponseTemplate::new(status).set_body_json(serde_json::json!({
+        "error": error,
+        "error_description": "as the token endpoint put it",
+    }))
+}
+
+/// X answered, and the single-use code is spent or was never good, so sending
+/// it again fails the same way. Only a new consent gets a new code.
+#[tokio::test]
+async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
+    for (why, response) in [
+        ("invalid_grant", oauth_error(400, "invalid_grant")),
+        (
+            "a 4xx with no JSON",
+            ResponseTemplate::new(403).set_body_string("no"),
+        ),
+        (
+            "a 200 with no token",
+            ResponseTemplate::new(200).set_body_json(serde_json::json!({"token_type": "bearer"})),
+        ),
+        (
+            "a 200 with no JSON",
+            ResponseTemplate::new(200).set_body_string("<html>"),
+        ),
+    ] {
+        let envelope = step2_answered_with(response).await;
+        assert_step(
+            &envelope,
+            "sign-in",
+            "command",
+            "xr --output json auth oauth2 --no-browser --step 1 alice",
+        );
+        assert!(
+            !envelope.to_string().contains("AUTHCODE"),
+            "{why}: {envelope}"
+        );
+    }
+}
+
+/// X did not process the request, so the code is still good and a new consent
+/// would ask a person for nothing. A 5xx whose body is not JSON keeps its
+/// status: a proxy's error page is the usual one.
+#[tokio::test]
+async fn step2_x_could_not_answer_is_sent_again() {
+    for (why, response) in [
+        ("a 503", oauth_error(503, "server_error")),
+        (
+            "a 502 with no JSON",
+            ResponseTemplate::new(502).set_body_string("<html>Bad Gateway</html>"),
+        ),
+        ("a 429", oauth_error(429, "too_many_requests")),
+    ] {
+        let envelope = step2_answered_with(response).await;
+        assert_eq!(
+            envelope["next_step"],
+            serde_json::json!({"action": "retry"}),
+            "{why}: {envelope}"
+        );
+    }
+
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let envelope = refused_step2(&store, &[], &redirect_url(), &[]).await;
+    assert_eq!(
+        envelope["next_step"],
+        serde_json::json!({"action": "retry"}),
+        "no answer at all: {envelope}"
+    );
+}
+
+/// The step works when run: the same invocation finishes once X can answer.
+#[tokio::test]
+async fn a_sign_in_x_could_not_answer_finishes_when_sent_again() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(oauth_error(503, "server_error"))
+        .up_to_n_times(1)
+        .mount(&server)
+        .await;
+    token_mock(ok_token_body(), 200).mount(&server).await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+    let redirect = redirect_url();
+    let args = [
+        "xr",
+        "--output",
+        "json",
+        "auth",
+        "oauth2",
+        "--no-browser",
+        "--step",
+        "2",
+        "--auth-url",
+        &redirect,
+        "alice",
+    ];
+
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &args).await;
+    assert_eq!(code, 77, "stderr: {stderr}");
+
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &args).await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let saved = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    assert!(saved.get_oauth2_token("alice").is_some());
+    assert!(!pending.exists(), "a finished flow is spent");
+}
+
+/// The client's own credentials were refused. A new consent would end at this
+/// same refusal, so the step does not send a person back to the browser.
+#[tokio::test]
+async fn step2_whose_client_x_refused_asks_for_the_credentials_to_be_fixed() {
+    for (why, response) in [
+        ("a 401", oauth_error(401, "invalid_client")),
+        (
+            "invalid_client on a 400",
+            oauth_error(400, "invalid_client"),
+        ),
+        (
+            "unauthorized_client",
+            oauth_error(400, "unauthorized_client"),
+        ),
+    ] {
+        let envelope = step2_answered_with(response).await;
+        assert_eq!(
+            envelope["next_step"],
+            serde_json::json!({"action": "fix-input"}),
+            "{why}: {envelope}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn text_output_names_the_steps_for_a_failed_exchange() {
+    for (response, line) in [
+        (
+            oauth_error(400, "invalid_grant"),
+            "Sign in again. Run: xr auth oauth2 --no-browser --step 1",
+        ),
+        (
+            oauth_error(503, "server_error"),
+            "Nothing was wrong with the request. Send it again.",
+        ),
+        (
+            oauth_error(401, "invalid_client"),
+            "X refused the app's client credentials. Check its client id and secret.",
+        ),
+    ] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(response)
+            .mount(&server)
+            .await;
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        seed_pending(&store);
+        let overrides = step2_overrides(
+            &format!("{}/2/oauth2/token", server.uri()),
+            &format!("{}/2/users/me", server.uri()),
+        );
+
+        let (code, _stdout, stderr) = run_cli(
+            &store,
+            &overrides,
+            &[
+                "xr",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                &redirect_url(),
+                "alice",
+            ],
+        )
+        .await;
+
+        assert_eq!(code, 77, "stderr: {stderr}");
+        assert!(stderr.contains(line), "{line}: {stderr}");
+    }
 }
 
 #[tokio::test]

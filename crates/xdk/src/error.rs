@@ -844,6 +844,36 @@ pub const PENDING_NOT_FOUND: &str = "PendingStateNotFound: no pending OAuth2 sta
 pub const PENDING_EXPIRED: &str =
     "PendingStateExpired: pending OAuth2 state is older than 15 minutes";
 
+/// The start of the message of a saved flow's file whose mode, owner, or link
+/// `xr` will not read or write through. The file and what is wrong follow.
+pub const PENDING_PERMISSIONS: &str = "PendingStatePermissions";
+
+/// The start of the message of a saved flow's file that does not parse. The
+/// parser's cause follows.
+pub const PENDING_INVALID: &str =
+    "PendingStateInvalid: the pending OAuth2 state file does not parse";
+
+/// The start of the message of a token exchange the endpoint did not process:
+/// no answer, a 5xx, or a 429. The authorization code is still good, so the
+/// same request can go again.
+pub const TOKEN_EXCHANGE_UNANSWERED: &str =
+    "TokenExchangeError: the token endpoint could not answer";
+
+/// The start of the message of a token exchange that refused the client's own
+/// credentials: a 401, or `invalid_client` or `unauthorized_client` (RFC 6749
+/// section 5.2). Another authorization code would be refused the same way.
+pub const TOKEN_EXCHANGE_CLIENT_REFUSED: &str =
+    "TokenExchangeError: the token endpoint refused the client";
+
+/// The start of the message of a token exchange refused for any other reason:
+/// the authorization code is single-use, so only a new consent gets another.
+pub const TOKEN_EXCHANGE_CODE_REFUSED: &str =
+    "TokenExchangeError: the token endpoint refused the authorization code";
+
+/// The start of the message of a token exchange answered with a success that
+/// holds no token. The code is spent.
+pub const TOKEN_EXCHANGE_NO_TOKEN: &str = "TokenExchangeError: no access_token in response";
+
 /// The start of the message of a headless step 2 whose client id is not the
 /// one step 1 saved. The saved app's name follows, as a quoted string.
 pub const PENDING_APP_MISMATCH: &str = "AppMismatch: pending state was created for app";

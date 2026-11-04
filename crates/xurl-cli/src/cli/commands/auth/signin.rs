@@ -133,9 +133,9 @@ pub(super) async fn oauth2(
         match effective_step {
             Some(1) => {
                 if auth_url.is_some() {
-                    return Err(
-                        Error::auth("--auth-url is only used with --step 2, not --step 1").into(),
-                    );
+                    return Err(Failure::refused(Error::auth(
+                        "--auth-url is only used with --step 2, not --step 1",
+                    )));
                 }
                 let url = client.auth().await?.remote_oauth2_step1(&pending_path)?;
                 let app = client.auth().await?.app_name().to_string();
@@ -195,28 +195,26 @@ pub(super) async fn oauth2(
             }
             Some(2) => {
                 let url_value = auth_url.ok_or_else(|| {
-                    xdk::error::Error::auth(
+                    Failure::refused(Error::auth(
                         "--auth-url is required for step 2. Pass the redirect URL from your browser, \
                          or use --auth-url - to read from stdin",
-                    )
+                    ))
                 })?;
 
                 let redirect_url = if url_value == "-" {
                     let mut line = String::new();
                     std::io::stdin().read_line(&mut line).map_err(|e| {
-                        xdk::error::Error::auth_with_cause(
-                            "Failed to read redirect URL from stdin",
-                            &e,
+                        Failure::refused(
+                            Error::auth_with_cause("Failed to read redirect URL from stdin", &e)
+                                .with_source(e),
                         )
-                        .with_source(e)
                     })?;
                     let trimmed = line.trim().to_string();
                     if trimmed.is_empty() {
-                        return Err(Error::auth(
+                        return Err(Failure::refused(Error::auth(
                             "No redirect URL provided on stdin. \
                              Pipe the URL or paste it and press Enter",
-                        )
-                        .into());
+                        )));
                     }
                     trimmed
                 } else {

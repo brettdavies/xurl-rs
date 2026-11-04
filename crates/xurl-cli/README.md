@@ -948,7 +948,7 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 
 | `reason`                     | `next_step.action`                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; `fix-input` for a `webhooks listen` secret or a step 2 it can finish; none on a 401 |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, `fix-input`, `show-help`, or `retry`, as the list below says; none on a 401            |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
 | `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
@@ -1000,6 +1000,19 @@ Every reason has a row. The five actions that are not about credentials or help 
   accident.
 - `run-command`: one other command repairs this, and `command` is that invocation. A `forward-failed` record from
   `xr webhooks listen` carries it as a `template`: the replay of the event's minute, with `<WEBHOOK_ID>` to fill in.
+
+Under `auth-required`, a failed `xr auth oauth2` names the step that moves the sign-in forward:
+
+- `show-help` for a refused argument: `--auth-url` missing, given at step 1, or empty or unreadable on stdin.
+- `sign-in` at step 1 when the flow cannot finish: none saved, expired, a file that does not parse, other scopes, a
+  redirect URL with no usable `state` or `code`, a code X would not exchange, or a flow from an app the store no longer
+  holds. It asks a person for a new consent.
+- `fix-input` with a `template` when the flow can still finish: a redirect URL that did not parse, or a flow another
+  stored app saved, which the template names.
+- `fix-input` with no invocation when the message names what to change: a saved file with the wrong mode, owner, or
+  link, or client credentials X refused. Another consent would end at the same refusal.
+- `retry` for a token exchange X did not process: no answer, a 5xx, or a 429. The code is still good, and the same
+  invocation finishes.
 
 ### NO_COLOR Support
 
