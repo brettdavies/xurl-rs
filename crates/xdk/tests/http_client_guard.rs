@@ -20,16 +20,25 @@ fn rust_sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     }
 }
 
+/// Each line under `src/` that `pattern` matches, as `src/<path>:<line>: <text>`
+/// with `/` between the path's components on every platform.
 fn source_hits(pattern: &regex::Regex) -> Vec<String> {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut files = Vec::new();
-    rust_sources(&root, &mut files);
+    rust_sources(&manifest.join("src"), &mut files);
     let mut hits = Vec::new();
     for file in files {
         let source = std::fs::read_to_string(&file).expect("readable source");
+        let name = file
+            .strip_prefix(manifest)
+            .expect("under the crate")
+            .components()
+            .map(|part| part.as_os_str().to_string_lossy())
+            .collect::<Vec<_>>()
+            .join("/");
         for (i, line) in source.lines().enumerate() {
             if pattern.is_match(line) {
-                hits.push(format!("{}:{}: {}", file.display(), i + 1, line.trim()));
+                hits.push(format!("{name}:{}: {}", i + 1, line.trim()));
             }
         }
     }
