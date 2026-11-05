@@ -14,7 +14,6 @@ use xdk::error::{
     PENDING_NOT_FOUND, PENDING_PERMISSIONS, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
     REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
     TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
-    TOKEN_EXCHANGE_UNANSWERED,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -762,19 +761,14 @@ pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> 
     Some(sign_in_again(invocation, no_browser))
 }
 
-/// Builds the hint for a sign-in failure no other sign-in would fix: a token
-/// exchange the endpoint did not process, whose code is still good, so the
-/// request goes again; and a refused client or a saved flow's file `xr` will
-/// not read, where the message names what to change and no `xr` invocation
-/// could say more.
+/// Builds the hint for a sign-in failure no other sign-in would fix, a refused
+/// client or a saved flow's file `xr` will not read: the message names what to
+/// change, and no `xr` invocation could say more.
 #[must_use]
 pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
     let Error::Auth { message, .. } = error else {
         return None;
     };
-    if message.starts_with(TOKEN_EXCHANGE_UNANSWERED) {
-        return Some(send_again(None));
-    }
     let advice = if message.starts_with(TOKEN_EXCHANGE_CLIENT_REFUSED) {
         "X refused the app's client credentials. Check its client id and secret."
     } else if message.starts_with(PENDING_PERMISSIONS) {
@@ -786,14 +780,6 @@ pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
         text_lines: vec![advice.to_string()],
         next_step: NextStep::fix_input(None),
     })
-}
-
-/// The hint for a request nothing was wrong with.
-fn send_again(docs: Option<String>) -> Hint {
-    Hint {
-        text_lines: vec!["Nothing was wrong with the request. Send it again.".to_string()],
-        next_step: NextStep::retry(docs),
-    }
 }
 
 fn sign_in_again(invocation: &[String], no_browser: bool) -> Hint {
@@ -952,7 +938,10 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
     }
     let docs = error.docs_url().map(str::to_string);
     match error.next_action()? {
-        NextAction::Retry => Some(send_again(docs)),
+        NextAction::Retry => Some(Hint {
+            text_lines: vec!["Nothing was wrong with the request. Send it again.".to_string()],
+            next_step: NextStep::retry(docs),
+        }),
         NextAction::FixInput => Some(Hint {
             text_lines: Vec::new(),
             next_step: NextStep::fix_input(docs),
@@ -1333,21 +1322,6 @@ mod tests {
                 hint.next_step.command.as_deref(),
                 Some("xr auth oauth2 --no-browser --step 1"),
                 "{message}"
-            );
-        }
-    }
-
-    #[test]
-    fn an_exchange_the_endpoint_did_not_process_is_sent_again() {
-        for message in [
-            format!("{TOKEN_EXCHANGE_UNANSWERED} (cause: connection refused)"),
-            format!("{TOKEN_EXCHANGE_UNANSWERED}: HTTP 503 Service Unavailable — unknown: "),
-        ] {
-            let hint = sign_in_fault_hint(&Error::auth(message.clone())).expect("a hint");
-            assert_eq!(hint.next_step, NextStep::retry(None), "{message}");
-            assert!(
-                sign_in_again_hint(&Error::auth(message.clone()), &[]).is_none(),
-                "the code is still good, so no new consent: {message}"
             );
         }
     }

@@ -553,12 +553,11 @@ async fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
     )
     .await;
 
-    // A failed exchange is an `Error::Auth`, so it carries
-    // `EXIT_AUTH_REQUIRED` whatever the upstream status was.
-    assert_eq!(code, xdk::error::EXIT_AUTH_REQUIRED, "stderr: {stderr}");
+    // The endpoint failed, so nothing about the credentials is in question.
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "stderr: {stderr}");
     assert!(
-        stderr.contains("TokenExchangeError"),
-        "the error names the exchange: {stderr}"
+        stderr.contains(FAILED_EXCHANGE),
+        "the error's message is X's answer alone, so a line names the exchange: {stderr}"
     );
     assert!(
         pending.exists(),
@@ -937,6 +936,10 @@ async fn a_failed_exchange_after_the_callback_leaves_the_callers_token_alone() {
     assert!(
         !refused.to_string().contains("CallbackError"),
         "the listener took the callback: {refused}"
+    );
+    assert!(
+        matches!(refused, xdk::Error::Http { .. }),
+        "no answer is a transport failure on the interactive path too: {refused:?}"
     );
     assert!(
         !cancel.is_cancelled(),
@@ -1403,6 +1406,27 @@ async fn text_output_names_the_same_steps_for_the_other_step2_refusals() {
 }
 
 const OAUTH2_HELP: &str = "xr auth oauth2 --help";
+const FAILED_EXCHANGE: &str = "X's token endpoint failed, so the sign-in did not finish.";
+
+/// A refused argument is a usage error, which says nothing about credentials.
+fn assert_usage_refusal(code: Option<i32>, stderr: &str, says: &str) {
+    assert_eq!(code, Some(xdk::error::EXIT_USAGE_ERROR), "{says}: {stderr}");
+    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
+    assert_eq!(envelope["reason"], "invalid-args", "{envelope}");
+    assert_eq!(
+        envelope["exit_code"],
+        xdk::error::EXIT_USAGE_ERROR,
+        "{envelope}"
+    );
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains(says),
+        "{envelope}"
+    );
+    assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+}
 
 #[tokio::test]
 async fn step2_with_no_auth_url_points_at_the_help() {
@@ -1431,16 +1455,7 @@ async fn step2_with_no_auth_url_points_at_the_help() {
     )
     .await;
 
-    assert_eq!(code, 77, "stderr: {stderr}");
-    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .unwrap_or_default()
-            .contains("--auth-url is required"),
-        "{envelope}"
-    );
-    assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+    assert_usage_refusal(Some(code), &stderr, "--auth-url is required");
 }
 
 #[tokio::test]
@@ -1467,16 +1482,90 @@ async fn step1_given_an_auth_url_points_at_the_help() {
     )
     .await;
 
-    assert_eq!(code, 77, "stderr: {stderr}");
-    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .unwrap_or_default()
-            .contains("--auth-url is only used with --step 2"),
-        "{envelope}"
-    );
-    assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+    assert_usage_refusal(Some(code), &stderr, "--auth-url is only used with --step 2");
+}
+
+/// A dry run answers at exit 0 on every command, and says what the real run
+/// would do: refuse the argument, with the keys its error would carry.
+#[tokio::test]
+async fn a_dry_run_says_the_real_run_would_refuse_the_argument() {
+    for (step, url, says) in [
+        ("2", None, "--auth-url is required"),
+        (
+            "1",
+            Some("http://localhost:8080/callback"),
+            "--auth-url is only used",
+        ),
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        let mut args = vec![
+            "xr",
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            step,
+        ];
+        if let Some(url) = url {
+            args.extend_from_slice(&["--auth-url", url]);
+        }
+
+        let (code, stdout, stderr) = run_cli(&store, &step1_overrides(), &args).await;
+
+        assert_eq!(code, 0, "stderr: {stderr}");
+        assert_eq!(stderr, "", "the answer is on stdout");
+        let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("one document");
+        assert_eq!(answer["status"], "dry_run", "{answer}");
+        assert_eq!(answer["would_succeed"], false, "{answer}");
+        assert_eq!(
+            answer["exit_code"],
+            xdk::error::EXIT_USAGE_ERROR,
+            "the code the real run ends on: {answer}"
+        );
+        assert_eq!(answer["reason"], "invalid-args", "{answer}");
+        assert!(
+            answer["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains(says),
+            "{answer}"
+        );
+        assert_step(&answer, "show-help", "command", OAUTH2_HELP);
+    }
+}
+
+#[tokio::test]
+async fn a_dry_run_of_a_step_with_its_arguments_right_would_succeed() {
+    let redirect = redirect_url();
+    for args in [
+        &["--step", "1"][..],
+        &["--step", "2", "--auth-url", &redirect],
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        let mut argv = vec![
+            "xr",
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+        ];
+        argv.extend_from_slice(args);
+
+        let (code, stdout, stderr) = run_cli(&store, &step1_overrides(), &argv).await;
+
+        assert_eq!(code, 0, "{args:?}: {stderr}");
+        let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("one document");
+        assert_eq!(answer["would_succeed"], true, "{args:?}: {answer}");
+    }
 }
 
 /// `--auth-url -` reads the process's stdin, so this spawns the built binary
@@ -1510,18 +1599,100 @@ fn step2_reading_no_url_from_stdin_points_at_the_help() {
             .expect("xr runs");
 
         let stderr = String::from_utf8_lossy(&output.stderr);
-        assert_eq!(output.status.code(), Some(77), "{says}: {stderr}");
-        let envelope: serde_json::Value =
-            serde_json::from_str(stderr.trim()).expect("one envelope");
-        assert!(
-            envelope["message"]
-                .as_str()
-                .unwrap_or_default()
-                .contains(says),
-            "{envelope}"
-        );
-        assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+        assert_usage_refusal(output.status.code(), &stderr, says);
     }
+}
+
+/// A dry run reads piped stdin as the real run does, so it predicts the same
+/// refusal, and well-formed stdin still answers that the run would succeed.
+#[test]
+fn a_dry_run_reads_piped_stdin_as_the_real_run_does() {
+    for (stdin, refusal) in [
+        (&b""[..], Some("No redirect URL provided on stdin")),
+        (
+            &[0xff, b'\n'][..],
+            Some("Failed to read redirect URL from stdin"),
+        ),
+        (
+            &b"http://localhost:8080/callback?code=AUTHCODE&state=s\n"[..],
+            None,
+        ),
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+
+        let output = common::xr_with_store(&store)
+            .env("API_BASE_URL", "http://127.0.0.1:1")
+            .args([
+                "--output",
+                "json",
+                "--dry-run",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                "-",
+            ])
+            .write_stdin(stdin)
+            .output()
+            .expect("xr runs");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert_eq!(output.status.code(), Some(0), "{refusal:?}: {stdout}");
+        let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("one document");
+        assert_eq!(answer["status"], "dry_run", "{answer}");
+        match refusal {
+            Some(says) => {
+                assert_eq!(answer["would_succeed"], false, "{answer}");
+                assert_eq!(
+                    answer["exit_code"],
+                    xdk::error::EXIT_USAGE_ERROR,
+                    "{answer}"
+                );
+                assert_eq!(answer["reason"], "invalid-args", "{answer}");
+                assert!(
+                    answer["message"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .contains(says),
+                    "{answer}"
+                );
+                assert_step(&answer, "show-help", "command", OAUTH2_HELP);
+            }
+            None => assert_eq!(answer["would_succeed"], true, "{answer}"),
+        }
+    }
+}
+
+#[tokio::test]
+async fn a_dry_run_in_text_says_the_real_run_would_refuse_the_argument() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &step1_overrides(),
+        &[
+            "xr",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("The real run would fail with exit code 2: --auth-url is required"),
+        "{stdout}"
+    );
 }
 
 /// The message names the file and what is wrong with it, which is all an
@@ -1591,23 +1762,17 @@ async fn step2_with_a_saved_file_that_does_not_parse_starts_over_and_step_one_re
     assert_eq!(replaced.state, query_param(&url, "state"));
 }
 
-/// Step 2 with the token endpoint answering `response`, and its envelope. The
-/// pending state survives each refusal, so the code is the only thing spent.
-async fn step2_answered_with(response: ResponseTemplate) -> serde_json::Value {
-    let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/2/oauth2/token"))
-        .respond_with(response)
-        .expect(1)
-        .mount(&server)
-        .await;
+/// Step 2 against the token endpoint at `base`: its exit code and envelope.
+/// The pending state survives each refusal, so the code is the only thing
+/// spent.
+async fn step2_at(base: &str) -> (i32, serde_json::Value) {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     seed_store(&store);
     let pending = seed_pending(&store);
     let overrides = step2_overrides(
-        &format!("{}/2/oauth2/token", server.uri()),
-        &format!("{}/2/users/me", server.uri()),
+        &format!("{base}/2/oauth2/token"),
+        &format!("{base}/2/users/me"),
     );
 
     let (code, _stdout, stderr) = run_cli(
@@ -1629,9 +1794,31 @@ async fn step2_answered_with(response: ResponseTemplate) -> serde_json::Value {
     )
     .await;
 
-    assert_eq!(code, 77, "stderr: {stderr}");
     assert!(pending.exists(), "a refused step 2 keeps the pending state");
-    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
+    let envelope = serde_json::from_str(stderr.trim()).expect("one envelope");
+    (code, envelope)
+}
+
+async fn step2_answered_with(response: ResponseTemplate) -> (i32, serde_json::Value) {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(response)
+        .expect(1)
+        .mount(&server)
+        .await;
+    step2_at(&server.uri()).await
+}
+
+/// What X refused is the credential in hand, so the failure is `auth-required`.
+fn assert_exchange_refused(code: i32, envelope: &serde_json::Value) {
+    assert_eq!(code, xdk::error::EXIT_AUTH_REQUIRED, "{envelope}");
+    assert_eq!(envelope["reason"], "auth-required", "{envelope}");
+    assert_eq!(
+        envelope["exit_code"],
+        xdk::error::EXIT_AUTH_REQUIRED,
+        "{envelope}"
+    );
     assert!(
         envelope["message"]
             .as_str()
@@ -1639,8 +1826,6 @@ async fn step2_answered_with(response: ResponseTemplate) -> serde_json::Value {
             .contains("TokenExchangeError"),
         "{envelope}"
     );
-    assert_eq!(envelope["reason"], "auth-required", "{envelope}");
-    envelope
 }
 
 fn oauth_error(status: u16, error: &str) -> ResponseTemplate {
@@ -1669,7 +1854,8 @@ async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
             ResponseTemplate::new(200).set_body_string("<html>"),
         ),
     ] {
-        let envelope = step2_answered_with(response).await;
+        let (code, envelope) = step2_answered_with(response).await;
+        assert_exchange_refused(code, &envelope);
         assert_step(
             &envelope,
             "sign-in",
@@ -1684,36 +1870,177 @@ async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
 }
 
 /// X did not process the request, so the code is still good and a new consent
-/// would ask a person for nothing. A 5xx whose body is not JSON keeps its
-/// status: a proxy's error page is the usual one.
+/// would ask a person for nothing. Nothing about the credentials failed, so
+/// these report what any other request to X would. A 5xx whose body is not JSON
+/// keeps its status: a proxy's error page is the usual one.
 #[tokio::test]
-async fn step2_x_could_not_answer_is_sent_again() {
+async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_again() {
     for (why, response) in [
         ("a 503", oauth_error(503, "server_error")),
         (
             "a 502 with no JSON",
             ResponseTemplate::new(502).set_body_string("<html>Bad Gateway</html>"),
         ),
-        ("a 429", oauth_error(429, "too_many_requests")),
     ] {
-        let envelope = step2_answered_with(response).await;
+        let (code, envelope) = step2_answered_with(response).await;
+        assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{why}: {envelope}");
+        assert_eq!(envelope["reason"], "server-error", "{why}: {envelope}");
         assert_eq!(
-            envelope["next_step"],
-            serde_json::json!({"action": "retry"}),
+            envelope["exit_code"],
+            xdk::error::EXIT_GENERAL_ERROR,
+            "{why}: {envelope}"
+        );
+        assert_eq!(
+            envelope["next_step"]["action"], "retry",
+            "{why}: {envelope}"
+        );
+        assert!(
+            envelope["next_step"]["command"].is_null(),
             "{why}: {envelope}"
         );
     }
+}
 
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    seed_store(&store);
-    seed_pending(&store);
-    let envelope = refused_step2(&store, &[], &redirect_url(), &[]).await;
+#[tokio::test]
+async fn step2_with_no_answer_is_a_network_error_and_is_sent_again() {
+    let closed = closed_port();
+    let (code, envelope) = step2_at(&format!("http://127.0.0.1:{closed}")).await;
+
+    assert_eq!(code, xdk::error::EXIT_NETWORK_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "network-error", "{envelope}");
+    assert_eq!(
+        envelope["exit_code"],
+        xdk::error::EXIT_NETWORK_ERROR,
+        "{envelope}"
+    );
     assert_eq!(
         envelope["next_step"],
         serde_json::json!({"action": "retry"}),
-        "no answer at all: {envelope}"
+        "{envelope}"
     );
+    let message = envelope["message"].as_str().unwrap_or_default();
+    assert!(
+        message.contains("TokenExchangeError"),
+        "the message still says what failed: {envelope}"
+    );
+    assert!(
+        message.contains("os error"),
+        "the message names the system's cause, which tells a refused connection from a \
+         timeout: {envelope}"
+    );
+}
+
+/// The token URL is the caller's to fix, so a `retry` would fail the same way
+/// every time.
+#[tokio::test]
+async fn step2_with_a_token_url_that_is_not_a_url_names_it() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+    let closed = closed_port();
+    let overrides = step2_overrides(
+        "not-a-url",
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+        ],
+    )
+    .await;
+
+    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "invalid-url", "{envelope}");
+    assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+    let message = envelope["message"].as_str().unwrap_or_default();
+    assert!(
+        message.contains("TOKEN_URL") && message.contains("not-a-url"),
+        "{envelope}"
+    );
+    assert!(pending.exists(), "the flow is still good");
+}
+
+/// An answer that ends before its body did is no answer: the same request can
+/// go again, and the message says what failed.
+#[tokio::test]
+async fn step2_whose_error_answer_breaks_off_is_a_network_error_that_names_the_exchange() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+    let port = listener.local_addr().expect("its address").port();
+    let stub = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("the exchange connects");
+        let mut request = Vec::new();
+        let mut buf = [0u8; 4096];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            let n = stream.read(&mut buf).expect("read the request");
+            if n == 0 {
+                break;
+            }
+            request.extend_from_slice(&buf[..n]);
+        }
+        stream
+            .write_all(b"HTTP/1.1 503 Service Unavailable\r\ncontent-length: 100\r\n\r\npartial")
+            .expect("answer in part");
+    });
+
+    let (code, envelope) = step2_at(&format!("http://127.0.0.1:{port}")).await;
+    stub.join().expect("the stub ends");
+
+    assert_eq!(code, xdk::error::EXIT_NETWORK_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "network-error", "{envelope}");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("TokenExchangeError"),
+        "{envelope}"
+    );
+}
+
+/// A 429 here answers as a 429 anywhere: a wait when it names its reset, and no
+/// step when it does not.
+#[tokio::test]
+async fn step2_rate_limited_is_rate_limited_as_any_other_request_is() {
+    let reset_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock after epoch")
+        .as_secs()
+        + 600;
+    let (code, envelope) = step2_answered_with(
+        oauth_error(429, "too_many_requests")
+            .insert_header("x-rate-limit-reset", reset_at.to_string()),
+    )
+    .await;
+    assert_eq!(code, xdk::error::EXIT_RATE_LIMITED, "{envelope}");
+    assert_eq!(envelope["reason"], "rate-limited", "{envelope}");
+    assert_eq!(
+        envelope["exit_code"],
+        xdk::error::EXIT_RATE_LIMITED,
+        "{envelope}"
+    );
+    assert_eq!(
+        envelope["next_step"]["action"], "wait-and-retry",
+        "{envelope}"
+    );
+    assert!(envelope["retry_after_secs"].is_u64(), "{envelope}");
+
+    let (code, envelope) = step2_answered_with(oauth_error(429, "too_many_requests")).await;
+    assert_eq!(code, xdk::error::EXIT_RATE_LIMITED, "{envelope}");
+    assert_eq!(envelope["reason"], "rate-limited", "{envelope}");
+    assert!(envelope["next_step"].is_null(), "{envelope}");
 }
 
 /// The step works when run: the same invocation finishes once X can answer.
@@ -1751,7 +2078,7 @@ async fn a_sign_in_x_could_not_answer_finishes_when_sent_again() {
     ];
 
     let (code, _stdout, stderr) = run_cli(&store, &overrides, &args).await;
-    assert_eq!(code, 77, "stderr: {stderr}");
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "stderr: {stderr}");
 
     let (code, _stdout, stderr) = run_cli(&store, &overrides, &args).await;
     assert_eq!(code, 0, "stderr: {stderr}");
@@ -1775,7 +2102,8 @@ async fn step2_whose_client_x_refused_asks_for_the_credentials_to_be_fixed() {
             oauth_error(400, "unauthorized_client"),
         ),
     ] {
-        let envelope = step2_answered_with(response).await;
+        let (code, envelope) = step2_answered_with(response).await;
+        assert_exchange_refused(code, &envelope);
         assert_eq!(
             envelope["next_step"],
             serde_json::json!({"action": "fix-input"}),
@@ -1786,17 +2114,20 @@ async fn step2_whose_client_x_refused_asks_for_the_credentials_to_be_fixed() {
 
 #[tokio::test]
 async fn text_output_names_the_steps_for_a_failed_exchange() {
-    for (response, line) in [
+    for (response, exit_code, line) in [
         (
             oauth_error(400, "invalid_grant"),
+            xdk::error::EXIT_AUTH_REQUIRED,
             "Sign in again. Run: xr auth oauth2 --no-browser --step 1",
         ),
         (
             oauth_error(503, "server_error"),
+            xdk::error::EXIT_GENERAL_ERROR,
             "Nothing was wrong with the request. Send it again.",
         ),
         (
             oauth_error(401, "invalid_client"),
+            xdk::error::EXIT_AUTH_REQUIRED,
             "X refused the app's client credentials. Check its client id and secret.",
         ),
     ] {
@@ -1832,9 +2163,58 @@ async fn text_output_names_the_steps_for_a_failed_exchange() {
         )
         .await;
 
-        assert_eq!(code, 77, "stderr: {stderr}");
+        assert_eq!(code, exit_code, "stderr: {stderr}");
         assert!(stderr.contains(line), "{line}: {stderr}");
+        assert_eq!(
+            stderr.contains(FAILED_EXCHANGE),
+            exit_code != xdk::error::EXIT_AUTH_REQUIRED,
+            "the line names an exchange the endpoint failed, not one it refused: {stderr}"
+        );
     }
+}
+
+/// `--quiet` drops advice and never the error, and the line is part of it: the
+/// error alone is X's body, which says nothing of the sign-in.
+#[tokio::test]
+async fn quiet_keeps_the_line_that_names_a_failed_exchange() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(502).set_body_string("<html>Bad Gateway</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--quiet",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "stderr: {stderr}");
+    assert!(stderr.contains(FAILED_EXCHANGE), "{stderr}");
+    assert!(
+        !stderr.contains("Send it again"),
+        "--quiet still drops the advice: {stderr}"
+    );
 }
 
 #[tokio::test]

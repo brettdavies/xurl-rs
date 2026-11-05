@@ -652,6 +652,92 @@ async fn step2_garbage_redirect_url_returns_parse_error() {
     assert!(pending_path.exists());
 }
 
+/// An embedder matches on the variant, so these are the contract: a request
+/// X did not process is not an auth failure, whatever the sign-in was doing.
+#[tokio::test]
+async fn step2_x_did_not_process_returns_the_library_kind_for_what_happened() {
+    let ts = TestServer::new().await;
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "a-code")
+        .append_pair("state", &state.state);
+    let redirect_url = redirect.to_string();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(503).set_body_string("<html>unavailable</html>"))
+            .up_to_n_times(1),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .insert_header("x-rate-limit-reset", "4102444800")
+                    .set_body_json(serde_json::json!({"title": "Too Many Requests"})),
+            ),
+    )
+    .await;
+
+    let err = auth
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Api { status: 503, body, .. } if body.contains("unavailable")),
+        "a 5xx keeps its status and body: {err:?}"
+    );
+
+    let err = auth
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            &err,
+            xdk::Error::Api {
+                status: 429,
+                reset_at: Some(4_102_444_800),
+                ..
+            }
+        ),
+        "a 429 carries the reset its own headers name: {err:?}"
+    );
+    assert!(pending_path.exists(), "the flow is still good");
+
+    let closed = std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("a loopback port")
+        .local_addr()
+        .expect("its address")
+        .port();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(&format!("http://127.0.0.1:{closed}"), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "a-code")
+        .append_pair("state", &state.state);
+
+    let err = auth
+        .remote_oauth2_step2(&http(), redirect.as_str(), "", &pending_path)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Http { message, .. } if message.contains("TokenExchangeError")),
+        "no answer is a transport failure that says what failed: {err:?}"
+    );
+}
+
 #[tokio::test]
 async fn step2_redirect_with_error_param_returns_missing_code() {
     // When the user denies authorization, Twitter redirects with ?error=access_denied

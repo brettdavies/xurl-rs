@@ -853,12 +853,6 @@ pub const PENDING_PERMISSIONS: &str = "PendingStatePermissions";
 pub const PENDING_INVALID: &str =
     "PendingStateInvalid: the pending OAuth2 state file does not parse";
 
-/// The start of the message of a token exchange the endpoint did not process:
-/// no answer, a 5xx, or a 429. The authorization code is still good, so the
-/// same request can go again.
-pub const TOKEN_EXCHANGE_UNANSWERED: &str =
-    "TokenExchangeError: the token endpoint could not answer";
-
 /// The start of the message of a token exchange that refused the client's own
 /// credentials: a 401, or `invalid_client` or `unauthorized_client` (RFC 6749
 /// section 5.2). Another authorization code would be refused the same way.
