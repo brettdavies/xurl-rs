@@ -414,8 +414,9 @@ broadcast live at its start time.
 `--broadcast` to mute or unmute someone in every chat of that broadcast's host.
 
 A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `stream_key`,
-then poll `get` until `is_stream_active` is true. Whoever holds the stream key can stream to the source; keep it out of
-logs you share. `--region` takes an ingest region, and `xr broadcasts sources add --help` lists them;
+then poll `get` until `is_stream_active` is true. Only `add` answers the stream key: `list`, `get`, and `update` carry
+none, and `xr /2/sources/<SOURCE_ID>/stream_key` reads it again. Whoever holds the stream key can stream to the source;
+keep it out of logs you share. `--region` takes an ingest region, and `xr broadcasts sources add --help` lists them;
 `xr broadcasts sources region` names the one nearest the X server that answers. The API lists the regions in prose, so
 `xr` passes the value through rather than refusing one it does not know.
 

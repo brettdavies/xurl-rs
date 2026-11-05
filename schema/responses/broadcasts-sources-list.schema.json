@@ -236,7 +236,7 @@
     },
     "StreamSource": {
       "additionalProperties": true,
-      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts,\nas `/2/sources` describes one.",
+      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts,\nas `/2/sources` lists, reads, and renames one. It carries no stream key;\nonly the answer to creating a source does.",
       "properties": {
         "created_at_ms": {
           "description": "When the source was created, in milliseconds since the Unix epoch,\nas a decimal string.",
@@ -246,7 +246,7 @@
           ]
         },
         "id": {
-          "description": "Source identifier, the `source_id` a scheduled broadcast binds to.",
+          "description": "Source identifier, 19 decimal digits: the `source_id` a broadcast\nbinds to. It is not a credential.",
           "type": "string"
         },
         "is_stream_active": {
@@ -279,13 +279,6 @@
         },
         "rtmps_url": {
           "description": "RTMPS ingest URL, on port 443.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "stream_key": {
-          "description": "The stream key an encoder sends, so whoever holds it can stream to\nthe source.",
           "type": [
             "string",
             "null"

@@ -11,18 +11,27 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::{oauth1_store, run_in_process as run};
 
-const SOURCE_ID: &str = "1x2y3z4w5v6u";
+const SOURCE_ID: &str = "9012345678901234567";
+const STREAM_KEY: &str = "example-stream-key-4f2a";
 
+/// A source as X describes one to a list, a read, or a rename: it carries no
+/// stream key.
 fn source(name: &str) -> serde_json::Value {
     serde_json::json!({
         "id": SOURCE_ID,
         "name": name,
         "region": "pdxa",
         "rtmps_url": "rtmps://va.pscp.tv:443/x",
-        "stream_key": SOURCE_ID,
         "is_stream_active": false,
         "created_at_ms": "1761148800000"
     })
+}
+
+/// A source as X answers its creation, the one answer that carries the key.
+fn created_source(name: &str) -> serde_json::Value {
+    let mut created = source(name);
+    created["stream_key"] = serde_json::json!(STREAM_KEY);
+    created
 }
 
 fn json_out(stdout: &str) -> serde_json::Value {
@@ -53,7 +62,7 @@ async fn sources_list_prints_the_sources_as_json() {
     assert_eq!(code, 0, "stderr: {stderr}");
     let body = json_out(&stdout);
     assert_eq!(body["data"][0]["name"], "Studio A");
-    assert_eq!(body["data"][0]["stream_key"], SOURCE_ID);
+    assert!(body["data"][0].get("stream_key").is_none());
     assert_eq!(body["meta"]["result_count"], 1);
 }
 
@@ -92,7 +101,7 @@ async fn sources_add_posts_the_name_and_region() {
         ))
         .respond_with(
             ResponseTemplate::new(201)
-                .set_body_json(serde_json::json!({"data": source("Studio A")})),
+                .set_body_json(serde_json::json!({"data": created_source("Studio A")})),
         )
         .expect(1)
         .mount(&server)
@@ -117,7 +126,9 @@ async fn sources_add_posts_the_name_and_region() {
     .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
-    assert_eq!(json_out(&stdout)["data"]["id"], SOURCE_ID);
+    let body = json_out(&stdout);
+    assert_eq!(body["data"]["id"], SOURCE_ID);
+    assert_eq!(body["data"]["stream_key"], STREAM_KEY);
 }
 
 #[tokio::test]

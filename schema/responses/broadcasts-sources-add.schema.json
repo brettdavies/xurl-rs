@@ -234,9 +234,9 @@
       },
       "type": "object"
     },
-    "StreamSource": {
+    "StreamSourceCreated": {
       "additionalProperties": true,
-      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts,\nas `/2/sources` describes one.",
+      "description": "What X answers a new stream source with: the source and its stream key,\nwhich no list, read, or rename of the source carries.",
       "properties": {
         "created_at_ms": {
           "description": "When the source was created, in milliseconds since the Unix epoch,\nas a decimal string.",
@@ -246,7 +246,7 @@
           ]
         },
         "id": {
-          "description": "Source identifier, the `source_id` a scheduled broadcast binds to.",
+          "description": "Source identifier, 19 decimal digits: the `source_id` a broadcast\nbinds to. It is not a credential.",
           "type": "string"
         },
         "is_stream_active": {
@@ -286,14 +286,12 @@
         },
         "stream_key": {
           "description": "The stream key an encoder sends, so whoever holds it can stream to\nthe source.",
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         }
       },
       "required": [
-        "id"
+        "id",
+        "stream_key"
       ],
       "type": "object"
     },
@@ -410,7 +408,7 @@
   "description": "Standard X API v2 response envelope. `data` holds one object for single-item endpoints and an array for list endpoints.",
   "properties": {
     "data": {
-      "$ref": "#/$defs/StreamSource",
+      "$ref": "#/$defs/StreamSourceCreated",
       "description": "Primary payload: one object, or an array for list endpoints."
     },
     "errors": {

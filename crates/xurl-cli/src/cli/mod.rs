@@ -2927,7 +2927,9 @@ pub enum SourcesCommands {
     },
     /// Create a stream source
     ///
-    /// Point an encoder at its `rtmps_url` with its `stream_key`.
+    /// Point an encoder at its `rtmps_url` with its `stream_key`. `list`, `get`, and
+    /// `update` do not carry the key; `xr /2/sources/<SOURCE_ID>/stream_key` reads it
+    /// again.
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::ADD))]
     Add {
         /// A label for the source

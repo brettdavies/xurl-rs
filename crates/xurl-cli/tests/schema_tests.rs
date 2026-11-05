@@ -253,6 +253,29 @@ fn schema_like_contains_liked_field() {
 }
 
 #[test]
+fn only_the_answer_to_sources_add_carries_a_stream_key() {
+    for verb in ["list", "get", "update"] {
+        let view = schema_json(&["broadcasts", "sources", verb]);
+        assert!(
+            view["properties"].get("stream_key").is_none(),
+            "xr broadcasts sources {verb} answers no stream key"
+        );
+    }
+    let added = schema_json(&["broadcasts", "sources", "add"]);
+    assert!(added["properties"].get("stream_key").is_some());
+    let required: Vec<&str> = added["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .collect();
+    assert!(
+        required.contains(&"stream_key"),
+        "the create answer requires `stream_key`: {required:?}"
+    );
+}
+
+#[test]
 fn schema_no_extra_named_property() {
     // #[serde(flatten)] BTreeMap should produce additionalProperties, not a named "extra" field
     let output = common::xr().args(["schema", "post"]).output().unwrap();
