@@ -389,7 +389,7 @@ xr broadcasts list                                 # Your broadcasts
 xr broadcasts get 1YqKDqWqdPLGV                    # One broadcast, by id
 xr broadcasts remove 1YqKDqWqdPLGV                 # Delete a broadcast and its replay (asks first)
 xr broadcasts scheduled list                       # Your scheduled broadcasts
-xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z
+xr broadcasts scheduled add --source 9012345678901234567 --start 2026-11-02T16:00:00Z
 xr broadcasts scheduled update 1850000000000000001 --start 2026-11-02T17:00:00Z --end 2026-11-02T18:00:00Z
 xr broadcasts scheduled cancel 1850000000000000001 # Cancel (asks first)
 xr broadcasts chat history 1YqKDqWqdPLGV           # A broadcast's chat
@@ -401,9 +401,9 @@ xr broadcasts mutes remove @troll                  # Unmute
 xr broadcasts sources list                         # Your RTMP and RTMPS ingest points
 xr broadcasts sources region                       # The ingest region to pass to add --region
 xr broadcasts sources add "Studio A" --region us-east-1
-xr broadcasts sources get 1x2y3z4w5v6u             # Whether the source is receiving video
-xr broadcasts sources update 1x2y3z4w5v6u --name "Studio B"
-xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force skips)
+xr broadcasts sources get 9012345678901234567      # Whether the source is receiving video
+xr broadcasts sources update 9012345678901234567 --name "Studio B"
+xr broadcasts sources remove 9012345678901234567   # Delete; asks first (--force skips)
 ```
 
 A scheduled broadcast takes its video from a stream source, so `add` names one with `--source`; its times are RFC 3339,

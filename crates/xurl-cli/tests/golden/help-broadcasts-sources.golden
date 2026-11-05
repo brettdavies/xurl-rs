@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7183
+stdout_len: 7190
 stderr_len: 0
 --- stdout ---
 Manage the RTMP and RTMPS ingest points you stream to
@@ -160,7 +160,7 @@ Examples:
   Find the nearest region, create a source there, then check it is receiving video, JSON:
     xr broadcasts sources region --output json
     xr broadcasts sources add "Studio A" --region us-east-1 --output json
-    xr broadcasts sources get 1x2y3z4w5v6u --output json
+    xr broadcasts sources get 9012345678901234567 --output json
 
 --- stderr ---
 
