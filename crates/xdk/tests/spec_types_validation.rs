@@ -34,8 +34,8 @@ use xdk::api::response::types::{
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount, StreamRuleCounts, StreamSource,
-    StreamSourceDeleted, SubscribedResult, Trend, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceCreated, StreamSourceDeleted, SubscribedResult, Trend, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -202,7 +202,7 @@ fn typed_responses_match_vendored_spec() {
         ),
         (
             "CreateSourceResponseData",
-            serde_json::to_value(schemars::schema_for!(StreamSource)).unwrap(),
+            serde_json::to_value(schemars::schema_for!(StreamSourceCreated)).unwrap(),
         ),
         (
             "UpdateSourceResponseData",

@@ -772,12 +772,11 @@
   "stream_sources": {
     "data": [
       {
-        "id": "1x2y3z4w5v6u",
+        "id": "9012345678901234567",
         "name": "Studio A",
         "region": "pdxa",
         "rtmp_url": "rtmp://va.pscp.tv:80/x",
         "rtmps_url": "rtmps://va.pscp.tv:443/x",
-        "stream_key": "1x2y3z4w5v6u",
         "is_stream_active": false,
         "created_at_ms": "1761148800000"
       }
@@ -788,12 +787,23 @@
   },
   "stream_source": {
     "data": {
-      "id": "1x2y3z4w5v6u",
+      "id": "9012345678901234567",
       "name": "Studio A",
       "region": "pdxa",
       "rtmp_url": "rtmp://va.pscp.tv:80/x",
       "rtmps_url": "rtmps://va.pscp.tv:443/x",
-      "stream_key": "1x2y3z4w5v6u",
+      "is_stream_active": false,
+      "created_at_ms": "1761148800000"
+    }
+  },
+  "stream_source_created": {
+    "data": {
+      "id": "9012345678901234567",
+      "name": "Studio A",
+      "region": "pdxa",
+      "rtmp_url": "rtmp://va.pscp.tv:80/x",
+      "rtmps_url": "rtmps://va.pscp.tv:443/x",
+      "stream_key": "example-stream-key-4f2a",
       "is_stream_active": false,
       "created_at_ms": "1761148800000"
     }

@@ -692,7 +692,7 @@ const ROUTES: &[Route] = &[
     },
     Route {
         endpoint: endpoints::CREATE_STREAM_SOURCE,
-        fixture: "stream_source",
+        fixture: "stream_source_created",
         status: 201,
     },
     Route {

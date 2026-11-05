@@ -9,7 +9,8 @@ use xdk::api::Client;
 use xdk::api::shortcuts::{validate_source_name, validate_source_region};
 use xdk::auth::OAuth2Credential;
 
-const SOURCE_ID: &str = "1x2y3z4w5v6u";
+const SOURCE_ID: &str = "9012345678901234567";
+const STREAM_KEY: &str = "example-stream-key-4f2a";
 
 fn user_client(base_url: String) -> Client {
     Client::builder()
@@ -25,7 +26,8 @@ fn user_client(base_url: String) -> Client {
         .expect("client builds")
 }
 
-/// A source as X describes one.
+/// A source as X describes one to a list, a read, or a rename: it carries no
+/// stream key.
 fn source(name: &str) -> serde_json::Value {
     json!({
         "id": SOURCE_ID,
@@ -33,10 +35,16 @@ fn source(name: &str) -> serde_json::Value {
         "region": "pdxa",
         "rtmp_url": "rtmp://va.pscp.tv:80/x",
         "rtmps_url": "rtmps://va.pscp.tv:443/x",
-        "stream_key": SOURCE_ID,
         "is_stream_active": false,
         "created_at_ms": "1761148800000"
     })
+}
+
+/// A source as X answers its creation, the one answer that carries the key.
+fn created_source(name: &str) -> serde_json::Value {
+    let mut created = source(name);
+    created["stream_key"] = json!(STREAM_KEY);
+    created
 }
 
 #[tokio::test]
@@ -63,7 +71,6 @@ async fn get_stream_sources_lists_the_accounts_sources() {
     assert_eq!(listed.id, SOURCE_ID);
     assert_eq!(listed.name.as_deref(), Some("Studio A"));
     assert_eq!(listed.region.as_deref(), Some("pdxa"));
-    assert_eq!(listed.stream_key.as_deref(), Some(SOURCE_ID));
     assert_eq!(listed.created_at_ms.as_deref(), Some("1761148800000"));
     assert_eq!(listed.is_stream_active, Some(false));
 }
@@ -76,7 +83,9 @@ async fn create_stream_source_posts_the_name_and_region() {
         .and(body_json(
             json!({"name": "Studio A", "region": "us-east-1"}),
         ))
-        .respond_with(ResponseTemplate::new(201).set_body_json(json!({"data": source("Studio A")})))
+        .respond_with(
+            ResponseTemplate::new(201).set_body_json(json!({"data": created_source("Studio A")})),
+        )
         .expect(1)
         .mount(&server)
         .await;
@@ -91,6 +100,27 @@ async fn create_stream_source_posts_the_name_and_region() {
     assert_eq!(
         resp.data.rtmps_url.as_deref(),
         Some("rtmps://va.pscp.tv:443/x")
+    );
+}
+
+#[tokio::test]
+async fn a_created_source_without_its_stream_key_is_refused() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/sources"))
+        .respond_with(ResponseTemplate::new(201).set_body_json(json!({"data": source("Studio A")})))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let outcome = user_client(server.uri())
+        .create_stream_source("Studio A", "us-east-1")
+        .send()
+        .await;
+
+    assert!(
+        outcome.is_err(),
+        "the create answer requires `stream_key`, so one without it does not decode"
     );
 }
 

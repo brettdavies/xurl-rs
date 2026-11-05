@@ -1218,10 +1218,12 @@ pub struct BookmarkFolderPost {
 // ── Broadcast stream sources ────────────────────────────────────────
 
 /// A persistent RTMP and RTMPS ingest point for the account's broadcasts,
-/// as `/2/sources` describes one.
+/// as `/2/sources` lists, reads, and renames one. It carries no stream key;
+/// only the answer to creating a source does.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct StreamSource {
-    /// Source identifier, the `source_id` a scheduled broadcast binds to.
+    /// Source identifier, 19 decimal digits: the `source_id` a broadcast
+    /// binds to. It is not a credential.
     pub id: String,
     /// The label the account gave the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1235,10 +1237,40 @@ pub struct StreamSource {
     /// RTMPS ingest URL, on port 443.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rtmps_url: Option<String>,
+    /// Whether an encoder is sending video to the source now.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_stream_active: Option<bool>,
+    /// When the source was created, in milliseconds since the Unix epoch,
+    /// as a decimal string.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at_ms: Option<String>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// What X answers a new stream source with: the source and its stream key,
+/// which no list, read, or rename of the source carries.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamSourceCreated {
+    /// Source identifier, 19 decimal digits: the `source_id` a broadcast
+    /// binds to. It is not a credential.
+    pub id: String,
     /// The stream key an encoder sends, so whoever holds it can stream to
     /// the source.
+    pub stream_key: String,
+    /// The label the account gave the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub stream_key: Option<String>,
+    pub name: Option<String>,
+    /// Ingest region, an AWS region name such as `us-east-1`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
+    /// RTMP ingest URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rtmp_url: Option<String>,
+    /// RTMPS ingest URL, on port 443.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rtmps_url: Option<String>,
     /// Whether an encoder is sending video to the source now.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_stream_active: Option<bool>,
