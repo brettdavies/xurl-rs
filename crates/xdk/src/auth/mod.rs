@@ -14,6 +14,7 @@ pub mod oauth1;
 pub mod oauth2;
 #[doc(hidden)]
 pub mod pending;
+mod token_endpoint;
 
 pub(crate) use credentials::DirectCredentials;
 use credentials::REDACTED;
@@ -415,7 +416,13 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if no token is found or the refresh request fails.
+    /// Returns [`Error::Auth`] if no token is found, and when the refresh
+    /// fails:
+    /// [`Error::Auth`] when the token endpoint refuses the refresh token or the
+    /// client, or answers with no access token; [`Error::Http`] when it does not
+    /// answer; [`Error::Api`] when it answers a 5xx or a 429 (with `reset_at` when
+    /// the 429 names its reset); and [`Error::InvalidUrl`] when the token URL is
+    /// not one a request can go to. A failed refresh writes nothing to the store.
     pub async fn refresh_oauth2_token(
         &mut self,
         http: &reqwest::Client,

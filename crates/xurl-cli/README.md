@@ -1017,6 +1017,12 @@ what any other request would: `network-error` with no answer, `server-error` on 
 same invocation finishes once X answers, and if X had already spent the code, it answers with the `sign-in` step above.
 A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
 
+Any command whose OAuth2 login has expired refreshes it first, and a failed refresh writes nothing to the store. A
+refresh X refused is `auth-required`: a refused refresh token, or an answer with no token, carries the `sign-in` that
+stores the login again under the name `-u` gave, and refused client credentials carry `fix-input` with no invocation. A
+refresh X did not process reports what any other request would, the same as the token exchange above, and the same
+command finishes once X answers.
+
 ### NO_COLOR Support
 
 ```bash

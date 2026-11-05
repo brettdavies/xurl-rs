@@ -1,0 +1,418 @@
+//! A command whose `OAuth2` login has expired refreshes it first, and a failed
+//! refresh reports what happened. A refresh X did not process is the failure
+//! any other request to X reports, and the same command finishes once X
+//! answers. A refresh X refused is `auth-required`, with the step that gets a
+//! working login: a new sign-in for a refused refresh token, and the app's own
+//! credentials for a refused client. Nothing a failed refresh touches is
+//! written: the stored pair stays as it was.
+
+mod common;
+
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+
+use serde_json::{Value, json};
+use tempfile::TempDir;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
+use xdk::config::EnvOverrides;
+use xdk::store::TokenStore;
+
+const APP: &str = "myapp";
+const LOGIN: &str = "alice";
+const STORED_REFRESH_TOKEN: &str = "old-rt";
+
+/// A store whose default app holds `alice`'s expired `OAuth2` login, so the
+/// next request refreshes it before it sends.
+fn expired_login(dir: &Path) -> PathBuf {
+    let store = dir.join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app(APP, "CLIENT-ID", "CLIENT-SECRET")
+        .expect("add_app");
+    ts.save_oauth2_token_for_app(APP, LOGIN, "old-at", STORED_REFRESH_TOKEN, 0)
+        .expect("save the expired login");
+    ts.set_default_app(APP).expect("set_default_app");
+    let _ = ts.remove_app("default");
+    store
+}
+
+fn closed_port() -> u16 {
+    std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("a loopback port")
+        .local_addr()
+        .expect("its address")
+        .port()
+}
+
+/// `xr <args>` in process, with the token endpoint at `token_url` and the API
+/// at a closed port, which the run never reaches when the refresh fails.
+async fn run(store: &Path, token_url: &str, args: &[&str]) -> (i32, String, String) {
+    let closed = closed_port();
+    let overrides = EnvOverrides {
+        token_url: Some(token_url.to_string()),
+        api_base_url: Some(format!("http://127.0.0.1:{closed}")),
+        info_url: Some(format!("http://127.0.0.1:{closed}/2/users/me")),
+        ..EnvOverrides::default()
+    };
+    let mut argv = vec!["xr"];
+    argv.extend_from_slice(args);
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+    let code =
+        xurl::cli::runner::run_with_overrides(argv, &mut stdout, &mut stderr, store, &overrides)
+            .await;
+    (
+        code,
+        String::from_utf8_lossy(&stdout).into_owned(),
+        String::from_utf8_lossy(&stderr).into_owned(),
+    )
+}
+
+/// `xr --output json whoami -u alice` refreshing against `token_url`: its exit
+/// code and error envelope, after checking the stored pair is untouched.
+async fn whoami_refreshing_at(token_url: &str) -> (i32, Value) {
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+    let (code, stdout, stderr) = run(
+        &store,
+        token_url,
+        &["--output", "json", "whoami", "-u", LOGIN],
+    )
+    .await;
+    assert_eq!(stdout, "", "a failed refresh sends nothing: {stdout}");
+    assert_refresh_token_kept(&store);
+    let envelope = serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    (code, envelope)
+}
+
+async fn whoami_answered_with(response: ResponseTemplate) -> (i32, Value) {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(response)
+        .expect(1)
+        .mount(&server)
+        .await;
+    whoami_refreshing_at(&format!("{}/2/oauth2/token", server.uri())).await
+}
+
+fn assert_refresh_token_kept(store: &Path) {
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let kept = ts
+        .get_oauth2_token_for_app(APP, LOGIN)
+        .and_then(|token| token.oauth2.as_ref())
+        .map(|oauth2| oauth2.refresh_token.clone());
+    assert_eq!(
+        kept.as_deref(),
+        Some(STORED_REFRESH_TOKEN),
+        "a failed refresh keeps the stored pair"
+    );
+}
+
+fn oauth_error(status: u16, error: &str) -> ResponseTemplate {
+    ResponseTemplate::new(status).set_body_json(json!({
+        "error": error,
+        "error_description": "as the token endpoint put it",
+    }))
+}
+
+fn assert_reason(code: i32, envelope: &Value, reason: &str, exit_code: i32) {
+    assert_eq!(code, exit_code, "{envelope}");
+    assert_eq!(envelope["reason"], reason, "{envelope}");
+    assert_eq!(envelope["exit_code"], exit_code, "{envelope}");
+}
+
+fn assert_names_the_refresh(envelope: &Value) {
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("RefreshTokenError"),
+        "the message says the refresh failed: {envelope}"
+    );
+}
+
+#[tokio::test]
+async fn a_refresh_with_no_answer_is_a_network_error_that_names_its_cause() {
+    let closed = closed_port();
+    let (code, envelope) =
+        whoami_refreshing_at(&format!("http://127.0.0.1:{closed}/2/oauth2/token")).await;
+
+    assert_reason(
+        code,
+        &envelope,
+        "network-error",
+        xdk::error::EXIT_NETWORK_ERROR,
+    );
+
+    assert_names_the_refresh(&envelope);
+    assert_eq!(
+        envelope["next_step"],
+        json!({"action": "retry"}),
+        "{envelope}"
+    );
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("os error"),
+        "the message names the system's cause, which tells a refused connection from a \
+         timeout: {envelope}"
+    );
+}
+
+/// A server error is the same answer whatever its body holds; a proxy's error
+/// page is the usual one that holds no JSON.
+#[tokio::test]
+async fn a_refresh_answered_with_a_server_error_is_a_server_error_and_is_sent_again() {
+    for (why, response) in [
+        ("a 503", oauth_error(503, "server_error")),
+        (
+            "a 502 with no JSON",
+            ResponseTemplate::new(502).set_body_string("<html>Bad Gateway</html>"),
+        ),
+    ] {
+        let (code, envelope) = whoami_answered_with(response).await;
+        assert_reason(
+            code,
+            &envelope,
+            "server-error",
+            xdk::error::EXIT_GENERAL_ERROR,
+        );
+        assert_eq!(
+            envelope["next_step"]["action"], "retry",
+            "{why}: {envelope}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_refresh_rate_limited_is_rate_limited_as_any_other_request_is() {
+    let reset_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock after epoch")
+        .as_secs()
+        + 600;
+    let (code, envelope) = whoami_answered_with(
+        oauth_error(429, "too_many_requests")
+            .insert_header("x-rate-limit-reset", reset_at.to_string()),
+    )
+    .await;
+
+    assert_reason(
+        code,
+        &envelope,
+        "rate-limited",
+        xdk::error::EXIT_RATE_LIMITED,
+    );
+    assert_eq!(
+        envelope["next_step"]["action"], "wait-and-retry",
+        "{envelope}"
+    );
+    assert!(envelope["retry_after_secs"].is_u64(), "{envelope}");
+}
+
+/// The same command finishes once X answers: a failed refresh spent nothing.
+#[tokio::test]
+async fn a_command_whose_refresh_x_could_not_answer_finishes_when_run_again() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(oauth_error(503, "server_error"))
+        .up_to_n_times(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "new-at",
+            "refresh_token": "new-rt",
+            "expires_in": 7200,
+        })))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+    let token_url = format!("{}/2/oauth2/token", server.uri());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &token_url,
+        &["--output", "json", "whoami", "-u", LOGIN],
+    )
+    .await;
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "stderr: {stderr}");
+    assert_refresh_token_kept(&store);
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &token_url,
+        &["--output", "json", "whoami", "-u", LOGIN],
+    )
+    .await;
+    assert_eq!(
+        code,
+        xdk::error::EXIT_NETWORK_ERROR,
+        "the second run refreshes, then fails only reaching the API at a closed port: {stderr}"
+    );
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let refreshed = ts
+        .get_oauth2_token_for_app(APP, LOGIN)
+        .and_then(|token| token.oauth2.as_ref())
+        .map(|oauth2| oauth2.refresh_token.clone());
+    assert_eq!(
+        refreshed.as_deref(),
+        Some("new-rt"),
+        "the second run stored the new pair"
+    );
+}
+
+/// Only a new sign-in gets a new refresh token, so the step is the sign-in
+/// that stores the login under the name the command asked for.
+#[tokio::test]
+async fn a_refused_refresh_token_signs_the_login_in_again() {
+    for (why, response) in [
+        ("invalid_grant", oauth_error(400, "invalid_grant")),
+        (
+            "a 200 with no token",
+            ResponseTemplate::new(200).set_body_json(json!({"token_type": "bearer"})),
+        ),
+        (
+            "a 200 with no JSON",
+            ResponseTemplate::new(200).set_body_string("<html>"),
+        ),
+    ] {
+        let (code, envelope) = whoami_answered_with(response).await;
+        assert_reason(
+            code,
+            &envelope,
+            "auth-required",
+            xdk::error::EXIT_AUTH_REQUIRED,
+        );
+        assert_names_the_refresh(&envelope);
+        assert_eq!(
+            envelope["next_step"]["action"], "sign-in",
+            "{why}: {envelope}"
+        );
+        assert_eq!(
+            envelope["next_step"]["command"], "xr auth oauth2 alice --no-browser --step 1",
+            "{why}: {envelope}"
+        );
+    }
+}
+
+/// Another sign-in would end at the same refusal, so the step sends nobody to
+/// the browser: the message names what to fix.
+#[tokio::test]
+async fn a_refused_client_asks_for_the_apps_credentials_to_be_fixed() {
+    for (why, response) in [
+        ("a 401", oauth_error(401, "invalid_client")),
+        (
+            "invalid_client on a 400",
+            oauth_error(400, "invalid_client"),
+        ),
+        (
+            "unauthorized_client",
+            oauth_error(400, "unauthorized_client"),
+        ),
+    ] {
+        let (code, envelope) = whoami_answered_with(response).await;
+        assert_reason(
+            code,
+            &envelope,
+            "auth-required",
+            xdk::error::EXIT_AUTH_REQUIRED,
+        );
+        assert_names_the_refresh(&envelope);
+        assert_eq!(
+            envelope["next_step"],
+            json!({"action": "fix-input"}),
+            "{why}: {envelope}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_token_url_that_is_not_a_url_names_it() {
+    let (code, envelope) = whoami_refreshing_at("not-a-url").await;
+
+    assert_reason(
+        code,
+        &envelope,
+        "invalid-url",
+        xdk::error::EXIT_GENERAL_ERROR,
+    );
+    let message = envelope["message"].as_str().unwrap_or_default();
+    assert!(
+        message.contains("TOKEN_URL") && message.contains("not-a-url"),
+        "{envelope}"
+    );
+}
+
+/// An answer that ends before its body did is no answer.
+#[tokio::test]
+async fn a_refresh_whose_error_answer_breaks_off_is_a_network_error_that_names_the_refresh() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+    let port = listener.local_addr().expect("its address").port();
+    let stub = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("the refresh connects");
+        let mut request = Vec::new();
+        let mut buf = [0u8; 4096];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            let n = stream.read(&mut buf).expect("read the request");
+            if n == 0 {
+                break;
+            }
+            request.extend_from_slice(&buf[..n]);
+        }
+        stream
+            .write_all(b"HTTP/1.1 503 Service Unavailable\r\ncontent-length: 100\r\n\r\npartial")
+            .expect("answer in part");
+    });
+
+    let (code, envelope) =
+        whoami_refreshing_at(&format!("http://127.0.0.1:{port}/2/oauth2/token")).await;
+    stub.join().expect("the stub ends");
+
+    assert_reason(
+        code,
+        &envelope,
+        "network-error",
+        xdk::error::EXIT_NETWORK_ERROR,
+    );
+
+    assert_names_the_refresh(&envelope);
+}
+
+#[tokio::test]
+async fn text_output_names_the_step_for_a_refused_refresh() {
+    for (response, line) in [
+        (
+            oauth_error(400, "invalid_grant"),
+            "X refused the stored login's refresh token. Sign in again. Run: xr auth oauth2 alice",
+        ),
+        (
+            oauth_error(401, "invalid_client"),
+            "X refused the app's client credentials. Check its client id and secret.",
+        ),
+    ] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(response)
+            .mount(&server)
+            .await;
+        let tmp = TempDir::new().unwrap();
+        let store = expired_login(tmp.path());
+
+        let (code, _stdout, stderr) = run(
+            &store,
+            &format!("{}/2/oauth2/token", server.uri()),
+            &["whoami", "-u", LOGIN],
+        )
+        .await;
+
+        assert_eq!(code, xdk::error::EXIT_AUTH_REQUIRED, "stderr: {stderr}");
+        assert!(stderr.contains(line), "{line}: {stderr}");
+    }
+}

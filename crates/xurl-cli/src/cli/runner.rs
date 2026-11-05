@@ -491,6 +491,9 @@ fn recovery_hint(
         .or_else(|| crate::cli::hints::redirect_url_again_hint(error, &invocation))
         .or_else(|| crate::cli::hints::pending_app_hint(snapshot, error, &invocation))
         .or_else(|| crate::cli::hints::sign_in_fault_hint(error))
+        .or_else(|| {
+            crate::cli::hints::refresh_refused_hint(snapshot, error, &invocation, structured)
+        })
         .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
         .or_else(|| crate::cli::hints::mismatch_hint(snapshot, error, &invocation, structured))
         .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))

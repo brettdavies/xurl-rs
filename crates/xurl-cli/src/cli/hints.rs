@@ -12,8 +12,9 @@ use xdk::error::{
     BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED,
     CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_INVALID,
     PENDING_NOT_FOUND, PENDING_PERMISSIONS, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
-    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
-    TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
+    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, REFRESH_CLIENT_REFUSED,
+    REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, TOKEN_EXCHANGE_CLIENT_REFUSED,
+    TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -761,15 +762,18 @@ pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> 
     Some(sign_in_again(invocation, no_browser))
 }
 
-/// Builds the hint for a sign-in failure no other sign-in would fix, a refused
-/// client or a saved flow's file `xr` will not read: the message names what to
-/// change, and no `xr` invocation could say more.
+/// Builds the hint for a failure no other sign-in would fix, a client the token
+/// endpoint refused on a sign-in or a refresh, or a saved flow's file `xr` will
+/// not read: the message names what to change, and no `xr` invocation could
+/// say more.
 #[must_use]
 pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
     let Error::Auth { message, .. } = error else {
         return None;
     };
-    let advice = if message.starts_with(TOKEN_EXCHANGE_CLIENT_REFUSED) {
+    let advice = if message.starts_with(TOKEN_EXCHANGE_CLIENT_REFUSED)
+        || message.starts_with(REFRESH_CLIENT_REFUSED)
+    {
         "X refused the app's client credentials. Check its client id and secret."
     } else if message.starts_with(PENDING_PERMISSIONS) {
         "Restore the file's mode and owner, or remove it and start over at step 1."
@@ -779,6 +783,38 @@ pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
     Some(Hint {
         text_lines: vec![advice.to_string()],
         next_step: NextStep::fix_input(None),
+    })
+}
+
+/// Builds the hint for a stored login whose refresh the token endpoint refused,
+/// or answered with no token: only a new sign-in gets a working refresh token,
+/// so the step is the sign-in that stores the login under the name the
+/// invocation asked for, on the app it ran against.
+#[must_use]
+pub fn refresh_refused_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    invocation: &[String],
+    headless: bool,
+) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    let what = if message.starts_with(REFRESH_TOKEN_REFUSED) {
+        "X refused the stored login's refresh token."
+    } else if message.starts_with(REFRESH_NO_TOKEN) {
+        "X answered the stored login's refresh with no token."
+    } else {
+        return None;
+    };
+    let login = requested_login(invocation);
+    let target = snapshot.active_app.as_str();
+    let app = (target != snapshot.default_app).then_some(target);
+    let next_step = NextStep::sign_in_as(login.as_deref(), app, headless);
+    let command = next_step.command.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!("{what} Sign in again. Run: {command}")],
+        next_step,
     })
 }
 

@@ -199,7 +199,10 @@ async fn a_refresh_against_a_silent_server_gives_up_at_the_configured_timeout() 
         elapsed < std::time::Duration::from_secs(5),
         "the refresh must stop at http_timeout_secs, not hang; elapsed {elapsed:?}"
     );
-    assert!(matches!(err, xdk::Error::Auth { .. }), "got {err:?}");
+    assert!(
+        matches!(&err, xdk::Error::Http { message, .. } if message.contains("timed out")),
+        "a refresh that times out is a transport failure that names its cause: {err:?}"
+    );
 }
 
 #[tokio::test]
