@@ -83,19 +83,19 @@ pub(crate) async fn answer(
     if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
         return Err(api_error(response).await.map_err(|e| broke_off(e, grant))?);
     }
-    let body = response.json::<Value>().await;
-
     if !status.is_success() {
-        let body = body.unwrap_or_default();
-        let error_code = body["error"].as_str().unwrap_or("unknown");
-        let description = body["error_description"].as_str().unwrap_or("");
-        let refusal = refusal(status, error_code, grant);
-        return Err(Error::auth(format!(
-            "{refusal}: HTTP {status} — {error_code}: {description}"
-        )));
+        let body = response.json::<Value>().await.unwrap_or_default();
+        return Err(refused(status, &body, grant));
     }
 
-    let body = body.map_err(|e| Error::auth_with_cause(grant.no_token(), &e).with_source(e))?;
+    // A success whose body breaks off is no answer, which the same request can
+    // get past; one that reads whole and is not JSON holds no token.
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| broke_off(Error::from(e), grant))?;
+    let body: Value = serde_json::from_slice(&bytes)
+        .map_err(|e| Error::auth_with_cause(grant.no_token(), &e).with_source(e))?;
     let access_token = body["access_token"]
         .as_str()
         .ok_or_else(|| Error::auth(grant.no_token()))?
@@ -110,7 +110,7 @@ pub(crate) async fn answer(
 fn unsent(error: reqwest::Error, token_url: &str, grant: Grant) -> Error {
     if error.is_builder() {
         return Error::invalid_url(format!(
-            "the token URL {token_url} is not one a request can go to; TOKEN_URL sets it"
+            "the token URL '{token_url}' is not one a request can go to; TOKEN_URL sets it"
         ))
         .with_source(error);
     }
@@ -144,6 +144,25 @@ fn cause_chain(error: &dyn std::error::Error) -> String {
         next = inner.source();
     }
     chain
+}
+
+/// The refusal an error answer states: the status, and the endpoint's own
+/// `error` and `error_description` when it sent them.
+fn refused(status: reqwest::StatusCode, body: &Value, grant: Grant) -> Error {
+    let error_code = body["error"].as_str();
+    let description = body["error_description"].as_str();
+    let mut message = format!(
+        "{}: HTTP {status}",
+        refusal(status, error_code.unwrap_or_default(), grant)
+    );
+    match (error_code, description) {
+        (Some(code), Some(description)) => {
+            message.push_str(&format!(" — {code}: {description}"));
+        }
+        (Some(said), None) | (None, Some(said)) => message.push_str(&format!(" — {said}")),
+        (None, None) => {}
+    }
+    Error::auth(message)
 }
 
 /// Which refusal an error answer is: of the client (RFC 6749 section 5.2 lets

@@ -788,8 +788,9 @@ pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
 
 /// Builds the hint for a stored login whose refresh the token endpoint refused,
 /// or answered with no token: only a new sign-in gets a working refresh token,
-/// so the step is the sign-in that stores the login under the name the
-/// invocation asked for, on the app it ran against.
+/// so the step is the sign-in that stores the refreshed login again, on the
+/// app it ran against. With no `-u` that login is the app's default one, which
+/// a sign-in under any other name would leave where the next run finds it.
 #[must_use]
 pub fn refresh_refused_hint(
     snapshot: &StoreSnapshot,
@@ -807,8 +808,9 @@ pub fn refresh_refused_hint(
     } else {
         return None;
     };
-    let login = requested_login(invocation);
     let target = snapshot.active_app.as_str();
+    let login =
+        requested_login(invocation).or_else(|| snapshot.oauth2_default_logins.get(target).cloned());
     let app = (target != snapshot.default_app).then_some(target);
     let next_step = NextStep::sign_in_as(login.as_deref(), app, headless);
     let command = next_step.command.clone().unwrap_or_default();

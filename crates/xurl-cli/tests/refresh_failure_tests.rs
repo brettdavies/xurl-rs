@@ -212,6 +212,66 @@ async fn a_refresh_rate_limited_is_rate_limited_as_any_other_request_is() {
     assert!(envelope["retry_after_secs"].is_u64(), "{envelope}");
 }
 
+/// A refresh's 429 is the rate limit any request meets, so
+/// `--wait-on-rate-limit` waits out the reset it names and sends the refresh
+/// again, inside the same run.
+#[tokio::test]
+async fn wait_on_rate_limit_waits_out_a_refresh_s_429() {
+    let reset_at = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("clock after epoch")
+        .as_secs()
+        + 1;
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(
+            oauth_error(429, "too_many_requests")
+                .insert_header("x-rate-limit-reset", reset_at.to_string()),
+        )
+        .up_to_n_times(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({
+            "access_token": "new-at",
+            "refresh_token": "new-rt",
+            "expires_in": 7200,
+        })))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &format!("{}/2/oauth2/token", server.uri()),
+        &[
+            "--output",
+            "json",
+            "--wait-on-rate-limit",
+            "whoami",
+            "-u",
+            LOGIN,
+        ],
+    )
+    .await;
+
+    assert_eq!(
+        code,
+        xdk::error::EXIT_NETWORK_ERROR,
+        "the refresh succeeds after the wait, and the run fails only reaching the API at a \
+         closed port: {stderr}"
+    );
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let refreshed = ts
+        .get_oauth2_token_for_app(APP, LOGIN)
+        .and_then(|token| token.oauth2.as_ref())
+        .map(|oauth2| oauth2.refresh_token.clone());
+    assert_eq!(refreshed.as_deref(), Some("new-rt"), "{stderr}");
+}
+
 /// The same command finishes once X answers: a failed refresh spent nothing.
 #[tokio::test]
 async fn a_command_whose_refresh_x_could_not_answer_finishes_when_run_again() {
@@ -315,6 +375,7 @@ async fn a_refused_client_asks_for_the_apps_credentials_to_be_fixed() {
             "unauthorized_client",
             oauth_error(400, "unauthorized_client"),
         ),
+        ("a 401 with no body", ResponseTemplate::new(401)),
     ] {
         let (code, envelope) = whoami_answered_with(response).await;
         assert_reason(
@@ -329,7 +390,95 @@ async fn a_refused_client_asks_for_the_apps_credentials_to_be_fixed() {
             json!({"action": "fix-input"}),
             "{why}: {envelope}"
         );
+        assert!(
+            !envelope["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("unknown"),
+            "an answer that names no error is not given one: {why}: {envelope}"
+        );
     }
+}
+
+/// With no `-u`, the refresh runs for the app's default login, and the step
+/// signs that login in again: a sign-in that stored some other name would
+/// leave the refused login where the next run finds it.
+#[tokio::test]
+async fn a_refused_refresh_with_no_login_named_signs_in_the_login_it_ran_for() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(oauth_error(400, "invalid_grant"))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.save_oauth2_token_for_app(APP, "bob", "bob-at", "bob-rt", 0)
+        .expect("save a second expired login");
+    ts.set_default_app_and_user(APP, "bob")
+        .expect("make bob the default login");
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &format!("{}/2/oauth2/token", server.uri()),
+        &["--output", "json", "whoami"],
+    )
+    .await;
+
+    let envelope: Value = serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    assert_reason(
+        code,
+        &envelope,
+        "auth-required",
+        xdk::error::EXIT_AUTH_REQUIRED,
+    );
+    assert_eq!(
+        envelope["next_step"]["command"], "xr auth oauth2 bob --no-browser --step 1",
+        "{envelope}"
+    );
+}
+
+/// A success whose body broke off is no answer to read: the same command
+/// can run again. A refresh token X did spend then answers with the refusal
+/// that signs in again.
+#[tokio::test]
+async fn a_refresh_whose_success_breaks_off_is_a_network_error() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+    let port = listener.local_addr().expect("its address").port();
+    let stub = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("the refresh connects");
+        let mut request = Vec::new();
+        let mut buf = [0u8; 4096];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            let n = stream.read(&mut buf).expect("read the request");
+            if n == 0 {
+                break;
+            }
+            request.extend_from_slice(&buf[..n]);
+        }
+        stream
+            .write_all(b"HTTP/1.1 200 OK\r\ncontent-length: 100\r\n\r\n{\"access")
+            .expect("answer in part");
+    });
+
+    let (code, envelope) =
+        whoami_refreshing_at(&format!("http://127.0.0.1:{port}/2/oauth2/token")).await;
+    stub.join().expect("the stub ends");
+
+    assert_reason(
+        code,
+        &envelope,
+        "network-error",
+        xdk::error::EXIT_NETWORK_ERROR,
+    );
+    assert_names_the_refresh(&envelope);
+    assert_eq!(
+        envelope["next_step"],
+        json!({"action": "retry"}),
+        "{envelope}"
+    );
 }
 
 #[tokio::test]
@@ -344,8 +493,8 @@ async fn a_token_url_that_is_not_a_url_names_it() {
     );
     let message = envelope["message"].as_str().unwrap_or_default();
     assert!(
-        message.contains("TOKEN_URL") && message.contains("not-a-url"),
-        "{envelope}"
+        message.contains("TOKEN_URL") && message.contains("'not-a-url'"),
+        "the URL is quoted, so an empty one still shows: {envelope}"
     );
 }
 
