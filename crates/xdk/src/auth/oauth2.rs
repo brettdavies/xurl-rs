@@ -191,9 +191,9 @@ pub(crate) async fn exchange_code_for_token(
         })?;
 
     let status = token_resp.status();
-    // The endpoint did not process these, so the single-use code is still good
-    // and nothing about the credentials is in question: the failure is the one
-    // any other request to X reports.
+    // These say nothing about the credentials, so the failure is the one any
+    // other request to X reports. If the endpoint did spend the code before it
+    // failed, sending it again answers with the refusal that starts over.
     if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
         return Err(api_error(token_resp).await?);
     }

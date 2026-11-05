@@ -1014,7 +1014,7 @@ Under `auth-required`, a failed `xr auth oauth2` names the step that moves the s
 A failed `xr auth oauth2` that says nothing about credentials takes its own reason. A refused argument (`--auth-url`
 missing, given at step 1, or empty or unreadable on stdin) is `invalid-args`. A token exchange X did not process reports
 what any other request would: `network-error` with no answer, `server-error` on a 5xx, and `rate-limited` on a 429. The
-code is still good, so the same invocation finishes.
+same invocation finishes once X answers, and if X had already spent the code, it answers with the `sign-in` step above.
 
 ### NO_COLOR Support
 

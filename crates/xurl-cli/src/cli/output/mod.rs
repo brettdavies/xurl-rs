@@ -274,17 +274,46 @@ impl OutputConfig {
         separator: &str,
         command: &str,
     ) {
-        let help = format!("{command} --help");
-        self.emit_error_envelope(
-            err,
-            ErrorBody {
-                reason: Reason::InvalidArgs,
-                exit_code: xdk::error::EXIT_USAGE_ERROR,
-                message: Some(format!("{message}{separator}Try '{help}'.")),
-                next_step: Some(crate::cli::hints::NextStep::show_help(help)),
-                ..ErrorBody::default()
-            },
-        );
+        self.emit_error_envelope(err, invalid_args_body(message, separator, command));
+    }
+
+    /// The dry-run answer to an argument [`Self::print_invalid_args`] would
+    /// refuse in the real run: the same keys, at exit 0.
+    pub(crate) fn print_dry_run_invalid_args(
+        &self,
+        out: &mut dyn Write,
+        ctx: &Value,
+        message: &str,
+        separator: &str,
+        command: &str,
+    ) {
+        let body = invalid_args_body(message, separator, command);
+        if self.format.is_structured() {
+            self.print_refused_dry_run(out, ctx, body);
+            return;
+        }
+        let refusal = dry_run::Refusal {
+            message: body.message.as_deref().unwrap_or_default(),
+            advice: &[],
+        };
+        let ctx = &self.with_pointer(ctx);
+        for line in dry_run::summary(false, body.exit_code, ctx, Some(&refusal)) {
+            let _ = writeln!(out, "{line}");
+        }
+    }
+
+    /// A dry run's envelope for a refusal: `ctx` plus the keys of the error
+    /// the real run would write, and the exit code it would end on.
+    fn print_refused_dry_run(&self, out: &mut dyn Write, ctx: &Value, body: ErrorBody) {
+        let exit_code = body.exit_code;
+        let mut merged = ctx.as_object().cloned().unwrap_or_default();
+        if let Value::Object(body) = body.into_value() {
+            merged.extend(
+                body.into_iter()
+                    .filter(|(key, _)| key != "status" && key != "exit_code"),
+            );
+        }
+        self.print_dry_run(out, false, exit_code, &Value::Object(merged));
     }
 
     /// Prints an error with a recovery hint attached.
@@ -609,18 +638,11 @@ impl OutputConfig {
             }
             return;
         }
-        let mut merged = ctx.as_object().cloned().unwrap_or_default();
         let body = ErrorBody {
             next_step: hint.map(|hint| hint.next_step.clone()),
             ..error_body(error, exit_code)
         };
-        if let Value::Object(body) = body.into_value() {
-            merged.extend(
-                body.into_iter()
-                    .filter(|(key, _)| key != "status" && key != "exit_code"),
-            );
-        }
-        self.print_dry_run(out, false, exit_code, &Value::Object(merged));
+        self.print_refused_dry_run(out, ctx, body);
     }
 
     /// Prints a canonical confirmation-required error envelope.
@@ -798,6 +820,20 @@ impl OutputConfig {
         } else {
             let _ = writeln!(err, "\x1b[31mError: {display}\x1b[0m");
         }
+    }
+}
+
+/// The envelope body for a usage error of `command`, closing on its help. The
+/// pointer in the message and the `show-help` step are built from the one
+/// `command`, so they cannot name different pages.
+fn invalid_args_body(message: &str, separator: &str, command: &str) -> ErrorBody {
+    let help = format!("{command} --help");
+    ErrorBody {
+        reason: Reason::InvalidArgs,
+        exit_code: xdk::error::EXIT_USAGE_ERROR,
+        message: Some(format!("{message}{separator}Try '{help}'.")),
+        next_step: Some(crate::cli::hints::NextStep::show_help(help)),
+        ..ErrorBody::default()
     }
 }
 

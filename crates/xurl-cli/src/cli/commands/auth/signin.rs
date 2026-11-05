@@ -15,6 +15,9 @@ use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::{EXIT_USAGE_ERROR, Error};
 
+/// The command a usage error of `xr auth oauth2` closes on the help of.
+const OAUTH2_COMMAND: &str = "xr auth oauth2";
+
 /// Arguments of `xr auth oauth2`: whether to suppress the browser, which
 /// manual step to run, the redirect URL that step 2 exchanges, the scopes to
 /// request instead of every one, and the username label for the saved token.
@@ -50,6 +53,19 @@ pub(super) async fn oauth2(
     if let Some(scopes) = scopes {
         auth.with_oauth2_scopes(&scopes)?;
     }
+    // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
+    // harness) and the user did not pass `--no-browser` (or set
+    // `XURL_NO_BROWSER`). Opening a browser the caller can't see would
+    // silently strand the flow, so promote to the remote two-step
+    // path and surface the auth URL on stdout.
+    let auto_engage_no_browser = !no_browser && !std::io::stdout().is_terminal();
+    let effective_no_browser = no_browser || auto_engage_no_browser;
+    // The interactive flow reads neither `--step` nor `--auth-url`.
+    let refused = if effective_no_browser {
+        auth_url_refusal(step, auth_url.is_some())
+    } else {
+        None
+    };
     if dry_run {
         let ctx = json!({
             "command": "auth-oauth2",
@@ -57,8 +73,16 @@ pub(super) async fn oauth2(
             "step": step,
             "username": username,
         });
-        out.print_dry_run(stdout, true, 0, &ctx);
+        match refused {
+            Some(message) => {
+                out.print_dry_run_invalid_args(stdout, &ctx, message, " ", OAUTH2_COMMAND);
+            }
+            None => out.print_dry_run(stdout, true, 0, &ctx),
+        }
         return Ok(());
+    }
+    if let Some(message) = refused {
+        return Err(refused_argument(message, out, stderr));
     }
     let username_arg = username.as_deref().unwrap_or("");
     let client = crate::cli::commands::make_client(cfg, auth)?;
@@ -74,13 +98,6 @@ pub(super) async fn oauth2(
             exit_code: EXIT_USAGE_ERROR,
         });
     }
-    // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
-    // harness) and the user did not pass `--no-browser` (or set
-    // `XURL_NO_BROWSER`). Opening a browser the caller can't see would
-    // silently strand the flow, so promote to the remote two-step
-    // path and surface the auth URL on stdout.
-    let auto_engage_no_browser = !no_browser && !std::io::stdout().is_terminal();
-    let effective_no_browser = no_browser || auto_engage_no_browser;
     if !effective_no_browser {
         // Standard interactive flow. The opener records the URL it could not
         // open, so the paste-the-URL advice can name it once the flow returns.
@@ -116,6 +133,7 @@ pub(super) async fn oauth2(
                 );
                 out.print_message(stdout, &url);
             }
+            name_the_failed_exchange(&e, out, stderr);
             return Err(e.into());
         }
         out.print_ok_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
@@ -132,13 +150,6 @@ pub(super) async fn oauth2(
         };
         match effective_step {
             Some(1) => {
-                if auth_url.is_some() {
-                    return Err(refused_argument(
-                        "--auth-url is only used with --step 2, not --step 1.",
-                        out,
-                        stderr,
-                    ));
-                }
                 let url = client.auth().await?.remote_oauth2_step1(&pending_path)?;
                 let app = client.auth().await?.app_name().to_string();
                 if out.format.is_structured() {
@@ -196,14 +207,8 @@ pub(super) async fn oauth2(
                 }
             }
             Some(2) => {
-                let Some(url_value) = auth_url else {
-                    return Err(refused_argument(
-                        "--auth-url is required for step 2. Pass the redirect URL from your browser, \
-                         or use --auth-url - to read from stdin.",
-                        out,
-                        stderr,
-                    ));
-                };
+                // `auth_url_refusal` has refused a step 2 with no URL.
+                let url_value = auth_url.unwrap_or_default();
 
                 let redirect_url = if url_value == "-" {
                     let mut line = String::new();
@@ -228,9 +233,13 @@ pub(super) async fn oauth2(
                     url_value
                 };
 
-                client
+                if let Err(e) = client
                     .remote_oauth2_step2(&redirect_url, username_arg, &pending_path)
-                    .await?;
+                    .await
+                {
+                    name_the_failed_exchange(&e, out, stderr);
+                    return Err(e.into());
+                }
                 out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             }
             None => {
@@ -246,11 +255,35 @@ pub(super) async fn oauth2(
     Ok(())
 }
 
+/// Tells a person what X's answer is an answer to. An `Error::Api` prints as
+/// the response body alone, and a sign-in's caller never named the endpoint.
+fn name_the_failed_exchange(error: &Error, out: &OutputConfig, stderr: &mut dyn Write) {
+    if matches!(error, Error::Api { .. }) {
+        out.info(
+            stderr,
+            "X's token endpoint failed, so the sign-in did not finish. It answered:",
+        );
+    }
+}
+
+/// What the headless flow refuses about `--auth-url`, read without touching
+/// stdin, so a dry run can say it too.
+fn auth_url_refusal(step: Option<u8>, has_auth_url: bool) -> Option<&'static str> {
+    match (step, has_auth_url) {
+        (Some(1), true) => Some("--auth-url is only used with --step 2, not --step 1."),
+        (Some(2), false) => Some(
+            "--auth-url is required for step 2. Pass the redirect URL from your browser, \
+             or use --auth-url - to read from stdin.",
+        ),
+        _ => None,
+    }
+}
+
 /// Refuses an argument of `xr auth oauth2`: a usage error, closing on the
 /// command's help. `xr` parses its own arguments, so the library has no part in
 /// this one.
 fn refused_argument(message: &str, out: &OutputConfig, stderr: &mut dyn Write) -> Failure {
-    out.print_invalid_args(stderr, message, " ", "xr auth oauth2");
+    out.print_invalid_args(stderr, message, " ", OAUTH2_COMMAND);
     Failure::Emitted {
         exit_code: EXIT_USAGE_ERROR,
     }

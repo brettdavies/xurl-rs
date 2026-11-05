@@ -556,6 +556,10 @@ async fn step2_keeps_the_pending_state_when_the_token_endpoint_fails() {
     // The endpoint failed, so nothing about the credentials is in question.
     assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "stderr: {stderr}");
     assert!(
+        stderr.contains(FAILED_EXCHANGE),
+        "the error's message is X's answer alone, so a line names the exchange: {stderr}"
+    );
+    assert!(
         pending.exists(),
         "the pending state survives a failed exchange so step 2 can be retried"
     );
@@ -1398,6 +1402,7 @@ async fn text_output_names_the_same_steps_for_the_other_step2_refusals() {
 }
 
 const OAUTH2_HELP: &str = "xr auth oauth2 --help";
+const FAILED_EXCHANGE: &str = "X's token endpoint failed, so the sign-in did not finish.";
 
 /// A refused argument is a usage error, which says nothing about credentials.
 fn assert_usage_refusal(code: Option<i32>, stderr: &str, says: &str) {
@@ -1474,6 +1479,90 @@ async fn step1_given_an_auth_url_points_at_the_help() {
     .await;
 
     assert_usage_refusal(Some(code), &stderr, "--auth-url is only used with --step 2");
+}
+
+/// A dry run answers at exit 0 on every command, and says what the real run
+/// would do: refuse the argument, with the keys its error would carry.
+#[tokio::test]
+async fn a_dry_run_says_the_real_run_would_refuse_the_argument() {
+    for (step, url, says) in [
+        ("2", None, "--auth-url is required"),
+        (
+            "1",
+            Some("http://localhost:8080/callback"),
+            "--auth-url is only used",
+        ),
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        let mut args = vec![
+            "xr",
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            step,
+        ];
+        if let Some(url) = url {
+            args.extend_from_slice(&["--auth-url", url]);
+        }
+
+        let (code, stdout, stderr) = run_cli(&store, &step1_overrides(), &args).await;
+
+        assert_eq!(code, 0, "stderr: {stderr}");
+        assert_eq!(stderr, "", "the answer is on stdout");
+        let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("one document");
+        assert_eq!(answer["status"], "dry_run", "{answer}");
+        assert_eq!(answer["would_succeed"], false, "{answer}");
+        assert_eq!(
+            answer["exit_code"],
+            xdk::error::EXIT_USAGE_ERROR,
+            "the code the real run ends on: {answer}"
+        );
+        assert_eq!(answer["reason"], "invalid-args", "{answer}");
+        assert!(
+            answer["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains(says),
+            "{answer}"
+        );
+        assert_step(&answer, "show-help", "command", OAUTH2_HELP);
+    }
+}
+
+#[tokio::test]
+async fn a_dry_run_of_a_step_with_its_arguments_right_would_succeed() {
+    let redirect = redirect_url();
+    for args in [
+        &["--step", "1"][..],
+        &["--step", "2", "--auth-url", &redirect],
+        &["--step", "2", "--auth-url", "-"],
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        let mut argv = vec![
+            "xr",
+            "--output",
+            "json",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+        ];
+        argv.extend_from_slice(args);
+
+        let (code, stdout, stderr) = run_cli(&store, &step1_overrides(), &argv).await;
+
+        assert_eq!(code, 0, "{args:?}: {stderr}");
+        let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("one document");
+        assert_eq!(answer["would_succeed"], true, "{args:?}: {answer}");
+    }
 }
 
 /// `--auth-url -` reads the process's stdin, so this spawns the built binary
