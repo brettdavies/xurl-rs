@@ -2,10 +2,11 @@
 //! the code a sign-in exchanges and for the refresh token a refresh spends.
 //!
 //! A failure the endpoint did not process is the one any request to X reports:
-//! [`Error::Http`] with no answer, and [`Error::Api`] for a 5xx or a 429. A
-//! token URL no request can go to is [`Error::InvalidUrl`]. A refusal is
-//! [`Error::Auth`], of the client or of the grant, since the credential in hand
-//! is what was refused.
+//! [`Error::Http`] with no answer, and [`Error::Api`] for a 5xx or a 429, which
+//! a refresh also reports as an `xdk::auth` warning, since the error alone does
+//! not say the refresh is what X answered. A token URL no request can go to is
+//! [`Error::InvalidUrl`]. A refusal is [`Error::Auth`], of the client or of the
+//! grant, since the credential in hand is what was refused.
 
 use serde_json::Value;
 
@@ -13,6 +14,7 @@ use crate::api::api_error;
 use crate::error::{
     Error, REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, Result,
     TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
+    TOKEN_URL_UNUSABLE,
 };
 
 /// The grant a request to the token endpoint carries, which names its
@@ -63,8 +65,8 @@ pub(crate) struct Answer {
 
 /// Sends `request` to the token endpoint at `token_url` and reads its answer.
 ///
-/// The status decides before the body is read, so a proxy's error page reads
-/// as the status it came with.
+/// A 5xx or a 429 is decided by its status before the body is read, so a
+/// proxy's error page reads as the status it came with.
 ///
 /// # Errors
 ///
@@ -81,6 +83,12 @@ pub(crate) async fn answer(
 
     let status = response.status();
     if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        if matches!(grant, Grant::Refresh) {
+            tracing::warn!(
+                target: "xdk::auth",
+                "the token endpoint answered the OAuth2 login's refresh with HTTP {status}"
+            );
+        }
         return Err(api_error(response).await.map_err(|e| broke_off(e, grant))?);
     }
     if !status.is_success() {
@@ -110,7 +118,7 @@ pub(crate) async fn answer(
 fn unsent(error: reqwest::Error, token_url: &str, grant: Grant) -> Error {
     if error.is_builder() {
         return Error::invalid_url(format!(
-            "the token URL '{token_url}' is not one a request can go to; TOKEN_URL sets it"
+            "{TOKEN_URL_UNUSABLE} '{token_url}' is not one a request can go to"
         ))
         .with_source(error);
     }

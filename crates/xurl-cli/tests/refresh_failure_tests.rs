@@ -122,6 +122,22 @@ fn assert_reason(code: i32, envelope: &Value, reason: &str, exit_code: i32) {
     assert_eq!(envelope["exit_code"], exit_code, "{envelope}");
 }
 
+/// X's body is the message of a 5xx or a 429, as on any request, so a
+/// warning says the answer was to the refresh.
+fn assert_warns_of_the_refresh(envelope: &Value) {
+    let warnings = envelope["warnings"].as_array().cloned().unwrap_or_default();
+    assert!(
+        warnings.iter().any(|warning| {
+            warning["target"] == "xdk::auth"
+                && warning["message"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .contains("refresh")
+        }),
+        "a warning names the refresh: {envelope}"
+    );
+}
+
 fn assert_names_the_refresh(envelope: &Value) {
     assert!(
         envelope["message"]
@@ -183,6 +199,7 @@ async fn a_refresh_answered_with_a_server_error_is_a_server_error_and_is_sent_ag
             envelope["next_step"]["action"], "retry",
             "{why}: {envelope}"
         );
+        assert_warns_of_the_refresh(&envelope);
     }
 }
 
@@ -210,6 +227,90 @@ async fn a_refresh_rate_limited_is_rate_limited_as_any_other_request_is() {
         "{envelope}"
     );
     assert!(envelope["retry_after_secs"].is_u64(), "{envelope}");
+    assert_warns_of_the_refresh(&envelope);
+}
+
+/// A text `warning:` line goes to the process's own stderr, which the
+/// in-process runner's writer never sees, so this test spawns the built `xr`.
+#[tokio::test(flavor = "multi_thread")]
+async fn text_output_says_a_server_error_answered_the_refresh() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(502).set_body_string("<html>Bad Gateway</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+    let token_url = format!("{}/2/oauth2/token", server.uri());
+    let closed = closed_port();
+
+    let output = tokio::task::spawn_blocking(move || {
+        common::xr_with_store(&store)
+            .env("TOKEN_URL", &token_url)
+            .env("API_BASE_URL", format!("http://127.0.0.1:{closed}"))
+            .env("INFO_URL", format!("http://127.0.0.1:{closed}/2/users/me"))
+            .args(["whoami", "-u", LOGIN])
+            .output()
+    })
+    .await
+    .expect("spawn_blocking joins")
+    .expect("xr runs");
+    let code = output.status.code().unwrap_or(-1);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "stderr: {stderr}");
+    assert!(
+        stderr
+            .lines()
+            .any(|line| line.starts_with("warning: ") && line.contains("refresh")),
+        "{stderr}"
+    );
+}
+
+/// The step signs the login in again on the app the command ran against,
+/// which need not be the default.
+#[tokio::test]
+async fn a_refused_refresh_on_another_app_signs_in_on_that_app() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(oauth_error(400, "invalid_grant"))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.add_app("work", "WORK-CLIENT-ID", "WORK-SECRET")
+        .expect("add a second app");
+    ts.save_oauth2_token_for_app("work", LOGIN, "work-at", "work-rt", 0)
+        .expect("save the expired login on it");
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &format!("{}/2/oauth2/token", server.uri()),
+        &["--output", "json", "--app", "work", "whoami", "-u", LOGIN],
+    )
+    .await;
+
+    let envelope: Value = serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    assert_reason(
+        code,
+        &envelope,
+        "auth-required",
+        xdk::error::EXIT_AUTH_REQUIRED,
+    );
+    assert_eq!(
+        envelope["next_step"]["command"], "xr auth oauth2 alice --no-browser --step 1 --app work",
+        "{envelope}"
+    );
+    let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let kept = ts
+        .get_oauth2_token_for_app("work", LOGIN)
+        .and_then(|token| token.oauth2.as_ref())
+        .map(|oauth2| oauth2.refresh_token.clone());
+    assert_eq!(kept.as_deref(), Some("work-rt"), "the stored pair stays");
 }
 
 /// A refresh's 429 is the rate limit any request meets, so
@@ -272,9 +373,9 @@ async fn wait_on_rate_limit_waits_out_a_refresh_s_429() {
     assert_eq!(refreshed.as_deref(), Some("new-rt"), "{stderr}");
 }
 
-/// The same command finishes once X answers: a failed refresh spent nothing.
+/// The same command refreshes once X answers: a failed refresh spent nothing.
 #[tokio::test]
-async fn a_command_whose_refresh_x_could_not_answer_finishes_when_run_again() {
+async fn a_command_whose_refresh_x_could_not_answer_refreshes_when_run_again() {
     let server = MockServer::start().await;
     Mock::given(method("POST"))
         .and(path("/2/oauth2/token"))

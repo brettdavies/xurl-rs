@@ -883,6 +883,10 @@ pub const REFRESH_TOKEN_REFUSED: &str =
 /// token. The refresh token may be spent, so the login needs a new sign-in.
 pub const REFRESH_NO_TOKEN: &str = "RefreshTokenError: no access_token in response";
 
+/// The start of the message of an [`Error::InvalidUrl`] for a token URL no
+/// request can go to. The URL follows, quoted.
+pub const TOKEN_URL_UNUSABLE: &str = "the token URL";
+
 /// The start of the message of a headless step 2 whose client id is not the
 /// one step 1 saved. The saved app's name follows, as a quoted string.
 pub const PENDING_APP_MISMATCH: &str = "AppMismatch: pending state was created for app";
