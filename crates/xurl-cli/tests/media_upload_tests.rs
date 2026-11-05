@@ -387,6 +387,14 @@ async fn an_upload_wait_past_its_deadline_leaves_stdout_empty() {
     assert_eq!(v["reason"], "processing-timeout", "got: {v}");
     assert_eq!(v["media_id"], "777", "got: {v}");
     assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr media status 777 --wait=2",
+        "a wait whose deadline ran out resumes for twice as long: {v}"
+    );
+    assert_eq!(
+        v["message"], "media 777 was still processing when the 1-second wait ended",
+        "the read worked, so the message names the deadline: {v}"
+    );
 }
 
 /// A status read that fails ends the wait with the upload complete and billed,
@@ -414,10 +422,13 @@ async fn a_status_read_that_fails_names_the_media_id_in_the_envelope(#[case] arg
 const AFTER_UPLOAD: &str = "media 777 finished uploading, but reading its status failed: ";
 
 #[rstest::rstest]
-#[case::plain(&[])]
-#[case::quiet(&["--quiet"])]
+#[case::plain(&[], true)]
+#[case::quiet(&["--quiet"], false)]
 #[tokio::test(flavor = "multi_thread")]
-async fn a_status_read_that_fails_says_what_failed_in_text(#[case] args: &[&str]) {
+async fn a_status_read_that_fails_says_what_failed_in_text(
+    #[case] args: &[&str],
+    #[case] resume_line: bool,
+) {
     let (output, _tmp) = upload_then_status(ResponseTemplate::new(503), args).await;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -432,6 +443,30 @@ async fn a_status_read_that_fails_says_what_failed_in_text(#[case] args: &[&str]
         0,
         "the error line already names the media: {stderr}"
     );
+    assert_eq!(
+        stderr.contains("Resume the wait. Run: xr media status 777 --wait=60"),
+        resume_line,
+        "the resume line prints unless --quiet: {stderr}"
+    );
+}
+
+/// A refused credential on the status read is not answered with a resumed
+/// wait, which would read under the same credential and fail the same way. Its
+/// message still says the upload finished.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_status_read_whose_credential_x_refused_does_not_resume_the_wait() {
+    let (output, _tmp) =
+        upload_then_status(ResponseTemplate::new(401), &["--output", "json"]).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(77), "stderr: {stderr}");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "");
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "auth-required", "got: {v}");
+    assert_eq!(v["media_id"], "777", "got: {v}");
+    let message = v["message"].as_str().expect("a message");
+    assert!(message.starts_with(AFTER_UPLOAD), "says what failed: {v}");
+    assert_ne!(v["next_step"]["action"], "resume-wait", "got: {v}");
 }
 
 /// A status read that fails after the upload finished waits again rather than
@@ -452,6 +487,10 @@ async fn a_status_read_x_failed_resumes_the_wait(#[case] wait: &[&str], #[case] 
     assert_eq!(v["media_id"], "777", "got: {v}");
     assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
     assert_eq!(v["next_step"]["command"], command, "got: {v}");
+    assert_eq!(
+        v["next_step"]["docs"], "https://docs.x.com/x-api/fundamentals/response-codes-and-errors",
+        "X's page on response codes stays with the step that replaced retry: {v}"
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -541,6 +580,7 @@ async fn a_status_read_the_network_dropped_resumes_the_wait() {
         v["next_step"]["command"], "xr media status 777 --wait=60",
         "got: {v}"
     );
+    assert_eq!(v["next_step"].get("docs"), None, "X never answered: {v}");
 }
 
 /// A failure before the upload finished leaves nothing to wait on, so running

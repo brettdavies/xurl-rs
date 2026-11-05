@@ -641,15 +641,19 @@ pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
 /// the whole file, which X bills for again.
 ///
 /// The command waits as long as the wait that failed, whose deadline had not
-/// run out. A step that says more, such as when a rate limit resets, stays.
+/// run out, and the step keeps the page the error names. A step that says
+/// more, such as when a rate limit resets, stays.
 #[must_use]
 pub fn resume_after_upload_hint(
     error: &Error,
     media_id: &str,
     waited: std::time::Duration,
 ) -> Option<Hint> {
-    (error.next_action() == Some(NextAction::Retry))
-        .then(|| resume_hint(media_id, waited.as_secs()))
+    (error.next_action() == Some(NextAction::Retry)).then(|| {
+        let mut hint = resume_hint(media_id, waited.as_secs());
+        hint.next_step.docs = error.docs_url().map(str::to_string);
+        hint
+    })
 }
 
 fn resume_hint(media_id: &str, secs: u64) -> Hint {
@@ -1059,6 +1063,7 @@ mod tests {
                 Some("xr media status 777 --wait=90"),
                 "{error}"
             );
+            assert_eq!(hint.next_step.docs.as_deref(), error.docs_url(), "{error}");
         }
         for error in [Error::api(401, "{}"), Error::api(404, "{}")] {
             assert!(
