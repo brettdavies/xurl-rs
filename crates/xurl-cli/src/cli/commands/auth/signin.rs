@@ -62,11 +62,23 @@ pub(super) async fn oauth2(
     let effective_no_browser = no_browser || auto_engage_no_browser;
     // The interactive flow reads neither `--step` nor `--auth-url`.
     let refused = if effective_no_browser {
-        auth_url_refusal(step, auth_url.is_some())
+        auth_url_refusal(step, auth_url.is_some()).map(str::to_string)
     } else {
         None
     };
     if dry_run {
+        // On a terminal a person pastes the URL when the real run asks for it,
+        // so there is nothing to read yet; piped stdin is read as the real
+        // run reads it.
+        let reads_stdin = effective_no_browser
+            && step == Some(2)
+            && auth_url.as_deref() == Some("-")
+            && !std::io::stdin().is_terminal();
+        let refused = refused.or_else(|| {
+            reads_stdin
+                .then(redirect_url_from_stdin)
+                .and_then(Result::err)
+        });
         let ctx = json!({
             "command": "auth-oauth2",
             "no_browser": no_browser,
@@ -75,14 +87,14 @@ pub(super) async fn oauth2(
         });
         match refused {
             Some(message) => {
-                out.print_dry_run_invalid_args(stdout, &ctx, message, " ", OAUTH2_COMMAND);
+                out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
             }
             None => out.print_dry_run(stdout, true, 0, &ctx),
         }
         return Ok(());
     }
     if let Some(message) = refused {
-        return Err(refused_argument(message, out, stderr));
+        return Err(refused_argument(&message, out, stderr));
     }
     let username_arg = username.as_deref().unwrap_or("");
     let client = crate::cli::commands::make_client(cfg, auth)?;
@@ -211,24 +223,10 @@ pub(super) async fn oauth2(
                 let url_value = auth_url.unwrap_or_default();
 
                 let redirect_url = if url_value == "-" {
-                    let mut line = String::new();
-                    if let Err(e) = std::io::stdin().read_line(&mut line) {
-                        return Err(refused_argument(
-                            &format!("Failed to read redirect URL from stdin: {e}."),
-                            out,
-                            stderr,
-                        ));
+                    match redirect_url_from_stdin() {
+                        Ok(url) => url,
+                        Err(message) => return Err(refused_argument(&message, out, stderr)),
                     }
-                    let trimmed = line.trim().to_string();
-                    if trimmed.is_empty() {
-                        return Err(refused_argument(
-                            "No redirect URL provided on stdin. \
-                             Pipe the URL or paste it and press Enter.",
-                            out,
-                            stderr,
-                        ));
-                    }
-                    trimmed
                 } else {
                     url_value
                 };
@@ -259,15 +257,31 @@ pub(super) async fn oauth2(
 /// the response body alone, and a sign-in's caller never named the endpoint.
 fn name_the_failed_exchange(error: &Error, out: &OutputConfig, stderr: &mut dyn Write) {
     if matches!(error, Error::Api { .. }) {
-        out.info(
+        out.error_context(
             stderr,
             "X's token endpoint failed, so the sign-in did not finish. It answered:",
         );
     }
 }
 
-/// What the headless flow refuses about `--auth-url`, read without touching
-/// stdin, so a dry run can say it too.
+/// The redirect URL `--auth-url -` reads from stdin, or the sentence that
+/// refuses what it read.
+fn redirect_url_from_stdin() -> Result<String, String> {
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| format!("Failed to read redirect URL from stdin: {e}."))?;
+    let url = line.trim();
+    if url.is_empty() {
+        return Err("No redirect URL provided on stdin. \
+                    Pipe the URL or paste it and press Enter."
+            .to_string());
+    }
+    Ok(url.to_string())
+}
+
+/// What the headless flow refuses about `--auth-url` itself, before any stdin
+/// is read, so a dry run can say it too.
 fn auth_url_refusal(step: Option<u8>, has_auth_url: bool) -> Option<&'static str> {
     match (step, has_auth_url) {
         (Some(1), true) => Some("--auth-url is only used with --step 2, not --step 1."),

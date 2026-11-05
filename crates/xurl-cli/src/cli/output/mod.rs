@@ -288,24 +288,31 @@ impl OutputConfig {
         command: &str,
     ) {
         let body = invalid_args_body(message, separator, command);
-        if self.format.is_structured() {
-            self.print_refused_dry_run(out, ctx, body);
-            return;
-        }
-        let refusal = dry_run::Refusal {
-            message: body.message.as_deref().unwrap_or_default(),
-            advice: &[],
-        };
-        let ctx = &self.with_pointer(ctx);
-        for line in dry_run::summary(false, body.exit_code, ctx, Some(&refusal)) {
-            let _ = writeln!(out, "{line}");
-        }
+        self.print_refused_dry_run(out, ctx, body, &[]);
     }
 
-    /// A dry run's envelope for a refusal: `ctx` plus the keys of the error
-    /// the real run would write, and the exit code it would end on.
-    fn print_refused_dry_run(&self, out: &mut dyn Write, ctx: &Value, body: ErrorBody) {
+    /// A dry run's answer for a refusal: in text, the summary with the
+    /// message and `advice`; structured, `ctx` plus the keys of the error the
+    /// real run would write, and the exit code it would end on.
+    fn print_refused_dry_run(
+        &self,
+        out: &mut dyn Write,
+        ctx: &Value,
+        body: ErrorBody,
+        advice: &[String],
+    ) {
         let exit_code = body.exit_code;
+        if !self.format.is_structured() {
+            let refusal = dry_run::Refusal {
+                message: body.message.as_deref().unwrap_or_default(),
+                advice,
+            };
+            let ctx = &self.with_pointer(ctx);
+            for line in dry_run::summary(false, exit_code, ctx, Some(&refusal)) {
+                let _ = writeln!(out, "{line}");
+            }
+            return;
+        }
         let mut merged = ctx.as_object().cloned().unwrap_or_default();
         if let Value::Object(body) = body.into_value() {
             merged.extend(
@@ -469,6 +476,16 @@ impl OutputConfig {
         let _ = writeln!(err, "{msg}");
     }
 
+    /// Prints a line, in text output, that says what the error after it is
+    /// about. `--quiet` keeps it: it belongs to the error, which `--quiet`
+    /// never drops.
+    pub(crate) fn error_context(&self, err: &mut dyn Write, msg: &str) {
+        if self.format.is_structured() {
+            return;
+        }
+        let _ = writeln!(err, "{msg}");
+    }
+
     /// Prints a success/status message with optional color.
     ///
     /// The runner passes a stderr writer here in the binary path; tests pass a `Vec<u8>`.
@@ -623,26 +640,15 @@ impl OutputConfig {
             other => other,
         };
         let exit_code = error.exit_code();
-        if !self.format.is_structured() {
-            let message = message::render(error);
-            let advice = match hint {
-                Some(hint) if !self.quiet => hint.text_lines.as_slice(),
-                _ => &[],
-            };
-            let refusal = dry_run::Refusal {
-                message: &message,
-                advice,
-            };
-            for line in dry_run::summary(false, exit_code, ctx, Some(&refusal)) {
-                let _ = writeln!(out, "{line}");
-            }
-            return;
-        }
+        let advice = match hint {
+            Some(hint) if !self.quiet => hint.text_lines.as_slice(),
+            _ => &[],
+        };
         let body = ErrorBody {
             next_step: hint.map(|hint| hint.next_step.clone()),
             ..error_body(error, exit_code)
         };
-        self.print_refused_dry_run(out, ctx, body);
+        self.print_refused_dry_run(out, ctx, body, advice);
     }
 
     /// Prints a canonical confirmation-required error envelope.

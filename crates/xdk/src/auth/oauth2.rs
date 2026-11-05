@@ -131,6 +131,47 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
     Ok(auth_url.to_string())
 }
 
+/// A token exchange that never got an answer. A token URL no request can go
+/// to is the caller's to fix, so a second try would fail the same way; any
+/// other failure is the transport's, and the cause chain says which one, such
+/// as a refused connection or a timeout.
+fn exchange_unsent(error: reqwest::Error, token_url: &str) -> Error {
+    if error.is_builder() {
+        return Error::invalid_url(format!(
+            "the token URL {token_url} is not one a request can go to; TOKEN_URL sets it"
+        ))
+        .with_source(error);
+    }
+    let cause = cause_chain(&error);
+    Error::http(format!(
+        "TokenExchangeError: the token endpoint did not answer (cause: {cause})"
+    ))
+    .with_source(error)
+}
+
+/// A 5xx or a 429 whose body broke off before it ended: no answer to read, so
+/// the same request can go again.
+fn exchange_broke_off(error: Error) -> Error {
+    let cause = std::error::Error::source(&error).map_or_else(|| error.to_string(), cause_chain);
+    Error::http(format!(
+        "TokenExchangeError: the token endpoint's answer broke off (cause: {cause})"
+    ))
+    .with_source(error)
+}
+
+/// `error` and every error under it, joined, so a message keeps the cause a
+/// top-level transport error leaves out.
+fn cause_chain(error: &dyn std::error::Error) -> String {
+    let mut chain = error.to_string();
+    let mut next = error.source();
+    while let Some(inner) = next {
+        chain.push_str(": ");
+        chain.push_str(&inner.to_string());
+        next = inner.source();
+    }
+    chain
+}
+
 /// Which refusal a token endpoint's error answer is: of the client (RFC 6749
 /// section 5.2 lets that arrive as a 400), or of the code.
 fn token_exchange_refusal(status: reqwest::StatusCode, error: &str) -> &'static str {
@@ -170,8 +211,9 @@ pub(crate) async fn exchange_code_for_token(
     verifier: &str,
     username: &str,
 ) -> Result<String> {
+    let token_url = auth.token_url().to_string();
     let token_resp = http
-        .post(auth.token_url())
+        .post(&token_url)
         .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .form(&[
             ("grant_type", "authorization_code"),
@@ -183,29 +225,24 @@ pub(crate) async fn exchange_code_for_token(
         .basic_auth(auth.client_id(), Some(auth.client_secret()))
         .send()
         .await
-        .map_err(|e| {
-            Error::http(format!(
-                "TokenExchangeError: the token endpoint did not answer (cause: {e})"
-            ))
-            .with_source(e)
-        })?;
+        .map_err(|e| exchange_unsent(e, &token_url))?;
 
     let status = token_resp.status();
     // These say nothing about the credentials, so the failure is the one any
     // other request to X reports. If the endpoint did spend the code before it
     // failed, sending it again answers with the refusal that starts over.
     if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
-        return Err(api_error(token_resp).await?);
+        return Err(api_error(token_resp).await.map_err(exchange_broke_off)?);
     }
     let body = token_resp.json::<serde_json::Value>().await;
 
     if !status.is_success() {
         let token_data = body.unwrap_or_default();
-        let api_error = token_data["error"].as_str().unwrap_or("unknown");
+        let error_code = token_data["error"].as_str().unwrap_or("unknown");
         let api_desc = token_data["error_description"].as_str().unwrap_or("");
-        let refusal = token_exchange_refusal(status, api_error);
+        let refusal = token_exchange_refusal(status, error_code);
         return Err(Error::auth(format!(
-            "{refusal}: HTTP {status} — {api_error}: {api_desc}"
+            "{refusal}: HTTP {status} — {error_code}: {api_desc}"
         )));
     }
 

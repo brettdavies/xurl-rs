@@ -938,6 +938,10 @@ async fn a_failed_exchange_after_the_callback_leaves_the_callers_token_alone() {
         "the listener took the callback: {refused}"
     );
     assert!(
+        matches!(refused, xdk::Error::Http { .. }),
+        "no answer is a transport failure on the interactive path too: {refused:?}"
+    );
+    assert!(
         !cancel.is_cancelled(),
         "the flow cancelled the caller's token, which xr reads as Ctrl-C"
     );
@@ -1541,7 +1545,6 @@ async fn a_dry_run_of_a_step_with_its_arguments_right_would_succeed() {
     for args in [
         &["--step", "1"][..],
         &["--step", "2", "--auth-url", &redirect],
-        &["--step", "2", "--auth-url", "-"],
     ] {
         let tmp = TempDir::new().unwrap();
         let store = tmp.path().join(".xurl");
@@ -1598,6 +1601,98 @@ fn step2_reading_no_url_from_stdin_points_at_the_help() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         assert_usage_refusal(output.status.code(), &stderr, says);
     }
+}
+
+/// A dry run reads piped stdin as the real run does, so it predicts the same
+/// refusal, and well-formed stdin still answers that the run would succeed.
+#[test]
+fn a_dry_run_reads_piped_stdin_as_the_real_run_does() {
+    for (stdin, refusal) in [
+        (&b""[..], Some("No redirect URL provided on stdin")),
+        (
+            &[0xff, b'\n'][..],
+            Some("Failed to read redirect URL from stdin"),
+        ),
+        (
+            &b"http://localhost:8080/callback?code=AUTHCODE&state=s\n"[..],
+            None,
+        ),
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+
+        let output = common::xr_with_store(&store)
+            .env("API_BASE_URL", "http://127.0.0.1:1")
+            .args([
+                "--output",
+                "json",
+                "--dry-run",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                "-",
+            ])
+            .write_stdin(stdin)
+            .output()
+            .expect("xr runs");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        assert_eq!(output.status.code(), Some(0), "{refusal:?}: {stdout}");
+        let answer: serde_json::Value = serde_json::from_str(stdout.trim()).expect("one document");
+        assert_eq!(answer["status"], "dry_run", "{answer}");
+        match refusal {
+            Some(says) => {
+                assert_eq!(answer["would_succeed"], false, "{answer}");
+                assert_eq!(
+                    answer["exit_code"],
+                    xdk::error::EXIT_USAGE_ERROR,
+                    "{answer}"
+                );
+                assert_eq!(answer["reason"], "invalid-args", "{answer}");
+                assert!(
+                    answer["message"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .contains(says),
+                    "{answer}"
+                );
+                assert_step(&answer, "show-help", "command", OAUTH2_HELP);
+            }
+            None => assert_eq!(answer["would_succeed"], true, "{answer}"),
+        }
+    }
+}
+
+#[tokio::test]
+async fn a_dry_run_in_text_says_the_real_run_would_refuse_the_argument() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &step1_overrides(),
+        &[
+            "xr",
+            "--dry-run",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(
+        stdout.contains("The real run would fail with exit code 2: --auth-url is required"),
+        "{stdout}"
+    );
 }
 
 /// The message names the file and what is wrong with it, which is all an
@@ -1823,12 +1918,95 @@ async fn step2_with_no_answer_is_a_network_error_and_is_sent_again() {
         serde_json::json!({"action": "retry"}),
         "{envelope}"
     );
+    let message = envelope["message"].as_str().unwrap_or_default();
+    assert!(
+        message.contains("TokenExchangeError"),
+        "the message still says what failed: {envelope}"
+    );
+    assert!(
+        message.contains("os error"),
+        "the message names the system's cause, which tells a refused connection from a \
+         timeout: {envelope}"
+    );
+}
+
+/// The token URL is the caller's to fix, so a `retry` would fail the same way
+/// every time.
+#[tokio::test]
+async fn step2_with_a_token_url_that_is_not_a_url_names_it() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+    let closed = closed_port();
+    let overrides = step2_overrides(
+        "not-a-url",
+        &format!("http://127.0.0.1:{closed}/2/users/me"),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+        ],
+    )
+    .await;
+
+    let envelope: serde_json::Value = serde_json::from_str(stderr.trim()).expect("one envelope");
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "invalid-url", "{envelope}");
+    assert_step(&envelope, "show-help", "command", OAUTH2_HELP);
+    let message = envelope["message"].as_str().unwrap_or_default();
+    assert!(
+        message.contains("TOKEN_URL") && message.contains("not-a-url"),
+        "{envelope}"
+    );
+    assert!(pending.exists(), "the flow is still good");
+}
+
+/// An answer that ends before its body did is no answer: the same request can
+/// go again, and the message says what failed.
+#[tokio::test]
+async fn step2_whose_error_answer_breaks_off_is_a_network_error_that_names_the_exchange() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+    let port = listener.local_addr().expect("its address").port();
+    let stub = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().expect("the exchange connects");
+        let mut request = Vec::new();
+        let mut buf = [0u8; 4096];
+        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+            let n = stream.read(&mut buf).expect("read the request");
+            if n == 0 {
+                break;
+            }
+            request.extend_from_slice(&buf[..n]);
+        }
+        stream
+            .write_all(b"HTTP/1.1 503 Service Unavailable\r\ncontent-length: 100\r\n\r\npartial")
+            .expect("answer in part");
+    });
+
+    let (code, envelope) = step2_at(&format!("http://127.0.0.1:{port}")).await;
+    stub.join().expect("the stub ends");
+
+    assert_eq!(code, xdk::error::EXIT_NETWORK_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "network-error", "{envelope}");
     assert!(
         envelope["message"]
             .as_str()
             .unwrap_or_default()
             .contains("TokenExchangeError"),
-        "the message still says what failed: {envelope}"
+        "{envelope}"
     );
 }
 
@@ -1987,7 +2165,56 @@ async fn text_output_names_the_steps_for_a_failed_exchange() {
 
         assert_eq!(code, exit_code, "stderr: {stderr}");
         assert!(stderr.contains(line), "{line}: {stderr}");
+        assert_eq!(
+            stderr.contains(FAILED_EXCHANGE),
+            exit_code != xdk::error::EXIT_AUTH_REQUIRED,
+            "the line names an exchange the endpoint failed, not one it refused: {stderr}"
+        );
     }
+}
+
+/// `--quiet` drops advice and never the error, and the line is part of it: the
+/// error alone is X's body, which says nothing of the sign-in.
+#[tokio::test]
+async fn quiet_keeps_the_line_that_names_a_failed_exchange() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(502).set_body_string("<html>Bad Gateway</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--quiet",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "stderr: {stderr}");
+    assert!(stderr.contains(FAILED_EXCHANGE), "{stderr}");
+    assert!(
+        !stderr.contains("Send it again"),
+        "--quiet still drops the advice: {stderr}"
+    );
 }
 
 #[tokio::test]
