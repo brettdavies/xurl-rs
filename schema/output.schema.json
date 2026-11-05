@@ -69,7 +69,7 @@
         },
         {
           "const": "resume-wait",
-          "description": "Media was still processing when the wait's deadline passed; wait on\nthe same media id again.",
+          "description": "The wait on an upload's processing ended before X reported a final\nstate, and the upload is intact; wait on the same media id again.",
           "type": "string"
         },
         {
