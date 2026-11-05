@@ -504,6 +504,139 @@ async fn a_status_read_x_failed_prints_the_resume_command_in_text() {
     );
 }
 
+/// The command that resumes the wait reads under the credential the upload
+/// used, so run verbatim it reads the same account's media. A header's value
+/// can be a credential, so with `-H` the step is a template that hides it.
+#[rstest::rstest]
+#[case::own_app_and_login(
+    &["--app", "myapp", "--auth", "oauth2", "-u", "alice"],
+    "xr --app myapp media status 777 --wait=60 --auth oauth2 -u alice",
+    None,
+)]
+#[case::joined_spellings(
+    &["--app=myapp", "--username=alice"],
+    "xr --app myapp media status 777 --wait=60 -u alice",
+    None,
+)]
+#[case::header(
+    &["-u", "alice", "-H", "X-Trace: secret-123"],
+    "xr media status 777 --wait=60 -u alice -H 'X-Trace: <value>'",
+    Some("secret-123"),
+)]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_resumed_wait_runs_under_the_credential_the_upload_used(
+    #[case] flags: &[&str],
+    #[case] invocation: &str,
+    #[case] hidden: Option<&str>,
+) {
+    let mut args = vec!["--output", "json"];
+    args.extend_from_slice(flags);
+    let (output, _tmp) = upload_then_status(ResponseTemplate::new(500), &args).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["next_step"]["action"], "resume-wait", "got: {v}");
+    let (key, absent) = if hidden.is_some() {
+        ("template", "command")
+    } else {
+        ("command", "template")
+    };
+    assert_eq!(v["next_step"][key], invocation, "got: {v}");
+    assert_eq!(v["next_step"].get(absent), None, "never both: {v}");
+    if let Some(hidden) = hidden {
+        assert!(
+            !stderr.contains(hidden),
+            "a header value never echoes: {stderr}"
+        );
+    }
+}
+
+/// A wait whose deadline ran out resumes under the same credential too,
+/// whichever media command waited.
+#[tokio::test(flavor = "multi_thread")]
+async fn an_upload_wait_past_its_deadline_resumes_under_its_credential() {
+    let still_running = ResponseTemplate::new(200).set_body_json(serde_json::json!({
+        "data": {"id": "777", "processing_info": {"state": "in_progress", "check_after_secs": 1}}
+    }));
+    let (output, _tmp) = upload_then_status(
+        still_running,
+        &[
+            "--wait=1", "--output", "json", "--app", "myapp", "-u", "alice",
+        ],
+    )
+    .await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "processing-timeout", "got: {v}");
+    assert_eq!(
+        v["next_step"]["command"], "xr --app myapp media status 777 --wait=2 -u alice",
+        "got: {v}"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_status_wait_past_its_deadline_resumes_under_its_credential() {
+    let server = MockServer::start().await;
+    status_mock(serde_json::json!({
+        "id": "777",
+        "processing_info": {"state": "in_progress", "check_after_secs": 1}
+    }))
+    .mount(&server)
+    .await;
+    let tmp = TempDir::new().expect("tempdir");
+
+    let output = run_xr(
+        &server,
+        oauth2_store(tmp.path()),
+        &[
+            "--output",
+            "json",
+            "--app",
+            "myapp",
+            "media",
+            "status",
+            "777",
+            "--wait=1",
+            "--auth",
+            "oauth2",
+            "-H",
+            "X-Trace: secret-123",
+        ],
+    )
+    .await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["reason"], "processing-timeout", "got: {v}");
+    assert_eq!(
+        v["next_step"]["template"],
+        "xr --app myapp media status 777 --wait=2 --auth oauth2 -H 'X-Trace: <value>'",
+        "got: {v}"
+    );
+    assert_eq!(v["next_step"].get("command"), None, "never both: {v}");
+    assert!(
+        !stderr.contains("secret-123"),
+        "a header value never echoes: {stderr}"
+    );
+}
+
+/// Text output prints the same invocation the envelope carries.
+#[tokio::test(flavor = "multi_thread")]
+async fn text_output_prints_the_resume_invocation_with_its_credential() {
+    let (output, _tmp) = upload_then_status(
+        ResponseTemplate::new(500),
+        &["--app", "myapp", "-u", "alice"],
+    )
+    .await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("Run: xr --app myapp media status 777 --wait=60 -u alice"),
+        "{stderr}"
+    );
+}
+
 /// Answers an upload's requests, one connection each, and drops the connection
 /// of any status read without a byte of answer: what a network failure looks
 /// like from the client.

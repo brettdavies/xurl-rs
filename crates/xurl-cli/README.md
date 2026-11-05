@@ -365,7 +365,8 @@ the final state when the upload waited for one. One that fails leaves stdout emp
 the wait after the upload finished, a job X failed or a status read that failed among them, names the media in the
 envelope's `media_id` and in `message`. A status read that failed for a 5xx or a network error carries `resume-wait` as
 its step, the same `xr media status <id> --wait=<secs>` for as long as the wait that failed, so the file is not sent
-again.
+again. Both steps repeat the `--app`, `--auth`, and `-u` the command ran under, and with `-H` the step is a `template`
+that hides each header's value.
 
 A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
 media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:
@@ -956,7 +957,7 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
 | `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
-| `processing-timeout`         | `resume-wait`                                                                                                                                    |
+| `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
 | `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
 | `unknown-command`            | `show-help`                                                                                                                                      |
 | `invalid-method`             | `show-help`                                                                                                                                      |

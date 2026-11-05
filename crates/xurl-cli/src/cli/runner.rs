@@ -405,6 +405,7 @@ async fn run_inner(
             .is_some_and(|value| !value.is_empty()),
     );
     let structured = out.format.is_structured();
+    let media = media_credential(&cli);
 
     // The library reports its diagnostics as `tracing` events; this renderer
     // turns them into the stderr lines the flags call for, for this dispatch
@@ -433,7 +434,7 @@ async fn run_inner(
             EXIT_GENERAL_ERROR
         }
         Err(Failure::DryRunRefusal { ctx, error }) => {
-            let hint = recovery_hint(&error, &snapshot, &args_vec, structured);
+            let hint = recovery_hint(&error, &snapshot, &args_vec, structured, &media);
             out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
             EXIT_SUCCESS
         }
@@ -448,14 +449,15 @@ async fn run_inner(
             waited,
         }) => {
             let code = error.exit_code();
-            let hint = crate::cli::hints::resume_after_upload_hint(&error, &media_id, waited)
-                .or_else(|| recovery_hint(&error, &snapshot, &args_vec, structured));
+            let hint =
+                crate::cli::hints::resume_after_upload_hint(&error, &media_id, waited, &media)
+                    .or_else(|| recovery_hint(&error, &snapshot, &args_vec, structured, &media));
             out.print_error_after_upload(stderr, &error, code, hint.as_ref(), &media_id);
             code
         }
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
-            match recovery_hint(&e, &snapshot, &args_vec, structured) {
+            match recovery_hint(&e, &snapshot, &args_vec, structured, &media) {
                 Some(hint) => out.print_error_with_hint(stderr, &e, code, &hint),
                 None => out.print_error(stderr, &e, code),
             }
@@ -475,6 +477,7 @@ fn recovery_hint(
     snapshot: &xdk::store::snapshot::StoreSnapshot,
     args: &[OsString],
     structured: bool,
+    media: &crate::cli::hints::MediaCredential,
 ) -> Option<crate::cli::hints::Hint> {
     let invocation: Vec<String> = args
         .iter()
@@ -489,7 +492,7 @@ fn recovery_hint(
     }
     crate::cli::hints::unloadable_store_hint(snapshot, error)
         .or_else(|| crate::cli::hints::enrollment_hint(error))
-        .or_else(|| crate::cli::hints::resume_wait_hint(error))
+        .or_else(|| crate::cli::hints::resume_wait_hint(error, media))
         .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
         .or_else(|| crate::cli::hints::no_signing_secret_hint(snapshot, error, &invocation))
         .or_else(|| crate::cli::hints::sign_in_again_hint(error, &invocation))
@@ -499,6 +502,36 @@ fn recovery_hint(
         .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
         .or_else(|| crate::cli::hints::mismatch_hint(snapshot, error, &invocation, structured))
         .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
+}
+
+/// The credential words of `media upload` and `media status`, the commands
+/// whose waits a step resumes; empty for every other command.
+fn media_credential(cli: &Cli) -> crate::cli::hints::MediaCredential {
+    use crate::cli::{Commands, MediaCommands};
+    let (auth, username, headers) = match &cli.command {
+        Some(Commands::Media {
+            command:
+                MediaCommands::Upload {
+                    auth_type,
+                    username,
+                    headers,
+                    ..
+                }
+                | MediaCommands::Status {
+                    auth_type,
+                    username,
+                    headers,
+                    ..
+                },
+        }) => (auth_type.clone(), username.clone(), headers.clone()),
+        _ => return crate::cli::hints::MediaCredential::default(),
+    };
+    crate::cli::hints::MediaCredential {
+        app: cli.app.clone(),
+        auth,
+        username,
+        headers,
+    }
 }
 
 /// Whether this error is a missing-credential failure a recovery hint answers.

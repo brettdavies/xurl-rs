@@ -244,13 +244,39 @@ impl NextStep {
         }
     }
 
-    /// The wait on `media_id` again, for `secs` seconds.
+    /// The wait on `media_id` again, for `secs` seconds, under the app,
+    /// scheme, and login `credential` names, so the read goes out under the
+    /// credential the failed command used. Each `-H` header keeps its name
+    /// and has its value replaced by `<value>`, which makes the step a
+    /// template: a header often carries a credential, and a step never echoes
+    /// one.
     #[must_use]
-    pub fn resume_wait(media_id: &str, secs: u64) -> Self {
+    pub fn resume_wait(media_id: &str, secs: u64, credential: &MediaCredential) -> Self {
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        if let Some(app) = non_empty(credential.app.as_deref()) {
+            words.extend(["--app".to_string(), quote_app_name(app)]);
+        }
+        words.extend([
+            "media".to_string(),
+            "status".to_string(),
+            shell_word(media_id),
+            format!("--wait={secs}"),
+        ]);
+        if let Some(auth) = non_empty(credential.auth.as_deref()) {
+            words.extend(["--auth".to_string(), shell_word(auth)]);
+        }
+        if let Some(login) = non_empty(credential.username.as_deref()) {
+            words.extend(["-u".to_string(), shell_word(login)]);
+        }
+        for header in &credential.headers {
+            words.extend(["-H".to_string(), shell_word(&hidden_header(header))]);
+        }
+        let invocation = words.join(" ");
+        let hid_a_value = !credential.headers.is_empty();
         Self {
             action: NextAction::ResumeWait,
-            command: Some(format!("xr media status {media_id} --wait={secs}")),
-            template: None,
+            command: (!hid_a_value).then(|| invocation.clone()),
+            template: hid_a_value.then_some(invocation),
             docs: None,
         }
     }
@@ -382,14 +408,8 @@ impl NextStep {
                 None
             };
             if let Some(header) = header {
-                let name = header.split_once(':').map_or("", |(name, _)| name.trim());
-                let hidden = if name.is_empty() {
-                    "<value>".to_string()
-                } else {
-                    format!("{name}: <value>")
-                };
                 words.push("-H".to_string());
-                words.push(shell_word(&hidden));
+                words.push(shell_word(&hidden_header(header)));
                 hid_a_value = true;
             }
         }
@@ -626,13 +646,17 @@ pub fn enrollment_hint(error: &Error) -> Option<Hint> {
 /// The command waits twice as long as the wait that expired: a job that
 /// outlasted one deadline is unlikely to finish inside the same one again.
 #[must_use]
-pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
+pub fn resume_wait_hint(error: &Error, credential: &MediaCredential) -> Option<Hint> {
     let (Error::ProcessingTimeout { media_id, waited }, Some(NextAction::ResumeWait)) =
         (error, error.next_action())
     else {
         return None;
     };
-    Some(resume_hint(media_id, waited.as_secs().saturating_mul(2)))
+    Some(resume_hint(
+        media_id,
+        waited.as_secs().saturating_mul(2),
+        credential,
+    ))
 }
 
 /// Builds the resume hint when a request that says "try again" failed during
@@ -648,17 +672,21 @@ pub fn resume_after_upload_hint(
     error: &Error,
     media_id: &str,
     waited: std::time::Duration,
+    credential: &MediaCredential,
 ) -> Option<Hint> {
     (error.next_action() == Some(NextAction::Retry)).then(|| {
-        let mut hint = resume_hint(media_id, waited.as_secs());
+        let mut hint = resume_hint(media_id, waited.as_secs(), credential);
         hint.next_step.docs = error.docs_url().map(str::to_string);
         hint
     })
 }
 
-fn resume_hint(media_id: &str, secs: u64) -> Hint {
-    let next_step = NextStep::resume_wait(media_id, secs);
-    let command = next_step.command.clone().unwrap_or_default();
+fn resume_hint(media_id: &str, secs: u64, credential: &MediaCredential) -> Hint {
+    let next_step = NextStep::resume_wait(media_id, secs, credential);
+    let command = next_step
+        .display_invocation()
+        .unwrap_or_default()
+        .to_string();
     Hint {
         text_lines: vec![format!(
             "The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: {command}"
@@ -1019,6 +1047,36 @@ fn rerun_with_app(invocation: &[String], app: &str) -> String {
     parts.join(" ")
 }
 
+/// A `-H` header with its value replaced by `<value>`, keeping its name.
+fn hidden_header(header: &str) -> String {
+    let name = header.split_once(':').map_or("", |(name, _)| name.trim());
+    if name.is_empty() {
+        "<value>".to_string()
+    } else {
+        format!("{name}: <value>")
+    }
+}
+
+fn non_empty(value: Option<&str>) -> Option<&str> {
+    value.filter(|value| !value.is_empty())
+}
+
+/// The credential words of a media command that waits on processing: the
+/// `--app` it ran under and its own `--auth`, `-u`, and `-H`, as clap parsed
+/// them. A step that waits again repeats them, so its read goes out under the
+/// same credential.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct MediaCredential {
+    /// The app `--app` or `XURL_APP` named.
+    pub app: Option<String>,
+    /// The scheme `--auth` named.
+    pub auth: Option<String>,
+    /// The login `-u` named.
+    pub username: Option<String>,
+    /// Each `-H` header, as given.
+    pub headers: Vec<String>,
+}
+
 /// Quotes one argument of a rebuilt invocation when a shell would split it.
 pub(crate) fn shell_word(arg: &str) -> String {
     if !arg.is_empty()
@@ -1053,10 +1111,28 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_resumed_wait_quotes_each_word_a_shell_would_split() {
+        let credential = MediaCredential {
+            app: Some("work".to_string()),
+            auth: Some("oauth2".to_string()),
+            username: Some("al ice".to_string()),
+            headers: vec!["no colon here".to_string()],
+        };
+        let step = NextStep::resume_wait("777", 30, &credential);
+        assert_eq!(step.action, NextAction::ResumeWait);
+        assert_eq!(step.command, None, "a hidden header makes it a template");
+        assert_eq!(
+            step.template.as_deref(),
+            Some("xr --app work media status 777 --wait=30 --auth oauth2 -u 'al ice' -H '<value>'")
+        );
+    }
+
+    #[test]
     fn only_a_failure_that_says_try_again_resumes_the_wait_after_an_upload() {
         let waited = std::time::Duration::from_secs(90);
         for error in [Error::http("connection reset"), Error::api(503, "{}")] {
-            let hint = resume_after_upload_hint(&error, "777", waited).expect("a resume hint");
+            let hint = resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
+                .expect("a resume hint");
             assert_eq!(hint.next_step.action, NextAction::ResumeWait, "{error}");
             assert_eq!(
                 hint.next_step.command.as_deref(),
@@ -1067,7 +1143,8 @@ mod tests {
         }
         for error in [Error::api(401, "{}"), Error::api(404, "{}")] {
             assert!(
-                resume_after_upload_hint(&error, "777", waited).is_none(),
+                resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
+                    .is_none(),
                 "{error}"
             );
         }
