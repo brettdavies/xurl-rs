@@ -235,6 +235,19 @@
       }
     },
     {
+      "id": "broadcasts-go-live-one-call",
+      "operations": [
+        "POST /2/broadcasts"
+      ],
+      "status": "not-supported",
+      "reason": "Going live from a source in one call: the broadcast is live at once, ended after five minutes without video, and announced in a Post unless `should_not_tweet` is set. Going live belongs to the app that drives the encoder; xr's commands stay out of a live session (AGENTS.md § \"Command grammar\"). Raw mode still reaches it.",
+      "decided": "2026-11-06",
+      "by": "Brett, on #532",
+      "revisit_when": {
+        "kind": "never"
+      }
+    },
+    {
       "id": "user-sources",
       "operations": [
         "GET /2/users/{id}/sources",

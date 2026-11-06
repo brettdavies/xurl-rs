@@ -4127,6 +4127,102 @@
         ],
         "type": "object"
       },
+      "CreateBroadcastRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "locale": {
+            "description": "Broadcast language, e.g. `en`.",
+            "type": "string"
+          },
+          "should_not_tweet": {
+            "description": "Skip the Post announcing the broadcast. Defaults to false.",
+            "type": "boolean"
+          },
+          "source_id": {
+            "description": "Id of the source to go live on: a source's `id` (19 digits) from GET /2/sources.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Broadcast title. Defaults to the user's display name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id"
+        ],
+        "type": "object"
+      },
+      "CreateBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreateBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreateBroadcastResponseData": {
+        "properties": {
+          "broadcast_id": {
+            "description": "Broadcast id; the same as `id`.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast.",
+            "type": "string"
+          },
+          "share_url": {
+            "description": "The broadcast's watch page.",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "Broadcast state, `RUNNING` once live.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast. Missing when the Post hasn't been created yet, was suppressed with `should_not_tweet`, or could not be created.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "broadcast_id",
+          "state",
+          "share_url"
+        ],
+        "type": "object"
+      },
       "CreateCallRequest": {
         "additionalProperties": false,
         "properties": {
@@ -22940,7 +23036,7 @@
     },
     "termsOfService": "https://developer.x.com/en/developer-terms/agreement-and-policy.html",
     "title": "X API v2",
-    "version": "2.173"
+    "version": "2.174"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -24301,6 +24397,62 @@
           }
         ],
         "summary": "List Broadcasts",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "post": {
+        "description": "Takes one of the authenticated user's sources live and returns 201 with the new broadcast. The broadcast goes live immediately (state `RUNNING`), even before the encoder sends video, and is ended (`TIMED_OUT`) if no video arrives within 5 minutes. It is announced in a Post unless `should_not_tweet` is true. When the source already has a live broadcast, returns 200 with that broadcast unchanged and ignores the request's `title`, `locale`, `chat_option` and `should_not_tweet`. A missing `tweet_id` means the Post hasn't been created yet, was suppressed with `should_not_tweet`, or could not be created; read it later with GET /2/broadcasts/:id. A 409 `conflict` means the source can't go live right now: either it can't take video before the encoder connects (external HLS sources, or regions where this isn't available), so retry once video is flowing, or another broadcast is live on it, so END that broadcast first. The `detail` says which, and names the live broadcast when known.",
+        "operationId": "createBroadcast",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBroadcastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Go Live on a Source",
         "tags": [
           "Broadcasts"
         ]
@@ -34063,12 +34215,11 @@
         "operationId": "deleteSource",
         "parameters": [
           {
-            "description": "Source id, from GET /2/sources.",
+            "description": "Source id (19 digits), from GET /2/sources.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^9[0-2][0-9]{17}$",
               "type": "string"
             },
             "style": "simple"
@@ -34122,12 +34273,11 @@
         "operationId": "getSource",
         "parameters": [
           {
-            "description": "Source id, from GET /2/sources.",
+            "description": "Source id (19 digits), from GET /2/sources.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^9[0-2][0-9]{17}$",
               "type": "string"
             },
             "style": "simple"
@@ -34180,12 +34330,11 @@
         "operationId": "updateSource",
         "parameters": [
           {
-            "description": "Source id, from GET /2/sources.",
+            "description": "Source id (19 digits), from GET /2/sources.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^9[0-2][0-9]{17}$",
               "type": "string"
             },
             "style": "simple"
@@ -34251,12 +34400,11 @@
         "operationId": "getSourceStreamKey",
         "parameters": [
           {
-            "description": "Source id, from GET /2/sources.",
+            "description": "Source id (19 digits), from GET /2/sources.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^9[0-2][0-9]{17}$",
               "type": "string"
             },
             "style": "simple"
