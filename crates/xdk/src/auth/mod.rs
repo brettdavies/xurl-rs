@@ -459,6 +459,28 @@ impl Auth {
         oauth2::run_remote_step2(self, http, redirect_url, username, pending_path).await
     }
 
+    /// Every refusal [`Self::remote_oauth2_step2`] meets before it sends the
+    /// code, read from the saved flow, this context, and `redirect_url`, in
+    /// the order that step meets them. A `redirect_url` of `None` is one the
+    /// caller does not have yet, so the checks of its contents are left out.
+    ///
+    /// Sends nothing and writes nothing: an expired flow stays where it is.
+    ///
+    /// # Errors
+    ///
+    /// The errors [`Self::remote_oauth2_step2`] names, up to the token
+    /// exchange.
+    // `xr --dry-run auth oauth2 --step 2` is the only caller; an embedder runs
+    // the step itself.
+    #[doc(hidden)]
+    pub fn check_remote_oauth2_step2(
+        &self,
+        redirect_url: Option<&str>,
+        pending_path: &std::path::Path,
+    ) -> Result<()> {
+        oauth2::check_remote_step2(self, redirect_url, pending_path)
+    }
+
     /// Gets the bearer token Authorization header.
     ///
     /// Resolution order: `XURL_BEARER_TOKEN` env var first (one-shot agent

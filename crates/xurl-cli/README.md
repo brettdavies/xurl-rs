@@ -843,6 +843,10 @@ xr --output json --dry-run post "Hello"
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
   the credential is not checked, since nothing is sent to find out.
+- A sign-in's dry run reads what the real run reads and answers as it would: `xr --dry-run auth oauth2` checks the
+  scopes, then the client id of the app it would sign in, and for `--step 2` the flow step 1 saved beside the store and
+  the redirect URL against that flow. It sends no code, and an expired flow stays on disk. A redirect URL that
+  `--auth-url -` would read from a terminal does not exist yet, so its contents go unchecked.
 - `confirmation_required: true` marks a destructive command whose real run would stop to ask, and the key appears only
   then. The flag outranks `--force` and the prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries
   the key, and `xr --dry-run delete <id> --force` leaves it out, since nothing would stop.

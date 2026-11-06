@@ -422,7 +422,41 @@ pub async fn run_remote_step2(
     pending_path: &std::path::Path,
 ) -> Result<String> {
     let pending_state = pending::load(pending_path)?;
+    check_flow(auth, &pending_state)?;
+    let code = redirect_code(&pending_state, redirect_url)?;
 
+    // Exchange code for token
+    let access_token =
+        exchange_code_for_token(auth, http, &code, &pending_state.code_verifier, username).await?;
+
+    // Only delete on success
+    pending::delete(pending_path)?;
+
+    Ok(access_token)
+}
+
+/// [`Auth::check_remote_oauth2_step2`]: the refusals [`run_remote_step2`]
+/// meets before it sends the code, in the order it meets them.
+///
+/// # Errors
+///
+/// As [`run_remote_step2`], up to the token exchange.
+pub(crate) fn check_remote_step2(
+    auth: &Auth,
+    redirect_url: Option<&str>,
+    pending_path: &std::path::Path,
+) -> Result<()> {
+    let pending_state = pending::peek(pending_path)?;
+    check_flow(auth, &pending_state)?;
+    if let Some(redirect_url) = redirect_url {
+        redirect_code(&pending_state, redirect_url)?;
+    }
+    Ok(())
+}
+
+/// Refuses a saved flow that belongs to another client or names other scopes
+/// than this run chose.
+fn check_flow(auth: &Auth, pending_state: &pending::PendingOAuth2State) -> Result<()> {
     // Validate client_id matches runtime context
     if pending_state.client_id != auth.client_id() {
         return Err(Error::auth(format!(
@@ -445,7 +479,15 @@ pub async fn run_remote_step2(
             )));
         }
     }
+    Ok(())
+}
 
+/// The authorization code `redirect_url` carries, if it answers the saved
+/// flow.
+fn redirect_code(
+    pending_state: &pending::PendingOAuth2State,
+    redirect_url: &str,
+) -> Result<String> {
     // Parse redirect URL to extract query parameters
     let parsed = Url::parse(redirect_url)
         .map_err(|e| Error::auth_with_cause(REDIRECT_INVALID_URL, &e).with_source(e))?;
@@ -471,17 +513,7 @@ pub async fn run_remote_step2(
         )));
     }
 
-    // Extract authorization code
-    let code = code.ok_or_else(|| Error::auth(REDIRECT_MISSING_CODE))?;
-
-    // Exchange code for token
-    let access_token =
-        exchange_code_for_token(auth, http, &code, &pending_state.code_verifier, username).await?;
-
-    // Only delete on success
-    pending::delete(pending_path)?;
-
-    Ok(access_token)
+    code.ok_or_else(|| Error::auth(REDIRECT_MISSING_CODE))
 }
 
 /// The stored OAuth2 token a request for `username` would use, if any.

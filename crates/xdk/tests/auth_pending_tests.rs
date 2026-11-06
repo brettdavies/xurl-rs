@@ -143,6 +143,33 @@ fn load_rejects_expired_state() {
     assert!(!path.exists());
 }
 
+#[test]
+fn peek_refuses_an_expired_state_and_leaves_the_file_where_it_is() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let mut state = sample_state();
+    state.created_at = now_secs().saturating_sub(1200);
+    pending::save(&state, &path).unwrap();
+    let kept = std::fs::read(&path).unwrap();
+
+    let msg = pending::peek(&path).unwrap_err().to_string();
+
+    assert!(msg.contains("PendingStateExpired"), "got: {msg}");
+    assert_eq!(std::fs::read(&path).unwrap(), kept);
+}
+
+#[test]
+fn peek_reads_a_fresh_state_as_load_does() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let state = sample_state();
+    pending::save(&state, &path).unwrap();
+
+    assert_eq!(pending::peek(&path).unwrap(), state);
+    assert_eq!(pending::load(&path).unwrap(), state);
+    assert!(path.exists());
+}
+
 // ── Adversarial / Red Team Tests ────────────────────────────────────────
 
 #[cfg(unix)]

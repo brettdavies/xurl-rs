@@ -129,6 +129,30 @@ pub fn save(state: &PendingOAuth2State, path: &Path) -> Result<()> {
 /// Returns an error if the file is missing, is a symlink, has incorrect
 /// permissions/owner, is expired, or cannot be deserialised.
 pub fn load(path: &Path) -> Result<PendingOAuth2State> {
+    let state = read(path)?;
+    ensure_fresh(&state).inspect_err(|_| {
+        let _ = fs::remove_file(path);
+    })?;
+    Ok(state)
+}
+
+/// [`load`] that leaves an expired file where it is.
+///
+/// # Errors
+///
+/// As [`load`].
+// `xr --dry-run auth oauth2` and the recovery hint it shares with the real
+// run read the flow through this, since a dry run changes no file. It is not
+// embedder API.
+#[doc(hidden)]
+pub fn peek(path: &Path) -> Result<PendingOAuth2State> {
+    let state = read(path)?;
+    ensure_fresh(&state)?;
+    Ok(state)
+}
+
+/// Reads the file at `path` and parses it, whatever its age.
+fn read(path: &Path) -> Result<PendingOAuth2State> {
     // Reject symlinks to prevent an attacker from pointing to a crafted file.
     #[cfg(unix)]
     {
@@ -183,21 +207,21 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
         }
         Err(e) => return Err(e.into()),
     };
-    let state: PendingOAuth2State = serde_saphyr::from_str(&data)
-        .map_err(|e| Error::auth_with_cause(PENDING_INVALID, &e).with_source(e))?;
+    serde_saphyr::from_str(&data)
+        .map_err(|e| Error::auth_with_cause(PENDING_INVALID, &e).with_source(e))
+}
 
-    // TTL check.
+/// Refuses a flow older than the 15-minute window.
+fn ensure_fresh(state: &PendingOAuth2State) -> Result<()> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs();
 
     if now.saturating_sub(state.created_at) > PENDING_TTL_SECS {
-        let _ = fs::remove_file(path);
         return Err(Error::auth(PENDING_EXPIRED));
     }
-
-    Ok(state)
+    Ok(())
 }
 
 /// Deletes the pending-state file at `path`.

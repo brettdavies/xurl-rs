@@ -291,6 +291,17 @@ impl OutputConfig {
         self.print_refused_dry_run(out, ctx, body, &[]);
     }
 
+    /// The dry-run answer to a refusal whose `body` the real run writes with
+    /// [`Self::emit_error_envelope`]: the same keys, at exit 0.
+    pub(crate) fn print_dry_run_error_body(
+        &self,
+        out: &mut dyn Write,
+        ctx: &Value,
+        body: ErrorBody,
+    ) {
+        self.print_refused_dry_run(out, ctx, body, &[]);
+    }
+
     /// A dry run's answer for a refusal: in text, the summary with the
     /// message and `advice`; structured, `ctx` plus the keys of the error the
     /// real run would write, and the exit code it would end on.

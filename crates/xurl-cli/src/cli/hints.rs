@@ -1021,7 +1021,7 @@ pub fn pending_app_hint(
     }
     let path =
         xdk::auth::pending::pending_path_for_store(std::path::Path::new(&snapshot.store_path));
-    let finishes_on = xdk::auth::pending::load(&path)
+    let finishes_on = xdk::auth::pending::peek(&path)
         .ok()
         .map(|flow| flow.app_name)
         .filter(|app| *app != snapshot.active_app && snapshot.apps.contains_key(app));

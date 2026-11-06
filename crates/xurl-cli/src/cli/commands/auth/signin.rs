@@ -50,8 +50,25 @@ pub(super) async fn oauth2(
         app_explicit,
         ..
     } = flags;
-    if let Some(scopes) = scopes {
-        auth.with_oauth2_scopes(&scopes)?;
+    let dry_run_ctx = || {
+        json!({
+            "command": "auth-oauth2",
+            "no_browser": no_browser,
+            "step": step,
+            "username": username,
+        })
+    };
+    if let Some(scopes) = scopes
+        && let Err(error) = auth.with_oauth2_scopes(&scopes)
+    {
+        return Err(if dry_run {
+            Failure::DryRunRefusal {
+                ctx: dry_run_ctx(),
+                error,
+            }
+        } else {
+            error.into()
+        });
     }
     // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
     // harness) and the user did not pass `--no-browser` (or set
@@ -67,31 +84,19 @@ pub(super) async fn oauth2(
         None
     };
     if dry_run {
-        // On a terminal a person pastes the URL when the real run asks for it,
-        // so there is nothing to read yet; piped stdin is read as the real
-        // run reads it.
-        let reads_stdin = effective_no_browser
-            && step == Some(2)
-            && auth_url.as_deref() == Some("-")
-            && !std::io::stdin().is_terminal();
-        let refused = refused.or_else(|| {
-            reads_stdin
-                .then(redirect_url_from_stdin)
-                .and_then(Result::err)
-        });
-        let ctx = json!({
-            "command": "auth-oauth2",
-            "no_browser": no_browser,
-            "step": step,
-            "username": username,
-        });
-        match refused {
-            Some(message) => {
-                out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
-            }
-            None => out.print_dry_run(stdout, true, 0, &ctx),
-        }
-        return Ok(());
+        return dry_run_answer(
+            DryRun {
+                auth: &auth,
+                app_explicit,
+                headless: effective_no_browser,
+                step,
+                auth_url: auth_url.as_deref(),
+                refused,
+                ctx: dry_run_ctx(),
+            },
+            out,
+            stdout,
+        );
     }
     if let Some(message) = refused {
         return Err(refused_argument(&message, out, stderr));
@@ -250,6 +255,69 @@ pub(super) async fn oauth2(
             _ => unreachable!("clap value_parser restricts to 1..=2"),
         }
     }
+    Ok(())
+}
+
+/// What a dry run of `xr auth oauth2` knows of the run it stands for.
+struct DryRun<'a> {
+    auth: &'a Auth,
+    app_explicit: bool,
+    headless: bool,
+    step: Option<u8>,
+    auth_url: Option<&'a str>,
+    /// What the headless flow refuses about `--auth-url` itself.
+    refused: Option<String>,
+    ctx: serde_json::Value,
+}
+
+/// Answers a dry run of `xr auth oauth2` with the verdict the real run
+/// reaches, from the arguments, the environment, the store, and the saved
+/// flow, in the order the real run checks them. Nothing is sent and no file
+/// changes.
+///
+/// On a terminal a person pastes the URL when the real run asks for it, so
+/// there is nothing to read yet and the checks of its contents are left out;
+/// piped stdin is read as the real run reads it.
+fn dry_run_answer(
+    plan: DryRun<'_>,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> CommandResult<()> {
+    let DryRun {
+        auth,
+        app_explicit,
+        headless,
+        step,
+        auth_url,
+        refused,
+        ctx,
+    } = plan;
+    if let Some(message) = refused {
+        out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
+        return Ok(());
+    }
+    if let Some(body) = client_credentials_missing(auth, app_explicit, out.format.is_structured()) {
+        out.print_dry_run_error_body(stdout, &ctx, body);
+        return Ok(());
+    }
+    if headless && step == Some(2) {
+        let redirect_url = match auth_url {
+            Some("-") if std::io::stdin().is_terminal() => None,
+            Some("-") => match redirect_url_from_stdin() {
+                Ok(url) => Some(url),
+                Err(message) => {
+                    out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
+                    return Ok(());
+                }
+            },
+            other => other.map(str::to_string),
+        };
+        let pending_path = xdk::auth::pending::pending_path_for_store(&auth.token_store.file_path);
+        if let Err(error) = auth.check_remote_oauth2_step2(redirect_url.as_deref(), &pending_path) {
+            return Err(Failure::DryRunRefusal { ctx, error });
+        }
+    }
+    out.print_dry_run(stdout, true, 0, &ctx);
     Ok(())
 }
 
