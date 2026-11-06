@@ -26,16 +26,19 @@ use crate::cli::classify::{ROOT_COMMAND, requested_login};
 /// At most one of [`Self::command`] and [`Self::template`] is present: a
 /// command is a verbatim invocation safe for a non-TTY caller, while a
 /// template is one the caller finishes or decides on before running it. It
-/// carries angle-bracket placeholders to fill in, or, under
-/// [`NextAction::Confirm`], the invocation that destroys once it runs. A
-/// step with neither names an action that is not an `xr` invocation, with
-/// `docs` when a page covers it: [`NextAction::EnrollApp`],
-/// [`NextAction::WaitAndRetry`], [`NextAction::Retry`],
-/// [`NextAction::FixInput`], [`NextAction::ReportIssue`], and
-/// [`NextAction::InspectStore`] when the command that failed is the one
-/// that reports on the store. Four [`NextAction::FixInput`] steps carry an
-/// invocation: [`Self::listen_on_free_port`], [`Self::fix_input_with`],
-/// [`Self::fix_input_template`], and [`Self::step_two_again`].
+/// carries angle-bracket placeholders to fill in; under
+/// [`NextAction::Confirm`], the invocation that destroys once it runs; or,
+/// after a 401 on the status read after `xr media upload`, the resumed wait
+/// to run once the credential works. A step with neither names an action
+/// that is not an `xr` invocation, with `docs` when a page covers it:
+/// [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`] except on that
+/// status read, [`NextAction::Retry`], [`NextAction::FixInput`],
+/// [`NextAction::ReportIssue`], and [`NextAction::InspectStore`] when the
+/// command that failed is the one that reports on the store. Five
+/// [`NextAction::FixInput`] steps carry an invocation:
+/// [`Self::listen_on_free_port`], [`Self::fix_input_with`],
+/// [`Self::fix_input_template`], [`Self::step_two_again`], and the one
+/// [`resume_after_upload_hint`] gives a 401.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -44,7 +47,7 @@ pub struct NextStep {
     /// A runnable invocation, when one exists.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
-    /// A placeholder invocation, when the caller must supply values.
+    /// An invocation the caller finishes or decides on before running it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
     /// Documentation URL, when a recipe exists.
@@ -706,11 +709,8 @@ pub fn resume_after_upload_hint(
                 }
                 None => "Rate limited, and X named no reset. The upload is intact; once the window passes, resume the wait.".to_string(),
             };
-            let see = docs
-                .as_deref()
-                .map_or(String::new(), |docs| format!(" See: {docs}"));
             Some(Hint {
-                text_lines: vec![format!("{when} Run: {invocation}{see}")],
+                text_lines: with_docs_line(format!("{when} Run: {invocation}"), docs.as_deref()),
                 next_step: NextStep {
                     action: NextAction::WaitAndRetry,
                     docs,
@@ -719,9 +719,12 @@ pub fn resume_after_upload_hint(
             })
         }
         401 => Some(Hint {
-            text_lines: vec![format!(
-                "X refused the credential. The upload is intact and X keeps the media id for 24 hours; once the credential works, resume the wait: {invocation}"
-            )],
+            text_lines: with_docs_line(
+                format!(
+                    "X refused the credential. The upload is intact and X keeps the media id for 24 hours; once the credential works, resume the wait: {invocation}"
+                ),
+                docs.as_deref(),
+            ),
             next_step: NextStep {
                 action: NextAction::FixInput,
                 command: None,
@@ -731,6 +734,14 @@ pub fn resume_after_upload_hint(
         }),
         _ => None,
     }
+}
+
+/// The hint's line, then the docs on a line of their own, so the invocation
+/// the first line ends with copies without them.
+fn with_docs_line(line: String, docs: Option<&str>) -> Vec<String> {
+    std::iter::once(line)
+        .chain(docs.map(|docs| format!("See: {docs}")))
+        .collect()
 }
 
 fn resume_hint(media_id: &str, secs: u64, credential: &MediaCredential) -> Hint {

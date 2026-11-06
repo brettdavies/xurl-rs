@@ -336,26 +336,29 @@ pub struct ErrorBody {
     /// do not recognize as your default branch. A step carries either a
     /// `command`, runnable verbatim by a non-TTY caller, or a `template`
     /// the caller finishes or decides on first, never both: a template
-    /// holds angle-bracket placeholders only the caller can fill, or, under
-    /// `confirm`, the invocation that destroys once it runs. One whose
-    /// recovery is not an `xr` invocation carries neither, and `docs` when
-    /// a page covers it: `enroll-app`, `wait-and-retry`, `retry`,
-    /// `fix-input`, `report-issue`, and `inspect-store` when a store
-    /// command is what failed. After `xr media upload` finished, a
-    /// `wait-and-retry` on the status read carries the command that resumes
-    /// the wait. Three `fix-input` steps carry an invocation:
+    /// holds angle-bracket placeholders only the caller can fill; under
+    /// `confirm`, the invocation that destroys once it runs; or, after a
+    /// 401 on the status read after `xr media upload`, the resumed wait to
+    /// run once the credential works. One whose recovery is not an `xr`
+    /// invocation carries neither, and `docs` when a page covers it:
+    /// `enroll-app`, `wait-and-retry`, `retry`, `fix-input`,
+    /// `report-issue`, and `inspect-store` when a store command is what
+    /// failed. After `xr media upload` finished, a `wait-and-retry` on the
+    /// status read carries the command that resumes the wait, or a template
+    /// when the media command was given `-H`. Three `fix-input` steps carry
+    /// an invocation:
     /// `listen` again on a free port, under `address-in-use`, and two under
     /// `invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved
     /// after the command word it came before, and the `xr schema`
-    /// invocation that works for an old name or a scope word. Five carry a
+    /// invocation that works for an old name or a scope word. Six carry a
     /// template: the `xr schema --path` invocation with the segment that
     /// named nothing left as `<property>`, under `invalid-args`, three under
     /// `auth-required`: the command that stores the secret `webhooks
     /// listen` lacks, `auth oauth2 --step 2` again with its redirect URL
     /// left as `<redirect-url>`, and the resumed wait after a 401 on the
     /// status read after `xr media upload`, to run once the credential
-    /// works; and `resume-wait` when the media command was given `-H`, with
-    /// each header's value left as `<value>`.
+    /// works; and `resume-wait` and that `wait-and-retry` when the media
+    /// command was given `-H`, with each header's value left as `<value>`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// What the library warned about before the run failed, each distinct

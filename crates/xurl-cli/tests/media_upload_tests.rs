@@ -489,8 +489,13 @@ async fn a_refused_credential_after_an_upload_says_in_text_how_to_resume() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr
-            .contains("once the credential works, resume the wait: xr media status 777 --wait=60"),
+        stderr.contains(
+            "once the credential works, resume the wait: xr media status 777 --wait=60\n"
+        ),
+        "the command ends its line, so it copies cleanly: {stderr}"
+    );
+    assert!(
+        stderr.contains("See: https://docs.x.com/resources/fundamentals/authentication"),
         "{stderr}"
     );
 }
@@ -841,7 +846,56 @@ async fn a_rate_limited_status_read_says_in_text_how_to_resume(
     let (output, _tmp) = upload_then_status(limited, &[]).await;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains(line), "{stderr}");
+    assert!(
+        stderr.contains(&format!("{line}\n")),
+        "the command ends its line, so it copies cleanly: {stderr}"
+    );
+    assert!(
+        stderr.contains("See: https://docs.x.com/resources/fundamentals/rate-limits"),
+        "{stderr}"
+    );
+}
+
+/// With `-H`, the step that resumes the wait after a 429 or a 401 is a
+/// template that hides each header's value, as the `resume-wait` one is, so a
+/// caller that runs every `command` it is handed never sends a placeholder
+/// header.
+#[rstest::rstest]
+#[case::rate_limited(
+    ResponseTemplate::new(429).insert_header("x-rate-limit-reset", "1767225599"),
+    "wait-and-retry"
+)]
+#[case::refused(ResponseTemplate::new(401), "fix-input")]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_header_makes_the_step_after_a_429_or_a_401_a_template(
+    #[case] answer: ResponseTemplate,
+    #[case] action: &str,
+) {
+    let (output, _tmp) = upload_then_status(
+        answer,
+        &[
+            "--output",
+            "json",
+            "-u",
+            "alice",
+            "-H",
+            "X-Trace: secret-123",
+        ],
+    )
+    .await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    assert_eq!(v["next_step"]["action"], action, "got: {v}");
+    assert_eq!(
+        v["next_step"]["template"], "xr media status 777 --wait=60 -u alice -H 'X-Trace: <value>'",
+        "got: {v}"
+    );
+    assert_eq!(v["next_step"].get("command"), None, "never both: {v}");
+    assert!(
+        !stderr.contains("secret-123"),
+        "a header value never echoes: {stderr}"
+    );
 }
 
 /// Every JSON document on `stdout`, in order.

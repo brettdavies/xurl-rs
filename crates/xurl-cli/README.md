@@ -895,12 +895,12 @@ delay and as a time, and the `next_step` names the step:
 }
 ```
 
-`retry_after_secs` is the seconds left until the reset, zero once it has passed, and `retry_at` is the same moment in RFC
-3339 UTC, for a caller that schedules the retry instead of sleeping. Both come from that response's own
+`retry_after_secs` is the seconds left until the reset, zero once it has passed, and `retry_at` is the same moment in
+RFC 3339 UTC, for a caller that schedules the retry instead of sleeping. Both come from that response's own
 `x-rate-limit-reset` header. A 429 that carries no such header has neither key and no `next_step`, except on the status
 read after `xr media upload` finished. There the request to send again is that read, not the upload, so a 429 carries
 `wait-and-retry` whether or not it named a reset, with the `xr media status` command that resumes the wait as its
-`command`.
+`command`, or as its `template` when `-H` was given.
 
 `xr` never retries on its own. `--wait-on-rate-limit` (`XURL_WAIT_ON_RATE_LIMIT`) makes it wait for the reset and send
 the request once more, when the wait fits `--rate-limit-max-wait <SECS>` (`XURL_RATE_LIMIT_MAX_WAIT`, 60 by default). A
@@ -936,20 +936,22 @@ help to read: `xr post --help` for a usage error under `post`, and the help of t
 (`xr auth status --help` for `xr auth statsu`). `reason` is closed too. A newer release can add to either set, so treat
 a value you do not recognize as your default branch. A step carries a `command`, runnable verbatim, or a `template` the
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
-fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
-carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
-and `inspect-store` when a store command is what failed. Some `fix-input` steps carry an invocation: `listen` again on
-a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
-before, and the `xr schema` invocation that works for an old name or a scope word, both under `invalid-args`; the
-`xr schema --path` invocation with the segment that named nothing left as `<property>`, a template, also under
-`invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen` lacks, and a
-template that runs `xr auth oauth2 --step 2` again with the redirect URL left as `<redirect-url>`, because that URL
-holds an authorization code: when the URL did not parse, or when the saved sign-in belongs to another app the store
-holds, which the template names. A
-`validation` refusal names the input rule it broke in `rule`, the validator's kebab-case code (`invalid-username`,
-`no-list-changes`, ...), with the sentence for it in `message`, and `value` carries the offending input when the rule
-names one: an app name, a redirect URI, or a header's position among the `-H` headers. Branch on `rule`, not on the
-sentence. Text mode prints the same advice as prose instead; the two need not match word for word.
+fill; under `confirm`, the invocation that destroys once it runs; or, after a 401 on the status read after
+`xr media upload`, the resumed wait to run once the credential works. One whose recovery is not an `xr` invocation
+carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry` except on that status read, `retry`,
+`fix-input`, `report-issue`, and `inspect-store` when a store command is what failed. Some `fix-input` steps carry an
+invocation: `listen` again on a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved
+after the command word it came before, and the `xr schema` invocation that works for an old name or a scope word, both
+under `invalid-args`; the `xr schema --path` invocation with the segment that named nothing left as `<property>`, a
+template, also under `invalid-args`; and, under `auth-required`, a template that stores the signing secret
+`webhooks listen` lacks, and a template that runs `xr auth oauth2 --step 2` again with the redirect URL left as
+`<redirect-url>`, because that URL holds an authorization code: when the URL did not parse, or when the saved sign-in
+belongs to another app the store holds, which the template names; and the resumed wait after a 401 on the status read
+after `xr media upload`, a template too, also under `auth-required`. A `validation` refusal names the input rule it
+broke in `rule`, the validator's kebab-case code (`invalid-username`, `no-list-changes`, ...), with the sentence for it
+in `message`, and `value` carries the offending input when the rule names one: an app name, a redirect URI, or a
+header's position among the `-H` headers. Branch on `rule`, not on the sentence. Text mode prints the same advice as
+prose instead; the two need not match word for word.
 
 ### Which Errors Carry a Step
 
@@ -960,7 +962,7 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
 | `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
-| `rate-limited`               | `wait-and-retry` when the 429 names its reset, or on the status read after `xr media upload` finished; none otherwise                            |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset, or on the status read after `xr media upload` finished (a `template` under `-H`); none otherwise  |
 | `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
 | `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
 | `unknown-command`            | `show-help`                                                                                                                                      |

@@ -3917,7 +3917,8 @@ pub enum MediaCommands {
         /// follows `=`. A wait that reaches its deadline exits 1 with reason
         /// `processing-timeout`; the upload itself is intact, and the error
         /// names the `xr media status` command that resumes the wait. So does
-        /// a status read that fails for a 5xx or a network error.
+        /// a status read that fails for a 5xx, a network error, or a 429; after
+        /// a 401 it names that command to run once the credential works.
         #[arg(
             long = "wait",
             value_name = "SECS",
