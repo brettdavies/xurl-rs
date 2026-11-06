@@ -62,7 +62,7 @@ pub(super) async fn oauth2(
     let effective_no_browser = no_browser || auto_engage_no_browser;
     // The interactive flow reads neither `--step` nor `--auth-url`.
     let refused = if effective_no_browser {
-        auth_url_refusal(step, auth_url.is_some()).map(str::to_string)
+        auth_url_refusal(step, auth_url.as_deref()).map(str::to_string)
     } else {
         None
     };
@@ -219,7 +219,7 @@ pub(super) async fn oauth2(
                 }
             }
             Some(2) => {
-                // `auth_url_refusal` has refused a step 2 with no URL.
+                // `auth_url_refusal` has refused a step 2 with no URL or an empty one.
                 let url_value = auth_url.unwrap_or_default();
 
                 let redirect_url = if url_value == "-" {
@@ -253,13 +253,13 @@ pub(super) async fn oauth2(
     Ok(())
 }
 
-/// Tells a person what X's answer is an answer to. An `Error::Api` prints as
-/// the response body alone, and a sign-in's caller never named the endpoint.
+/// Tells a person what X's answer is an answer to. An API error prints as the
+/// response body alone, and a sign-in's caller never named the endpoint.
 fn name_the_failed_exchange(error: &Error, out: &OutputConfig, stderr: &mut dyn Write) {
-    if matches!(error, Error::Api { .. }) {
+    if error.is_api() {
         out.error_context(
             stderr,
-            "X's token endpoint failed, so the sign-in did not finish. It answered:",
+            "The token endpoint's answer ended the sign-in. It answered:",
         );
     }
 }
@@ -281,12 +281,17 @@ fn redirect_url_from_stdin() -> Result<String, String> {
 }
 
 /// What the headless flow refuses about `--auth-url` itself, before any stdin
-/// is read, so a dry run can say it too.
-fn auth_url_refusal(step: Option<u8>, has_auth_url: bool) -> Option<&'static str> {
-    match (step, has_auth_url) {
-        (Some(1), true) => Some("--auth-url is only used with --step 2, not --step 1."),
-        (Some(2), false) => Some(
+/// is read or any saved flow is loaded, so a dry run can say it too. An empty
+/// value is a missing one, as an empty line on stdin is.
+fn auth_url_refusal(step: Option<u8>, auth_url: Option<&str>) -> Option<&'static str> {
+    match (step, auth_url) {
+        (Some(1), Some(_)) => Some("--auth-url is only used with --step 2, not --step 1."),
+        (Some(2), None) => Some(
             "--auth-url is required for step 2. Pass the redirect URL from your browser, \
+             or use --auth-url - to read from stdin.",
+        ),
+        (Some(2), Some(url)) if url.trim().is_empty() => Some(
+            "--auth-url is empty. Pass the redirect URL from your browser, \
              or use --auth-url - to read from stdin.",
         ),
         _ => None,

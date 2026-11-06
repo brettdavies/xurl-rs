@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use super::Auth;
+use super::answer_text::Sent;
 use super::callback;
 use super::pending;
 use super::token_endpoint::{self, Grant};
@@ -174,7 +175,13 @@ pub(crate) async fn exchange_code_for_token(
     let token_endpoint::Answer {
         access_token,
         body: token_data,
-    } = token_endpoint::answer(request, &token_url, Grant::Code).await?;
+    } = token_endpoint::answer(
+        request,
+        &token_url,
+        Grant::Code,
+        &Sent::new(auth.client_id(), auth.client_secret(), &[code, verifier]),
+    )
+    .await?;
 
     let refresh_token = token_data["refresh_token"]
         .as_str()
@@ -571,7 +578,13 @@ pub(crate) async fn refresh_grant(
     let token_endpoint::Answer {
         access_token,
         body: token_data,
-    } = token_endpoint::answer(request, token_url, Grant::Refresh).await?;
+    } = token_endpoint::answer(
+        request,
+        token_url,
+        Grant::Refresh,
+        &Sent::new(client_id, client_secret, &[refresh_token]),
+    )
+    .await?;
     let refresh_token = token_data["refresh_token"]
         .as_str()
         .filter(|token| !token.is_empty())
@@ -615,9 +628,11 @@ pub(crate) async fn refresh_grant(
 /// be taken, and when the refresh itself fails:
 /// [`Error::Auth`] when the token endpoint refuses the refresh token or the
 /// client, or answers with no access token; [`Error::Http`] when it does not
-/// answer; [`Error::Api`] when it answers a 5xx or a 429 (with `reset_at` when
-/// the 429 names its reset); and [`Error::InvalidUrl`] when the token URL is
-/// not one a request can go to. A failed refresh writes nothing to the store.
+/// answer; [`Error::Api`] when it answers a failure status that is no OAuth
+/// refusal, such as a 5xx, a 429 (with `reset_at` when it names its reset), or
+/// a proxy's 404; [`Error::TokenEndpointForbidden`] when that status is a 403;
+/// and [`Error::InvalidUrl`] when the token URL is not one a request can go
+/// to. A failed refresh writes nothing to the store.
 /// A failed `/2/users/me` lookup is not an error.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
