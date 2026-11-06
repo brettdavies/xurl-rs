@@ -30,6 +30,8 @@ use xdk::auth::Auth;
 use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::{Config, EnvOverrides};
 
+use common::CLOSED;
+
 mod common;
 
 #[path = "../../xdk/tests/support/port_band.rs"]
@@ -818,10 +820,6 @@ fn urlencode(value: &str) -> String {
 // `xr` hands the flow the token its signal handler cancels and reads a
 // cancelled token as Ctrl-C, so the flow ending for any reason of its own
 // must leave that token as it was.
-
-/// An address nothing answers: no test server binds port 1, since each binds
-/// port 0 and gets a port from the ephemeral range.
-const CLOSED: &str = "http://127.0.0.1:1";
 
 /// Runs the interactive flow on a loopback listener handed over to it, with
 /// `opener` as the browser (given the authorize URL and the listener's

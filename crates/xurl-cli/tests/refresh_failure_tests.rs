@@ -18,6 +18,8 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 use xdk::config::EnvOverrides;
 use xdk::store::TokenStore;
 
+use common::CLOSED;
+
 const APP: &str = "myapp";
 const LOGIN: &str = "alice";
 const STORED_REFRESH_TOKEN: &str = "old-rt";
@@ -35,10 +37,6 @@ fn expired_login(dir: &Path) -> PathBuf {
     let _ = ts.remove_app("default");
     store
 }
-
-/// An address nothing answers: no test server binds port 1, since each binds
-/// port 0 and gets a port from the ephemeral range.
-const CLOSED: &str = "http://127.0.0.1:1";
 
 /// `xr <args>` in process, with the token endpoint at `token_url` and the API
 /// at a closed port, which the run never reaches when the refresh fails.

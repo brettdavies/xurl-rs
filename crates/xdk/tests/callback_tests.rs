@@ -672,8 +672,8 @@ fn headless_step_accepts(query: &str) -> bool {
     let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = "test-client-id".to_string();
     cfg.client_secret = "test-client-secret".to_string();
-    // No test server binds port 1, since each binds port 0 and gets a port
-    // from the ephemeral range.
+    // Port 1 sits below every port a test binds: a port-0 bind draws from the
+    // ephemeral range, and `band_port` from 20000 to 32767.
     cfg.token_url = "http://127.0.0.1:1/token".to_string();
     let mut auth =
         Auth::new_with_store_path_and_overrides(&cfg, &store_path, &EnvOverrides::default());
