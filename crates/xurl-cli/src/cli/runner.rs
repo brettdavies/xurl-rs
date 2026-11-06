@@ -534,6 +534,7 @@ fn media_credential(cli: &Cli) -> crate::cli::hints::MediaCredential {
         auth,
         username,
         headers,
+        rate_limit_max_wait: cli.wait_on_rate_limit.then_some(cli.rate_limit_max_wait),
     }
 }
 
