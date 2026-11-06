@@ -216,6 +216,24 @@ impl NextStep {
         }
     }
 
+    /// This step with `--dry-run` after the program word, for a dry run's
+    /// refusal whose step reruns an invocation. A step that does not start
+    /// with the program word is left as it is.
+    #[must_use]
+    pub fn under_dry_run(mut self) -> Self {
+        for text in [&mut self.command, &mut self.template]
+            .into_iter()
+            .flatten()
+        {
+            if let Some(rest) = text.strip_prefix(ROOT_COMMAND)
+                && rest.starts_with(' ')
+            {
+                *text = format!("{ROOT_COMMAND} --dry-run{rest}");
+            }
+        }
+        self
+    }
+
     /// Look at a store file that could not be loaded, starting from the
     /// command that reports on it and names its path.
     #[must_use]

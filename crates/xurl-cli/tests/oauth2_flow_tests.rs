@@ -2059,9 +2059,13 @@ const DRY_RUN_FRAME: [&str; 6] = [
     "username",
 ];
 
-/// A step that reruns the invocation keeps `--dry-run` in a dry run, so the
-/// two answers agree once that word is dropped.
+/// A step that reruns the invocation keeps `--dry-run` in a dry run, and the
+/// message that names the step with it, so the two answers agree once that
+/// word is dropped.
 fn without_dry_run(keys: &mut serde_json::Map<String, serde_json::Value>) {
+    if let Some(serde_json::Value::String(message)) = keys.get_mut("message") {
+        *message = message.replace(" --dry-run", "");
+    }
     let Some(step) = keys.get_mut("next_step").and_then(|s| s.as_object_mut()) else {
         return;
     };
@@ -2070,6 +2074,23 @@ fn without_dry_run(keys: &mut serde_json::Map<String, serde_json::Value>) {
             *text = text.replace(" --dry-run", "");
         }
     }
+}
+
+/// The step of a dry run's answer that reruns an `xr auth oauth2` invocation
+/// without `--dry-run`: following it would sign in for real.
+fn rerun_that_signs_in_for_real(dry: &serde_json::Value) -> Option<String> {
+    let step = dry.get("next_step")?.as_object()?;
+    if matches!(
+        step.get("action").and_then(|action| action.as_str()),
+        Some("show-help" | "register-app")
+    ) {
+        return None;
+    }
+    ["command", "template"].iter().find_map(|key| {
+        let text = step.get(*key)?.as_str()?;
+        (text.starts_with("xr ") && text.contains(" auth oauth2") && !text.contains(" --dry-run"))
+            .then(|| text.to_string())
+    })
 }
 
 /// What differs between the dry run's answer and the real run's: the dry run
@@ -2085,6 +2106,9 @@ fn dry_run_faults(
         return vec![format!("{name}: the dry run does not refuse: {dry}")];
     }
     let mut faults = Vec::new();
+    if let Some(step) = rerun_that_signs_in_for_real(dry) {
+        faults.push(format!("{name}: the step drops --dry-run: {step}"));
+    }
     if dry["exit_code"] != real_code || real["exit_code"] != real_code {
         faults.push(format!(
             "{name}: the real run exits {real_code}, the dry run says {}",

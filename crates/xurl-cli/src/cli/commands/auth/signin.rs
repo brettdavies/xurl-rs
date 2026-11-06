@@ -107,7 +107,7 @@ pub(super) async fn oauth2(
     // target app has no client id to sign in with.
     let refusal = {
         let auth = client.auth().await?;
-        client_credentials_missing(&auth, app_explicit, out.format.is_structured())
+        client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false)
     };
     if let Some(body) = refusal {
         out.emit_error_envelope(stderr, body);
@@ -296,7 +296,9 @@ fn dry_run_answer(
         out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
         return Ok(());
     }
-    if let Some(body) = client_credentials_missing(auth, app_explicit, out.format.is_structured()) {
+    if let Some(body) =
+        client_credentials_missing(auth, app_explicit, out.format.is_structured(), true)
+    {
         out.print_dry_run_error_body(stdout, &ctx, body);
         return Ok(());
     }
@@ -490,11 +492,13 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
 /// The effective client id comes from the [`Auth`] accessor, so `CLIENT_ID`
 /// exported in the environment counts regardless of how the app was
 /// selected. When another app does carry credentials the hint names it;
-/// otherwise the hint is registration, whose values only the caller has.
+/// otherwise the hint is registration, whose values only the caller has. A
+/// dry run's hint reruns the sign-in under `--dry-run`.
 fn client_credentials_missing(
     auth: &Auth,
     app_explicit: bool,
     structured: bool,
+    dry_run: bool,
 ) -> Option<ErrorBody> {
     if !auth.client_id().is_empty() {
         return None;
@@ -529,6 +533,11 @@ fn client_credentials_missing(
             },
             NextStep::register_app(),
         ),
+    };
+    let next_step = if dry_run {
+        next_step.under_dry_run()
+    } else {
+        next_step
     };
     // The text derives from the built value, so the prose and the
     // machine-readable step cannot name different commands.
