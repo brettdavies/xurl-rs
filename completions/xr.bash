@@ -505,6 +505,9 @@ _xr() {
             xr__subcmd__broadcasts__subcmd__help__subcmd__sources,remove)
                 cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove"
                 ;;
+            xr__subcmd__broadcasts__subcmd__help__subcmd__sources,stream-key)
+                cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__stream__subcmd__key"
+                ;;
             xr__subcmd__broadcasts__subcmd__help__subcmd__sources,update)
                 cmd="xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update"
                 ;;
@@ -610,6 +613,9 @@ _xr() {
             xr__subcmd__broadcasts__subcmd__sources,remove)
                 cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__remove"
                 ;;
+            xr__subcmd__broadcasts__subcmd__sources,stream-key)
+                cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__stream__subcmd__key"
+                ;;
             xr__subcmd__broadcasts__subcmd__sources,update)
                 cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__update"
                 ;;
@@ -630,6 +636,9 @@ _xr() {
                 ;;
             xr__subcmd__broadcasts__subcmd__sources__subcmd__help,remove)
                 cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove"
+                ;;
+            xr__subcmd__broadcasts__subcmd__sources__subcmd__help,stream-key)
+                cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__stream__subcmd__key"
                 ;;
             xr__subcmd__broadcasts__subcmd__sources__subcmd__help,update)
                 cmd="xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__update"
@@ -1110,6 +1119,9 @@ _xr() {
                 ;;
             xr__subcmd__help__subcmd__broadcasts__subcmd__sources,remove)
                 cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove"
+                ;;
+            xr__subcmd__help__subcmd__broadcasts__subcmd__sources,stream-key)
+                cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__stream__subcmd__key"
                 ;;
             xr__subcmd__help__subcmd__broadcasts__subcmd__sources,update)
                 cmd="xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update"
@@ -5709,7 +5721,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__broadcasts__subcmd__help__subcmd__sources)
-            opts="list get region add update remove"
+            opts="list get stream-key region add update remove"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -5779,6 +5791,20 @@ _xr() {
             return 0
             ;;
         xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__remove)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__stream__subcmd__key)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -7589,7 +7615,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__broadcasts__subcmd__sources)
-            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help list get region add update remove help"
+            opts="-v -q -h --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help list get stream-key region add update remove help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -7863,7 +7889,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__broadcasts__subcmd__sources__subcmd__help)
-            opts="list get region add update remove help"
+            opts="list get stream-key region add update remove help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -7947,6 +7973,20 @@ _xr() {
             return 0
             ;;
         xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__remove)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__sources__subcmd__help__subcmd__stream__subcmd__key)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -8164,6 +8204,100 @@ _xr() {
             ;;
         xr__subcmd__broadcasts__subcmd__sources__subcmd__remove)
             opts="-u -t -v -q -h --force --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --auth)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --username)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -u)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --verbose)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -v)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --app)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -W "text json jsonl ndjson yaml csv tsv" -- "${cur}"))
+                    return 0
+                    ;;
+                --raw)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --quiet)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                -q)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --no-interactive)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --timeout)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --wait-on-rate-limit)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --rate-limit-max-wait)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --color)
+                    COMPREPLY=($(compgen -W "auto always never" -- "${cur}"))
+                    return 0
+                    ;;
+                --dry-run)
+                    COMPREPLY=($(compgen -W "true false" -- "${cur}"))
+                    return 0
+                    ;;
+                --limit)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --cursor)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --page)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --after)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__broadcasts__subcmd__sources__subcmd__stream__subcmd__key)
+            opts="-u -t -v -q -h --auth --username --trace --verbose --app --output --json --jsonl --raw --no-pager --quiet --no-interactive --timeout --wait-on-rate-limit --rate-limit-max-wait --color --dry-run --limit --cursor --page --after --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -12367,7 +12501,7 @@ _xr() {
             return 0
             ;;
         xr__subcmd__help__subcmd__broadcasts__subcmd__sources)
-            opts="list get region add update remove"
+            opts="list get stream-key region add update remove"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -12437,6 +12571,20 @@ _xr() {
             return 0
             ;;
         xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__remove)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__stream__subcmd__key)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 5 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

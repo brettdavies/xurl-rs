@@ -1,7 +1,7 @@
 args: ["broadcasts", "scheduled", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7137
+stdout_len: 7144
 stderr_len: 0
 --- stdout ---
 Schedule broadcasts and change or cancel them
@@ -157,7 +157,7 @@ Examples:
   Your scheduled broadcasts (text):
     xr broadcasts scheduled list
   Schedule one, then move it, JSON envelope:
-    xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --title "Launch day" --output json
+    xr broadcasts scheduled add --source 9012345678901234567 --start 2026-11-02T16:00:00Z --title "Launch day" --output json
     xr broadcasts scheduled update 1850000000000000001 --start 2026-11-02T17:00:00Z --end 2026-11-02T18:00:00Z --output json
 
 --- stderr ---
