@@ -99,7 +99,10 @@ fn assert_unknown_command_under(
     parent: &str,
 ) {
     if format == "text" {
-        assert_eq!(plain(stderr).trim_end(), text_line(word, suggestion));
+        assert_eq!(
+            plain(stderr).trim_end(),
+            text_line(word, suggestion, parent)
+        );
         return;
     }
     assert!(
@@ -131,35 +134,27 @@ fn assert_unknown_command_under(
     );
 }
 
-fn text_line(word: &str, suggestion: Option<&str>) -> String {
+/// The text line for a word typed under `parent`, which names the nearest
+/// command's help, or `parent`'s when nothing scored.
+fn text_line(word: &str, suggestion: Option<&str>, parent: &str) -> String {
     match suggestion {
-        Some(s) => {
-            format!("Error: unknown command '{word}'. Did you mean '{s}'? Try 'xr {s} --help'.")
-        }
-        None => format!("Error: unknown command '{word}'. Try 'xr --help'."),
+        Some(s) => format!(
+            "Error: unknown command '{word}'. Did you mean '{s}'? Try '{parent} {s} --help'."
+        ),
+        None => format!("Error: unknown command '{word}'. Try '{parent} --help'."),
     }
 }
 
 /// Runs a mistyped word under `family` in JSON and in text, and asserts both
-/// name `nearest`: the envelope's `suggestion` and `show-help` step, and the
-/// text line's `Did you mean` and `Try`.
+/// renderings name `nearest`.
 async fn assert_family_suggestion(family: &[&str], parent: &str, word: &str, nearest: &str) {
-    let mut json = vec!["xr", "--output", "json"];
-    json.extend_from_slice(family);
-    let (code, _stdout, stderr) = run_isolated(&json).await;
-    assert_eq!(code, 2, "stderr: {stderr}");
-    assert_unknown_command_under(&stderr, "json", word, Some(nearest), parent);
-
-    let mut text = vec!["xr", "--output", "text"];
-    text.extend_from_slice(family);
-    let (code, _stdout, stderr) = run_isolated(&text).await;
-    assert_eq!(code, 2, "stderr: {stderr}");
-    assert_eq!(
-        plain(&stderr).trim_end(),
-        format!(
-            "Error: unknown command '{word}'. Did you mean '{nearest}'? Try '{parent} {nearest} --help'."
-        )
-    );
+    for format in ["json", "text"] {
+        let mut args = vec!["xr", "--output", format];
+        args.extend_from_slice(family);
+        let (code, _stdout, stderr) = run_isolated(&args).await;
+        assert_eq!(code, 2, "{format}; stderr: {stderr}");
+        assert_unknown_command_under(&stderr, format, word, Some(nearest), parent);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -329,8 +324,7 @@ async fn a_mistyped_verb_names_the_closest_of_several_candidates(
 }
 
 /// Verbs that score exactly alike cannot be told apart by similarity, so the
-/// first declared is named, and a tie never trades a read verb for the write
-/// verb beside it.
+/// first declared is named, as on `dev`, and `get` stays ahead of `set`.
 #[rstest::rstest]
 #[case::oauth_without_its_digit(&["auth", "oauth"], "xr auth", "oauth", "oauth2")]
 #[case::get_beside_set(
@@ -487,7 +481,7 @@ async fn a_word_after_a_mistyped_command_does_not_hide_it(
     assert!(stdout.is_empty(), "args {args:?}; stdout: {stdout}");
     assert_eq!(
         plain(&stderr).trim_end(),
-        text_line(word, suggestion),
+        text_line(word, suggestion, "xr"),
         "args {args:?}"
     );
     assert_eq!(
@@ -655,7 +649,7 @@ async fn a_help_or_version_flag_does_not_hide_a_mistyped_command(
     assert!(stdout.is_empty(), "{word} {flag} prints no help: {stdout}");
     assert_eq!(
         plain(&stderr).trim_end(),
-        text_line(word, suggestion),
+        text_line(word, suggestion, "xr"),
         "{word} {flag}"
     );
     assert_eq!(
