@@ -164,6 +164,192 @@ async fn sources_get_reads_one_source() {
     assert_eq!(json_out(&stdout)["data"]["is_stream_active"], false);
 }
 
+fn stream_key_answer() -> serde_json::Value {
+    serde_json::json!({"data": {"id": SOURCE_ID, "stream_key": STREAM_KEY}})
+}
+
+#[tokio::test]
+async fn sources_stream_key_reads_the_key_of_one_source() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!("/2/sources/{SOURCE_ID}/stream_key")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(stream_key_answer()))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "broadcasts",
+            "sources",
+            "stream-key",
+            SOURCE_ID,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body = json_out(&stdout);
+    assert_eq!(body["data"]["id"], SOURCE_ID);
+    assert_eq!(body["data"]["stream_key"], STREAM_KEY);
+    assert_eq!(
+        stdout.matches(STREAM_KEY).count(),
+        1,
+        "the key appears once, in data.stream_key: {stdout}"
+    );
+}
+
+/// `--verbose` prints through the binary's own subscriber, so this runs the
+/// built `xr`, off the runtime thread so the mock keeps serving. Under a
+/// structured format `--verbose` prints nothing, so the run uses text.
+#[tokio::test]
+async fn sources_stream_key_keeps_the_key_out_of_verbose_text_output() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!("/2/sources/{SOURCE_ID}/stream_key")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(stream_key_answer()))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let base_url = server.uri();
+
+    let output = tokio::task::spawn_blocking(move || {
+        common::xr_with_store(&store)
+            .env("API_BASE_URL", base_url)
+            .args([
+                "--verbose",
+                "broadcasts",
+                "sources",
+                "stream-key",
+                SOURCE_ID,
+            ])
+            .output()
+    })
+    .await
+    .expect("spawn_blocking joins")
+    .expect("xr runs");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(output.status.code(), Some(0), "stderr: {stderr}");
+    assert!(stdout.contains(STREAM_KEY), "stdout: {stdout}");
+    assert!(
+        stderr.contains("/stream_key"),
+        "--verbose prints the request lines in text output: {stderr}"
+    );
+    assert!(!stderr.contains(STREAM_KEY), "stderr: {stderr}");
+}
+
+#[tokio::test]
+async fn sources_stream_key_stores_nothing() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!("/2/sources/{SOURCE_ID}/stream_key")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(stream_key_answer()))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let before = std::fs::read(&store).expect("the seeded store");
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "broadcasts",
+            "sources",
+            "stream-key",
+            SOURCE_ID,
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let after = std::fs::read(&store).expect("the store");
+    assert_eq!(after, before, "the store is as the command found it");
+    assert!(
+        !String::from_utf8_lossy(&after).contains(STREAM_KEY),
+        "the key is not written to the store"
+    );
+}
+
+#[tokio::test]
+async fn sources_stream_key_under_dry_run_sends_nothing() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "broadcasts",
+            "sources",
+            "stream-key",
+            SOURCE_ID,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body = json_out(&stdout);
+    assert_eq!(body["command"], "broadcasts-sources-stream-key");
+    assert_eq!(body["source_id"], SOURCE_ID);
+    assert_eq!(body["would_succeed"], true);
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+/// The help of a stream-source verb, as clap holds it.
+fn sources_verb_help(verb: &str) -> String {
+    use clap::CommandFactory;
+
+    let mut root = xurl::cli::Cli::command();
+    root.build();
+    let command = ["broadcasts", "sources", verb]
+        .iter()
+        .fold(&root, |cmd, name| {
+            cmd.find_subcommand(name)
+                .unwrap_or_else(|| panic!("clap has `{name}`"))
+        });
+    command
+        .get_long_about()
+        .or_else(|| command.get_about())
+        .map(ToString::to_string)
+        .expect("the verb has help")
+}
+
+#[test]
+fn sources_stream_key_help_calls_the_output_a_credential() {
+    let help = sources_verb_help("stream-key");
+    assert!(
+        help.contains("credential"),
+        "the help warns what the key is: {help}"
+    );
+}
+
+#[test]
+fn sources_add_help_names_the_command_that_reads_the_key_again() {
+    let help = sources_verb_help("add");
+    assert!(
+        help.contains("xr broadcasts sources stream-key"),
+        "the help names the way to read the key later: {help}"
+    );
+}
+
 #[tokio::test]
 async fn sources_update_puts_the_new_name() {
     let server = MockServer::start().await;

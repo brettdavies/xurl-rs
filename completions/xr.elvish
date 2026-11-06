@@ -4206,6 +4206,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
+            cand stream-key 'Show a stream source''s stream key'
             cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
@@ -4242,6 +4243,35 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;broadcasts;sources;get'= {
+            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
+            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
+            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
+            cand --app 'Use a specific registered app (overrides default)'
+            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
+            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
+            cand -q 'Suppress all non-essential output (errors still go to stderr)'
+            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
+            cand --no-interactive 'Disable interactive prompts; fail with error instead'
+            cand --timeout 'Request timeout in seconds'
+            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
+            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
+            cand --color 'Colorize output: auto (TTY-aware), always, or never'
+            cand --dry-run 'Check inputs and credentials offline, and send nothing'
+            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
+            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
+            cand --page 'Documented alias for `--cursor`'
+            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
+            cand -t 'Add X-B3-Flags trace header'
+            cand --trace 'Add X-B3-Flags trace header'
+            cand --json 'Shorthand for `--output json` (P2 alias)'
+            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
+            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
+            cand -h 'Print help (see more with ''--help'')'
+            cand --help 'Print help (see more with ''--help'')'
+        }
+        &'xr;broadcasts;sources;stream-key'= {
             cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
@@ -4392,6 +4422,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;sources;help'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
+            cand stream-key 'Show a stream source''s stream key'
             cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
@@ -4401,6 +4432,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;sources;help;list'= {
         }
         &'xr;broadcasts;sources;help;get'= {
+        }
+        &'xr;broadcasts;sources;help;stream-key'= {
         }
         &'xr;broadcasts;sources;help;region'= {
         }
@@ -4476,6 +4509,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;help;sources'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
+            cand stream-key 'Show a stream source''s stream key'
             cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
@@ -4484,6 +4518,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;help;sources;list'= {
         }
         &'xr;broadcasts;help;sources;get'= {
+        }
+        &'xr;broadcasts;help;sources;stream-key'= {
         }
         &'xr;broadcasts;help;sources;region'= {
         }
@@ -6430,7 +6466,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;validate'= {
-            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-created`, `stream-source-deleted`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection'
+            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `broadcast`, `broadcasts`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-created`, `stream-source-deleted`, `stream-source-key`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -6846,6 +6882,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;broadcasts;sources'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
+            cand stream-key 'Show a stream source''s stream key'
             cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
@@ -6854,6 +6891,8 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;broadcasts;sources;list'= {
         }
         &'xr;help;broadcasts;sources;get'= {
+        }
+        &'xr;help;broadcasts;sources;stream-key'= {
         }
         &'xr;help;broadcasts;sources;region'= {
         }

@@ -2916,6 +2916,19 @@ pub enum SourcesCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Show a stream source's stream key
+    ///
+    /// The stream key is a credential: whoever holds it can stream to the source. Keep it out of
+    /// logs you share.
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::STREAM_KEY))]
+    StreamKey {
+        /// Source ID, as `xr broadcasts sources list` prints it
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
     /// Show the ingest region nearest the X server that answers
     ///
     /// Pass it to `xr broadcasts sources add --region`.
@@ -2928,8 +2941,8 @@ pub enum SourcesCommands {
     /// Create a stream source
     ///
     /// Point an encoder at its `rtmps_url` with its `stream_key`. `list`, `get`, and
-    /// `update` do not carry the key; `xr /2/sources/<SOURCE_ID>/stream_key` reads it
-    /// again.
+    /// `update` do not carry the key; `xr broadcasts sources stream-key <SOURCE_ID>`
+    /// reads it again.
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::ADD))]
     Add {
         /// A label for the source

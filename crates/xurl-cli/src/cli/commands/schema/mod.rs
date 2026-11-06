@@ -29,8 +29,9 @@ use xdk::api::{
     NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData,
-    User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
+    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// Command-to-response-type mapping entry.
@@ -382,6 +383,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts sources add"],
         type_name: "ApiResponse<StreamSourceCreated>",
         schema: generate::<ApiResponse<StreamSourceCreated>>,
+    },
+    SchemaEntry {
+        commands: &["broadcasts sources stream-key"],
+        type_name: "ApiResponse<StreamSourceKey>",
+        schema: generate::<ApiResponse<StreamSourceKey>>,
     },
     SchemaEntry {
         commands: &["broadcasts sources remove"],

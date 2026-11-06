@@ -203,6 +203,9 @@ BROADCASTS:
     xr broadcasts sources add \"Studio A\" --region us-east-1 --output json
     xr broadcasts sources get 9012345678901234567 --output json
 
+  Read a stream source's stream key again (it is a credential; keep it out of shared logs):
+    xr broadcasts sources stream-key 9012345678901234567 --output json
+
   Schedule a broadcast from a source:
     xr broadcasts scheduled add --source 9012345678901234567 --start 2026-11-02T16:00:00Z --output json
 

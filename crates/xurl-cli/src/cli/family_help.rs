@@ -1079,6 +1079,14 @@ pub mod broadcast_sources {
         json_caption: "As a JSON envelope",
     };
 
+    /// `xr broadcasts sources stream-key`.
+    pub const STREAM_KEY: Verb = Verb {
+        name: "stream-key",
+        example_args: "9012345678901234567",
+        text_caption: "Show a source's stream key, a credential (text)",
+        json_caption: "As a JSON envelope",
+    };
+
     /// `xr broadcasts sources region`.
     pub const REGION: Verb = Verb {
         name: "region",
@@ -1123,6 +1131,10 @@ pub mod broadcast_sources {
                     Example::json(&ADD),
                     Example::json(&GET),
                 ],
+            ),
+            (
+                "Read a source's stream key again, JSON",
+                &[Example::json(&STREAM_KEY)],
             ),
         ];
         FAMILY.page(SECTIONS)
