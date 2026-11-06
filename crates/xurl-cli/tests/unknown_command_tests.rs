@@ -273,6 +273,43 @@ async fn a_mistyped_nested_verb_steps_to_its_own_family() {
     assert_unknown_command_under(&stderr, "json", "ad", Some("add"), "xr auth apps");
 }
 
+/// When clap scores several verbs of a family against a mistyped one, the
+/// suggestion and the help step name the highest score, not the lowest.
+#[rstest::rstest]
+#[case::wrong_auth_scheme(&["auth", "oath2"], "xr auth", "oath2", "oauth2")]
+#[case::singular_beside_plural(&["auth", "aps"], "xr auth", "aps", "apps")]
+#[case::nested_family(
+    &["broadcasts", "sources", "regon"],
+    "xr broadcasts sources",
+    "regon",
+    "region"
+)]
+#[tokio::test]
+async fn a_mistyped_verb_names_the_closest_of_several_candidates(
+    #[case] family: &[&str],
+    #[case] parent: &str,
+    #[case] word: &str,
+    #[case] nearest: &str,
+) {
+    let mut args = vec!["xr", "--output", "json"];
+    args.extend_from_slice(family);
+    let (code, _stdout, stderr) = run_isolated(&args).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_unknown_command_under(&stderr, "json", word, Some(nearest), parent);
+}
+
+/// Verbs that score exactly alike cannot be told apart by similarity, so the
+/// later-declared one is named, as `nearest` names it for a root word.
+#[rstest::rstest]
+#[case::oauth_without_its_digit("oauth", "oauth1")]
+#[case::app_beside_apps("apsp", "apps")]
+#[tokio::test]
+async fn equally_close_verbs_name_the_later_declared(#[case] word: &str, #[case] nearest: &str) {
+    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "auth", word]).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_unknown_command_under(&stderr, "json", word, Some(nearest), "xr auth");
+}
+
 #[tokio::test]
 async fn the_next_step_names_xr_whatever_the_binary_is_called() {
     let (code, _stdout, stderr) =

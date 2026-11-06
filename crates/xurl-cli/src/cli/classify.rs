@@ -192,10 +192,14 @@ pub(crate) fn rejected_word(error: &clap::Error) -> Option<String> {
 }
 
 /// clap's own suggestion for an unrecognized subcommand, where it scored one.
+///
+/// clap lists its candidates from least to most similar, and puts the
+/// later-declared of two that score alike last, so the nearest verb is the
+/// last. [`nearest`] breaks a tie the same way, through `max_by`.
 fn clap_suggestion(error: &clap::Error) -> Option<String> {
     match error.get(ContextKind::SuggestedSubcommand)? {
         ContextValue::String(value) => Some(value.clone()),
-        ContextValue::Strings(values) => values.first().cloned(),
+        ContextValue::Strings(values) => values.last().cloned(),
         _ => None,
     }
 }
