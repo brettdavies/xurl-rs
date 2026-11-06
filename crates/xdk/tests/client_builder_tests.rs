@@ -278,6 +278,7 @@ async fn a_refresh_answered_with_no_oauth_refusal_is_the_error_any_request_meets
     Mock::given(method("POST"))
         .and(path("/2/oauth2/token"))
         .respond_with(ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"))
+        .expect(1)
         .mount(&server)
         .await;
 
@@ -290,8 +291,13 @@ async fn a_refresh_answered_with_no_oauth_refusal_is_the_error_any_request_meets
 
     let err = client.get_me().send().await.expect_err("the refresh fails");
     assert!(
-        matches!(&err, Error::Api { status: 404, .. }),
-        "got {err:?}"
+        matches!(&err, Error::Api { status: 404, body, .. } if body == "<html>Not Found</html>"),
+        "the token endpoint's own 404, not the API's: {err:?}"
+    );
+    assert_eq!(
+        received(&server).await.len(),
+        1,
+        "only the refresh went out"
     );
 }
 

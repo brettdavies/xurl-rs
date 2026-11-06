@@ -1,10 +1,10 @@
 //! The answer the `OAuth2` token endpoint gives a grant, read the same way for
 //! the code a sign-in exchanges and for the refresh token a refresh spends.
 //!
-//! A refusal is an answer RFC 6749 section 5.2 shapes: a 400 or a 401, or an
-//! `error` object on any status but a 5xx or a 429. It is [`Error::Auth`], of
-//! the client or of the grant, since the credential in hand is what was
-//! refused.
+//! A refusal is an answer RFC 6749 section 5.2 shapes: a 400 or a 401, or a JSON
+//! body with a string `error` on any other status but a 5xx or a 429. It is
+//! [`Error::Auth`], of the client or of the grant, since the credential in hand
+//! is what was refused.
 //!
 //! Any other failure is one the endpoint did not process, and it is the one
 //! any request to X reports: [`Error::Http`] with no answer, and [`Error::Api`]
@@ -71,8 +71,8 @@ pub(crate) struct Answer {
 /// Sends `request` to the token endpoint at `token_url` and reads its answer.
 ///
 /// A 400 or a 401 is a refusal by its status alone. Any other failure status
-/// is one only when its body is an OAuth error object, so a proxy's error page
-/// reads as the status it came with.
+/// is one only when its body is JSON with a string `error`, so a proxy's error
+/// page reads as the status it came with.
 ///
 /// # Errors
 ///
@@ -96,16 +96,17 @@ pub(crate) async fn answer(
         return Err(refused(status, &body, grant));
     }
     if !status.is_success() {
-        let error = api_error(response).await.map_err(|e| broke_off(e, grant))?;
+        let error = match api_error(response).await {
+            Ok(error) => error,
+            Err(read) => {
+                warn_of_refresh(grant, status);
+                return Err(broke_off(read, grant));
+            }
+        };
         if let Some(object) = error_object(status, &error) {
             return Err(refused(status, &object, grant));
         }
-        if matches!(grant, Grant::Refresh) {
-            tracing::warn!(
-                target: "xdk::auth",
-                "the token endpoint answered the OAuth2 login's refresh with HTTP {status}"
-            );
-        }
+        warn_of_refresh(grant, status);
         return Err(error);
     }
 
@@ -143,8 +144,20 @@ fn unsent(error: reqwest::Error, token_url: &str, grant: Grant) -> Error {
     .with_source(error)
 }
 
-/// The OAuth error object a failure status other than a 5xx or a 429 carries,
-/// which makes the answer a refusal whatever its status.
+/// Says on a refresh that the endpoint answered it with `status`: the error
+/// that follows prints X's body alone, which names neither the refresh nor
+/// the status.
+fn warn_of_refresh(grant: Grant, status: reqwest::StatusCode) {
+    if matches!(grant, Grant::Refresh) {
+        tracing::warn!(
+            target: "xdk::auth",
+            "the token endpoint answered the OAuth2 login's refresh with HTTP {status}"
+        );
+    }
+}
+
+/// The JSON body of a failure status other than a 5xx or a 429 when it holds
+/// a string `error`, which makes the answer a refusal whatever its status.
 fn error_object(status: reqwest::StatusCode, error: &Error) -> Option<Value> {
     if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
         return None;

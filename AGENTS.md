@@ -86,16 +86,17 @@ Eight actions answer failures that are not about credentials. `show-help` rides 
 `invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
 `command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
 `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
-job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the `xr media status
-<media_id> --wait=<secs>` that waits again for twice as long. It also rides on `network-error` and `server-error` when
-the request that failed was a status read after `xr media upload` finished: `retry` would send the file again, so the
-step waits again for as long as the wait that failed. Either way the step repeats the `--app`, `--auth`, and `-u` the
-media command ran under, so the read goes out under the same credential, and with `-H` it is a `template` that hides
-each header's value. `wait-and-retry` rides on reason `rate-limited` (exit 3)
-when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the reset and zero once it has
-passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no command, because the request to
-send again is the caller's own. A 429 that names no reset carries neither key and no `next_step`. `--wait-on-rate-limit`
-does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
+job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the
+`xr media status <media_id> --wait=<secs>` that waits again for twice as long. It also rides on `network-error`,
+`server-error`, and `api-error` on a 408 when the request that failed was a status read after `xr media upload`
+finished: `retry` would send the file again, so the step waits again for as long as the wait that failed. Either way the
+step repeats the `--app`, `--auth`, and `-u` the media command ran under, so the read goes out under the same
+credential, and with `-H` it is a `template` that hides each header's value. `wait-and-retry` rides on reason
+`rate-limited` (exit 3) when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the
+reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no
+command, because the request to send again is the caller's own. A 429 that names no reset carries neither key and no
+`next_step`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60
+seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
 request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state

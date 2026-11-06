@@ -1958,6 +1958,23 @@ async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
             xdk::error::EXIT_GENERAL_ERROR,
             None,
         ),
+        (
+            "a 403 with JSON that holds no `error`",
+            ResponseTemplate::new(403).set_body_json(
+                serde_json::json!({"title": "Forbidden", "detail": "blocked by policy"}),
+            ),
+            "forbidden",
+            xdk::error::EXIT_GENERAL_ERROR,
+            None,
+        ),
+        (
+            "a 404 with JSON whose `error` is an object",
+            ResponseTemplate::new(404)
+                .set_body_json(serde_json::json!({"error": {"code": 404, "message": "Not Found"}})),
+            "not-found",
+            xdk::error::EXIT_NOT_FOUND,
+            Some("fix-input"),
+        ),
     ] {
         let (code, envelope) = step2_answered_with(response).await;
         assert_eq!(code, exit_code, "{why}: {envelope}");
@@ -2043,40 +2060,51 @@ async fn step2_with_a_token_url_that_is_not_a_url_names_it() {
     assert!(pending.exists(), "the flow is still good");
 }
 
-/// An answer that ends before its body did is no answer: the same request can
-/// go again, and the message says what failed.
+/// An answer that ends before its body did is no answer, whichever failure
+/// status it came with: the same request can go again, the saved flow stays,
+/// and the message says what failed.
 #[tokio::test]
 async fn step2_whose_error_answer_breaks_off_is_a_network_error_that_names_the_exchange() {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
-    let port = listener.local_addr().expect("its address").port();
-    let stub = std::thread::spawn(move || {
-        let (mut stream, _) = listener.accept().expect("the exchange connects");
-        let mut request = Vec::new();
-        let mut buf = [0u8; 4096];
-        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
-            let n = stream.read(&mut buf).expect("read the request");
-            if n == 0 {
-                break;
+    for status_line in [
+        "503 Service Unavailable",
+        "403 Forbidden",
+        "408 Request Timeout",
+    ] {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+        let port = listener.local_addr().expect("its address").port();
+        let answer = format!("HTTP/1.1 {status_line}\r\ncontent-length: 100\r\n\r\npartial");
+        let stub = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("the exchange connects");
+            let mut request = Vec::new();
+            let mut buf = [0u8; 4096];
+            while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                let n = stream.read(&mut buf).expect("read the request");
+                if n == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buf[..n]);
             }
-            request.extend_from_slice(&buf[..n]);
-        }
-        stream
-            .write_all(b"HTTP/1.1 503 Service Unavailable\r\ncontent-length: 100\r\n\r\npartial")
-            .expect("answer in part");
-    });
+            stream.write_all(answer.as_bytes()).expect("answer in part");
+        });
 
-    let (code, envelope) = step2_at(&format!("http://127.0.0.1:{port}")).await;
-    stub.join().expect("the stub ends");
+        let (code, envelope) = step2_at(&format!("http://127.0.0.1:{port}")).await;
+        stub.join().expect("the stub ends");
 
-    assert_eq!(code, xdk::error::EXIT_NETWORK_ERROR, "{envelope}");
-    assert_eq!(envelope["reason"], "network-error", "{envelope}");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .unwrap_or_default()
-            .contains("TokenExchangeError"),
-        "{envelope}"
-    );
+        assert_eq!(
+            code,
+            xdk::error::EXIT_NETWORK_ERROR,
+            "{status_line}: {envelope}"
+        );
+        assert_eq!(envelope["reason"], "network-error", "{envelope}");
+        assert_eq!(envelope["next_step"]["action"], "retry", "{envelope}");
+        assert!(
+            envelope["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("TokenExchangeError"),
+            "{envelope}"
+        );
+    }
 }
 
 /// A 429 here answers as a 429 anywhere: a wait when it names its reset, and no

@@ -454,6 +454,10 @@ async fn a_refused_refresh_token_signs_the_login_in_again() {
             envelope["next_step"]["command"], "xr auth oauth2 alice --no-browser --step 1",
             "{why}: {envelope}"
         );
+        assert!(
+            envelope["warnings"].is_null(),
+            "{why}: a refusal is not a failure to answer: {envelope}"
+        );
     }
 }
 
@@ -485,6 +489,22 @@ async fn a_refresh_answered_with_no_oauth_refusal_reports_its_status() {
             xdk::error::EXIT_GENERAL_ERROR,
             None,
         ),
+        (
+            "a 403 with JSON that holds no `error`",
+            ResponseTemplate::new(403)
+                .set_body_json(json!({"title": "Forbidden", "detail": "blocked by policy"})),
+            "forbidden",
+            xdk::error::EXIT_GENERAL_ERROR,
+            None,
+        ),
+        (
+            "a 404 with JSON whose `error` is an object",
+            ResponseTemplate::new(404)
+                .set_body_json(json!({"error": {"code": 404, "message": "Not Found"}})),
+            "not-found",
+            xdk::error::EXIT_NOT_FOUND,
+            Some("fix-input"),
+        ),
     ] {
         let (code, envelope) = whoami_answered_with(response).await;
         assert_reason(code, &envelope, reason, exit_code);
@@ -510,6 +530,10 @@ async fn a_refused_client_asks_for_the_apps_credentials_to_be_fixed() {
         (
             "invalid_client on a 400",
             oauth_error(400, "invalid_client"),
+        ),
+        (
+            "invalid_client on a 403",
+            oauth_error(403, "invalid_client"),
         ),
         (
             "unauthorized_client",
@@ -638,39 +662,50 @@ async fn a_token_url_that_is_not_a_url_names_it() {
     );
 }
 
-/// An answer that ends before its body did is no answer.
+/// An answer that ends before its body did is no answer, whichever failure
+/// status it came with, so the same command can run again.
 #[tokio::test]
 async fn a_refresh_whose_error_answer_breaks_off_is_a_network_error_that_names_the_refresh() {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
-    let port = listener.local_addr().expect("its address").port();
-    let stub = std::thread::spawn(move || {
-        let (mut stream, _) = listener.accept().expect("the refresh connects");
-        let mut request = Vec::new();
-        let mut buf = [0u8; 4096];
-        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
-            let n = stream.read(&mut buf).expect("read the request");
-            if n == 0 {
-                break;
+    for status_line in [
+        "503 Service Unavailable",
+        "403 Forbidden",
+        "408 Request Timeout",
+    ] {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+        let port = listener.local_addr().expect("its address").port();
+        let answer = format!("HTTP/1.1 {status_line}\r\ncontent-length: 100\r\n\r\npartial");
+        let stub = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("the refresh connects");
+            let mut request = Vec::new();
+            let mut buf = [0u8; 4096];
+            while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                let n = stream.read(&mut buf).expect("read the request");
+                if n == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buf[..n]);
             }
-            request.extend_from_slice(&buf[..n]);
-        }
-        stream
-            .write_all(b"HTTP/1.1 503 Service Unavailable\r\ncontent-length: 100\r\n\r\npartial")
-            .expect("answer in part");
-    });
+            stream.write_all(answer.as_bytes()).expect("answer in part");
+        });
 
-    let (code, envelope) =
-        whoami_refreshing_at(&format!("http://127.0.0.1:{port}/2/oauth2/token")).await;
-    stub.join().expect("the stub ends");
+        let (code, envelope) =
+            whoami_refreshing_at(&format!("http://127.0.0.1:{port}/2/oauth2/token")).await;
+        stub.join().expect("the stub ends");
 
-    assert_reason(
-        code,
-        &envelope,
-        "network-error",
-        xdk::error::EXIT_NETWORK_ERROR,
-    );
-
-    assert_names_the_refresh(&envelope);
+        assert_reason(
+            code,
+            &envelope,
+            "network-error",
+            xdk::error::EXIT_NETWORK_ERROR,
+        );
+        assert_names_the_refresh(&envelope);
+        assert_warns_of_the_refresh(&envelope);
+        assert_eq!(
+            envelope["next_step"],
+            json!({"action": "retry"}),
+            "{status_line}: {envelope}"
+        );
+    }
 }
 
 #[tokio::test]

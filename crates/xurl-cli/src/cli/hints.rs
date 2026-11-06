@@ -1168,7 +1168,11 @@ mod tests {
     #[test]
     fn only_a_failure_that_says_try_again_resumes_the_wait_after_an_upload() {
         let waited = std::time::Duration::from_secs(90);
-        for error in [Error::http("connection reset"), Error::api(503, "{}")] {
+        for error in [
+            Error::http("connection reset"),
+            Error::api(503, "{}"),
+            Error::api(408, "{}"),
+        ] {
             let hint = resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
                 .expect("a resume hint");
             assert_eq!(hint.next_step.action, NextAction::ResumeWait, "{error}");
