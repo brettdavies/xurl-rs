@@ -1,7 +1,7 @@
 args: ["broadcasts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7951
+stdout_len: 7958
 stderr_len: 0
 --- stdout ---
 Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources
@@ -162,7 +162,7 @@ Examples:
   Delete one and its replay, JSON envelope:
     xr broadcasts remove 1YqKDqWqdPLGV --force --no-interactive --output json
   Schedule one, JSON envelope:
-    xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --title "Launch day" --output json
+    xr broadcasts scheduled add --source 9012345678901234567 --start 2026-11-02T16:00:00Z --title "Launch day" --output json
   Who moderates your broadcast chats (text):
     xr broadcasts moderators list
   Add and remove a moderator, JSON envelope:

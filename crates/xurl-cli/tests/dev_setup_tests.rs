@@ -915,3 +915,138 @@ fn the_reader_prints_a_listed_version_and_stops_on_any_other_name() {
 
     assert_eq!(run(&[]).status.code(), Some(2));
 }
+
+/// Runs `scripts/hooks/pre-push` by hand with a stub `cargo` first on PATH, and
+/// returns its output with every cargo call the stub saw, one per line. `answers`
+/// is the body of a shell `case "$*" in ... esac`; any call it does not name exits 0.
+fn run_pre_push_with_cargo(answers: &str) -> (std::process::Output, String) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let calls = dir.path().join("calls");
+    let stub = dir.path().join("cargo");
+    std::fs::write(
+        &stub,
+        format!(
+            "#!/bin/sh\necho \"$*\" >> '{}'\ncase \"$*\" in\n{answers}\nesac\nexit 0\n",
+            calls.display()
+        ),
+    )
+    .expect("write the stub");
+    std::fs::set_permissions(&stub, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+    let inherited = std::env::var_os("PATH").expect("a test has a PATH");
+    let path = std::env::join_paths(
+        std::iter::once(dir.path().to_path_buf()).chain(std::env::split_paths(&inherited)),
+    )
+    .expect("a joinable PATH");
+
+    let output = std::process::Command::new("bash")
+        .arg("scripts/hooks/pre-push")
+        .current_dir(common::workspace_root())
+        .env("PATH", path)
+        .stdin(std::process::Stdio::null())
+        .output()
+        .expect("spawn the hook");
+    let seen = std::fs::read_to_string(&calls).unwrap_or_default();
+    (output, seen)
+}
+
+/// The exit `cargo nextest show-config version` ends with when cargo finds no
+/// nextest, or nextest finds itself older than `.config/nextest.toml` requires.
+#[rstest]
+#[case::missing(101)]
+#[case::too_old(92)]
+#[serial_test::serial]
+fn pre_push_stops_with_the_setup_command_when_nextest_cannot_run(#[case] exit_code: i32) {
+    let (output, calls) = run_pre_push_with_cargo(&format!(
+        "\"nextest show-config version\") echo 'what cargo said' >&2; exit {exit_code} ;;"
+    ));
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "stderr: {stderr}");
+    assert!(
+        stderr.contains("what cargo said")
+            && stderr.contains("pre-push/missing-tool: cargo-nextest")
+            && stderr.contains("scripts/dev-setup.sh")
+            && stderr.contains("(AGENTS.md § pre-push/missing-tool)"),
+        "{stderr}"
+    );
+    assert_eq!(
+        calls, "nextest show-config version\n",
+        "the hook must stop before any other cargo step"
+    );
+}
+
+/// nextest exits 96 on a config it cannot parse. Installing nextest again leaves
+/// the file as it is, so the stop names the file instead.
+#[test]
+#[serial_test::serial]
+fn pre_push_stops_naming_the_file_when_nextest_cannot_parse_its_config() {
+    let (output, calls) = run_pre_push_with_cargo(
+        "\"nextest show-config version\") echo 'TOML parse error at line 2' >&2; exit 96 ;;",
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "stderr: {stderr}");
+    assert!(
+        stderr.contains("TOML parse error at line 2")
+            && stderr.contains("pre-push/nextest-config: .config/nextest.toml")
+            && stderr.contains("(AGENTS.md § pre-push/nextest-config)"),
+        "{stderr}"
+    );
+    assert!(
+        !stderr.contains("pre-push/missing-tool") && !stderr.contains("dev-setup.sh"),
+        "a config nextest cannot parse is not a missing tool: {stderr}"
+    );
+    assert_eq!(
+        calls, "nextest show-config version\n",
+        "the hook must stop before any other cargo step"
+    );
+}
+
+/// nextest exits 10 when it meets the config's required version but not its
+/// recommended one, and prints its own warning. The push goes on to the next step,
+/// which the stub fails so the hook ends there.
+#[test]
+#[serial_test::serial]
+fn pre_push_goes_on_when_nextest_only_recommends_a_newer_release() {
+    let (output, calls) = run_pre_push_with_cargo(
+        "\"nextest show-config version\") echo 'warning: a newer nextest is recommended' >&2; \
+         exit 10 ;;\n\"fmt -- --check\") exit 1 ;;",
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("warning: a newer nextest is recommended"),
+        "the hook must show nextest's warning: {stderr}"
+    );
+    assert!(!stderr.contains("pre-push/"), "{stderr}");
+    assert_eq!(
+        calls, "nextest show-config version\nfmt -- --check\n",
+        "a recommendation must not stop the push"
+    );
+}
+
+/// Every code the hook can stop with has its own heading in AGENTS.md, where the
+/// stop's message points.
+#[test]
+fn every_pre_push_code_has_a_heading_in_agents_md() {
+    let hook = read("scripts/hooks/pre-push");
+    let agents = read("AGENTS.md");
+    let codes: std::collections::BTreeSet<&str> = Regex::new(r"pre-push/[a-z][a-z-]*[a-z]")
+        .expect("a regex")
+        .find_iter(&hook)
+        .map(|found| found.as_str())
+        .collect();
+    assert!(
+        !codes.is_empty(),
+        "scripts/hooks/pre-push names no pre-push/ code"
+    );
+    for code in codes {
+        assert!(
+            agents.contains(&format!("\n### `{code}`\n")),
+            "scripts/hooks/pre-push stops with {code}, and AGENTS.md has no `### `{code}`` heading \
+             for its message to point at"
+        );
+    }
+}

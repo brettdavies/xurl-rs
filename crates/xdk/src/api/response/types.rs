@@ -10,6 +10,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::auth::credentials::REDACTED;
+
 // ── Generic wrapper ─────────────────────────────────────────────────
 
 /// Standard X API v2 response envelope.
@@ -1218,10 +1220,13 @@ pub struct BookmarkFolderPost {
 // ── Broadcast stream sources ────────────────────────────────────────
 
 /// A persistent RTMP and RTMPS ingest point for the account's broadcasts,
-/// as `/2/sources` describes one.
+/// as `/2/sources` lists, reads, and renames one. It carries no stream key. The
+/// answer to creating a source does, and `GET /2/sources/{id}/stream_key` reads
+/// it again.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct StreamSource {
-    /// Source identifier, the `source_id` a scheduled broadcast binds to.
+    /// Source identifier, 19 decimal digits: the `source_id` a broadcast
+    /// binds to. It is not a credential.
     pub id: String,
     /// The label the account gave the source.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1235,10 +1240,6 @@ pub struct StreamSource {
     /// RTMPS ingest URL, on port 443.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rtmps_url: Option<String>,
-    /// The stream key an encoder sends, so whoever holds it can stream to
-    /// the source.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub stream_key: Option<String>,
     /// Whether an encoder is sending video to the source now.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub is_stream_active: Option<bool>,
@@ -1249,6 +1250,103 @@ pub struct StreamSource {
     /// Forward-compatibility bucket for fields the spec adds later.
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
+}
+
+/// What X answers a new stream source with: the source and its stream key,
+/// which no list, read, or rename of the source carries.
+#[derive(Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamSourceCreated {
+    /// Source identifier, 19 decimal digits: the `source_id` a broadcast
+    /// binds to. It is not a credential.
+    pub id: String,
+    /// The stream key an encoder sends, so whoever holds it can stream to
+    /// the source.
+    pub stream_key: String,
+    /// The label the account gave the source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Ingest region, an AWS region name such as `us-east-1`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub region: Option<String>,
+    /// RTMP ingest URL.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rtmp_url: Option<String>,
+    /// RTMPS ingest URL, on port 443.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rtmps_url: Option<String>,
+    /// Whether an encoder is sending video to the source now.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub is_stream_active: Option<bool>,
+    /// When the source was created, in milliseconds since the Unix epoch,
+    /// as a decimal string.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at_ms: Option<String>,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Prints `stream_key` as redacted, because it is a credential.
+impl std::fmt::Debug for StreamSourceCreated {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Every field is named, so one added to the struct fails to compile
+        // here until it is printed or redacted.
+        let Self {
+            id,
+            stream_key: _,
+            name,
+            region,
+            rtmp_url,
+            rtmps_url,
+            is_stream_active,
+            created_at_ms,
+            extra,
+        } = self;
+        f.debug_struct("StreamSourceCreated")
+            .field("id", id)
+            .field("stream_key", &REDACTED)
+            .field("name", name)
+            .field("region", region)
+            .field("rtmp_url", rtmp_url)
+            .field("rtmps_url", rtmps_url)
+            .field("is_stream_active", is_stream_active)
+            .field("created_at_ms", created_at_ms)
+            .field("extra", extra)
+            .finish()
+    }
+}
+
+/// What X answers a request for a stream source's key with. The key is a
+/// credential: whoever holds it can stream to the source.
+#[derive(Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct StreamSourceKey {
+    /// Source identifier, 19 decimal digits: the `source_id` a broadcast
+    /// binds to. It is not a credential.
+    pub id: String,
+    /// The stream key an encoder sends, so whoever holds it can stream to
+    /// the source.
+    pub stream_key: String,
+    /// Forward-compatibility bucket for fields the spec adds later.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// Prints `stream_key` as redacted, because it is a credential.
+impl std::fmt::Debug for StreamSourceKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Every field is named, so one added to the struct fails to compile
+        // here until it is printed or redacted.
+        let Self {
+            id,
+            stream_key: _,
+            extra,
+        } = self;
+        f.debug_struct("StreamSourceKey")
+            .field("id", id)
+            .field("stream_key", &REDACTED)
+            .field("extra", extra)
+            .finish()
+    }
 }
 
 /// What X answers a deleted stream source with.

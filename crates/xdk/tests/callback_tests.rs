@@ -647,15 +647,6 @@ fn listener_accepts(query: &str) -> bool {
     accepted
 }
 
-/// A loopback port nothing listens on.
-fn closed_port() -> u16 {
-    StdTcpListener::bind("127.0.0.1:0")
-        .expect("a loopback port")
-        .local_addr()
-        .expect("its address")
-        .port()
-}
-
 /// Whether headless step 2, resuming a flow that expects
 /// [`STANDARD_ALPHABET_STATE`], gets past its state check for a redirect
 /// carrying `query`. The token endpoint is a closed port, so a step whose
@@ -681,7 +672,9 @@ fn headless_step_accepts(query: &str) -> bool {
     let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = "test-client-id".to_string();
     cfg.client_secret = "test-client-secret".to_string();
-    cfg.token_url = format!("http://127.0.0.1:{}/token", closed_port());
+    // Port 1 sits below every port a test binds: a port-0 bind draws from the
+    // ephemeral range, and `band_port` from 20000 to 32767.
+    cfg.token_url = "http://127.0.0.1:1/token".to_string();
     let mut auth =
         Auth::new_with_store_path_and_overrides(&cfg, &store_path, &EnvOverrides::default());
 

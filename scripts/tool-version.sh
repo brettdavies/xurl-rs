@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
 # Prints the version .github/tool-versions names for one tool. CI's install steps
-# read through here so a name the list lacks stops the step, where a bare `sed`
-# would hand the installer an empty version and exit 0.
+# read through here so a name the list lacks stops the step: a bare sed exits 0
+# with nothing, which a job output passes along silently and an installer rejects
+# in its own words.
 #
 # Exit codes: 0 = printed, 1 = the list names no such tool, 2 = usage.
 set -euo pipefail

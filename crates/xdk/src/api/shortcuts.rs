@@ -23,9 +23,9 @@ use super::response::types::{
     MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
     Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
     ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
-    StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
+    StreamSourceKey, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -3751,7 +3751,9 @@ impl Client {
         )
     }
 
-    /// Lists the authenticated user's RTMP and RTMPS stream sources.
+    /// Lists the authenticated user's RTMP and RTMPS stream sources. The
+    /// answer carries no stream keys; [`Client::get_stream_source_key`] reads
+    /// one.
     pub fn get_stream_sources(&self) -> Call<ApiResponse<Vec<StreamSource>>> {
         self.call(
             endpoints::GET_STREAM_SOURCES.method,
@@ -3765,12 +3767,13 @@ impl Client {
 
     /// Creates a stream source named `name` that ingests in `region`, such
     /// as `us-east-1`. An encoder streams to its `rtmps_url` with its
-    /// `stream_key`.
+    /// `stream_key`. No list, read, or rename carries the key; use
+    /// [`Client::get_stream_source_key`] to read it again.
     pub fn create_stream_source(
         &self,
         name: &str,
         region: &str,
-    ) -> Call<ApiResponse<StreamSource>> {
+    ) -> Call<ApiResponse<StreamSourceCreated>> {
         self.post_json(
             template(
                 endpoints::CREATE_STREAM_SOURCE.path,
@@ -3785,12 +3788,27 @@ impl Client {
     }
 
     /// Reads one of the authenticated user's stream sources, including
-    /// whether it is receiving video.
+    /// whether it is receiving video. The answer carries no stream key;
+    /// [`Client::get_stream_source_key`] reads it.
     pub fn get_stream_source(&self, source_id: &str) -> Call<ApiResponse<StreamSource>> {
         self.call(
             endpoints::GET_STREAM_SOURCE.method,
             template(
                 endpoints::GET_STREAM_SOURCE.path,
+                id_param(source_id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Reads the stream key of one of the authenticated user's stream
+    /// sources. The key is a credential: whoever holds it can stream to the
+    /// source, so keep it out of logs, URLs, and client-side code.
+    pub fn get_stream_source_key(&self, source_id: &str) -> Call<ApiResponse<StreamSourceKey>> {
+        self.call(
+            endpoints::GET_STREAM_SOURCE_KEY.method,
+            template(
+                endpoints::GET_STREAM_SOURCE_KEY.path,
                 id_param(source_id),
                 Vec::new(),
             ),

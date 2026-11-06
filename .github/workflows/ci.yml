@@ -1,7 +1,8 @@
 # Source repo CI wrapper — calls the centralized reusable workflow.
 #
-# The reusable workflow runs: fmt, clippy, test, cargo-deny check, package check,
-# Windows dep check, and changelog verification (on PRs to main).
+# The reusable workflow runs: fmt and clippy, the tests under nextest, cargo-deny
+# check, package check, Windows dep check, and changelog verification (on PRs to
+# main).
 # No secrets required — only needs contents: read and pull-requests: read.
 #
 # Checks run on pull requests: merges to main and dev are squash merges, so the
@@ -114,15 +115,26 @@ jobs:
       # colour matches what a human scanning the Actions tab should act on.
       advisories_blocking: true
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
+      test_runner: nextest
+      nextest_version: ${{ needs.scope.outputs.nextest_version }}
+      # Running the tests outweighs a second build: on warm caches the slower of
+      # two jobs took 200 to 231 s against 244 to 306 s for one job, for about half
+      # again the runner time.
+      test_partitions: 2
 
   # A job of its own so its checks report as `warm / <job>`, never under a
   # required `ci / <job>` name. rust-cache keys on the reusable's job ids, not
-  # this caller's, so these caches are the ones the `ci` call restores.
+  # this caller's, so these caches are the ones the `ci` call restores, as long as
+  # both calls choose the same runner. Every partition compiles the same binaries
+  # under one key, so this call needs only one.
   warm:
-    if: github.event_name != 'pull_request'
+    needs: scope
+    if: ${{ !cancelled() && github.event_name != 'pull_request' }}
     uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
     with:
       warm_cache: true
+      test_runner: nextest
+      nextest_version: ${{ needs.scope.outputs.nextest_version }}
 
   # actionlint + markdownlint from the org reusable. The markdownlint glob set
   # matches scripts/hooks/pre-push step 10 verbatim, so the hook and this job

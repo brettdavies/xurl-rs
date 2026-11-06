@@ -2973,6 +2973,7 @@
             "type": "string"
           },
           "source_id": {
+            "description": "Id of the source the broadcast streams from, as returned by GET /2/sources.",
             "type": "string"
           },
           "start_ms": {
@@ -3626,6 +3627,31 @@
         },
         "type": "array"
       },
+      "ChatPermissionsUnavailableProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/chat-permissions-unavailable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
       "ChatPinnedMessage": {
         "properties": {
           "encoded_event": {
@@ -4032,6 +4058,10 @@
             "minLength": 5,
             "pattern": "^[A-Za-z0-9_]{5,15}$",
             "type": "string"
+          },
+          "org_only": {
+            "description": "Whether only members of the bot's developer account can add it to group chats. An org-only bot has no public profile and doesn't appear in public search. Defaults to false. Applies only when the request creates the bot: a handle that already names one of the project's bots keeps that bot's setting.",
+            "type": "boolean"
           },
           "scopes": {
             "description": "Scopes for the bot's bearer token. Broadcast moderation additionally supports broadcast.read and broadcast.write. Defaults to the XChat scope set (dm.read, dm.write, tweet.read, users.read, media.write).",
@@ -5751,7 +5781,7 @@
             "type": "string"
           },
           "source_id": {
-            "description": "Ingest / source id to bind (same as sources `rtmp_stream_key`).",
+            "description": "Source to bind: a source's `id` from GET /2/sources. A stream key is also accepted but deprecated; stream keys stop being accepted when the /2/users/:id/sources and /2/users/:id/broadcasts routes reach end of life on January 1, 2027.",
             "minLength": 1,
             "type": "string"
           },
@@ -5833,7 +5863,7 @@
             "type": "string"
           },
           "source_id": {
-            "description": "Bound ingest / source id (`rtmp_stream_key`).",
+            "description": "Id of the bound source, as returned by GET /2/sources. Omitted when unknown.",
             "type": "string"
           },
           "state": {
@@ -5896,7 +5926,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Source id; the `source_id` a scheduled broadcast binds to. Currently equal to `stream_key`.",
+            "description": "Source id, 19 decimal digits; the `source_id` that POST /2/broadcasts and scheduled broadcasts take. Not a credential: read the stream key with GET /2/sources/:id/stream_key.",
             "type": "string"
           },
           "is_stream_active": {
@@ -5916,7 +5946,7 @@
             "type": "string"
           },
           "rtmps_url": {
-            "description": "RTMPS ingest URL (port 443). Configure your encoder with this URL and `stream_key`.",
+            "description": "RTMPS ingest URL (port 443). Configure your encoder with this URL and the source's stream key.",
             "type": "string"
           },
           "stream_key": {
@@ -5925,7 +5955,8 @@
           }
         },
         "required": [
-          "id"
+          "id",
+          "stream_key"
         ],
         "type": "object"
       },
@@ -9278,6 +9309,31 @@
         },
         "type": "object"
       },
+      "EncryptionRequiredProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/encryption-required"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
       "EnsureAccountRequest": {
         "properties": {
           "metadata": {
@@ -11301,7 +11357,7 @@
             "type": "string"
           },
           "source_id": {
-            "description": "Bound ingest / source id (`rtmp_stream_key`).",
+            "description": "Id of the bound source, as returned by GET /2/sources. Omitted when unknown.",
             "type": "string"
           },
           "state": {
@@ -11361,7 +11417,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Source id; the `source_id` a scheduled broadcast binds to. Currently equal to `stream_key`.",
+            "description": "Source id, 19 decimal digits; the `source_id` that POST /2/broadcasts and scheduled broadcasts take. Not a credential: read the stream key with GET /2/sources/:id/stream_key.",
             "type": "string"
           },
           "is_stream_active": {
@@ -11381,7 +11437,33 @@
             "type": "string"
           },
           "rtmps_url": {
-            "description": "RTMPS ingest URL (port 443). Configure your encoder with this URL and `stream_key`.",
+            "description": "RTMPS ingest URL (port 443). Configure your encoder with this URL and the source's stream key.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "GetSourceStreamKeyResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetSourceStreamKeyResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetSourceStreamKeyResponseData": {
+        "properties": {
+          "id": {
+            "description": "Source id.",
             "type": "string"
           },
           "stream_key": {
@@ -11390,7 +11472,8 @@
           }
         },
         "required": [
-          "id"
+          "id",
+          "stream_key"
         ],
         "type": "object"
       },
@@ -12878,7 +12961,7 @@
             "type": "string"
           },
           "source_id": {
-            "description": "Bound ingest / source id (`rtmp_stream_key`).",
+            "description": "Id of the bound source, as returned by GET /2/sources. Omitted when unknown.",
             "type": "string"
           },
           "state": {
@@ -13531,7 +13614,7 @@
             "type": "string"
           },
           "source_id": {
-            "description": "Bound ingest / source id (`rtmp_stream_key`).",
+            "description": "Id of the bound source, as returned by GET /2/sources. Omitted when unknown.",
             "type": "string"
           },
           "state": {
@@ -13617,7 +13700,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Source id; the `source_id` a scheduled broadcast binds to. Currently equal to `stream_key`.",
+            "description": "Source id, 19 decimal digits; the `source_id` that POST /2/broadcasts and scheduled broadcasts take. Not a credential: read the stream key with GET /2/sources/:id/stream_key.",
             "type": "string"
           },
           "is_stream_active": {
@@ -13637,11 +13720,7 @@
             "type": "string"
           },
           "rtmps_url": {
-            "description": "RTMPS ingest URL (port 443). Configure your encoder with this URL and `stream_key`.",
-            "type": "string"
-          },
-          "stream_key": {
-            "description": "Stream key. A credential: anyone with it can stream to the source.",
+            "description": "RTMPS ingest URL (port 443). Configure your encoder with this URL and the source's stream key.",
             "type": "string"
           }
         },
@@ -14607,6 +14686,31 @@
           "type": "object"
         },
         "type": "array"
+      },
+      "MessageRequestNotSupportedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/message-request-not-supported"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
       },
       "MuteBroadcastChatUserRequest": {
         "additionalProperties": false,
@@ -16685,6 +16789,7 @@
           "mapping": {
             "https://api.twitter.com/2/problems/duplicate-rules": "#/components/schemas/DuplicateRuleProblem",
             "https://api.twitter.com/2/problems/invalid-rules": "#/components/schemas/InvalidRuleProblem",
+            "https://api.x.com/2/problems/chat-permissions-unavailable": "#/components/schemas/ChatPermissionsUnavailableProblem",
             "https://api.x.com/2/problems/disallowed-resource": "#/components/schemas/DisallowedResourceProblem",
             "https://api.x.com/2/problems/dm-bad-attachment": "#/components/schemas/DmBadAttachmentProblem",
             "https://api.x.com/2/problems/dm-bad-cta": "#/components/schemas/DmBadCtaProblem",
@@ -16729,15 +16834,20 @@
             "https://api.x.com/2/problems/dm-too-few-participants": "#/components/schemas/DmTooFewParticipantsProblem",
             "https://api.x.com/2/problems/dm-too-many-participants": "#/components/schemas/DmTooManyParticipantsProblem",
             "https://api.x.com/2/problems/dm-unsupported-message": "#/components/schemas/DmUnsupportedMessageProblem",
+            "https://api.x.com/2/problems/encryption-required": "#/components/schemas/EncryptionRequiredProblem",
             "https://api.x.com/2/problems/field-hydration-failure": "#/components/schemas/FieldHydrationFailureProblem",
             "https://api.x.com/2/problems/field-unauthorized": "#/components/schemas/FieldUnauthorizedProblem",
             "https://api.x.com/2/problems/internal-error": "#/components/schemas/InternalErrorProblem",
             "https://api.x.com/2/problems/invalid-request": "#/components/schemas/InvalidRequestProblem",
+            "https://api.x.com/2/problems/message-request-not-supported": "#/components/schemas/MessageRequestNotSupportedProblem",
             "https://api.x.com/2/problems/not-authorized-for-field": "#/components/schemas/NotAuthorizedForFieldProblem",
             "https://api.x.com/2/problems/not-authorized-for-resource": "#/components/schemas/NotAuthorizedForResourceProblem",
             "https://api.x.com/2/problems/recipient-not-messageable": "#/components/schemas/RecipientNotMessageableProblem",
+            "https://api.x.com/2/problems/recipient-xchat-setup-required": "#/components/schemas/RecipientXchatSetupRequiredProblem",
             "https://api.x.com/2/problems/resource-not-found": "#/components/schemas/ResourceNotFoundProblem",
-            "https://api.x.com/2/problems/resource-unavailable": "#/components/schemas/ResourceUnavailableProblem"
+            "https://api.x.com/2/problems/resource-unavailable": "#/components/schemas/ResourceUnavailableProblem",
+            "https://api.x.com/2/problems/unencrypted-send-not-allowed": "#/components/schemas/UnencryptedSendNotAllowedProblem",
+            "https://api.x.com/2/problems/xchat-setup-required": "#/components/schemas/XchatSetupRequiredProblem"
           },
           "propertyName": "type"
         },
@@ -16771,6 +16881,24 @@
           },
           {
             "$ref": "#/components/schemas/InternalErrorProblem"
+          },
+          {
+            "$ref": "#/components/schemas/ChatPermissionsUnavailableProblem"
+          },
+          {
+            "$ref": "#/components/schemas/EncryptionRequiredProblem"
+          },
+          {
+            "$ref": "#/components/schemas/MessageRequestNotSupportedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/RecipientXchatSetupRequiredProblem"
+          },
+          {
+            "$ref": "#/components/schemas/UnencryptedSendNotAllowedProblem"
+          },
+          {
+            "$ref": "#/components/schemas/XchatSetupRequiredProblem"
           },
           {
             "$ref": "#/components/schemas/DmBadAttachmentProblem"
@@ -16960,6 +17088,31 @@
           "type": {
             "enum": [
               "https://api.x.com/2/problems/recipient-not-messageable"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
+      },
+      "RecipientXchatSetupRequiredProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/recipient-xchat-setup-required"
             ],
             "type": "string"
           }
@@ -18602,7 +18755,7 @@
         "properties": {
           "content": {
             "$ref": "#/components/schemas/SendChatMessageContent",
-            "description": "Plaintext message or reaction, sent unencrypted. Set exactly one of `message`, `reaction_add`, or `reaction_remove`. Omit when sending `encoded_message_create_event`."
+            "description": "Plaintext message or reaction, sent unencrypted. Only accepted for a 1:1 conversation that can't be encrypted because one of the two users has connected an enterprise app that reads their DMs. Set exactly one of `message`, `reaction_add`, or `reaction_remove`. Omit when sending `encoded_message_create_event`."
           },
           "conversation_token": {
             "description": "Optional conversation token.",
@@ -19268,6 +19421,31 @@
         },
         "required": [
           "blocked"
+        ],
+        "type": "object"
+      },
+      "UnencryptedSendNotAllowedProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/unencrypted-send-not-allowed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
         ],
         "type": "object"
       },
@@ -21007,7 +21185,7 @@
             "type": "string"
           },
           "source_id": {
-            "description": "Ingest / source id.",
+            "description": "Source to bind: a source's `id` from GET /2/sources. A stream key is also accepted but deprecated; stream keys stop being accepted when the /2/users/:id/sources and /2/users/:id/broadcasts routes reach end of life on January 1, 2027.",
             "type": "string"
           },
           "thumbnail_media_id": {
@@ -21084,7 +21262,7 @@
             "type": "string"
           },
           "source_id": {
-            "description": "Bound ingest / source id (`rtmp_stream_key`).",
+            "description": "Id of the bound source, as returned by GET /2/sources. Omitted when unknown.",
             "type": "string"
           },
           "state": {
@@ -21269,7 +21447,7 @@
             "type": "string"
           },
           "id": {
-            "description": "Source id; the `source_id` a scheduled broadcast binds to. Currently equal to `stream_key`.",
+            "description": "Source id, 19 decimal digits; the `source_id` that POST /2/broadcasts and scheduled broadcasts take. Not a credential: read the stream key with GET /2/sources/:id/stream_key.",
             "type": "string"
           },
           "is_stream_active": {
@@ -21289,11 +21467,7 @@
             "type": "string"
           },
           "rtmps_url": {
-            "description": "RTMPS ingest URL (port 443). Configure your encoder with this URL and `stream_key`.",
-            "type": "string"
-          },
-          "stream_key": {
-            "description": "Stream key. A credential: anyone with it can stream to the source.",
+            "description": "RTMPS ingest URL (port 443). Configure your encoder with this URL and the source's stream key.",
             "type": "string"
           }
         },
@@ -22669,6 +22843,31 @@
         "description": "Unique identifier of a WebhookConfig",
         "pattern": "^[0-9]{1,19}$",
         "type": "string"
+      },
+      "XchatSetupRequiredProblem": {
+        "properties": {
+          "detail": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "https://api.x.com/2/problems/xchat-setup-required"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "detail"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -24580,7 +24779,7 @@
         ]
       },
       "post": {
-        "description": "Schedules a broadcast for the authenticated user. A `source_id` (ingest) is required at create time.",
+        "description": "Schedules a broadcast for the authenticated user on one of their sources: `source_id` is required. Passing a stream key as `source_id` is deprecated and stops working when the /2/users/:id/sources and /2/users/:id/broadcasts routes reach end of life on January 1, 2027; pass the source's `id` from GET /2/sources instead.",
         "operationId": "createScheduledBroadcast",
         "requestBody": {
           "content": {
@@ -24763,7 +24962,7 @@
         ]
       },
       "put": {
-        "description": "Updates a scheduled broadcast. Path `:id` is the broadcast id; the body must include `scheduled_broadcast_id`. Re-send every field that should be kept.",
+        "description": "Updates a scheduled broadcast. Path `:id` is the broadcast id; the body must include `scheduled_broadcast_id`. Re-send every field that should be kept. Passing a stream key as `source_id` is deprecated and stops working when the /2/users/:id/sources and /2/users/:id/broadcasts routes reach end of life on January 1, 2027; pass the source's `id` from GET /2/sources instead.",
         "operationId": "updateScheduledBroadcast",
         "parameters": [
           {
@@ -28205,7 +28404,7 @@
     },
     "/2/chat/conversations/{id}/messages": {
       "post": {
-        "description": "Sends a message or reaction to a specific Chat conversation. Send either `encoded_message_create_event`, an encrypted event built with the Chat XDK, or `content`, a plaintext message or reaction that is sent unencrypted. Use the recipient's `receives_your_chat` user field to choose: `encrypted` takes `encoded_message_create_event`, `unencrypted` takes `content`, and `none` means the recipient cannot be messaged. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. A recipient who cannot be messaged (closed inbox, system/notification account, or a 1:1 block) returns HTTP 403 with type https://api.x.com/2/problems/recipient-not-messageable.",
+        "description": "Sends a message or reaction to a specific Chat conversation. Send `encoded_message_create_event`, an end-to-end encrypted event built with the Chat XDK. `content`, a plaintext message or reaction sent unencrypted, is only a fallback for a 1:1 conversation that X Chat can't encrypt because one of the two users has connected an enterprise app that reads their DMs; check that the recipient's `receives_your_chat` user field is `unencrypted` before using it. Otherwise a `content` send is refused, and retrying it won't help: HTTP 400 https://api.x.com/2/problems/encryption-required when the conversation can be encrypted or is a group (send `encoded_message_create_event` instead), 400 https://api.x.com/2/problems/xchat-setup-required when you haven't set up X Chat, 400 https://api.x.com/2/problems/recipient-xchat-setup-required when the recipient hasn't, and 403 https://api.x.com/2/problems/message-request-not-supported when it would be a message request. HTTP 503 https://api.x.com/2/problems/chat-permissions-unavailable means the check failed and nothing was sent; retry it. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. A recipient who cannot be messaged (closed inbox, system/notification account, or a 1:1 block) returns HTTP 403 with type https://api.x.com/2/problems/recipient-not-messageable.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -33757,7 +33956,7 @@
     },
     "/2/sources": {
       "get": {
-        "description": "Returns the authenticated user's RTMP/RTMPS stream sources. A source's `id` is the `source_id` a scheduled broadcast binds to.",
+        "description": "Returns the authenticated user's RTMP/RTMPS stream sources. A source's `id` is the `source_id` that POST /2/broadcasts and scheduled broadcasts take. Stream keys are not included; read one with GET /2/sources/:id/stream_key.",
         "operationId": "listSources",
         "responses": {
           "200": {
@@ -33802,7 +34001,7 @@
         ]
       },
       "post": {
-        "description": "Creates a persistent RTMP/RTMPS ingest point for the authenticated user. Push an encoder to `rtmps_url` with the source's stream key.",
+        "description": "Creates a persistent RTMP/RTMPS ingest point for the authenticated user. Push an encoder to `rtmps_url` with the returned `stream_key`. This is the only response that includes the stream key; read it later with GET /2/sources/:id/stream_key.",
         "operationId": "createSource",
         "requestBody": {
           "content": {
@@ -33864,11 +34063,12 @@
         "operationId": "deleteSource",
         "parameters": [
           {
+            "description": "Source id, from GET /2/sources.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "pattern": "^9[0-2][0-9]{17}$",
               "type": "string"
             },
             "style": "simple"
@@ -33918,15 +34118,16 @@
         ]
       },
       "get": {
-        "description": "Returns one of the authenticated user's stream sources.",
+        "description": "Returns one of the authenticated user's stream sources. Poll it after starting an encoder and wait for `is_stream_active` before going live. The stream key is not included; read it with GET /2/sources/:id/stream_key.",
         "operationId": "getSource",
         "parameters": [
           {
+            "description": "Source id, from GET /2/sources.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "pattern": "^9[0-2][0-9]{17}$",
               "type": "string"
             },
             "style": "simple"
@@ -33979,11 +34180,12 @@
         "operationId": "updateSource",
         "parameters": [
           {
+            "description": "Source id, from GET /2/sources.",
             "in": "path",
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,32}$",
+              "pattern": "^9[0-2][0-9]{17}$",
               "type": "string"
             },
             "style": "simple"
@@ -34038,6 +34240,67 @@
           }
         ],
         "summary": "Rename a Stream Source",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/sources/{id}/stream_key": {
+      "get": {
+        "description": "Returns the stream key of one of the authenticated user's stream sources. The stream key is a credential: anyone with it can stream to the source, so keep it out of logs, URLs and client-side code.",
+        "operationId": "getSourceStreamKey",
+        "parameters": [
+          {
+            "description": "Source id, from GET /2/sources.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^9[0-2][0-9]{17}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetSourceStreamKeyResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get a Stream Source's Stream Key",
         "tags": [
           "Broadcasts"
         ]
