@@ -26,16 +26,20 @@ use crate::cli::classify::{ROOT_COMMAND, requested_login};
 /// At most one of [`Self::command`] and [`Self::template`] is present: a
 /// command is a verbatim invocation safe for a non-TTY caller, while a
 /// template is one the caller finishes or decides on before running it. It
-/// carries angle-bracket placeholders to fill in, or, under
-/// [`NextAction::Confirm`], the invocation that destroys once it runs. A
-/// step with neither names an action that is not an `xr` invocation, with
-/// `docs` when a page covers it: [`NextAction::EnrollApp`],
-/// [`NextAction::WaitAndRetry`], [`NextAction::Retry`],
-/// [`NextAction::FixInput`], [`NextAction::ReportIssue`], and
-/// [`NextAction::InspectStore`] when the command that failed is the one
-/// that reports on the store. Four [`NextAction::FixInput`] steps carry an
-/// invocation: [`Self::listen_on_free_port`], [`Self::fix_input_with`],
-/// [`Self::fix_input_template`], and [`Self::step_two_again`].
+/// carries angle-bracket placeholders to fill in; under
+/// [`NextAction::Confirm`], the invocation that destroys once it runs; or,
+/// after a 401 or a 429 with no reset on the status read after `xr media
+/// upload`, the resumed wait to run once the credential works or the window
+/// passes. A step with neither names an action
+/// that is not an `xr` invocation, with `docs` when a page covers it:
+/// [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`] except on that
+/// status read, [`NextAction::Retry`], [`NextAction::FixInput`],
+/// [`NextAction::ReportIssue`], and [`NextAction::InspectStore`] when the
+/// command that failed is the one that reports on the store. Five
+/// [`NextAction::FixInput`] steps carry an invocation:
+/// [`Self::listen_on_free_port`], [`Self::fix_input_with`],
+/// [`Self::fix_input_template`], [`Self::step_two_again`], and the one
+/// [`resume_after_upload_hint`] gives a 401.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -44,7 +48,7 @@ pub struct NextStep {
     /// A runnable invocation, when one exists.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
-    /// A placeholder invocation, when the caller must supply values.
+    /// An invocation the caller finishes or decides on before running it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
     /// Documentation URL, when a recipe exists.
@@ -253,27 +257,7 @@ impl NextStep {
     /// one.
     #[must_use]
     pub fn resume_wait(media_id: &str, secs: u64, credential: &MediaCredential) -> Self {
-        let mut words = vec![ROOT_COMMAND.to_string()];
-        if let Some(app) = non_empty(credential.app.as_deref()) {
-            words.extend(["--app".to_string(), quote_app_name(app)]);
-        }
-        words.extend([
-            "media".to_string(),
-            "status".to_string(),
-            shell_word(media_id),
-            format!("--wait={secs}"),
-        ]);
-        if let Some(auth) = non_empty(credential.auth.as_deref()) {
-            words.extend(["--auth".to_string(), shell_word(auth)]);
-        }
-        if let Some(login) = non_empty(credential.username.as_deref()) {
-            words.extend(["-u".to_string(), shell_word(login)]);
-        }
-        for header in &credential.headers {
-            words.extend(["-H".to_string(), shell_word(&hidden_header(header))]);
-        }
-        let invocation = words.join(" ");
-        let hid_a_value = !credential.headers.is_empty();
+        let (invocation, hid_a_value) = resume_invocation(media_id, secs, credential, None);
         Self {
             action: NextAction::ResumeWait,
             command: (!hid_a_value).then(|| invocation.clone()),
@@ -660,14 +644,22 @@ pub fn resume_wait_hint(error: &Error, credential: &MediaCredential) -> Option<H
     ))
 }
 
-/// Builds the resume hint when a request that says "try again" failed during
-/// the wait after an upload finished. The request that failed was a status
-/// read, so what to run again is the wait: running the command again would send
-/// the whole file, which X bills for again.
+/// Builds the hint for a status read that failed during the wait after an
+/// upload finished. What to run again is the wait, never the command: running
+/// the upload again would send the whole file, which X bills for again.
 ///
-/// The command waits as long as the wait that failed, whose deadline had not
-/// run out, and the step keeps the page the error names. A step that says
-/// more, such as when a rate limit resets, stays.
+/// The resumed wait lasts as long as the wait that failed, whose deadline had
+/// not run out, and the step keeps the page the error names.
+///
+/// - A failure that says "try again" resumes the wait.
+/// - A 429 keeps `wait-and-retry`, which says to wait for the window first,
+///   with the resumed wait as what to send again. When X named its reset, the
+///   wait runs under `--wait-on-rate-limit` with the time left as its ceiling,
+///   a command safe to run at once. When X named none, it is a template to run
+///   once the window passes, under the command's own rate-limit wait.
+/// - A 401 fails the same way until the credential changes, which no `xr`
+///   command does: `fix-input`, with the resumed wait as a template to run
+///   once the credential works.
 #[must_use]
 pub fn resume_after_upload_hint(
     error: &Error,
@@ -675,11 +667,114 @@ pub fn resume_after_upload_hint(
     waited: std::time::Duration,
     credential: &MediaCredential,
 ) -> Option<Hint> {
-    (error.next_action() == Some(NextAction::Retry)).then(|| {
+    let docs = error.docs_url().map(str::to_string);
+    if error.next_action() == Some(NextAction::Retry) {
         let mut hint = resume_hint(media_id, waited.as_secs(), credential);
-        hint.next_step.docs = error.docs_url().map(str::to_string);
-        hint
-    })
+        hint.next_step.docs = docs;
+        return Some(hint);
+    }
+    let Error::Api {
+        status, reset_at, ..
+    } = error
+    else {
+        return None;
+    };
+    match status {
+        429 => {
+            let (rate_limit, lead) = match reset_at {
+                Some(reset_at) => {
+                    let (retry_after_secs, retry_at) = crate::cli::output::retry_times(*reset_at);
+                    (
+                        Some(retry_after_secs),
+                        format!(
+                            "Rate limited until {retry_at}. The upload is intact; this waits the {retry_after_secs} seconds left, then resumes the wait. Run:"
+                        ),
+                    )
+                }
+                None => (
+                    credential.rate_limit_max_wait,
+                    "Rate limited, and X named no reset. The upload is intact; once the window passes, resume the wait:".to_string(),
+                ),
+            };
+            let (invocation, hid_a_value) =
+                resume_invocation(media_id, waited.as_secs(), credential, rate_limit);
+            let runnable = reset_at.is_some() && !hid_a_value;
+            Some(Hint {
+                text_lines: with_docs_line(format!("{lead} {invocation}"), docs.as_deref()),
+                next_step: NextStep {
+                    action: NextAction::WaitAndRetry,
+                    command: runnable.then(|| invocation.clone()),
+                    template: (!runnable).then_some(invocation),
+                    docs,
+                },
+            })
+        }
+        401 => {
+            let resume = NextStep::resume_wait(media_id, waited.as_secs(), credential);
+            let invocation = resume.display_invocation().unwrap_or_default().to_string();
+            Some(Hint {
+                text_lines: with_docs_line(
+                    format!(
+                        "X refused the credential. The upload is intact and X keeps the media id for 24 hours; once the credential works, resume the wait: {invocation}"
+                    ),
+                    docs.as_deref(),
+                ),
+                next_step: NextStep {
+                    action: NextAction::FixInput,
+                    command: None,
+                    template: Some(invocation),
+                    docs,
+                },
+            })
+        }
+        _ => None,
+    }
+}
+
+/// The wait on `media_id` again, for `secs` seconds, under the credential
+/// `credential` names, and whether it hid a `-H` value. `rate_limit` adds
+/// `--wait-on-rate-limit` with that ceiling in seconds, so a 429 the read
+/// meets is waited out inside `xr`.
+fn resume_invocation(
+    media_id: &str,
+    secs: u64,
+    credential: &MediaCredential,
+    rate_limit: Option<u64>,
+) -> (String, bool) {
+    let mut words = vec![ROOT_COMMAND.to_string()];
+    if let Some(app) = non_empty(credential.app.as_deref()) {
+        words.extend(["--app".to_string(), quote_app_name(app)]);
+    }
+    if let Some(max_wait) = rate_limit {
+        words.extend([
+            "--wait-on-rate-limit".to_string(),
+            format!("--rate-limit-max-wait={max_wait}"),
+        ]);
+    }
+    words.extend([
+        "media".to_string(),
+        "status".to_string(),
+        shell_word(media_id),
+        format!("--wait={secs}"),
+    ]);
+    if let Some(auth) = non_empty(credential.auth.as_deref()) {
+        words.extend(["--auth".to_string(), shell_word(auth)]);
+    }
+    if let Some(login) = non_empty(credential.username.as_deref()) {
+        words.extend(["-u".to_string(), shell_word(login)]);
+    }
+    for header in &credential.headers {
+        words.extend(["-H".to_string(), shell_word(&hidden_header(header))]);
+    }
+    (words.join(" "), !credential.headers.is_empty())
+}
+
+/// The hint's line, then the docs on a line of their own, so the invocation
+/// the first line ends with copies without them.
+fn with_docs_line(line: String, docs: Option<&str>) -> Vec<String> {
+    std::iter::once(line)
+        .chain(docs.map(|docs| format!("See: {docs}")))
+        .collect()
 }
 
 fn resume_hint(media_id: &str, secs: u64, credential: &MediaCredential) -> Hint {
@@ -1102,7 +1197,8 @@ fn non_empty(value: Option<&str>) -> Option<&str> {
 /// The credential words of a media command that waits on processing: the
 /// `--app` it ran under and its own `--auth`, `-u`, and `-H`, as clap parsed
 /// them. A step that waits again repeats them, so its read goes out under the
-/// same credential.
+/// same credential. The step after a 429 with no reset also repeats the
+/// rate-limit wait the command ran under.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct MediaCredential {
     /// The app `--app` or `XURL_APP` named.
@@ -1113,6 +1209,8 @@ pub struct MediaCredential {
     pub username: Option<String>,
     /// Each `-H` header, as given.
     pub headers: Vec<String>,
+    /// The `--rate-limit-max-wait` ceiling, when `--wait-on-rate-limit` was on.
+    pub rate_limit_max_wait: Option<u64>,
 }
 
 /// Quotes one argument of a rebuilt invocation when a shell would split it.
@@ -1155,6 +1253,7 @@ mod tests {
             auth: Some("oauth2".to_string()),
             username: Some("al ice".to_string()),
             headers: vec!["no colon here".to_string()],
+            rate_limit_max_wait: None,
         };
         let step = NextStep::resume_wait("777", 30, &credential);
         assert_eq!(step.action, NextAction::ResumeWait);
@@ -1166,11 +1265,12 @@ mod tests {
     }
 
     #[test]
-    fn only_a_failure_that_says_try_again_resumes_the_wait_after_an_upload() {
+    fn each_failure_of_the_read_after_an_upload_gets_the_step_that_fits_it() {
         let waited = std::time::Duration::from_secs(90);
+        let none = MediaCredential::default();
         for error in [Error::http("connection reset"), Error::api(503, "{}")] {
-            let hint = resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
-                .expect("a resume hint");
+            let hint =
+                resume_after_upload_hint(&error, "777", waited, &none).expect("a resume hint");
             assert_eq!(hint.next_step.action, NextAction::ResumeWait, "{error}");
             assert_eq!(
                 hint.next_step.command.as_deref(),
@@ -1179,13 +1279,42 @@ mod tests {
             );
             assert_eq!(hint.next_step.docs.as_deref(), error.docs_url(), "{error}");
         }
-        for error in [Error::api(401, "{}"), Error::api(404, "{}")] {
-            assert!(
-                resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
-                    .is_none(),
-                "{error}"
-            );
-        }
+        let limited = resume_after_upload_hint(&Error::api(429, "{}"), "777", waited, &none)
+            .expect("a step for a 429");
+        assert_eq!(limited.next_step.action, NextAction::WaitAndRetry);
+        assert_eq!(
+            limited.next_step.command, None,
+            "no reset says when the window passes"
+        );
+        assert_eq!(
+            limited.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90")
+        );
+        let waiting = MediaCredential {
+            rate_limit_max_wait: Some(5),
+            ..MediaCredential::default()
+        };
+        assert_eq!(
+            resume_after_upload_hint(&Error::api(429, "{}"), "777", waited, &waiting)
+                .expect("a step for a 429")
+                .next_step
+                .template
+                .as_deref(),
+            Some("xr --wait-on-rate-limit --rate-limit-max-wait=5 media status 777 --wait=90"),
+            "the upload's own rate-limit wait carries over"
+        );
+        let refused = resume_after_upload_hint(&Error::api(401, "{}"), "777", waited, &none)
+            .expect("a step for a 401");
+        assert_eq!(refused.next_step.action, NextAction::FixInput);
+        assert_eq!(refused.next_step.command, None, "never a command");
+        assert_eq!(
+            refused.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90")
+        );
+        assert!(
+            resume_after_upload_hint(&Error::api(404, "{}"), "777", waited, &none).is_none(),
+            "a 404 keeps its own step"
+        );
     }
 
     #[test]
