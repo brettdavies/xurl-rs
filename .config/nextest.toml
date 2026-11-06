@@ -1,0 +1,27 @@
+# cargo-nextest runs the tests, locally and in CI's `Tests` jobs.
+# crates/xurl-cli/tests/nextest_config_guard.rs holds every profile to two rules:
+# a retry never turns a test green, and a hung test is ended and named.
+
+# The release .github/tool-versions names, which scripts/dev-setup.sh installs and
+# CI's `Tests` jobs run, so a local run uses the nextest CI does. An older one
+# stops here with its own message.
+nextest-version = "0.9.150"
+
+[profile.default]
+# A test that fails and then passes on a retry fails the run, labeled flaky, so
+# the label says to hunt a race rather than a regression. Every profile inherits
+# this, and it covers a retry from --retries or NEXTEST_RETRIES as well.
+flaky-result = "fail"
+# A hung test ends after 5 minutes. Under the `ci` profile's retry that is 10
+# minutes, which leaves room for the build (about 3 minutes on the slowest cold
+# runner measured) inside the job's 20-minute timeout, so nextest names the test
+# before the runner kills the job. nextest's built-in slow-timeout never ends one.
+slow-timeout = { period = "60s", terminate-after = 5 }
+
+[profile.ci]
+fail-fast = false
+retries = 1
+# Most tests wait rather than compute. On the 4-CPU runners, with two partitions
+# on warm caches, the slower job took 187 and 189 s at 8 threads against 200 and
+# 231 s at 4.
+test-threads = 8

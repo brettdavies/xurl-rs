@@ -1,12 +1,12 @@
 args: ["broadcasts", "sources", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7508
+stdout_len: 7621
 stderr_len: 0
 --- stdout ---
 Create a stream source
 
-Point an encoder at its `rtmps_url` with its `stream_key`.
+Point an encoder at its `rtmps_url` with its `stream_key`. `list`, `get`, and `update` do not carry the key; `xr broadcasts sources stream-key <SOURCE_ID>` reads it again.
 
 Usage: xr broadcasts sources add [OPTIONS] --region <REGION> <NAME>
 

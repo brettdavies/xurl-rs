@@ -14,7 +14,9 @@ scripts/dev-setup.sh                       # install the tools CI and the hooks 
 git config core.hooksPath scripts/hooks    # activate the pre-push battery
 ```
 
-`cargo build` then puts the binary at `./target/debug/xr`, and `cargo test` runs the unit and integration tests.
+`cargo build` then puts the binary at `./target/debug/xr`. `cargo nextest run --workspace` runs the unit and integration
+tests and stops at the first failure; add `--profile ci` to run every test the way CI does, rerunning a failed one once.
+`cargo test --doc --workspace` runs the doc tests, which nextest does not.
 
 `scripts/dev-setup.sh` needs `cargo` and reads `.github/tool-versions`, the one list of tool versions, which CI's
 install steps read too. It installs each missing or older tool, Rust tools through `cargo binstall` and the rest through
@@ -29,11 +31,14 @@ The `git config` line activates both hooks. `pre-commit` is fast and runs a chec
 `markdownlint-cli2` alone, even for a document a test reads; those tests run at push. Both hooks share
 `scripts/hooks/_lib.sh`, which owns how each tool runs while each hook owns which files it runs on.
 
-`pre-push` mirrors CI over the repo: `cargo fmt`, `cargo clippy` with warnings denied, `cargo test --workspace`, the
-MSRV check, the doc build, the examples build, the credential-free example run against the `testing` mock, the TLS
-feature cells (`native-tls` alone compiles; no backend fails on the guard), the docs.rs feature set (`xdk-rs`
-documented with every feature), `cargo deny check`, `shellcheck`, a Windows compatibility scan, `markdownlint-cli2`, and
-`actionlint`. The feature powerset (`cargo hack`) runs only when the tool is installed and says so otherwise.
+`pre-push` mirrors CI over the repo: `cargo fmt`, `cargo clippy` with warnings denied, `cargo nextest run --workspace`
+and `cargo test --doc --workspace`, the MSRV check, the doc build, the examples build, the credential-free example run
+against the `testing` mock, the TLS feature cells (`native-tls` alone compiles; no backend fails on the guard), the
+docs.rs feature set (`xdk-rs` documented with every feature), `cargo deny check`, `shellcheck`, a Windows compatibility
+scan, `markdownlint-cli2`, and `actionlint`. The feature powerset (`cargo hack`) runs only when the tool is installed
+and says so otherwise. nextest is the exception: without it, or with one older than `.config/nextest.toml` requires,
+`pre-push` stops at once with `pre-push/missing-tool` and the `scripts/dev-setup.sh` command, and when nextest cannot
+parse `.config/nextest.toml`, with `pre-push/nextest-config`.
 
 `pre-push` scopes each step to what the push actually changes, so a docs-only push skips the Rust battery entirely and
 finishes in seconds. A document counts as docs only when it is markdown outside `crates/`, not a README, and named by
@@ -52,9 +57,9 @@ check (`cargo publish --dry-run --workspace`), the public-API semver gate (`carg
 CI pins; without the variable the suite skips), and `Windows program target` (`cargo test -p xurl-rs --test
 webhooks_program_tests` on a Windows runner). The feature matrix's `--all-features` and `--features testing` test runs
 and its `rustls`-alone cell are CI-only too. Run those yourself when a change touches the CLI surface, the library API,
-the feature set, or the release profile. The live-API checks stay manual by design: `cargo test -- --ignored` runs the
-TLS handshake probe and, with `XURL_LIVE_SMOKE=1`, the wire-vocabulary smoke; and `benches/benchmark.sh` times `xr`
-against the Go `xurl` with hyperfine.
+the feature set, or the release profile. The live-API checks stay manual by design: `cargo nextest run --workspace
+--run-ignored only` runs the TLS handshake probe and, with `XURL_LIVE_SMOKE=1`, the wire-vocabulary smoke; and
+`benches/benchmark.sh` times `xr` against the Go `xurl` with hyperfine.
 
 ## Branch and PR flow
 
