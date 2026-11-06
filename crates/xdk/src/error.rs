@@ -63,6 +63,9 @@ pub enum NextAction {
 
 /// The enrollment recipe for an app X refuses.
 const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform-enrollment";
+/// The token endpoint, `TOKEN_URL`, and the proxy in front of them.
+const TOKEN_ENDPOINT_DOCS: &str =
+    "https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint";
 /// Where X documents its authentication methods.
 const AUTHENTICATION_DOCS: &str = "https://docs.x.com/resources/fundamentals/authentication";
 /// Where X documents its rate limits.
@@ -191,6 +194,20 @@ pub enum Error {
         /// reported, so a caller that waits on it waits on what X said about
         /// this request.
         reset_at: Option<u64>,
+    },
+
+    /// The `OAuth2` token endpoint answered 403 with a body that is no OAuth
+    /// refusal. X's handler refuses a code, a refresh token, or a client with
+    /// a 400, a 401, or, on any other status but a 5xx or a 429, a JSON body
+    /// with a string `error`, so this answer came from something in the way:
+    /// a proxy or firewall in front of the endpoint, or a token URL that names
+    /// another service. The token URL and the proxy are what to look at, which
+    /// the 403 of an API request never calls for, so it is not [`Self::Api`].
+    /// Every other failure status that is no refusal is an [`Self::Api`].
+    #[error("{body}")]
+    TokenEndpointForbidden {
+        /// Raw response body.
+        body: String,
     },
 
     /// An input the library refused before sending anything. `rule` names
@@ -568,12 +585,15 @@ impl Error {
     /// Pay-per-use enrollment failure is unactionable without it. A
     /// processing timeout is `ResumeWait`, and a 429 that named its reset is
     /// `WaitAndRetry`; a 429 that named none has no time to wait for. A
-    /// request that got no response and a 5xx are `Retry`. A 400, a 404, or
-    /// a 422, a file that could not be read, and an input refused before it
-    /// was sent are `FixInput`. A status with no reading of its own, a body
-    /// that could not be read, and a broken invariant are `ReportIssue`. A
-    /// credential failure is `None` here: the steps that depend on a
-    /// credential store are the binary's to choose.
+    /// request that got no response, a 5xx, and a 408, whose server never
+    /// received the whole request (RFC 9110 section 15.5.9), are `Retry`. A
+    /// 400, a 404, or a 422, a file that could not be read, and an input
+    /// refused before it was sent are `FixInput`. A status with no reading of
+    /// its own, a body that could not be read, and a broken invariant are
+    /// `ReportIssue`. A credential failure is `None` here: the steps that
+    /// depend on a credential store are the binary's to choose. The token
+    /// endpoint's 403 that is no OAuth refusal is `FixInput`: the token URL
+    /// or the proxy in front of it is what to change.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -593,7 +613,7 @@ impl Error {
                 }
                 match status {
                     429 if reset_at.is_some() => Some(NextAction::WaitAndRetry),
-                    500..=599 => Some(NextAction::Retry),
+                    408 | 500..=599 => Some(NextAction::Retry),
                     400 | 404 | 422 => Some(NextAction::FixInput),
                     // The stored-credential recovery steps are the binary's:
                     // it knows which apps hold what and names the
@@ -607,6 +627,7 @@ impl Error {
             Self::ProcessingTimeout { .. } => Some(NextAction::ResumeWait),
             Self::Http { .. } => Some(NextAction::Retry),
             Self::Io { .. }
+            | Self::TokenEndpointForbidden { .. }
             | Self::AddressInUse { .. }
             | Self::InvalidMethod(_)
             | Self::Validation { .. }
@@ -636,11 +657,12 @@ impl Error {
                 match status {
                     401 => Some(AUTHENTICATION_DOCS),
                     429 => Some(RATE_LIMIT_DOCS),
-                    400 | 404 | 422 | 500..=599 => Some(RESPONSE_CODE_DOCS),
+                    400 | 404 | 408 | 422 | 500..=599 => Some(RESPONSE_CODE_DOCS),
                     403 => None,
                     _ => Some(ISSUE_TRACKER),
                 }
             }
+            Self::TokenEndpointForbidden { .. } => Some(TOKEN_ENDPOINT_DOCS),
             Self::Auth { .. } | Self::AuthMethodMismatch(_) => Some(AUTHENTICATION_DOCS),
             Self::Http { .. }
             | Self::Io { .. }
@@ -657,10 +679,11 @@ impl Error {
         }
     }
 
-    /// Returns true if this is an API error (HTTP status >= 400).
+    /// Returns true if this is an API error (HTTP status >= 400), which the
+    /// token endpoint's 403 is too.
     #[must_use]
     pub fn is_api(&self) -> bool {
-        matches!(self, Self::Api { .. })
+        matches!(self, Self::Api { .. } | Self::TokenEndpointForbidden { .. })
     }
 
     /// Whether X answered with `errors`, no `data`, and a problem type that
@@ -705,6 +728,7 @@ impl Error {
     /// | `AddressInUse`         | `address-in-use` |
     /// | `MediaProcessingFailed` | `invalid-request` |
     /// | `AccountNotFound`      | `not-found`      |
+    /// | `TokenEndpointForbidden` | `forbidden`    |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -732,6 +756,7 @@ impl Error {
             Self::AddressInUse { .. } => "address-in-use",
             Self::MediaProcessingFailed { .. } => "invalid-request",
             Self::AccountNotFound { .. } => "not-found",
+            Self::TokenEndpointForbidden { .. } => "forbidden",
         }
     }
 
@@ -761,6 +786,7 @@ impl Error {
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
             | Self::ProcessingTimeout { .. }
+            | Self::TokenEndpointForbidden { .. }
             | Self::MediaProcessingFailed { .. } => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch(_) => EXIT_AUTH_MISMATCH,
         }

@@ -9,6 +9,7 @@ use clap::CommandFactory;
 
 pub mod invoke;
 pub mod listen;
+pub mod token_endpoint;
 
 /// An address no test answers. Port 1 sits below every port a test binds: a
 /// port-0 bind draws from the ephemeral range (32768 and up on Linux, 49152 and

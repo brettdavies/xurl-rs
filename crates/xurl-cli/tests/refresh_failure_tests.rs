@@ -19,6 +19,7 @@ use xdk::config::EnvOverrides;
 use xdk::store::TokenStore;
 
 use common::CLOSED;
+use common::token_endpoint::{Echo, NoRefusal, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers};
 
 const APP: &str = "myapp";
 const LOGIN: &str = "alice";
@@ -115,8 +116,8 @@ fn assert_reason(code: i32, envelope: &Value, reason: &str, exit_code: i32) {
     assert_eq!(envelope["exit_code"], exit_code, "{envelope}");
 }
 
-/// X's body is the message of a 5xx or a 429, as on any request, so a
-/// warning says the answer was to the refresh.
+/// X's body is the message of an answer the token endpoint did not process,
+/// as on any request, so a warning says the answer was to the refresh.
 fn assert_warns_of_the_refresh(envelope: &Value) {
     let warnings = envelope["warnings"].as_array().cloned().unwrap_or_default();
     assert!(
@@ -425,6 +426,12 @@ async fn a_refused_refresh_token_signs_the_login_in_again() {
     for (why, response) in [
         ("invalid_grant", oauth_error(400, "invalid_grant")),
         (
+            "a 400 with no JSON",
+            ResponseTemplate::new(400).set_body_string("<html>Bad Request</html>"),
+        ),
+        ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
+        ("invalid_grant on a 404", oauth_error(404, "invalid_grant")),
+        (
             "a 200 with no token",
             ResponseTemplate::new(200).set_body_json(json!({"token_type": "bearer"})),
         ),
@@ -449,7 +456,120 @@ async fn a_refused_refresh_token_signs_the_login_in_again() {
             envelope["next_step"]["command"], "xr auth oauth2 alice --no-browser --step 1",
             "{why}: {envelope}"
         );
+        assert!(
+            envelope["warnings"].is_null(),
+            "{why}: a refusal is not a failure to answer: {envelope}"
+        );
     }
+}
+
+/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with a JSON body that
+/// holds a string `error`. Any other answer came from something that did not
+/// process the refresh, such as a proxy or a token URL with the wrong path, so
+/// it reports what any request to X would, and the refresh token stays good.
+#[tokio::test]
+async fn a_refresh_answered_with_no_oauth_refusal_reports_its_status() {
+    for NoRefusal {
+        why,
+        response,
+        reason,
+        exit_code,
+        action,
+        docs,
+        ..
+    } in no_refusal_answers()
+    {
+        let (code, envelope) = whoami_answered_with(response).await;
+        assert_reason(code, &envelope, reason, exit_code);
+        assert_eq!(envelope["next_step"]["action"], action, "{why}: {envelope}");
+        assert_eq!(envelope["next_step"]["docs"], docs, "{why}: {envelope}");
+        assert!(
+            envelope["next_step"]["command"].is_null(),
+            "{why}: no sign-in: {envelope}"
+        );
+        assert_warns_of_the_refresh(&envelope);
+    }
+}
+
+/// A proxy's block page can repeat the request it refused. What the refresh
+/// sent is a credential, so none of it reaches the error.
+#[tokio::test]
+async fn a_failure_answer_that_echoes_the_refresh_leaks_none_of_it() {
+    for status in [403, 404, 502] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(Echo(status))
+            .mount(&server)
+            .await;
+
+        let (_code, envelope) =
+            whoami_refreshing_at(&format!("{}/2/oauth2/token", server.uri())).await;
+
+        let text = envelope.to_string();
+        for secret in [STORED_REFRESH_TOKEN, "CLIENT-SECRET"] {
+            assert!(!text.contains(secret), "{status} leaked {secret}: {text}");
+        }
+        assert!(
+            envelope["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("<redacted>"),
+            "{status}: the message shows where it was cut: {envelope}"
+        );
+    }
+}
+
+/// A page of tens of kilobytes would bury the rest of the output, so the error
+/// keeps its start and says how much it left out.
+#[tokio::test]
+async fn a_failure_answer_of_a_large_page_is_cut_short() {
+    for status in [403, 404] {
+        let (_code, envelope) =
+            whoami_answered_with(ResponseTemplate::new(status).set_body_string(big_page())).await;
+
+        let message = envelope["message"].as_str().unwrap_or_default();
+        assert!(message.len() < 1_300, "{status}: {} bytes", message.len());
+        assert!(message.starts_with("<html>blocked"), "{status}: {message}");
+        assert!(message.contains("more bytes"), "{status}: {message}");
+    }
+}
+
+/// An empty 403 is said to be empty, not printed as `{}`.
+#[tokio::test]
+async fn an_empty_token_endpoint_403_says_so() {
+    let (_code, envelope) = whoami_answered_with(ResponseTemplate::new(403)).await;
+
+    assert_eq!(
+        envelope["message"], "the token endpoint answered 403 with an empty body",
+        "{envelope}"
+    );
+}
+
+/// Text output tells a person where to look: the token URL and any proxy in
+/// front of it, with the page that covers both.
+#[tokio::test]
+async fn text_output_points_a_token_endpoint_403_at_the_token_url_and_the_proxy() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &format!("{}/2/oauth2/token", server.uri()),
+        &["whoami", "-u", LOGIN],
+    )
+    .await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{stderr}");
+    assert!(stderr.contains("TOKEN_URL"), "{stderr}");
+    assert!(stderr.contains("proxy"), "{stderr}");
+    assert!(stderr.contains(TOKEN_ENDPOINT_DOCS), "{stderr}");
 }
 
 /// Another sign-in would end at the same refusal, so the step sends nobody to
@@ -461,6 +581,10 @@ async fn a_refused_client_asks_for_the_apps_credentials_to_be_fixed() {
         (
             "invalid_client on a 400",
             oauth_error(400, "invalid_client"),
+        ),
+        (
+            "invalid_client on a 403",
+            oauth_error(403, "invalid_client"),
         ),
         (
             "unauthorized_client",
@@ -589,39 +713,50 @@ async fn a_token_url_that_is_not_a_url_names_it() {
     );
 }
 
-/// An answer that ends before its body did is no answer.
+/// An answer that ends before its body did is no answer, whichever failure
+/// status it came with, so the same command can run again.
 #[tokio::test]
 async fn a_refresh_whose_error_answer_breaks_off_is_a_network_error_that_names_the_refresh() {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
-    let port = listener.local_addr().expect("its address").port();
-    let stub = std::thread::spawn(move || {
-        let (mut stream, _) = listener.accept().expect("the refresh connects");
-        let mut request = Vec::new();
-        let mut buf = [0u8; 4096];
-        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
-            let n = stream.read(&mut buf).expect("read the request");
-            if n == 0 {
-                break;
+    for status_line in [
+        "503 Service Unavailable",
+        "403 Forbidden",
+        "408 Request Timeout",
+    ] {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+        let port = listener.local_addr().expect("its address").port();
+        let answer = format!("HTTP/1.1 {status_line}\r\ncontent-length: 100\r\n\r\npartial");
+        let stub = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("the refresh connects");
+            let mut request = Vec::new();
+            let mut buf = [0u8; 4096];
+            while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                let n = stream.read(&mut buf).expect("read the request");
+                if n == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buf[..n]);
             }
-            request.extend_from_slice(&buf[..n]);
-        }
-        stream
-            .write_all(b"HTTP/1.1 503 Service Unavailable\r\ncontent-length: 100\r\n\r\npartial")
-            .expect("answer in part");
-    });
+            stream.write_all(answer.as_bytes()).expect("answer in part");
+        });
 
-    let (code, envelope) =
-        whoami_refreshing_at(&format!("http://127.0.0.1:{port}/2/oauth2/token")).await;
-    stub.join().expect("the stub ends");
+        let (code, envelope) =
+            whoami_refreshing_at(&format!("http://127.0.0.1:{port}/2/oauth2/token")).await;
+        stub.join().expect("the stub ends");
 
-    assert_reason(
-        code,
-        &envelope,
-        "network-error",
-        xdk::error::EXIT_NETWORK_ERROR,
-    );
-
-    assert_names_the_refresh(&envelope);
+        assert_reason(
+            code,
+            &envelope,
+            "network-error",
+            xdk::error::EXIT_NETWORK_ERROR,
+        );
+        assert_names_the_refresh(&envelope);
+        assert_warns_of_the_refresh(&envelope);
+        assert_eq!(
+            envelope["next_step"],
+            json!({"action": "retry"}),
+            "{status_line}: {envelope}"
+        );
+    }
 }
 
 #[tokio::test]

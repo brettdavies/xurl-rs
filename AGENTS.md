@@ -86,36 +86,40 @@ Eight actions answer failures that are not about credentials. `show-help` rides 
 `invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
 `command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
 `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
-job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the `xr media status
-<media_id> --wait=<secs>` that waits again for twice as long. It also rides on `network-error` and `server-error` when
-the request that failed was a status read after `xr media upload` finished: `retry` would send the file again, so the
-step waits again for as long as the wait that failed. Either way the step repeats the `--app`, `--auth`, and `-u` the
-media command ran under, so the read goes out under the same credential, and with `-H` it is a `template` that hides
-each header's value. `wait-and-retry` rides on reason `rate-limited` (exit 3) when the 429 named its reset. The envelope
-carries `retry_after_secs`, the seconds until the reset and zero once it has passed, and `retry_at`, the same moment in
-RFC 3339 UTC; the step carries `docs` and no command, because the request to send again is the caller's own. A 429 that
-names no reset carries neither key and no `next_step`, except on the status read after `xr media upload` finished: there
-the caller's own request is the upload, so a 429 carries `wait-and-retry` whether or not it named a reset, with the
-resumed wait as what to send again: when X named the reset, a command that waits it out under `--wait-on-rate-limit`,
-with the time left as `--rate-limit-max-wait`, and a `template` under `-H`; when X named none, a `template` to run once
-the window passes, under the upload's own `--wait-on-rate-limit`. `--wait-on-rate-limit` does the wait and one retry
-inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
+job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the
+`xr media status <media_id> --wait=<secs>` that waits again for twice as long. It also rides on `network-error`,
+`server-error`, and `api-error` on a 408 when the request that failed was a status read after `xr media upload`
+finished: `retry` would send the file again, so the step waits again for as long as the wait that failed. Either way the
+step repeats the `--app`, `--auth`, and `-u` the media command ran under, so the read goes out under the same
+credential, and with `-H` it is a `template` that hides each header's value. `wait-and-retry` rides on reason
+`rate-limited` (exit 3) when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the
+reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no
+command, because the request to send again is the caller's own. A 429 that names no reset carries neither key and no
+`next_step`, except on the status read after `xr media upload` finished: there the caller's own request is the upload,
+so a 429 carries `wait-and-retry` whether or not it named a reset, with the resumed wait as what to send again: when X
+named the reset, a command that waits it out under `--wait-on-rate-limit`, with the time left as
+`--rate-limit-max-wait`, and a `template` under `-H`; when X named none, a `template` to run once the window passes,
+under the upload's own `--wait-on-rate-limit`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it
+fits `--rate-limit-max-wait` (60 seconds unless set).
 
-`retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
-(`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
-invocation fails again until its input or the state it read changes. Under `address-in-use`, a port another process
-holds, it carries `listen` again on `--port 0`: a `command`, or a `template` that hides each `-H` value. Under
-`invalid-args`, for `-u`, `--auth`, or `-t` given before a command word that takes it, it carries the invocation with
-the flag after the word, and for an old `xr schema` name or a bare scope word (`envelope`), the `xr schema` invocation
-that works; for an `xr schema --path` segment that names no property, it carries a `template` ending in `<property>`
-beside `known_properties`. Under `auth-required`, for a `webhooks listen` whose app has no secret to verify X's
-signatures by, it carries a `template` that stores the secret `--secret` names: the OAuth1 credentials under
-`--secret oauth1`, the app's client secret otherwise. For an `auth oauth2 --step 2` whose redirect URL did not parse, or
-whose saved flow belongs to another stored app, it carries a `template` that runs step 2 again with the URL, which holds
-an authorization code, left as `<redirect-url>`. For a 401 on the status read after `xr media upload` finished, it
-carries the command that resumes the wait as a `template`, to run once the credential works, since reading again under
-the same credential fails the same way. `report-issue` (`internal`, `serialization`, `api-error`) names
-the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
+`retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
+request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, `forbidden` for a token endpoint's 403,
+and the skill verbs' machine-state reasons) says the same invocation fails again until its input or the state it read
+changes. Under `address-in-use`, a port another process holds, it carries `listen` again on `--port 0`: a `command`, or
+a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t` given before a command word
+that takes it, it carries the invocation with the flag after the word, and for an old `xr schema` name or a bare scope
+word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment that names no property, it
+carries a `template` ending in `<property>` beside `known_properties`. Under `auth-required`, for a `webhooks listen`
+whose app has no secret to verify X's signatures by, it carries a `template` that stores the secret `--secret` names:
+the OAuth1 credentials under `--secret oauth1`, the app's client secret otherwise. For an `auth oauth2 --step 2` whose
+redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a `template` that runs step 2
+again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401 on the status read after
+`xr media upload` finished, it carries the command that resumes the wait as a `template`, to run once the credential
+works, since reading again under the same credential fails the same way. A 403 from the token endpoint on that read,
+which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the proxy are fixed. For a
+403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the token endpoint,
+`TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other status) names the
+issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
 `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a deletion by
 accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`. Under
 `destination-not-empty` from `skill update` itself, whose directory holds something other than the bundle, the step is

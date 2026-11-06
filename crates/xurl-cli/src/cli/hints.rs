@@ -678,6 +678,9 @@ pub fn resume_wait_hint(error: &Error, credential: &MediaCredential) -> Option<H
 /// - A 401 fails the same way until the credential changes, which no `xr`
 ///   command does: `fix-input`, with the resumed wait as a template to run
 ///   once the credential works.
+/// - A refresh the wait ran meets the token endpoint's 403 the same way, until
+///   `TOKEN_URL` or the proxy in front of the endpoint is fixed: `fix-input`
+///   with the page on both, and the resumed wait as a template.
 #[must_use]
 pub fn resume_after_upload_hint(
     error: &Error,
@@ -690,6 +693,15 @@ pub fn resume_after_upload_hint(
         let mut hint = resume_hint(media_id, waited.as_secs(), credential);
         hint.next_step.docs = docs;
         return Some(hint);
+    }
+    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+        return Some(resume_once_fixed(
+            media_id,
+            waited,
+            credential,
+            "The token endpoint answered 403 and sent no OAuth error. The upload is intact and X keeps the media id for 24 hours; once TOKEN_URL and any proxy in front of the endpoint are fixed, resume the wait:",
+            docs,
+        ));
     }
     let Error::Api {
         status, reset_at, ..
@@ -727,25 +739,37 @@ pub fn resume_after_upload_hint(
                 },
             })
         }
-        401 => {
-            let resume = NextStep::resume_wait(media_id, waited.as_secs(), credential);
-            let invocation = resume.display_invocation().unwrap_or_default().to_string();
-            Some(Hint {
-                text_lines: with_docs_line(
-                    format!(
-                        "X refused the credential. The upload is intact and X keeps the media id for 24 hours; once the credential works, resume the wait: {invocation}"
-                    ),
-                    docs.as_deref(),
-                ),
-                next_step: NextStep {
-                    action: NextAction::FixInput,
-                    command: None,
-                    template: Some(invocation),
-                    docs,
-                },
-            })
-        }
+        401 => Some(resume_once_fixed(
+            media_id,
+            waited,
+            credential,
+            "X refused the credential. The upload is intact and X keeps the media id for 24 hours; once the credential works, resume the wait:",
+            docs,
+        )),
         _ => None,
+    }
+}
+
+/// The hint for a failure that repeats until the caller fixes something `xr`
+/// cannot: `fix-input`, with the resumed wait as a template to run once it is
+/// fixed, after `lead` and the docs the error names.
+fn resume_once_fixed(
+    media_id: &str,
+    waited: std::time::Duration,
+    credential: &MediaCredential,
+    lead: &str,
+    docs: Option<String>,
+) -> Hint {
+    let resume = NextStep::resume_wait(media_id, waited.as_secs(), credential);
+    let invocation = resume.display_invocation().unwrap_or_default().to_string();
+    Hint {
+        text_lines: with_docs_line(format!("{lead} {invocation}"), docs.as_deref()),
+        next_step: NextStep {
+            action: NextAction::FixInput,
+            command: None,
+            template: Some(invocation),
+            docs,
+        },
     }
 }
 
@@ -1131,7 +1155,9 @@ pub fn show_help_hint(help: &str) -> Hint {
 /// credential decides.
 ///
 /// A method, a URL, or a path value `xr` refused is an argument, so it
-/// takes the help of the command it was given to, as `help` names it.
+/// takes the help of the command it was given to, as `help` names it. The
+/// token endpoint's 403 names where to look: `TOKEN_URL` and the proxy in
+/// front of the endpoint.
 #[must_use]
 pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
     if matches!(
@@ -1139,6 +1165,16 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
         Error::InvalidMethod(_) | Error::InvalidUrl { .. } | Error::InvalidPathParam { .. }
     ) {
         return Some(show_help_hint(help));
+    }
+    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+        let docs = error.docs_url();
+        return Some(Hint {
+            text_lines: with_docs_line(
+                "The token endpoint answered 403 and sent no OAuth error. A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both.".to_string(),
+                docs,
+            ),
+            next_step: NextStep::fix_input(docs.map(str::to_string)),
+        });
     }
     let docs = error.docs_url().map(str::to_string);
     match error.next_action()? {
@@ -1286,7 +1322,11 @@ mod tests {
     fn each_failure_of_the_read_after_an_upload_gets_the_step_that_fits_it() {
         let waited = std::time::Duration::from_secs(90);
         let none = MediaCredential::default();
-        for error in [Error::http("connection reset"), Error::api(503, "{}")] {
+        for error in [
+            Error::http("connection reset"),
+            Error::api(503, "{}"),
+            Error::api(408, "{}"),
+        ] {
             let hint =
                 resume_after_upload_hint(&error, "777", waited, &none).expect("a resume hint");
             assert_eq!(hint.next_step.action, NextAction::ResumeWait, "{error}");
@@ -1329,9 +1369,33 @@ mod tests {
             refused.next_step.template.as_deref(),
             Some("xr media status 777 --wait=90")
         );
+        let forbidden = Error::TokenEndpointForbidden {
+            body: "<html>Forbidden</html>".into(),
+        };
+        let refresh = resume_after_upload_hint(&forbidden, "777", waited, &none)
+            .expect("a step for the token endpoint's 403, which a refresh during the wait meets");
+        assert_eq!(refresh.next_step.action, NextAction::FixInput);
+        assert_eq!(refresh.next_step.command, None, "never a command");
+        assert_eq!(
+            refresh.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90"),
+            "the upload is not sent again"
+        );
+        assert_eq!(refresh.next_step.docs.as_deref(), forbidden.docs_url());
+        assert!(
+            refresh.text_lines[0].contains("TOKEN_URL")
+                && refresh.text_lines[0].contains("proxy")
+                && refresh.text_lines[0].contains("xr media status 777 --wait=90"),
+            "{:?}",
+            refresh.text_lines
+        );
         assert!(
             resume_after_upload_hint(&Error::api(404, "{}"), "777", waited, &none).is_none(),
             "a 404 keeps its own step"
+        );
+        assert!(
+            resume_after_upload_hint(&Error::api(403, "{}"), "777", waited, &none).is_none(),
+            "an API 403 keeps its own step"
         );
     }
 

@@ -31,6 +31,7 @@ use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::{Config, EnvOverrides};
 
 use common::CLOSED;
+use common::token_endpoint::{Echo, NoRefusal, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers};
 
 mod common;
 
@@ -1394,7 +1395,7 @@ async fn text_output_names_the_same_steps_for_the_other_step2_refusals() {
 }
 
 const OAUTH2_HELP: &str = "xr auth oauth2 --help";
-const FAILED_EXCHANGE: &str = "X's token endpoint failed, so the sign-in did not finish.";
+const FAILED_EXCHANGE: &str = "The token endpoint's answer ended the sign-in.";
 
 /// A refused argument is a usage error, which says nothing about credentials.
 fn assert_usage_refusal(code: Option<i32>, stderr: &str, says: &str) {
@@ -1445,6 +1446,45 @@ async fn step2_with_no_auth_url_points_at_the_help() {
     assert_usage_refusal(Some(code), &stderr, "--auth-url is required");
 }
 
+/// An empty `--auth-url` is a missing one, refused before the store or the
+/// saved flow is read, as empty stdin is.
+#[tokio::test]
+async fn step2_with_an_empty_auth_url_points_at_the_help() {
+    for (saved, url) in [(true, ""), (false, ""), (true, "  ")] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        let pending = saved.then(|| seed_pending(&store));
+        let overrides = step2_overrides(
+            &format!("{CLOSED}/2/oauth2/token"),
+            &format!("{CLOSED}/2/users/me"),
+        );
+
+        let (code, _stdout, stderr) = run_cli(
+            &store,
+            &overrides,
+            &[
+                "xr",
+                "--output",
+                "json",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                url,
+            ],
+        )
+        .await;
+
+        assert_usage_refusal(Some(code), &stderr, "--auth-url is empty");
+        if let Some(pending) = pending {
+            assert!(pending.exists(), "the saved flow stays: {url:?}");
+        }
+    }
+}
+
 #[tokio::test]
 async fn step1_given_an_auth_url_points_at_the_help() {
     let tmp = TempDir::new().unwrap();
@@ -1478,6 +1518,8 @@ async fn step1_given_an_auth_url_points_at_the_help() {
 async fn a_dry_run_says_the_real_run_would_refuse_the_argument() {
     for (step, url, says) in [
         ("2", None, "--auth-url is required"),
+        ("2", Some(""), "--auth-url is empty"),
+        ("2", Some("  "), "--auth-url is empty"),
         (
             "1",
             Some("http://localhost:8080/callback"),
@@ -2408,9 +2450,11 @@ async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
     for (why, response) in [
         ("invalid_grant", oauth_error(400, "invalid_grant")),
         (
-            "a 4xx with no JSON",
-            ResponseTemplate::new(403).set_body_string("no"),
+            "a 400 with no JSON",
+            ResponseTemplate::new(400).set_body_string("no"),
         ),
+        ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
+        ("invalid_grant on a 404", oauth_error(404, "invalid_grant")),
         (
             "a 200 with no token",
             ResponseTemplate::new(200).set_body_json(serde_json::json!({"token_type": "bearer"})),
@@ -2465,6 +2509,209 @@ async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_agai
             "{why}: {envelope}"
         );
     }
+}
+
+/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with a JSON body that
+/// holds a string `error`. Any other answer came from something that did not
+/// process the exchange, such as a proxy or a token URL with the wrong path, so
+/// the code is still good and the saved flow stays for the same step 2. A 403
+/// points at the token URL and the proxy in front of it, and every such answer
+/// is warned of by name, with its status.
+#[tokio::test]
+async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
+    for NoRefusal {
+        why,
+        response,
+        status,
+        reason,
+        exit_code,
+        action,
+        docs,
+    } in no_refusal_answers()
+    {
+        let (code, envelope) = step2_answered_with(response).await;
+        assert_eq!(code, exit_code, "{why}: {envelope}");
+        assert_eq!(envelope["reason"], reason, "{why}: {envelope}");
+        assert_eq!(envelope["exit_code"], exit_code, "{why}: {envelope}");
+        assert_eq!(envelope["next_step"]["action"], action, "{why}: {envelope}");
+        assert_eq!(envelope["next_step"]["docs"], docs, "{why}: {envelope}");
+        assert!(
+            envelope["next_step"]["command"].is_null(),
+            "{why}: no sign-in: {envelope}"
+        );
+        assert_warns_of_the_exchange(&envelope, status);
+    }
+}
+
+/// A proxy's block page can repeat the request it refused. What the exchange
+/// sent is a credential, so none of it reaches the error.
+#[tokio::test]
+async fn step2_failure_answer_that_echoes_the_exchange_leaks_none_of_it() {
+    for status in [403, 404, 502] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(Echo(status))
+            .mount(&server)
+            .await;
+
+        let (_code, envelope) = step2_at(&server.uri()).await;
+
+        let text = envelope.to_string();
+        for secret in ["AUTHCODE", PENDING_VERIFIER, "test-client-secret"] {
+            assert!(!text.contains(secret), "{status} leaked {secret}: {text}");
+        }
+        assert!(
+            envelope["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("<redacted>"),
+            "{status}: the message shows where it was cut: {envelope}"
+        );
+    }
+}
+
+/// A page of tens of kilobytes would bury the rest of the output, so the error
+/// keeps its start and says how much it left out.
+#[tokio::test]
+async fn step2_failure_answer_of_a_large_page_is_cut_short() {
+    for status in [403, 404] {
+        let (_code, envelope) =
+            step2_answered_with(ResponseTemplate::new(status).set_body_string(big_page())).await;
+
+        let message = envelope["message"].as_str().unwrap_or_default();
+        assert!(message.len() < 1_300, "{status}: {} bytes", message.len());
+        assert!(message.starts_with("<html>blocked"), "{status}: {message}");
+        assert!(message.contains("more bytes"), "{status}: {message}");
+    }
+}
+
+/// An empty 403 is said to be empty, not printed as `{}`.
+#[tokio::test]
+async fn step2_with_an_empty_token_endpoint_403_says_so() {
+    let (_code, envelope) = step2_answered_with(ResponseTemplate::new(403)).await;
+
+    assert_eq!(
+        envelope["message"], "the token endpoint answered 403 with an empty body",
+        "{envelope}"
+    );
+}
+
+/// A warning names the token endpoint and the HTTP status of its answer, since
+/// the error prints X's body alone.
+fn assert_warns_of_the_exchange(envelope: &serde_json::Value, status: &str) {
+    let warnings = envelope["warnings"].as_array().cloned().unwrap_or_default();
+    assert!(
+        warnings.iter().any(|warning| {
+            warning["target"] == "xdk::auth"
+                && warning["message"].as_str().is_some_and(|message| {
+                    message.contains("token endpoint")
+                        && message.contains("code exchange")
+                        && message.contains(&format!("HTTP {status}"))
+                })
+        }),
+        "a warning names the token endpoint and HTTP {status}: {envelope}"
+    );
+}
+
+/// Text output tells a person where to look: the token URL and any proxy in
+/// front of it, with the page that covers both.
+#[tokio::test]
+async fn text_output_points_a_token_endpoint_403_at_the_token_url_and_the_proxy() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{CLOSED}/2/users/me"),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+            "alice",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{stderr}");
+    assert!(stderr.contains(FAILED_EXCHANGE), "{stderr}");
+    assert!(stderr.contains("TOKEN_URL"), "{stderr}");
+    assert!(stderr.contains("proxy"), "{stderr}");
+    assert!(stderr.contains(TOKEN_ENDPOINT_DOCS), "{stderr}");
+}
+
+/// A text `warning:` line goes to the process's own stderr, which the
+/// in-process runner's writer never sees, so this spawns the built `xr`.
+#[tokio::test(flavor = "multi_thread")]
+async fn text_output_warns_that_the_token_endpoint_answered_the_exchange() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(408).set_body_string("<html>Request Timeout</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let token_url = format!("{}/2/oauth2/token", server.uri());
+    let redirect = redirect_url();
+
+    let output = tokio::task::spawn_blocking(move || {
+        common::xr_with_store(&store)
+            .env("CLIENT_ID", "test-client-id")
+            .env("CLIENT_SECRET", "test-client-secret")
+            .env("TOKEN_URL", &token_url)
+            .env("API_BASE_URL", CLOSED)
+            .env("INFO_URL", format!("{CLOSED}/2/users/me"))
+            .args([
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                &redirect,
+                "alice",
+            ])
+            .output()
+    })
+    .await
+    .expect("spawn_blocking joins")
+    .expect("xr runs");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(
+        output.status.code(),
+        Some(xdk::error::EXIT_GENERAL_ERROR),
+        "{stderr}"
+    );
+    assert!(
+        stderr.lines().any(|line| {
+            line.starts_with("warning: ")
+                && line.contains("token endpoint")
+                && line.contains("code exchange")
+                && line.contains("HTTP 408")
+        }),
+        "{stderr}"
+    );
 }
 
 #[tokio::test]
@@ -2535,40 +2782,52 @@ async fn step2_with_a_token_url_that_is_not_a_url_names_it() {
     assert!(pending.exists(), "the flow is still good");
 }
 
-/// An answer that ends before its body did is no answer: the same request can
-/// go again, and the message says what failed.
+/// An answer that ends before its body did is no answer, whichever failure
+/// status it came with: the same request can go again, the saved flow stays,
+/// and the message says what failed.
 #[tokio::test]
 async fn step2_whose_error_answer_breaks_off_is_a_network_error_that_names_the_exchange() {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
-    let port = listener.local_addr().expect("its address").port();
-    let stub = std::thread::spawn(move || {
-        let (mut stream, _) = listener.accept().expect("the exchange connects");
-        let mut request = Vec::new();
-        let mut buf = [0u8; 4096];
-        while !request.windows(4).any(|w| w == b"\r\n\r\n") {
-            let n = stream.read(&mut buf).expect("read the request");
-            if n == 0 {
-                break;
+    for status_line in [
+        "503 Service Unavailable",
+        "403 Forbidden",
+        "408 Request Timeout",
+    ] {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+        let port = listener.local_addr().expect("its address").port();
+        let answer = format!("HTTP/1.1 {status_line}\r\ncontent-length: 100\r\n\r\npartial");
+        let stub = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("the exchange connects");
+            let mut request = Vec::new();
+            let mut buf = [0u8; 4096];
+            while !request.windows(4).any(|w| w == b"\r\n\r\n") {
+                let n = stream.read(&mut buf).expect("read the request");
+                if n == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buf[..n]);
             }
-            request.extend_from_slice(&buf[..n]);
-        }
-        stream
-            .write_all(b"HTTP/1.1 503 Service Unavailable\r\ncontent-length: 100\r\n\r\npartial")
-            .expect("answer in part");
-    });
+            stream.write_all(answer.as_bytes()).expect("answer in part");
+        });
 
-    let (code, envelope) = step2_at(&format!("http://127.0.0.1:{port}")).await;
-    stub.join().expect("the stub ends");
+        let (code, envelope) = step2_at(&format!("http://127.0.0.1:{port}")).await;
+        stub.join().expect("the stub ends");
 
-    assert_eq!(code, xdk::error::EXIT_NETWORK_ERROR, "{envelope}");
-    assert_eq!(envelope["reason"], "network-error", "{envelope}");
-    assert!(
-        envelope["message"]
-            .as_str()
-            .unwrap_or_default()
-            .contains("TokenExchangeError"),
-        "{envelope}"
-    );
+        assert_eq!(
+            code,
+            xdk::error::EXIT_NETWORK_ERROR,
+            "{status_line}: {envelope}"
+        );
+        assert_eq!(envelope["reason"], "network-error", "{envelope}");
+        assert_eq!(envelope["next_step"]["action"], "retry", "{envelope}");
+        assert!(
+            envelope["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("TokenExchangeError"),
+            "{envelope}"
+        );
+        assert_warns_of_the_exchange(&envelope, &status_line[..3]);
+    }
 }
 
 /// A 429 here answers as a 429 anywhere: a wait when it names its reset, and no
