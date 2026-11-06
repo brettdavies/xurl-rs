@@ -96,8 +96,10 @@ carries `retry_after_secs`, the seconds until the reset and zero once it has pas
 RFC 3339 UTC; the step carries `docs` and no command, because the request to send again is the caller's own. A 429 that
 names no reset carries neither key and no `next_step`, except on the status read after `xr media upload` finished: there
 the caller's own request is the upload, so a 429 carries `wait-and-retry` whether or not it named a reset, with the
-command that resumes the wait as what to send again, a `template` under `-H`. `--wait-on-rate-limit` does the wait and
-one retry inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
+resumed wait as what to send again: when X named the reset, a command that waits it out under `--wait-on-rate-limit`,
+with the time left as `--rate-limit-max-wait`, and a `template` under `-H`; when X named none, a `template` to run once
+the window passes, under the upload's own `--wait-on-rate-limit`. `--wait-on-rate-limit` does the wait and one retry
+inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
 (`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
@@ -175,9 +177,9 @@ under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every rea
 `crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
 fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
 caller finishes or decides on first: angle-bracket placeholders to fill; under `confirm`, the invocation that destroys
-once it runs; or, after a 401 on the status read after `xr media upload`, the resumed wait to run once the credential
-works. A new error picks an existing action where one fits, and does not ship without a step. Prefer additive envelope
-changes: add keys rather than renaming or retyping existing ones.
+once it runs; or, after a 401 or a 429 with no reset on the status read after `xr media upload`, the resumed wait to run
+once the credential works or the window passes. A new error picks an existing action where one fits, and does not ship
+without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
 `--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an

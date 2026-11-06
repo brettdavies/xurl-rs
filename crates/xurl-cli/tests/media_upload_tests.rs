@@ -782,21 +782,43 @@ async fn a_failure_before_the_upload_finished_keeps_retry(#[case] failing: &str)
 
 /// A 429 on the status read keeps `wait-and-retry`, which says to wait for the
 /// window first, whether or not X named its reset. What to send again is the
-/// read, not the caller's own request, which was the upload: the step carries
-/// the command that resumes the wait.
+/// read, not the caller's own request, which was the upload. When X named the
+/// reset, the step is a command that waits for it inside `xr`, with the time
+/// left as its ceiling, so running it at once sends nothing X would refuse.
+/// When X named none, nothing says when the window passes, so the step is a
+/// template, as after a 401, keeping any rate-limit wait the upload ran under.
 #[rstest::rstest]
-#[case::with_reset(Some("1767225599"), &[], "xr media status 777 --wait=60")]
-#[case::without_reset(None, &[], "xr media status 777 --wait=60")]
+#[case::with_reset(
+    Some("1767225599"),
+    &[],
+    Some("xr --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60"),
+    None,
+)]
+#[case::without_reset(None, &[], None, Some("xr media status 777 --wait=60"))]
 #[case::own_login(
     Some("1767225599"),
     &["--app", "myapp", "-u", "alice"],
-    "xr --app myapp media status 777 --wait=60 -u alice",
+    Some("xr --app myapp --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60 -u alice"),
+    None,
+)]
+#[case::own_rate_limit_wait(
+    None,
+    &["--wait-on-rate-limit", "--rate-limit-max-wait=5"],
+    None,
+    Some("xr --wait-on-rate-limit --rate-limit-max-wait=5 media status 777 --wait=60"),
+)]
+#[case::own_rate_limit_wait_and_reset(
+    Some("1767225599"),
+    &["--wait-on-rate-limit", "--rate-limit-max-wait=5"],
+    Some("xr --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60"),
+    None,
 )]
 #[tokio::test(flavor = "multi_thread")]
 async fn a_rate_limited_status_read_resumes_the_wait_once_the_window_passes(
     #[case] reset: Option<&str>,
     #[case] flags: &[&str],
-    #[case] command: &str,
+    #[case] command: Option<&str>,
+    #[case] template: Option<&str>,
 ) {
     let mut limited = ResponseTemplate::new(429);
     if let Some(reset) = reset {
@@ -813,7 +835,12 @@ async fn a_rate_limited_status_read_resumes_the_wait_once_the_window_passes(
     assert_eq!(v["reason"], "rate-limited", "got: {v}");
     assert_eq!(v["media_id"], "777", "got: {v}");
     assert_eq!(v["next_step"]["action"], "wait-and-retry", "got: {v}");
-    assert_eq!(v["next_step"]["command"], command, "got: {v}");
+    assert_eq!(
+        v["next_step"]["command"].as_str(),
+        command,
+        "a command only when X named the reset: {v}"
+    );
+    assert_eq!(v["next_step"]["template"].as_str(), template, "got: {v}");
     assert_eq!(
         v["next_step"]["docs"], "https://docs.x.com/resources/fundamentals/rate-limits",
         "got: {v}"
@@ -825,14 +852,41 @@ async fn a_rate_limited_status_read_resumes_the_wait_once_the_window_passes(
     );
 }
 
+/// The ceiling on the wait the step carries is the time left until the reset,
+/// so the wait always fits it, and only shrinks while the step waits to run.
+#[tokio::test(flavor = "multi_thread")]
+async fn a_rate_limited_status_read_waits_no_longer_than_its_reset() {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("the clock is past 1970")
+        .as_secs();
+    let limited =
+        ResponseTemplate::new(429).insert_header("x-rate-limit-reset", (now + 600).to_string());
+    let (output, _tmp) = upload_then_status(limited, &["--output", "json"]).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
+    let command = v["next_step"]["command"].as_str().expect("a command");
+    let ceiling: u64 = command
+        .strip_prefix("xr --wait-on-rate-limit --rate-limit-max-wait=")
+        .and_then(|rest| rest.strip_suffix(" media status 777 --wait=60"))
+        .and_then(|secs| secs.parse().ok())
+        .unwrap_or_else(|| panic!("the ceiling is the only value that varies: {command}"));
+    let left = v["retry_after_secs"].as_u64().expect("retry_after_secs");
+    assert!(
+        (590..=600).contains(&ceiling) && (left..=left + 1).contains(&ceiling),
+        "the ceiling is the time left until the reset, {left} s: {command}"
+    );
+}
+
 #[rstest::rstest]
 #[case::with_reset(
     Some("1767225599"),
-    "resume the wait in 0 seconds, at 2025-12-31T23:59:59Z. Run: xr media status 777 --wait=60"
+    "Rate limited until 2025-12-31T23:59:59Z. The upload is intact; this waits the 0 seconds left, then resumes the wait. Run: xr --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60"
 )]
 #[case::without_reset(
     None,
-    "once the window passes, resume the wait. Run: xr media status 777 --wait=60"
+    "once the window passes, resume the wait: xr media status 777 --wait=60"
 )]
 #[tokio::test(flavor = "multi_thread")]
 async fn a_rate_limited_status_read_says_in_text_how_to_resume(
@@ -863,13 +917,19 @@ async fn a_rate_limited_status_read_says_in_text_how_to_resume(
 #[rstest::rstest]
 #[case::rate_limited(
     ResponseTemplate::new(429).insert_header("x-rate-limit-reset", "1767225599"),
-    "wait-and-retry"
+    "wait-and-retry",
+    "xr --wait-on-rate-limit --rate-limit-max-wait=0 media status 777 --wait=60 -u alice -H 'X-Trace: <value>'"
 )]
-#[case::refused(ResponseTemplate::new(401), "fix-input")]
+#[case::refused(
+    ResponseTemplate::new(401),
+    "fix-input",
+    "xr media status 777 --wait=60 -u alice -H 'X-Trace: <value>'"
+)]
 #[tokio::test(flavor = "multi_thread")]
 async fn a_header_makes_the_step_after_a_429_or_a_401_a_template(
     #[case] answer: ResponseTemplate,
     #[case] action: &str,
+    #[case] template: &str,
 ) {
     let (output, _tmp) = upload_then_status(
         answer,
@@ -887,10 +947,7 @@ async fn a_header_makes_the_step_after_a_429_or_a_401_a_template(
     let stderr = String::from_utf8_lossy(&output.stderr);
     let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
     assert_eq!(v["next_step"]["action"], action, "got: {v}");
-    assert_eq!(
-        v["next_step"]["template"], "xr media status 777 --wait=60 -u alice -H 'X-Trace: <value>'",
-        "got: {v}"
-    );
+    assert_eq!(v["next_step"]["template"], template, "got: {v}");
     assert_eq!(v["next_step"].get("command"), None, "never both: {v}");
     assert!(
         !stderr.contains("secret-123"),

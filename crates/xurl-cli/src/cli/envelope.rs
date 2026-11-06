@@ -338,14 +338,16 @@ pub struct ErrorBody {
     /// the caller finishes or decides on first, never both: a template
     /// holds angle-bracket placeholders only the caller can fill; under
     /// `confirm`, the invocation that destroys once it runs; or, after a
-    /// 401 on the status read after `xr media upload`, the resumed wait to
-    /// run once the credential works. One whose recovery is not an `xr`
+    /// 401 or a 429 with no reset on the status read after `xr media
+    /// upload`, the resumed wait to run once the credential works or the
+    /// window passes. One whose recovery is not an `xr`
     /// invocation carries neither, and `docs` when a page covers it:
     /// `enroll-app`, `wait-and-retry`, `retry`, `fix-input`,
     /// `report-issue`, and `inspect-store` when a store command is what
     /// failed. After `xr media upload` finished, a `wait-and-retry` on the
-    /// status read carries the command that resumes the wait, or a template
-    /// when the media command was given `-H`. Three `fix-input` steps carry
+    /// status read carries the resumed wait: a command that waits out the
+    /// reset X named under `--wait-on-rate-limit`, or a template when X named
+    /// none or the media command was given `-H`. Three `fix-input` steps carry
     /// an invocation:
     /// `listen` again on a free port, under `address-in-use`, and two under
     /// `invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved
@@ -357,8 +359,9 @@ pub struct ErrorBody {
     /// listen` lacks, `auth oauth2 --step 2` again with its redirect URL
     /// left as `<redirect-url>`, and the resumed wait after a 401 on the
     /// status read after `xr media upload`, to run once the credential
-    /// works; and `resume-wait` and that `wait-and-retry` when the media
-    /// command was given `-H`, with each header's value left as `<value>`.
+    /// works; `resume-wait` when the media command was given `-H`, with each
+    /// header's value left as `<value>`; and that `wait-and-retry` when X
+    /// named no reset or under `-H`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// What the library warned about before the run failed, each distinct
