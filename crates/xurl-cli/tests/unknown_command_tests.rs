@@ -1252,7 +1252,7 @@ async fn a_retired_word_never_points_at_its_nearest_sibling() {
         "broadcasts",
         "sources",
         "rename",
-        "1x2y3z4w5v6u",
+        "9012345678901234567",
         "Studio B",
     ])
     .await;

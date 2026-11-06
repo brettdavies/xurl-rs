@@ -836,7 +836,7 @@ pub mod broadcasts_scheduled {
     /// `xr broadcasts scheduled add`.
     pub const ADD: Verb = Verb {
         name: "add",
-        example_args: "--source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z --title \"Launch day\"",
+        example_args: "--source 9012345678901234567 --start 2026-11-02T16:00:00Z --title \"Launch day\"",
         text_caption: "Schedule a broadcast from a stream source (text)",
         json_caption: "Schedule (JSON envelope)",
     };
@@ -1074,8 +1074,16 @@ pub mod broadcast_sources {
     /// `xr broadcasts sources get`.
     pub const GET: Verb = Verb {
         name: "get",
-        example_args: "1x2y3z4w5v6u",
+        example_args: "9012345678901234567",
         text_caption: "Show a source and whether it is receiving video (text)",
+        json_caption: "As a JSON envelope",
+    };
+
+    /// `xr broadcasts sources stream-key`.
+    pub const STREAM_KEY: Verb = Verb {
+        name: "stream-key",
+        example_args: "9012345678901234567",
+        text_caption: "Show a source's stream key, a credential (text)",
         json_caption: "As a JSON envelope",
     };
 
@@ -1098,7 +1106,7 @@ pub mod broadcast_sources {
     /// `xr broadcasts sources update`.
     pub const UPDATE: Verb = Verb {
         name: "update",
-        example_args: "1x2y3z4w5v6u --name \"Studio B\"",
+        example_args: "9012345678901234567 --name \"Studio B\"",
         text_caption: "Rename a source (text)",
         json_caption: "Rename (JSON envelope)",
     };
@@ -1106,7 +1114,7 @@ pub mod broadcast_sources {
     /// `xr broadcasts sources remove`.
     pub const REMOVE: Verb = Verb {
         name: "remove",
-        example_args: "1x2y3z4w5v6u --force --no-interactive",
+        example_args: "9012345678901234567 --force --no-interactive",
         text_caption: "Delete a source with no prompt, as a script does (text)",
         json_caption: "Delete (JSON envelope)",
     };
@@ -1123,6 +1131,10 @@ pub mod broadcast_sources {
                     Example::json(&ADD),
                     Example::json(&GET),
                 ],
+            ),
+            (
+                "Read a source's stream key again, JSON",
+                &[Example::json(&STREAM_KEY)],
             ),
         ];
         FAMILY.page(SECTIONS)

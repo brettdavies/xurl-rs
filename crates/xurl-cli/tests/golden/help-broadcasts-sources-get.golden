@@ -1,10 +1,12 @@
 args: ["broadcasts", "sources", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7148
+stdout_len: 7254
 stderr_len: 0
 --- stdout ---
 Show one stream source, and whether it is receiving video
+
+The answer carries no stream key; `xr broadcasts sources stream-key <SOURCE_ID>` reads it.
 
 Usage: xr broadcasts sources get [OPTIONS] <SOURCE_ID>
 
@@ -160,9 +162,9 @@ Global Options:
 
 Examples:
   Show a source and whether it is receiving video (text):
-    xr broadcasts sources get 1x2y3z4w5v6u
+    xr broadcasts sources get 9012345678901234567
   As a JSON envelope:
-    xr broadcasts sources get 1x2y3z4w5v6u --output json
+    xr broadcasts sources get 9012345678901234567 --output json
 
 Response schema:
   xr schema broadcasts sources get

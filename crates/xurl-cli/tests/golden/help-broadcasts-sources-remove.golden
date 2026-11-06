@@ -1,7 +1,7 @@
 args: ["broadcasts", "sources", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7317
+stdout_len: 7331
 stderr_len: 0
 --- stdout ---
 Delete a stream source; an encoder sending to it is no longer received
@@ -163,9 +163,9 @@ Global Options:
 
 Examples:
   Delete a source with no prompt, as a script does (text):
-    xr broadcasts sources remove 1x2y3z4w5v6u --force --no-interactive
+    xr broadcasts sources remove 9012345678901234567 --force --no-interactive
   Delete (JSON envelope):
-    xr broadcasts sources remove 1x2y3z4w5v6u --force --no-interactive --output json
+    xr broadcasts sources remove 9012345678901234567 --force --no-interactive --output json
 
 Response schema:
   xr schema broadcasts sources remove

@@ -98,6 +98,10 @@ pub const ROWS: &[Row] = &[
     ),
     row("broadcasts sources add", &[ep::CREATE_STREAM_SOURCE]),
     row("broadcasts sources get", &[ep::GET_STREAM_SOURCE]),
+    row(
+        "broadcasts sources stream-key",
+        &[ep::GET_STREAM_SOURCE_KEY],
+    ),
     row("broadcasts sources list", &[ep::GET_STREAM_SOURCES]),
     row("broadcasts sources region", &[ep::GET_REGION]),
     row("broadcasts sources remove", &[ep::DELETE_STREAM_SOURCE]),

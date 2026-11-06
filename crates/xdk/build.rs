@@ -339,6 +339,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_STREAM_SOURCE", "GET", "/2/sources/{id}"),
     ("RENAME_STREAM_SOURCE", "PUT", "/2/sources/{id}"),
     ("DELETE_STREAM_SOURCE", "DELETE", "/2/sources/{id}"),
+    ("GET_STREAM_SOURCE_KEY", "GET", "/2/sources/{id}/stream_key"),
     ("GET_REGION", "GET", "/2/region"),
     // calls
     ("GET_CALL", "GET", "/2/calls/{id}"),

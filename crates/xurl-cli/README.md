@@ -392,7 +392,7 @@ xr broadcasts list                                 # Your broadcasts
 xr broadcasts get 1YqKDqWqdPLGV                    # One broadcast, by id
 xr broadcasts remove 1YqKDqWqdPLGV                 # Delete a broadcast and its replay (asks first)
 xr broadcasts scheduled list                       # Your scheduled broadcasts
-xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z
+xr broadcasts scheduled add --source 9012345678901234567 --start 2026-11-02T16:00:00Z
 xr broadcasts scheduled update 1850000000000000001 --start 2026-11-02T17:00:00Z --end 2026-11-02T18:00:00Z
 xr broadcasts scheduled cancel 1850000000000000001 # Cancel (asks first)
 xr broadcasts chat history 1YqKDqWqdPLGV           # A broadcast's chat
@@ -404,9 +404,10 @@ xr broadcasts mutes remove @troll                  # Unmute
 xr broadcasts sources list                         # Your RTMP and RTMPS ingest points
 xr broadcasts sources region                       # The ingest region to pass to add --region
 xr broadcasts sources add "Studio A" --region us-east-1
-xr broadcasts sources get 1x2y3z4w5v6u             # Whether the source is receiving video
-xr broadcasts sources update 1x2y3z4w5v6u --name "Studio B"
-xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force skips)
+xr broadcasts sources get 9012345678901234567      # Whether the source is receiving video
+xr broadcasts sources stream-key 9012345678901234567  # Its stream key, a credential
+xr broadcasts sources update 9012345678901234567 --name "Studio B"
+xr broadcasts sources remove 9012345678901234567   # Delete; asks first (--force skips)
 ```
 
 A scheduled broadcast takes its video from a stream source, so `add` names one with `--source`; its times are RFC 3339,
@@ -417,10 +418,12 @@ broadcast live at its start time.
 `--broadcast` to mute or unmute someone in every chat of that broadcast's host.
 
 A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `stream_key`,
-then poll `get` until `is_stream_active` is true. Whoever holds the stream key can stream to the source; keep it out of
-logs you share. `--region` takes an ingest region, and `xr broadcasts sources add --help` lists them;
-`xr broadcasts sources region` names the one nearest the X server that answers. The API lists the regions in prose, so
-`xr` passes the value through rather than refusing one it does not know.
+then poll `get` until `is_stream_active` is true. `add` answers the stream key and
+`xr broadcasts sources stream-key <SOURCE_ID>` reads it again; `list`, `get`, and `update` carry none. Whoever holds the
+stream key can stream to the source; keep it out of logs you share, and pipe `--output json` through
+`jaq -r .data.stream_key` to hand it to a program without printing it. `--region` takes an ingest region, and
+`xr broadcasts sources add --help` lists them; `xr broadcasts sources region` names the one nearest the X server that
+answers. The API lists the regions in prose, so `xr` passes the value through rather than refusing one it does not know.
 
 `xr broadcasts remove` deletes a scheduled or ended broadcast with its replay, and X refuses a running one. It asks
 first, and `--force` skips the prompt.
