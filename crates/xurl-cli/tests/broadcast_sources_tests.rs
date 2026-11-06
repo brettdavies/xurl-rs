@@ -27,7 +27,7 @@ fn source(name: &str) -> serde_json::Value {
     })
 }
 
-/// A source as X answers its creation, the one answer that carries the key.
+/// A source as X answers the request that creates it, which carries the key.
 fn created_source(name: &str) -> serde_json::Value {
     let mut created = source(name);
     created["stream_key"] = serde_json::json!(STREAM_KEY);
@@ -129,6 +129,56 @@ async fn sources_add_posts_the_name_and_region() {
     let body = json_out(&stdout);
     assert_eq!(body["data"]["id"], SOURCE_ID);
     assert_eq!(body["data"]["stream_key"], STREAM_KEY);
+}
+
+/// X has created the source by the time the command decodes the answer, so an
+/// answer without the key fails after the request went out. `list` and then
+/// `stream-key` recover the key.
+#[tokio::test]
+async fn sources_add_fails_as_a_serialization_error_when_the_answer_lacks_the_stream_key() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/sources"))
+        .respond_with(
+            ResponseTemplate::new(201)
+                .set_body_json(serde_json::json!({"data": source("Studio A")})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "broadcasts",
+            "sources",
+            "add",
+            "Studio A",
+            "--region",
+            "eu-west-1",
+            "--output",
+            "json",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
+    assert_eq!(envelope["reason"], "serialization", "{envelope}");
+    assert_eq!(
+        envelope["next_step"]["action"], "report-issue",
+        "{envelope}"
+    );
+    assert!(
+        envelope["message"]
+            .as_str()
+            .is_some_and(|message| message.contains("stream_key")),
+        "the message names the missing field: {envelope}"
+    );
 }
 
 #[tokio::test]
@@ -313,28 +363,20 @@ async fn sources_stream_key_under_dry_run_sends_nothing() {
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
-/// The help of a stream-source verb, as clap holds it.
-fn sources_verb_help(verb: &str) -> String {
-    use clap::CommandFactory;
-
-    let mut root = xurl::cli::Cli::command();
-    root.build();
-    let command = ["broadcasts", "sources", verb]
-        .iter()
-        .fold(&root, |cmd, name| {
-            cmd.find_subcommand(name)
-                .unwrap_or_else(|| panic!("clap has `{name}`"))
-        });
+/// A command's full help text: its long description, or its one line when it
+/// has no more.
+fn help_of(path: &str) -> String {
+    let command = common::invoke::command_at(path);
     command
         .get_long_about()
         .or_else(|| command.get_about())
         .map(ToString::to_string)
-        .expect("the verb has help")
+        .expect("the command has help")
 }
 
 #[test]
 fn sources_stream_key_help_calls_the_output_a_credential() {
-    let help = sources_verb_help("stream-key");
+    let help = help_of("broadcasts sources stream-key");
     assert!(
         help.contains("credential"),
         "the help warns what the key is: {help}"
@@ -343,10 +385,49 @@ fn sources_stream_key_help_calls_the_output_a_credential() {
 
 #[test]
 fn sources_add_help_names_the_command_that_reads_the_key_again() {
-    let help = sources_verb_help("add");
+    let help = help_of("broadcasts sources add");
     assert!(
         help.contains("xr broadcasts sources stream-key"),
         "the help names the way to read the key later: {help}"
+    );
+}
+
+#[test]
+fn sources_stream_key_is_called_a_credential_where_the_commands_are_listed() {
+    let about = common::invoke::command_at("broadcasts sources stream-key")
+        .get_about()
+        .map(ToString::to_string)
+        .expect("the command has a description");
+    assert!(about.contains("credential"), "{about}");
+}
+
+#[test]
+fn sources_stream_key_help_names_the_scopes_it_needs_and_how_to_use_the_key_unseen() {
+    let help = help_of("broadcasts sources stream-key");
+    for expected in [
+        "broadcast.read",
+        "broadcast.write",
+        "jaq -r .data.stream_key",
+    ] {
+        assert!(help.contains(expected), "`{expected}` is missing: {help}");
+    }
+}
+
+#[test]
+fn sources_get_help_says_where_the_stream_key_went() {
+    let help = help_of("broadcasts sources get");
+    assert!(
+        help.contains("xr broadcasts sources stream-key"),
+        "get answers no key, so its help says how to read it: {help}"
+    );
+}
+
+#[test]
+fn sources_family_help_says_which_answer_carries_the_stream_key() {
+    let help = help_of("broadcasts sources");
+    assert!(
+        help.contains("stream-key") && help.contains("add"),
+        "the family help names the verbs that answer the key: {help}"
     );
 }
 

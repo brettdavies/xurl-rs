@@ -1,12 +1,12 @@
 args: ["broadcasts", "sources", "stream-key", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7266
+stdout_len: 7463
 stderr_len: 0
 --- stdout ---
-Show a stream source's stream key
+Show a stream source's stream key, a credential
 
-The stream key is a credential: whoever holds it can stream to the source. Keep it out of logs you share.
+The stream key is a credential: whoever holds it can stream to the source. Keep it out of logs you share. To hand it to a program without printing it, pipe `--output json` through `jaq -r .data.stream_key`. It needs the `broadcast.read` and `broadcast.write` scopes, or an `OAuth1` login.
 
 Usage: xr broadcasts sources stream-key [OPTIONS] <SOURCE_ID>
 

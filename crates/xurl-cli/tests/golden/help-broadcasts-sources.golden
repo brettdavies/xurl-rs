@@ -1,17 +1,19 @@
 args: ["broadcasts", "sources", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7379
+stdout_len: 7503
 stderr_len: 0
 --- stdout ---
 Manage the RTMP and RTMPS ingest points you stream to
+
+`add` answers a source's stream key and `stream-key` reads it again; `list`, `get`, and `update` carry none.
 
 Usage: xr broadcasts sources [OPTIONS] <COMMAND>
 
 Commands:
   list        List your stream sources
   get         Show one stream source, and whether it is receiving video
-  stream-key  Show a stream source's stream key
+  stream-key  Show a stream source's stream key, a credential
   region      Show the ingest region nearest the X server that answers
   add         Create a stream source
   update      Rename a stream source

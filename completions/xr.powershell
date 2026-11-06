@@ -4440,7 +4440,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
             [CompletionResult]::new('--help', '--help', [CompletionResultType]::ParameterName, 'Print help (see more with ''--help'')')
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your stream sources')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Show one stream source, and whether it is receiving video')
-            [CompletionResult]::new('stream-key', 'stream-key', [CompletionResultType]::ParameterValue, 'Show a stream source''s stream key')
+            [CompletionResult]::new('stream-key', 'stream-key', [CompletionResultType]::ParameterValue, 'Show a stream source''s stream key, a credential')
             [CompletionResult]::new('region', 'region', [CompletionResultType]::ParameterValue, 'Show the ingest region nearest the X server that answers')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a stream source')
             [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Rename a stream source')
@@ -4664,7 +4664,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;broadcasts;sources;help' {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your stream sources')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Show one stream source, and whether it is receiving video')
-            [CompletionResult]::new('stream-key', 'stream-key', [CompletionResultType]::ParameterValue, 'Show a stream source''s stream key')
+            [CompletionResult]::new('stream-key', 'stream-key', [CompletionResultType]::ParameterValue, 'Show a stream source''s stream key, a credential')
             [CompletionResult]::new('region', 'region', [CompletionResultType]::ParameterValue, 'Show the ingest region nearest the X server that answers')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a stream source')
             [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Rename a stream source')
@@ -4780,7 +4780,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;broadcasts;help;sources' {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your stream sources')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Show one stream source, and whether it is receiving video')
-            [CompletionResult]::new('stream-key', 'stream-key', [CompletionResultType]::ParameterValue, 'Show a stream source''s stream key')
+            [CompletionResult]::new('stream-key', 'stream-key', [CompletionResultType]::ParameterValue, 'Show a stream source''s stream key, a credential')
             [CompletionResult]::new('region', 'region', [CompletionResultType]::ParameterValue, 'Show the ingest region nearest the X server that answers')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a stream source')
             [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Rename a stream source')
@@ -7441,7 +7441,7 @@ Register-ArgumentCompleter -Native -CommandName 'xr' -ScriptBlock {
         'xr;help;broadcasts;sources' {
             [CompletionResult]::new('list', 'list', [CompletionResultType]::ParameterValue, 'List your stream sources')
             [CompletionResult]::new('get', 'get', [CompletionResultType]::ParameterValue, 'Show one stream source, and whether it is receiving video')
-            [CompletionResult]::new('stream-key', 'stream-key', [CompletionResultType]::ParameterValue, 'Show a stream source''s stream key')
+            [CompletionResult]::new('stream-key', 'stream-key', [CompletionResultType]::ParameterValue, 'Show a stream source''s stream key, a credential')
             [CompletionResult]::new('region', 'region', [CompletionResultType]::ParameterValue, 'Show the ingest region nearest the X server that answers')
             [CompletionResult]::new('add', 'add', [CompletionResultType]::ParameterValue, 'Create a stream source')
             [CompletionResult]::new('update', 'update', [CompletionResultType]::ParameterValue, 'Rename a stream source')

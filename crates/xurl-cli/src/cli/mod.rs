@@ -2776,6 +2776,9 @@ pub enum BroadcastsCommands {
         action: MutesCommands,
     },
     /// Manage the RTMP and RTMPS ingest points you stream to
+    ///
+    /// `add` answers a source's stream key and `stream-key` reads it again; `list`, `get`, and
+    /// `update` carry none.
     #[command(after_help = family_help::broadcast_sources::page())]
     Sources {
         /// `sources` verb to dispatch.
@@ -2907,6 +2910,8 @@ pub enum SourcesCommands {
         common: CommonFlags,
     },
     /// Show one stream source, and whether it is receiving video
+    ///
+    /// The answer carries no stream key; `xr broadcasts sources stream-key <SOURCE_ID>` reads it.
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::GET))]
     Get {
         /// Source ID, as `xr broadcasts sources list` prints it
@@ -2916,10 +2921,12 @@ pub enum SourcesCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
-    /// Show a stream source's stream key
+    /// Show a stream source's stream key, a credential
     ///
     /// The stream key is a credential: whoever holds it can stream to the source. Keep it out of
-    /// logs you share.
+    /// logs you share. To hand it to a program without printing it, pipe `--output json` through
+    /// `jaq -r .data.stream_key`. It needs the `broadcast.read` and `broadcast.write` scopes, or an
+    /// `OAuth1` login.
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::STREAM_KEY))]
     StreamKey {
         /// Source ID, as `xr broadcasts sources list` prints it

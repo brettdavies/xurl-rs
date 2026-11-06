@@ -4206,7 +4206,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
-            cand stream-key 'Show a stream source''s stream key'
+            cand stream-key 'Show a stream source''s stream key, a credential'
             cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
@@ -4422,7 +4422,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;sources;help'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
-            cand stream-key 'Show a stream source''s stream key'
+            cand stream-key 'Show a stream source''s stream key, a credential'
             cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
@@ -4509,7 +4509,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;broadcasts;help;sources'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
-            cand stream-key 'Show a stream source''s stream key'
+            cand stream-key 'Show a stream source''s stream key, a credential'
             cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'
@@ -6882,7 +6882,7 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;broadcasts;sources'= {
             cand list 'List your stream sources'
             cand get 'Show one stream source, and whether it is receiving video'
-            cand stream-key 'Show a stream source''s stream key'
+            cand stream-key 'Show a stream source''s stream key, a credential'
             cand region 'Show the ingest region nearest the X server that answers'
             cand add 'Create a stream source'
             cand update 'Rename a stream source'

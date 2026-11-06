@@ -4161,7 +4161,7 @@ complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcom
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -s h -l help -d 'Print help (see more with \'--help\')'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "list" -d 'List your stream sources'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "get" -d 'Show one stream source, and whether it is receiving video'
-complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "stream-key" -d 'Show a stream source\'s stream key'
+complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "stream-key" -d 'Show a stream source\'s stream key, a credential'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "region" -d 'Show the ingest region nearest the X server that answers'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "add" -d 'Create a stream source'
 complete -c xr -n "__fish_xr_using_subcommand broadcasts; and __fish_seen_subcommand_from sources" -f -a "update" -d 'Rename a stream source'

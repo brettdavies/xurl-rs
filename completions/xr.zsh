@@ -11328,7 +11328,7 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
-'stream-key:Show a stream source'\''s stream key' \
+'stream-key:Show a stream source'\''s stream key, a credential' \
 'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
 'update:Rename a stream source' \
@@ -11575,7 +11575,7 @@ _xr__subcmd__broadcasts__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
-'stream-key:Show a stream source'\''s stream key' \
+'stream-key:Show a stream source'\''s stream key, a credential' \
 'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
 'update:Rename a stream source' \
@@ -11599,7 +11599,7 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__help_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
-'stream-key:Show a stream source'\''s stream key' \
+'stream-key:Show a stream source'\''s stream key, a credential' \
 'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
 'update:Rename a stream source' \
@@ -12404,7 +12404,7 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources_commands() {
     local commands; commands=(
 'list:List your stream sources' \
 'get:Show one stream source, and whether it is receiving video' \
-'stream-key:Show a stream source'\''s stream key' \
+'stream-key:Show a stream source'\''s stream key, a credential' \
 'region:Show the ingest region nearest the X server that answers' \
 'add:Create a stream source' \
 'update:Rename a stream source' \
