@@ -1445,6 +1445,45 @@ async fn step2_with_no_auth_url_points_at_the_help() {
     assert_usage_refusal(Some(code), &stderr, "--auth-url is required");
 }
 
+/// An empty `--auth-url` is a missing one, refused before the store or the
+/// saved flow is read, as empty stdin is.
+#[tokio::test]
+async fn step2_with_an_empty_auth_url_points_at_the_help() {
+    for (saved, url) in [(true, ""), (false, ""), (true, "  ")] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        let pending = saved.then(|| seed_pending(&store));
+        let overrides = step2_overrides(
+            &format!("{CLOSED}/2/oauth2/token"),
+            &format!("{CLOSED}/2/users/me"),
+        );
+
+        let (code, _stdout, stderr) = run_cli(
+            &store,
+            &overrides,
+            &[
+                "xr",
+                "--output",
+                "json",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                url,
+            ],
+        )
+        .await;
+
+        assert_usage_refusal(Some(code), &stderr, "--auth-url is empty");
+        if let Some(pending) = pending {
+            assert!(pending.exists(), "the saved flow stays: {url:?}");
+        }
+    }
+}
+
 #[tokio::test]
 async fn step1_given_an_auth_url_points_at_the_help() {
     let tmp = TempDir::new().unwrap();
@@ -1478,6 +1517,8 @@ async fn step1_given_an_auth_url_points_at_the_help() {
 async fn a_dry_run_says_the_real_run_would_refuse_the_argument() {
     for (step, url, says) in [
         ("2", None, "--auth-url is required"),
+        ("2", Some(""), "--auth-url is empty"),
+        ("2", Some("  "), "--auth-url is empty"),
         (
             "1",
             Some("http://localhost:8080/callback"),
@@ -1829,9 +1870,10 @@ async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
     for (why, response) in [
         ("invalid_grant", oauth_error(400, "invalid_grant")),
         (
-            "a 4xx with no JSON",
-            ResponseTemplate::new(403).set_body_string("no"),
+            "a 400 with no JSON",
+            ResponseTemplate::new(400).set_body_string("no"),
         ),
+        ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
         (
             "a 200 with no token",
             ResponseTemplate::new(200).set_body_json(serde_json::json!({"token_type": "bearer"})),
@@ -1884,6 +1926,51 @@ async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_agai
         assert!(
             envelope["next_step"]["command"].is_null(),
             "{why}: {envelope}"
+        );
+    }
+}
+
+/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with an `error`
+/// object. Any other answer came from something that did not process the
+/// exchange, such as a proxy or a token URL with the wrong path, so the code is
+/// still good and the saved flow stays for the same step 2.
+#[tokio::test]
+async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
+    for (why, response, reason, exit_code, action) in [
+        (
+            "a 408 with no JSON",
+            ResponseTemplate::new(408).set_body_string("<html>Request Timeout</html>"),
+            "api-error",
+            xdk::error::EXIT_GENERAL_ERROR,
+            Some("retry"),
+        ),
+        (
+            "a 404 with no JSON",
+            ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"),
+            "not-found",
+            xdk::error::EXIT_NOT_FOUND,
+            Some("fix-input"),
+        ),
+        (
+            "a 403 with no JSON",
+            ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"),
+            "forbidden",
+            xdk::error::EXIT_GENERAL_ERROR,
+            None,
+        ),
+    ] {
+        let (code, envelope) = step2_answered_with(response).await;
+        assert_eq!(code, exit_code, "{why}: {envelope}");
+        assert_eq!(envelope["reason"], reason, "{why}: {envelope}");
+        assert_eq!(envelope["exit_code"], exit_code, "{why}: {envelope}");
+        assert_eq!(
+            envelope["next_step"]["action"].as_str(),
+            action,
+            "{why}: {envelope}"
+        );
+        assert!(
+            envelope["next_step"]["command"].is_null(),
+            "{why}: no sign-in: {envelope}"
         );
     }
 }

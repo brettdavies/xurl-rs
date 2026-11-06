@@ -615,9 +615,10 @@ pub(crate) async fn refresh_grant(
 /// be taken, and when the refresh itself fails:
 /// [`Error::Auth`] when the token endpoint refuses the refresh token or the
 /// client, or answers with no access token; [`Error::Http`] when it does not
-/// answer; [`Error::Api`] when it answers a 5xx or a 429 (with `reset_at` when
-/// the 429 names its reset); and [`Error::InvalidUrl`] when the token URL is
-/// not one a request can go to. A failed refresh writes nothing to the store.
+/// answer; [`Error::Api`] when it answers a failure status that is no OAuth
+/// refusal, such as a 5xx, a 429 (with `reset_at` when it names its reset), or
+/// a proxy's 404; and [`Error::InvalidUrl`] when the token URL is not one a
+/// request can go to. A failed refresh writes nothing to the store.
 /// A failed `/2/users/me` lookup is not an error.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,

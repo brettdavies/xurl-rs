@@ -115,8 +115,8 @@ fn assert_reason(code: i32, envelope: &Value, reason: &str, exit_code: i32) {
     assert_eq!(envelope["exit_code"], exit_code, "{envelope}");
 }
 
-/// X's body is the message of a 5xx or a 429, as on any request, so a
-/// warning says the answer was to the refresh.
+/// X's body is the message of an answer the token endpoint did not process,
+/// as on any request, so a warning says the answer was to the refresh.
 fn assert_warns_of_the_refresh(envelope: &Value) {
     let warnings = envelope["warnings"].as_array().cloned().unwrap_or_default();
     assert!(
@@ -425,6 +425,11 @@ async fn a_refused_refresh_token_signs_the_login_in_again() {
     for (why, response) in [
         ("invalid_grant", oauth_error(400, "invalid_grant")),
         (
+            "a 400 with no JSON",
+            ResponseTemplate::new(400).set_body_string("<html>Bad Request</html>"),
+        ),
+        ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
+        (
             "a 200 with no token",
             ResponseTemplate::new(200).set_body_json(json!({"token_type": "bearer"})),
         ),
@@ -449,6 +454,50 @@ async fn a_refused_refresh_token_signs_the_login_in_again() {
             envelope["next_step"]["command"], "xr auth oauth2 alice --no-browser --step 1",
             "{why}: {envelope}"
         );
+    }
+}
+
+/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with an `error`
+/// object. Any other answer came from something that did not process the
+/// refresh, such as a proxy or a token URL with the wrong path, so it reports
+/// what any request to X would, and the refresh token stays good.
+#[tokio::test]
+async fn a_refresh_answered_with_no_oauth_refusal_reports_its_status() {
+    for (why, response, reason, exit_code, action) in [
+        (
+            "a 408 with no JSON",
+            ResponseTemplate::new(408).set_body_string("<html>Request Timeout</html>"),
+            "api-error",
+            xdk::error::EXIT_GENERAL_ERROR,
+            Some("retry"),
+        ),
+        (
+            "a 404 with no JSON",
+            ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"),
+            "not-found",
+            xdk::error::EXIT_NOT_FOUND,
+            Some("fix-input"),
+        ),
+        (
+            "a 403 with no JSON",
+            ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"),
+            "forbidden",
+            xdk::error::EXIT_GENERAL_ERROR,
+            None,
+        ),
+    ] {
+        let (code, envelope) = whoami_answered_with(response).await;
+        assert_reason(code, &envelope, reason, exit_code);
+        assert_eq!(
+            envelope["next_step"]["action"].as_str(),
+            action,
+            "{why}: {envelope}"
+        );
+        assert!(
+            envelope["next_step"]["command"].is_null(),
+            "{why}: no sign-in: {envelope}"
+        );
+        assert_warns_of_the_refresh(&envelope);
     }
 }
 

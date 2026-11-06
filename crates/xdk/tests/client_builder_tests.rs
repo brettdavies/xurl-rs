@@ -269,6 +269,32 @@ async fn a_refresh_x_could_not_answer_is_the_error_any_request_meets() {
     );
 }
 
+/// An answer that is no OAuth refusal, such as a proxy's 404 page, did not
+/// come from a token endpoint that processed the grant, so it is the
+/// `Error::Api` any request meets rather than a refused refresh token.
+#[tokio::test]
+async fn a_refresh_answered_with_no_oauth_refusal_is_the_error_any_request_meets() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"))
+        .mount(&server)
+        .await;
+
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .base_url(server.uri())
+        .token_url(format!("{}/2/oauth2/token", server.uri()))
+        .build()
+        .unwrap();
+
+    let err = client.get_me().send().await.expect_err("the refresh fails");
+    assert!(
+        matches!(&err, Error::Api { status: 404, .. }),
+        "got {err:?}"
+    );
+}
+
 /// The builder supplies the token URL here, so the error states the fact and
 /// names no environment variable an embedder never set.
 #[tokio::test]

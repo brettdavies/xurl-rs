@@ -1017,16 +1017,19 @@ Under `auth-required`, a failed `xr auth oauth2` names the step that moves the s
   link, or client credentials X refused. Another consent would end at the same refusal.
 
 A failed `xr auth oauth2` that says nothing about credentials takes its own reason. A refused argument (`--auth-url`
-missing, given at step 1, or empty or unreadable on stdin) is `invalid-args`. A token exchange X did not process reports
-what any other request would: `network-error` with no answer, `server-error` on a 5xx, and `rate-limited` on a 429. The
-same invocation finishes once X answers, and if X had already spent the code, it answers with the `sign-in` step above.
-A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
+missing or empty, given at step 1, or empty or unreadable on stdin) is `invalid-args`. The token endpoint refuses a code
+with a 400 or a 401, or with an OAuth `error` object on any other status but a 5xx or a 429. Any other failure is an
+exchange the endpoint did not process, and it reports what any other request would: `network-error` with no answer,
+`server-error` on a 5xx, `rate-limited` on a 429, and the reason for its status on anything else, such as `forbidden`
+for a proxy's 403, `not-found` for a token URL with the wrong path, or `api-error` with `retry` for a 408. The same
+invocation finishes once the endpoint answers, and if X had already spent the code, it answers with the `sign-in` step
+above. A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
 
 Any command whose OAuth2 login has expired refreshes it first, and a failed refresh writes nothing to the store. A
 refresh X refused is `auth-required`: a refused refresh token, or an answer with no token, carries the `sign-in` that
 stores the same login again, the one `-u` named or else the one the refresh ran for, and refused client credentials
-carry `fix-input` with no invocation. A refresh X did not process reports what any other request would, the same as the
-token exchange above, with a warning that names the refresh on a 5xx or a 429, and the same command finishes once X
+carry `fix-input` with no invocation. A refresh the endpoint did not process reports what any other request would, the
+same as the token exchange above, with a warning that names the refresh, and the same command finishes once the endpoint
 answers.
 
 ### NO_COLOR Support

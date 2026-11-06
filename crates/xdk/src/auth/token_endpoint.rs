@@ -1,12 +1,17 @@
 //! The answer the `OAuth2` token endpoint gives a grant, read the same way for
 //! the code a sign-in exchanges and for the refresh token a refresh spends.
 //!
-//! A failure the endpoint did not process is the one any request to X reports:
-//! [`Error::Http`] with no answer, and [`Error::Api`] for a 5xx or a 429, which
-//! a refresh also reports as an `xdk::auth` warning, since the error alone does
-//! not say the refresh is what X answered. A token URL no request can go to is
-//! [`Error::InvalidUrl`]. A refusal is [`Error::Auth`], of the client or of the
-//! grant, since the credential in hand is what was refused.
+//! A refusal is an answer RFC 6749 section 5.2 shapes: a 400 or a 401, or an
+//! `error` object on any status but a 5xx or a 429. It is [`Error::Auth`], of
+//! the client or of the grant, since the credential in hand is what was
+//! refused.
+//!
+//! Any other failure is one the endpoint did not process, and it is the one
+//! any request to X reports: [`Error::Http`] with no answer, and [`Error::Api`]
+//! for a failure status, such as a 5xx, a 429, or a proxy's 403, 404, or 408.
+//! A refresh also reports that answer as an `xdk::auth` warning, since the
+//! error alone does not say the refresh is what was answered. A token URL no
+//! request can go to is [`Error::InvalidUrl`].
 
 use serde_json::Value;
 
@@ -65,8 +70,9 @@ pub(crate) struct Answer {
 
 /// Sends `request` to the token endpoint at `token_url` and reads its answer.
 ///
-/// A 5xx or a 429 is decided by its status before the body is read, so a
-/// proxy's error page reads as the status it came with.
+/// A 400 or a 401 is a refusal by its status alone. Any other failure status
+/// is one only when its body is an OAuth error object, so a proxy's error page
+/// reads as the status it came with.
 ///
 /// # Errors
 ///
@@ -82,18 +88,25 @@ pub(crate) async fn answer(
         .map_err(|e| unsent(e, token_url, grant))?;
 
     let status = response.status();
-    if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+    if matches!(
+        status,
+        reqwest::StatusCode::BAD_REQUEST | reqwest::StatusCode::UNAUTHORIZED
+    ) {
+        let body = response.json::<Value>().await.unwrap_or_default();
+        return Err(refused(status, &body, grant));
+    }
+    if !status.is_success() {
+        let error = api_error(response).await.map_err(|e| broke_off(e, grant))?;
+        if let Some(object) = error_object(status, &error) {
+            return Err(refused(status, &object, grant));
+        }
         if matches!(grant, Grant::Refresh) {
             tracing::warn!(
                 target: "xdk::auth",
                 "the token endpoint answered the OAuth2 login's refresh with HTTP {status}"
             );
         }
-        return Err(api_error(response).await.map_err(|e| broke_off(e, grant))?);
-    }
-    if !status.is_success() {
-        let body = response.json::<Value>().await.unwrap_or_default();
-        return Err(refused(status, &body, grant));
+        return Err(error);
     }
 
     // A success whose body breaks off is no answer, which the same request can
@@ -130,8 +143,21 @@ fn unsent(error: reqwest::Error, token_url: &str, grant: Grant) -> Error {
     .with_source(error)
 }
 
-/// A 5xx or a 429 whose body broke off before it ended: no answer to read, so
-/// the same request can go again.
+/// The OAuth error object a failure status other than a 5xx or a 429 carries,
+/// which makes the answer a refusal whatever its status.
+fn error_object(status: reqwest::StatusCode, error: &Error) -> Option<Value> {
+    if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return None;
+    }
+    let Error::Api { body, .. } = error else {
+        return None;
+    };
+    let object: Value = serde_json::from_str(body).ok()?;
+    object["error"].is_string().then_some(object)
+}
+
+/// A failure status whose body broke off before it ended: no answer to read,
+/// so the same request can go again.
 fn broke_off(error: Error, grant: Grant) -> Error {
     let cause = std::error::Error::source(&error).map_or_else(|| error.to_string(), cause_chain);
     Error::http(format!(

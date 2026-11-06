@@ -395,10 +395,11 @@ impl Auth {
     ///
     /// Returns an error if the authorization flow or the opener fails, or if
     /// the token exchange does: [`Error::Http`] when the token endpoint does
-    /// not answer, [`Error::Api`] when it answers a 5xx or a 429 (with
-    /// `reset_at` when the 429 names its reset), [`Error::InvalidUrl`] when
-    /// the token URL is not one a request can go to, and [`Error::Auth`] when
-    /// it refuses the code or the client.
+    /// not answer, [`Error::Api`] when it answers a failure status that is no
+    /// OAuth refusal, such as a 5xx, a 429 (with `reset_at` when it names its
+    /// reset), or a proxy's 404, [`Error::InvalidUrl`] when the token URL is
+    /// not one a request can go to, and [`Error::Auth`] when it refuses the
+    /// code or the client.
     pub async fn oauth2_flow<F>(
         &mut self,
         http: &reqwest::Client,
