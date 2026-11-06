@@ -31,6 +31,7 @@ use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::{Config, EnvOverrides};
 
 use common::CLOSED;
+use common::token_endpoint::{Echo, NoRefusal, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers};
 
 mod common;
 
@@ -1394,10 +1395,7 @@ async fn text_output_names_the_same_steps_for_the_other_step2_refusals() {
 }
 
 const OAUTH2_HELP: &str = "xr auth oauth2 --help";
-const RESPONSE_CODES_DOCS: &str = "https://docs.x.com/x-api/fundamentals/response-codes-and-errors";
-const TOKEN_ENDPOINT_DOCS: &str =
-    "https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint";
-const FAILED_EXCHANGE: &str = "X's token endpoint failed, so the sign-in did not finish.";
+const FAILED_EXCHANGE: &str = "The token endpoint's answer ended the sign-in.";
 
 /// A refused argument is a usage error, which says nothing about credentials.
 fn assert_usage_refusal(code: Option<i32>, stderr: &str, says: &str) {
@@ -1877,6 +1875,7 @@ async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
             ResponseTemplate::new(400).set_body_string("no"),
         ),
         ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
+        ("invalid_grant on a 404", oauth_error(404, "invalid_grant")),
         (
             "a 200 with no token",
             ResponseTemplate::new(200).set_body_json(serde_json::json!({"token_type": "bearer"})),
@@ -1933,64 +1932,24 @@ async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_agai
     }
 }
 
-/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with an `error`
-/// object. Any other answer came from something that did not process the
-/// exchange, such as a proxy or a token URL with the wrong path, so the code is
-/// still good and the saved flow stays for the same step 2. A 403 points at
-/// the token URL and the proxy in front of it, and every such answer is warned
-/// of by name, with its status.
+/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with a JSON body that
+/// holds a string `error`. Any other answer came from something that did not
+/// process the exchange, such as a proxy or a token URL with the wrong path, so
+/// the code is still good and the saved flow stays for the same step 2. A 403
+/// points at the token URL and the proxy in front of it, and every such answer
+/// is warned of by name, with its status.
 #[tokio::test]
 async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
-    for (why, response, status, reason, exit_code, action, docs) in [
-        (
-            "a 408 with no JSON",
-            ResponseTemplate::new(408).set_body_string("<html>Request Timeout</html>"),
-            "408",
-            "api-error",
-            xdk::error::EXIT_GENERAL_ERROR,
-            "retry",
-            RESPONSE_CODES_DOCS,
-        ),
-        (
-            "a 404 with no JSON",
-            ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"),
-            "404",
-            "not-found",
-            xdk::error::EXIT_NOT_FOUND,
-            "fix-input",
-            RESPONSE_CODES_DOCS,
-        ),
-        (
-            "a 403 with no JSON",
-            ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"),
-            "403",
-            "forbidden",
-            xdk::error::EXIT_GENERAL_ERROR,
-            "fix-input",
-            TOKEN_ENDPOINT_DOCS,
-        ),
-        (
-            "a 403 with JSON that holds no `error`",
-            ResponseTemplate::new(403).set_body_json(
-                serde_json::json!({"title": "Forbidden", "detail": "blocked by policy"}),
-            ),
-            "403",
-            "forbidden",
-            xdk::error::EXIT_GENERAL_ERROR,
-            "fix-input",
-            TOKEN_ENDPOINT_DOCS,
-        ),
-        (
-            "a 404 with JSON whose `error` is an object",
-            ResponseTemplate::new(404)
-                .set_body_json(serde_json::json!({"error": {"code": 404, "message": "Not Found"}})),
-            "404",
-            "not-found",
-            xdk::error::EXIT_NOT_FOUND,
-            "fix-input",
-            RESPONSE_CODES_DOCS,
-        ),
-    ] {
+    for NoRefusal {
+        why,
+        response,
+        status,
+        reason,
+        exit_code,
+        action,
+        docs,
+    } in no_refusal_answers()
+    {
         let (code, envelope) = step2_answered_with(response).await;
         assert_eq!(code, exit_code, "{why}: {envelope}");
         assert_eq!(envelope["reason"], reason, "{why}: {envelope}");
@@ -2005,6 +1964,60 @@ async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
     }
 }
 
+/// A proxy's block page can repeat the request it refused. What the exchange
+/// sent is a credential, so none of it reaches the error.
+#[tokio::test]
+async fn step2_failure_answer_that_echoes_the_exchange_leaks_none_of_it() {
+    for status in [403, 404, 502] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(Echo(status))
+            .mount(&server)
+            .await;
+
+        let (_code, envelope) = step2_at(&server.uri()).await;
+
+        let text = envelope.to_string();
+        for secret in ["AUTHCODE", PENDING_VERIFIER, "test-client-secret"] {
+            assert!(!text.contains(secret), "{status} leaked {secret}: {text}");
+        }
+        assert!(
+            envelope["message"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("<redacted>"),
+            "{status}: the message shows where it was cut: {envelope}"
+        );
+    }
+}
+
+/// A page of tens of kilobytes would bury the rest of the output, so the error
+/// keeps its start and says how much it left out.
+#[tokio::test]
+async fn step2_failure_answer_of_a_large_page_is_cut_short() {
+    for status in [403, 404] {
+        let (_code, envelope) =
+            step2_answered_with(ResponseTemplate::new(status).set_body_string(big_page())).await;
+
+        let message = envelope["message"].as_str().unwrap_or_default();
+        assert!(message.len() < 1_300, "{status}: {} bytes", message.len());
+        assert!(message.starts_with("<html>blocked"), "{status}: {message}");
+        assert!(message.contains("more bytes"), "{status}: {message}");
+    }
+}
+
+/// An empty 403 is said to be empty, not printed as `{}`.
+#[tokio::test]
+async fn step2_with_an_empty_token_endpoint_403_says_so() {
+    let (_code, envelope) = step2_answered_with(ResponseTemplate::new(403)).await;
+
+    assert_eq!(
+        envelope["message"], "the token endpoint answered 403 with an empty body",
+        "{envelope}"
+    );
+}
+
 /// A warning names the token endpoint and the HTTP status of its answer, since
 /// the error prints X's body alone.
 fn assert_warns_of_the_exchange(envelope: &serde_json::Value, status: &str) {
@@ -2014,6 +2027,7 @@ fn assert_warns_of_the_exchange(envelope: &serde_json::Value, status: &str) {
             warning["target"] == "xdk::auth"
                 && warning["message"].as_str().is_some_and(|message| {
                     message.contains("token endpoint")
+                        && message.contains("code exchange")
                         && message.contains(&format!("HTTP {status}"))
                 })
         }),
@@ -2058,6 +2072,7 @@ async fn text_output_points_a_token_endpoint_403_at_the_token_url_and_the_proxy(
     .await;
 
     assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{stderr}");
+    assert!(stderr.contains(FAILED_EXCHANGE), "{stderr}");
     assert!(stderr.contains("TOKEN_URL"), "{stderr}");
     assert!(stderr.contains("proxy"), "{stderr}");
     assert!(stderr.contains(TOKEN_ENDPOINT_DOCS), "{stderr}");
@@ -2113,6 +2128,7 @@ async fn text_output_warns_that_the_token_endpoint_answered_the_exchange() {
         stderr.lines().any(|line| {
             line.starts_with("warning: ")
                 && line.contains("token endpoint")
+                && line.contains("code exchange")
                 && line.contains("HTTP 408")
         }),
         "{stderr}"

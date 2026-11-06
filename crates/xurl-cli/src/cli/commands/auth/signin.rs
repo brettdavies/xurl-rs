@@ -259,7 +259,7 @@ fn name_the_failed_exchange(error: &Error, out: &OutputConfig, stderr: &mut dyn 
     if error.is_api() {
         out.error_context(
             stderr,
-            "X's token endpoint failed, so the sign-in did not finish. It answered:",
+            "The token endpoint's answer ended the sign-in. It answered:",
         );
     }
 }

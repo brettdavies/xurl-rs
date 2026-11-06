@@ -12,11 +12,12 @@
 //! [`Error::TokenEndpointForbidden`], since the token URL or a proxy in front
 //! of it is what to look at. Both grants report every such answer as an
 //! `xdk::auth` warning that names the token endpoint and the status, since the
-//! error alone says neither. A token URL no request can go to is
+//! error alone does not name the status. A token URL no request can go to is
 //! [`Error::InvalidUrl`].
 
 use serde_json::Value;
 
+use super::answer_text::Sent;
 use crate::api::api_error;
 use crate::error::{
     Error, REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, Result,
@@ -81,7 +82,9 @@ pub(crate) struct Answer {
 ///
 /// A 400 or a 401 is a refusal by its status alone. Any other failure status
 /// is one only when its body is JSON with a string `error`, so a proxy's error
-/// page reads as the status it came with.
+/// page reads as the status it came with. The text of a failure answer is
+/// masked of what `sent` names and cut short, since a page can repeat the
+/// request.
 ///
 /// # Errors
 ///
@@ -90,6 +93,7 @@ pub(crate) async fn answer(
     request: reqwest::RequestBuilder,
     token_url: &str,
     grant: Grant,
+    sent: &Sent,
 ) -> Result<Answer> {
     let response = request
         .send()
@@ -102,7 +106,7 @@ pub(crate) async fn answer(
         reqwest::StatusCode::BAD_REQUEST | reqwest::StatusCode::UNAUTHORIZED
     ) {
         let body = response.json::<Value>().await.unwrap_or_default();
-        return Err(refused(status, &body, grant));
+        return Err(refused(status, &body, grant, sent));
     }
     if !status.is_success() {
         let error = match api_error(response).await {
@@ -112,14 +116,25 @@ pub(crate) async fn answer(
                 return Err(broke_off(read, grant));
             }
         };
-        if let Some(object) = error_object(status, &error) {
-            return Err(refused(status, &object, grant));
+        if let Some(object) = refusal_body(status, &error) {
+            return Err(refused(status, &object, grant, sent));
         }
         warn_of_answer(grant, status);
         return Err(match error {
             Error::Api {
                 status: 403, body, ..
-            } => Error::TokenEndpointForbidden { body },
+            } => Error::TokenEndpointForbidden {
+                body: sent.fit_to_print(&body),
+            },
+            Error::Api {
+                status,
+                body,
+                reset_at,
+            } => Error::Api {
+                status,
+                body: sent.fit_to_print(&body),
+                reset_at,
+            },
             other => other,
         });
     }
@@ -159,8 +174,7 @@ fn unsent(error: reqwest::Error, token_url: &str, grant: Grant) -> Error {
 }
 
 /// Says that the token endpoint answered the request `grant` names with
-/// `status`: the error that follows prints the endpoint's body alone, which
-/// names neither the request nor the status.
+/// `status`, which the error that follows does not carry.
 fn warn_of_answer(grant: Grant, status: reqwest::StatusCode) {
     tracing::warn!(
         target: "xdk::auth",
@@ -171,7 +185,7 @@ fn warn_of_answer(grant: Grant, status: reqwest::StatusCode) {
 
 /// The JSON body of a failure status other than a 5xx or a 429 when it holds
 /// a string `error`, which makes the answer a refusal whatever its status.
-fn error_object(status: reqwest::StatusCode, error: &Error) -> Option<Value> {
+fn refusal_body(status: reqwest::StatusCode, error: &Error) -> Option<Value> {
     if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
         return None;
     }
@@ -182,8 +196,8 @@ fn error_object(status: reqwest::StatusCode, error: &Error) -> Option<Value> {
     object["error"].is_string().then_some(object)
 }
 
-/// A failure status whose body broke off before it ended: no answer to read,
-/// so the same request can go again.
+/// An answer whose body broke off before it ended: no answer to read, so the
+/// same request can go again.
 fn broke_off(error: Error, grant: Grant) -> Error {
     let cause = std::error::Error::source(&error).map_or_else(|| error.to_string(), cause_chain);
     Error::http(format!(
@@ -208,7 +222,7 @@ fn cause_chain(error: &dyn std::error::Error) -> String {
 
 /// The refusal an error answer states: the status, and the endpoint's own
 /// `error` and `error_description` when it sent them.
-fn refused(status: reqwest::StatusCode, body: &Value, grant: Grant) -> Error {
+fn refused(status: reqwest::StatusCode, body: &Value, grant: Grant, sent: &Sent) -> Error {
     let error_code = body["error"].as_str();
     let description = body["error_description"].as_str();
     let mut message = format!(
@@ -222,7 +236,7 @@ fn refused(status: reqwest::StatusCode, body: &Value, grant: Grant) -> Error {
         (Some(said), None) | (None, Some(said)) => message.push_str(&format!(" — {said}")),
         (None, None) => {}
     }
-    Error::auth(message)
+    Error::auth(sent.fit_to_print(&message))
 }
 
 /// Which refusal an error answer is: of the client (RFC 6749 section 5.2 lets

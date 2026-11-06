@@ -11,6 +11,7 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use super::Auth;
+use super::answer_text::Sent;
 use super::callback;
 use super::pending;
 use super::token_endpoint::{self, Grant};
@@ -174,7 +175,13 @@ pub(crate) async fn exchange_code_for_token(
     let token_endpoint::Answer {
         access_token,
         body: token_data,
-    } = token_endpoint::answer(request, &token_url, Grant::Code).await?;
+    } = token_endpoint::answer(
+        request,
+        &token_url,
+        Grant::Code,
+        &Sent::new(auth.client_id(), auth.client_secret(), &[code, verifier]),
+    )
+    .await?;
 
     let refresh_token = token_data["refresh_token"]
         .as_str()
@@ -571,7 +578,13 @@ pub(crate) async fn refresh_grant(
     let token_endpoint::Answer {
         access_token,
         body: token_data,
-    } = token_endpoint::answer(request, token_url, Grant::Refresh).await?;
+    } = token_endpoint::answer(
+        request,
+        token_url,
+        Grant::Refresh,
+        &Sent::new(client_id, client_secret, &[refresh_token]),
+    )
+    .await?;
     let refresh_token = token_data["refresh_token"]
         .as_str()
         .filter(|token| !token.is_empty())

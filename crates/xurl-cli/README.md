@@ -368,8 +368,9 @@ envelope's `media_id` and in `message`. A status read that failed for a 5xx, a 4
 file is not sent again. A 429 on that read carries `wait-and-retry`: when X named the reset, the same command under
 `--wait-on-rate-limit`, which waits out the time left before it reads, and when X named none, the command as a
 `template`, to run once the window passes. A 401 carries `fix-input` with it as a `template`, to run once the credential
-works. Every one of these steps repeats the `--app`, `--auth`, and `-u` the command ran under, and with `-H` it is a
-`template` that hides each header's value.
+works, and so does a 403 from the token endpoint that a refresh during the wait meets, to run once `TOKEN_URL` and the
+proxy are fixed. Every one of these steps repeats the `--app`, `--auth`, and `-u` the command ran under, and with `-H`
+it is a `template` that hides each header's value.
 
 A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
 media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:
@@ -999,27 +1000,26 @@ prose instead; the two need not match word for word.
 | `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                         |
 | `internal`                   | `report-issue`                                                                                                                                   |
 | `serialization`              | `report-issue`                                                                                                                                   |
-| `api-error`                  | `retry` on a 408; `resume-wait` when a status read failed after `xr media upload` finished; `report-issue` otherwise                             |
+| `api-error`                  | `retry` on a 408, or `resume-wait` when that 408 answered a status read after `xr media upload` finished; `report-issue` otherwise               |
 
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 
 - `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
   After `xr media upload` has finished, a failed status read takes `resume-wait` instead, since running the upload again
-  would send the file again.
-- `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
-  `xr` command repairs it, with these exceptions. For a port another process holds, the step is `listen` again with
-  `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did.
-  For `-u`, `--auth`, or `-t` given before a command word that takes it, the step is the invocation with the flag after
-  the word. For an `xr auth oauth2 --step 2` whose saved sign-in can still finish, the step is a `template` with the
-  redirect URL to fill in. For a 401 on the status read after `xr media upload` finished, the step is the command that
-  resumes the wait, as a `template` to run once the credential works, and `docs` names X's authentication page. `docs`
-  names X's page on response codes for a 400, a 404, or a 422. For a 403 from the token endpoint that is no OAuth
-  refusal, `docs` names the repository README's section on the token endpoint, `TOKEN_URL`, and proxies.
-- `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
-- `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
-  the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by
-  accident.
-- `run-command`: one other command repairs this, and `command` is that invocation. A `forward-failed` record from
+  would send the file again. - `fix-input`: the input, or the local state the command read, is what failed, and the same
+  invocation fails again. No `xr` command repairs it, with these exceptions. For a port another process holds, the step
+  is `listen` again with `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each
+  header's value when it did. For `-u`, `--auth`, or `-t` given before a command word that takes it, the step is the
+  invocation with the flag after the word. For an `xr auth oauth2 --step 2` whose saved sign-in can still finish, the
+  step is a `template` with the redirect URL to fill in. For a 401 on the status read after `xr media upload` finished,
+  the step is the command that resumes the wait, as a `template` to run once the credential works, and `docs` names X's
+  authentication page; for a 403 from the token endpoint on that read, it is the same template, to run once `TOKEN_URL`
+  and the proxy are fixed. `docs` names X's page on response codes for a 400, a 404, or a 422. For a 403 from the token
+  endpoint that is no OAuth refusal, `docs` names the repository README's section on the token endpoint, `TOKEN_URL`,
+  and proxies. - `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker. - `confirm`: a
+  destructive command ran without its confirmation. The step is a `template`, never a `command`: it is the invocation
+  that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by accident. -
+  `run-command`: one other command repairs this, and `command` is that invocation. A `forward-failed` record from
   `xr webhooks listen` carries it as a `template`: the replay of the event's minute, with `<WEBHOOK_ID>` to fill in.
 
 Under `auth-required`, a failed `xr auth oauth2` names the step that moves the sign-in forward:
@@ -1048,7 +1048,8 @@ refresh X refused is `auth-required`: a refused refresh token, or an answer with
 stores the same login again, the one `-u` named or else the one the refresh ran for, and refused client credentials
 carry `fix-input` with no invocation. A refresh the endpoint did not process reports what any other request would, the
 same as the token exchange above, with a warning that names the refresh on a failure status (with no answer, the
-`network-error` message names it), and the same command finishes once the endpoint answers.
+`network-error` message names it), and the same command finishes once the endpoint answers, or, for a token URL with the
+wrong path, once `TOKEN_URL` names the right one.
 
 ### NO_COLOR Support
 

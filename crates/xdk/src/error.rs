@@ -198,12 +198,12 @@ pub enum Error {
 
     /// The `OAuth2` token endpoint answered 403 with a body that is no OAuth
     /// refusal. X's handler refuses a code, a refresh token, or a client with
-    /// a 400, a 401, or an `error` object, so this answer came from something
-    /// in the way: a proxy or firewall in front of the endpoint, or a token
-    /// URL that names another service. The token URL and the proxy are what
-    /// to look at, which the 403 of an API request never calls for, so it is
-    /// not [`Self::Api`]. Every other answer the token endpoint gives that is
-    /// no refusal is an [`Self::Api`].
+    /// a 400, a 401, or, on any other status but a 5xx or a 429, a JSON body
+    /// with a string `error`, so this answer came from something in the way:
+    /// a proxy or firewall in front of the endpoint, or a token URL that names
+    /// another service. The token URL and the proxy are what to look at, which
+    /// the 403 of an API request never calls for, so it is not [`Self::Api`].
+    /// Every other failure status that is no refusal is an [`Self::Api`].
     #[error("{body}")]
     TokenEndpointForbidden {
         /// Raw response body.

@@ -16,6 +16,9 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Validation { rule, value } => {
             super::validation::sentence(rule, value.as_deref()).unwrap_or_else(|| error.to_string())
         }
+        Error::TokenEndpointForbidden { body } if matches!(body.trim(), "" | "{}") => {
+            "the token endpoint answered 403 with an empty body".to_string()
+        }
         Error::Api { .. }
         | Error::TokenEndpointForbidden { .. }
         | Error::ProcessingTimeout { .. }

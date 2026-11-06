@@ -6,6 +6,7 @@
 // The listener, the signing primitives, and the two-step pending state are
 // driven by `oauth2::run_oauth2_flow`, the client's headers, and `xr auth`;
 // an embedder reaches them through those, not directly.
+mod answer_text;
 #[doc(hidden)]
 pub mod callback;
 pub mod credentials;

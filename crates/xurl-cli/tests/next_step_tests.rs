@@ -206,6 +206,33 @@ fn the_page_inspect_store_names_is_in_the_readme() {
     assert!(found, "{file} has no heading that anchors to #{anchor}");
 }
 
+/// The `docs` of a token endpoint 403 name a section of the repository README,
+/// so the heading it anchors to has to be there.
+#[test]
+fn the_page_a_token_endpoint_403_names_is_in_the_readme() {
+    let docs = xdk::Error::TokenEndpointForbidden {
+        body: String::new(),
+    }
+    .docs_url()
+    .expect("the 403 names a page");
+    let anchor = docs
+        .strip_prefix("https://github.com/brettdavies/xurl-rs#")
+        .expect("the repository README and an anchor");
+    let readme = std::fs::read_to_string(common::workspace_root().join("README.md"))
+        .expect("the repository README");
+    let found = readme
+        .lines()
+        .filter_map(|line| line.strip_prefix("### "))
+        .any(|heading| {
+            heading
+                .to_lowercase()
+                .replace(' ', "-")
+                .replace(|c: char| !c.is_alphanumeric() && c != '-', "")
+                == anchor
+        });
+    assert!(found, "README.md has no heading that anchors to #{anchor}");
+}
+
 // ── A step leads somewhere ─────────────────────────────────────────────
 
 /// Two signed-in apps: `personal`, the default, holding `alice`, and `work`
