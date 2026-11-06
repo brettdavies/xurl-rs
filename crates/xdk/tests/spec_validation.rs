@@ -31,8 +31,8 @@ use xdk::api::response::types::{
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
-    StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, UsageCreditsData, UsageData,
+    User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -701,6 +701,15 @@ fn spec_stream_source_created() {
 }
 
 #[test]
+fn spec_stream_source_key() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSourceKey> =
+        serde_json::from_value(examples["stream_source_key"].clone()).unwrap();
+    assert_eq!(resp.data.id, "9012345678901234567");
+    assert_eq!(resp.data.stream_key, "example-stream-key-4f2a");
+}
+
+#[test]
 fn spec_stream_source_deleted() {
     let examples = load_examples();
     let resp: ApiResponse<StreamSourceDeleted> =
@@ -1103,6 +1112,11 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "stream_source_deleted",
         endpoints::DELETE_STREAM_SOURCE,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_source_key",
+        endpoints::GET_STREAM_SOURCE_KEY,
         ReplyKind::Success,
     ),
     ("ingest_region", endpoints::GET_REGION, ReplyKind::Success),

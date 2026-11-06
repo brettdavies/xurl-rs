@@ -5,8 +5,8 @@
 use serde_json::json;
 use wiremock::matchers::{body_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
-use xdk::api::Client;
 use xdk::api::shortcuts::{validate_source_name, validate_source_region};
+use xdk::api::{Client, StreamSourceCreated, StreamSourceKey};
 use xdk::auth::OAuth2Credential;
 
 const SOURCE_ID: &str = "9012345678901234567";
@@ -141,6 +141,66 @@ async fn get_stream_source_gets_the_source() {
         .expect("fetched");
 
     assert_eq!(resp.data.name.as_deref(), Some("Studio A"));
+}
+
+#[test]
+fn a_stream_key_stays_out_of_debug_output() {
+    let created: StreamSourceCreated =
+        serde_json::from_value(created_source("Studio A")).expect("a created source decodes");
+    let key: StreamSourceKey =
+        serde_json::from_value(json!({"id": SOURCE_ID, "stream_key": STREAM_KEY}))
+            .expect("a stream key answer decodes");
+
+    for printed in [format!("{created:?}"), format!("{key:?}")] {
+        assert!(!printed.contains(STREAM_KEY), "{printed}");
+        assert!(printed.contains(SOURCE_ID), "{printed}");
+    }
+    assert_eq!(created.stream_key, STREAM_KEY);
+    assert_eq!(key.stream_key, STREAM_KEY);
+}
+
+#[tokio::test]
+async fn get_stream_source_key_gets_the_key_of_one_source() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!("/2/sources/{SOURCE_ID}/stream_key")))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(json!({"data": {"id": SOURCE_ID, "stream_key": STREAM_KEY}})),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let resp = user_client(server.uri())
+        .get_stream_source_key(SOURCE_ID)
+        .send()
+        .await
+        .expect("fetched");
+
+    assert_eq!(resp.data.id, SOURCE_ID);
+    assert_eq!(resp.data.stream_key, STREAM_KEY);
+}
+
+#[tokio::test]
+async fn a_stream_key_answer_without_the_key_is_refused() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path(format!("/2/sources/{SOURCE_ID}/stream_key")))
+        .respond_with(ResponseTemplate::new(200).set_body_json(json!({"data": {"id": SOURCE_ID}})))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let outcome = user_client(server.uri())
+        .get_stream_source_key(SOURCE_ID)
+        .send()
+        .await;
+
+    assert!(
+        outcome.is_err(),
+        "the answer requires `stream_key`, so one without it does not decode"
+    );
 }
 
 #[tokio::test]

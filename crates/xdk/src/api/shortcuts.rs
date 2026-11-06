@@ -24,8 +24,8 @@ use super::response::types::{
     Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
     ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
     StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
-    SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceKey, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -3792,6 +3792,20 @@ impl Client {
             endpoints::GET_STREAM_SOURCE.method,
             template(
                 endpoints::GET_STREAM_SOURCE.path,
+                id_param(source_id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Reads the stream key of one of the authenticated user's stream
+    /// sources. The key is a credential: whoever holds it can stream to the
+    /// source, so keep it out of logs, URLs, and client-side code.
+    pub fn get_stream_source_key(&self, source_id: &str) -> Call<ApiResponse<StreamSourceKey>> {
+        self.call(
+            endpoints::GET_STREAM_SOURCE_KEY.method,
+            template(
+                endpoints::GET_STREAM_SOURCE_KEY.path,
                 id_param(source_id),
                 Vec::new(),
             ),

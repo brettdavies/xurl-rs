@@ -711,6 +711,11 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_STREAM_SOURCE_KEY,
+        fixture: "stream_source_key",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_REGION,
         fixture: "ingest_region",
         status: 200,

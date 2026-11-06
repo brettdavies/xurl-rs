@@ -808,6 +808,12 @@
       "created_at_ms": "1761148800000"
     }
   },
+  "stream_source_key": {
+    "data": {
+      "id": "9012345678901234567",
+      "stream_key": "example-stream-key-4f2a"
+    }
+  },
   "stream_source_deleted": {
     "data": {
       "deleted": true
