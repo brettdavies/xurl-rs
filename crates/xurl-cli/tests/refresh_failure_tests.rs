@@ -36,22 +36,17 @@ fn expired_login(dir: &Path) -> PathBuf {
     store
 }
 
-fn closed_port() -> u16 {
-    std::net::TcpListener::bind("127.0.0.1:0")
-        .expect("a loopback port")
-        .local_addr()
-        .expect("its address")
-        .port()
-}
+/// An address nothing answers: no test server binds port 1, since each binds
+/// port 0 and gets a port from the ephemeral range.
+const CLOSED: &str = "http://127.0.0.1:1";
 
 /// `xr <args>` in process, with the token endpoint at `token_url` and the API
 /// at a closed port, which the run never reaches when the refresh fails.
 async fn run(store: &Path, token_url: &str, args: &[&str]) -> (i32, String, String) {
-    let closed = closed_port();
     let overrides = EnvOverrides {
         token_url: Some(token_url.to_string()),
-        api_base_url: Some(format!("http://127.0.0.1:{closed}")),
-        info_url: Some(format!("http://127.0.0.1:{closed}/2/users/me")),
+        api_base_url: Some(CLOSED.to_string()),
+        info_url: Some(format!("{CLOSED}/2/users/me")),
         ..EnvOverrides::default()
     };
     let mut argv = vec!["xr"];
@@ -150,9 +145,7 @@ fn assert_names_the_refresh(envelope: &Value) {
 
 #[tokio::test]
 async fn a_refresh_with_no_answer_is_a_network_error_that_names_its_cause() {
-    let closed = closed_port();
-    let (code, envelope) =
-        whoami_refreshing_at(&format!("http://127.0.0.1:{closed}/2/oauth2/token")).await;
+    let (code, envelope) = whoami_refreshing_at(&format!("{CLOSED}/2/oauth2/token")).await;
 
     assert_reason(
         code,
@@ -243,13 +236,12 @@ async fn text_output_says_a_server_error_answered_the_refresh() {
     let tmp = TempDir::new().unwrap();
     let store = expired_login(tmp.path());
     let token_url = format!("{}/2/oauth2/token", server.uri());
-    let closed = closed_port();
 
     let output = tokio::task::spawn_blocking(move || {
         common::xr_with_store(&store)
             .env("TOKEN_URL", &token_url)
-            .env("API_BASE_URL", format!("http://127.0.0.1:{closed}"))
-            .env("INFO_URL", format!("http://127.0.0.1:{closed}/2/users/me"))
+            .env("API_BASE_URL", CLOSED)
+            .env("INFO_URL", format!("{CLOSED}/2/users/me"))
             .args(["whoami", "-u", LOGIN])
             .output()
     })

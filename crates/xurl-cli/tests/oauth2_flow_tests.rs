@@ -819,14 +819,9 @@ fn urlencode(value: &str) -> String {
 // cancelled token as Ctrl-C, so the flow ending for any reason of its own
 // must leave that token as it was.
 
-/// A loopback port nothing listens on.
-fn closed_port() -> u16 {
-    std::net::TcpListener::bind("127.0.0.1:0")
-        .expect("a loopback port")
-        .local_addr()
-        .expect("its address")
-        .port()
-}
+/// An address nothing answers: no test server binds port 1, since each binds
+/// port 0 and gets a port from the ephemeral range.
+const CLOSED: &str = "http://127.0.0.1:1";
 
 /// Runs the interactive flow on a loopback listener handed over to it, with
 /// `opener` as the browser (given the authorize URL and the listener's
@@ -838,11 +833,10 @@ async fn run_interactive(
     let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
     let target = listener.local_addr().expect("its address").to_string();
     let redirect_uri = format!("http://{target}/callback");
-    let closed = closed_port();
     let tmp = TempDir::new().unwrap();
     let cfg = test_config(
-        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
-        &format!("http://127.0.0.1:{closed}/2/users/me"),
+        &format!("{CLOSED}/2/oauth2/token"),
+        &format!("{CLOSED}/2/users/me"),
         &redirect_uri,
     );
     let mut auth = test_auth(cfg, &tmp, &redirect_uri);
@@ -975,10 +969,9 @@ async fn step2_reports_a_denied_consent_with_the_providers_error_and_step_one_ag
     let store = tmp.path().join(".xurl");
     seed_store(&store);
     let pending = seed_pending(&store);
-    let closed = closed_port();
     let overrides = step2_overrides(
-        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
-        &format!("http://127.0.0.1:{closed}/2/users/me"),
+        &format!("{CLOSED}/2/oauth2/token"),
+        &format!("{CLOSED}/2/users/me"),
     );
     let denied = format!("http://localhost:8080/callback?{DENIAL}&state={PENDING_STATE}");
 
@@ -1033,10 +1026,9 @@ async fn run_refused_step2(tmp: &TempDir, flags: &[&str], query: &str) -> (i32, 
     let store = tmp.path().join(".xurl");
     seed_store(&store);
     let pending = seed_pending(&store);
-    let closed = closed_port();
     let overrides = step2_overrides(
-        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
-        &format!("http://127.0.0.1:{closed}/2/users/me"),
+        &format!("{CLOSED}/2/oauth2/token"),
+        &format!("{CLOSED}/2/users/me"),
     );
     let redirect = format!("http://localhost:8080/callback?{query}");
     let mut args = vec!["xr"];
@@ -1099,10 +1091,9 @@ async fn refused_step2(
     auth_url: &str,
     after: &[&str],
 ) -> serde_json::Value {
-    let closed = closed_port();
     let overrides = step2_overrides(
-        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
-        &format!("http://127.0.0.1:{closed}/2/users/me"),
+        &format!("{CLOSED}/2/oauth2/token"),
+        &format!("{CLOSED}/2/users/me"),
     );
     let mut args = vec!["xr", "--output", "json"];
     args.extend_from_slice(before);
@@ -1361,10 +1352,9 @@ async fn text_output_names_the_same_steps_for_the_other_step2_refusals() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     seed_store_two_apps(&store);
-    let closed = closed_port();
     let overrides = step2_overrides(
-        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
-        &format!("http://127.0.0.1:{closed}/2/users/me"),
+        &format!("{CLOSED}/2/oauth2/token"),
+        &format!("{CLOSED}/2/users/me"),
     );
     let redirect = redirect_url();
     let args = |auth_url| {
@@ -1433,10 +1423,9 @@ async fn step2_with_no_auth_url_points_at_the_help() {
     let tmp = TempDir::new().unwrap();
     let store = tmp.path().join(".xurl");
     seed_store(&store);
-    let closed = closed_port();
     let overrides = step2_overrides(
-        &format!("http://127.0.0.1:{closed}/2/oauth2/token"),
-        &format!("http://127.0.0.1:{closed}/2/users/me"),
+        &format!("{CLOSED}/2/oauth2/token"),
+        &format!("{CLOSED}/2/users/me"),
     );
 
     let (code, _stdout, stderr) = run_cli(
@@ -1903,8 +1892,7 @@ async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_agai
 
 #[tokio::test]
 async fn step2_with_no_answer_is_a_network_error_and_is_sent_again() {
-    let closed = closed_port();
-    let (code, envelope) = step2_at(&format!("http://127.0.0.1:{closed}")).await;
+    let (code, envelope) = step2_at(CLOSED).await;
 
     assert_eq!(code, xdk::error::EXIT_NETWORK_ERROR, "{envelope}");
     assert_eq!(envelope["reason"], "network-error", "{envelope}");
@@ -1938,11 +1926,7 @@ async fn step2_with_a_token_url_that_is_not_a_url_names_it() {
     let store = tmp.path().join(".xurl");
     seed_store(&store);
     let pending = seed_pending(&store);
-    let closed = closed_port();
-    let overrides = step2_overrides(
-        "not-a-url",
-        &format!("http://127.0.0.1:{closed}/2/users/me"),
-    );
+    let overrides = step2_overrides("not-a-url", &format!("{CLOSED}/2/users/me"));
 
     let (code, _stdout, stderr) = run_cli(
         &store,

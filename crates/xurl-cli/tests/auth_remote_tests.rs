@@ -712,13 +712,10 @@ async fn step2_x_did_not_process_returns_the_library_kind_for_what_happened() {
     );
     assert!(pending_path.exists(), "the flow is still good");
 
-    let closed = std::net::TcpListener::bind("127.0.0.1:0")
-        .expect("a loopback port")
-        .local_addr()
-        .expect("its address")
-        .port();
     let tmp = TempDir::new().unwrap();
-    let mut auth = create_test_auth(&format!("http://127.0.0.1:{closed}"), &tmp);
+    // No test server binds port 1, since each binds port 0 and gets a port
+    // from the ephemeral range.
+    let mut auth = create_test_auth("http://127.0.0.1:1", &tmp);
     let pending_path = tmp.path().join(".xurl.pending");
     auth.remote_oauth2_step1(&pending_path).unwrap();
     let state = pending::load(&pending_path).unwrap();
@@ -1273,13 +1270,10 @@ async fn a_failed_refresh_returns_the_library_kind_for_what_happened() {
         "the stored pair stays"
     );
 
-    let closed = std::net::TcpListener::bind("127.0.0.1:0")
-        .expect("a loopback port")
-        .local_addr()
-        .expect("its address")
-        .port();
     let tmp = TempDir::new().unwrap();
-    let mut auth = create_test_auth(&format!("http://127.0.0.1:{closed}"), &tmp);
+    // No test server binds port 1, since each binds port 0 and gets a port
+    // from the ephemeral range.
+    let mut auth = create_test_auth("http://127.0.0.1:1", &tmp);
     seed_expired_named_oauth2(&mut auth, "alice");
     let err = auth
         .refresh_oauth2_token(&http(), "alice")
