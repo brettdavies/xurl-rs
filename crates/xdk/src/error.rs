@@ -568,12 +568,13 @@ impl Error {
     /// Pay-per-use enrollment failure is unactionable without it. A
     /// processing timeout is `ResumeWait`, and a 429 that named its reset is
     /// `WaitAndRetry`; a 429 that named none has no time to wait for. A
-    /// request that got no response and a 5xx are `Retry`. A 400, a 404, or
-    /// a 422, a file that could not be read, and an input refused before it
-    /// was sent are `FixInput`. A status with no reading of its own, a body
-    /// that could not be read, and a broken invariant are `ReportIssue`. A
-    /// credential failure is `None` here: the steps that depend on a
-    /// credential store are the binary's to choose.
+    /// request that got no response, a 5xx, and a 408, whose server never
+    /// received the whole request (RFC 9110 section 15.5.9), are `Retry`. A
+    /// 400, a 404, or a 422, a file that could not be read, and an input
+    /// refused before it was sent are `FixInput`. A status with no reading of
+    /// its own, a body that could not be read, and a broken invariant are
+    /// `ReportIssue`. A credential failure is `None` here: the steps that
+    /// depend on a credential store are the binary's to choose.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -593,7 +594,7 @@ impl Error {
                 }
                 match status {
                     429 if reset_at.is_some() => Some(NextAction::WaitAndRetry),
-                    500..=599 => Some(NextAction::Retry),
+                    408 | 500..=599 => Some(NextAction::Retry),
                     400 | 404 | 422 => Some(NextAction::FixInput),
                     // The stored-credential recovery steps are the binary's:
                     // it knows which apps hold what and names the
@@ -636,7 +637,7 @@ impl Error {
                 match status {
                     401 => Some(AUTHENTICATION_DOCS),
                     429 => Some(RATE_LIMIT_DOCS),
-                    400 | 404 | 422 | 500..=599 => Some(RESPONSE_CODE_DOCS),
+                    400 | 404 | 408 | 422 | 500..=599 => Some(RESPONSE_CODE_DOCS),
                     403 => None,
                     _ => Some(ISSUE_TRACKER),
                 }

@@ -986,7 +986,7 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                         |
 | `internal`                   | `report-issue`                                                                                                                                   |
 | `serialization`              | `report-issue`                                                                                                                                   |
-| `api-error`                  | `report-issue`                                                                                                                                   |
+| `api-error`                  | `retry` on a 408, whose server never received the whole request; `report-issue` otherwise                                                        |
 
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 
