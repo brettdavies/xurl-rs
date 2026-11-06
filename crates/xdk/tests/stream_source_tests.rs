@@ -40,7 +40,7 @@ fn source(name: &str) -> serde_json::Value {
     })
 }
 
-/// A source as X answers its creation, the one answer that carries the key.
+/// A source as X answers the request that creates it, which carries the key.
 fn created_source(name: &str) -> serde_json::Value {
     let mut created = source(name);
     created["stream_key"] = json!(STREAM_KEY);

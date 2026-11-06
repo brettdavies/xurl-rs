@@ -1220,8 +1220,9 @@ pub struct BookmarkFolderPost {
 // ── Broadcast stream sources ────────────────────────────────────────
 
 /// A persistent RTMP and RTMPS ingest point for the account's broadcasts,
-/// as `/2/sources` lists, reads, and renames one. It carries no stream key;
-/// only the answer to creating a source does.
+/// as `/2/sources` lists, reads, and renames one. It carries no stream key. The
+/// answer to creating a source does, and `GET /2/sources/{id}/stream_key` reads
+/// it again.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct StreamSource {
     /// Source identifier, 19 decimal digits: the `source_id` a broadcast
@@ -1288,16 +1289,29 @@ pub struct StreamSourceCreated {
 /// Prints `stream_key` as redacted, because it is a credential.
 impl std::fmt::Debug for StreamSourceCreated {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Every field is named, so one added to the struct fails to compile
+        // here until it is printed or redacted.
+        let Self {
+            id,
+            stream_key: _,
+            name,
+            region,
+            rtmp_url,
+            rtmps_url,
+            is_stream_active,
+            created_at_ms,
+            extra,
+        } = self;
         f.debug_struct("StreamSourceCreated")
-            .field("id", &self.id)
+            .field("id", id)
             .field("stream_key", &REDACTED)
-            .field("name", &self.name)
-            .field("region", &self.region)
-            .field("rtmp_url", &self.rtmp_url)
-            .field("rtmps_url", &self.rtmps_url)
-            .field("is_stream_active", &self.is_stream_active)
-            .field("created_at_ms", &self.created_at_ms)
-            .field("extra", &self.extra)
+            .field("name", name)
+            .field("region", region)
+            .field("rtmp_url", rtmp_url)
+            .field("rtmps_url", rtmps_url)
+            .field("is_stream_active", is_stream_active)
+            .field("created_at_ms", created_at_ms)
+            .field("extra", extra)
             .finish()
     }
 }
@@ -1320,10 +1334,17 @@ pub struct StreamSourceKey {
 /// Prints `stream_key` as redacted, because it is a credential.
 impl std::fmt::Debug for StreamSourceKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Every field is named, so one added to the struct fails to compile
+        // here until it is printed or redacted.
+        let Self {
+            id,
+            stream_key: _,
+            extra,
+        } = self;
         f.debug_struct("StreamSourceKey")
-            .field("id", &self.id)
+            .field("id", id)
             .field("stream_key", &REDACTED)
-            .field("extra", &self.extra)
+            .field("extra", extra)
             .finish()
     }
 }

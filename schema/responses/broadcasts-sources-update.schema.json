@@ -236,7 +236,7 @@
     },
     "StreamSource": {
       "additionalProperties": true,
-      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts,\nas `/2/sources` lists, reads, and renames one. It carries no stream key;\nonly the answer to creating a source does.",
+      "description": "A persistent RTMP and RTMPS ingest point for the account's broadcasts,\nas `/2/sources` lists, reads, and renames one. It carries no stream key. The\nanswer to creating a source does, and `GET /2/sources/{id}/stream_key` reads\nit again.",
       "properties": {
         "created_at_ms": {
           "description": "When the source was created, in milliseconds since the Unix epoch,\nas a decimal string.",

@@ -3752,7 +3752,8 @@ impl Client {
     }
 
     /// Lists the authenticated user's RTMP and RTMPS stream sources. The
-    /// answer carries no stream keys.
+    /// answer carries no stream keys; [`Client::get_stream_source_key`] reads
+    /// one.
     pub fn get_stream_sources(&self) -> Call<ApiResponse<Vec<StreamSource>>> {
         self.call(
             endpoints::GET_STREAM_SOURCES.method,
@@ -3766,7 +3767,8 @@ impl Client {
 
     /// Creates a stream source named `name` that ingests in `region`, such
     /// as `us-east-1`. An encoder streams to its `rtmps_url` with its
-    /// `stream_key`, which only this answer carries.
+    /// `stream_key`. No list, read, or rename carries the key; use
+    /// [`Client::get_stream_source_key`] to read it again.
     pub fn create_stream_source(
         &self,
         name: &str,
@@ -3786,7 +3788,8 @@ impl Client {
     }
 
     /// Reads one of the authenticated user's stream sources, including
-    /// whether it is receiving video. The answer carries no stream key.
+    /// whether it is receiving video. The answer carries no stream key;
+    /// [`Client::get_stream_source_key`] reads it.
     pub fn get_stream_source(&self, source_id: &str) -> Call<ApiResponse<StreamSource>> {
         self.call(
             endpoints::GET_STREAM_SOURCE.method,

@@ -253,7 +253,7 @@ fn schema_like_contains_liked_field() {
 }
 
 #[test]
-fn only_the_answer_to_sources_add_carries_a_stream_key() {
+fn list_get_and_update_answer_no_stream_key_and_add_requires_one() {
     for verb in ["list", "get", "update"] {
         let view = schema_json(&["broadcasts", "sources", verb]);
         assert!(
