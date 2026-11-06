@@ -353,10 +353,11 @@ impl OutputConfig {
         }
     }
 
-    /// Prints an error that ended a wait after an upload finished. The media
-    /// id goes in the envelope, and in text on a line of its own when the
-    /// message does not name it. `--quiet` keeps that line: a run that fails
-    /// prints no result, so nothing else names the upload.
+    /// Prints an error that ended a wait after an upload finished. A failed
+    /// status read's message says the upload finished and names the media, in
+    /// every format and under `--quiet`: a run that fails prints no result, so
+    /// nothing else names the upload, and X's answer alone can be an empty
+    /// body. An error about the job itself already says both.
     pub(crate) fn print_error_after_upload(
         &self,
         err: &mut dyn Write,
@@ -365,21 +366,26 @@ impl OutputConfig {
         hint: Option<&crate::cli::hints::Hint>,
         media_id: &str,
     ) {
-        if self.format.is_structured() {
-            let mut body = error_body(error, exit_code);
-            body.media_id = Some(media_id.to_string());
-            if let Some(hint) = hint {
-                body.next_step = Some(hint.next_step.clone());
-            }
-            self.emit_error_envelope(err, body);
+        let mut body = error_body(error, exit_code);
+        body.media_id = Some(media_id.to_string());
+        if !matches!(
+            error,
+            Error::ProcessingTimeout { .. } | Error::MediaProcessingFailed { .. }
+        ) {
+            let cause = body.message.take().unwrap_or_default();
+            body.message = Some(format!(
+                "media {media_id} finished uploading, but reading its status failed: {cause}"
+            ));
+        }
+        if let Some(hint) = hint {
+            body.next_step = Some(hint.next_step.clone());
+        }
+        self.emit_error_envelope(err, body);
+        if self.format.is_structured() || self.quiet {
             return;
         }
-        match hint {
-            Some(hint) => self.print_error_with_hint(err, error, exit_code, hint),
-            None => self.print_error(err, error, exit_code),
-        }
-        if !message::render(error).contains(media_id) {
-            let _ = writeln!(err, "The upload completed. Media ID: {media_id}");
+        for line in hint.map_or(&[][..], |hint| hint.text_lines.as_slice()) {
+            let _ = writeln!(err, "{line}");
         }
     }
 

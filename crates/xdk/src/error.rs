@@ -32,8 +32,8 @@ pub enum NextAction {
     // `print_invalid_args`) carry it, and no library error returns it.
     #[doc(hidden)]
     ShowHelp,
-    /// Media was still processing when the wait's deadline passed; wait on
-    /// the same media id again.
+    /// The wait on an upload's processing ended before X reported a final
+    /// state, and the upload is intact; wait on the same media id again.
     ResumeWait,
     /// X rate limited the request and said when the window resets; send it
     /// again once that time has passed.
