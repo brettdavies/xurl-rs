@@ -115,6 +115,7 @@ jobs:
       # colour matches what a human scanning the Actions tab should act on.
       advisories_blocking: true
       docs_only: ${{ needs.scope.outputs.rust == 'false' }}
+      jobs: '["tests"]'
       test_runner: nextest
       nextest_version: ${{ needs.scope.outputs.nextest_version }}
       # Running the tests outweighs a second build: on warm caches the slower of
@@ -133,6 +134,7 @@ jobs:
     uses: brettdavies/.github/.github/workflows/rust-ci.yml@main
     with:
       warm_cache: true
+      jobs: '["tests"]'
       test_runner: nextest
       nextest_version: ${{ needs.scope.outputs.nextest_version }}
 
@@ -143,7 +145,7 @@ jobs:
   # to them, so it is linted. .claude/ is a gitignored symlink to the global
   # template store, absent from this checkout and linted at its source.
   lint:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'probe-off'
     uses: brettdavies/.github/.github/workflows/lint-basics.yml@main
     permissions:
       contents: read
@@ -157,7 +159,7 @@ jobs:
   lint-stdio:
     name: Output discipline
     needs: scope
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -177,7 +179,7 @@ jobs:
   docs:
     name: Doc build
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -223,7 +225,7 @@ jobs:
   semver:
     name: Public API semver
     needs: scope
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -252,7 +254,7 @@ jobs:
   completions:
     name: Completions freshness
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -276,7 +278,7 @@ jobs:
   windows:
     name: Windows program target
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -299,7 +301,7 @@ jobs:
   consumer:
     name: Consumer check
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -336,7 +338,7 @@ jobs:
   features:
     name: Features (${{ matrix.name }})
     needs: scope
-    if: ${{ !cancelled() }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -425,7 +427,7 @@ jobs:
   msrv:
     name: MSRV
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -463,7 +465,7 @@ jobs:
   parity:
     name: Go parity
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -498,7 +500,7 @@ jobs:
   feature-powerset:
     name: Feature powerset
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -569,7 +571,7 @@ jobs:
   anc:
     name: Agent-native audit
     needs: scope
-    if: ${{ !cancelled() && needs.scope.outputs.rust != 'false' }}
+    if: github.event_name == 'probe-off'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
