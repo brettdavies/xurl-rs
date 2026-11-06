@@ -157,13 +157,26 @@ if $run_cargo; then
 
   # The tests run through nextest, so stop before the steps ahead of them spend
   # their minutes. A subcommand, not a `have`: cargo also finds one in $CARGO_HOME/bin.
-  # `show-config version` also fails on a nextest older than .config/nextest.toml
-  # requires, which `--version` would pass, and on a config it cannot read.
-  if ! nextest_check=$(cargo nextest show-config version 2>&1); then
-    printf '%s\n' "$nextest_check" >&2
-    echo "pre-push/missing-tool: cargo-nextest: the test step runs through it and the check above failed; when it is missing or too old, run \`scripts/dev-setup.sh\` and push again (AGENTS.md § Testing)" >&2
-    exit 1
-  fi
+  # `show-config version` exits 92 on a nextest older than .config/nextest.toml
+  # requires, which `--version` would pass, 96 on a file that is not TOML, and 10
+  # when only the recommended version is unmet. A value nextest rejects passes it
+  # and fails at the test step.
+  nextest_status=0
+  nextest_check=$(cargo nextest show-config version 2>&1) || nextest_status=$?
+  case "$nextest_status" in
+    0) ;;
+    10) printf '%s\n' "$nextest_check" >&2 ;;
+    96)
+      printf '%s\n' "$nextest_check" >&2
+      echo "pre-push/nextest-config: .config/nextest.toml: nextest cannot parse it (error above); fix the file and push again (AGENTS.md § pre-push/nextest-config)" >&2
+      exit 1
+      ;;
+    *)
+      printf '%s\n' "$nextest_check" >&2
+      echo "pre-push/missing-tool: cargo-nextest: \`cargo nextest show-config version\` exited $nextest_status (101: not installed, 92: older than .config/nextest.toml requires); run \`scripts/dev-setup.sh\` and push again (AGENTS.md § pre-push/missing-tool)" >&2
+      exit 1
+      ;;
+  esac
 
   # 1. Format check
   step "fmt" "cargo fmt -- --check" check_cargo_fmt || exit 1

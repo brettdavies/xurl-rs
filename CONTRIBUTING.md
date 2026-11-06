@@ -37,7 +37,8 @@ against the `testing` mock, the TLS feature cells (`native-tls` alone compiles; 
 docs.rs feature set (`xdk-rs` documented with every feature), `cargo deny check`, `shellcheck`, a Windows compatibility
 scan, `markdownlint-cli2`, and `actionlint`. The feature powerset (`cargo hack`) runs only when the tool is installed
 and says so otherwise. nextest is the exception: without it, or with one older than `.config/nextest.toml` requires,
-`pre-push` stops at once with `pre-push/missing-tool` and the `scripts/dev-setup.sh` command.
+`pre-push` stops at once with `pre-push/missing-tool` and the `scripts/dev-setup.sh` command, and when nextest cannot
+parse `.config/nextest.toml`, with `pre-push/nextest-config`.
 
 `pre-push` scopes each step to what the push actually changes, so a docs-only push skips the Rust battery entirely and
 finishes in seconds. A document counts as docs only when it is markdown outside `crates/`, not a README, and named by
@@ -56,9 +57,9 @@ check (`cargo publish --dry-run --workspace`), the public-API semver gate (`carg
 CI pins; without the variable the suite skips), and `Windows program target` (`cargo test -p xurl-rs --test
 webhooks_program_tests` on a Windows runner). The feature matrix's `--all-features` and `--features testing` test runs
 and its `rustls`-alone cell are CI-only too. Run those yourself when a change touches the CLI surface, the library API,
-the feature set, or the release profile. The live-API checks stay manual by design: `cargo test -- --ignored` runs the
-TLS handshake probe and, with `XURL_LIVE_SMOKE=1`, the wire-vocabulary smoke; and `benches/benchmark.sh` times `xr`
-against the Go `xurl` with hyperfine.
+the feature set, or the release profile. The live-API checks stay manual by design: `cargo nextest run --workspace
+--run-ignored only` runs the TLS handshake probe and, with `XURL_LIVE_SMOKE=1`, the wire-vocabulary smoke; and
+`benches/benchmark.sh` times `xr` against the Go `xurl` with hyperfine.
 
 ## Branch and PR flow
 
