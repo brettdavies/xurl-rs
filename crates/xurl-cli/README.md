@@ -365,8 +365,9 @@ the final state when the upload waited for one. One that fails leaves stdout emp
 the wait after the upload finished, a job X failed or a status read that failed among them, names the media in the
 envelope's `media_id` and in `message`. A status read that failed for a 5xx or a network error carries `resume-wait` as
 its step, the same `xr media status <id> --wait=<secs>` for as long as the wait that failed, so the file is not sent
-again. Both steps repeat the `--app`, `--auth`, and `-u` the command ran under, and with `-H` the step is a `template`
-that hides each header's value.
+again. A 429 on that read carries `wait-and-retry` with the same command, to run once the window passes, and a 401
+carries `fix-input` with it as a `template`, to run once the credential works. Every one of these steps repeats the
+`--app`, `--auth`, and `-u` the command ran under, and with `-H` it is a `template` that hides each header's value.
 
 A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
 media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:
@@ -896,7 +897,10 @@ delay and as a time, and the `next_step` names the step:
 
 `retry_after_secs` is the seconds left until the reset, zero once it has passed, and `retry_at` is the same moment in RFC
 3339 UTC, for a caller that schedules the retry instead of sleeping. Both come from that response's own
-`x-rate-limit-reset` header. A 429 that carries no such header has neither key and no `next_step`.
+`x-rate-limit-reset` header. A 429 that carries no such header has neither key and no `next_step`, except on the status
+read after `xr media upload` finished. There the request to send again is that read, not the upload, so a 429 carries
+`wait-and-retry` whether or not it named a reset, with the `xr media status` command that resumes the wait as its
+`command`.
 
 `xr` never retries on its own. `--wait-on-rate-limit` (`XURL_WAIT_ON_RATE_LIMIT`) makes it wait for the reset and send
 the request once more, when the wait fits `--rate-limit-max-wait <SECS>` (`XURL_RATE_LIMIT_MAX_WAIT`, 60 by default). A
@@ -951,12 +955,12 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 
 | `reason`                     | `next_step.action`                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as the list below says; none on a request's 401                        |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as listed below; none on a request's 401 except after an upload        |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
 | `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
 | `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
-| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset, or on the status read after `xr media upload` finished; none otherwise                            |
 | `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
 | `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
 | `unknown-command`            | `show-help`                                                                                                                                      |
@@ -998,7 +1002,9 @@ Every reason has a row. The five actions that are not about credentials or help 
   `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did.
   For `-u`, `--auth`, or `-t` given before a command word that takes it, the step is the invocation with the flag after
   the word. For an `xr auth oauth2 --step 2` whose saved sign-in can still finish, the step is a `template` with the
-  redirect URL to fill in. `docs` names X's page on response codes for a 400, a 404, or a 422.
+  redirect URL to fill in. For a 401 on the status read after `xr media upload` finished, the step is the command that
+  resumes the wait, as a `template` to run once the credential works, and `docs` names X's authentication page. `docs`
+  names X's page on response codes for a 400, a 404, or a 422.
 - `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
 - `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
   the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by

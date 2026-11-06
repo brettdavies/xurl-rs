@@ -94,7 +94,9 @@ media command ran under, so the read goes out under the same credential, and wit
 each header's value. `wait-and-retry` rides on reason `rate-limited` (exit 3)
 when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the reset and zero once it has
 passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no command, because the request to
-send again is the caller's own. A 429 that names no reset carries neither key and no `next_step`. `--wait-on-rate-limit`
+send again is the caller's own. A 429 that names no reset carries neither key and no `next_step`, except on the status
+read after `xr media upload` finished: there the caller's own request is the upload, so a 429 carries `wait-and-retry`
+whether or not it named a reset, with the command that resumes the wait as what to send again. `--wait-on-rate-limit`
 does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
@@ -108,7 +110,9 @@ beside `known_properties`. Under `auth-required`, for a `webhooks listen` whose 
 signatures by, it carries a `template` that stores the secret `--secret` names: the OAuth1 credentials under
 `--secret oauth1`, the app's client secret otherwise. For an `auth oauth2 --step 2` whose redirect URL did not parse, or
 whose saved flow belongs to another stored app, it carries a `template` that runs step 2 again with the URL, which holds
-an authorization code, left as `<redirect-url>`. `report-issue` (`internal`, `serialization`, `api-error`) names
+an authorization code, left as `<redirect-url>`. For a 401 on the status read after `xr media upload` finished, it
+carries the command that resumes the wait as a `template`, to run once the credential works, since reading again under
+the same credential fails the same way. `report-issue` (`internal`, `serialization`, `api-error`) names
 the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
 `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a deletion by
 accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`. Under

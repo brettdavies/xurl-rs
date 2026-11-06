@@ -341,17 +341,21 @@ pub struct ErrorBody {
     /// recovery is not an `xr` invocation carries neither, and `docs` when
     /// a page covers it: `enroll-app`, `wait-and-retry`, `retry`,
     /// `fix-input`, `report-issue`, and `inspect-store` when a store
-    /// command is what failed. Three `fix-input` steps carry an invocation:
+    /// command is what failed. After `xr media upload` finished, a
+    /// `wait-and-retry` on the status read carries the command that resumes
+    /// the wait. Three `fix-input` steps carry an invocation:
     /// `listen` again on a free port, under `address-in-use`, and two under
     /// `invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved
     /// after the command word it came before, and the `xr schema`
-    /// invocation that works for an old name or a scope word. Four carry a
+    /// invocation that works for an old name or a scope word. Five carry a
     /// template: the `xr schema --path` invocation with the segment that
-    /// named nothing left as `<property>`, under `invalid-args`, two under
+    /// named nothing left as `<property>`, under `invalid-args`, three under
     /// `auth-required`: the command that stores the secret `webhooks
-    /// listen` lacks, and `auth oauth2 --step 2` again with its redirect URL
-    /// left as `<redirect-url>`, and `resume-wait` when the media command
-    /// was given `-H`, with each header's value left as `<value>`.
+    /// listen` lacks, `auth oauth2 --step 2` again with its redirect URL
+    /// left as `<redirect-url>`, and the resumed wait after a 401 on the
+    /// status read after `xr media upload`, to run once the credential
+    /// works; and `resume-wait` when the media command was given `-H`, with
+    /// each header's value left as `<value>`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// What the library warned about before the run failed, each distinct

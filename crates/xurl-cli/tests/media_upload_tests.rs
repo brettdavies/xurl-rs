@@ -450,13 +450,21 @@ async fn a_status_read_that_fails_says_what_failed_in_text(
     );
 }
 
-/// A refused credential on the status read is not answered with a resumed
-/// wait, which would read under the same credential and fail the same way. Its
-/// message still says the upload finished.
+/// A refused credential on the status read fails the same way until it
+/// changes, which no `xr` command does, so the step is `fix-input`. What to
+/// run once the credential works is the resumed wait, as a template: an agent
+/// that runs every `command` it is handed does not send a read X will refuse.
+#[rstest::rstest]
+#[case::default_credential(&[], "xr media status 777 --wait=60")]
+#[case::own_login(&["--app", "myapp", "-u", "alice"], "xr --app myapp media status 777 --wait=60 -u alice")]
 #[tokio::test(flavor = "multi_thread")]
-async fn a_status_read_whose_credential_x_refused_does_not_resume_the_wait() {
-    let (output, _tmp) =
-        upload_then_status(ResponseTemplate::new(401), &["--output", "json"]).await;
+async fn a_status_read_whose_credential_x_refused_resumes_once_it_works(
+    #[case] flags: &[&str],
+    #[case] template: &str,
+) {
+    let mut args = vec!["--output", "json"];
+    args.extend_from_slice(flags);
+    let (output, _tmp) = upload_then_status(ResponseTemplate::new(401), &args).await;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert_eq!(output.status.code(), Some(77), "stderr: {stderr}");
@@ -466,7 +474,25 @@ async fn a_status_read_whose_credential_x_refused_does_not_resume_the_wait() {
     assert_eq!(v["media_id"], "777", "got: {v}");
     let message = v["message"].as_str().expect("a message");
     assert!(message.starts_with(AFTER_UPLOAD), "says what failed: {v}");
-    assert_ne!(v["next_step"]["action"], "resume-wait", "got: {v}");
+    assert_eq!(v["next_step"]["action"], "fix-input", "got: {v}");
+    assert_eq!(v["next_step"]["template"], template, "got: {v}");
+    assert_eq!(v["next_step"].get("command"), None, "never a command: {v}");
+    assert_eq!(
+        v["next_step"]["docs"], "https://docs.x.com/resources/fundamentals/authentication",
+        "got: {v}"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn a_refused_credential_after_an_upload_says_in_text_how_to_resume() {
+    let (output, _tmp) = upload_then_status(ResponseTemplate::new(401), &[]).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr
+            .contains("once the credential works, resume the wait: xr media status 777 --wait=60"),
+        "{stderr}"
+    );
 }
 
 /// A status read that fails after the upload finished waits again rather than
@@ -749,17 +775,73 @@ async fn a_failure_before_the_upload_finished_keeps_retry(#[case] failing: &str)
     assert_eq!(v.get("media_id"), None, "got: {v}");
 }
 
-/// A step that says more than "try again" stays: a 429 names when to come back.
+/// A 429 on the status read keeps `wait-and-retry`, which says to wait for the
+/// window first, whether or not X named its reset. What to send again is the
+/// read, not the caller's own request, which was the upload: the step carries
+/// the command that resumes the wait.
+#[rstest::rstest]
+#[case::with_reset(Some("1767225599"), &[], "xr media status 777 --wait=60")]
+#[case::without_reset(None, &[], "xr media status 777 --wait=60")]
+#[case::own_login(
+    Some("1767225599"),
+    &["--app", "myapp", "-u", "alice"],
+    "xr --app myapp media status 777 --wait=60 -u alice",
+)]
 #[tokio::test(flavor = "multi_thread")]
-async fn a_rate_limited_status_read_keeps_its_own_step() {
-    let limited = ResponseTemplate::new(429).insert_header("x-rate-limit-reset", "1767225599");
-    let (output, _tmp) = upload_then_status(limited, &["--output", "json"]).await;
+async fn a_rate_limited_status_read_resumes_the_wait_once_the_window_passes(
+    #[case] reset: Option<&str>,
+    #[case] flags: &[&str],
+    #[case] command: &str,
+) {
+    let mut limited = ResponseTemplate::new(429);
+    if let Some(reset) = reset {
+        limited = limited.insert_header("x-rate-limit-reset", reset);
+    }
+    let mut args = vec!["--output", "json"];
+    args.extend_from_slice(flags);
+    let (output, _tmp) = upload_then_status(limited, &args).await;
 
     let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(3), "stderr: {stderr}");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "");
     let v: serde_json::Value = serde_json::from_str(stderr.trim()).expect("a JSON envelope");
     assert_eq!(v["reason"], "rate-limited", "got: {v}");
     assert_eq!(v["media_id"], "777", "got: {v}");
     assert_eq!(v["next_step"]["action"], "wait-and-retry", "got: {v}");
+    assert_eq!(v["next_step"]["command"], command, "got: {v}");
+    assert_eq!(
+        v["next_step"]["docs"], "https://docs.x.com/resources/fundamentals/rate-limits",
+        "got: {v}"
+    );
+    assert_eq!(
+        v.get("retry_at").is_some(),
+        reset.is_some(),
+        "the time keys appear only when X named the reset: {v}"
+    );
+}
+
+#[rstest::rstest]
+#[case::with_reset(
+    Some("1767225599"),
+    "resume the wait in 0 seconds, at 2025-12-31T23:59:59Z. Run: xr media status 777 --wait=60"
+)]
+#[case::without_reset(
+    None,
+    "once the window passes, resume the wait. Run: xr media status 777 --wait=60"
+)]
+#[tokio::test(flavor = "multi_thread")]
+async fn a_rate_limited_status_read_says_in_text_how_to_resume(
+    #[case] reset: Option<&str>,
+    #[case] line: &str,
+) {
+    let mut limited = ResponseTemplate::new(429);
+    if let Some(reset) = reset {
+        limited = limited.insert_header("x-rate-limit-reset", reset);
+    }
+    let (output, _tmp) = upload_then_status(limited, &[]).await;
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains(line), "{stderr}");
 }
 
 /// Every JSON document on `stdout`, in order.

@@ -660,14 +660,20 @@ pub fn resume_wait_hint(error: &Error, credential: &MediaCredential) -> Option<H
     ))
 }
 
-/// Builds the resume hint when a request that says "try again" failed during
-/// the wait after an upload finished. The request that failed was a status
-/// read, so what to run again is the wait: running the command again would send
-/// the whole file, which X bills for again.
+/// Builds the hint for a status read that failed during the wait after an
+/// upload finished. What to run again is the wait, never the command: running
+/// the upload again would send the whole file, which X bills for again.
 ///
-/// The command waits as long as the wait that failed, whose deadline had not
-/// run out, and the step keeps the page the error names. A step that says
-/// more, such as when a rate limit resets, stays.
+/// The resumed wait lasts as long as the wait that failed, whose deadline had
+/// not run out, and the step keeps the page the error names.
+///
+/// - A failure that says "try again" resumes the wait.
+/// - A 429 keeps `wait-and-retry`, which says to wait for the window first,
+///   whether or not X named its reset, and carries the resumed wait as what to
+///   send again.
+/// - A 401 fails the same way until the credential changes, which no `xr`
+///   command does: `fix-input`, with the resumed wait as a template to run
+///   once the credential works.
 #[must_use]
 pub fn resume_after_upload_hint(
     error: &Error,
@@ -675,11 +681,56 @@ pub fn resume_after_upload_hint(
     waited: std::time::Duration,
     credential: &MediaCredential,
 ) -> Option<Hint> {
-    (error.next_action() == Some(NextAction::Retry)).then(|| {
+    let docs = error.docs_url().map(str::to_string);
+    if error.next_action() == Some(NextAction::Retry) {
         let mut hint = resume_hint(media_id, waited.as_secs(), credential);
-        hint.next_step.docs = error.docs_url().map(str::to_string);
-        hint
-    })
+        hint.next_step.docs = docs;
+        return Some(hint);
+    }
+    let Error::Api {
+        status, reset_at, ..
+    } = error
+    else {
+        return None;
+    };
+    let resume = NextStep::resume_wait(media_id, waited.as_secs(), credential);
+    let invocation = resume.display_invocation().unwrap_or_default().to_string();
+    match status {
+        429 => {
+            let when = match reset_at {
+                Some(reset_at) => {
+                    let (retry_after_secs, retry_at) = crate::cli::output::retry_times(*reset_at);
+                    format!(
+                        "Rate limited. The upload is intact; resume the wait in {retry_after_secs} seconds, at {retry_at}."
+                    )
+                }
+                None => "Rate limited, and X named no reset. The upload is intact; once the window passes, resume the wait.".to_string(),
+            };
+            let see = docs
+                .as_deref()
+                .map_or(String::new(), |docs| format!(" See: {docs}"));
+            Some(Hint {
+                text_lines: vec![format!("{when} Run: {invocation}{see}")],
+                next_step: NextStep {
+                    action: NextAction::WaitAndRetry,
+                    docs,
+                    ..resume
+                },
+            })
+        }
+        401 => Some(Hint {
+            text_lines: vec![format!(
+                "X refused the credential. The upload is intact and X keeps the media id for 24 hours; once the credential works, resume the wait: {invocation}"
+            )],
+            next_step: NextStep {
+                action: NextAction::FixInput,
+                command: None,
+                template: Some(invocation),
+                docs,
+            },
+        }),
+        _ => None,
+    }
 }
 
 fn resume_hint(media_id: &str, secs: u64, credential: &MediaCredential) -> Hint {
@@ -1166,11 +1217,12 @@ mod tests {
     }
 
     #[test]
-    fn only_a_failure_that_says_try_again_resumes_the_wait_after_an_upload() {
+    fn each_failure_of_the_read_after_an_upload_gets_the_step_that_fits_it() {
         let waited = std::time::Duration::from_secs(90);
+        let none = MediaCredential::default();
         for error in [Error::http("connection reset"), Error::api(503, "{}")] {
-            let hint = resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
-                .expect("a resume hint");
+            let hint =
+                resume_after_upload_hint(&error, "777", waited, &none).expect("a resume hint");
             assert_eq!(hint.next_step.action, NextAction::ResumeWait, "{error}");
             assert_eq!(
                 hint.next_step.command.as_deref(),
@@ -1179,13 +1231,25 @@ mod tests {
             );
             assert_eq!(hint.next_step.docs.as_deref(), error.docs_url(), "{error}");
         }
-        for error in [Error::api(401, "{}"), Error::api(404, "{}")] {
-            assert!(
-                resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
-                    .is_none(),
-                "{error}"
-            );
-        }
+        let limited = resume_after_upload_hint(&Error::api(429, "{}"), "777", waited, &none)
+            .expect("a step for a 429");
+        assert_eq!(limited.next_step.action, NextAction::WaitAndRetry);
+        assert_eq!(
+            limited.next_step.command.as_deref(),
+            Some("xr media status 777 --wait=90")
+        );
+        let refused = resume_after_upload_hint(&Error::api(401, "{}"), "777", waited, &none)
+            .expect("a step for a 401");
+        assert_eq!(refused.next_step.action, NextAction::FixInput);
+        assert_eq!(refused.next_step.command, None, "never a command");
+        assert_eq!(
+            refused.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90")
+        );
+        assert!(
+            resume_after_upload_hint(&Error::api(404, "{}"), "777", waited, &none).is_none(),
+            "a 404 keeps its own step"
+        );
     }
 
     #[test]
