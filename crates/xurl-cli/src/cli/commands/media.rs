@@ -134,6 +134,7 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
         return Err(Failure::AfterUpload {
             error,
             media_id: outcome.init.data.id,
+            waited: wait.0.unwrap_or(api::DEFAULT_PROCESSING_WAIT),
         });
     }
     // A structured answer is one document, so INIT's goes only to a human

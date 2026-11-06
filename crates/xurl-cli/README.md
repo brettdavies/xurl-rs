@@ -363,7 +363,10 @@ information, as an image's does.
 An upload that succeeds answers one JSON document on stdout: FINALIZE's response, with `data.processing_info` holding
 the final state when the upload waited for one. One that fails leaves stdout empty, in every format. Anything that ends
 the wait after the upload finished, a job X failed or a status read that failed among them, names the media in the
-envelope's `media_id`, and in the text on stderr.
+envelope's `media_id` and in `message`. A status read that failed for a 5xx or a network error carries `resume-wait` as
+its step, the same `xr media status <id> --wait=<secs>` for as long as the wait that failed, so the file is not sent
+again. Both steps repeat the `--app`, `--auth`, and `-u` the command ran under, and with `-H` the step is a `template`
+that hides each header's value.
 
 A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
 media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:
@@ -954,7 +957,7 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
 | `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
-| `processing-timeout`         | `resume-wait`                                                                                                                                    |
+| `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
 | `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
 | `unknown-command`            | `show-help`                                                                                                                                      |
 | `invalid-method`             | `show-help`                                                                                                                                      |
@@ -967,8 +970,8 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                  |
 | `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                            |
 | `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                                                                     |
-| `network-error`              | `retry`                                                                                                                                          |
-| `server-error`               | `retry`                                                                                                                                          |
+| `network-error`              | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
+| `server-error`               | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
 | `git-clone-failed`           | `retry`                                                                                                                                          |
 | `not-found`                  | `fix-input`                                                                                                                                      |
 | `invalid-request`            | `fix-input`                                                                                                                                      |
@@ -988,6 +991,8 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 
 - `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
+  After `xr media upload` has finished, a failed status read takes `resume-wait` instead, since running the upload again
+  would send the file again.
 - `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
   `xr` command repairs it, with these exceptions. For a port another process holds, the step is `listen` again with
   `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did.

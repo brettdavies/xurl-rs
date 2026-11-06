@@ -52,6 +52,8 @@ pub(crate) enum Failure {
         error: Error,
         /// The media the completed upload produced.
         media_id: String,
+        /// The deadline of the wait that ended.
+        waited: std::time::Duration,
     },
     /// The handler wrote the envelope itself; only the exit code remains.
     Emitted {
