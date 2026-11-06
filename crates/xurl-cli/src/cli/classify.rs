@@ -193,15 +193,33 @@ pub(crate) fn rejected_word(error: &clap::Error) -> Option<String> {
 
 /// clap's own suggestion for an unrecognized subcommand, where it scored one.
 ///
-/// clap lists its candidates from least to most similar, and puts the
-/// later-declared of two that score alike last, so the nearest verb is the
-/// last. [`nearest`] breaks a tie the same way, through `max_by`.
+/// clap lists the verbs it scored above 0.7 from least to most similar and
+/// keeps no scores, so the list's first entry is the farthest. The nearest is
+/// found by scoring the list again with the function clap scores by.
 fn clap_suggestion(error: &clap::Error) -> Option<String> {
     match error.get(ContextKind::SuggestedSubcommand)? {
         ContextValue::String(value) => Some(value.clone()),
-        ContextValue::Strings(values) => values.last().cloned(),
+        ContextValue::Strings(values) => {
+            let word = context_string(error, ContextKind::InvalidSubcommand)?;
+            highest_scoring(&word, values)
+        }
         _ => None,
     }
+}
+
+/// The candidate with the highest Jaro score against `word`. Of candidates
+/// that score exactly alike, the first one in `candidates` is named: a tie
+/// carries no sign of which the caller meant, and clap lists tied verbs in
+/// declaration order, so `get` is never traded for the write verb `set`.
+fn highest_scoring(word: &str, candidates: &[String]) -> Option<String> {
+    let mut best: Option<(f64, &String)> = None;
+    for candidate in candidates {
+        let score = strsim::jaro(word, candidate);
+        if best.is_none_or(|(top, _)| score > top) {
+            best = Some((score, candidate));
+        }
+    }
+    best.map(|(_, candidate)| candidate.clone())
 }
 
 /// The command a clap failure belongs to, read from the usage line clap

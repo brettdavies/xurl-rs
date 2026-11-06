@@ -140,6 +140,28 @@ fn text_line(word: &str, suggestion: Option<&str>) -> String {
     }
 }
 
+/// Runs a mistyped word under `family` in JSON and in text, and asserts both
+/// name `nearest`: the envelope's `suggestion` and `show-help` step, and the
+/// text line's `Did you mean` and `Try`.
+async fn assert_family_suggestion(family: &[&str], parent: &str, word: &str, nearest: &str) {
+    let mut json = vec!["xr", "--output", "json"];
+    json.extend_from_slice(family);
+    let (code, _stdout, stderr) = run_isolated(&json).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_unknown_command_under(&stderr, "json", word, Some(nearest), parent);
+
+    let mut text = vec!["xr", "--output", "text"];
+    text.extend_from_slice(family);
+    let (code, _stdout, stderr) = run_isolated(&text).await;
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert_eq!(
+        plain(&stderr).trim_end(),
+        format!(
+            "Error: unknown command '{word}'. Did you mean '{nearest}'? Try '{parent} {nearest} --help'."
+        )
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // The classifier path: a bare word that is not a command
 // ═══════════════════════════════════════════════════════════════════════════
@@ -303,23 +325,28 @@ async fn a_mistyped_verb_names_the_closest_of_several_candidates(
     #[case] word: &str,
     #[case] nearest: &str,
 ) {
-    let mut args = vec!["xr", "--output", "json"];
-    args.extend_from_slice(family);
-    let (code, _stdout, stderr) = run_isolated(&args).await;
-    assert_eq!(code, 2, "stderr: {stderr}");
-    assert_unknown_command_under(&stderr, "json", word, Some(nearest), parent);
+    assert_family_suggestion(family, parent, word, nearest).await;
 }
 
 /// Verbs that score exactly alike cannot be told apart by similarity, so the
-/// later-declared one is named, as `nearest` names it for a root word.
+/// first declared is named, and a tie never trades a read verb for the write
+/// verb beside it.
 #[rstest::rstest]
-#[case::oauth_without_its_digit("oauth", "oauth1")]
-#[case::app_beside_apps("apsp", "apps")]
+#[case::oauth_without_its_digit(&["auth", "oauth"], "xr auth", "oauth", "oauth2")]
+#[case::get_beside_set(
+    &["auth", "apps", "redirect-uri", "yet"],
+    "xr auth apps redirect-uri",
+    "yet",
+    "get"
+)]
 #[tokio::test]
-async fn equally_close_verbs_name_the_later_declared(#[case] word: &str, #[case] nearest: &str) {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--output", "json", "auth", word]).await;
-    assert_eq!(code, 2, "stderr: {stderr}");
-    assert_unknown_command_under(&stderr, "json", word, Some(nearest), "xr auth");
+async fn equally_close_verbs_name_the_first_declared(
+    #[case] family: &[&str],
+    #[case] parent: &str,
+    #[case] word: &str,
+    #[case] nearest: &str,
+) {
+    assert_family_suggestion(family, parent, word, nearest).await;
 }
 
 #[tokio::test]
