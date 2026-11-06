@@ -1,6 +1,6 @@
 {
-  "info_version": "2.173",
-  "content_sha256": "1279ad42dff9819e31bd3ace0d5dd09a845858df382826bcfa2cb155c0f0e70b",
-  "refreshed_at": "2026-11-05",
+  "info_version": "2.174",
+  "content_sha256": "ff01b2ad04bad5c48bbd8719d83e6a076061f676aa581284f2d95a49b2f02ce7",
+  "refreshed_at": "2026-11-06",
   "source_url": "https://api.x.com/2/openapi.json"
 }
