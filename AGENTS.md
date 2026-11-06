@@ -372,7 +372,7 @@ is library, and opening the browser and printing the paste-the-URL advice is bin
 - Clippy clean, edition 2024 (`cargo clippy -- -D warnings`)
 - Formatted with rustfmt (`cargo fmt --check`); style edition pinned in `rustfmt.toml`
 - No `unwrap()` in production code
-- Comprehensive tests (`cargo test`): unit, integration, and differential conformance
+- Comprehensive tests (`cargo nextest run`, plus `cargo test --doc`): unit, integration, and differential conformance
 - Zero broken tests policy: a failing test on `dev` blocks new work until it's fixed or reverted, not until "later"
 - `cargo deny check` passes (advisories, licenses, bans, sources)
 - Cross-platform: Linux, macOS, Windows (MSVC). Pre-push and CI both run a Windows compatibility check.
@@ -383,12 +383,26 @@ distribution manifest; the pin is effectively a SHA pin. Toolchain bumps land vi
 ## Testing
 
 ```bash
-cargo test                    # unit + integration
-cargo test -- --ignored       # slower / network-dependent tests
-scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, msrv, doc, examples, the offline example
-                              # run, TLS feature cells, the docs.rs feature set, deny, shellcheck, Windows
-                              # cross-clippy, markdownlint, actionlint; cargo-hack powerset when installed)
+scripts/dev-setup.sh                        # install the tools below at the versions in .github/tool-versions
+cargo nextest run --workspace               # unit + integration; stops at the first failure
+cargo nextest run --workspace --profile ci  # what CI runs: every test, and a failed one once more
+cargo nextest run -p xurl-rs --test cli_tests help  # one test binary, its tests filtered by name
+cargo test --doc --workspace                # doc tests, which nextest does not run
+cargo test -- --ignored                     # slower / network-dependent tests
+scripts/hooks/pre-push                      # local CI mirror (fmt, clippy, nextest, doc tests, msrv, doc, examples,
+                                            # the offline example run, TLS feature cells, the docs.rs feature set,
+                                            # deny, shellcheck, Windows cross-clippy, markdownlint, actionlint;
+                                            # cargo-hack powerset when installed)
 ```
+
+cargo-nextest runs the tests, locally and in CI's two `Tests` jobs, each test in its own process across every binary at
+once. Plain `cargo test` passes too, but it is not the path CI runs. It runs a binary's tests in one process, so the
+rules below hold under both runners. `.config/nextest.toml` holds two profiles: `default`, which the hook runs and which
+stops at the first failure, and `ci`, which runs everything and reruns a failed test once. A test that passes only on
+the rerun still fails the run, labeled `FLKY-FL`, which says to hunt a race rather than a regression. Both end a hung
+test after five minutes and label it `TMT`. Each CI job adds `--partition hash:k/2`, which picks the half of the tests
+it runs. Tests that cannot share a machine go in a nextest test group with limited concurrency, not a serial run of
+everything.
 
 A development build run by hand moves a single-file `~/.xurl` into the directory layout like any other `xr`, and a
 released `xr` 4.3.0 or earlier cannot read the store afterwards. Set `XURL_TOKEN_STORE` to a scratch path for a manual
@@ -429,6 +443,29 @@ semver gate, the agent-native audit with the release binary's size ceiling, `Go 
 Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary, and
 `Windows program target`, the `webhooks listen` program-target tests on a Windows runner. Run the first five yourself
 when a change touches the CLI surface, the library API, or the release profile; the sixth needs a Windows machine.
+
+### `pre-push/missing-tool`
+
+`scripts/hooks/pre-push` runs the tests through nextest, and `cargo nextest show-config version` failed: nextest is
+missing, older than `.config/nextest.toml` requires, or cannot read that file. The hook prints nextest's own error above
+the code. Run `scripts/dev-setup.sh`, which installs the version `.github/tool-versions` names, or fix the file;
+nextest's own hint, `cargo nextest self update`, moves past that version. The hook stops before its first cargo step,
+and a push that reaches no cargo input does not need the tool.
+
+### `nextest-config/unsafe-retry`
+
+A profile in `.config/nextest.toml`, or one of its overrides, gives a test a retry while its `flaky-result` is not
+`"fail"`, or an override sets `flaky-result = "pass"`, so a test that fails and then passes would turn the run green.
+Set `flaky-result = "fail"` where the message says. `crates/xurl-cli/tests/nextest_config_guard.rs` reads what a profile
+inherits, so the key can sit on its parent.
+
+### `nextest-config/no-termination`
+
+A profile's `slow-timeout`, or an override's, has no `terminate-after`, so a hung test runs until the runner kills the
+job and the log never names it, or sets `on-timeout = "pass"`, which counts the test it ends as passed. A profile that
+neither sets nor inherits one is on nextest's built-in, which never ends a test. Set `slow-timeout = { period = "60s",
+terminate-after = 5 }`. Under the `ci` profile's retry, `period` × `terminate-after` × 2 plus the build stays under a
+`Tests` job's 20-minute timeout.
 
 ## Releasing
 

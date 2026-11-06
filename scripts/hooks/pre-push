@@ -9,8 +9,9 @@
 #
 # Every shared check comes from scripts/hooks/_lib.sh, which both hooks source.
 # The two hooks differ in scope, not in what a check means: pre-push passes
-# what the push carries, pre-commit passes the staged set. The library battery
-# and the Windows checks stay inline because pre-commit has no use for them.
+# what the push carries, pre-commit passes the staged set. The test steps, the
+# library battery, and the Windows checks stay inline because pre-commit has no
+# use for them.
 #
 # Scoped by what the push actually changes: every step below runs only when a
 # path it could possibly read is in the push range, so a docs-only push does
@@ -154,6 +155,16 @@ if $run_cargo; then
   # rust-toolchain.toml.
   show_toolchain
 
+  # The tests run through nextest, so stop before the steps ahead of them spend
+  # their minutes. A subcommand, not a `have`: cargo also finds one in $CARGO_HOME/bin.
+  # `show-config version` also fails on a nextest older than .config/nextest.toml
+  # requires, which `--version` would pass, and on a config it cannot read.
+  if ! nextest_check=$(cargo nextest show-config version 2>&1); then
+    printf '%s\n' "$nextest_check" >&2
+    echo "pre-push/missing-tool: cargo-nextest: the test step runs through it and the check above failed; when it is missing or too old, run \`scripts/dev-setup.sh\` and push again (AGENTS.md § Testing)" >&2
+    exit 1
+  fi
+
   # 1. Format check
   step "fmt" "cargo fmt -- --check" check_cargo_fmt || exit 1
 
@@ -161,8 +172,17 @@ if $run_cargo; then
   # argument, since cargo keys every dependency build on RUSTFLAGS.
   step "clippy" "cargo clippy --workspace -- -D warnings" check_clippy --workspace || exit 1
 
-  # 3. Tests
-  step "test" "cargo test --workspace" check_tests --workspace || exit 1
+  # 3. Tests, the way CI's `Tests` jobs run them: nextest, then the doc tests it
+  # does not run. The default profile stops at the first failure, and these flags
+  # print only what went wrong, a slow test, and the summary.
+  check_nextest() {
+    cargo nextest run --workspace --cargo-quiet --status-level slow --final-status-level slow 2>&1
+  }
+  check_doc_tests() {
+    cargo test --doc --workspace --quiet 2>&1
+  }
+  step "test" "cargo nextest run --workspace" check_nextest || exit 1
+  step "doc tests" "cargo test --doc --workspace" check_doc_tests || exit 1
 
   # 4. MSRV check: the codebase still compiles against the rust-version
   # declared in the workspace manifest. The crates declare a lower MSRV than

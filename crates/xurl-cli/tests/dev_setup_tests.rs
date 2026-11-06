@@ -915,3 +915,55 @@ fn the_reader_prints_a_listed_version_and_stops_on_any_other_name() {
 
     assert_eq!(run(&[]).status.code(), Some(2));
 }
+
+/// The stub answers `cargo nextest` the way cargo answers a subcommand it cannot
+/// find, or nextest a requirement it does not meet, and records every call, so the
+/// test sees that nothing ran ahead of the stop.
+#[rstest]
+#[case::missing(101)]
+#[case::too_old(92)]
+#[serial_test::serial]
+fn pre_push_stops_with_the_setup_command_when_nextest_cannot_run(#[case] exit_code: i32) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let calls = dir.path().join("calls");
+    let stub = dir.path().join("cargo");
+    std::fs::write(
+        &stub,
+        format!(
+            "#!/bin/sh\necho \"$*\" >> '{}'\nif [ \"$1\" = nextest ]; then echo 'what cargo said' >&2; \
+             exit {exit_code}; fi\nexit 0\n",
+            calls.display()
+        ),
+    )
+    .expect("write the stub");
+    std::fs::set_permissions(&stub, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+    let inherited = std::env::var_os("PATH").expect("a test has a PATH");
+    let path = std::env::join_paths(
+        std::iter::once(dir.path().to_path_buf()).chain(std::env::split_paths(&inherited)),
+    )
+    .expect("a joinable PATH");
+
+    let output = std::process::Command::new("bash")
+        .arg("scripts/hooks/pre-push")
+        .current_dir(common::workspace_root())
+        .env("PATH", path)
+        .stdin(std::process::Stdio::null())
+        .output()
+        .expect("spawn the hook");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "stderr: {stderr}");
+    assert!(
+        stderr.contains("what cargo said")
+            && stderr.contains("pre-push/missing-tool: cargo-nextest")
+            && stderr.contains("scripts/dev-setup.sh"),
+        "{stderr}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&calls).expect("the stub ran"),
+        "nextest show-config version\n",
+        "the hook must stop before any other cargo step"
+    );
+}
