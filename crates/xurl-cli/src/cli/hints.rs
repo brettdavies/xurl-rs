@@ -12,9 +12,9 @@ use xdk::error::{
     BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED,
     CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_INVALID,
     PENDING_NOT_FOUND, PENDING_PERMISSIONS, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
-    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
-    TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
-    TOKEN_EXCHANGE_UNANSWERED,
+    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, REFRESH_CLIENT_REFUSED,
+    REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, TOKEN_EXCHANGE_CLIENT_REFUSED,
+    TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -245,13 +245,39 @@ impl NextStep {
         }
     }
 
-    /// The wait on `media_id` again, for `secs` seconds.
+    /// The wait on `media_id` again, for `secs` seconds, under the app,
+    /// scheme, and login `credential` names, so the read goes out under the
+    /// credential the failed command used. Each `-H` header keeps its name
+    /// and has its value replaced by `<value>`, which makes the step a
+    /// template: a header often carries a credential, and a step never echoes
+    /// one.
     #[must_use]
-    pub fn resume_wait(media_id: &str, secs: u64) -> Self {
+    pub fn resume_wait(media_id: &str, secs: u64, credential: &MediaCredential) -> Self {
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        if let Some(app) = non_empty(credential.app.as_deref()) {
+            words.extend(["--app".to_string(), quote_app_name(app)]);
+        }
+        words.extend([
+            "media".to_string(),
+            "status".to_string(),
+            shell_word(media_id),
+            format!("--wait={secs}"),
+        ]);
+        if let Some(auth) = non_empty(credential.auth.as_deref()) {
+            words.extend(["--auth".to_string(), shell_word(auth)]);
+        }
+        if let Some(login) = non_empty(credential.username.as_deref()) {
+            words.extend(["-u".to_string(), shell_word(login)]);
+        }
+        for header in &credential.headers {
+            words.extend(["-H".to_string(), shell_word(&hidden_header(header))]);
+        }
+        let invocation = words.join(" ");
+        let hid_a_value = !credential.headers.is_empty();
         Self {
             action: NextAction::ResumeWait,
-            command: Some(format!("xr media status {media_id} --wait={secs}")),
-            template: None,
+            command: (!hid_a_value).then(|| invocation.clone()),
+            template: hid_a_value.then_some(invocation),
             docs: None,
         }
     }
@@ -383,14 +409,8 @@ impl NextStep {
                 None
             };
             if let Some(header) = header {
-                let name = header.split_once(':').map_or("", |(name, _)| name.trim());
-                let hidden = if name.is_empty() {
-                    "<value>".to_string()
-                } else {
-                    format!("{name}: <value>")
-                };
                 words.push("-H".to_string());
-                words.push(shell_word(&hidden));
+                words.push(shell_word(&hidden_header(header)));
                 hid_a_value = true;
             }
         }
@@ -627,20 +647,53 @@ pub fn enrollment_hint(error: &Error) -> Option<Hint> {
 /// The command waits twice as long as the wait that expired: a job that
 /// outlasted one deadline is unlikely to finish inside the same one again.
 #[must_use]
-pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
+pub fn resume_wait_hint(error: &Error, credential: &MediaCredential) -> Option<Hint> {
     let (Error::ProcessingTimeout { media_id, waited }, Some(NextAction::ResumeWait)) =
         (error, error.next_action())
     else {
         return None;
     };
-    let next_step = NextStep::resume_wait(media_id, waited.as_secs().saturating_mul(2));
-    let command = next_step.command.clone().unwrap_or_default();
-    Some(Hint {
+    Some(resume_hint(
+        media_id,
+        waited.as_secs().saturating_mul(2),
+        credential,
+    ))
+}
+
+/// Builds the resume hint when a request that says "try again" failed during
+/// the wait after an upload finished. The request that failed was a status
+/// read, so what to run again is the wait: running the command again would send
+/// the whole file, which X bills for again.
+///
+/// The command waits as long as the wait that failed, whose deadline had not
+/// run out, and the step keeps the page the error names. A step that says
+/// more, such as when a rate limit resets, stays.
+#[must_use]
+pub fn resume_after_upload_hint(
+    error: &Error,
+    media_id: &str,
+    waited: std::time::Duration,
+    credential: &MediaCredential,
+) -> Option<Hint> {
+    (error.next_action() == Some(NextAction::Retry)).then(|| {
+        let mut hint = resume_hint(media_id, waited.as_secs(), credential);
+        hint.next_step.docs = error.docs_url().map(str::to_string);
+        hint
+    })
+}
+
+fn resume_hint(media_id: &str, secs: u64, credential: &MediaCredential) -> Hint {
+    let next_step = NextStep::resume_wait(media_id, secs, credential);
+    let command = next_step
+        .display_invocation()
+        .unwrap_or_default()
+        .to_string();
+    Hint {
         text_lines: vec![format!(
             "The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: {command}"
         )],
         next_step,
-    })
+    }
 }
 
 /// Builds the hint for a webhook receiver whose address another socket
@@ -762,20 +815,18 @@ pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> 
     Some(sign_in_again(invocation, no_browser))
 }
 
-/// Builds the hint for a sign-in failure no other sign-in would fix: a token
-/// exchange the endpoint did not process, whose code is still good, so the
-/// request goes again; and a refused client or a saved flow's file `xr` will
-/// not read, where the message names what to change and no `xr` invocation
-/// could say more.
+/// Builds the hint for a failure no other sign-in would fix, a client the token
+/// endpoint refused on a sign-in or a refresh, or a saved flow's file `xr` will
+/// not read: the message names what to change, and no `xr` invocation could
+/// say more.
 #[must_use]
 pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
     let Error::Auth { message, .. } = error else {
         return None;
     };
-    if message.starts_with(TOKEN_EXCHANGE_UNANSWERED) {
-        return Some(send_again(None));
-    }
-    let advice = if message.starts_with(TOKEN_EXCHANGE_CLIENT_REFUSED) {
+    let advice = if message.starts_with(TOKEN_EXCHANGE_CLIENT_REFUSED)
+        || message.starts_with(REFRESH_CLIENT_REFUSED)
+    {
         "X refused the app's client credentials. Check its client id and secret."
     } else if message.starts_with(PENDING_PERMISSIONS) {
         "Restore the file's mode and owner, or remove it and start over at step 1."
@@ -788,12 +839,38 @@ pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
     })
 }
 
-/// The hint for a request nothing was wrong with.
-fn send_again(docs: Option<String>) -> Hint {
-    Hint {
-        text_lines: vec!["Nothing was wrong with the request. Send it again.".to_string()],
-        next_step: NextStep::retry(docs),
-    }
+/// Builds the hint for a stored login whose refresh the token endpoint refused,
+/// or answered with no token: only a new sign-in gets a working refresh token,
+/// so the step is the sign-in that stores the refreshed login again, on the
+/// app it ran against. With no `-u` that login is the app's default one, which
+/// a sign-in under any other name would leave where the next run finds it.
+#[must_use]
+pub fn refresh_refused_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    invocation: &[String],
+    headless: bool,
+) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    let what = if message.starts_with(REFRESH_TOKEN_REFUSED) {
+        "X refused the stored login's refresh token."
+    } else if message.starts_with(REFRESH_NO_TOKEN) {
+        "X answered the stored login's refresh with no token."
+    } else {
+        return None;
+    };
+    let target = snapshot.active_app.as_str();
+    let login =
+        requested_login(invocation).or_else(|| snapshot.oauth2_default_logins.get(target).cloned());
+    let app = (target != snapshot.default_app).then_some(target);
+    let next_step = NextStep::sign_in_as(login.as_deref(), app, headless);
+    let command = next_step.command.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!("{what} Sign in again. Run: {command}")],
+        next_step,
+    })
 }
 
 fn sign_in_again(invocation: &[String], no_browser: bool) -> Hint {
@@ -952,7 +1029,10 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
     }
     let docs = error.docs_url().map(str::to_string);
     match error.next_action()? {
-        NextAction::Retry => Some(send_again(docs)),
+        NextAction::Retry => Some(Hint {
+            text_lines: vec!["Nothing was wrong with the request. Send it again.".to_string()],
+            next_step: NextStep::retry(docs),
+        }),
         NextAction::FixInput => Some(Hint {
             text_lines: Vec::new(),
             next_step: NextStep::fix_input(docs),
@@ -1005,6 +1085,36 @@ fn rerun_with_app(invocation: &[String], app: &str) -> String {
     parts.join(" ")
 }
 
+/// A `-H` header with its value replaced by `<value>`, keeping its name.
+fn hidden_header(header: &str) -> String {
+    let name = header.split_once(':').map_or("", |(name, _)| name.trim());
+    if name.is_empty() {
+        "<value>".to_string()
+    } else {
+        format!("{name}: <value>")
+    }
+}
+
+fn non_empty(value: Option<&str>) -> Option<&str> {
+    value.filter(|value| !value.is_empty())
+}
+
+/// The credential words of a media command that waits on processing: the
+/// `--app` it ran under and its own `--auth`, `-u`, and `-H`, as clap parsed
+/// them. A step that waits again repeats them, so its read goes out under the
+/// same credential.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct MediaCredential {
+    /// The app `--app` or `XURL_APP` named.
+    pub app: Option<String>,
+    /// The scheme `--auth` named.
+    pub auth: Option<String>,
+    /// The login `-u` named.
+    pub username: Option<String>,
+    /// Each `-H` header, as given.
+    pub headers: Vec<String>,
+}
+
 /// Quotes one argument of a rebuilt invocation when a shell would split it.
 pub(crate) fn shell_word(arg: &str) -> String {
     if !arg.is_empty()
@@ -1037,6 +1147,46 @@ pub fn quote_app_name(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_resumed_wait_quotes_each_word_a_shell_would_split() {
+        let credential = MediaCredential {
+            app: Some("work".to_string()),
+            auth: Some("oauth2".to_string()),
+            username: Some("al ice".to_string()),
+            headers: vec!["no colon here".to_string()],
+        };
+        let step = NextStep::resume_wait("777", 30, &credential);
+        assert_eq!(step.action, NextAction::ResumeWait);
+        assert_eq!(step.command, None, "a hidden header makes it a template");
+        assert_eq!(
+            step.template.as_deref(),
+            Some("xr --app work media status 777 --wait=30 --auth oauth2 -u 'al ice' -H '<value>'")
+        );
+    }
+
+    #[test]
+    fn only_a_failure_that_says_try_again_resumes_the_wait_after_an_upload() {
+        let waited = std::time::Duration::from_secs(90);
+        for error in [Error::http("connection reset"), Error::api(503, "{}")] {
+            let hint = resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
+                .expect("a resume hint");
+            assert_eq!(hint.next_step.action, NextAction::ResumeWait, "{error}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr media status 777 --wait=90"),
+                "{error}"
+            );
+            assert_eq!(hint.next_step.docs.as_deref(), error.docs_url(), "{error}");
+        }
+        for error in [Error::api(401, "{}"), Error::api(404, "{}")] {
+            assert!(
+                resume_after_upload_hint(&error, "777", waited, &MediaCredential::default())
+                    .is_none(),
+                "{error}"
+            );
+        }
+    }
 
     #[test]
     fn register_app_offers_a_template_and_no_command() {
@@ -1333,21 +1483,6 @@ mod tests {
                 hint.next_step.command.as_deref(),
                 Some("xr auth oauth2 --no-browser --step 1"),
                 "{message}"
-            );
-        }
-    }
-
-    #[test]
-    fn an_exchange_the_endpoint_did_not_process_is_sent_again() {
-        for message in [
-            format!("{TOKEN_EXCHANGE_UNANSWERED} (cause: connection refused)"),
-            format!("{TOKEN_EXCHANGE_UNANSWERED}: HTTP 503 Service Unavailable — unknown: "),
-        ] {
-            let hint = sign_in_fault_hint(&Error::auth(message.clone())).expect("a hint");
-            assert_eq!(hint.next_step, NextStep::retry(None), "{message}");
-            assert!(
-                sign_in_again_hint(&Error::auth(message.clone()), &[]).is_none(),
-                "the code is still good, so no new consent: {message}"
             );
         }
     }

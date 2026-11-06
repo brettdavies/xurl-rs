@@ -85,17 +85,19 @@ Eight actions answer failures that are not about credentials. `show-help` rides 
 `invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
 `invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
 `command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
-A refused argument to `xr auth oauth2` carries it under `auth-required` (exit 77).
 `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
 job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the `xr media status
-<media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry` rides on reason `rate-limited` (exit 3)
+<media_id> --wait=<secs>` that waits again for twice as long. It also rides on `network-error` and `server-error` when
+the request that failed was a status read after `xr media upload` finished: `retry` would send the file again, so the
+step waits again for as long as the wait that failed. Either way the step repeats the `--app`, `--auth`, and `-u` the
+media command ran under, so the read goes out under the same credential, and with `-H` it is a `template` that hides
+each header's value. `wait-and-retry` rides on reason `rate-limited` (exit 3)
 when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the reset and zero once it has
 passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no command, because the request to
 send again is the caller's own. A 429 that names no reset carries neither key and no `next_step`. `--wait-on-rate-limit`
 does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
 
-`retry` (`network-error`, `server-error`, `git-clone-failed`, and, under `auth-required`, a token exchange X did not
-process) says nothing was wrong with the request. `fix-input`
+`retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
 (`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
 invocation fails again until its input or the state it read changes. Under `address-in-use`, a port another process
 holds, it carries `listen` again on `--port 0`: a `command`, or a `template` that hides each `-H` value. Under

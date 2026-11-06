@@ -14,7 +14,8 @@ use super::{
     ACTION_UPDATE, DestinationStatus, InstallEnvelope, InstallError, InstallMultiEnvelope,
     REASON_NOT_INSTALLED, STATUS_DRY_RUN, STATUS_ERROR, STATUS_OK, STATUS_SKIPPED, SkillEnv,
     SkillHost, build_clone_command, emit_envelope, emit_missing_host_envelope,
-    format_clone_command, host_envelope_str, render_envelope, render_multi, resolve_host,
+    format_clone_command, host_envelope_str, refused_status, render_envelope, render_multi,
+    resolve_host,
 };
 
 /// Resolve one host's update outcome without emitting it. Replaces the bundle
@@ -52,7 +53,7 @@ fn update_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Inst
                 install_dir: dest_template.to_string(),
                 command_preview: format_clone_command(url, dest_template),
                 destination_status: DestinationStatus::Absent.as_envelope_str(),
-                status: STATUS_ERROR,
+                status: refused_status(dry_run),
                 would_succeed: if dry_run { Some(false) } else { None },
                 exit_code: Some(1),
                 reason: Some(InstallError::MissingHome.reason()),
@@ -94,7 +95,7 @@ fn update_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Inst
         });
     if let Some((error, dir)) = refusal {
         return InstallEnvelope {
-            status: STATUS_ERROR,
+            status: refused_status(dry_run),
             would_succeed: dry_run.then_some(false),
             exit_code: Some(error.exit_code()),
             reason: Some(error.reason()),
@@ -224,7 +225,7 @@ pub fn run_update_multi(
         let multi = InstallMultiEnvelope::of(ACTION_UPDATE, dry_run, installations);
         let rendered = render_multi(&multi, &out.format);
         let _ = writeln!(stdout, "{rendered}");
-        return multi.exit_code;
+        return multi.process_exit_code();
     }
     let Some(host) = host else {
         return emit_missing_host_envelope(out, stdout);
@@ -300,11 +301,11 @@ mod tests {
     }
 
     #[test]
-    fn update_without_home_is_an_error_naming_the_reason() {
+    fn update_dry_run_without_home_names_the_reason_the_real_run_fails_for() {
         let env = compute_update_envelope(first_host(), true, &SkillEnv::default());
 
         assert_eq!(env.action, "skill-update");
-        assert_eq!(env.status, "error");
+        assert_eq!(env.status, "dry_run");
         assert_eq!(env.reason, Some("home-not-set"));
         assert_eq!(env.exit_code, Some(1));
         assert_eq!(env.would_succeed, Some(false));

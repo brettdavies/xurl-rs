@@ -202,12 +202,29 @@ impl InstallEnvelope {
         self
     }
 
-    /// Fills [`Self::message`] on a failure that has no sentence of its own.
+    /// Fills [`Self::message`] on a failure that has no sentence of its own,
+    /// or a dry run's report of one.
     fn with_message(mut self) -> Self {
-        if self.status == STATUS_ERROR && self.message.is_none() {
+        if self.is_failure() && self.message.is_none() {
             self.message = render::failure_message(&self);
         }
         self
+    }
+
+    /// Whether this reports a failure: a real run's, or the one a dry run says
+    /// its real run would end on.
+    fn is_failure(&self) -> bool {
+        self.status == STATUS_ERROR || self.would_succeed == Some(false)
+    }
+}
+
+/// The `status` of a run refused before anything was cloned: the error of a
+/// real run, and a dry run's own, which reports the refusal in its other keys.
+fn refused_status(dry_run: bool) -> &'static str {
+    if dry_run {
+        STATUS_DRY_RUN
+    } else {
+        STATUS_ERROR
     }
 }
 
@@ -218,9 +235,13 @@ pub struct InstallMultiEnvelope {
     pub action: &'static str,
     /// Aggregate outcome: `"ok"`, `"error"`, or `"dry_run"`.
     pub status: &'static str,
+    /// Dry-run-only: would the run succeed on every host?
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub would_succeed: Option<bool>,
     /// One [`InstallEnvelope`] per host, in [`KNOWN_HOSTS`] order.
     pub installations: Vec<InstallEnvelope>,
-    /// Worst exit code observed across [`Self::installations`].
+    /// Worst exit code observed across [`Self::installations`]; on a dry run,
+    /// the worst its real run would end on.
     pub exit_code: i32,
     /// On a failure, the `reason` of the host with the worst exit code.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -240,31 +261,41 @@ impl InstallMultiEnvelope {
     fn of(action: &'static str, dry_run: bool, installations: Vec<InstallEnvelope>) -> Self {
         let failed: Vec<&InstallEnvelope> = installations
             .iter()
-            .filter(|env| env.status == STATUS_ERROR)
+            .filter(|env| env.is_failure())
             .collect();
         let worst = failed
             .iter()
             .rev()
             .max_by_key(|env| env.exit_code.unwrap_or(1));
-        let (status, exit_code, reason, next_step) = match worst {
-            Some(env) => (
-                STATUS_ERROR,
-                env.exit_code.unwrap_or(1),
-                env.reason,
-                env.next_step.clone(),
-            ),
-            None if dry_run => (STATUS_DRY_RUN, 0, None, None),
-            None => (STATUS_OK, 0, None, None),
+        let status = match worst {
+            _ if dry_run => STATUS_DRY_RUN,
+            Some(_) => STATUS_ERROR,
+            None => STATUS_OK,
         };
         let message = worst.map(|_| render::hosts_failed_message(&failed, installations.len()));
+        let exit_code = worst.map_or(0, |env| env.exit_code.unwrap_or(1));
+        let reason = worst.and_then(|env| env.reason);
+        let next_step = worst.and_then(|env| env.next_step.clone());
+        let would_succeed = dry_run.then_some(worst.is_none());
         Self {
             action,
             status,
+            would_succeed,
             installations,
             exit_code,
             reason,
             message,
             next_step,
+        }
+    }
+
+    /// The code the process ends on. A dry run answers at 0 whatever it found,
+    /// and reports the real run's code in [`Self::exit_code`].
+    fn process_exit_code(&self) -> i32 {
+        if self.status == STATUS_DRY_RUN {
+            0
+        } else {
+            self.exit_code
         }
     }
 }
@@ -313,7 +344,7 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
                 install_dir: dest_template.to_string(),
                 command_preview,
                 destination_status: DestinationStatus::Absent.as_envelope_str(),
-                status: STATUS_ERROR,
+                status: refused_status(dry_run),
                 would_succeed: if dry_run { Some(false) } else { None },
                 exit_code: Some(1),
                 reason: Some(InstallError::MissingHome.reason()),
@@ -344,7 +375,7 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
                 install_dir: dest_display,
                 command_preview,
                 destination_status: status_label.as_envelope_str(),
-                status: STATUS_ERROR,
+                status: refused_status(dry_run),
                 would_succeed: if dry_run { Some(false) } else { None },
                 exit_code: Some(1),
                 reason: Some(e.reason()),
@@ -485,7 +516,7 @@ fn run_for_all_hosts(
     let multi = InstallMultiEnvelope::of(ACTION_INSTALL, dry_run, installations);
     let rendered = render_multi(&multi, &out.format);
     let _ = writeln!(stdout, "{rendered}");
-    multi.exit_code
+    multi.process_exit_code()
 }
 
 /// Emit a hint envelope listing the known hosts. Returned when neither a host

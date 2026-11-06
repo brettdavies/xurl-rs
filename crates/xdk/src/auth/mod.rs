@@ -14,6 +14,7 @@ pub mod oauth1;
 pub mod oauth2;
 #[doc(hidden)]
 pub mod pending;
+mod token_endpoint;
 
 pub(crate) use credentials::DirectCredentials;
 use credentials::REDACTED;
@@ -392,8 +393,12 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if the authorization flow, the opener, the token
-    /// exchange, or username resolution fails.
+    /// Returns an error if the authorization flow or the opener fails, or if
+    /// the token exchange does: [`Error::Http`] when the token endpoint does
+    /// not answer, [`Error::Api`] when it answers a 5xx or a 429 (with
+    /// `reset_at` when the 429 names its reset), [`Error::InvalidUrl`] when
+    /// the token URL is not one a request can go to, and [`Error::Auth`] when
+    /// it refuses the code or the client.
     pub async fn oauth2_flow<F>(
         &mut self,
         http: &reqwest::Client,
@@ -411,7 +416,8 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if no token is found or the refresh request fails.
+    /// Returns the errors [`oauth2::refresh_oauth2_token`] documents. A failed
+    /// refresh writes nothing to the store.
     pub async fn refresh_oauth2_token(
         &mut self,
         http: &reqwest::Client,
@@ -440,8 +446,9 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if the pending state is missing/expired/invalid,
-    /// the token exchange fails, or the username cannot be resolved.
+    /// Returns [`Error::Auth`] if the pending state is missing, expired, or
+    /// invalid, or the redirect URL does not answer it, and the errors
+    /// [`Self::oauth2_flow`] names for a failed token exchange.
     pub async fn remote_oauth2_step2(
         &mut self,
         http: &reqwest::Client,

@@ -363,7 +363,10 @@ information, as an image's does.
 An upload that succeeds answers one JSON document on stdout: FINALIZE's response, with `data.processing_info` holding
 the final state when the upload waited for one. One that fails leaves stdout empty, in every format. Anything that ends
 the wait after the upload finished, a job X failed or a status read that failed among them, names the media in the
-envelope's `media_id`, and in the text on stderr.
+envelope's `media_id` and in `message`. A status read that failed for a 5xx or a network error carries `resume-wait` as
+its step, the same `xr media status <id> --wait=<secs>` for as long as the wait that failed, so the file is not sent
+again. Both steps repeat the `--app`, `--auth`, and `-u` the command ran under, and with `-H` the step is a `template`
+that hides each header's value.
 
 A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
 media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:
@@ -951,13 +954,13 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 
 | `reason`                     | `next_step.action`                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, `fix-input`, `show-help`, or `retry`, as the list below says; none on a 401            |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as the list below says; none on a request's 401                        |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
 | `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
 | `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
-| `processing-timeout`         | `resume-wait`                                                                                                                                    |
+| `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
 | `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
 | `unknown-command`            | `show-help`                                                                                                                                      |
 | `invalid-method`             | `show-help`                                                                                                                                      |
@@ -970,8 +973,8 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                  |
 | `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                            |
 | `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                                                                     |
-| `network-error`              | `retry`                                                                                                                                          |
-| `server-error`               | `retry`                                                                                                                                          |
+| `network-error`              | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
+| `server-error`               | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
 | `git-clone-failed`           | `retry`                                                                                                                                          |
 | `not-found`                  | `fix-input`                                                                                                                                      |
 | `invalid-request`            | `fix-input`                                                                                                                                      |
@@ -991,6 +994,8 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 
 - `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
+  After `xr media upload` has finished, a failed status read takes `resume-wait` instead, since running the upload again
+  would send the file again.
 - `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
   `xr` command repairs it, with these exceptions. For a port another process holds, the step is `listen` again with
   `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did.
@@ -1006,7 +1011,6 @@ Every reason has a row. The five actions that are not about credentials or help 
 
 Under `auth-required`, a failed `xr auth oauth2` names the step that moves the sign-in forward:
 
-- `show-help` for a refused argument: `--auth-url` missing, given at step 1, or empty or unreadable on stdin.
 - `sign-in` at step 1 when the flow cannot finish: none saved, expired, a file that does not parse, other scopes, a
   redirect URL with no usable `state` or `code`, a code X would not exchange, or a flow from an app the store no longer
   holds. It asks a person for a new consent.
@@ -1014,8 +1018,19 @@ Under `auth-required`, a failed `xr auth oauth2` names the step that moves the s
   stored app saved, which the template names.
 - `fix-input` with no invocation when the message names what to change: a saved file with the wrong mode, owner, or
   link, or client credentials X refused. Another consent would end at the same refusal.
-- `retry` for a token exchange X did not process: no answer, a 5xx, or a 429. The code is still good, and the same
-  invocation finishes.
+
+A failed `xr auth oauth2` that says nothing about credentials takes its own reason. A refused argument (`--auth-url`
+missing, given at step 1, or empty or unreadable on stdin) is `invalid-args`. A token exchange X did not process reports
+what any other request would: `network-error` with no answer, `server-error` on a 5xx, and `rate-limited` on a 429. The
+same invocation finishes once X answers, and if X had already spent the code, it answers with the `sign-in` step above.
+A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
+
+Any command whose OAuth2 login has expired refreshes it first, and a failed refresh writes nothing to the store. A
+refresh X refused is `auth-required`: a refused refresh token, or an answer with no token, carries the `sign-in` that
+stores the same login again, the one `-u` named or else the one the refresh ran for, and refused client credentials
+carry `fix-input` with no invocation. A refresh X did not process reports what any other request would, the same as the
+token exchange above, with a warning that names the refresh on a 5xx or a 429, and the same command finishes once X
+answers.
 
 ### NO_COLOR Support
 

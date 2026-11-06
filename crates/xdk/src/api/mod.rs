@@ -24,6 +24,7 @@ pub use media::{
     handle_media_append_request, is_media_append_request, media_status_auth_preflight,
     media_upload_preflight,
 };
+pub(crate) use request::api_error;
 pub use request::{
     AuthPreflight, Call, Client, ClientBuilder, DEFAULT_TIMEOUT_SECS, MultipartOptions,
     RequestOptions, RequestTarget, StreamLines, WIRE_TARGET,

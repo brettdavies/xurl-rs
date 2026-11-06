@@ -32,8 +32,8 @@ pub enum NextAction {
     // `print_invalid_args`) carry it, and no library error returns it.
     #[doc(hidden)]
     ShowHelp,
-    /// Media was still processing when the wait's deadline passed; wait on
-    /// the same media id again.
+    /// The wait on an upload's processing ended before X reported a final
+    /// state, and the upload is intact; wait on the same media id again.
     ResumeWait,
     /// X rate limited the request and said when the window resets; send it
     /// again once that time has passed.
@@ -853,12 +853,6 @@ pub const PENDING_PERMISSIONS: &str = "PendingStatePermissions";
 pub const PENDING_INVALID: &str =
     "PendingStateInvalid: the pending OAuth2 state file does not parse";
 
-/// The start of the message of a token exchange the endpoint did not process:
-/// no answer, a 5xx, or a 429. The authorization code is still good, so the
-/// same request can go again.
-pub const TOKEN_EXCHANGE_UNANSWERED: &str =
-    "TokenExchangeError: the token endpoint could not answer";
-
 /// The start of the message of a token exchange that refused the client's own
 /// credentials: a 401, or `invalid_client` or `unauthorized_client` (RFC 6749
 /// section 5.2). Another authorization code would be refused the same way.
@@ -873,6 +867,25 @@ pub const TOKEN_EXCHANGE_CODE_REFUSED: &str =
 /// The start of the message of a token exchange answered with a success that
 /// holds no token. The code is spent.
 pub const TOKEN_EXCHANGE_NO_TOKEN: &str = "TokenExchangeError: no access_token in response";
+
+/// The start of the message of a refresh that refused the client's own
+/// credentials: a 401, or `invalid_client` or `unauthorized_client` (RFC 6749
+/// section 5.2). Another sign-in would be refused the same way.
+pub const REFRESH_CLIENT_REFUSED: &str = "RefreshTokenError: the token endpoint refused the client";
+
+/// The start of the message of a refresh whose refresh token the token
+/// endpoint refused: expired, revoked, or spent. Only a new sign-in gets
+/// another.
+pub const REFRESH_TOKEN_REFUSED: &str =
+    "RefreshTokenError: the token endpoint refused the refresh token";
+
+/// The start of the message of a refresh answered with a success that holds no
+/// token. The refresh token may be spent, so the login needs a new sign-in.
+pub const REFRESH_NO_TOKEN: &str = "RefreshTokenError: no access_token in response";
+
+/// The start of the message of an [`Error::InvalidUrl`] for a token URL no
+/// request can go to. The URL follows, quoted.
+pub const TOKEN_URL_UNUSABLE: &str = "the token URL";
 
 /// The start of the message of a headless step 2 whose client id is not the
 /// one step 1 saved. The saved app's name follows, as a quoted string.

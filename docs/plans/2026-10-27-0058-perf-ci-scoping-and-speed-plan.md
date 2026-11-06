@@ -111,6 +111,9 @@ caught nothing (Appendix).
   AGENTS.md § "Testing", and names the file or tool, the reason, and the exact fix.
 - R17. `scripts/dev-setup.sh` installs every tool the hooks need at the versions CI pins, and `--jobs` prints which jobs
   a diff runs in each tier.
+- R18. The agent-native score gates every merge into `dev`. `Agent-native audit` stays a required `dev` check until the
+  PR that moves it, and that same PR adds the audit of the debug `xr` inside `Tests` (D12), so no merge into `dev` goes
+  unchecked on the score.
 
 **Records**
 
@@ -121,25 +124,25 @@ caught nothing (Appendix).
 ### Key Decisions
 
 - KD1. **Push runs on `dev` run the slow tier for real and warm the PR tier's caches; push runs on `main` only warm
-  caches.** (session-settled: user-approved — D5 of the DX review, chosen over every check gating every PR: each check
+  caches.** (session-settled: user-approved, D5 of the DX review, chosen over every check gating every PR: each check
   still runs once per change, the slow ones after merge.) Governs R1, R2, R15.
 - KD2. **Wall-clock speed is in scope, and the tests' validity is audited before they run in parallel or in subsets.**
-  (session-settled: user-directed — chosen over a scoping-only plan: Brett asked for "a faster PR" and to "spike the
+  (session-settled: user-directed, chosen over a scoping-only plan: Brett asked for "a faster PR" and to "spike the
   validity of the tests themselves, prior to running in parallel".) Governs R3, R4.
 - KD3. **The shared reusable workflow gains opt-in inputs, defaulting to today's behavior.** (session-settled:
-  user-approved — chosen over scoping only this repo's own jobs: the test job lives in the reusable.) Governs R6, R9.
+  user-approved, chosen over scoping only this repo's own jobs: the test job lives in the reusable.) Governs R6, R9.
 - KD4. **An unclassified path, or a change to a workflow, the classifier, or the job table, runs every job.**
-  (session-settled: user-approved — chosen over scoping CI edits: a CI edit must not skip the jobs it can break.)
-  Governs R7.
-- KD5. **Push to verdict in under 2 minutes.** (session-settled: user-directed — D4, chosen over 5 minutes or the plan's
+  (session-settled: user-approved, chosen over scoping CI edits: a CI edit must not skip the jobs it can break.) Governs
+  R7.
+- KD5. **Push to verdict in under 2 minutes.** (session-settled: user-directed, D4, chosen over 5 minutes or the plan's
   trajectory.) Governs R12, R3.
-- KD6. **Two tiers by ruleset.** (session-settled: user-approved — D5, chosen over a non-gating slow tier on every PR
-  and over every check gating.) Governs R11, R15.
-- KD7. **The fast tier runs on GitHub's free runners, split into parallel jobs.** (session-settled: user-directed — D6,
+- KD6. **Two tiers by ruleset.** (session-settled: user-approved, D5, chosen over a non-gating slow tier on every PR and
+  over every check gating.) Governs R11, R15.
+- KD7. **The fast tier runs on GitHub's free runners, split into parallel jobs.** (session-settled: user-directed, D6,
   chosen over Ubicloud 16-vCPU runners and a self-hosted runner; the estimate with free runners is 2 to 3 minutes, so
   the gap to KD5 is measured and Ubicloud is the lever if it holds.) Governs R3, R12.
 - KD8. **A post-merge failure is a red check on `dev`, with no alert; the release PR gates it.** (session-settled:
-  user-directed — D10, chosen over a comment on the merged PR and a tracking issue.) Governs R15.
+  user-directed, D10, chosen over a comment on the merged PR and a tracking issue.) Governs R15.
 
 ### Success Criteria
 
@@ -244,8 +247,8 @@ caught nothing (Appendix).
   splits the reusable's one test job into parallel jobs: `Fmt, clippy` and `Tests`, with `Tests` run as one job or as
   two `--partition hash:N/2` jobs, whichever U3 measures faster (each partition builds the test binaries itself, so the
   split only pays when the run phase outweighs a second build). When a CLI path changes, the `Tests` job also runs `anc`
-  on the debug `xr` it built, keeping the agent-native score before merge (D12); the release build and size ceiling stay
-  in the slow tier.
+  on the debug `xr` it built, keeping the agent-native score before merge (D12, U8, R18); the release build and size
+  ceiling stay in the slow tier.
 - KTD5. **Audit before parallelizing.** The `test-audit` skill finds duplicate and low-value tests across both crates,
   and the per-binary times in the Appendix give each one's cost. Removals go to Brett test by test (R4, KD2).
 - KTD6. **Shorten real waits through seams, keeping production defaults.** A wait the tests sit through (the forward
@@ -315,7 +318,7 @@ caught nothing (Appendix).
   changes no caller, and every xurl-rs unit after it opts in without another cross-repo wait (R1 in the Decision
   ledger). `jobs` replaces the narrower `test_packages`, because the tiers have to switch the reusable's Windows,
   package, audit, and shellcheck jobs on and off, not only scope the tests.
-- KTD12. **`ci.yml` sets no `CARGO_HTTP_MULTIPLEXING`.** (session-settled: user-directed — chosen over setting it on
+- KTD12. **`ci.yml` sets no `CARGO_HTTP_MULTIPLEXING`.** (session-settled: user-directed, chosen over setting it on
   xurl-rs's own jobs: Brett declined it.) Conflict call-out: `brettdavies/.github#100` (2026-10-27) sets
   `CARGO_HTTP_MULTIPLEXING: "false"` in every reusable job, citing the same curl error 16. xurl-rs's own jobs still
   download over HTTP/2, and six of the ten stack failures were in them (`Doc build`, four `Features` cells,
@@ -420,7 +423,8 @@ flowchart TB
 The shared-workflow PR lands first (KTD11). U1 follows: it helps every later run, and U10 follows it because it measures
 warm jobs. U2 precedes U3, U4, and U6 (KD2), so no test is moved or parallelized before the audit settles which stay. U6
 precedes U5, which measures debug info on the merged layout. U11 lands before U3, so the versions U3 pins come from
-`.github/tool-versions`. U7 and U8 build the job table and the tiers. U9 records the result.
+`.github/tool-versions`. U7 and U8 build the job table and the tiers; the U8 PR that moves `Agent-native audit` also
+adds the audit of the debug `xr` inside `Tests`, so the score gates every merge into `dev` (R18). U9 records the result.
 
 The PRs, by repository, in merge order:
 
@@ -430,13 +434,15 @@ The PRs, by repository, in merge order:
 2. xurl-rs U1: push triggers and warm mode.
 3. xurl-rs U2: no code; its findings go to Brett, and each removal he approves lands as its own PR.
 4. xurl-rs U11: `.github/tool-versions` and `scripts/dev-setup.sh`.
-5. xurl-rs U3: nextest, its config and guard, the split PR-tier jobs, the pre-push hook, and the pinned installs.
+5. xurl-rs U3 (#519): nextest, its config and guard, the split PR-tier jobs with two test partitions, the pre-push hook,
+   the pinned installs, and the `scripts/tool-version.sh` header.
 6. xurl-rs U4: shorter waits.
 7. xurl-rs U6: the merged test layout, its two guards, and their codes.
 8. xurl-rs U5: each debug-info setting kept on measurement, or none.
 9. xurl-rs U7: the job table, the classifier and its `--jobs` preview, and the table guard.
 10. xurl-rs U8: the tiers: triggers, job conditions, the `jobs` opt-in, `Library features`, the scheduled audit on
-    `dev`, and the two rulesets for Brett to apply.
+    `dev`, the audit of the debug `xr` inside `Tests` with the `anc_version` scope output, in the PR that moves
+    `Agent-native audit` (R18), and the two rulesets for Brett to apply.
 11. `brettdavies/agent-skills`: the completions template builds a dev binary.
 12. xurl-rs U10: the completions script derived again, and the other jobs' levers.
 13. xurl-rs U9: the docs.
@@ -509,16 +515,24 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 ### U3. Run the tests with nextest
 
 - **Goal:** tests run in parallel, each in its own process, the same way locally and in CI.
+- **Scope:** nextest only, plus the `scripts/tool-version.sh` header fix Brett chose to keep. The audit of the debug
+  `xr` inside `Tests`, the `anc_version` scope output, and the `jobs` list that leaves out the reusable's own `anc` job
+  are U8's (R18). (session-settled: user-directed, chosen over U3 also auditing the debug `xr` inside `Tests`:
+  `Agent-native audit` stays a required `dev` check through U3, so the score gates every merge until the U8 PR that
+  moves that check adds the debug audit, which keeps Brett's condition, "the `anc_audit` gate should remain, even if it
+  is in another pr".)
 - **Requirements:** R3, R5, R9, R13; KTD4, KTD11.
 - **Dependencies:** U2.
 - **Files:**
   - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `test_runner` input and the nextest install, landed with
     the shared-workflow PR (KTD11).
-  - `.github/workflows/ci.yml`: opts in.
+  - `.github/workflows/ci.yml`: opts in with `test_runner: nextest` and two test partitions.
   - `.config/nextest.toml`: the `default` and `ci` profiles.
   - `crates/xurl-cli/tests/nextest_config_guard.rs`, new (a module of `tests/all/` once U6 lands).
   - `scripts/hooks/pre-push`: runs nextest and stops with the install command when it is missing.
   - `CONTRIBUTING.md` and AGENTS.md § "Testing": nextest as the documented runner.
+  - `scripts/tool-version.sh`: its header says what a bare `sed` does with a tool the list lacks: it exits 0 with
+    nothing, which a job output passes along silently and an installer rejects in its own words.
 - **Approach:**
   1. With `test_runner: nextest`, the reusable's test job installs `cargo-nextest@<version>` by
      `cargo binstall --force`, with the SHA-pinned binstall action the repo already uses, at an exact version released
@@ -533,10 +547,9 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
   4. `nextest_config_guard` parses `.config/nextest.toml` and fails with `nextest-config/unsafe-retry` or
      `nextest-config/no-termination`, naming the profile and key, when any profile sets `retries` above 0 without
      `flaky-result = "fail"`, or a slow-timeout without `terminate-after`.
-  5. Split the PR tier's test job into `Fmt, clippy` and `Tests` (KTD4), and measure `Tests` as one job against two
-     `--partition hash:N/2` jobs on the same warm cache; keep the faster.
-  6. When a CLI path changes, the `Tests` job installs `anc` at its pinned version and audits the debug `xr` it built
-     against the score floor (D12); the release build and size ceiling stay in `Agent-native audit`.
+  5. Split the PR tier's test job into `Fmt, clippy` and `Tests` (KTD4), and run `Tests` as two `--partition hash:N/2`
+     jobs, the faster shape on warm caches: the slower partition takes 200 to 231 s, against 244 to 306 s for `Tests` as
+     one job.
 - **Patterns to follow:** the `cargo binstall ... --force` install steps in `ci.yml` (`cargo-hack`, `anc`); a guard that
   reads repo files and names the offending entry (`env_mutation_guard`), without the `Cause:` marker `recipe_guard`
   reserves for the family recipe.
@@ -548,10 +561,11 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
   - `nextest_config_guard` fails on a seeded `retries = 1` with no `flaky-result = "fail"` and on a slow-timeout with no
     `terminate-after`.
   - A seeded test that fails on its first run and passes on its second fails the job, labeled flaky.
-  - A CLI change that drops the agent-native score below the floor fails `Tests`, before merge.
   - Without nextest, pre-push stops with `pre-push/missing-tool` and the `scripts/dev-setup.sh` command.
-- **Verification:** the test count matches `cargo test`; the test-running phase falls from about 148 s toward 40 s; no
-  test fails intermittently across the rollout PRs; the guard fails on both seeded violations.
+- **Verification:** the test count, summed over the two partitions, matches `cargo test`; the test-running phase falls
+  from about 148 s toward 40 s; the slower partition's warm time is recorded beside one job's; no test fails
+  intermittently across the rollout PRs; the guard fails on both seeded violations; `Tests` runs no `anc` step, and
+  `Agent-native audit` still runs and stays a required `dev` check (R18).
 
 ### U4. Shorten the real waits in the slowest tests
 
@@ -693,18 +707,27 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 
 - **Goal:** a PR into `dev` runs only the PR-tier jobs its diff triggers (10 at most, 11 with two test partitions, 2 for
   docs only), the slow tier runs after each merge and in full on the release PR, and both rulesets require the right
-  jobs.
-- **Requirements:** R6, R7, R8, R9, R11, R15; KD1, KD6, KD8, KTD10, KTD11, KTD16.
-- **Dependencies:** U7, U1 (the push trigger), and U3 (the split PR-tier jobs).
+  jobs, with no merge into `dev` left unchecked on the agent-native score (R18).
+- **Requirements:** R6, R7, R8, R9, R11, R15, R18; KD1, KD6, KD8, KTD4, KTD10, KTD11, KTD16.
+- **Dependencies:** U7, U1 (the push trigger), U3 (the split PR-tier jobs), and U11 (`anc`'s version in
+  `.github/tool-versions`).
 - **Files:**
   - `.github/workflows/ci.yml`: the `Change scope` job's per-job outputs, each job's condition, the `schedule` trigger,
     the `jobs` list passed to the reusable, the concurrency group that gives each push run its own group (R4), and
     `Library features` replacing the six `Features` cells, the powerset, and the no-backend guard.
+  - `.github/workflows/ci.yml`, in the PR that moves `Agent-native audit` (R18): `Change scope` outputs `anc_version`
+    from `.github/tool-versions` beside `nextest_version`, and the `ci` call passes it with `anc_debug_audit: true`, so
+    `Tests` audits the debug `xr` when a CLI path changes, against the floor `Agent-native audit` holds the release
+    binary to (D12). `anc_version` also turns on the reusable's own `anc` job, its release audit, so the `jobs` list the
+    `ci` call passes leaves that job out of the PR tier.
+  - `crates/xurl-cli/tests/dev_setup_tests.rs`: `Change scope`'s `anc_version` output matches `.github/tool-versions`,
+    as its `nextest_version` output does.
   - `brettdavies/.github: .github/workflows/rust-ci.yml`: the `jobs` and `audit_ref` inputs, landed with the
     shared-workflow PR (KTD11); the scheduled run passes `audit_ref: dev`.
   - `.github/rulesets/protect-dev.json` and `protect-main.json`: the PR-tier jobs and every job, for Brett to apply.
     Both require `ci / Inputs`, the reusable's check of the `jobs` list, so a mistyped job id fails the merge instead of
-    skipping a required check.
+    skipping a required check. `protect-dev` drops `Agent-native audit` only in the PR whose `Tests` audits the debug
+    `xr`, never before it (R18).
   - `scripts/hooks/pre-push`: runs the PR-tier jobs the classifier names for the push, and prints `--jobs`'s lists.
   - `ci.yml` takes the rust-tool-release template's shape where it fits (R5): the canonical-version stamp and header,
     and the inline jobs a rust-ci input already covers moved onto that input in the same PR that renames their required
@@ -725,6 +748,9 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
      skip steps.
   3. A scope job that fails or never reports runs everything, as today.
   4. The advisory audit runs on dependency changes, on the daily schedule, and on the release PR.
+  5. The PR that moves `Agent-native audit`, out of the PR tier or onto the reusable's `anc` job, is the PR that turns
+     on the debug audit inside `Tests`, so the agent-native score gates every merge into `dev` before, in, and after
+     that PR (R18).
 - **Patterns to follow:** the current `scope` job and its `rust` output; the features matrix's step-level gating.
 - **Test scenarios:**
   - A CLI-only PR into `dev` runs `Change scope`, `Fmt, clippy`, and `Tests`, and every other required check reports
@@ -742,7 +768,13 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
     over it.
   - Two pushes to `dev` minutes apart both run to completion, each with its own checks on its own commit, and
     `scripts/check-workflow-concurrency.sh` still passes on the group key's literal `ci-` (R4).
-- **Verification:** each scenario observed on a real PR or push; Brett has applied both rulesets.
+  - A CLI change that drops the agent-native score below the floor fails `Tests`, before merge.
+  - A PR into `dev` passes a `jobs` list without the reusable's `anc` job, so the release audit stays in the post-merge
+    tier.
+- **Verification:** each scenario observed on a real PR or push; Brett has applied both rulesets. For R18: the PR that
+  drops `Agent-native audit` from `protect-dev.json` is the PR that turns on the debug audit in `Tests`; that PR's own
+  run shows `Tests` reporting the debug `xr`'s score, and a seeded score drop on its branch fails `Tests`; and
+  `protect-dev.json` at every `dev` commit before it still requires `Agent-native audit`.
 
 ### U9. Record how CI behaves now
 
@@ -833,6 +865,7 @@ Each xurl-rs PR targets `dev`, stacked on the one before it where it depends on 
 | Test-running phase                                                              | U3, U4             | 40 s or less                                                                                                   |
 | Dependency compilation in a fresh PR's test job                                 | U1                 | None when `dev` has a matching warm cache                                                                      |
 | Jobs on a PR into `dev`                                                         | U8                 | 10 at most (11 with two test partitions), 2 for docs only, none queued when no other PR or post-merge run runs |
+| Agent-native score check on every merge into `dev`                              | U8                 | `Agent-native audit` required until the PR adding the debug audit to `Tests`; a seeded score drop fails it     |
 | A fresh clone after `scripts/dev-setup.sh`                                      | U11                | pre-push passes                                                                                                |
 
 ## Definition of Done
@@ -908,8 +941,8 @@ Job table: the initial rows of `.github/ci-jobs.tsv` (U7). Catches are each job'
 | Windows check               | post-merge             | `crates/**/*.rs`, dependency inputs                                                                              | compiles and lints on Windows                | 0                           | 154 s |
 | Agent-native audit (size)   | post-merge             | `crates/*/src/**`, dependency inputs, `.anc.toml`, `[profile.release]`                                           | the release binary's size ceiling            | 8                           | 189 s |
 | Windows program target      | post-merge             | `crates/xdk/src/webhooks/**`, the CLI's webhooks commands, their program tests, `crates/xurl-cli/src/cli/env.rs` | `webhooks listen` program runs on Windows    | 3, plus 2 off-path failures | 270 s |
-| Release guards and matrix   | release                | every PR into `main`                                                                                             | release provenance, docs, branch, targets    | not in the 300 CI runs      | —     |
-| Spec drift                  | schedule; spec changes | `crates/xdk/vendor/**`                                                                                           | the vendored X spec against upstream         | not in the 300 CI runs      | —     |
+| Release guards and matrix   | release                | every PR into `main`                                                                                             | release provenance, docs, branch, targets    | not in the 300 CI runs      | n/a   |
+| Spec drift                  | schedule; spec changes | `crates/xdk/vendor/**`                                                                                           | the vendored X spec against upstream         | not in the 300 CI runs      | n/a   |
 
 Every row also runs on a PR into `main`, and a path no row names runs every row of its tier.
 
@@ -950,12 +983,12 @@ as written; pending remedies: none (R3 approved in second-pass D2, R4 in second-
 
 ```text
 Question D2:
-D2 — Land the three shared-workflow inputs in one PR or three
+D2: Land the three shared-workflow inputs in one PR or three
 Project/branch/task: dev, the CI scoping and speed plan.
 ELI10: U1, U3, and U8 each need a new input in the shared Rust workflow in brettdavies/.github, and each xurl-rs PR waits for that repo's PR to merge first. Putting all three inputs, each off by default so other repos see no change, in one PR up front means one cross-repo wait instead of three. Either way, the plan's Sequencing section will list every PR by repo.
 Stakes if we pick wrong: three separate waits on the shared repo stall the xurl-rs units behind them, or one larger PR lands inputs before their callers.
 Recommendation: A because the inputs are independent and default-off, so landing them together costs one review and removes two cross-repo stalls.
-Note: options differ in kind, not coverage — no completeness score.
+Note: options differ in kind, not coverage, so no completeness score.
 Pros / cons:
 A) One shared-workflow PR first (recommended)
   ✅ one cross-repo wait instead of three, so U3 and U8 never stall on the shared repo
@@ -1001,7 +1034,7 @@ U1, U3, and U8 each land their own brettdavies/.github PR before their xurl-rs P
 
 ```text
 Question D3:
-D3 — When a test fails in CI, rerun it once to tell flaky from broken?
+D3: When a test fails in CI, rerun it once to tell flaky from broken?
 Project/branch/task: dev, the CI scoping and speed plan, U3's nextest profile.
 ELI10: The plan fails the run the first time any test fails, with no rerun. nextest can rerun a failed test once and still fail the run if it then passes, labeling it flaky. Either way nothing flaky can turn a PR green; the rerun only tells you whether you are chasing a race or a real break.
 Stakes if we pick wrong: without the label, a racy test looks like a real regression and costs a debugging detour; with it, every real failure runs one more time.
@@ -1050,12 +1083,12 @@ The ci profile keeps retries = 0, and nextest_config_guard fails any profile wit
 
 ```text
 Question D4:
-D4 — Pin the shared workflow's toolchain action while its PR is open?
+D4: Pin the shared workflow's toolchain action while its PR is open?
 Project/branch/task: dev, the CI scoping and speed plan, the brettdavies/.github PR from D2.
 ELI10: The shared Rust workflow installs Rust with dtolnay/rust-toolchain@stable, a tag its owner can move, in at least three jobs. xurl-rs's own workflow pins the same action to a commit, as your supply-chain rule requires for third-party actions. The shared-workflow PR from D2 already edits that file, so the pin can ride along.
 Stakes if we pick wrong: every repo that calls the shared workflow keeps running whatever the tag points at, or the shared PR grows a change reviewers did not expect.
 Recommendation: C because the PR already opens that file, the rule leaves no judgment in it, and xurl-rs already shows the pinned form to copy.
-Note: options differ in kind, not coverage — no completeness score.
+Note: options differ in kind, not coverage, so no completeness score.
 Pros / cons:
 A) Add to TODO.md
   ✅ the shared PR stays about the three inputs, with nothing else to review
@@ -1113,7 +1146,7 @@ Pin every dtolnay/rust-toolchain use in rust-ci.yml to a commit SHA with the ver
 
 ```text
 Question D2:
-D2 — How should the PR tier decide that the tests must run?
+D2: How should the PR tier decide that the tests must run?
 Project/branch/task: dev, second eng review of the CI scoping and speed plan, the job table's Tests row.
 ELI10: The job table runs the Tests job only when certain paths change, and its list leaves out the scripts two tests run (scripts/lint-stdio.sh and scripts/check-surface-bump.sh). A PR that edits only one of those scripts would run Shellcheck, skip Tests, and go green with a broken test, found only at the release PR. The repo already has scripts/cargo-inputs.sh, which answers "can this change reach cargo?" by treating everything except markdown no Rust source reads as an input, and it re-derives that every run.
 Stakes if we pick wrong: a hand list of files the tests read goes stale the day a test opens a new file, and that PR skips Tests without a word.
@@ -1169,7 +1202,7 @@ The Tests row adds scripts/** and .github/pull_request_template.md; a new guard 
 
 ```text
 Question D3:
-D3 — Should a push run on dev be cancelled when the next merge lands?
+D3: Should a push run on dev be cancelled when the next merge lands?
 Project/branch/task: dev, second eng review of the CI scoping and speed plan, ci.yml's concurrency block (ci.yml:26-28) once KTD2 adds push runs on dev.
 ELI10: ci.yml puts every run of a branch in one group and cancels the running one when a newer one starts. That is right for PRs, where only the newest push matters. On dev it loses work: the plan runs the slow checks after each merge, scoped to that merge's own changes, so if two PRs merge a few minutes apart, the second run cancels the first, and the first PR's slow checks never run. Its commit gets no red or green check; a failure surfaces only at the release PR, without saying which merge caused it.
 Stakes if we pick wrong: the plan's promise (R15) that a post-merge failure shows as a red check on its dev commit breaks whenever merges land close together, which a stacked merge wave does routinely.
@@ -1350,30 +1383,30 @@ Critical gaps: 0.
 
 | Step                    | Modules touched                          | Depends on      |
 | ----------------------- | ---------------------------------------- | --------------- |
-| Shared-workflow PR      | `brettdavies/.github` workflows          | —               |
-| Completions template    | `brettdavies/agent-skills` release skill | —               |
+| Shared-workflow PR      | `brettdavies/.github` workflows          | none            |
+| Completions template    | `brettdavies/agent-skills` release skill | none            |
 | xurl-rs units U1 to U10 | `.github/`, `scripts/`, `crates/*/tests` | shared workflow |
 
 Three lanes could run in parallel; this session runs them in sequence (one session, no worktrees).
 
 ### Implementation Tasks
 
-- [ ] **T1 (P1, human: ~3h / CC: ~20 min)** — shared workflow — add the three inputs and pin the toolchain action
+- [ ] **T1 (P1, human: ~3h / CC: ~20 min)** shared workflow: add the three inputs and pin the toolchain action
   - Surfaced by: Scope Challenge, R1 (D2) and T1 (D4)
   - Files: `brettdavies/.github: .github/workflows/rust-ci.yml`
   - Verify: the reusable's own CI passes; a caller passing no new input shows the same jobs and steps; a caller passing
     `jobs: []` runs none of them
-- [ ] **T2 (P1, human: ~2h / CC: ~15 min)** — U1 warm mode — reuse each job's build command with execution off; push
-  runs save only on success
+- [ ] **T2 (P1, human: ~2h / CC: ~15 min)** U1 warm mode: reuse each job's build command with execution off; push runs
+  save only on success
   - Surfaced by: Architecture finding 1
   - Files: `.github/workflows/ci.yml`
   - Verify: a PR right after a warm run logs `full match: true` and no registry `Compiling` line
-- [ ] **T3 (P1, human: ~3h / CC: ~20 min)** — U3 nextest — pinned installs, `nextest-version`, one rerun with
+- [ ] **T3 (P1, human: ~3h / CC: ~20 min)** U3 nextest: pinned installs, `nextest-version`, one rerun with
   `flaky-result = "fail"`, slow-timeout under the job timeout, `nextest_config_guard`
   - Surfaced by: Scope Challenge finding 1, R2 (D3), Section 3 timeout pitfall
   - Files: `.config/nextest.toml`, `.github/workflows/ci.yml`, `scripts/hooks/pre-push`, the new guard
   - Verify: the guard fails on its seeded violations; a seeded flaky test fails the job labeled flaky
-- [ ] **T4 (P1, human: ~4h / CC: ~30 min)** — U6 guards — live-surface scope and nextest filters for
+- [ ] **T4 (P1, human: ~4h / CC: ~30 min)** U6 guards: live-surface scope and nextest filters for
   `test_invocation_guard`, the allowlist in `common`, the five relative paths
   - Surfaced by: Architecture finding 2, Code quality findings 1 and 2
   - Files: `crates/xurl-cli/tests/`, `crates/xdk/tests/`
@@ -1385,7 +1418,7 @@ None.
 
 ### Completion summary
 
-- Step 0: Scope Challenge — scope accepted as-is
+- Step 0: Scope Challenge, scope accepted as-is
 - Reality rows: 7/7 applicable rows emitted (`PLAN_REALITY: phase=eng rows=7/7 verdict=complete`), 3 unverified premises
 - Architecture Review: 2 issues found
 - Code Quality Review: 2 issues found
@@ -1489,16 +1522,16 @@ Critical gaps: 0.
 
 **Implementation tasks (second pass).**
 
-- [ ] **T5 (P1, human: ~30 min / CC: ~5 min)** — U8 — give each push run its own concurrency group
+- [ ] **T5 (P1, human: ~30 min / CC: ~5 min)** U8: give each push run its own concurrency group
   - Surfaced by: Architecture, R4 (D3)
   - Files: `.github/workflows/ci.yml`
   - Verify: two pushes to `dev` minutes apart both finish with their own checks; `scripts/check-workflow-concurrency.sh`
     passes
-- [ ] **T6 (P1, human: ~1h / CC: ~10 min)** — U8 — the pushed range's fallbacks and `jobs: []` for a docs-only PR
+- [ ] **T6 (P1, human: ~1h / CC: ~10 min)** U8: the pushed range's fallbacks and `jobs: []` for a docs-only PR
   - Surfaced by: Architecture A3 and A4
   - Files: `.github/workflows/ci.yml`, `scripts/change-classes.sh`
   - Verify: the fixture's all-zero and non-ancestor cases output every job; a docs-only PR runs 2 jobs
-- [ ] **T7 (P2, human: ~1h / CC: ~10 min)** — U7 — the job table's corrected rows and the ruleset case in the guard
+- [ ] **T7 (P2, human: ~1h / CC: ~10 min)** U7: the job table's corrected rows and the ruleset case in the guard
   - Surfaced by: R3 (D2), Code quality (env.rs), Architecture (rulesets)
   - Files: `.github/ci-jobs.tsv`, `crates/xurl-cli/tests/` (the guard), `.github/rulesets/`
   - Verify: the guard fails on a seeded stale ruleset context; the fixture's new rows pass
@@ -1532,7 +1565,7 @@ REALITY: pr-count pass no ship policy, one PR per wave by default; the plan's 13
 
 **Completion summary (second pass).**
 
-- Step 0: Scope Challenge — scope accepted as-is (second-pass D1, original arrangement)
+- Step 0: Scope Challenge, scope accepted as-is (second-pass D1, original arrangement)
 - Reality rows: 7/7 applicable rows emitted, 2 unverified premises
 - Architecture Review: 6 issues found
 - Code Quality Review: 5 issues found
@@ -1648,23 +1681,23 @@ T+4:30  PR verdict green on free runners, about 2 to 3 minutes estimated        
 
 ### Implementation Tasks
 
-- [ ] **T1 (P1, human: ~1 day / CC: ~1 h)** — CI — build the job table, the classifier's tiers, and `--jobs`
+- [ ] **T1 (P1, human: ~1 day / CC: ~1 h)** CI: build the job table, the classifier's tiers, and `--jobs`
   - Surfaced by: D5, D8, and Brett's request that every job justify itself
   - Files: `.github/ci-jobs.tsv`, `scripts/change-classes.sh`, `ci_jobs_table_guard.rs`
   - Verify: the fixture and the guard's seeded cases; `--jobs` on a sample diff
-- [ ] **T2 (P1, human: ~1 day / CC: ~1 h)** — CI — run the tiers and hand Brett both rulesets
+- [ ] **T2 (P1, human: ~1 day / CC: ~1 h)** CI: run the tiers and hand Brett both rulesets
   - Surfaced by: D5 and KTD16
   - Files: `.github/workflows/ci.yml`, `.github/rulesets/*.json`, the reusable's `jobs` input
   - Verify: U8's scenarios on real PRs and a push to `dev`
-- [ ] **T3 (P1, human: ~3 h / CC: ~20 min)** — tests — split the PR tier and keep the anc score before merge
+- [ ] **T3 (P1, human: ~3 h / CC: ~20 min)** tests: split the PR tier (U3) and keep the anc score before merge (U8, R18)
   - Surfaced by: D6 and D12
   - Files: the reusable's test job, `.github/workflows/ci.yml`
   - Verify: the PR tier's slowest job at 90 s or less; a seeded score drop fails `Tests`
-- [ ] **T4 (P2, human: ~4 h / CC: ~30 min)** — setup — `.github/tool-versions` and `scripts/dev-setup.sh`
+- [ ] **T4 (P2, human: ~4 h / CC: ~30 min)** setup: `.github/tool-versions` and `scripts/dev-setup.sh`
   - Surfaced by: D9
   - Files: as U11 lists
   - Verify: a fresh clone passes pre-push after the script alone
-- [ ] **T5 (P2, human: ~3 h / CC: ~20 min)** — errors — codes on every guard failure and hook stop, with headings
+- [ ] **T5 (P2, human: ~3 h / CC: ~20 min)** errors: codes on every guard failure and hook stop, with headings
   - Surfaced by: D11
   - Files: the guards, `scripts/hooks/`, AGENTS.md § "Testing"
   - Verify: the heading check fails on a code with no heading
@@ -1677,7 +1710,7 @@ None.
 
 ```text
 +====================================================================+
-|              DX PLAN REVIEW — SCORECARD                             |
+|              DX PLAN REVIEW: SCORECARD                              |
 +====================================================================+
 | Dimension            | Score  | Prior  | Trend  |
 |----------------------|--------|--------|--------|
@@ -1717,10 +1750,10 @@ Unresolved decisions: none.
 
 | Review         | Trigger               | Why                             | Runs | Status      | Findings                                                                    |
 | -------------- | --------------------- | ------------------------------- | ---- | ----------- | --------------------------------------------------------------------------- |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | —           | —                                                                           |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | n/a         | n/a                                                                         |
 | Outside Review | codex, plan review    | Independent 2nd opinion         | 30   | disabled    | `codex_reviews: disabled`; no outside findings                              |
 | Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 20   | ISSUES OPEN | 14 issues, 0 critical gaps (all resolved: R3 D2, R4 D3, 12 corrections)     |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | —           | —                                                                           |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | n/a         | n/a                                                                         |
 | DX Review      | `/plan-devex-review`  | Developer experience gaps       | 12   | ISSUES OPEN | this plan: score 5/10 → 7/10, push to verdict 11.5-19 min → <2 (2026-10-28) |
 
 - **OUTSIDE COVERAGE:** codex, plan review phase, disabled by `codex_reviews` in the second eng pass and skipped by the

@@ -2099,6 +2099,36 @@ async fn skill_install_home_unset_emits_home_not_set_reason() {
     assert_eq!(v["exit_code"], 1);
 }
 
+/// A home that cannot be resolved is refused before anything else, by either
+/// verb, and a dry run says so at exit 0.
+#[rstest::rstest]
+#[case::install("install")]
+#[case::update("update")]
+#[tokio::test]
+async fn a_skill_dry_run_with_no_home_answers_at_exit_zero(#[case] verb: &str) {
+    let (code, stdout, stderr) = run_with_home(
+        &[
+            "xr",
+            "skill",
+            verb,
+            "claude_code",
+            "--dry-run",
+            "--output",
+            "json",
+        ],
+        None,
+    )
+    .await;
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 1, "the real run's code: {v}");
+    assert_eq!(v["reason"], "home-not-set", "{v}");
+    assert!(v["message"].is_string(), "{v}");
+    assert_eq!(v["next_step"]["action"], "fix-input", "{v}");
+}
+
 #[tokio::test]
 async fn skill_install_no_args_lists_supported_hosts() {
     let tmp = TempDir::new().expect("tempdir");
