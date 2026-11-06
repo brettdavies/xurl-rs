@@ -1195,6 +1195,102 @@ fn seed_expired_named_oauth2(auth: &mut Auth, username: &str) {
         .unwrap();
 }
 
+/// An embedder matches on the variant: a refresh X did not process is not an
+/// auth failure, and a failed refresh leaves the stored pair as it was.
+#[tokio::test]
+async fn a_failed_refresh_returns_the_library_kind_for_what_happened() {
+    let ts = TestServer::new().await;
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    seed_expired_named_oauth2(&mut auth, "alice");
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(503).set_body_string("<html>unavailable</html>"))
+            .up_to_n_times(1),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .insert_header("x-rate-limit-reset", "4102444800")
+                    .set_body_json(serde_json::json!({"title": "Too Many Requests"})),
+            )
+            .up_to_n_times(1),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(400).set_body_json(serde_json::json!({
+                "error": "invalid_grant",
+                "error_description": "Value passed for the token was invalid."
+            }))),
+    )
+    .await;
+
+    let err = auth
+        .refresh_oauth2_token(&http(), "alice")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Api { status: 503, body, .. } if body.contains("unavailable")),
+        "a 5xx keeps its status and body: {err:?}"
+    );
+    let err = auth
+        .refresh_oauth2_token(&http(), "alice")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            &err,
+            xdk::Error::Api {
+                status: 429,
+                reset_at: Some(4_102_444_800),
+                ..
+            }
+        ),
+        "a 429 carries the reset its own headers name: {err:?}"
+    );
+    let err = auth
+        .refresh_oauth2_token(&http(), "alice")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Auth { message, .. } if message.contains("refused the refresh token")),
+        "a refused refresh token is an auth failure that says so: {err:?}"
+    );
+    let kept = auth
+        .token_store
+        .get_oauth2_token("alice")
+        .and_then(|token| token.oauth2.as_ref())
+        .map(|oauth2| oauth2.refresh_token.clone());
+    assert_eq!(
+        kept.as_deref(),
+        Some("old-refresh"),
+        "the stored pair stays"
+    );
+
+    let closed = std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("a loopback port")
+        .local_addr()
+        .expect("its address")
+        .port();
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(&format!("http://127.0.0.1:{closed}"), &tmp);
+    seed_expired_named_oauth2(&mut auth, "alice");
+    let err = auth
+        .refresh_oauth2_token(&http(), "alice")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Http { message, .. } if message.contains("RefreshTokenError")),
+        "no answer is a transport failure that says what failed: {err:?}"
+    );
+}
+
 #[tokio::test]
 async fn refresh_with_caller_supplied_username_skips_fetch_username() {
     // Non-empty caller username -> save under that name, never call /me.

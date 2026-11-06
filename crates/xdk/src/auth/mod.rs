@@ -14,6 +14,7 @@ pub mod oauth1;
 pub mod oauth2;
 #[doc(hidden)]
 pub mod pending;
+mod token_endpoint;
 
 pub(crate) use credentials::DirectCredentials;
 use credentials::REDACTED;
@@ -415,7 +416,8 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if no token is found or the refresh request fails.
+    /// Returns the errors [`oauth2::refresh_oauth2_token`] documents. A failed
+    /// refresh writes nothing to the store.
     pub async fn refresh_oauth2_token(
         &mut self,
         http: &reqwest::Client,

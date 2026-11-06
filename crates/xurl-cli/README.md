@@ -951,7 +951,7 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 
 | `reason`                     | `next_step.action`                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as the list below says; none on a 401                                  |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as the list below says; none on a request's 401                        |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
 | `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
@@ -1021,6 +1021,13 @@ missing, given at step 1, or empty or unreadable on stdin) is `invalid-args`. A 
 what any other request would: `network-error` with no answer, `server-error` on a 5xx, and `rate-limited` on a 429. The
 same invocation finishes once X answers, and if X had already spent the code, it answers with the `sign-in` step above.
 A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
+
+Any command whose OAuth2 login has expired refreshes it first, and a failed refresh writes nothing to the store. A
+refresh X refused is `auth-required`: a refused refresh token, or an answer with no token, carries the `sign-in` that
+stores the same login again, the one `-u` named or else the one the refresh ran for, and refused client credentials
+carry `fix-input` with no invocation. A refresh X did not process reports what any other request would, the same as the
+token exchange above, with a warning that names the refresh on a 5xx or a 429, and the same command finishes once X
+answers.
 
 ### NO_COLOR Support
 

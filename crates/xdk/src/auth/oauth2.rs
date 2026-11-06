@@ -13,11 +13,10 @@ use url::Url;
 use super::Auth;
 use super::callback;
 use super::pending;
-use crate::api::api_error;
+use super::token_endpoint::{self, Grant};
 use crate::error::{
     BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
     REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
-    TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
 };
 use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
@@ -131,59 +130,6 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
     Ok(auth_url.to_string())
 }
 
-/// A token exchange that never got an answer. A token URL no request can go
-/// to is the caller's to fix, so a second try would fail the same way; any
-/// other failure is the transport's, and the cause chain says which one, such
-/// as a refused connection or a timeout.
-fn exchange_unsent(error: reqwest::Error, token_url: &str) -> Error {
-    if error.is_builder() {
-        return Error::invalid_url(format!(
-            "the token URL {token_url} is not one a request can go to; TOKEN_URL sets it"
-        ))
-        .with_source(error);
-    }
-    let cause = cause_chain(&error);
-    Error::http(format!(
-        "TokenExchangeError: the token endpoint did not answer (cause: {cause})"
-    ))
-    .with_source(error)
-}
-
-/// A 5xx or a 429 whose body broke off before it ended: no answer to read, so
-/// the same request can go again.
-fn exchange_broke_off(error: Error) -> Error {
-    let cause = std::error::Error::source(&error).map_or_else(|| error.to_string(), cause_chain);
-    Error::http(format!(
-        "TokenExchangeError: the token endpoint's answer broke off (cause: {cause})"
-    ))
-    .with_source(error)
-}
-
-/// `error` and every error under it, joined, so a message keeps the cause a
-/// top-level transport error leaves out.
-fn cause_chain(error: &dyn std::error::Error) -> String {
-    let mut chain = error.to_string();
-    let mut next = error.source();
-    while let Some(inner) = next {
-        chain.push_str(": ");
-        chain.push_str(&inner.to_string());
-        next = inner.source();
-    }
-    chain
-}
-
-/// Which refusal a token endpoint's error answer is: of the client (RFC 6749
-/// section 5.2 lets that arrive as a 400), or of the code.
-fn token_exchange_refusal(status: reqwest::StatusCode, error: &str) -> &'static str {
-    if status == reqwest::StatusCode::UNAUTHORIZED
-        || matches!(error, "invalid_client" | "unauthorized_client")
-    {
-        TOKEN_EXCHANGE_CLIENT_REFUSED
-    } else {
-        TOKEN_EXCHANGE_CODE_REFUSED
-    }
-}
-
 /// Exchanges an authorization code for an access token and saves it.
 ///
 /// Performs the full post-authorization pipeline: POST to token endpoint,
@@ -212,7 +158,7 @@ pub(crate) async fn exchange_code_for_token(
     username: &str,
 ) -> Result<String> {
     let token_url = auth.token_url().to_string();
-    let token_resp = http
+    let request = http
         .post(&token_url)
         .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .form(&[
@@ -222,36 +168,13 @@ pub(crate) async fn exchange_code_for_token(
             ("client_id", auth.client_id()),
             ("code_verifier", verifier),
         ])
-        .basic_auth(auth.client_id(), Some(auth.client_secret()))
-        .send()
-        .await
-        .map_err(|e| exchange_unsent(e, &token_url))?;
-
-    let status = token_resp.status();
-    // These say nothing about the credentials, so the failure is the one any
-    // other request to X reports. If the endpoint did spend the code before it
-    // failed, sending it again answers with the refusal that starts over.
-    if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
-        return Err(api_error(token_resp).await.map_err(exchange_broke_off)?);
-    }
-    let body = token_resp.json::<serde_json::Value>().await;
-
-    if !status.is_success() {
-        let token_data = body.unwrap_or_default();
-        let error_code = token_data["error"].as_str().unwrap_or("unknown");
-        let api_desc = token_data["error_description"].as_str().unwrap_or("");
-        let refusal = token_exchange_refusal(status, error_code);
-        return Err(Error::auth(format!(
-            "{refusal}: HTTP {status} — {error_code}: {api_desc}"
-        )));
-    }
-
-    let token_data =
-        body.map_err(|e| Error::auth_with_cause(TOKEN_EXCHANGE_NO_TOKEN, &e).with_source(e))?;
-    let access_token = token_data["access_token"]
-        .as_str()
-        .ok_or_else(|| Error::auth(TOKEN_EXCHANGE_NO_TOKEN))?
-        .to_string();
+        .basic_auth(auth.client_id(), Some(auth.client_secret()));
+    // If the endpoint spent the code before it failed, sending it again
+    // answers with the refusal that starts over.
+    let token_endpoint::Answer {
+        access_token,
+        body: token_data,
+    } = token_endpoint::answer(request, &token_url, Grant::Code).await?;
 
     let refresh_token = token_data["refresh_token"]
         .as_str()
@@ -624,8 +547,10 @@ impl RefreshedToken {
 ///
 /// # Errors
 ///
-/// Returns an error when the request fails or the response carries no
-/// access token.
+/// Returns the failure [`token_endpoint`] reads from the answer: a refused
+/// refresh token or client, or an answer with no access token, is
+/// [`Error::Auth`], and one the endpoint did not process is the failure any
+/// request to X reports.
 pub(crate) async fn refresh_grant(
     http: &reqwest::Client,
     token_url: &str,
@@ -634,7 +559,7 @@ pub(crate) async fn refresh_grant(
     client_secret: &str,
     refresh_token: &str,
 ) -> Result<RefreshedToken> {
-    let token_resp = http
+    let request = http
         .post(token_url)
         .timeout(timeout)
         .form(&[
@@ -642,20 +567,11 @@ pub(crate) async fn refresh_grant(
             ("refresh_token", refresh_token),
             ("client_id", client_id),
         ])
-        .basic_auth(client_id, Some(client_secret))
-        .send()
-        .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e).with_source(e))?;
-
-    let token_data: serde_json::Value = token_resp
-        .json()
-        .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e).with_source(e))?;
-
-    let access_token = token_data["access_token"]
-        .as_str()
-        .ok_or_else(|| Error::auth("RefreshTokenError: no access_token in response"))?
-        .to_string();
+        .basic_auth(client_id, Some(client_secret));
+    let token_endpoint::Answer {
+        access_token,
+        body: token_data,
+    } = token_endpoint::answer(request, token_url, Grant::Refresh).await?;
     let refresh_token = token_data["refresh_token"]
         .as_str()
         .filter(|token| !token.is_empty())
@@ -695,9 +611,14 @@ pub(crate) async fn refresh_grant(
 ///
 /// # Errors
 ///
-/// Returns an error when no cached token is found, the refresh lock cannot
-/// be taken, or the refresh-token POST itself fails. A failed `/2/users/me`
-/// lookup is not an error.
+/// Returns an error when no cached token is found or the refresh lock cannot
+/// be taken, and when the refresh itself fails:
+/// [`Error::Auth`] when the token endpoint refuses the refresh token or the
+/// client, or answers with no access token; [`Error::Http`] when it does not
+/// answer; [`Error::Api`] when it answers a 5xx or a 429 (with `reset_at` when
+/// the 429 names its reset); and [`Error::InvalidUrl`] when the token URL is
+/// not one a request can go to. A failed refresh writes nothing to the store.
+/// A failed `/2/users/me` lookup is not an error.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
     http: &reqwest::Client,
