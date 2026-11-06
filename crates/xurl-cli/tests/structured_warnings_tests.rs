@@ -20,12 +20,13 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 use xdk::config::EnvOverrides;
 use xdk::store::TokenStore;
 
+use common::CLOSED;
+
 /// What `REDIRECT_URI` holds to fire the warning: no scheme, so no URL.
 const NOT_A_URL: &str = "notaurl";
 const WARNING: &str =
     "REDIRECT_URI env value rejected by validation; falling through to next precedence level";
 const WARNING_LINE: &str = "warning: REDIRECT_URI env value rejected by validation; falling through to next precedence level";
-const CLOSED_PORT: &str = "http://127.0.0.1:1";
 const BEARER: &str = "bearer-token";
 const SEARCH_PATH: &str = "/2/tweets/search/recent";
 
@@ -123,7 +124,7 @@ async fn a_failed_run_carries_the_warning_in_its_envelope() {
     let tmp = TempDir::new().expect("tempdir");
     let (code, stdout, stderr) = in_process(
         &tmp.path().join(".xurl"),
-        &warned(CLOSED_PORT),
+        &warned(CLOSED),
         &["--output", "json", "whoami"],
     )
     .await;
@@ -146,7 +147,7 @@ async fn a_failed_run_writes_one_document_on_stderr_in_every_json_shaped_format(
         let tmp = TempDir::new().expect("tempdir");
         let (code, _, stderr) = spawned(
             tmp.path().join(".xurl"),
-            CLOSED_PORT,
+            CLOSED,
             false,
             &["--output", format, "whoami"],
         )
@@ -169,7 +170,7 @@ async fn a_failed_run_under_yaml_writes_no_warning_line() {
     let tmp = TempDir::new().expect("tempdir");
     let (code, _, stderr) = spawned(
         tmp.path().join(".xurl"),
-        CLOSED_PORT,
+        CLOSED,
         false,
         &["--output", "yaml", "whoami"],
     )
@@ -283,10 +284,8 @@ async fn a_raw_response_stays_the_body_x_sent() {
 
 #[tokio::test]
 async fn a_dry_run_keeps_its_envelope_on_stdout_and_its_warning_on_stderr() {
-    for (overrides, would_succeed) in [
-        (warned_with_bearer(CLOSED_PORT), true),
-        (warned(CLOSED_PORT), false),
-    ] {
+    for (overrides, would_succeed) in [(warned_with_bearer(CLOSED), true), (warned(CLOSED), false)]
+    {
         let tmp = TempDir::new().expect("tempdir");
         let (code, stdout, stderr) = in_process(
             &tmp.path().join(".xurl"),
@@ -313,7 +312,7 @@ async fn quiet_leaves_the_warning_in_the_document() {
     let tmp = TempDir::new().expect("tempdir");
     let (_, _, stderr) = in_process(
         &tmp.path().join(".xurl"),
-        &warned(CLOSED_PORT),
+        &warned(CLOSED),
         &["--output", "json", "--quiet", "whoami"],
     )
     .await;
@@ -331,7 +330,7 @@ async fn a_warning_that_fires_twice_appears_once() {
 
     let (code, stdout, stderr) = spawned(
         store,
-        CLOSED_PORT,
+        CLOSED,
         false,
         &["--output", "json", "auth", "status"],
     )
@@ -351,7 +350,7 @@ async fn text_output_keeps_its_warning_line() {
         let tmp = TempDir::new().expect("tempdir");
         let mut args = flags.to_vec();
         args.push("whoami");
-        let (code, _, stderr) = spawned(tmp.path().join(".xurl"), CLOSED_PORT, false, &args).await;
+        let (code, _, stderr) = spawned(tmp.path().join(".xurl"), CLOSED, false, &args).await;
 
         assert_eq!(code, 77, "{flags:?}: {stderr}");
         assert_eq!(stderr.lines().next(), Some(WARNING_LINE), "{flags:?}");
@@ -389,12 +388,7 @@ async fn the_envelope_schema_declares_warnings_on_both_variants_that_carry_them(
 async fn the_error_document_passes_the_envelope_validator() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    let (_, _, stderr) = in_process(
-        &store,
-        &warned(CLOSED_PORT),
-        &["--output", "json", "whoami"],
-    )
-    .await;
+    let (_, _, stderr) = in_process(&store, &warned(CLOSED), &["--output", "json", "whoami"]).await;
     assert!(
         one_document("stderr", &stderr)["warnings"].is_array(),
         "stderr: {stderr}"

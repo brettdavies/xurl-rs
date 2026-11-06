@@ -10,6 +10,11 @@ use clap::CommandFactory;
 pub mod invoke;
 pub mod listen;
 
+/// An address no test answers. Port 1 sits below every port a test binds: a
+/// port-0 bind draws from the ephemeral range (32768 and up on Linux, 49152 and
+/// up on macOS and Windows), and `band_port` from 20000 to 32767.
+pub const CLOSED: &str = "http://127.0.0.1:1";
+
 /// Store path for spawns that never touch credentials. Its parent directory
 /// does not exist, so a read loads an empty store and a write fails loudly
 /// instead of landing in a file another test could see.
