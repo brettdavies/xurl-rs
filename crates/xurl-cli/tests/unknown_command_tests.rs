@@ -284,6 +284,18 @@ async fn a_mistyped_nested_verb_steps_to_its_own_family() {
     "regon",
     "region"
 )]
+#[case::hyphen_left_out(
+    &["broadcasts", "sources", "streamkey"],
+    "xr broadcasts sources",
+    "streamkey",
+    "stream-key"
+)]
+#[case::letter_dropped(
+    &["broadcasts", "sources", "remve"],
+    "xr broadcasts sources",
+    "remve",
+    "remove"
+)]
 #[tokio::test]
 async fn a_mistyped_verb_names_the_closest_of_several_candidates(
     #[case] family: &[&str],
