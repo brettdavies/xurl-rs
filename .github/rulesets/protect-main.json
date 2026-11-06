@@ -101,7 +101,7 @@
             "integration_id": 15368
           },
           {
-            "context": "ci / Fmt, clippy, test",
+            "context": "ci / Fmt, clippy",
             "integration_id": 15368
           },
           {
@@ -118,6 +118,14 @@
           },
           {
             "context": "ci / Shellcheck",
+            "integration_id": 15368
+          },
+          {
+            "context": "ci / Tests (1/2)",
+            "integration_id": 15368
+          },
+          {
+            "context": "ci / Tests (2/2)",
             "integration_id": 15368
           },
           {

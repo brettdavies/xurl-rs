@@ -20,6 +20,7 @@ Cargo.lock	input
 crates/xdk/src/lib.rs	input
 scripts/generate-changelog.py	input
 .github/workflows/ci.yml	input
+.config/nextest.toml	input
 completions/xr.bash	input
 LICENSE-MIT	inert
 .context/handoffs/handoff.txt	inert
