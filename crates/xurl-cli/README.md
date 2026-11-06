@@ -968,7 +968,7 @@ prose instead; the two need not match word for word.
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
 | `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
-| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
+| `forbidden`                  | `enroll-app` when X names enrollment; `fix-input` for a 403 from the token endpoint that is no OAuth refusal; none otherwise                     |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset, or after `xr media upload` finished (a `template` with no reset or under `-H`); none otherwise    |
 | `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
 | `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
@@ -1013,7 +1013,8 @@ Every reason has a row. The five actions that are not about credentials or help 
   the word. For an `xr auth oauth2 --step 2` whose saved sign-in can still finish, the step is a `template` with the
   redirect URL to fill in. For a 401 on the status read after `xr media upload` finished, the step is the command that
   resumes the wait, as a `template` to run once the credential works, and `docs` names X's authentication page. `docs`
-  names X's page on response codes for a 400, a 404, or a 422.
+  names X's page on response codes for a 400, a 404, or a 422. For a 403 from the token endpoint that is no OAuth
+  refusal, `docs` names the repository README's section on the token endpoint, `TOKEN_URL`, and proxies.
 - `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
 - `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
   the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by
@@ -1036,10 +1037,11 @@ missing or empty, given at step 1, or empty or unreadable on stdin) is `invalid-
 with a 400 or a 401, or with a JSON body that holds a string `error` on any other status but a 5xx or a 429. Any other
 failure is an exchange the endpoint did not process, and it reports what any other request would: `network-error` with
 no answer, `server-error` on a 5xx, `rate-limited` on a 429, and the reason for its status on anything else, such as
-`forbidden` for a proxy's 403, `not-found` for a token URL with the wrong path, or `api-error` with `retry` for a 408.
-The same invocation finishes once the endpoint answers, or, for a token URL with the wrong path, once `TOKEN_URL` names
-the right one, and if X had already spent the code, it answers with the `sign-in` step above. A `TOKEN_URL` that is not
-a URL is `invalid-url`, which another try cannot get past.
+`forbidden` with `fix-input` for a 403, which points at `TOKEN_URL` and the proxy in front of it, `not-found` for a
+token URL with the wrong path, or `api-error` with `retry` for a 408. Each such answer also carries a warning that names
+the token endpoint and its HTTP status. The same invocation finishes once the endpoint answers, or, for a token URL with
+the wrong path, once `TOKEN_URL` names the right one, and if X had already spent the code, it answers with the `sign-in`
+step above. A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
 
 Any command whose OAuth2 login has expired refreshes it first, and a failed refresh writes nothing to the store. A
 refresh X refused is `auth-required`: a refused refresh token, or an answer with no token, carries the `sign-in` that

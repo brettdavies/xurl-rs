@@ -8,10 +8,12 @@
 //!
 //! Any other failure is one the endpoint did not process, and it is the one
 //! any request to X reports: [`Error::Http`] with no answer, and [`Error::Api`]
-//! for a failure status, such as a 5xx, a 429, or a proxy's 403, 404, or 408.
-//! A refresh also reports that answer as an `xdk::auth` warning, since the
-//! error alone does not say the refresh is what was answered. A token URL no
-//! request can go to is [`Error::InvalidUrl`].
+//! for a failure status, such as a 5xx, a 429, a 404, or a 408. A 403 is
+//! [`Error::TokenEndpointForbidden`], since the token URL or a proxy in front
+//! of it is what to look at. Both grants report every such answer as an
+//! `xdk::auth` warning that names the token endpoint and the status, since the
+//! error alone says neither. A token URL no request can go to is
+//! [`Error::InvalidUrl`].
 
 use serde_json::Value;
 
@@ -33,6 +35,13 @@ pub(crate) enum Grant {
 }
 
 impl Grant {
+    fn request(self) -> &'static str {
+        match self {
+            Self::Code => "the sign-in's code exchange",
+            Self::Refresh => "the OAuth2 login's refresh",
+        }
+    }
+
     fn label(self) -> &'static str {
         match self {
             Self::Code => "TokenExchangeError",
@@ -99,15 +108,20 @@ pub(crate) async fn answer(
         let error = match api_error(response).await {
             Ok(error) => error,
             Err(read) => {
-                warn_of_refresh(grant, status);
+                warn_of_answer(grant, status);
                 return Err(broke_off(read, grant));
             }
         };
         if let Some(object) = error_object(status, &error) {
             return Err(refused(status, &object, grant));
         }
-        warn_of_refresh(grant, status);
-        return Err(error);
+        warn_of_answer(grant, status);
+        return Err(match error {
+            Error::Api {
+                status: 403, body, ..
+            } => Error::TokenEndpointForbidden { body },
+            other => other,
+        });
     }
 
     // A success whose body breaks off is no answer, which the same request can
@@ -144,16 +158,15 @@ fn unsent(error: reqwest::Error, token_url: &str, grant: Grant) -> Error {
     .with_source(error)
 }
 
-/// Says on a refresh that the endpoint answered it with `status`: the error
-/// that follows prints X's body alone, which names neither the refresh nor
-/// the status.
-fn warn_of_refresh(grant: Grant, status: reqwest::StatusCode) {
-    if matches!(grant, Grant::Refresh) {
-        tracing::warn!(
-            target: "xdk::auth",
-            "the token endpoint answered the OAuth2 login's refresh with HTTP {status}"
-        );
-    }
+/// Says that the token endpoint answered the request `grant` names with
+/// `status`: the error that follows prints the endpoint's body alone, which
+/// names neither the request nor the status.
+fn warn_of_answer(grant: Grant, status: reqwest::StatusCode) {
+    tracing::warn!(
+        target: "xdk::auth",
+        "the token endpoint answered {} with HTTP {status}",
+        grant.request()
+    );
 }
 
 /// The JSON body of a failure status other than a 5xx or a 429 when it holds

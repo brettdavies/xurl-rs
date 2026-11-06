@@ -1113,7 +1113,9 @@ pub fn show_help_hint(help: &str) -> Hint {
 /// credential decides.
 ///
 /// A method, a URL, or a path value `xr` refused is an argument, so it
-/// takes the help of the command it was given to, as `help` names it.
+/// takes the help of the command it was given to, as `help` names it. The
+/// token endpoint's 403 names where to look: `TOKEN_URL` and the proxy in
+/// front of the endpoint.
 #[must_use]
 pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
     if matches!(
@@ -1121,6 +1123,16 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
         Error::InvalidMethod(_) | Error::InvalidUrl { .. } | Error::InvalidPathParam { .. }
     ) {
         return Some(show_help_hint(help));
+    }
+    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+        let docs = error.docs_url();
+        return Some(Hint {
+            text_lines: with_docs_line(
+                "The token endpoint answered 403 and sent no OAuth error. A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both.".to_string(),
+                docs,
+            ),
+            next_step: NextStep::fix_input(docs.map(str::to_string)),
+        });
     }
     let docs = error.docs_url().map(str::to_string);
     match error.next_action()? {

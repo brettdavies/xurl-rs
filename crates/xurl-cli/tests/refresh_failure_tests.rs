@@ -23,6 +23,9 @@ use common::CLOSED;
 const APP: &str = "myapp";
 const LOGIN: &str = "alice";
 const STORED_REFRESH_TOKEN: &str = "old-rt";
+const RESPONSE_CODES_DOCS: &str = "https://docs.x.com/x-api/fundamentals/response-codes-and-errors";
+const TOKEN_ENDPOINT_DOCS: &str =
+    "https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint";
 
 /// A store whose default app holds `alice`'s expired `OAuth2` login, so the
 /// next request refreshes it before it sends.
@@ -467,27 +470,30 @@ async fn a_refused_refresh_token_signs_the_login_in_again() {
 /// what any request to X would, and the refresh token stays good.
 #[tokio::test]
 async fn a_refresh_answered_with_no_oauth_refusal_reports_its_status() {
-    for (why, response, reason, exit_code, action) in [
+    for (why, response, reason, exit_code, action, docs) in [
         (
             "a 408 with no JSON",
             ResponseTemplate::new(408).set_body_string("<html>Request Timeout</html>"),
             "api-error",
             xdk::error::EXIT_GENERAL_ERROR,
-            Some("retry"),
+            "retry",
+            RESPONSE_CODES_DOCS,
         ),
         (
             "a 404 with no JSON",
             ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"),
             "not-found",
             xdk::error::EXIT_NOT_FOUND,
-            Some("fix-input"),
+            "fix-input",
+            RESPONSE_CODES_DOCS,
         ),
         (
             "a 403 with no JSON",
             ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"),
             "forbidden",
             xdk::error::EXIT_GENERAL_ERROR,
-            None,
+            "fix-input",
+            TOKEN_ENDPOINT_DOCS,
         ),
         (
             "a 403 with JSON that holds no `error`",
@@ -495,7 +501,8 @@ async fn a_refresh_answered_with_no_oauth_refusal_reports_its_status() {
                 .set_body_json(json!({"title": "Forbidden", "detail": "blocked by policy"})),
             "forbidden",
             xdk::error::EXIT_GENERAL_ERROR,
-            None,
+            "fix-input",
+            TOKEN_ENDPOINT_DOCS,
         ),
         (
             "a 404 with JSON whose `error` is an object",
@@ -503,22 +510,46 @@ async fn a_refresh_answered_with_no_oauth_refusal_reports_its_status() {
                 .set_body_json(json!({"error": {"code": 404, "message": "Not Found"}})),
             "not-found",
             xdk::error::EXIT_NOT_FOUND,
-            Some("fix-input"),
+            "fix-input",
+            RESPONSE_CODES_DOCS,
         ),
     ] {
         let (code, envelope) = whoami_answered_with(response).await;
         assert_reason(code, &envelope, reason, exit_code);
-        assert_eq!(
-            envelope["next_step"]["action"].as_str(),
-            action,
-            "{why}: {envelope}"
-        );
+        assert_eq!(envelope["next_step"]["action"], action, "{why}: {envelope}");
+        assert_eq!(envelope["next_step"]["docs"], docs, "{why}: {envelope}");
         assert!(
             envelope["next_step"]["command"].is_null(),
             "{why}: no sign-in: {envelope}"
         );
         assert_warns_of_the_refresh(&envelope);
     }
+}
+
+/// Text output tells a person where to look: the token URL and any proxy in
+/// front of it, with the page that covers both.
+#[tokio::test]
+async fn text_output_points_a_token_endpoint_403_at_the_token_url_and_the_proxy() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &format!("{}/2/oauth2/token", server.uri()),
+        &["whoami", "-u", LOGIN],
+    )
+    .await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{stderr}");
+    assert!(stderr.contains("TOKEN_URL"), "{stderr}");
+    assert!(stderr.contains("proxy"), "{stderr}");
+    assert!(stderr.contains(TOKEN_ENDPOINT_DOCS), "{stderr}");
 }
 
 /// Another sign-in would end at the same refusal, so the step sends nobody to

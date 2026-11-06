@@ -63,6 +63,9 @@ pub enum NextAction {
 
 /// The enrollment recipe for an app X refuses.
 const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform-enrollment";
+/// The token endpoint, `TOKEN_URL`, and the proxy in front of them.
+const TOKEN_ENDPOINT_DOCS: &str =
+    "https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint";
 /// Where X documents its authentication methods.
 const AUTHENTICATION_DOCS: &str = "https://docs.x.com/resources/fundamentals/authentication";
 /// Where X documents its rate limits.
@@ -191,6 +194,20 @@ pub enum Error {
         /// reported, so a caller that waits on it waits on what X said about
         /// this request.
         reset_at: Option<u64>,
+    },
+
+    /// The `OAuth2` token endpoint answered 403 with a body that is no OAuth
+    /// refusal. X's handler refuses a code, a refresh token, or a client with
+    /// a 400, a 401, or an `error` object, so this answer came from something
+    /// in the way: a proxy or firewall in front of the endpoint, or a token
+    /// URL that names another service. The token URL and the proxy are what
+    /// to look at, which the 403 of an API request never calls for, so it is
+    /// not [`Self::Api`]. Every other answer the token endpoint gives that is
+    /// no refusal is an [`Self::Api`].
+    #[error("{body}")]
+    TokenEndpointForbidden {
+        /// Raw response body.
+        body: String,
     },
 
     /// An input the library refused before sending anything. `rule` names
@@ -574,7 +591,9 @@ impl Error {
     /// refused before it was sent are `FixInput`. A status with no reading of
     /// its own, a body that could not be read, and a broken invariant are
     /// `ReportIssue`. A credential failure is `None` here: the steps that
-    /// depend on a credential store are the binary's to choose.
+    /// depend on a credential store are the binary's to choose. The token
+    /// endpoint's 403 that is no OAuth refusal is `FixInput`: the token URL
+    /// or the proxy in front of it is what to change.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -608,6 +627,7 @@ impl Error {
             Self::ProcessingTimeout { .. } => Some(NextAction::ResumeWait),
             Self::Http { .. } => Some(NextAction::Retry),
             Self::Io { .. }
+            | Self::TokenEndpointForbidden { .. }
             | Self::AddressInUse { .. }
             | Self::InvalidMethod(_)
             | Self::Validation { .. }
@@ -642,6 +662,7 @@ impl Error {
                     _ => Some(ISSUE_TRACKER),
                 }
             }
+            Self::TokenEndpointForbidden { .. } => Some(TOKEN_ENDPOINT_DOCS),
             Self::Auth { .. } | Self::AuthMethodMismatch(_) => Some(AUTHENTICATION_DOCS),
             Self::Http { .. }
             | Self::Io { .. }
@@ -658,10 +679,11 @@ impl Error {
         }
     }
 
-    /// Returns true if this is an API error (HTTP status >= 400).
+    /// Returns true if this is an API error (HTTP status >= 400), which the
+    /// token endpoint's 403 is too.
     #[must_use]
     pub fn is_api(&self) -> bool {
-        matches!(self, Self::Api { .. })
+        matches!(self, Self::Api { .. } | Self::TokenEndpointForbidden { .. })
     }
 
     /// Whether X answered with `errors`, no `data`, and a problem type that
@@ -706,6 +728,7 @@ impl Error {
     /// | `AddressInUse`         | `address-in-use` |
     /// | `MediaProcessingFailed` | `invalid-request` |
     /// | `AccountNotFound`      | `not-found`      |
+    /// | `TokenEndpointForbidden` | `forbidden`    |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -733,6 +756,7 @@ impl Error {
             Self::AddressInUse { .. } => "address-in-use",
             Self::MediaProcessingFailed { .. } => "invalid-request",
             Self::AccountNotFound { .. } => "not-found",
+            Self::TokenEndpointForbidden { .. } => "forbidden",
         }
     }
 
@@ -762,6 +786,7 @@ impl Error {
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
             | Self::ProcessingTimeout { .. }
+            | Self::TokenEndpointForbidden { .. }
             | Self::MediaProcessingFailed { .. } => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch(_) => EXIT_AUTH_MISMATCH,
         }

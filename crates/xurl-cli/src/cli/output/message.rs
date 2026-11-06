@@ -17,6 +17,7 @@ pub(crate) fn render(error: &Error) -> String {
             super::validation::sentence(rule, value.as_deref()).unwrap_or_else(|| error.to_string())
         }
         Error::Api { .. }
+        | Error::TokenEndpointForbidden { .. }
         | Error::ProcessingTimeout { .. }
         | Error::AddressInUse { .. }
         | Error::MediaProcessingFailed { .. } => error.to_string(),

@@ -102,6 +102,22 @@ The working recipe in the X developer console:
 
 Without that enrollment step, `/2/*` reads can fail even when the OAuth callback and tokens are valid.
 
+### The OAuth2 token endpoint
+
+Signing in and refreshing a login send a `POST` to X's token endpoint, `https://api.x.com/2/oauth2/token`. `xr` reads
+another address from `TOKEN_URL`, and the library from `ClientBuilder::token_url`.
+
+X's OAuth2 handler refuses a code, a refresh token, or a client with a `400` or a `401`, or with a JSON body that holds
+an `error`. For those, sign in again or check the client credentials. Any other answer did not come from that handler,
+and `xr` reports it as any request's: a `404` is a token URL with the wrong path, a `408` is a request to send again,
+and a `403` with no `error` comes from something in the way, such as a proxy or firewall in front of the endpoint, or a
+`TOKEN_URL` that names another service. For a `403`:
+
+1. Unset `TOKEN_URL`, or set it to `https://api.x.com/2/oauth2/token`, and run the command again.
+2. If the `403` stays, check that the proxy or firewall between the machine and X lets a `POST` to that address through.
+
+`xr` leaves the saved sign-in and the stored login as they were, so the same command works once the endpoint answers.
+
 ## Stability
 
 Both crates follow [SemVer 2.0.0](https://semver.org/) and version independently, with one exception for `xr`.

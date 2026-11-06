@@ -1394,6 +1394,9 @@ async fn text_output_names_the_same_steps_for_the_other_step2_refusals() {
 }
 
 const OAUTH2_HELP: &str = "xr auth oauth2 --help";
+const RESPONSE_CODES_DOCS: &str = "https://docs.x.com/x-api/fundamentals/response-codes-and-errors";
+const TOKEN_ENDPOINT_DOCS: &str =
+    "https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint";
 const FAILED_EXCHANGE: &str = "X's token endpoint failed, so the sign-in did not finish.";
 
 /// A refused argument is a usage error, which says nothing about credentials.
@@ -1933,63 +1936,187 @@ async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_agai
 /// RFC 6749 section 5.2 refuses with a 400 or a 401, or with an `error`
 /// object. Any other answer came from something that did not process the
 /// exchange, such as a proxy or a token URL with the wrong path, so the code is
-/// still good and the saved flow stays for the same step 2.
+/// still good and the saved flow stays for the same step 2. A 403 points at
+/// the token URL and the proxy in front of it, and every such answer is warned
+/// of by name, with its status.
 #[tokio::test]
 async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
-    for (why, response, reason, exit_code, action) in [
+    for (why, response, status, reason, exit_code, action, docs) in [
         (
             "a 408 with no JSON",
             ResponseTemplate::new(408).set_body_string("<html>Request Timeout</html>"),
+            "408",
             "api-error",
             xdk::error::EXIT_GENERAL_ERROR,
-            Some("retry"),
+            "retry",
+            RESPONSE_CODES_DOCS,
         ),
         (
             "a 404 with no JSON",
             ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"),
+            "404",
             "not-found",
             xdk::error::EXIT_NOT_FOUND,
-            Some("fix-input"),
+            "fix-input",
+            RESPONSE_CODES_DOCS,
         ),
         (
             "a 403 with no JSON",
             ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"),
+            "403",
             "forbidden",
             xdk::error::EXIT_GENERAL_ERROR,
-            None,
+            "fix-input",
+            TOKEN_ENDPOINT_DOCS,
         ),
         (
             "a 403 with JSON that holds no `error`",
             ResponseTemplate::new(403).set_body_json(
                 serde_json::json!({"title": "Forbidden", "detail": "blocked by policy"}),
             ),
+            "403",
             "forbidden",
             xdk::error::EXIT_GENERAL_ERROR,
-            None,
+            "fix-input",
+            TOKEN_ENDPOINT_DOCS,
         ),
         (
             "a 404 with JSON whose `error` is an object",
             ResponseTemplate::new(404)
                 .set_body_json(serde_json::json!({"error": {"code": 404, "message": "Not Found"}})),
+            "404",
             "not-found",
             xdk::error::EXIT_NOT_FOUND,
-            Some("fix-input"),
+            "fix-input",
+            RESPONSE_CODES_DOCS,
         ),
     ] {
         let (code, envelope) = step2_answered_with(response).await;
         assert_eq!(code, exit_code, "{why}: {envelope}");
         assert_eq!(envelope["reason"], reason, "{why}: {envelope}");
         assert_eq!(envelope["exit_code"], exit_code, "{why}: {envelope}");
-        assert_eq!(
-            envelope["next_step"]["action"].as_str(),
-            action,
-            "{why}: {envelope}"
-        );
+        assert_eq!(envelope["next_step"]["action"], action, "{why}: {envelope}");
+        assert_eq!(envelope["next_step"]["docs"], docs, "{why}: {envelope}");
         assert!(
             envelope["next_step"]["command"].is_null(),
             "{why}: no sign-in: {envelope}"
         );
+        assert_warns_of_the_exchange(&envelope, status);
     }
+}
+
+/// A warning names the token endpoint and the HTTP status of its answer, since
+/// the error prints X's body alone.
+fn assert_warns_of_the_exchange(envelope: &serde_json::Value, status: &str) {
+    let warnings = envelope["warnings"].as_array().cloned().unwrap_or_default();
+    assert!(
+        warnings.iter().any(|warning| {
+            warning["target"] == "xdk::auth"
+                && warning["message"].as_str().is_some_and(|message| {
+                    message.contains("token endpoint")
+                        && message.contains(&format!("HTTP {status}"))
+                })
+        }),
+        "a warning names the token endpoint and HTTP {status}: {envelope}"
+    );
+}
+
+/// Text output tells a person where to look: the token URL and any proxy in
+/// front of it, with the page that covers both.
+#[tokio::test]
+async fn text_output_points_a_token_endpoint_403_at_the_token_url_and_the_proxy() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{CLOSED}/2/users/me"),
+    );
+
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect_url(),
+            "alice",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{stderr}");
+    assert!(stderr.contains("TOKEN_URL"), "{stderr}");
+    assert!(stderr.contains("proxy"), "{stderr}");
+    assert!(stderr.contains(TOKEN_ENDPOINT_DOCS), "{stderr}");
+}
+
+/// A text `warning:` line goes to the process's own stderr, which the
+/// in-process runner's writer never sees, so this spawns the built `xr`.
+#[tokio::test(flavor = "multi_thread")]
+async fn text_output_warns_that_the_token_endpoint_answered_the_exchange() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(408).set_body_string("<html>Request Timeout</html>"))
+        .mount(&server)
+        .await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let token_url = format!("{}/2/oauth2/token", server.uri());
+    let redirect = redirect_url();
+
+    let output = tokio::task::spawn_blocking(move || {
+        common::xr_with_store(&store)
+            .env("CLIENT_ID", "test-client-id")
+            .env("CLIENT_SECRET", "test-client-secret")
+            .env("TOKEN_URL", &token_url)
+            .env("API_BASE_URL", CLOSED)
+            .env("INFO_URL", format!("{CLOSED}/2/users/me"))
+            .args([
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                &redirect,
+                "alice",
+            ])
+            .output()
+    })
+    .await
+    .expect("spawn_blocking joins")
+    .expect("xr runs");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    assert_eq!(
+        output.status.code(),
+        Some(xdk::error::EXIT_GENERAL_ERROR),
+        "{stderr}"
+    );
+    assert!(
+        stderr.lines().any(|line| {
+            line.starts_with("warning: ")
+                && line.contains("token endpoint")
+                && line.contains("HTTP 408")
+        }),
+        "{stderr}"
+    );
 }
 
 #[tokio::test]
@@ -2104,6 +2231,7 @@ async fn step2_whose_error_answer_breaks_off_is_a_network_error_that_names_the_e
                 .contains("TokenExchangeError"),
             "{envelope}"
         );
+        assert_warns_of_the_exchange(&envelope, &status_line[..3]);
     }
 }
 

@@ -253,10 +253,10 @@ pub(super) async fn oauth2(
     Ok(())
 }
 
-/// Tells a person what X's answer is an answer to. An `Error::Api` prints as
-/// the response body alone, and a sign-in's caller never named the endpoint.
+/// Tells a person what X's answer is an answer to. An API error prints as the
+/// response body alone, and a sign-in's caller never named the endpoint.
 fn name_the_failed_exchange(error: &Error, out: &OutputConfig, stderr: &mut dyn Write) {
-    if matches!(error, Error::Api { .. }) {
+    if error.is_api() {
         out.error_context(
             stderr,
             "X's token endpoint failed, so the sign-in did not finish. It answered:",
