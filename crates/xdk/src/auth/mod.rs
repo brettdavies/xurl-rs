@@ -6,6 +6,7 @@
 // The listener, the signing primitives, and the two-step pending state are
 // driven by `oauth2::run_oauth2_flow`, the client's headers, and `xr auth`;
 // an embedder reaches them through those, not directly.
+mod answer_text;
 #[doc(hidden)]
 pub mod callback;
 pub mod credentials;
@@ -14,6 +15,7 @@ pub mod oauth1;
 pub mod oauth2;
 #[doc(hidden)]
 pub mod pending;
+mod token_endpoint;
 
 pub(crate) use credentials::DirectCredentials;
 use credentials::REDACTED;
@@ -392,8 +394,14 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if the authorization flow, the opener, the token
-    /// exchange, or username resolution fails.
+    /// Returns an error if the authorization flow or the opener fails, or if
+    /// the token exchange does: [`Error::Http`] when the token endpoint does
+    /// not answer, [`Error::Api`] when it answers a failure status that is no
+    /// OAuth refusal, such as a 5xx, a 429 (with `reset_at` when it names its
+    /// reset), or a proxy's 404, [`Error::TokenEndpointForbidden`] when that
+    /// status is a 403, [`Error::InvalidUrl`] when the token URL is not one a
+    /// request can go to, and [`Error::Auth`] when it refuses the code or the
+    /// client.
     pub async fn oauth2_flow<F>(
         &mut self,
         http: &reqwest::Client,
@@ -411,7 +419,8 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if no token is found or the refresh request fails.
+    /// Returns the errors [`oauth2::refresh_oauth2_token`] documents. A failed
+    /// refresh writes nothing to the store.
     pub async fn refresh_oauth2_token(
         &mut self,
         http: &reqwest::Client,
@@ -440,8 +449,9 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if the pending state is missing/expired/invalid,
-    /// the token exchange fails, or the username cannot be resolved.
+    /// Returns [`Error::Auth`] if the pending state is missing, expired, or
+    /// invalid, or the redirect URL does not answer it, and the errors
+    /// [`Self::oauth2_flow`] names for a failed token exchange.
     pub async fn remote_oauth2_step2(
         &mut self,
         http: &reqwest::Client,
@@ -450,6 +460,28 @@ impl Auth {
         pending_path: &std::path::Path,
     ) -> Result<String> {
         oauth2::run_remote_step2(self, http, redirect_url, username, pending_path).await
+    }
+
+    /// Every refusal [`Self::remote_oauth2_step2`] meets before it sends the
+    /// code, read from the saved flow, this context, and `redirect_url`, in
+    /// the order that step meets them. A `redirect_url` of `None` is one the
+    /// caller does not have yet, so the checks of its contents are left out.
+    ///
+    /// Sends nothing and writes nothing: an expired flow stays where it is.
+    ///
+    /// # Errors
+    ///
+    /// The errors [`Self::remote_oauth2_step2`] names, up to the token
+    /// exchange.
+    // `xr --dry-run auth oauth2 --step 2` is the only caller; an embedder runs
+    // the step itself.
+    #[doc(hidden)]
+    pub fn check_remote_oauth2_step2(
+        &self,
+        redirect_url: Option<&str>,
+        pending_path: &std::path::Path,
+    ) -> Result<()> {
+        oauth2::check_remote_step2(self, redirect_url, pending_path)
     }
 
     /// Gets the bearer token Authorization header.

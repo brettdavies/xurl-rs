@@ -43,32 +43,6 @@ fn test_config_defaults() {
 
 #[test]
 #[serial]
-fn test_config_from_env_client_id() {
-    unsafe {
-        std::env::set_var("CLIENT_ID", "env-test-id");
-    }
-    let cfg = Config::new();
-    assert_eq!(cfg.client_id, "env-test-id");
-    unsafe {
-        std::env::remove_var("CLIENT_ID");
-    }
-}
-
-#[test]
-#[serial]
-fn test_config_from_env_client_secret() {
-    unsafe {
-        std::env::set_var("CLIENT_SECRET", "env-test-secret");
-    }
-    let cfg = Config::new();
-    assert_eq!(cfg.client_secret, "env-test-secret");
-    unsafe {
-        std::env::remove_var("CLIENT_SECRET");
-    }
-}
-
-#[test]
-#[serial]
 fn test_config_from_env_all() {
     unsafe {
         std::env::set_var("CLIENT_ID", "all-id");
@@ -84,21 +58,6 @@ fn test_config_from_env_all() {
     unsafe {
         std::env::remove_var("CLIENT_ID");
         std::env::remove_var("CLIENT_SECRET");
-        std::env::remove_var("API_BASE_URL");
-    }
-}
-
-#[test]
-#[serial]
-fn test_config_from_env_api_base_url() {
-    unsafe {
-        std::env::set_var("API_BASE_URL", "https://custom.api.example.com");
-    }
-    let cfg = Config::new();
-    assert_eq!(cfg.api_base_url, "https://custom.api.example.com");
-    // info_url should be derived from api_base_url
-    assert!(cfg.info_url.starts_with("https://custom.api.example.com"));
-    unsafe {
         std::env::remove_var("API_BASE_URL");
     }
 }

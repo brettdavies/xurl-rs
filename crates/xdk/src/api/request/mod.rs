@@ -25,6 +25,7 @@ pub use auth_header::AuthPreflight;
 pub use builder::ClientBuilder;
 pub use call::Call;
 pub(crate) use source::CredentialSource;
+pub(crate) use transport::api_error;
 pub use transport::{StreamLines, WIRE_TARGET};
 pub(crate) use url::render_template_path;
 use url::{build_url_for_target, render_template_template};

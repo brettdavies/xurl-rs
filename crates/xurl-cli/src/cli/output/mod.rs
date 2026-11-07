@@ -17,10 +17,12 @@ mod dry_run;
 mod format;
 mod message;
 mod validation;
+mod warnings;
 pub(crate) use validation::account_rule;
 
 pub(crate) use diagnostics::Diagnostics;
 pub(crate) use validation::user_search_rule;
+pub use warnings::WarningLog;
 
 use std::io::{IsTerminal, Write};
 
@@ -31,6 +33,10 @@ use crate::cli::ColorChoice;
 use crate::cli::envelope::{ErrorBody, Reason};
 use delimited::write_flattened;
 use xdk::error::Error;
+
+/// The `target` of a warning the binary raises, which has no `tracing` target
+/// to report.
+const BINARY_WARNING_TARGET: &str = "xr";
 
 /// Output format for machine/human consumption.
 #[derive(Clone, Debug, ValueEnum, PartialEq, Eq)]
@@ -65,9 +71,9 @@ impl OutputFormat {
 
 /// Output configuration threaded through command handlers.
 ///
-/// `OutputConfig` is intentionally a pure data carrier — no I/O handles, no
-/// interior mutability. This keeps it `Send + Sync + Clone`, which the
-/// async `Client` requires.
+/// `OutputConfig` holds no I/O handles, which keeps it `Send + Sync + Clone`,
+/// as the async `Client` requires. Its settings do not change once the runner
+/// has built it; the one state its clones share is [`Self::warnings`].
 ///
 /// `use_color` is the resolved color decision after combining `--color`, the
 /// `NO_COLOR` env var, and stderr's TTY-ness. `no_color` is preserved as the
@@ -124,6 +130,9 @@ pub struct OutputConfig {
     /// `response_schema`. The runner sets it via
     /// [`Self::with_response_schema`] once the command is parsed.
     pub response_schema: Option<String>,
+    /// The warnings a structured run has kept for its one document on
+    /// stderr, shared by every clone of this config.
+    pub warnings: WarningLog,
 }
 
 impl OutputConfig {
@@ -180,6 +189,7 @@ impl OutputConfig {
             raw,
             no_interactive: false,
             response_schema: None,
+            warnings: WarningLog::default(),
         }
     }
 
@@ -264,17 +274,64 @@ impl OutputConfig {
         separator: &str,
         command: &str,
     ) {
-        let help = format!("{command} --help");
-        self.emit_error_envelope(
-            err,
-            ErrorBody {
-                reason: Reason::InvalidArgs,
-                exit_code: xdk::error::EXIT_USAGE_ERROR,
-                message: Some(format!("{message}{separator}Try '{help}'.")),
-                next_step: Some(crate::cli::hints::NextStep::show_help(help)),
-                ..ErrorBody::default()
-            },
-        );
+        self.emit_error_envelope(err, invalid_args_body(message, separator, command));
+    }
+
+    /// The dry-run answer to an argument [`Self::print_invalid_args`] would
+    /// refuse in the real run: the same keys, at exit 0.
+    pub(crate) fn print_dry_run_invalid_args(
+        &self,
+        out: &mut dyn Write,
+        ctx: &Value,
+        message: &str,
+        separator: &str,
+        command: &str,
+    ) {
+        let body = invalid_args_body(message, separator, command);
+        self.print_refused_dry_run(out, ctx, body, &[]);
+    }
+
+    /// The dry-run answer to a refusal whose `body` the real run writes with
+    /// [`Self::emit_error_envelope`]: the same keys, at exit 0.
+    pub(crate) fn print_dry_run_error_body(
+        &self,
+        out: &mut dyn Write,
+        ctx: &Value,
+        body: ErrorBody,
+    ) {
+        self.print_refused_dry_run(out, ctx, body, &[]);
+    }
+
+    /// A dry run's answer for a refusal: in text, the summary with the
+    /// message and `advice`; structured, `ctx` plus the keys of the error the
+    /// real run would write, and the exit code it would end on.
+    fn print_refused_dry_run(
+        &self,
+        out: &mut dyn Write,
+        ctx: &Value,
+        body: ErrorBody,
+        advice: &[String],
+    ) {
+        let exit_code = body.exit_code;
+        if !self.format.is_structured() {
+            let refusal = dry_run::Refusal {
+                message: body.message.as_deref().unwrap_or_default(),
+                advice,
+            };
+            let ctx = &self.with_pointer(ctx);
+            for line in dry_run::summary(false, exit_code, ctx, Some(&refusal)) {
+                let _ = writeln!(out, "{line}");
+            }
+            return;
+        }
+        let mut merged = ctx.as_object().cloned().unwrap_or_default();
+        if let Value::Object(body) = body.into_value() {
+            merged.extend(
+                body.into_iter()
+                    .filter(|(key, _)| key != "status" && key != "exit_code"),
+            );
+        }
+        self.print_dry_run(out, false, exit_code, &Value::Object(merged));
     }
 
     /// Prints an error with a recovery hint attached.
@@ -303,6 +360,42 @@ impl OutputConfig {
             return;
         }
         for line in &hint.text_lines {
+            let _ = writeln!(err, "{line}");
+        }
+    }
+
+    /// Prints an error that ended a wait after an upload finished. A failed
+    /// status read's message says the upload finished and names the media, in
+    /// every format and under `--quiet`: a run that fails prints no result, so
+    /// nothing else names the upload, and X's answer alone can be an empty
+    /// body. An error about the job itself already says both.
+    pub(crate) fn print_error_after_upload(
+        &self,
+        err: &mut dyn Write,
+        error: &Error,
+        exit_code: i32,
+        hint: Option<&crate::cli::hints::Hint>,
+        media_id: &str,
+    ) {
+        let mut body = error_body(error, exit_code);
+        body.media_id = Some(media_id.to_string());
+        if !matches!(
+            error,
+            Error::ProcessingTimeout { .. } | Error::MediaProcessingFailed { .. }
+        ) {
+            let cause = body.message.take().unwrap_or_default();
+            body.message = Some(format!(
+                "media {media_id} finished uploading, but reading its status failed: {cause}"
+            ));
+        }
+        if let Some(hint) = hint {
+            body.next_step = Some(hint.next_step.clone());
+        }
+        self.emit_error_envelope(err, body);
+        if self.format.is_structured() || self.quiet {
+            return;
+        }
+        for line in hint.map_or(&[][..], |hint| hint.text_lines.as_slice()) {
             let _ = writeln!(err, "{line}");
         }
     }
@@ -373,10 +466,20 @@ impl OutputConfig {
     ///
     /// Building the typed [`ErrorBody`] here is what keeps the generated
     /// schema honest: a key no field declares cannot be emitted.
-    pub(crate) fn emit_error_envelope(&self, err: &mut dyn Write, body: ErrorBody) {
+    pub(crate) fn emit_error_envelope(&self, err: &mut dyn Write, mut body: ErrorBody) {
+        body.warnings = self.warnings.take();
         let display = body.message.clone().unwrap_or_default();
         let envelope = body.into_value();
         self.write_envelope_or_text_error(err, &envelope, &display);
+    }
+
+    /// Writes the warnings no error envelope carried: the status-ok document
+    /// on stderr that closes a run that succeeded. Writes nothing when none
+    /// is kept, as in every text-mode run.
+    pub(crate) fn write_kept_warnings(&self, err: &mut dyn Write) {
+        if let Some(warnings) = self.warnings.take() {
+            self.print_success(err, &serde_json::json!({"warnings": warnings}));
+        }
     }
 
     /// Prints an informational message (suppressed by --quiet or any
@@ -385,6 +488,16 @@ impl OutputConfig {
     /// The runner passes a stderr writer here in the binary path; tests pass a `Vec<u8>`.
     pub fn info(&self, err: &mut dyn Write, msg: &str) {
         if self.quiet || self.format.is_structured() {
+            return;
+        }
+        let _ = writeln!(err, "{msg}");
+    }
+
+    /// Prints a line, in text output, that says what the error after it is
+    /// about. `--quiet` keeps it: it belongs to the error, which `--quiet`
+    /// never drops.
+    pub(crate) fn error_context(&self, err: &mut dyn Write, msg: &str) {
+        if self.format.is_structured() {
             return;
         }
         let _ = writeln!(err, "{msg}");
@@ -544,33 +657,15 @@ impl OutputConfig {
             other => other,
         };
         let exit_code = error.exit_code();
-        if !self.format.is_structured() {
-            let message = message::render(error);
-            let advice = match hint {
-                Some(hint) if !self.quiet => hint.text_lines.as_slice(),
-                _ => &[],
-            };
-            let refusal = dry_run::Refusal {
-                message: &message,
-                advice,
-            };
-            for line in dry_run::summary(false, exit_code, ctx, Some(&refusal)) {
-                let _ = writeln!(out, "{line}");
-            }
-            return;
-        }
-        let mut merged = ctx.as_object().cloned().unwrap_or_default();
+        let advice = match hint {
+            Some(hint) if !self.quiet => hint.text_lines.as_slice(),
+            _ => &[],
+        };
         let body = ErrorBody {
             next_step: hint.map(|hint| hint.next_step.clone()),
             ..error_body(error, exit_code)
         };
-        if let Value::Object(body) = body.into_value() {
-            merged.extend(
-                body.into_iter()
-                    .filter(|(key, _)| key != "status" && key != "exit_code"),
-            );
-        }
-        self.print_dry_run(out, false, exit_code, &Value::Object(merged));
+        self.print_refused_dry_run(out, ctx, body, advice);
     }
 
     /// Prints a canonical confirmation-required error envelope.
@@ -592,11 +687,15 @@ impl OutputConfig {
         };
         let get_str = |k: &str| map.get(k).and_then(Value::as_str).map(str::to_string);
         let get_bool = |k: &str| map.get(k).and_then(Value::as_bool);
+        let command = get_str("command");
+        let target = command.as_deref().unwrap_or("operation");
         let body = ErrorBody {
             reason: Reason::ConfirmationRequired,
             exit_code,
-            message: None,
-            command: get_str("command"),
+            message: Some(format!(
+                "confirmation required for {target} — pass --force or run interactively"
+            )),
+            command,
             post_id: get_str("post_id"),
             name: get_str("name"),
             all: get_bool("all"),
@@ -606,24 +705,7 @@ impl OutputConfig {
             next_step: Some(next_step),
             ..ErrorBody::default()
         };
-        if self.format.is_structured() {
-            self.emit_error_envelope(err, body);
-        } else {
-            let cmd = map
-                .get("command")
-                .and_then(serde_json::Value::as_str)
-                .unwrap_or("operation");
-            let line = if self.no_color {
-                format!(
-                    "Error: confirmation required for {cmd} — pass --force or run interactively"
-                )
-            } else {
-                format!(
-                    "\x1b[31mError: confirmation required for {cmd} — pass --force or run interactively\x1b[0m"
-                )
-            };
-            let _ = writeln!(err, "{line}");
-        }
+        self.emit_error_envelope(err, body);
     }
 
     /// Emits a verbose diagnostic line to `err` when verbose is on, quiet is
@@ -641,15 +723,24 @@ impl OutputConfig {
         let _ = writeln!(err, "{msg}");
     }
 
-    /// Emits a warning to `err`. Always goes to stderr in text mode; under
-    /// JSON modes the line is suppressed (the canonical envelope is the
-    /// channel for structured warnings).
-    ///
-    /// Suppressed entirely under `--quiet` combined with JSON modes; under
-    /// `--quiet` text mode, warnings still surface (errors and warnings are
-    /// the load-bearing signals the operator must see).
+    /// How a warning reaches the caller, decided in this one place. Under a
+    /// structured format it is kept for the run's one document on stderr, and
+    /// this returns `true`. In text mode this returns `false`, and the caller
+    /// prints its line. `--quiet` changes neither: a warning is a signal the
+    /// caller must see, not chatter.
+    pub(crate) fn keeps_warning(&self, message: &str, target: &str) -> bool {
+        if !self.format.is_structured() {
+            return false;
+        }
+        self.warnings.record(message, target);
+        true
+    }
+
+    /// Emits a warning `xr` itself raises to `err` in text mode. Under a
+    /// structured format it is kept for the run's one document instead, with
+    /// `xr` as its target.
     pub fn warning(&self, err: &mut dyn Write, msg: &str) {
-        if self.format.is_structured() {
+        if self.keeps_warning(msg, BINARY_WARNING_TARGET) {
             return;
         }
         if self.no_color {
@@ -755,6 +846,20 @@ impl OutputConfig {
     }
 }
 
+/// The envelope body for a usage error of `command`, closing on its help. The
+/// pointer in the message and the `show-help` step are built from the one
+/// `command`, so they cannot name different pages.
+fn invalid_args_body(message: &str, separator: &str, command: &str) -> ErrorBody {
+    let help = format!("{command} --help");
+    ErrorBody {
+        reason: Reason::InvalidArgs,
+        exit_code: xdk::error::EXIT_USAGE_ERROR,
+        message: Some(format!("{message}{separator}Try '{help}'.")),
+        next_step: Some(crate::cli::hints::NextStep::show_help(help)),
+        ..ErrorBody::default()
+    }
+}
+
 /// The envelope body for a library error: its `reason`, the message `xr`
 /// prints for it, and the facts the variant carries as fields of their own,
 /// so an agent reads them without parsing the message.
@@ -852,6 +957,7 @@ impl Default for OutputConfig {
             raw: false,
             no_interactive: false,
             response_schema: None,
+            warnings: WarningLog::default(),
         }
     }
 }
@@ -917,6 +1023,7 @@ mod tests {
             raw: false,
             no_interactive: false,
             response_schema: None,
+            warnings: WarningLog::default(),
         };
         assert!(!cfg.quiet);
     }
@@ -1047,5 +1154,25 @@ mod tests {
             buf.is_empty(),
             "warnings on stderr must be suppressed under JSON modes"
         );
+    }
+
+    #[test]
+    fn a_warning_under_json_rides_in_the_next_document() {
+        let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+        let mut buf = Vec::new();
+        cfg.warning(&mut buf, "rate limited");
+        cfg.write_kept_warnings(&mut buf);
+        let document: Value = serde_json::from_slice(&buf).expect("one JSON document");
+        assert_eq!(
+            document,
+            serde_json::json!({
+                "status": "ok",
+                "warnings": [{"message": "rate limited", "target": "xr"}],
+            })
+        );
+
+        let mut buf = Vec::new();
+        cfg.write_kept_warnings(&mut buf);
+        assert!(buf.is_empty(), "the log was emptied: {buf:?}");
     }
 }

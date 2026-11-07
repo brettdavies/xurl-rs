@@ -3,52 +3,13 @@
 //! Pins the `xr` binary's exit-code contract and stdout/stderr stream split
 //! so `src/main.rs` cannot silently drift from the library mapping in
 //! `xurl::cli::run_argv`. Library behavior is covered by `cli_tests.rs` and
-//! `cli_run_tests.rs`; this file exists only to catch drift at the process
-//! boundary (clap-error routing, exit-code propagation, SIGPIPE restoration).
+//! `cli_run_tests.rs`, and `golden_tests.rs` pins `--help`, `--version`,
+//! `version`, a flag clap refuses, and a mistyped command byte for byte at the
+//! process boundary; this file holds the boundary checks no golden case makes
+//! (bare `xr`, a raw request with no URL, the version JSON, SIGPIPE
+//! restoration, the release build's features).
 
 mod common;
-
-#[test]
-fn help_flag_exits_zero_with_stdout() {
-    let assert = common::xr().arg("--help").assert().success().code(0);
-    let out = assert.get_output();
-    assert!(!out.stdout.is_empty(), "stdout should be non-empty");
-    assert!(
-        out.stderr.is_empty(),
-        "stderr should be empty for --help, got: {}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-}
-
-#[test]
-fn version_flag_exits_zero_with_stdout() {
-    // clap's `DisplayVersion` path: `--help`/`--version` write to stdout, exit 0.
-    let assert = common::xr().arg("--version").assert().success().code(0);
-    let out = assert.get_output();
-    assert!(!out.stdout.is_empty(), "stdout should be non-empty");
-}
-
-#[test]
-fn version_subcommand_exits_zero_with_stdout() {
-    // Tier-1 `Version` path: routes through OutputConfig::print_message, not clap.
-    let assert = common::xr().arg("version").assert().success().code(0);
-    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
-    assert!(
-        stdout.starts_with("xr "),
-        "stdout should start with 'xr ': {stdout}"
-    );
-}
-
-#[test]
-fn version_plain_line_carries_no_library_field() {
-    let assert = common::xr().arg("version").assert().success();
-    let stdout = String::from_utf8_lossy(&assert.get_output().stdout);
-    assert_eq!(
-        stdout.trim(),
-        format!("xr {}", env!("CARGO_PKG_VERSION")),
-        "the plain line is `xr <version>` and nothing else"
-    );
-}
 
 #[test]
 fn version_verbose_names_the_library_version() {
@@ -81,16 +42,6 @@ fn version_json_carries_both_versions() {
 }
 
 #[test]
-fn bad_flag_exits_two_with_stderr() {
-    let assert = common::xr().arg("--bogus").assert().failure().code(2);
-    let out = assert.get_output();
-    assert!(
-        !out.stderr.is_empty(),
-        "stderr should be non-empty for clap usage error"
-    );
-}
-
-#[test]
 fn bare_invocation_prints_help() {
     // Nothing to run, and nothing raw mode could send — the root help.
     let assert = common::xr().assert().success().code(0);
@@ -109,16 +60,6 @@ fn missing_url_exits_two() {
     assert!(
         stderr.contains("No URL provided"),
         "stderr should mention missing URL: {stderr}"
-    );
-}
-
-#[test]
-fn unknown_command_exits_two() {
-    let assert = common::xr().arg("whoam").assert().failure().code(2);
-    let stderr = String::from_utf8_lossy(&assert.get_output().stderr);
-    assert!(
-        stderr.contains("unknown command 'whoam'") && stderr.contains("'whoami'"),
-        "stderr should name the nearest command: {stderr}"
     );
 }
 

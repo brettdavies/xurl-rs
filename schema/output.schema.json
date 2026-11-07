@@ -1,5 +1,39 @@
 {
   "$defs": {
+    "DryRunAuth": {
+      "description": "The `auth` object of a dry-run envelope: the credential a request would go\nout under.",
+      "properties": {
+        "app": {
+          "description": "The app whose stored credential would be sent. Absent for a bearer\ntoken the environment supplies, which belongs to no stored app.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scheme": {
+          "description": "The auth scheme: `oauth1`, `oauth2`, or `app`.",
+          "type": "string"
+        },
+        "token_expired": {
+          "description": "Whether the `OAuth2` login's token has expired. An expired token is\nreported, not refreshed.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "username": {
+          "description": "The `OAuth2` login, the one credential with a user name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "scheme"
+      ],
+      "type": "object"
+    },
     "NextAction": {
       "description": "What the caller should do next. Closed set; agents branch on it.\n\nA newer release can add a member, so a caller treats one it does not\nrecognize as its default branch.",
       "oneOf": [
@@ -35,7 +69,7 @@
         },
         {
           "const": "resume-wait",
-          "description": "Media was still processing when the wait's deadline passed; wait on\nthe same media id again.",
+          "description": "The wait on an upload's processing ended before X reported a final\nstate, and the upload is intact; wait on the same media id again.",
           "type": "string"
         },
         {
@@ -72,7 +106,7 @@
     },
     "NextStep": {
       "additionalProperties": false,
-      "description": "The `next_step` object carried by an error envelope.\n\nAt most one of [`Self::command`] and [`Self::template`] is present: a\ncommand is a verbatim invocation safe for a non-TTY caller, while a\ntemplate is one the caller finishes or decides on before running it. It\ncarries angle-bracket placeholders to fill in, or, under\n[`NextAction::Confirm`], the invocation that destroys once it runs. A\nstep with neither names an action that is not an `xr` invocation, with\n`docs` when a page covers it: [`NextAction::EnrollApp`],\n[`NextAction::WaitAndRetry`], [`NextAction::Retry`],\n[`NextAction::FixInput`], [`NextAction::ReportIssue`], and\n[`NextAction::InspectStore`] when the command that failed is the one\nthat reports on the store. Two [`NextAction::FixInput`] steps carry an\ninvocation: [`Self::listen_on_free_port`] and [`Self::fix_input_with`].",
+      "description": "The `next_step` object carried by an error envelope.\n\nAt most one of [`Self::command`] and [`Self::template`] is present: a\ncommand is a verbatim invocation safe for a non-TTY caller, while a\ntemplate is one the caller finishes or decides on before running it. It\ncarries angle-bracket placeholders to fill in; under\n[`NextAction::Confirm`], the invocation that destroys once it runs; or,\nafter a 401 or a 429 with no reset on the status read after `xr media\nupload`, the resumed wait to run once the credential works or the window\npasses. A step with neither names an action\nthat is not an `xr` invocation, with `docs` when a page covers it:\n[`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`] except on that\nstatus read, [`NextAction::Retry`], [`NextAction::FixInput`],\n[`NextAction::ReportIssue`], and [`NextAction::InspectStore`] when the\ncommand that failed is the one that reports on the store. Five\n[`NextAction::FixInput`] steps carry an invocation:\n[`Self::listen_on_free_port`], [`Self::fix_input_with`],\n[`Self::fix_input_template`], [`Self::step_two_again`], and the one\n[`resume_after_upload_hint`] gives a 401.",
       "properties": {
         "action": {
           "$ref": "#/$defs/NextAction",
@@ -93,7 +127,7 @@
           ]
         },
         "template": {
-          "description": "A placeholder invocation, when the caller must supply values.",
+          "description": "An invocation the caller finishes or decides on before running it.",
           "type": [
             "string",
             "null"
@@ -102,6 +136,25 @@
       },
       "required": [
         "action"
+      ],
+      "type": "object"
+    },
+    "Warning": {
+      "additionalProperties": false,
+      "description": "A diagnostic the library raised during a run, as a structured document\ncarries it. It did not end the run: a failure is the envelope itself.",
+      "properties": {
+        "message": {
+          "description": "What the library reported, in its own words. The wording is not\ncontract; branch on `target`.",
+          "type": "string"
+        },
+        "target": {
+          "description": "The part of `xr` that raised it, such as `xdk::config` or `xdk::store`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "target"
       ],
       "type": "object"
     }
@@ -116,6 +169,16 @@
         "status": {
           "const": "ok",
           "type": "string"
+        },
+        "warnings": {
+          "description": "What the library warned about during the run, on the document a\nsuccessful run writes on stderr when a warning fired. Stdout's\ndocument never carries it.",
+          "items": {
+            "$ref": "#/$defs/Warning"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         }
       },
       "required": [
@@ -125,12 +188,106 @@
     },
     {
       "additionalProperties": true,
-      "description": "Dry-run envelope. `would_succeed` and `exit_code` are mandatory;\nadditional context (command name, body preview, etc.) lives in\n`payload`.",
+      "description": "Dry-run envelope. Its body declares the keys that are the envelope's\nown; any other key is one of the command's inputs. Boxed like the\nerror body, for its size.",
       "properties": {
+        "app": {
+          "description": "The active app name, on the same refusal.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DryRunAuth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The credential the request would go out under, read offline. Absent\non a refusal, and on a command that sends no request."
+        },
+        "available_in_app": {
+          "description": "Auth schemes available for the active app, on the same refusal.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "command": {
+          "description": "The command the answer is about. A raw request carries none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confirmation_required": {
+          "description": "Present and `true` on a destructive command whose real run would stop\nto ask. Absent under `--force`, where nothing would stop.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "endpoint": {
+          "description": "Endpoint template the request would target, when no stored scheme\nserves it.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "exit_code": {
           "description": "Exit code the verb would have returned on actual execution.",
           "format": "int32",
           "type": "integer"
+        },
+        "message": {
+          "description": "The message the real run's error would carry.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "method": {
+          "description": "HTTP method the request would use, on the same refusal or a raw\nrequest.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_step": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NextStep"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The step the real run's error would carry; one that reruns the\ninvocation keeps `--dry-run`."
+        },
+        "other_apps_with_creds": {
+          "description": "Other apps holding credentials, when the active one holds none.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reason": {
+          "description": "Why the real run would fail, when it would: the `reason` of its error.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requested": {
+          "description": "Auth scheme the caller asked for, on the same refusal; `null` when\nauto-detect ran."
         },
         "response_schema": {
           "description": "The `xr schema` invocation that describes the command's response,\non a command with a typed response. A raw request carries none.",
@@ -139,9 +296,33 @@
             "null"
           ]
         },
+        "rule": {
+          "description": "The input rule the real run would refuse, under `validation`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "status": {
           "const": "dry_run",
           "type": "string"
+        },
+        "supported": {
+          "description": "Auth schemes the endpoint accepts, on the same refusal.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "The offending input, as it was given, when the broken `rule` names one.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "would_succeed": {
           "description": "True iff every precondition checked clean.",
@@ -157,7 +338,7 @@
     },
     {
       "additionalProperties": false,
-      "description": "Error envelope. Every field the runtime emits is declared on\n[`ErrorBody`], so an undeclared key cannot reach a caller. Boxed\nbecause that body is much larger than the other two variants.",
+      "description": "Error envelope. Every field the runtime emits is declared on\n[`ErrorBody`], so an undeclared key cannot reach a caller. Boxed\nbecause that body is much larger than the success variant.",
       "properties": {
         "account": {
           "description": "The handle, without its `@`, a lookup found no account for, under\n`not-found`: the first such handle when the lookup named several.",
@@ -218,6 +399,20 @@
             "null"
           ]
         },
+        "command_preview": {
+          "description": "The `git clone` a skill verb would run, its hardening flags omitted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "destination_status": {
+          "description": "What a skill verb found at `install_dir` before it cloned: `absent`,\n`empty-dir`, `non-empty-dir`, or `file`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "endpoint": {
           "description": "Endpoint template the request targeted.",
           "type": [
@@ -241,6 +436,14 @@
           "description": "Directory a skill verb would install into.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "installations": {
+          "description": "One report per host on a skill verb's `--all` run. The top-level\n`reason` and `next_step` speak for the host with the worst exit code.",
+          "items": true,
+          "type": [
+            "array",
             "null"
           ]
         },
@@ -274,8 +477,15 @@
             "null"
           ]
         },
+        "legacy_install_dir": {
+          "description": "A copy of the skill bundle at a location the host still reads but `xr`\ndoes not install to.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "media_id": {
-          "description": "Media id whose processing a wait gave up on, under\n`processing-timeout`, where the upload is intact; or the one X\nrefused after processing it, under `invalid-request`.",
+          "description": "Media id whose processing a wait gave up on, under\n`processing-timeout`, where the upload is intact; or the one X\nrefused after processing it, under `invalid-request`. `media upload`\ncarries it on any error that ends its wait, since the upload finished\nand stdout holds no result.",
           "type": [
             "string",
             "null"
@@ -311,7 +521,7 @@
               "type": "null"
             }
           ],
-          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`,\n`run-command`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template`\nthe caller finishes or decides on first, never both: a template\nholds angle-bracket placeholders only the caller can fill, or, under\n`confirm`, the invocation that destroys once it runs. One whose\nrecovery is not an `xr` invocation carries neither, and `docs` when\na page covers it: `enroll-app`, `wait-and-retry`, `retry`,\n`fix-input`, `report-issue`, and `inspect-store` when a store\ncommand is what failed. Three `fix-input` steps carry an invocation:\n`listen` again on a free port, under `address-in-use`, and two under\n`invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved\nafter the command word it came before, and the `xr schema`\ninvocation that works for an old name or a scope word. One carries a\ntemplate: the `xr schema --path` invocation with the segment that\nnamed nothing left as `<property>`, under `invalid-args`."
+          "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`,\n`run-command`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template`\nthe caller finishes or decides on first, never both: a template\nholds angle-bracket placeholders only the caller can fill; under\n`confirm`, the invocation that destroys once it runs; or, after a\n401 or a 429 with no reset on the status read after `xr media\nupload`, the resumed wait to run once the credential works or the\nwindow passes. One whose recovery is not an `xr`\ninvocation carries neither, and `docs` when a page covers it:\n`enroll-app`, `wait-and-retry`, `retry`, `fix-input`,\n`report-issue`, and `inspect-store` when a store command is what\nfailed. After `xr media upload` finished, a `wait-and-retry` on the\nstatus read carries the resumed wait: a command that waits out the\nreset X named under `--wait-on-rate-limit`, or a template when X named\nnone or the media command was given `-H`. Three `fix-input` steps carry\nan invocation:\n`listen` again on a free port, under `address-in-use`, and two under\n`invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved\nafter the command word it came before, and the `xr schema`\ninvocation that works for an old name or a scope word. Six carry a\ntemplate: the `xr schema --path` invocation with the segment that\nnamed nothing left as `<property>`, under `invalid-args`, three under\n`auth-required`: the command that stores the secret `webhooks\nlisten` lacks, `auth oauth2 --step 2` again with its redirect URL\nleft as `<redirect-url>`, and the resumed wait after a 401 on the\nstatus read after `xr media upload`, to run once the credential\nworks; `resume-wait` when the media command was given `-H`, with each\nheader's value left as `<value>`; and that `wait-and-retry` when X\nnamed no reset or under `-H`."
         },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
@@ -350,6 +560,13 @@
         "reason": {
           "description": "Typed kebab-case kind; agents pattern-match on this.\n\nThe runtime emits: `auth-required`, `auth-method-mismatch`,\n`client-credentials-missing`, `rate-limited`, `not-found`, `forbidden`,\n`invalid-request`, `server-error`, `api-error`, `network-error`,\n`invalid-args`, `unknown-command`, `invalid-method`,\n`invalid-url`, `invalid-path-param`, `validation`, `serialization`,\n`io`, `address-in-use`, `token-store`, `internal`, `processing-timeout`,\n`confirmation-required`, `no-tty`, `unsupported-pagination`, and the\nverb-local `invalid-json`, `unknown-schema`, `validation-failed`,\n`missing-host`, `home-not-set`, `destination-not-empty`,\n`destination-is-file`, `git-not-found`, `git-clone-failed`,\n`not-installed`, and `remove-failed`. The set is closed, and a newer\nrelease can add to it: treat a value you do not recognize as your\ndefault branch.",
           "type": "string"
+        },
+        "refused_dir": {
+          "description": "Directory `skill update` refused to replace, because it holds\nsomething other than the bundle.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "rendered_url": {
           "description": "Endpoint path with path parameters substituted.",
@@ -423,6 +640,16 @@
           "description": "The offending input, as it was given, when the broken `rule` names\none: an app name, a redirect URI, a header's position among the `-H`\nheaders (counted from 1), the seconds a checkpoint runs ahead. Always\na string; a number goes in as its decimal digits.",
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "warnings": {
+          "description": "What the library warned about before the run failed, each distinct\nwarning once. Omitted when none fired.",
+          "items": {
+            "$ref": "#/$defs/Warning"
+          },
+          "type": [
+            "array",
             "null"
           ]
         },

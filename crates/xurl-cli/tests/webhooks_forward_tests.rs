@@ -13,8 +13,8 @@ use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use common::listen::{
-    EVENT, EVENT_UNDER_CLIENT_SECRET, OAUTH2_HEADER, crc_token_from, deliver, held_port, listen_as,
-    listen_while, post, stderr_records,
+    EVENT, EVENT_UNDER_CLIENT_SECRET, OAUTH2_HEADER, crc_token_from, deliver, held_port,
+    listen_under, listen_while, post, quick_drain, quick_retries, stderr_records,
 };
 use common::{oauth1_store, run_in_process as run};
 
@@ -182,15 +182,17 @@ async fn a_failed_forward_is_reported_on_stderr_and_changes_nothing_else() {
     let url = hook(&server);
     let flags = ["--allow-unsigned", "--max-events", "2", "--forward", &url];
 
-    let ((code, stdout, stderr), ()) = listen_as(&store, "jsonl", &flags, async |port| {
-        crc_token_from(port).await;
-        assert_eq!(
-            deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await,
-            200
-        );
-        assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
-    })
-    .await;
+    let hooks = quick_retries();
+    let ((code, stdout, stderr), ()) =
+        listen_under(&store, "jsonl", &flags, &hooks, async |port| {
+            crc_token_from(port).await;
+            assert_eq!(
+                deliver(port, Some((OAUTH2_HEADER, EVENT_UNDER_CLIENT_SECRET))).await,
+                200
+            );
+            assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+        })
+        .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let lines: Vec<&str> = stdout.lines().collect();
@@ -611,21 +613,21 @@ async fn at_the_drain_deadline_the_checkpoint_names_the_first_undelivered_minute
         "2",
         "--forward",
         &url,
-        "--forward-timeout",
-        "1",
         "--checkpoint",
         checkpoint.to_str().expect("utf-8 path"),
     ];
 
-    let ((code, _stdout, stderr), (before, after)) = listen_while(&store, &flags, async |port| {
-        crc_token_from(port).await;
-        let before = now_secs();
-        assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
-        let after = now_secs();
-        assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
-        (before, after)
-    })
-    .await;
+    let hooks = quick_drain();
+    let ((code, _stdout, stderr), (before, after)) =
+        listen_under(&store, "json", &flags, &hooks, async |port| {
+            crc_token_from(port).await;
+            let before = now_secs();
+            assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+            let after = now_secs();
+            assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+            (before, after)
+        })
+        .await;
 
     assert_eq!(code, 0, "stderr: {stderr}");
     let incomplete = stderr_records(&stderr)
@@ -720,16 +722,21 @@ async fn a_checkpoint_that_cannot_be_written_is_reported_and_listen_goes_on() {
 
 /// An event that waits on a stalled target holds the checkpoint at its
 /// minute, so a hard stop with a backlog leaves the backlog replayable. The
-/// second event arrives in a later minute, so this waits for a minute to
-/// turn, at most a minute.
-#[cfg(unix)]
-#[tokio::test(flavor = "multi_thread")]
+/// run's clock moves a minute ahead before the second event arrives, so the
+/// two land in different minutes, and the run is dropped while the first is
+/// still being forwarded, so nothing on its way out writes the file.
+#[tokio::test]
 async fn a_hard_stop_leaves_the_checkpoint_at_the_oldest_undelivered_minute() {
-    use common::listen::ListenProcess;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::{Duration, SystemTime};
+
+    use common::listen::{listen_tapped_until_dropped, listening_port, next_record};
+    use xurl::cli::runner::RunHooks;
 
     let server = MockServer::start().await;
     Mock::given(method("POST"))
-        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(120)))
+        .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(120)))
         .mount(&server)
         .await;
     let tmp = TempDir::new().expect("tempdir");
@@ -745,20 +752,29 @@ async fn a_hard_stop_leaves_the_checkpoint_at_the_oldest_undelivered_minute() {
         "--checkpoint",
         checkpoint.to_str().expect("utf-8 path"),
     ];
-    let listen = ListenProcess::start(&store, &flags);
-    let port = listen.port;
+    let ahead = Arc::new(AtomicU64::new(0));
+    let clock = Arc::clone(&ahead);
+    let hooks = RunHooks {
+        arrival_clock: Some(Arc::new(move || {
+            SystemTime::now() + Duration::from_secs(clock.load(Ordering::SeqCst))
+        })),
+        ..RunHooks::default()
+    };
 
-    let before = now_secs();
-    assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
-    let after = now_secs();
-    listen.next_line();
-    while now_secs() / 60 == after / 60 {
-        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-    }
-    assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
-    listen.next_line();
-    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-    let stderr = listen.kill();
+    let (stderr, (before, after)) =
+        listen_tapped_until_dropped(&store, &flags, &hooks, |mut lines| async move {
+            let port = listening_port(&next_record(&mut lines).await);
+            let before = now_secs();
+            assert_eq!(post(port, r#"{"n":1}"#, &[]).await, 200);
+            let after = now_secs();
+            next_record(&mut lines).await;
+            ahead.store(60, Ordering::SeqCst);
+            assert_eq!(post(port, r#"{"n":2}"#, &[]).await, 200);
+            next_record(&mut lines).await;
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            (before, after)
+        })
+        .await;
 
     let minute = checkpoint_minute(&checkpoint);
     assert!(

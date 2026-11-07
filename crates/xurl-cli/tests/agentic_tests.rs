@@ -639,25 +639,52 @@ fn test_raw_without_flag_pretty_prints() {
 
 // ── Output discipline (no naked println/eprintln) ───────────────────
 
+// Unix only: on Windows, `Command::new("bash")` resolves System32's WSL launcher ahead of
+// Git Bash, which exits 1 without running the script.
+#[cfg(unix)]
 #[test]
-fn test_lint_stdio_script_passes_on_clean_tree() {
+fn test_lint_stdio_script_passes_on_clean_tree_or_refuses_without_rg() {
     // The CI guard at scripts/lint-stdio.sh must succeed against the
-    // working tree (every site routes through src/cli/output/).
+    // working tree (every site routes through src/cli/output/). A host
+    // without rg, such as the shared CI test job, gives the script nothing to
+    // search with, so it must refuse with exit 2 and the install hint rather
+    // than report a tree it never read; the `Output discipline` job installs
+    // rg and runs the search.
     let root = common::workspace_root();
     let script = root.join("scripts/lint-stdio.sh");
     if !script.exists() {
         panic!("scripts/lint-stdio.sh is missing");
     }
-    let status = std::process::Command::new("bash")
+    let output = std::process::Command::new("bash")
         .arg(&script)
         .current_dir(root)
         .stdin(std::process::Stdio::null())
-        .status()
+        .output()
         .expect("spawn lint-stdio.sh");
-    assert!(
-        status.success(),
-        "scripts/lint-stdio.sh should exit 0 on a clean tree (exit: {status:?})"
-    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let have_rg = std::process::Command::new("rg")
+        .arg("--version")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .is_ok_and(|status| status.success());
+    if have_rg {
+        assert!(
+            output.status.success(),
+            "scripts/lint-stdio.sh should exit 0 on a clean tree (exit: {:?}): {stderr}",
+            output.status
+        );
+    } else {
+        assert_eq!(
+            output.status.code(),
+            Some(2),
+            "without rg, scripts/lint-stdio.sh should refuse with exit 2: {stderr}"
+        );
+        assert!(
+            stderr.contains("rg is not installed"),
+            "the refusal names the missing tool: {stderr}"
+        );
+    }
 }
 
 // Note: a fixture-based meta-test asserting the script fails on a planted

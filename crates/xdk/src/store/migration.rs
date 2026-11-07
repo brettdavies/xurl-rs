@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use super::TokenStore;
 use super::types::{App, OAuth1Token, StoreFile, Token, TokenType};
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 // ── Legacy JSON structure (for migration) ────────────────────────────
 
@@ -103,7 +103,14 @@ impl TokenStore {
     /// Returns an error if the file cannot be read, parsed, or the store cannot be saved.
     pub fn import_from_twurlrc(&mut self, file_path: &std::path::Path) -> Result<()> {
         let data = std::fs::read(file_path)?;
-        let twurlrc: TwurlrcConfig = serde_saphyr::from_slice(&data)?;
+        let twurlrc: TwurlrcConfig =
+            crate::yaml::from_slice_without_snippet(&data).map_err(|e| {
+                Error::token_store(format!(
+                    "cannot parse {}",
+                    crate::yaml::failure_site(file_path, &e)
+                ))
+                .with_source(e)
+            })?;
 
         self.update(|store| {
             store.import_twurlrc_tokens(&twurlrc);
@@ -155,5 +162,66 @@ impl TokenStore {
                 oauth1: None,
             });
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use tempfile::TempDir;
+
+    use super::TokenStore;
+
+    const TWURLRC: &str = "\
+profiles:
+  testuser:
+    test_consumer_key:
+      username: testuser
+      consumer_key: test_consumer_key
+      consumer_secret: test_consumer_secret
+      token: test_access_token
+      secret: test_token_secret
+configuration:
+  default_profile:
+  - testuser
+  - test_consumer_key";
+
+    #[test]
+    fn test_twurlrc_auto_import() {
+        let tmp = TempDir::new().unwrap();
+        let xurl_path = tmp.path().join(".xurl");
+        fs::write(tmp.path().join(".twurlrc"), TWURLRC).unwrap();
+
+        let store = TokenStore::from_home(tmp.path(), "", "");
+
+        let oauth1_token = store.get_oauth1_tokens();
+        assert!(
+            oauth1_token.is_some(),
+            "OAuth1Token is nil after auto-import"
+        );
+
+        let oauth1 = oauth1_token.unwrap().oauth1.as_ref().unwrap();
+        assert_eq!(oauth1.access_token, "test_access_token");
+
+        assert!(xurl_path.exists(), ".xurl file was not created");
+    }
+
+    #[test]
+    fn test_twurlrc_reimport_after_clear() {
+        let tmp = TempDir::new().unwrap();
+        fs::write(tmp.path().join(".twurlrc"), TWURLRC).unwrap();
+
+        let mut store = TokenStore::from_home(tmp.path(), "", "");
+        store.clear_oauth1_tokens().unwrap();
+
+        let store = TokenStore::from_home(tmp.path(), "", "");
+
+        let oauth1_token = store.get_oauth1_tokens();
+        assert!(oauth1_token.is_some(), "OAuth1Token is nil after re-import");
+        assert_eq!(
+            oauth1_token.unwrap().oauth1.as_ref().unwrap().access_token,
+            "test_access_token"
+        );
     }
 }

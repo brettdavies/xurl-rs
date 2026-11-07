@@ -5,7 +5,7 @@
 //! byte-identical across releases.
 
 use xdk::api::auth_matrix::WireScheme;
-use xdk::error::{AuthMismatch, Error, MismatchShape};
+use xdk::error::{AuthMismatch, Error, MismatchShape, TOKEN_URL_UNUSABLE};
 
 /// The message `xr` prints for `error`, in text mode and in the envelope.
 pub(crate) fn render(error: &Error) -> String {
@@ -16,12 +16,19 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Validation { rule, value } => {
             super::validation::sentence(rule, value.as_deref()).unwrap_or_else(|| error.to_string())
         }
+        Error::TokenEndpointForbidden { body } if matches!(body.trim(), "" | "{}") => {
+            "the token endpoint answered 403 with an empty body".to_string()
+        }
         Error::Api { .. }
+        | Error::TokenEndpointForbidden { .. }
         | Error::ProcessingTimeout { .. }
         | Error::AddressInUse { .. }
         | Error::MediaProcessingFailed { .. } => error.to_string(),
         Error::AccountNotFound { account } => {
             format!("X found no account for the handle @{account}.")
+        }
+        Error::InvalidUrl { message, .. } if message.starts_with(TOKEN_URL_UNUSABLE) => {
+            format!("Invalid URL: {message}; TOKEN_URL sets it")
         }
         Error::InvalidUrl { message, .. } => format!("Invalid URL: {message}"),
         Error::InvalidPathParam { name, value } => {

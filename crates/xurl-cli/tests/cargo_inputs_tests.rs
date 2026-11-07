@@ -3,8 +3,8 @@
 //! document a test reads must never be classified as inert.
 //!
 //! The cases live in `fixtures/cargo_inputs/paths.tsv` rather than here: the
-//! script collects the names of documents Rust reads from string literals
-//! under `crates/`, so a path spelled in this file would count as read.
+//! script collects the names of documents Rust reads from string literals in
+//! tracked Rust source, so a path spelled in this file would count as read.
 #![cfg(unix)]
 
 mod common;

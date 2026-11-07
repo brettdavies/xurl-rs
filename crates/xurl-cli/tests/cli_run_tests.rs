@@ -4,7 +4,7 @@
 /// Parallel-safe: each test creates its own `TempDir` and passes the path to
 /// `run_with_store_path`. No `HOME` / `XDG_CONFIG_HOME` mutation, no
 /// `#[serial]`, no subprocess overhead. Verifies clap exit-code mapping,
-/// Tier-1 dispatch (Completions / Version / Schema), stdout/stderr split,
+/// Tier-1 dispatch (Completions / Schema), stdout/stderr split,
 /// and the F8 regression guard (schema body not double-wrapped in
 /// `{"message": ...}` under `--output json`).
 use std::io::Write;
@@ -28,20 +28,6 @@ async fn run_isolated(args: &[&str]) -> (i32, String, String) {
 }
 
 #[tokio::test]
-async fn help_exits_zero_and_writes_banner_to_stdout() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "--help"]).await;
-    assert_eq!(code, 0, "stderr: {stderr}");
-    // clap renders the `long_about` first under `--help`; the short `about`
-    // string ("Auth enabled curl-like interface...") only appears under
-    // `-h`. Assert against text present in both contexts.
-    assert!(
-        stdout.contains("A command-line tool for making authenticated requests to the X API"),
-        "stdout missing banner: {stdout}"
-    );
-    assert!(stderr.is_empty(), "stderr should be empty, got: {stderr}");
-}
-
-#[tokio::test]
 async fn short_help_writes_about_string_to_stdout() {
     let (code, stdout, stderr) = run_isolated(&["xr", "-h"]).await;
     assert_eq!(code, 0, "stderr: {stderr}");
@@ -52,41 +38,11 @@ async fn short_help_writes_about_string_to_stdout() {
 }
 
 #[tokio::test]
-async fn version_subcommand_exits_zero_and_starts_with_xr() {
-    let (code, stdout, stderr) = run_isolated(&["xr", "version"]).await;
-    assert_eq!(code, 0, "stderr: {stderr}");
-    assert!(
-        stdout.starts_with("xr "),
-        "stdout should start with 'xr ': {stdout}"
-    );
-}
-
-#[tokio::test]
 async fn bad_flag_exits_two_and_writes_to_stderr() {
     let (code, stdout, stderr) = run_isolated(&["xr", "--bogus"]).await;
     assert_eq!(code, 2);
     assert!(!stderr.is_empty(), "stderr should be non-empty");
     assert!(stdout.is_empty(), "stdout should be empty, got: {stdout}");
-}
-
-#[tokio::test]
-async fn bare_invocation_prints_help_to_stdout() {
-    let (code, stdout, stderr) = run_isolated(&["xr"]).await;
-    assert_eq!(code, 0, "stderr: {stderr}");
-    assert!(
-        stdout.contains("Usage: xr"),
-        "stdout missing the root help: {stdout}"
-    );
-}
-
-#[tokio::test]
-async fn missing_url_exits_two_and_writes_no_url_to_stderr() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "-X", "POST"]).await;
-    assert_eq!(code, 2);
-    assert!(
-        stderr.contains("No URL provided"),
-        "stderr missing expected message: {stderr}"
-    );
 }
 
 #[tokio::test]

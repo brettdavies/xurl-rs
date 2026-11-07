@@ -266,7 +266,7 @@ fn credential_failures_point_at_the_authentication_overview() {
 #[test]
 fn an_api_refusal_points_at_the_response_code_reference() {
     let docs = Some("https://docs.x.com/x-api/fundamentals/response-codes-and-errors");
-    for status in [400, 404, 422, 500, 503] {
+    for status in [400, 404, 408, 422, 500, 503] {
         assert_eq!(Error::api(status, "refused").docs_url(), docs, "{status}");
     }
 }
@@ -312,6 +312,43 @@ fn a_transport_failure_and_a_server_error_are_retried() {
         Error::api(503, "unavailable").next_action(),
         Some(NextAction::Retry)
     );
+}
+
+/// The token endpoint's 403 that is no OAuth refusal means something other than
+/// X's OAuth2 handler answered: a proxy or firewall in front of the endpoint, or
+/// a token URL that names another service. The input to fix is the token URL
+/// or the proxy, which the 403 of an API request never is, so it is its own
+/// error.
+#[test]
+fn a_token_endpoint_403_is_a_forbidden_the_token_url_or_the_proxy_causes() {
+    let forbidden = Error::TokenEndpointForbidden {
+        body: "<html>Forbidden</html>".into(),
+    };
+    assert_eq!(forbidden.to_string(), "<html>Forbidden</html>");
+    assert_eq!(forbidden.kind(), "forbidden");
+    assert_eq!(forbidden.exit_code(), EXIT_GENERAL_ERROR);
+    assert_eq!(forbidden.next_action(), Some(NextAction::FixInput));
+    assert_eq!(
+        forbidden.docs_url(),
+        Some("https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint")
+    );
+    assert!(forbidden.is_api(), "an HTTP error response is an API error");
+    assert_eq!(
+        Error::api(403, "plain forbidden").next_action(),
+        None,
+        "an API request's 403 keeps no step"
+    );
+}
+
+/// RFC 9110 section 15.5.9: a 408 says the server never received the whole
+/// request, and the client may send it again. Its reason and exit code stay
+/// those of any status with no reading of its own.
+#[test]
+fn a_request_timeout_is_retried() {
+    let timeout = Error::api(408, "<html>Request Timeout</html>");
+    assert_eq!(timeout.next_action(), Some(NextAction::Retry));
+    assert_eq!(timeout.kind(), "api-error");
+    assert_eq!(timeout.exit_code(), EXIT_GENERAL_ERROR);
 }
 
 /// Sending the same input again gets the same refusal, so the input is what

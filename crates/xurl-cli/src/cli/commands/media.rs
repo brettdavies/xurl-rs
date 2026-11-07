@@ -5,7 +5,7 @@ use serde_json::json;
 use super::{
     DryRun, Run, dry_run_or_validate, make_client, media_lookup, send_or_report, with_flags,
 };
-use crate::cli::failure::CommandResult;
+use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{CommonFlags, MediaCommands, ProcessingWait, SubtitlesCommands};
 use xdk::api::{self, shortcuts};
 use xdk::error::Error;
@@ -99,6 +99,7 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
         out,
         stdout,
         stderr,
+        ..
     } = run;
     let client = make_client(cfg, auth)?;
     let auth_type = auth_type.unwrap_or_default();
@@ -128,6 +129,14 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
         &client,
     )
     .await?;
+    let response = outcome.response();
+    if let Some(Err(error)) = outcome.processing {
+        return Err(Failure::AfterUpload {
+            error,
+            media_id: outcome.init.data.id,
+            waited: wait.0.unwrap_or(api::DEFAULT_PROCESSING_WAIT),
+        });
+    }
     // A structured answer is one document, so INIT's goes only to a human
     // who asked for verbose text.
     if flags.verbose && !out.format.is_structured() {
@@ -136,15 +145,10 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
             &serde_json::to_value(&outcome.init).map_err(Error::from)?,
         );
     }
-    // The upload completed at FINALIZE; a processing failure after it
-    // still leaves the media id on stdout for the caller to act on.
     out.print_response(
         stdout,
-        &serde_json::to_value(outcome.response()).map_err(Error::from)?,
+        &serde_json::to_value(&response).map_err(Error::from)?,
     );
-    if let Some(Err(err)) = outcome.processing {
-        return Err(err.into());
-    }
     out.status(
         stderr,
         &format!(

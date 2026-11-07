@@ -2099,6 +2099,36 @@ async fn skill_install_home_unset_emits_home_not_set_reason() {
     assert_eq!(v["exit_code"], 1);
 }
 
+/// A home that cannot be resolved is refused before anything else, by either
+/// verb, and a dry run says so at exit 0.
+#[rstest::rstest]
+#[case::install("install")]
+#[case::update("update")]
+#[tokio::test]
+async fn a_skill_dry_run_with_no_home_answers_at_exit_zero(#[case] verb: &str) {
+    let (code, stdout, stderr) = run_with_home(
+        &[
+            "xr",
+            "skill",
+            verb,
+            "claude_code",
+            "--dry-run",
+            "--output",
+            "json",
+        ],
+        None,
+    )
+    .await;
+    assert_eq!(code, 0, "a dry run answers at exit 0; stderr: {stderr}");
+    let v: serde_json::Value = serde_json::from_str(stdout.trim()).expect("valid JSON envelope");
+    assert_eq!(v["status"], "dry_run", "{v}");
+    assert_eq!(v["would_succeed"], false, "{v}");
+    assert_eq!(v["exit_code"], 1, "the real run's code: {v}");
+    assert_eq!(v["reason"], "home-not-set", "{v}");
+    assert!(v["message"].is_string(), "{v}");
+    assert_eq!(v["next_step"]["action"], "fix-input", "{v}");
+}
+
 #[tokio::test]
 async fn skill_install_no_args_lists_supported_hosts() {
     let tmp = TempDir::new().expect("tempdir");
@@ -2340,55 +2370,6 @@ fn a_base_dir_env_applies_only_while_skill_home_is_unset() {
         skill_home.path().join(home_rest).to_string_lossy(),
         "XURL_SKILL_HOME replaces the whole home, XDG_CONFIG_HOME included"
     );
-}
-
-#[cfg(unix)]
-#[test]
-fn skill_update_removes_a_legacy_copy_before_installing() {
-    use std::os::unix::fs::PermissionsExt;
-
-    let manifest = skill_manifest();
-    let (host, entry) = manifest["legacy_destinations"]
-        .as_object()
-        .expect("legacy_destinations map")
-        .iter()
-        .next()
-        .expect("a host with a legacy location");
-    let skill_home = TempDir::new().expect("tempdir");
-    let legacy = skill_home.path().join(
-        entry["path"]
-            .as_str()
-            .and_then(|path| path.strip_prefix("~/"))
-            .expect("a ~/ path"),
-    );
-    std::fs::create_dir_all(&legacy).expect("create the legacy copy");
-    std::fs::write(legacy.join("SKILL.md"), b"").expect("a file in the copy");
-
-    // A `git` that refuses every clone, ahead of the real one, so the run
-    // never reaches the network.
-    let shim = TempDir::new().expect("tempdir");
-    let git = shim.path().join("git");
-    std::fs::write(&git, "#!/bin/sh\nexit 128\n").expect("git shim");
-    std::fs::set_permissions(&git, std::fs::Permissions::from_mode(0o755)).expect("executable");
-    let inherited = std::env::var_os("PATH").unwrap_or_default();
-    let path = std::env::join_paths(
-        std::iter::once(shim.path().to_path_buf()).chain(std::env::split_paths(&inherited)),
-    )
-    .expect("PATH");
-
-    let out = common::xr()
-        .env("XURL_SKILL_HOME", skill_home.path())
-        .env("PATH", path)
-        .args(["skill", "update", host, "--output", "json"])
-        .output()
-        .expect("run xr");
-    let v: serde_json::Value = serde_json::from_slice(&out.stdout).expect("JSON envelope");
-    assert!(!legacy.exists(), "update removes the legacy copy: {v}");
-    assert_eq!(
-        v["legacy_install_dir"].as_str(),
-        Some(legacy.to_string_lossy().as_ref())
-    );
-    assert_eq!(v["reason"], "git-clone-failed");
 }
 
 #[test]
@@ -4949,8 +4930,11 @@ async fn test_read_verbs_report_a_damaged_store(#[case] args: &[&str]) {
         !stdout.contains("No apps registered"),
         "must not claim the store is empty; stdout: {stdout}"
     );
+    let path = store.to_str().expect("utf-8 path");
+    // A JSON envelope escapes the backslashes of a Windows path.
+    let escaped = serde_json::to_string(path).expect("a string serializes");
     assert!(
-        stderr.contains(store.to_str().expect("utf-8 path")),
+        stderr.contains(path) || stderr.contains(escaped.trim_matches('"')),
         "the error names the path; stderr: {stderr}"
     );
 }

@@ -21,7 +21,7 @@ use xdk::api::{
     is_media_append_request, is_streaming_endpoint,
 };
 use xdk::auth::Auth;
-use xdk::config::Config;
+use xdk::config::{Config, EnvOverrides};
 use xdk::store::{App, OAuth1Token, OAuth2Token, Token, TokenStore, TokenType};
 
 mod common;
@@ -90,15 +90,17 @@ impl TestServer {
 /// resolves the real `~/.xurl`.
 fn auth_for(cfg: &Config, token_store: TokenStore) -> Auth {
     let store_path = token_store.file_path.clone();
-    Auth::new_with_store_path(cfg, &store_path).with_token_store(token_store)
+    Auth::new_with_store_path_and_overrides(cfg, &store_path, &EnvOverrides::default())
+        .with_token_store(token_store)
 }
 
 fn create_test_config(base_url: &str) -> Config {
     // `Config` has `pub(crate)` resolver fields that external callers cannot
-    // name in a struct literal; start from `Config::new()` and assign the
-    // public fields explicitly. The resolver fields are overwritten by
-    // `Auth::new_with_store_path` downstream.
-    let mut cfg = Config::new();
+    // name in a struct literal; start from `Config::from_overrides` with no
+    // overrides, which reads no environment, and assign the public fields
+    // explicitly. The resolver fields are overwritten when the `Auth` is
+    // built downstream.
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = "test-client-id".to_string();
     cfg.client_secret = "test-client-secret".to_string();
     cfg.redirect_uri = "http://localhost:8080/callback".to_string();
@@ -1908,60 +1910,6 @@ fn test_from_env_without_client_id_builds_a_store_backed_client() {
         empty.is_ok(),
         "from_env() with CLIENT_ID empty must build over the store: {empty:?}"
     );
-}
-
-#[serial_test::serial]
-#[test]
-fn test_from_env_with_client_id_set_returns_ok() {
-    let original_id = std::env::var("CLIENT_ID").ok();
-    let original_secret = std::env::var("CLIENT_SECRET").ok();
-    unsafe {
-        std::env::set_var("CLIENT_ID", "test-from-env-id");
-        std::env::set_var("CLIENT_SECRET", "test-secret");
-    }
-
-    let result = Client::from_env();
-    assert!(
-        result.is_ok(),
-        "from_env() should succeed with CLIENT_ID set"
-    );
-
-    // Restore
-    match original_id {
-        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
-        None => unsafe { std::env::remove_var("CLIENT_ID") },
-    }
-    match original_secret {
-        Some(val) => unsafe { std::env::set_var("CLIENT_SECRET", val) },
-        None => unsafe { std::env::remove_var("CLIENT_SECRET") },
-    }
-}
-
-#[serial_test::serial]
-#[test]
-fn test_from_env_with_client_id_but_no_secret_returns_ok() {
-    // Best-effort: CLIENT_SECRET not required at construction time
-    let original_id = std::env::var("CLIENT_ID").ok();
-    let original_secret = std::env::var("CLIENT_SECRET").ok();
-    unsafe {
-        std::env::set_var("CLIENT_ID", "test-from-env-id");
-        std::env::remove_var("CLIENT_SECRET");
-    }
-
-    let result = Client::from_env();
-    assert!(
-        result.is_ok(),
-        "from_env() should succeed without CLIENT_SECRET (best-effort)"
-    );
-
-    // Restore
-    match original_id {
-        Some(val) => unsafe { std::env::set_var("CLIENT_ID", val) },
-        None => unsafe { std::env::remove_var("CLIENT_ID") },
-    }
-    if let Some(val) = original_secret {
-        unsafe { std::env::set_var("CLIENT_SECRET", val) };
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

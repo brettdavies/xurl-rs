@@ -11,9 +11,14 @@ use sha2::{Digest, Sha256};
 use url::Url;
 
 use super::Auth;
+use super::answer_text::Sent;
 use super::callback;
 use super::pending;
-use crate::error::{BROWSER_OPEN_FAILED, Error, Result};
+use super::token_endpoint::{self, Grant};
+use crate::error::{
+    BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
+    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
+};
 use crate::store::{OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
 
@@ -153,8 +158,9 @@ pub(crate) async fn exchange_code_for_token(
     verifier: &str,
     username: &str,
 ) -> Result<String> {
-    let token_resp = http
-        .post(auth.token_url())
+    let token_url = auth.token_url().to_string();
+    let request = http
+        .post(&token_url)
         .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .form(&[
             ("grant_type", "authorization_code"),
@@ -163,29 +169,19 @@ pub(crate) async fn exchange_code_for_token(
             ("client_id", auth.client_id()),
             ("code_verifier", verifier),
         ])
-        .basic_auth(auth.client_id(), Some(auth.client_secret()))
-        .send()
-        .await
-        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e).with_source(e))?;
-
-    let status = token_resp.status();
-    let token_data: serde_json::Value = token_resp
-        .json()
-        .await
-        .map_err(|e| Error::auth_with_cause("TokenExchangeError", &e).with_source(e))?;
-
-    if !status.is_success() {
-        let api_error = token_data["error"].as_str().unwrap_or("unknown");
-        let api_desc = token_data["error_description"].as_str().unwrap_or("");
-        return Err(Error::auth(format!(
-            "TokenExchangeError: HTTP {status} — {api_error}: {api_desc}"
-        )));
-    }
-
-    let access_token = token_data["access_token"]
-        .as_str()
-        .ok_or_else(|| Error::auth("TokenExchangeError: no access_token in response"))?
-        .to_string();
+        .basic_auth(auth.client_id(), Some(auth.client_secret()));
+    // If the endpoint spent the code before it failed, sending it again
+    // answers with the refusal that starts over.
+    let token_endpoint::Answer {
+        access_token,
+        body: token_data,
+    } = token_endpoint::answer(
+        request,
+        &token_url,
+        Grant::Code,
+        &Sent::new(auth.client_id(), auth.client_secret(), &[code, verifier]),
+    )
+    .await?;
 
     let refresh_token = token_data["refresh_token"]
         .as_str()
@@ -433,11 +429,45 @@ pub async fn run_remote_step2(
     pending_path: &std::path::Path,
 ) -> Result<String> {
     let pending_state = pending::load(pending_path)?;
+    check_flow(auth, &pending_state)?;
+    let code = redirect_code(&pending_state, redirect_url)?;
 
+    // Exchange code for token
+    let access_token =
+        exchange_code_for_token(auth, http, &code, &pending_state.code_verifier, username).await?;
+
+    // Only delete on success
+    pending::delete(pending_path)?;
+
+    Ok(access_token)
+}
+
+/// [`Auth::check_remote_oauth2_step2`]: the refusals [`run_remote_step2`]
+/// meets before it sends the code, in the order it meets them.
+///
+/// # Errors
+///
+/// As [`run_remote_step2`], up to the token exchange.
+pub(crate) fn check_remote_step2(
+    auth: &Auth,
+    redirect_url: Option<&str>,
+    pending_path: &std::path::Path,
+) -> Result<()> {
+    let pending_state = pending::peek(pending_path)?;
+    check_flow(auth, &pending_state)?;
+    if let Some(redirect_url) = redirect_url {
+        redirect_code(&pending_state, redirect_url)?;
+    }
+    Ok(())
+}
+
+/// Refuses a saved flow that belongs to another client or names other scopes
+/// than this run chose.
+fn check_flow(auth: &Auth, pending_state: &pending::PendingOAuth2State) -> Result<()> {
     // Validate client_id matches runtime context
     if pending_state.client_id != auth.client_id() {
         return Err(Error::auth(format!(
-            "AppMismatch: pending state was created for app {:?} (client_id: {}), \
+            "{PENDING_APP_MISMATCH} {:?} (client_id: {}), \
              but current context uses client_id: {}. Re-run step 1 with the correct --app",
             pending_state.app_name,
             pending_state.client_id,
@@ -449,19 +479,25 @@ pub async fn run_remote_step2(
         let saved = pending_state.requested_scopes();
         if chosen != saved {
             return Err(Error::auth(format!(
-                "ScopeMismatch: step 1 requested the scopes {}, but this step names {}. \
+                "{PENDING_SCOPE_MISMATCH} {}, but this step names {}. \
                  Drop the scope choice from step 2, or re-run step 1 with it",
                 saved.join(" "),
                 chosen.join(" ")
             )));
         }
     }
+    Ok(())
+}
 
+/// The authorization code `redirect_url` carries, if it answers the saved
+/// flow.
+fn redirect_code(
+    pending_state: &pending::PendingOAuth2State,
+    redirect_url: &str,
+) -> Result<String> {
     // Parse redirect URL to extract query parameters
-    let parsed = Url::parse(redirect_url).map_err(|e| {
-        Error::auth_with_cause("InvalidRedirectURL: failed to parse redirect URL", &e)
-            .with_source(e)
-    })?;
+    let parsed = Url::parse(redirect_url)
+        .map_err(|e| Error::auth_with_cause(REDIRECT_INVALID_URL, &e).with_source(e))?;
 
     let callback::RedirectParams {
         code,
@@ -471,15 +507,10 @@ pub async fn run_remote_step2(
     } = callback::redirect_params(parsed.query().unwrap_or(""));
 
     // Validate state first (CSRF check before revealing anything about code)
-    let state = state
-        .ok_or_else(|| Error::auth("MissingState: no 'state' parameter found in redirect URL"))?;
+    let state = state.ok_or_else(|| Error::auth(REDIRECT_MISSING_STATE))?;
 
     if state != pending_state.state {
-        return Err(Error::auth(
-            "StateMismatch: the state parameter in the redirect URL does not match \
-             the pending auth flow. This may indicate a CSRF attack or that step 1 \
-             was re-run. Please start over with step 1",
-        ));
+        return Err(Error::auth(REDIRECT_STATE_MISMATCH));
     }
 
     if let Some(error) = error {
@@ -489,22 +520,7 @@ pub async fn run_remote_step2(
         )));
     }
 
-    // Extract authorization code
-    let code = code.ok_or_else(|| {
-        Error::auth(
-            "MissingCode: no 'code' parameter found in redirect URL. \
-             Make sure you copied the full URL from your browser's address bar",
-        )
-    })?;
-
-    // Exchange code for token
-    let access_token =
-        exchange_code_for_token(auth, http, &code, &pending_state.code_verifier, username).await?;
-
-    // Only delete on success
-    pending::delete(pending_path)?;
-
-    Ok(access_token)
+    code.ok_or_else(|| Error::auth(REDIRECT_MISSING_CODE))
 }
 
 /// The stored OAuth2 token a request for `username` would use, if any.
@@ -570,8 +586,10 @@ impl RefreshedToken {
 ///
 /// # Errors
 ///
-/// Returns an error when the request fails or the response carries no
-/// access token.
+/// Returns the failure [`token_endpoint`] reads from the answer: a refused
+/// refresh token or client, or an answer with no access token, is
+/// [`Error::Auth`], and one the endpoint did not process is the failure any
+/// request to X reports.
 pub(crate) async fn refresh_grant(
     http: &reqwest::Client,
     token_url: &str,
@@ -580,7 +598,7 @@ pub(crate) async fn refresh_grant(
     client_secret: &str,
     refresh_token: &str,
 ) -> Result<RefreshedToken> {
-    let token_resp = http
+    let request = http
         .post(token_url)
         .timeout(timeout)
         .form(&[
@@ -588,20 +606,17 @@ pub(crate) async fn refresh_grant(
             ("refresh_token", refresh_token),
             ("client_id", client_id),
         ])
-        .basic_auth(client_id, Some(client_secret))
-        .send()
-        .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e).with_source(e))?;
-
-    let token_data: serde_json::Value = token_resp
-        .json()
-        .await
-        .map_err(|e| Error::auth_with_cause("RefreshTokenError", &e).with_source(e))?;
-
-    let access_token = token_data["access_token"]
-        .as_str()
-        .ok_or_else(|| Error::auth("RefreshTokenError: no access_token in response"))?
-        .to_string();
+        .basic_auth(client_id, Some(client_secret));
+    let token_endpoint::Answer {
+        access_token,
+        body: token_data,
+    } = token_endpoint::answer(
+        request,
+        token_url,
+        Grant::Refresh,
+        &Sent::new(client_id, client_secret, &[refresh_token]),
+    )
+    .await?;
     let refresh_token = token_data["refresh_token"]
         .as_str()
         .filter(|token| !token.is_empty())
@@ -641,9 +656,16 @@ pub(crate) async fn refresh_grant(
 ///
 /// # Errors
 ///
-/// Returns an error when no cached token is found, the refresh lock cannot
-/// be taken, or the refresh-token POST itself fails. A failed `/2/users/me`
-/// lookup is not an error.
+/// Returns an error when no cached token is found or the refresh lock cannot
+/// be taken, and when the refresh itself fails:
+/// [`Error::Auth`] when the token endpoint refuses the refresh token or the
+/// client, or answers with no access token; [`Error::Http`] when it does not
+/// answer; [`Error::Api`] when it answers a failure status that is no OAuth
+/// refusal, such as a 5xx, a 429 (with `reset_at` when it names its reset), or
+/// a proxy's 404; [`Error::TokenEndpointForbidden`] when that status is a 403;
+/// and [`Error::InvalidUrl`] when the token URL is not one a request can go
+/// to. A failed refresh writes nothing to the store.
+/// A failed `/2/users/me` lookup is not an error.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,
     http: &reqwest::Client,

@@ -161,7 +161,9 @@ impl Event {
 
 /// A bound webhook receiver.
 ///
-/// Dropping it stops the listener and releases the port.
+/// Dropping it stops the listener, ends the connections it is serving, and
+/// releases the port. The token given to [`Receiver::bind`] stays as the caller
+/// left it.
 ///
 /// # Example
 ///
@@ -190,16 +192,29 @@ impl Event {
 pub struct Receiver {
     local_addr: SocketAddr,
     events: mpsc::Receiver<Event>,
-    cancel: CancellationToken,
+    // A child of the caller's token: the caller's stop reaches every task
+    // through it, and `Drop` cancels it without touching the caller's token.
+    stop: CancellationToken,
     task: tokio::task::JoinHandle<()>,
 }
+
+/// What a receiver stamps each [`Event::received_at`] with.
+// `xr`'s in-process test runner passes one through `RunHooks`
+// (`crates/xurl-cli/src/cli/runner.rs`) to `webhooks listen`
+// (`crates/xurl-cli/src/cli/commands/webhooks_listen.rs`), so a test can put
+// two arrivals in different minutes without waiting for the clock.
+// `Receiver::bind` reads `SystemTime::now`.
+#[doc(hidden)]
+pub type ArrivalClock = Arc<dyn Fn() -> SystemTime + Send + Sync>;
 
 impl Receiver {
     /// Binds `config.bind` and starts answering.
     ///
-    /// `cancel` is the external stop: once it is cancelled the listener
-    /// closes and [`Receiver::next_event`] returns `None`. The library
-    /// registers no signal handler.
+    /// `cancel` is the caller's stop: once it is cancelled the listener
+    /// closes and [`Receiver::next_event`] returns `None`. The receiver never
+    /// cancels it itself, even when it is dropped, so the caller can pass a
+    /// token it shares with other work, a signal handler's among them. The
+    /// library registers no signal handler.
     ///
     /// # Errors
     ///
@@ -208,6 +223,19 @@ impl Receiver {
     /// [`Error::AddressInUse`] when another socket holds the address, and an
     /// `io` error when it cannot be bound for any other reason.
     pub async fn bind(config: ReceiverConfig, cancel: CancellationToken) -> Result<Self> {
+        Self::bind_with_clock(config, cancel, Arc::new(SystemTime::now)).await
+    }
+
+    /// [`Receiver::bind`], stamping each arrival with `clock`. `cancel` is the
+    /// caller's stop here too: the receiver never cancels it itself.
+    // `webhooks listen` calls this when the in-process runner gives it an
+    // `ArrivalClock`; see that type.
+    #[doc(hidden)]
+    pub async fn bind_with_clock(
+        config: ReceiverConfig,
+        cancel: CancellationToken,
+        clock: ArrivalClock,
+    ) -> Result<Self> {
         if config.secrets.is_empty() {
             return Err(Error::validation("no-signing-secret"));
         }
@@ -225,12 +253,17 @@ impl Receiver {
             .local_addr()
             .map_err(|e| Error::io(format!("could not read the bound address: {e}")))?;
         let (sender, events) = mpsc::channel(EVENT_BUFFER);
-        let shared = Arc::new(Shared { config, sender });
-        let task = tokio::spawn(accept_loop(listener, shared, cancel.clone()));
+        let shared = Arc::new(Shared {
+            config,
+            sender,
+            clock,
+        });
+        let stop = cancel.child_token();
+        let task = tokio::spawn(accept_loop(listener, shared, stop.clone()));
         Ok(Self {
             local_addr,
             events,
-            cancel,
+            stop,
             task,
         })
     }
@@ -247,14 +280,14 @@ impl Receiver {
         tokio::select! {
             biased;
             event = self.events.recv() => event,
-            () = self.cancel.cancelled() => None,
+            () = self.stop.cancelled() => None,
         }
     }
 }
 
 impl Drop for Receiver {
     fn drop(&mut self) {
-        self.cancel.cancel();
+        self.stop.cancel();
         self.task.abort();
     }
 }
@@ -262,6 +295,7 @@ impl Drop for Receiver {
 struct Shared {
     config: ReceiverConfig,
     sender: mpsc::Sender<Event>,
+    clock: ArrivalClock,
 }
 
 async fn accept_loop(listener: TcpListener, shared: Arc<Shared>, cancel: CancellationToken) {
@@ -355,7 +389,7 @@ fn answer_crc(shared: &Shared, request: &Request<Incoming>) -> Response<Full<Byt
 }
 
 async fn receive_event(shared: &Shared, request: Request<Incoming>) -> Response<Full<Bytes>> {
-    let received_at = SystemTime::now();
+    let received_at = (shared.clock)();
     let header = |name: &str| {
         request
             .headers()

@@ -114,3 +114,57 @@ fn moderators_schema_rejects_a_post() {
         .code(1)
         .stderr(predicate::str::contains("validation-failed"));
 }
+
+/// The errors recorded in the golden fixtures, on either stream and from any
+/// command, by fixture name. The golden test holds each equal to the binary.
+fn error_fixtures() -> Vec<(String, String)> {
+    let dir = common::workspace_root().join("crates/xurl-cli/tests/golden");
+    let mut found = Vec::new();
+    for entry in std::fs::read_dir(&dir).expect("the golden fixtures") {
+        let path = entry.expect("entry").path();
+        let name = path.file_name().expect("a name").display().to_string();
+        let text = std::fs::read_to_string(&path).expect("a fixture");
+        let (_, streams) = text.split_once("--- stdout ---").expect("a stdout section");
+        let (stdout, stderr) = streams
+            .split_once("--- stderr ---")
+            .expect("a stderr section");
+        for stream in [stdout, stderr] {
+            let document = stream.trim();
+            if serde_json::from_str::<serde_json::Value>(document)
+                .is_ok_and(|value| value["status"] == "error")
+            {
+                found.push((name.clone(), document.to_string()));
+            }
+        }
+    }
+    found.sort();
+    found
+}
+
+/// Every structured error carries a `reason`, an `exit_code`, and a `message`,
+/// so the validator an agent runs accepts what `xr` writes, whichever command
+/// wrote it.
+#[test]
+fn every_error_fixture_passes_the_envelope_validator() {
+    let fixtures = error_fixtures();
+    assert!(fixtures.len() > 30, "the errors: {}", fixtures.len());
+    let refused: Vec<String> = fixtures
+        .into_iter()
+        .filter_map(|(name, document)| {
+            let output = common::xr()
+                .args(["--output", "json", "validate", "--schema", "envelope"])
+                .write_stdin(document)
+                .output()
+                .expect("run xr");
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let message = serde_json::from_str::<serde_json::Value>(stderr.trim())
+                .map_or_else(|_| stderr.to_string(), |v| v["message"].to_string());
+            (!output.status.success()).then(|| format!("{name}: {message}"))
+        })
+        .collect();
+    assert!(
+        refused.is_empty(),
+        "`xr validate --schema envelope` refused:\n{}",
+        refused.join("\n")
+    );
+}

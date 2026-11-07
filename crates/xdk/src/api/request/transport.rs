@@ -312,7 +312,7 @@ async fn read_response(resp: reqwest::Response) -> Result<serde_json::Value> {
 /// # Errors
 ///
 /// Returns the transport error when the body cannot be read.
-async fn api_error(resp: reqwest::Response) -> Result<Error> {
+pub(crate) async fn api_error(resp: reqwest::Response) -> Result<Error> {
     let status = resp.status().as_u16();
     let reset_at = (status == 429)
         .then(|| super::RateLimit::from_headers(resp.headers()))

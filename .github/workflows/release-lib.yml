@@ -1,29 +1,44 @@
-# Library release wrapper: calls the centralized reusable workflow for the
-# `xdk-rs` crate. Publishes to crates.io and creates a GitHub Release from
-# `crates/xdk/CHANGELOG.md`; no binaries, no Homebrew.
+# Canonical version: 2026.09.17 (rust)
 #
-# The tag line is `xdk-rs-vX.Y.Z`, so a library release never collides with
-# the binary's bare `vX.Y.Z` tags, which `release.yml` owns. A library tag is
-# pushed and its run is green before any binary tag whose `xdk-rs` bound
-# moved: `cargo publish -p xurl-rs` resolves the library from the registry.
+# Source repo library-release wrapper — calls the centralized reusable workflow.
+# Copy to .github/workflows/release-lib.yml in a workspace that publishes a
+# library crate alongside the binary. A repo with no published library member
+# does not need this file.
 #
-# `workflow_dispatch` is a rehearsal only: the reusable runs `cargo publish
-# --dry-run`, skips the tag check, and creates no release.
+# Pipeline: check-version -> audit -> cargo publish -p -> GitHub Release.
+# No archives, no Homebrew dispatch, no finalize callback. The Release keeps
+# make_latest: false permanently so the binary's release stays the repo's
+# latest, which is what a visitor looking for a download expects.
+#
+# The tag is xdk-rs-vX.Y.Z, namespaced so it can never match release.yml's
+# bare v[0-9]+.[0-9]+.[0-9]+ filter; one tag push starts exactly one pipeline.
+#
+# Release the library BEFORE the binary. `cargo publish -p` resolves a path
+# dependency from crates.io rather than the working tree, so the binary cannot
+# publish until this crate is on the index at a version its bound accepts.
 name: Release library
 
 on:
   push:
     tags:
       - 'xdk-rs-v[0-9]+.[0-9]+.[0-9]+'
+  # Rehearsal entry point. No inputs by design: dry_run is derived from the
+  # event below rather than offered as a checkbox, so a manual run cannot
+  # publish even if someone unticks it.
   workflow_dispatch:
 
 permissions:
   contents: write
   id-token: write
 
+# No concurrency block: the reusable owns every job in this run and declares
+# its own group (rust-lib-release-<repo>-<crate>). A group here would collide
+# with it, and the reusable's queue would cancel this caller.
+
 jobs:
   pipeline:
     uses: brettdavies/.github/.github/workflows/rust-lib-release.yml@main
     with:
       crate: xdk-rs
+      # A tag push publishes; a manual dispatch always rehearses.
       dry_run: ${{ github.event_name == 'workflow_dispatch' }}

@@ -1,36 +1,55 @@
 #!/usr/bin/env bash
-# Fail a pull request whose `xr` surface grows while its `## Changelog
-# (xurl-rs)` block names no minor-or-higher section.
+# Canonical version: 2026.11.03 (rust)
 #
-# RELEASES.md § Versioning lets each PR's changelog section decide the version
-# bump, and an addition to the contract is a minor. An addition filed under
-# `### Changed` reads as a patch and nothing in review makes it stand out, so
-# this compares the surface two trees describe:
+# Fail a pull request whose CLI surface grows while its changelog block names
+# no minor-or-higher section, or shrinks while it names neither
+# `### Breaking changes` nor `### Fixed`.
+#
+# Each PR's changelog sections decide the release's version bump
+# (github-repo-setup's references/versioning.md), and an addition to the
+# contract is a minor. An addition filed under `### Changed`
+# reads as a patch and nothing in review makes it stand out, so this compares
+# the surface two trees describe:
 #
 #   - every command, subcommand, flag, and enumerated flag value, read from
-#     completions/xr.bash, which the `Completions freshness` job holds equal
-#     to the clap definition;
-#   - every leaf of every schema under schema/ except `description` and
-#     `title`, so a new envelope key, `reason`, `action`, or response field
-#     counts and reworded prose does not.
+#     completions/<BIN>.bash, which the repo's completions freshness check
+#     holds equal to the clap definition;
+#   - every leaf of every JSON schema under SCHEMA_DIR except `description`
+#     and `title`, so a new envelope key, `reason`, `action`, or response field
+#     counts and reworded prose does not. A repo without the directory
+#     compares the CLI alone.
 #
 # Growth passes when the block has a bullet under `### Added`, `### Deprecated`,
-# or `### Breaking changes`. A removal only warns: the convention allows a
-# change back to the documented contract as a patch, and the release preflight
-# diffs every removal against the last tag. Env vars, exit codes, and the store
-# format have no generated artifact and are not compared. The `xdk-rs` block is
-# not read, because before 1.0 an addition and a change both move the library's
-# last number, so filing one as the other cannot change its version.
+# or `### Breaking changes`. A removal passes with a bullet under
+# `### Breaking changes`, a contract removal and a major, or `### Fixed`, a
+# change back to the documented contract and a patch. Env vars, exit codes, and
+# the store format have no generated artifact and are not compared.
+#
+# This repository reads the `xr` block, `## Changelog (xurl-rs)`, only. The
+# `xdk-rs` block is not read: the library's surface is its Rust API, which
+# cargo-semver-checks compares in preflight's api-contract gate.
 #
 # Usage:
 #   check-surface-bump.sh surface <tree>
 #   check-surface-bump.sh check <base-tree> <head-tree> <pr-body-file>
 #
-# Exit codes: 0 = pass, 1 = the surface grew and the block lacks the section,
-# 2 = a usage error or a tree the parser cannot read.
+# Skeleton: set the CUSTOMIZE values below for this repository. The changelog
+# block is the one generate-changelog.py reads: `## Changelog`, or the heading
+# MANIFEST's [package.metadata.changelog] table names.
+#
+# Exit codes: 0 = pass, 1 = the surface grew or shrank and the block lacks the
+# section that change needs, 2 = a usage error or a tree the parser cannot
+# read. Each failure lists the entries and ends on a `fix:` line.
 set -euo pipefail
 
+# CUSTOMIZE: the binary whose completions/<BIN>.bash describes the CLI, the
+# manifest that names the PR body's changelog heading, and the schema directory.
+readonly BIN="${SURFACE_BIN:-xr}"
+readonly MANIFEST="${SURFACE_MANIFEST:-crates/xurl-cli/Cargo.toml}"
+readonly SCHEMA_DIR="${SURFACE_SCHEMA_DIR:-schema}"
+
 readonly MINOR_OR_HIGHER='Added|Deprecated|Breaking changes'
+readonly REMOVAL_SECTIONS='Breaking changes|Fixed'
 readonly LISTED=20
 
 die() {
@@ -49,9 +68,8 @@ annotate() {
 
 # surface <tree> — one line per contract element, unsorted.
 surface() {
-  local tree="$1" completions="$1/completions/xr.bash" cli file
-  [ -f "$completions" ] || die "no completions/xr.bash under $tree"
-  [ -d "$tree/schema" ] || die "no schema/ under $tree"
+  local tree="$1" completions="$1/completions/$BIN.bash" cli file files
+  [ -f "$completions" ] || die "no completions/$BIN.bash under $tree; set BIN in this script"
 
   # clap_complete writes one `case "${cmd}"` arm per command path, labelled
   # with the words joined by `__subcmd__`; each arm lists its words in
@@ -80,25 +98,38 @@ surface() {
   [ -n "$cli" ] || die "found no commands in $completions; did the clap_complete output format change?"
   printf '%s\n' "$cli"
 
-  # Array indices become `[]` so reordering a list is not growth; the value
-  # is JSON-encoded so every leaf stays on one line.
+  [ -d "$tree/$SCHEMA_DIR" ] || return 0
+  files=()
   while IFS= read -r file; do
-    jq -r --arg file "$file" '
+    files+=("$file")
+  done < <(cd "$tree" && find "$SCHEMA_DIR" -type f -name '*.json' | LC_ALL=C sort)
+  [ "${#files[@]}" -gt 0 ] || return 0
+
+  # Array indices become `[]` so reordering a list is not growth; the value
+  # is JSON-encoded so every leaf stays on one line. One jq reads every file
+  # from inside the tree, which names each file as the tree does and costs
+  # half the CPU of starting one per file. A failure goes file by file, so jq
+  # reports the line within the file it could not read.
+  (cd "$tree" && jq -r '
             paths(scalars) as $p
             | select($p[-1] != "description" and $p[-1] != "title")
-            | "schema\t\($file)\t\($p | map(if type == "number" then "[]" else . end) | join("."))=\(getpath($p) | tojson)"
-        ' "$tree/$file" || die "cannot read $tree/$file as JSON"
-  done < <(cd "$tree" && find schema -type f -name '*.json' | LC_ALL=C sort)
+            | "schema\t\(input_filename)\t\($p | map(if type == "number" then "[]" else . end) | join("."))=\(getpath($p) | tojson)"
+        ' "${files[@]}" 2>/dev/null) || {
+    for file in "${files[@]}"; do
+      jq empty "$tree/$file" || die "cannot read $tree/$file as JSON"
+    done
+    die "jq could not read the schemas under $tree/$SCHEMA_DIR"
+  }
 }
 
-# filled_sections <head-tree> <body-file> — each `###` heading in the xurl-rs
+# filled_sections <head-tree> <body-file> — each `###` heading in the
 # changelog block that holds at least one bullet. The block is read by the
 # release's own parser, `extract_changelog_sections` in generate-changelog.py,
-# under the heading the crate's `[package.metadata.changelog]` table names, so
-# this check and the release notes cannot disagree about which sections a PR
-# filled.
+# under `## Changelog` or the heading a `[package.metadata.changelog]` table in
+# Cargo.toml names, so this check and the release notes cannot disagree about
+# which sections a PR filled.
 filled_sections() {
-  python3 -B - "$1" "$2" <<'PY'
+  python3 -B - "$1" "$2" "$MANIFEST" <<'PY'
 import importlib.util
 import re
 import sys
@@ -132,10 +163,8 @@ def table_value(manifest: str, table: str, key: str) -> str | None:
     return value.group(1) if value else None
 
 
-manifest = (tree / "crates/xurl-cli/Cargo.toml").read_text(encoding="utf-8")
-label = table_value(manifest, "package.metadata.changelog", "heading") or (
-    f"Changelog ({table_value(manifest, 'package', 'name')})"
-)
+manifest = (tree / sys.argv[3]).read_text(encoding="utf-8")
+label = table_value(manifest, "package.metadata.changelog", "heading") or "Changelog"
 sections = generator.extract_changelog_sections(
     body.read_text(encoding="utf-8"), rf"^## {re.escape(label)}\s*$"
 )
@@ -156,34 +185,42 @@ list() {
 }
 
 check() {
-  local base="$1" head="$2" body="$3" base_surface head_surface added removed
+  local base="$1" head="$2" body="$3" base_surface head_surface added removed sections rc=0
   [ -f "$body" ] || die "no PR body at $body"
   base_surface=$(surface "$base" | LC_ALL=C sort -u)
   head_surface=$(surface "$head" | LC_ALL=C sort -u)
   added=$(LC_ALL=C comm -13 <(printf '%s\n' "$base_surface") <(printf '%s\n' "$head_surface"))
   removed=$(LC_ALL=C comm -23 <(printf '%s\n' "$base_surface") <(printf '%s\n' "$head_surface"))
 
+  if [ -z "$added$removed" ]; then
+    echo "check-surface-bump: the $BIN surface did not grow or shrink"
+    return 0
+  fi
+  sections=$(filled_sections "$head" "$body") \
+    || die "could not read the changelog block with $head/scripts/generate-changelog.py"
+
   if [ -n "$removed" ]; then
-    annotate warning "the xr surface lost entries; a removal or rename belongs under ### Breaking changes unless it restores the documented contract (RELEASES.md § Versioning)"
-    list "$removed"
+    if grep -qxE "$REMOVAL_SECTIONS" <<<"$sections"; then
+      echo "check-surface-bump: the $BIN surface lost entries and the changelog block names ### Breaking changes or ### Fixed"
+    else
+      annotate error "the $BIN surface lost entries, and the changelog block has no bullet under ### Breaking changes or ### Fixed"
+      list "$removed"
+      echo "fix: file the removal under ### Breaking changes, a bullet starting \"Remove\" (a major), or under ### Fixed when it restores the documented contract (a patch)" >&2
+      rc=1
+    fi
   fi
 
-  if [ -z "$added" ]; then
-    echo "check-surface-bump: the xr surface did not grow"
-    return 0
+  if [ -n "$added" ]; then
+    if grep -qxE "$MINOR_OR_HIGHER" <<<"$sections"; then
+      echo "check-surface-bump: the $BIN surface grew and the changelog block names a minor-or-higher section"
+    else
+      annotate error "the $BIN surface grew, so the changelog block needs a bullet under ### Added (or ### Deprecated or ### Breaking changes); an addition is a minor"
+      list "$added"
+      echo "fix: file the addition under ### Added, ### Deprecated, or ### Breaking changes" >&2
+      rc=1
+    fi
   fi
-
-  local sections
-  sections=$(filled_sections "$head" "$body") ||
-    die "could not read the xurl-rs changelog block with $head/scripts/generate-changelog.py"
-  if grep -qxE "$MINOR_OR_HIGHER" <<<"$sections"; then
-    echo "check-surface-bump: the xr surface grew and the xurl-rs changelog block names a minor-or-higher section"
-    return 0
-  fi
-
-  annotate error "the xr surface grew, so the xurl-rs changelog block needs a bullet under ### Added (or ### Deprecated or ### Breaking changes); an addition is a minor (RELEASES.md § Versioning)"
-  list "$added"
-  return 1
+  return "$rc"
 }
 
 command -v jq >/dev/null || die "jq is not installed"

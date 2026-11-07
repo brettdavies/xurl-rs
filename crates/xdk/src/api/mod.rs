@@ -24,6 +24,7 @@ pub use media::{
     handle_media_append_request, is_media_append_request, media_status_auth_preflight,
     media_upload_preflight,
 };
+pub(crate) use request::api_error;
 pub use request::{
     AuthPreflight, Call, Client, ClientBuilder, DEFAULT_TIMEOUT_SECS, MultipartOptions,
     RequestOptions, RequestTarget, StreamLines, WIRE_TARGET,
@@ -44,9 +45,9 @@ pub use response::types::{
     PostAnalytics, PostCount, PostPublicMetrics, ProvisionedResult, ReferencedPost, RepostedResult,
     ResponseMeta, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
-    StreamRuleCounts, StreamSource, StreamSourceDeleted, SubscribedResult, Trend, UsageCreditsData,
-    UsageData, User, UserPublicMetrics, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall, deserialize_response,
+    StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted, StreamSourceKey,
+    SubscribedResult, Trend, UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]

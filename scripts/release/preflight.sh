@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Canonical version: 2026.11.03 (generic)
+#
 # Run release preflight gates against the current checkout.
 #
 # Usage:
@@ -10,25 +12,33 @@
 #   api-contract  xr help command surface diff, public API semver check vs last tag, stale semver overrides
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
 #   multi-app     Multi-app credential routing (reuses or seeds $SMOKE_HOME)
+#   oauth2-interactive
+#                 The release binary's interactive `xr auth oauth2`, offline: under a pty, with a
+#                 fake browser and a stub for X (oauth2-interactive.py). Also runs the previous
+#                 release's xr, when installed, and reports whether the two behave differently
 #   changelog-sections
 #                 No PR this release carries leaves its changelog entry to its title for want
 #                 of a ## Changelog section (generate-changelog.py --audit-sections)
 #   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check,
 #                 unguarded docs added to main, diff-B vs origin/dev)
-#   all           Run drift, surface, api-contract, smoke, multi-app, changelog-sections, mechanics
-#                 (and surface-smoke if present)
+#   all           Run drift, surface, api-contract, smoke, multi-app, oauth2-interactive,
+#                 changelog-sections, mechanics (and surface-smoke if present)
 #
 # Post-tag verification (release.yml + homebrew dispatch + finalize-release) lives in
-# scripts/release/postflight.sh, which runs AFTER the tag push, not before.
+# scripts/release/postflight.sh, that runs AFTER the tag push, not before.
 #
 # Flags:
 #   --smoke-home PATH   Reuse an existing seeded $SMOKE_HOME instead of creating + seeding
 #   --no-cleanup        Keep $SMOKE_HOME after exit (default: shred on exit)
 #   --tag TAG           Override LAST_TAG resolution (default: the newest `v[0-9]*` tag)
+#   --staging-url URL   Run surface-smoke against this deployed URL (default: STAGING_URL_DEFAULT
+#                       from release.env; with neither, the local server at $LOCAL_URL)
 #
 # Environment:
 #   CHANGELOG_PR_BASE   Branch whose merged PRs changelog-sections reads (default: dev, or main
 #                       when origin/dev does not exist)
+#   PREVIOUS_BIN_PATH   The xr oauth2-interactive compares the release binary with (default:
+#                       Homebrew's)
 #
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
@@ -39,11 +49,12 @@
 #   - `xr` (built via cargo build --release --bin xr)
 #   - `yq`, `jaq`, `gh`, `cargo`, `git` on PATH
 #   - 1Password CLI service-account env (for smoke + multi-app)
+#   - Linux, `script` from util-linux, and `python3` for oauth2-interactive, which skips without them
 #   - ~/.claude/skills/1password/scripts/ for vault reads (via _lib.sh's read_1p)
 #
 # The shared scaffolding (gate helpers, 1Password reads, shred cleanup, dispatch, drift,
 # surface, changelog-sections, mechanics) is the github-repo-setup skill's skeleton; the api-contract, smoke,
-# and multi-app gates and the seed recipe are this project's.
+# multi-app, and oauth2-interactive gates and the seed recipe are this project's.
 
 set -euo pipefail
 
@@ -181,10 +192,12 @@ gate_surface() {
   # set: dev carries engineering docs that never ship.
   local guarded
   guarded=$("$(dirname "$0")/guarded-paths.sh" 2>/dev/null) || guarded='^$'
-  commits=$(git log "$window" --oneline | wc -l)
-  files=$(git diff "$last_tag" "$head_ref" --name-only | { grep -Ev "$guarded" || true; } | wc -l)
+  # BSD wc pads its count to eight columns, so each count drops its whitespace
+  # before it reaches the pass line.
+  commits=$(git log "$window" --oneline | wc -l | tr -d '[:space:]')
+  files=$(git diff "$last_tag" "$head_ref" --name-only | { grep -Ev "$guarded" || true; } | wc -l | tr -d '[:space:]')
   # Scoped markers count too: `feat(api)!:` is breaking as much as `feat!:`.
-  breaking=$(git log "$window" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline | wc -l)
+  breaking=$(git log "$window" --grep '^[a-z]\+\(([^)]*)\)\?!:' --oneline | wc -l | tr -d '[:space:]')
   gate_pass "LAST_TAG = $last_tag  ($commits commits, $files files, $breaking breaking${anchor:+, counted from its backport ${anchor:0:12} on $head_ref})"
 }
 
@@ -310,8 +323,9 @@ gate_smoke() {
     gate_fail "OAuth1 whoami" "no username returned"
   fi
 
-  # OAuth2 PKCE needs a human
-  gate_skip "OAuth2 PKCE end-to-end" "human-driven; see RELEASES-PREFLIGHT.md § OAuth2 PKCE path"
+  # The oauth2-interactive gate drives the sign-in against a stub. A real browser
+  # against X needs a person, so it stays an optional check.
+  gate_skip "OAuth2 PKCE against X" "optional real-browser check; see RELEASES-PREFLIGHT.md § OAuth2 PKCE path"
   gate_skip "OAuth2 headless (--no-browser)" "same recipe as PKCE; same skip"
 
   # Bearer env one-shot
@@ -437,7 +451,7 @@ gate_multi_app() {
   # OAuth2 sideload structural isolation
   out=$(yq '.apps | with_entries(select(.value.oauth2_tokens != null)) | keys | length' "$SMOKE_HOME/.xurl")
   if [[ "$out" -ge 1 ]]; then
-    gate_pass "OAuth2 per-app oauth2_tokens slot present (sideload-verifiable; PKCE end-to-end is human-driven)"
+    gate_pass "OAuth2 per-app oauth2_tokens slot present (sideload-verifiable; the oauth2-interactive gate drives a sign-in)"
   else
     gate_fail "OAuth2 isolation" "no oauth2_tokens slot found"
   fi
@@ -506,6 +520,89 @@ gate_multi_app() {
   fi
 }
 
+# Gate: oauth2-interactive ----------------------------------------------------
+#
+# Project-authored: the one gate that makes the shipped binary serve an OAuth2
+# callback. smoke and multi-app seed their stores, and the headless flow never
+# binds the listener. The harness gives every process it starts an environment
+# it builds from nothing and a scratch store, so this gate needs no secret and
+# cannot reach the machine's own store or X.
+
+# Homebrew's `xr`: the previous release, on a machine that installs it. Empty
+# when Homebrew or the formula is missing.
+homebrew_xr() {
+  have_bin brew || return 0
+  local bin
+  bin="$(brew --prefix xurl-rs 2>/dev/null || true)/bin/xr"
+  if [[ -x "$bin" ]]; then
+    printf '%s\n' "$bin"
+  fi
+}
+
+oauth2_harness() {
+  python3 -B -I "$REPO_ROOT/scripts/release/oauth2-interactive.py" "$1"
+}
+
+# The modes a harness run reported failed, space-separated.
+failed_modes() {
+  awk -F'\t' '$1 == "FAIL" { print $2 }' <<<"$1" | paste -sd ' ' -
+}
+
+# Whether the harness tells the release binary from the previous release. It
+# informs and never fails the release: once the previous release carries every
+# fix, the two are meant to agree, and an older binary failing proves only that
+# the harness still discriminates.
+compare_with_previous_release() {
+  local failed="$1" previous results rc=0 previous_failed name
+  previous="${PREVIOUS_BIN_PATH:-$(homebrew_xr)}"
+  if [[ -z "$previous" ]]; then
+    gate_skip "previous release comparison" "no Homebrew xr installed; set PREVIOUS_BIN_PATH to name one"
+    return
+  fi
+  name=$("$previous" --version 2>/dev/null || printf '%s' "$previous")
+  results=$(oauth2_harness "$previous") || rc=$?
+  previous_failed=$(failed_modes "$results")
+  if [[ $rc -ne 0 && -z "$previous_failed" ]]; then
+    gate_skip "previous release comparison" "the harness could not run against $name (exit $rc)"
+  elif [[ "$previous_failed" == "$failed" ]]; then
+    gate_pass "previous release comparison: $name and this build fail the same modes [${failed:-none}], so the harness does not tell the two apart"
+  else
+    gate_pass "previous release comparison: $name fails [${previous_failed:-none}], this build [${failed:-none}], so the harness tells the two apart"
+  fi
+}
+
+gate_oauth2_interactive() {
+  header "OAuth2 interactive sign-in (offline)"
+  local tool
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    gate_skip "OAuth2 interactive sign-in" "needs Linux, for script(1) from util-linux and the fake xdg-open"
+    return
+  fi
+  for tool in script python3; do
+    if ! have_bin "$tool"; then
+      gate_skip "OAuth2 interactive sign-in" "$tool not installed"
+      return
+    fi
+  done
+  require_built_binary
+
+  local results rc=0 failed verdict mode detail
+  results=$(oauth2_harness "$BIN_PATH") || rc=$?
+  failed=$(failed_modes "$results")
+  if [[ $rc -ne 0 && -z "$failed" ]]; then
+    gate_fail "OAuth2 interactive harness" "could not run (exit $rc); its error is above"
+    return
+  fi
+  while IFS=$'\t' read -r verdict mode detail; do
+    if [[ "$verdict" == "PASS" ]]; then
+      gate_pass "$mode: $detail"
+    else
+      gate_fail "$mode" "$detail"
+    fi
+  done <<<"$results"
+  compare_with_previous_release "$failed"
+}
+
 # Gate: drift (delegated to drift.sh) ----------------------------------------
 #
 # Security PRs, hotfixes, and config edits land on main first. The release
@@ -542,12 +639,23 @@ gate_surface_smoke() {
   surface_script="$(dirname "$0")/surface-smoke.sh"
   [[ -x "$surface_script" ]] || return 0
   header "Surface smoke (delegated to surface-smoke.sh)"
-  local local_url="${LOCAL_URL:-http://localhost:8787}"
-  if ! curl -fsS --max-time 2 "$local_url/" >/dev/null 2>&1; then
-    gate_skip "surface-smoke" "local server not running at $local_url (start it and re-run)"
-    return
+  # Project picks the local URL the surface runs against; common defaults:
+  #   bunx wrangler dev   → http://localhost:8787
+  #   uvicorn / fastapi   → http://localhost:8000
+  #   cargo run --release → http://localhost:3000
+  # A deployed staging URL (--staging-url, else STAGING_URL_DEFAULT from
+  # release.env, the same default postflight reads) is smoked as given: an
+  # unreachable deployment is a failure, not a skip. Without one, the local
+  # server is the target, and a local server that is not running skips.
+  local url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
+  if [[ -z "$url" ]]; then
+    url="${LOCAL_URL:-http://localhost:8787}"
+    if ! curl -fsS --max-time 2 "$url/" >/dev/null 2>&1; then
+      gate_skip "surface-smoke" "local server not running at $url (start it and re-run)"
+      return
+    fi
   fi
-  delegate_to_subscript "$surface_script" "$local_url"
+  delegate_to_subscript "$surface_script" "$url"
 }
 
 # Gate: changelog-sections ---------------------------------------------------
@@ -607,14 +715,45 @@ gate_changelog_sections() {
 # Mostly generic; the Rust-specific lines (Cargo.toml, rust-toolchain.toml,
 # cargo deny) self-gate on file presence.
 
+# migration_guide_check CHANGELOG VERSION: a 1.0+ release that keeps its major
+# and carries `### Breaking changes` takes the small-break exception of
+# github-repo-setup's references/versioning.md, so it ships
+# docs/migrating/v<VERSION>.md, whose first line names the exception. A 0.x
+# release, a major, and a first release need no guide.
+migration_guide_check() {
+  local changelog=$1 version=$2 major previous guide
+  [[ "$version" =~ ^([0-9]+)\.[0-9]+\.[0-9]+$ ]] || return 0
+  major=${BASH_REMATCH[1]}
+  [[ "$major" -ge 1 ]] || return 0
+  # The match runs inside awk: a `grep -q` after a pipe would stop reading at the
+  # first match, and under pipefail the writer's SIGPIPE on a large section
+  # would read as no breaking changes.
+  awk '/^## \[/ { if (seen) exit; seen = 1 } seen && /^### Breaking changes/ { found = 1; exit } END { exit !found }' \
+    "$changelog" || return 0
+  previous=$(git tag --list 'v[0-9]*' --sort=-version:refname | grep -vxF "v$version" | head -n 1 || true)
+  [[ "$previous" =~ ^v([0-9]+)\. && "${BASH_REMATCH[1]}" -eq "$major" ]] || return 0
+  guide="docs/migrating/v$version.md"
+  if [[ -f "$guide" ]] && head -n 1 "$guide" | grep -qi 'small-break exception'; then
+    gate_pass "$guide opens by naming the small-break exception ($version keeps major $major over $previous with ### Breaking changes)"
+  else
+    gate_fail "migration guide" "$version keeps major $major over $previous, its changelog carries ### Breaking changes, and $guide $([[ -f "$guide" ]] && echo "does not name the small-break exception on its first line" || echo "does not exist")
+    fix: release $((major + 1)).0.0, or, when the maintainer takes the small-break exception, write $guide opening with a line that names it (references/versioning.md in github-repo-setup shows one)"
+  fi
+}
+
 gate_mechanics() {
   header "Release mechanics sanity"
-  local project_version changelog_version
+  local project_version changelog_version site=""
 
   # The version a release tag names: the release manifest's for Rust, which a
-  # virtual workspace names in release.env. Non-Rust: swap for the project's
-  # source of truth.
-  if [[ -f Cargo.toml ]]; then
+  # virtual workspace names in release.env. A site's is the deploy stamp its
+  # changelog heading carries, checked below with site-version.sh. Non-Rust:
+  # swap for the project's source of truth.
+  if [[ -n "${SITE_VERSION_BASE:-}" ]]; then
+    site=1
+    project_version=""
+    gate_pass "site version: the deploy stamp at base $SITE_VERSION_BASE (scripts/release/site-version.sh)"
+  elif [[ -f Cargo.toml ]]; then
     project_version=$(project_version)
     gate_pass "$(release_manifest) version = $project_version"
     if [[ -f Cargo.lock ]]; then
@@ -636,7 +775,9 @@ gate_mechanics() {
     project_version=""
   fi
 
-  if [[ -x "$BIN_PATH" && -n "$project_version" ]]; then
+  if [[ -n "$site" ]]; then
+    :
+  elif [[ -x "$BIN_PATH" && -n "$project_version" ]]; then
     local bin_version
     bin_version=$("$BIN_PATH" --version 2>/dev/null | awk '{print $NF}')
     if [[ "$bin_version" == "$project_version" ]]; then
@@ -654,15 +795,30 @@ gate_mechanics() {
   local release_changelog
   release_changelog=$(release_changelog)
   if [[ -f "$release_changelog" ]]; then
-    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$release_changelog" | tr -d '[]## ' || true)
-    if [[ -n "$project_version" ]]; then
+    changelog_version=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+(-g[0-9a-f]{7})?\]' "$release_changelog" | tr -d '[]## ' || true)
+    if [[ -n "$site" ]]; then
+      local verified
+      if [[ ! -x scripts/release/site-version.sh ]]; then
+        gate_fail "$release_changelog top section" "scripts/release/site-version.sh is not vendored
+    fix: copy templates/scripts/release/site-version.sh from github-repo-setup to scripts/release/"
+      elif git rev-parse --verify --quiet "refs/tags/v$changelog_version" >/dev/null; then
+        gate_fail "$release_changelog top section = [$changelog_version]" "v$changelog_version is already tagged, so this is a released section, not this release's
+    fix: re-cut the release with scripts/release/cut-release-branch.sh, which writes the section for the next stamp"
+      elif verified=$(scripts/release/site-version.sh --verify "v$changelog_version" 2>&1); then
+        gate_pass "$release_changelog top section = [$changelog_version] (site-version.sh: ${verified#v"$changelog_version" })"
+      else
+        gate_fail "$release_changelog top section = [${changelog_version:-none}]" "$verified"
+      fi
+    elif [[ -n "$project_version" ]]; then
       if [[ "$changelog_version" == "$project_version" ]]; then
         gate_pass "$release_changelog top section = [$changelog_version] (matches project version)"
       else
         gate_fail "$release_changelog mismatch" "changelog=$changelog_version project=$project_version"
       fi
     fi
-    if grep -q '\[Unreleased\]' "$release_changelog"; then
+    migration_guide_check "$release_changelog" "$project_version"
+    # The heading, not the text: a released section may quote `[Unreleased]`.
+    if grep -qE '^## \[Unreleased\]' "$release_changelog"; then
       gate_fail "$release_changelog" "has [Unreleased] placeholder"
     else
       gate_pass "$release_changelog has no [Unreleased] placeholder"
@@ -693,7 +849,7 @@ gate_mechanics() {
     else
       gate_fail "$member_changelog" "top section=${member_top:-none} $name=$member_version; a $name release is pending (regenerate with scripts/generate-changelog.py --crate $name --from-dev-prs --tag $prefix$member_version)"
     fi
-    if grep -q '\[Unreleased\]' "$member_changelog"; then
+    if grep -qE '^## \[Unreleased\]' "$member_changelog"; then
       gate_fail "$member_changelog" "has [Unreleased] placeholder"
     fi
   done < <(release_members)
@@ -785,12 +941,15 @@ gate_mechanics() {
 
 # Main dispatcher ------------------------------------------------------------
 
+# usage [CODE]: prints the header and exits CODE, 2 (a usage error) by default;
+# --help passes 0.
 usage() {
-  sed -n '2,38p' "$0" | sed 's/^# \?//'
-  exit 2
+  print_usage_header
+  exit "${1:-2}"
 }
 
 LAST_TAG=""
+STAGING_URL=""
 SUBCMD=""
 
 while [[ $# -gt 0 ]]; do
@@ -809,13 +968,17 @@ while [[ $# -gt 0 ]]; do
       LAST_TAG="$2"
       shift 2
       ;;
-    -h | --help) usage ;;
-    drift | surface | api-contract | smoke | multi-app | changelog-sections | mechanics | surface-smoke | all)
+    --staging-url)
+      STAGING_URL="$2"
+      shift 2
+      ;;
+    -h | --help) usage 0 ;;
+    drift | surface | api-contract | smoke | multi-app | oauth2-interactive | changelog-sections | mechanics | surface-smoke | all)
       SUBCMD="$1"
       shift
       ;;
     post-tag)
-      echo "post-tag moved to scripts/release/postflight.sh; run that after the tag push" >&2
+      echo "post-tag moved to scripts/release/postflight.sh, run that after the tag push" >&2
       exit 2
       ;;
     *)
@@ -833,6 +996,7 @@ case "$SUBCMD" in
   api-contract) gate_api_contract ;;
   smoke) gate_smoke ;;
   multi-app) gate_multi_app ;;
+  oauth2-interactive) gate_oauth2_interactive ;;
   changelog-sections) gate_changelog_sections ;;
   mechanics) gate_mechanics ;;
   surface-smoke) gate_surface_smoke ;;
@@ -842,6 +1006,7 @@ case "$SUBCMD" in
     gate_api_contract
     gate_smoke
     gate_multi_app
+    gate_oauth2_interactive
     gate_surface_smoke
     gate_changelog_sections
     gate_mechanics

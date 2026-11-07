@@ -21,6 +21,7 @@ pub mod types;
 
 pub(crate) use atomic::write_atomically;
 pub(crate) use layout::ensure_store_dir;
+use layout::store_path_under;
 pub use layout::{
     AUTH_FILE_NAME, STORE_TARGET, adopt_directory_layout, default_store_path, locate_store,
 };
@@ -28,7 +29,7 @@ pub(crate) use lock::RefreshLock;
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[allow(unused_imports)] // Re-exported for library consumers and integration tests
 pub use types::{App, LoadState, OAuth1Token, OAuth2Token, Token, TokenType};
@@ -105,12 +106,17 @@ impl TokenStore {
     /// app that was migrated without them.
     ///
     /// Backfilled values stay in memory until the next explicit save, so loading
-    /// an existing store never rewrites it and concurrent readers cannot clobber
-    /// each other.
+    /// a store in the current format never rewrites it and concurrent readers
+    /// cannot clobber each other. Loading a legacy-format file rewrites it once
+    /// as the current YAML.
     #[must_use]
     pub fn with_credentials(client_id: &str, client_secret: &str) -> Self {
         let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-        let file_path = locate_store(&default_store_path());
+        Self::from_home(&home_dir, client_id, client_secret)
+    }
+
+    fn from_home(home_dir: &Path, client_id: &str, client_secret: &str) -> Self {
+        let file_path = locate_store(&store_path_under(home_dir));
 
         let mut store = TokenStore {
             apps: BTreeMap::new(),
@@ -167,7 +173,8 @@ impl TokenStore {
     /// Creates a `TokenStore` from a specific file path with credential backfill.
     ///
     /// Like [`TokenStore::with_credentials`], the backfill stays in memory until
-    /// the next explicit save; loading never writes the file.
+    /// the next explicit save; loading writes the file only to upgrade a
+    /// legacy-format one.
     #[must_use]
     pub fn new_with_credentials_and_path(client_id: &str, client_secret: &str, path: &str) -> Self {
         let mut store = Self::new_with_path(path);
@@ -179,33 +186,6 @@ impl TokenStore {
                 if app.client_secret.is_empty() && !client_secret.is_empty() {
                     app.client_secret = client_secret.to_string();
                 }
-            }
-        }
-        store
-    }
-
-    /// Creates a `TokenStore` using a custom home directory (for testing).
-    #[must_use]
-    #[doc(hidden)]
-    pub fn new_with_home(home: &str) -> Self {
-        let home_path = PathBuf::from(home);
-        let file_path = locate_store(&home_path.join(".xurl").join(AUTH_FILE_NAME));
-        let mut store = TokenStore {
-            apps: BTreeMap::new(),
-            default_app: String::new(),
-            file_path,
-            load_state: LoadState::Fresh,
-        };
-        store.load_backing_file();
-        // Auto-import from .twurlrc if needed
-        let needs_import = match store.active_app() {
-            None => true,
-            Some(app) => app.oauth1_token.is_none(),
-        };
-        if needs_import {
-            let twurlrc_path = home_path.join(".twurlrc");
-            if twurlrc_path.exists() {
-                let _ = store.import_from_twurlrc(&twurlrc_path);
             }
         }
         store

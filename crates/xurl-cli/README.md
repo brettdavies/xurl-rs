@@ -360,8 +360,17 @@ upload X reports as still processing when it is finalized, such as an animated G
 returns at once. A wait ends when X reports the job finished or failed, or when the status carries no processing
 information, as an image's does.
 
-An upload answers one JSON document: FINALIZE's response, with `data.processing_info` holding the final state when the
-upload waited for one.
+An upload that succeeds answers one JSON document on stdout: FINALIZE's response, with `data.processing_info` holding
+the final state when the upload waited for one. One that fails leaves stdout empty, in every format. Anything that ends
+the wait after the upload finished, a job X failed or a status read that failed among them, names the media in the
+envelope's `media_id` and in `message`. A status read that failed for a 5xx, a 408, or a network error carries
+`resume-wait` as its step, the same `xr media status <id> --wait=<secs>` for as long as the wait that failed, so the
+file is not sent again. A 429 on that read carries `wait-and-retry`: when X named the reset, the same command under
+`--wait-on-rate-limit`, which waits out the time left before it reads, and when X named none, the command as a
+`template`, to run once the window passes. A 401 carries `fix-input` with it as a `template`, to run once the credential
+works, and so does a 403 from the token endpoint that a refresh during the wait meets, to run once `TOKEN_URL` and the
+proxy are fixed. Every one of these steps repeats the `--app`, `--auth`, and `-u` the command ran under, and with `-H`
+it is a `template` that hides each header's value.
 
 A wait that reaches its deadline exits 1 with reason `processing-timeout`. The upload itself is intact, and X keeps a
 media id for 24 hours, so the envelope carries the id and the command that resumes the wait for twice as long:
@@ -387,7 +396,7 @@ xr broadcasts list                                 # Your broadcasts
 xr broadcasts get 1YqKDqWqdPLGV                    # One broadcast, by id
 xr broadcasts remove 1YqKDqWqdPLGV                 # Delete a broadcast and its replay (asks first)
 xr broadcasts scheduled list                       # Your scheduled broadcasts
-xr broadcasts scheduled add --source 1x2y3z4w5v6u --start 2026-11-02T16:00:00Z
+xr broadcasts scheduled add --source 9012345678901234567 --start 2026-11-02T16:00:00Z
 xr broadcasts scheduled update 1850000000000000001 --start 2026-11-02T17:00:00Z --end 2026-11-02T18:00:00Z
 xr broadcasts scheduled cancel 1850000000000000001 # Cancel (asks first)
 xr broadcasts chat history 1YqKDqWqdPLGV           # A broadcast's chat
@@ -399,9 +408,10 @@ xr broadcasts mutes remove @troll                  # Unmute
 xr broadcasts sources list                         # Your RTMP and RTMPS ingest points
 xr broadcasts sources region                       # The ingest region to pass to add --region
 xr broadcasts sources add "Studio A" --region us-east-1
-xr broadcasts sources get 1x2y3z4w5v6u             # Whether the source is receiving video
-xr broadcasts sources update 1x2y3z4w5v6u --name "Studio B"
-xr broadcasts sources remove 1x2y3z4w5v6u          # Delete; asks first (--force skips)
+xr broadcasts sources get 9012345678901234567      # Whether the source is receiving video
+xr broadcasts sources stream-key 9012345678901234567  # Its stream key, a credential
+xr broadcasts sources update 9012345678901234567 --name "Studio B"
+xr broadcasts sources remove 9012345678901234567   # Delete; asks first (--force skips)
 ```
 
 A scheduled broadcast takes its video from a stream source, so `add` names one with `--source`; its times are RFC 3339,
@@ -412,10 +422,12 @@ broadcast live at its start time.
 `--broadcast` to mute or unmute someone in every chat of that broadcast's host.
 
 A stream source is a persistent ingest point: point an encoder at its `rtmps_url` (or `rtmp_url`) with its `stream_key`,
-then poll `get` until `is_stream_active` is true. Whoever holds the stream key can stream to the source; keep it out of
-logs you share. `--region` takes an ingest region, and `xr broadcasts sources add --help` lists them;
-`xr broadcasts sources region` names the one nearest the X server that answers. The API lists the regions in prose, so
-`xr` passes the value through rather than refusing one it does not know.
+then poll `get` until `is_stream_active` is true. `add` answers the stream key and
+`xr broadcasts sources stream-key <SOURCE_ID>` reads it again; `list`, `get`, and `update` carry none. Whoever holds the
+stream key can stream to the source; keep it out of logs you share, and pipe `--output json` through
+`jaq -r .data.stream_key` to hand it to a program without printing it. `--region` takes an ingest region, and
+`xr broadcasts sources add --help` lists them; `xr broadcasts sources region` names the one nearest the X server that
+answers. The API lists the regions in prose, so `xr` passes the value through rather than refusing one it does not know.
 
 `xr broadcasts remove` deletes a scheduled or ended broadcast with its replay, and X refuses a running one. It asks
 first, and `--force` skips the prompt.
@@ -705,6 +717,16 @@ variable when it is set (for example `CLAUDE_CONFIG_DIR`; `xr --help` lists them
 as `XDG_CONFIG_HOME` for OpenCode) relocates its part of the path. Codex's destination is `~/.agents/skills/xurl-rs`;
 `xr skill update codex` also removes a copy at `~/.codex/skills/xurl-rs`, a deprecated location Codex still reads.
 
+`xr skill update` clones beside the destination and swaps the clone in once it succeeds, so a failed clone leaves the
+current install as it was. The swap replaces the whole directory, along with any file you added to it. It replaces only
+a clone of the bundle's repository, over HTTPS or SSH. A fork, any other directory, a file, or a symlink is refused with
+`refused_dir` naming it and nothing changed, and the same goes for a copy at a legacy location: move it elsewhere and
+run the command again.
+
+Under `--all`, each entry in `installations` reports one host. A failure is an error envelope at the top level as well:
+its `reason`, `exit_code`, and `next_step` speak for the first host with the worst exit code, and `message` names every
+host that failed.
+
 ### Response Schema Discovery
 
 ```bash
@@ -727,6 +749,20 @@ legacy post vocabulary, the key is renamed to the spec's spelling and its value 
 `edit_history_tweet_ids` prints as `edit_history_post_ids`, `tweet_count` as `post_count`, `retweet_count` as
 `repost_count`, `referenced_tweets` as `referenced_posts`, and `includes.tweets` as `includes.posts`. `--verbose` notes
 each key it renamed. A raw `xr <URL>` request prints X's body unchanged.
+
+Under a structured format, each stream carries at most one document, and a warning rides inside it rather than printing
+as a line of its own. `warnings` is an array of `{message, target}`, where `target` names the part of `xr` that raised
+it, such as `xdk::config`, and each distinct warning appears once. A run that fails carries the array in its error
+envelope. A run that succeeds, a dry run included, leaves stdout as it would be without the warning and closes stderr
+with one document:
+
+```json
+{"status": "ok", "warnings": [{"message": "REDIRECT_URI env value rejected by validation; falling through to next precedence level", "target": "xdk::config"}]}
+```
+
+Stderr stays empty when no warning fired. Branch on `target`: the wording of `message` is not contract. Text output
+prints a `warning:` line as each one fires, and `--quiet` changes neither form. The record streams write more than one
+document: `-s` prints one record per line on stdout, and `xr webhooks listen` prints one JSON record per line.
 
 `xr --output json auth status` and `xr --output json auth apps list` emit `{"status": "ok", "apps": [...]}`, carrying
 one object per registered app under `apps`. An empty store emits `"apps": []`, so the array is iterable without a
@@ -772,8 +808,10 @@ xr whoami --no-interactive                     # Error instead of prompt
 
 ### Dry Runs
 
-`--dry-run` sends nothing and stores nothing, whichever command it is on: a write, a read, or a raw request with any
-method. It checks the inputs and the stored credentials offline, and answers at exit 0.
+`--dry-run` sends nothing and changes no stored credential, whichever command it is on: a write, a read, or a raw
+request with any method. It checks the inputs and the stored credentials offline, and answers at exit 0. The first
+command to open an old-format store upgrades it once, a dry run included: a single-file `~/.xurl` moves into the
+directory layout and a legacy-format store is rewritten as the current YAML.
 
 ```bash
 xr --output json --dry-run post "Hello"
@@ -797,19 +835,31 @@ xr --output json --dry-run post "Hello"
 }
 ```
 
-- `would_succeed` is `false` when an input is invalid, or when no stored credential serves a request the command would
-  send. `reason` says which, and `exit_code` is the code the real run would end on. Either refusal also carries the keys
-  of the real run's error envelope: `message` and the `next_step` the real run would name, plus, for a credential,
-  `endpoint`, `supported`, and `available_in_app`. An invalid input's `reason` is `validation`, as in the real run, its
-  `rule` the validator's code, such as `webhook-url-has-port`, its `message` the sentence for that rule, and its `value`
-  the offending input when the rule names one. A step that reruns the invocation keeps `--dry-run`, so following it
-  sends nothing either.
+- `would_succeed` is `false` when an input is invalid, when no stored credential serves a request the command would
+  send, or when the arguments, client id, saved flow, or redirect URL of a sign-in are refused. `reason` says which, and
+  `exit_code` is the code the real run would end on. Each refusal also carries the keys of the real run's error
+  envelope: `message` and the `next_step` the real run would name, plus, for a credential, `endpoint`, `supported`, and
+  `available_in_app`. An invalid input's `reason` is `validation`, as in the real run, its `rule` the validator's code,
+  such as `webhook-url-has-port`, its `message` the sentence for that rule, and its `value` the offending input when the
+  rule names one. A step that reruns the invocation keeps `--dry-run`, so following it sends nothing either.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
   the credential is not checked, since nothing is sent to find out.
-- `confirmation_required: true` marks a destructive command that would stop to ask. The flag outranks `--force` and the
-  prompt, so `xr --dry-run delete <id>` answers with or without `--force`.
+- A sign-in's dry run makes the real run's checks of its arguments, the client id, and for `--step 2` the saved flow and
+  the redirect URL, in the real run's order, and a refusal answers as the real run's error does: `xr --dry-run auth
+  oauth2` checks `--scopes`, the `--step` and `--auth-url` arguments, and the client id of the app it would sign in. For
+  `--step 2` it also checks the flow step 1 saved beside the store, the app and scopes that flow belongs to, and the
+  redirect URL against it. A well-formed redirect URL answers `would_succeed: true`, which does not vouch for its code,
+  since nothing is sent to X. A dry run saves no flow, so rehearsing step 2 needs a real step 1 first. It does not check
+  that a step 1 can write its pending file, that `AUTH_URL` or `TOKEN_URL` is one a request can go to, that the store
+  would accept the write after the exchange, or, in the browser flow, that the redirect URI parses and the callback port
+  binds. An expired flow stays on disk, where the real run deletes it. `--auth-url -` reads one line of piped stdin as
+  the real run does and waits for it; on a terminal nothing is read, so the URL's contents go unchecked. These answers
+  carry no `auth` key.
+- `confirmation_required: true` marks a destructive command whose real run would stop to ask, and the key appears only
+  then. The flag outranks `--force` and the prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries
+  the key, and `xr --dry-run delete <id> --force` leaves it out, since nothing would stop.
 - `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
   typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
   ends with a `Response schema:` block naming it.
@@ -864,9 +914,14 @@ delay and as a time, and the `next_step` names the step:
 }
 ```
 
-`retry_after_secs` is the seconds left until the reset, zero once it has passed, and `retry_at` is the same moment in RFC
-3339 UTC, for a caller that schedules the retry instead of sleeping. Both come from that response's own
-`x-rate-limit-reset` header. A 429 that carries no such header has neither key and no `next_step`.
+`retry_after_secs` is the seconds left until the reset, zero once it has passed, and `retry_at` is the same moment in
+RFC 3339 UTC, for a caller that schedules the retry instead of sleeping. Both come from that response's own
+`x-rate-limit-reset` header. A 429 that carries no such header has neither key and no `next_step`, except on the status
+read after `xr media upload` finished. There the request to send again is that read, not the upload, so a 429 carries
+`wait-and-retry` whether or not it named a reset. With a reset, its `command` is the `xr media status` invocation that
+resumes the wait under `--wait-on-rate-limit`, with `--rate-limit-max-wait` set to the time left, so it waits out the
+window inside `xr` and can run at once; under `-H` it is a `template`. With none, the same invocation is a `template` to
+run once the window passes, carrying any `--wait-on-rate-limit` the upload ran under.
 
 `xr` never retries on its own. `--wait-on-rate-limit` (`XURL_WAIT_ON_RATE_LIMIT`) makes it wait for the reset and send
 the request once more, when the wait fits `--rate-limit-max-wait <SECS>` (`XURL_RATE_LIMIT_MAX_WAIT`, 60 by default). A
@@ -902,29 +957,34 @@ help to read: `xr post --help` for a usage error under `post`, and the help of t
 (`xr auth status --help` for `xr auth statsu`). `reason` is closed too. A newer release can add to either set, so treat
 a value you do not recognize as your default branch. A step carries a `command`, runnable verbatim, or a `template` the
 caller finishes or decides on first, and never both: a template holds angle-bracket placeholders only the caller can
-fill, or, under `confirm`, the invocation that destroys once it runs. One whose recovery is not an `xr` invocation
-carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry`, `retry`, `fix-input`, `report-issue`,
-and `inspect-store` when a store command is what failed. Three `fix-input` steps carry an invocation: `listen` again on
-a free port, under `address-in-use`; the invocation with `-u`, `--auth`, or `-t` moved after the command word it came
-before, and the `xr schema` invocation that works for an old name or a scope word, both under `invalid-args`; the
-`xr schema --path` invocation with the segment that named nothing left as `<property>`, a template, also under
-`invalid-args`; and, under `auth-required`, a template that stores the signing secret `webhooks listen` lacks. A
-`validation` refusal names the input rule it broke in `rule`, the validator's kebab-case code (`invalid-username`,
-`no-list-changes`, ...), with the sentence for it in `message`, and `value` carries the offending input when the rule
-names one: an app name, a redirect URI, or a header's position among the `-H` headers. Branch on `rule`, not on the
-sentence. Text mode prints the same advice as prose instead; the two need not match word for word.
+fill; under `confirm`, the invocation that destroys once it runs; or, after a 401 or a 429 with no reset on the status
+read after `xr media upload`, the resumed wait to run once the credential works or the window passes. One whose recovery
+is not an `xr` invocation carries neither, and `docs` when a page covers it: `enroll-app`, `wait-and-retry` except on
+that status read, `retry`, `fix-input`, `report-issue`, and `inspect-store` when a store command is what failed. Some
+`fix-input` steps carry an invocation: `listen` again on a free port, under `address-in-use`; the invocation with `-u`,
+`--auth`, or `-t` moved after the command word it came before, and the `xr schema` invocation that works for an old name
+or a scope word, both under `invalid-args`; the `xr schema --path` invocation with the segment that named nothing left
+as `<property>`, a template, also under `invalid-args`; and, under `auth-required`, a template that stores the signing
+secret `webhooks listen` lacks, and a template that runs `xr auth oauth2 --step 2` again with the redirect URL left as
+`<redirect-url>`, because that URL holds an authorization code: when the URL did not parse, or when the saved sign-in
+belongs to another app the store holds, which the template names; and the resumed wait after a 401 on the status read
+after `xr media upload`, a template too, also under `auth-required`. A `validation` refusal names the input rule it
+broke in `rule`, the validator's kebab-case code (`invalid-username`, `no-list-changes`, ...), with the sentence for it
+in `message`, and `value` carries the offending input when the rule names one: an app name, a redirect URI, or a
+header's position among the `-H` headers. Branch on `rule`, not on the sentence. Text mode prints the same advice as
+prose instead; the two need not match word for word.
 
 ### Which Errors Carry a Step
 
 | `reason`                     | `next_step.action`                                                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, or `inspect-store`; `fix-input` when `webhooks listen` has no signing secret; none when X answers a 401 |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as listed below; none on a request's 401 except after an upload        |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
 | `token-store`                | `inspect-store` when the store file could not be loaded; none for a name it does not hold                                                        |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
-| `forbidden`                  | `enroll-app` when X names enrollment; none otherwise                                                                                             |
-| `rate-limited`               | `wait-and-retry` when the 429 names its reset; none otherwise                                                                                    |
-| `processing-timeout`         | `resume-wait`                                                                                                                                    |
+| `forbidden`                  | `enroll-app` when X names enrollment; `fix-input` for a 403 from the token endpoint that is no OAuth refusal; none otherwise                     |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset, or after `xr media upload` finished (a `template` with no reset or under `-H`); none otherwise    |
+| `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
 | `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
 | `unknown-command`            | `show-help`                                                                                                                                      |
 | `invalid-method`             | `show-help`                                                                                                                                      |
@@ -937,8 +997,8 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                  |
 | `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                            |
 | `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                                                                     |
-| `network-error`              | `retry`                                                                                                                                          |
-| `server-error`               | `retry`                                                                                                                                          |
+| `network-error`              | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
+| `server-error`               | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
 | `git-clone-failed`           | `retry`                                                                                                                                          |
 | `not-found`                  | `fix-input`                                                                                                                                      |
 | `invalid-request`            | `fix-input`                                                                                                                                      |
@@ -949,26 +1009,60 @@ sentence. Text mode prints the same advice as prose instead; the two need not ma
 | `destination-is-file`        | `fix-input`                                                                                                                                      |
 | `remove-failed`              | `fix-input`                                                                                                                                      |
 | `git-not-found`              | `fix-input`                                                                                                                                      |
-| `destination-not-empty`      | `run-command`: `xr skill update <host>`                                                                                                          |
+| `destination-not-empty`      | `run-command`: `xr skill update <host>`, from `skill install`; `fix-input`, from `skill update`, for what is not a bundle                        |
 | `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                         |
 | `internal`                   | `report-issue`                                                                                                                                   |
 | `serialization`              | `report-issue`                                                                                                                                   |
-| `api-error`                  | `report-issue`                                                                                                                                   |
+| `api-error`                  | `retry` on a 408, or `resume-wait` when that 408 answered a status read after `xr media upload` finished; `report-issue` otherwise               |
 
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 
 - `retry`: nothing was wrong with the request. Send it again; `docs` names X's page on response codes when X answered.
-- `fix-input`: the input, or the local state the command read, is what failed, and the same invocation fails again. No
-  `xr` command repairs it, with two exceptions. For a port another process holds, the step is `listen` again with
-  `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each header's value when it did.
-  For `-u`, `--auth`, or `-t` given before a command word that takes it, the step is the invocation with the flag after
-  the word. `docs` names X's page on response codes for a 400, a 404, or a 422.
-- `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker.
-- `confirm`: a destructive command ran without its confirmation. The step is a `template`, never a `command`: it is
-  the invocation that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by
-  accident.
-- `run-command`: one other command repairs this, and `command` is that invocation. A `forward-failed` record from
+  After `xr media upload` has finished, a failed status read takes `resume-wait` instead, since running the upload again
+  would send the file again. - `fix-input`: the input, or the local state the command read, is what failed, and the same
+  invocation fails again. No `xr` command repairs it, with these exceptions. For a port another process holds, the step
+  is `listen` again with `--port 0`, a `command` when the invocation gave no `-H` and a `template` that hides each
+  header's value when it did. For `-u`, `--auth`, or `-t` given before a command word that takes it, the step is the
+  invocation with the flag after the word. For an `xr auth oauth2 --step 2` whose saved sign-in can still finish, the
+  step is a `template` with the redirect URL to fill in. For a 401 on the status read after `xr media upload` finished,
+  the step is the command that resumes the wait, as a `template` to run once the credential works, and `docs` names X's
+  authentication page; for a 403 from the token endpoint on that read, it is the same template, to run once `TOKEN_URL`
+  and the proxy are fixed. `docs` names X's page on response codes for a 400, a 404, or a 422. For a 403 from the token
+  endpoint that is no OAuth refusal, `docs` names the repository README's section on the token endpoint, `TOKEN_URL`,
+  and proxies. - `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker. - `confirm`: a
+  destructive command ran without its confirmation. The step is a `template`, never a `command`: it is the invocation
+  that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by accident. -
+  `run-command`: one other command repairs this, and `command` is that invocation. A `forward-failed` record from
   `xr webhooks listen` carries it as a `template`: the replay of the event's minute, with `<WEBHOOK_ID>` to fill in.
+
+Under `auth-required`, a failed `xr auth oauth2` names the step that moves the sign-in forward:
+
+- `sign-in` at step 1 when the flow cannot finish: none saved, expired, a file that does not parse, other scopes, a
+  redirect URL with no usable `state` or `code`, a code X would not exchange, or a flow from an app the store no longer
+  holds. It asks a person for a new consent.
+- `fix-input` with a `template` when the flow can still finish: a redirect URL that did not parse, or a flow another
+  stored app saved, which the template names.
+- `fix-input` with no invocation when the message names what to change: a saved file with the wrong mode, owner, or
+  link, or client credentials X refused. Another consent would end at the same refusal.
+
+A failed `xr auth oauth2` that says nothing about credentials takes its own reason. A refused argument (`--auth-url`
+missing or empty, given at step 1, or empty or unreadable on stdin) is `invalid-args`. The token endpoint refuses a code
+with a 400 or a 401, or with a JSON body that holds a string `error` on any other status but a 5xx or a 429. Any other
+failure is an exchange the endpoint did not process, and it reports what any other request would: `network-error` with
+no answer, `server-error` on a 5xx, `rate-limited` on a 429, and the reason for its status on anything else, such as
+`forbidden` with `fix-input` for a 403, which points at `TOKEN_URL` and the proxy in front of it, `not-found` for a
+token URL with the wrong path, or `api-error` with `retry` for a 408. Each such answer also carries a warning that names
+the token endpoint and its HTTP status. The same invocation finishes once the endpoint answers, or, for a token URL with
+the wrong path, once `TOKEN_URL` names the right one, and if X had already spent the code, it answers with the `sign-in`
+step above. A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
+
+Any command whose OAuth2 login has expired refreshes it first, and a failed refresh writes nothing to the store. A
+refresh X refused is `auth-required`: a refused refresh token, or an answer with no token, carries the `sign-in` that
+stores the same login again, the one `-u` named or else the one the refresh ran for, and refused client credentials
+carry `fix-input` with no invocation. A refresh the endpoint did not process reports what any other request would, the
+same as the token exchange above, with a warning that names the refresh on a failure status (with no answer, the
+`network-error` message names it), and the same command finishes once the endpoint answers, or, for a token URL with the
+wrong path, once `TOKEN_URL` names the right one.
 
 ### NO_COLOR Support
 

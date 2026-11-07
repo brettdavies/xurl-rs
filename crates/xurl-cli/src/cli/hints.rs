@@ -10,7 +10,11 @@ use serde::{Deserialize, Serialize};
 pub use xdk::error::NextAction;
 use xdk::error::{
     BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED,
-    CALLBACK_TIMED_OUT, Error,
+    CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_INVALID,
+    PENDING_NOT_FOUND, PENDING_PERMISSIONS, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
+    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, REFRESH_CLIENT_REFUSED,
+    REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, TOKEN_EXCHANGE_CLIENT_REFUSED,
+    TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -22,15 +26,20 @@ use crate::cli::classify::{ROOT_COMMAND, requested_login};
 /// At most one of [`Self::command`] and [`Self::template`] is present: a
 /// command is a verbatim invocation safe for a non-TTY caller, while a
 /// template is one the caller finishes or decides on before running it. It
-/// carries angle-bracket placeholders to fill in, or, under
-/// [`NextAction::Confirm`], the invocation that destroys once it runs. A
-/// step with neither names an action that is not an `xr` invocation, with
-/// `docs` when a page covers it: [`NextAction::EnrollApp`],
-/// [`NextAction::WaitAndRetry`], [`NextAction::Retry`],
-/// [`NextAction::FixInput`], [`NextAction::ReportIssue`], and
-/// [`NextAction::InspectStore`] when the command that failed is the one
-/// that reports on the store. Two [`NextAction::FixInput`] steps carry an
-/// invocation: [`Self::listen_on_free_port`] and [`Self::fix_input_with`].
+/// carries angle-bracket placeholders to fill in; under
+/// [`NextAction::Confirm`], the invocation that destroys once it runs; or,
+/// after a 401 or a 429 with no reset on the status read after `xr media
+/// upload`, the resumed wait to run once the credential works or the window
+/// passes. A step with neither names an action
+/// that is not an `xr` invocation, with `docs` when a page covers it:
+/// [`NextAction::EnrollApp`], [`NextAction::WaitAndRetry`] except on that
+/// status read, [`NextAction::Retry`], [`NextAction::FixInput`],
+/// [`NextAction::ReportIssue`], and [`NextAction::InspectStore`] when the
+/// command that failed is the one that reports on the store. Five
+/// [`NextAction::FixInput`] steps carry an invocation:
+/// [`Self::listen_on_free_port`], [`Self::fix_input_with`],
+/// [`Self::fix_input_template`], [`Self::step_two_again`], and the one
+/// [`resume_after_upload_hint`] gives a 401.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct NextStep {
@@ -39,7 +48,7 @@ pub struct NextStep {
     /// A runnable invocation, when one exists.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
-    /// A placeholder invocation, when the caller must supply values.
+    /// An invocation the caller finishes or decides on before running it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub template: Option<String>,
     /// Documentation URL, when a recipe exists.
@@ -169,6 +178,33 @@ impl NextStep {
         }
     }
 
+    /// The headless step 2 `invocation` ran, again, under `app` when one is
+    /// given, with its redirect URL left as `<redirect-url>`. It is a template
+    /// because that URL holds an authorization code, and a step never echoes
+    /// a credential.
+    #[must_use]
+    pub fn step_two_again(invocation: &[String], app: Option<&str>) -> Self {
+        let mut words = vec![ROOT_COMMAND.to_string()];
+        if let Some(app) = app {
+            words.extend(["--app".to_string(), quote_app_name(app)]);
+        }
+        let ask_for_the_url = ["--auth-url".to_string(), "<redirect-url>".to_string()];
+        let mut args = invocation.iter().skip(1);
+        while let Some(arg) = args.next() {
+            if arg == "--auth-url" {
+                args.next();
+                words.extend(ask_for_the_url.clone());
+            } else if arg.starts_with("--auth-url=") {
+                words.extend(ask_for_the_url.clone());
+            } else if app.is_some() && arg == "--app" {
+                args.next();
+            } else if !(app.is_some() && arg.starts_with("--app=")) {
+                words.push(shell_word(arg));
+            }
+        }
+        Self::fix_input_template(words.join(" "))
+    }
+
     /// Rerun `command` against a different app.
     #[must_use]
     pub fn select_app(command: String) -> Self {
@@ -178,6 +214,20 @@ impl NextStep {
             template: None,
             docs: None,
         }
+    }
+
+    /// This step's command with `--dry-run` after the program word, for a
+    /// dry run's refusal whose step reruns an invocation. A command that does
+    /// not start with the program word is left as it is.
+    #[must_use]
+    pub fn under_dry_run(mut self) -> Self {
+        if let Some(command) = &mut self.command
+            && let Some(rest) = command.strip_prefix(ROOT_COMMAND)
+            && rest.starts_with(' ')
+        {
+            *command = format!("{ROOT_COMMAND} --dry-run{rest}");
+        }
+        self
     }
 
     /// Look at a store file that could not be loaded, starting from the
@@ -213,13 +263,19 @@ impl NextStep {
         }
     }
 
-    /// The wait on `media_id` again, for `secs` seconds.
+    /// The wait on `media_id` again, for `secs` seconds, under the app,
+    /// scheme, and login `credential` names, so the read goes out under the
+    /// credential the failed command used. Each `-H` header keeps its name
+    /// and has its value replaced by `<value>`, which makes the step a
+    /// template: a header often carries a credential, and a step never echoes
+    /// one.
     #[must_use]
-    pub fn resume_wait(media_id: &str, secs: u64) -> Self {
+    pub fn resume_wait(media_id: &str, secs: u64, credential: &MediaCredential) -> Self {
+        let (invocation, hid_a_value) = resume_invocation(media_id, secs, credential, None);
         Self {
             action: NextAction::ResumeWait,
-            command: Some(format!("xr media status {media_id} --wait={secs}")),
-            template: None,
+            command: (!hid_a_value).then(|| invocation.clone()),
+            template: hid_a_value.then_some(invocation),
             docs: None,
         }
     }
@@ -351,14 +407,8 @@ impl NextStep {
                 None
             };
             if let Some(header) = header {
-                let name = header.split_once(':').map_or("", |(name, _)| name.trim());
-                let hidden = if name.is_empty() {
-                    "<value>".to_string()
-                } else {
-                    format!("{name}: <value>")
-                };
                 words.push("-H".to_string());
-                words.push(shell_word(&hidden));
+                words.push(shell_word(&hidden_header(header)));
                 hid_a_value = true;
             }
         }
@@ -595,20 +645,188 @@ pub fn enrollment_hint(error: &Error) -> Option<Hint> {
 /// The command waits twice as long as the wait that expired: a job that
 /// outlasted one deadline is unlikely to finish inside the same one again.
 #[must_use]
-pub fn resume_wait_hint(error: &Error) -> Option<Hint> {
+pub fn resume_wait_hint(error: &Error, credential: &MediaCredential) -> Option<Hint> {
     let (Error::ProcessingTimeout { media_id, waited }, Some(NextAction::ResumeWait)) =
         (error, error.next_action())
     else {
         return None;
     };
-    let next_step = NextStep::resume_wait(media_id, waited.as_secs().saturating_mul(2));
-    let command = next_step.command.clone().unwrap_or_default();
-    Some(Hint {
+    Some(resume_hint(
+        media_id,
+        waited.as_secs().saturating_mul(2),
+        credential,
+    ))
+}
+
+/// Builds the hint for a status read that failed during the wait after an
+/// upload finished. What to run again is the wait, never the command: running
+/// the upload again would send the whole file, which X bills for again.
+///
+/// The resumed wait lasts as long as the wait that failed, whose deadline had
+/// not run out, and the step keeps the page the error names.
+///
+/// - A failure that says "try again" resumes the wait.
+/// - A 429 keeps `wait-and-retry`, which says to wait for the window first,
+///   with the resumed wait as what to send again. When X named its reset, the
+///   wait runs under `--wait-on-rate-limit` with the time left as its ceiling,
+///   a command safe to run at once. When X named none, it is a template to run
+///   once the window passes, under the command's own rate-limit wait.
+/// - A 401 fails the same way until the credential changes, which no `xr`
+///   command does: `fix-input`, with the resumed wait as a template to run
+///   once the credential works.
+/// - A refresh the wait ran meets the token endpoint's 403 the same way, until
+///   `TOKEN_URL` or the proxy in front of the endpoint is fixed: `fix-input`
+///   with the page on both, and the resumed wait as a template.
+#[must_use]
+pub fn resume_after_upload_hint(
+    error: &Error,
+    media_id: &str,
+    waited: std::time::Duration,
+    credential: &MediaCredential,
+) -> Option<Hint> {
+    let docs = error.docs_url().map(str::to_string);
+    if error.next_action() == Some(NextAction::Retry) {
+        let mut hint = resume_hint(media_id, waited.as_secs(), credential);
+        hint.next_step.docs = docs;
+        return Some(hint);
+    }
+    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+        return Some(resume_once_fixed(
+            media_id,
+            waited,
+            credential,
+            "The token endpoint answered 403 and sent no OAuth error. The upload is intact and X keeps the media id for 24 hours; once TOKEN_URL and any proxy in front of the endpoint are fixed, resume the wait:",
+            docs,
+        ));
+    }
+    let Error::Api {
+        status, reset_at, ..
+    } = error
+    else {
+        return None;
+    };
+    match status {
+        429 => {
+            let (rate_limit, lead) = match reset_at {
+                Some(reset_at) => {
+                    let (retry_after_secs, retry_at) = crate::cli::output::retry_times(*reset_at);
+                    (
+                        Some(retry_after_secs),
+                        format!(
+                            "Rate limited until {retry_at}. The upload is intact; this waits the {retry_after_secs} seconds left, then resumes the wait. Run:"
+                        ),
+                    )
+                }
+                None => (
+                    credential.rate_limit_max_wait,
+                    "Rate limited, and X named no reset. The upload is intact; once the window passes, resume the wait:".to_string(),
+                ),
+            };
+            let (invocation, hid_a_value) =
+                resume_invocation(media_id, waited.as_secs(), credential, rate_limit);
+            let runnable = reset_at.is_some() && !hid_a_value;
+            Some(Hint {
+                text_lines: with_docs_line(format!("{lead} {invocation}"), docs.as_deref()),
+                next_step: NextStep {
+                    action: NextAction::WaitAndRetry,
+                    command: runnable.then(|| invocation.clone()),
+                    template: (!runnable).then_some(invocation),
+                    docs,
+                },
+            })
+        }
+        401 => Some(resume_once_fixed(
+            media_id,
+            waited,
+            credential,
+            "X refused the credential. The upload is intact and X keeps the media id for 24 hours; once the credential works, resume the wait:",
+            docs,
+        )),
+        _ => None,
+    }
+}
+
+/// The hint for a failure that repeats until the caller fixes something `xr`
+/// cannot: `fix-input`, with the resumed wait as a template to run once it is
+/// fixed, after `lead` and the docs the error names.
+fn resume_once_fixed(
+    media_id: &str,
+    waited: std::time::Duration,
+    credential: &MediaCredential,
+    lead: &str,
+    docs: Option<String>,
+) -> Hint {
+    let resume = NextStep::resume_wait(media_id, waited.as_secs(), credential);
+    let invocation = resume.display_invocation().unwrap_or_default().to_string();
+    Hint {
+        text_lines: with_docs_line(format!("{lead} {invocation}"), docs.as_deref()),
+        next_step: NextStep {
+            action: NextAction::FixInput,
+            command: None,
+            template: Some(invocation),
+            docs,
+        },
+    }
+}
+
+/// The wait on `media_id` again, for `secs` seconds, under the credential
+/// `credential` names, and whether it hid a `-H` value. `rate_limit` adds
+/// `--wait-on-rate-limit` with that ceiling in seconds, so a 429 the read
+/// meets is waited out inside `xr`.
+fn resume_invocation(
+    media_id: &str,
+    secs: u64,
+    credential: &MediaCredential,
+    rate_limit: Option<u64>,
+) -> (String, bool) {
+    let mut words = vec![ROOT_COMMAND.to_string()];
+    if let Some(app) = non_empty(credential.app.as_deref()) {
+        words.extend(["--app".to_string(), quote_app_name(app)]);
+    }
+    if let Some(max_wait) = rate_limit {
+        words.extend([
+            "--wait-on-rate-limit".to_string(),
+            format!("--rate-limit-max-wait={max_wait}"),
+        ]);
+    }
+    words.extend([
+        "media".to_string(),
+        "status".to_string(),
+        shell_word(media_id),
+        format!("--wait={secs}"),
+    ]);
+    if let Some(auth) = non_empty(credential.auth.as_deref()) {
+        words.extend(["--auth".to_string(), shell_word(auth)]);
+    }
+    if let Some(login) = non_empty(credential.username.as_deref()) {
+        words.extend(["-u".to_string(), shell_word(login)]);
+    }
+    for header in &credential.headers {
+        words.extend(["-H".to_string(), shell_word(&hidden_header(header))]);
+    }
+    (words.join(" "), !credential.headers.is_empty())
+}
+
+/// The hint's line, then the docs on a line of their own, so the invocation
+/// the first line ends with copies without them.
+fn with_docs_line(line: String, docs: Option<&str>) -> Vec<String> {
+    std::iter::once(line)
+        .chain(docs.map(|docs| format!("See: {docs}")))
+        .collect()
+}
+
+fn resume_hint(media_id: &str, secs: u64, credential: &MediaCredential) -> Hint {
+    let next_step = NextStep::resume_wait(media_id, secs, credential);
+    let command = next_step
+        .display_invocation()
+        .unwrap_or_default()
+        .to_string();
+    Hint {
         text_lines: vec![format!(
             "The upload is intact and X keeps the media id for 24 hours. Resume the wait. Run: {command}"
         )],
         next_step,
-    })
+    }
 }
 
 /// Builds the hint for a webhook receiver whose address another socket
@@ -690,24 +908,170 @@ fn requested_secret(invocation: &[String]) -> Option<&str> {
 }
 
 /// Builds the hint for a sign-in that ended without a code: the callback was
-/// refused, by the listener or by the authorization server, or never came,
-/// so the step is the same sign-in again, and when the browser could not be
-/// opened, its paste-the-URL form.
+/// refused, by the listener or by the authorization server, or never came, or
+/// a headless step 2 refused its redirect URL, found no live flow to finish,
+/// or named scopes its flow did not ask for, or the token endpoint would not
+/// exchange the code, which is single-use. The step is the same sign-in again,
+/// and when the browser could not be opened, its paste-the-URL form. A step 2
+/// starts over at step 1 with the scopes it named, because the consent in its
+/// URL covers others and finishing it would store a different token.
 #[must_use]
 pub fn sign_in_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
     let Error::Auth { message, .. } = error else {
         return None;
     };
     let no_browser = match message.as_str() {
-        CALLBACK_INVALID_STATE | CALLBACK_EMPTY_CODE | CALLBACK_TIMED_OUT => false,
+        CALLBACK_INVALID_STATE
+        | CALLBACK_EMPTY_CODE
+        | CALLBACK_TIMED_OUT
+        | REDIRECT_MISSING_STATE
+        | REDIRECT_STATE_MISMATCH
+        | REDIRECT_MISSING_CODE
+        | PENDING_NOT_FOUND
+        | PENDING_EXPIRED => false,
         BROWSER_OPEN_FAILED => true,
-        refused if refused.starts_with(CALLBACK_PROVIDER_REFUSED) => false,
+        refused
+            if [
+                CALLBACK_PROVIDER_REFUSED,
+                PENDING_SCOPE_MISMATCH,
+                PENDING_INVALID,
+                TOKEN_EXCHANGE_CODE_REFUSED,
+                TOKEN_EXCHANGE_NO_TOKEN,
+            ]
+            .iter()
+            .any(|start| refused.starts_with(start)) =>
+        {
+            false
+        }
         _ => return None,
     };
-    let next_step = NextStep::sign_in_again(invocation, no_browser);
+    Some(sign_in_again(invocation, no_browser))
+}
+
+/// Builds the hint for a failure no other sign-in would fix, a client the token
+/// endpoint refused on a sign-in or a refresh, or a saved flow's file `xr` will
+/// not read: the message names what to change, and no `xr` invocation could
+/// say more.
+#[must_use]
+pub fn sign_in_fault_hint(error: &Error) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    let advice = if message.starts_with(TOKEN_EXCHANGE_CLIENT_REFUSED)
+        || message.starts_with(REFRESH_CLIENT_REFUSED)
+    {
+        "X refused the app's client credentials. Check its client id and secret."
+    } else if message.starts_with(PENDING_PERMISSIONS) {
+        "Restore the file's mode and owner, or remove it and start over at step 1."
+    } else {
+        return None;
+    };
+    Some(Hint {
+        text_lines: vec![advice.to_string()],
+        next_step: NextStep::fix_input(None),
+    })
+}
+
+/// Builds the hint for a stored login whose refresh the token endpoint refused,
+/// or answered with no token: only a new sign-in gets a working refresh token,
+/// so the step is the sign-in that stores the refreshed login again, on the
+/// app it ran against. With no `-u` that login is the app's default one, which
+/// a sign-in under any other name would leave where the next run finds it.
+#[must_use]
+pub fn refresh_refused_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    invocation: &[String],
+    headless: bool,
+) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    let what = if message.starts_with(REFRESH_TOKEN_REFUSED) {
+        "X refused the stored login's refresh token."
+    } else if message.starts_with(REFRESH_NO_TOKEN) {
+        "X answered the stored login's refresh with no token."
+    } else {
+        return None;
+    };
+    let target = snapshot.active_app.as_str();
+    let login =
+        requested_login(invocation).or_else(|| snapshot.oauth2_default_logins.get(target).cloned());
+    let app = (target != snapshot.default_app).then_some(target);
+    let next_step = NextStep::sign_in_as(login.as_deref(), app, headless);
     let command = next_step.command.clone().unwrap_or_default();
     Some(Hint {
+        text_lines: vec![format!("{what} Sign in again. Run: {command}")],
+        next_step,
+    })
+}
+
+fn sign_in_again(invocation: &[String], no_browser: bool) -> Hint {
+    let next_step = NextStep::sign_in_again(invocation, no_browser);
+    let command = next_step.command.clone().unwrap_or_default();
+    Hint {
         text_lines: vec![format!("Sign in again. Run: {command}")],
+        next_step,
+    }
+}
+
+/// Builds the hint for a headless step 2 refused a redirect URL it cannot
+/// parse. The saved flow is still good, so the step asks for the URL rather
+/// than for another consent.
+#[must_use]
+pub fn redirect_url_again_hint(error: &Error, invocation: &[String]) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    if !message.starts_with(REDIRECT_INVALID_URL) {
+        return None;
+    }
+    let next_step = NextStep::step_two_again(invocation, None);
+    let template = next_step.template.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!("Fill in the redirect URL and run: {template}")],
+        next_step,
+    })
+}
+
+/// Builds the hint for a headless step 2 whose client id is not the one step 1
+/// saved, from the flow step 1 saved beside the store.
+///
+/// ```text
+/// the store holds the saved app, and this run is not on it -> finish under that app
+/// this run is on the saved app, or the store no longer holds it -> a new flow
+/// ```
+///
+/// Finishing asks nothing of the person who consented. It cannot help when the
+/// saved app is this one, whose client id has moved on since step 1, or one
+/// the store no longer holds.
+#[must_use]
+pub fn pending_app_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    invocation: &[String],
+) -> Option<Hint> {
+    let Error::Auth { message, .. } = error else {
+        return None;
+    };
+    if !message.starts_with(PENDING_APP_MISMATCH) {
+        return None;
+    }
+    let path =
+        xdk::auth::pending::pending_path_for_store(std::path::Path::new(&snapshot.store_path));
+    let finishes_on = xdk::auth::pending::peek(&path)
+        .ok()
+        .map(|flow| flow.app_name)
+        .filter(|app| *app != snapshot.active_app && snapshot.apps.contains_key(app));
+    let Some(app) = finishes_on else {
+        return Some(sign_in_again(invocation, false));
+    };
+    let next_step = NextStep::step_two_again(invocation, Some(&app));
+    let template = next_step.template.clone().unwrap_or_default();
+    Some(Hint {
+        text_lines: vec![format!(
+            "The pending sign-in belongs to app {app:?}. Fill in the redirect URL and run: {template}"
+        )],
         next_step,
     })
 }
@@ -787,7 +1151,9 @@ pub fn show_help_hint(help: &str) -> Hint {
 /// credential decides.
 ///
 /// A method, a URL, or a path value `xr` refused is an argument, so it
-/// takes the help of the command it was given to, as `help` names it.
+/// takes the help of the command it was given to, as `help` names it. The
+/// token endpoint's 403 names where to look: `TOKEN_URL` and the proxy in
+/// front of the endpoint.
 #[must_use]
 pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
     if matches!(
@@ -795,6 +1161,16 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
         Error::InvalidMethod(_) | Error::InvalidUrl { .. } | Error::InvalidPathParam { .. }
     ) {
         return Some(show_help_hint(help));
+    }
+    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+        let docs = error.docs_url();
+        return Some(Hint {
+            text_lines: with_docs_line(
+                "The token endpoint answered 403 and sent no OAuth error. A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both.".to_string(),
+                docs,
+            ),
+            next_step: NextStep::fix_input(docs.map(str::to_string)),
+        });
     }
     let docs = error.docs_url().map(str::to_string);
     match error.next_action()? {
@@ -854,6 +1230,39 @@ fn rerun_with_app(invocation: &[String], app: &str) -> String {
     parts.join(" ")
 }
 
+/// A `-H` header with its value replaced by `<value>`, keeping its name.
+fn hidden_header(header: &str) -> String {
+    let name = header.split_once(':').map_or("", |(name, _)| name.trim());
+    if name.is_empty() {
+        "<value>".to_string()
+    } else {
+        format!("{name}: <value>")
+    }
+}
+
+fn non_empty(value: Option<&str>) -> Option<&str> {
+    value.filter(|value| !value.is_empty())
+}
+
+/// The credential words of a media command that waits on processing: the
+/// `--app` it ran under and its own `--auth`, `-u`, and `-H`, as clap parsed
+/// them. A step that waits again repeats them, so its read goes out under the
+/// same credential. The step after a 429 with no reset also repeats the
+/// rate-limit wait the command ran under.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct MediaCredential {
+    /// The app `--app` or `XURL_APP` named.
+    pub app: Option<String>,
+    /// The scheme `--auth` named.
+    pub auth: Option<String>,
+    /// The login `-u` named.
+    pub username: Option<String>,
+    /// Each `-H` header, as given.
+    pub headers: Vec<String>,
+    /// The `--rate-limit-max-wait` ceiling, when `--wait-on-rate-limit` was on.
+    pub rate_limit_max_wait: Option<u64>,
+}
+
 /// Quotes one argument of a rebuilt invocation when a shell would split it.
 pub(crate) fn shell_word(arg: &str) -> String {
     if !arg.is_empty()
@@ -886,6 +1295,105 @@ pub fn quote_app_name(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_resumed_wait_quotes_each_word_a_shell_would_split() {
+        let credential = MediaCredential {
+            app: Some("work".to_string()),
+            auth: Some("oauth2".to_string()),
+            username: Some("al ice".to_string()),
+            headers: vec!["no colon here".to_string()],
+            rate_limit_max_wait: None,
+        };
+        let step = NextStep::resume_wait("777", 30, &credential);
+        assert_eq!(step.action, NextAction::ResumeWait);
+        assert_eq!(step.command, None, "a hidden header makes it a template");
+        assert_eq!(
+            step.template.as_deref(),
+            Some("xr --app work media status 777 --wait=30 --auth oauth2 -u 'al ice' -H '<value>'")
+        );
+    }
+
+    #[test]
+    fn each_failure_of_the_read_after_an_upload_gets_the_step_that_fits_it() {
+        let waited = std::time::Duration::from_secs(90);
+        let none = MediaCredential::default();
+        for error in [
+            Error::http("connection reset"),
+            Error::api(503, "{}"),
+            Error::api(408, "{}"),
+        ] {
+            let hint =
+                resume_after_upload_hint(&error, "777", waited, &none).expect("a resume hint");
+            assert_eq!(hint.next_step.action, NextAction::ResumeWait, "{error}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr media status 777 --wait=90"),
+                "{error}"
+            );
+            assert_eq!(hint.next_step.docs.as_deref(), error.docs_url(), "{error}");
+        }
+        let limited = resume_after_upload_hint(&Error::api(429, "{}"), "777", waited, &none)
+            .expect("a step for a 429");
+        assert_eq!(limited.next_step.action, NextAction::WaitAndRetry);
+        assert_eq!(
+            limited.next_step.command, None,
+            "no reset says when the window passes"
+        );
+        assert_eq!(
+            limited.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90")
+        );
+        let waiting = MediaCredential {
+            rate_limit_max_wait: Some(5),
+            ..MediaCredential::default()
+        };
+        assert_eq!(
+            resume_after_upload_hint(&Error::api(429, "{}"), "777", waited, &waiting)
+                .expect("a step for a 429")
+                .next_step
+                .template
+                .as_deref(),
+            Some("xr --wait-on-rate-limit --rate-limit-max-wait=5 media status 777 --wait=90"),
+            "the upload's own rate-limit wait carries over"
+        );
+        let refused = resume_after_upload_hint(&Error::api(401, "{}"), "777", waited, &none)
+            .expect("a step for a 401");
+        assert_eq!(refused.next_step.action, NextAction::FixInput);
+        assert_eq!(refused.next_step.command, None, "never a command");
+        assert_eq!(
+            refused.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90")
+        );
+        let forbidden = Error::TokenEndpointForbidden {
+            body: "<html>Forbidden</html>".into(),
+        };
+        let refresh = resume_after_upload_hint(&forbidden, "777", waited, &none)
+            .expect("a step for the token endpoint's 403, which a refresh during the wait meets");
+        assert_eq!(refresh.next_step.action, NextAction::FixInput);
+        assert_eq!(refresh.next_step.command, None, "never a command");
+        assert_eq!(
+            refresh.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90"),
+            "the upload is not sent again"
+        );
+        assert_eq!(refresh.next_step.docs.as_deref(), forbidden.docs_url());
+        assert!(
+            refresh.text_lines[0].contains("TOKEN_URL")
+                && refresh.text_lines[0].contains("proxy")
+                && refresh.text_lines[0].contains("xr media status 777 --wait=90"),
+            "{:?}",
+            refresh.text_lines
+        );
+        assert!(
+            resume_after_upload_hint(&Error::api(404, "{}"), "777", waited, &none).is_none(),
+            "a 404 keeps its own step"
+        );
+        assert!(
+            resume_after_upload_hint(&Error::api(403, "{}"), "777", waited, &none).is_none(),
+            "an API 403 keeps its own step"
+        );
+    }
 
     #[test]
     fn register_app_offers_a_template_and_no_command() {
@@ -1009,6 +1517,227 @@ mod tests {
                 "{invocation} -> {command}"
             );
         }
+    }
+
+    #[test]
+    fn a_step_two_that_refused_its_redirect_url_starts_over_at_step_one() {
+        let invocation = argv(
+            "xr --output json auth oauth2 --no-browser --step 2 --auth-url http://localhost:8080/callback?code=abc --app work",
+        );
+        for message in [
+            REDIRECT_MISSING_STATE,
+            REDIRECT_STATE_MISMATCH,
+            REDIRECT_MISSING_CODE,
+        ] {
+            let hint = sign_in_again_hint(&Error::auth(message), &invocation).expect("a hint");
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{message}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr --output json auth oauth2 --no-browser --step 1 --app work"),
+                "{message}"
+            );
+        }
+    }
+
+    #[test]
+    fn under_dry_run_puts_the_flag_after_the_program_word_of_a_command_only() {
+        let step = NextStep::select_app("xr auth oauth2 --no-browser --step 1 --app work".into());
+        assert_eq!(
+            step.under_dry_run().command.as_deref(),
+            Some("xr --dry-run auth oauth2 --no-browser --step 1 --app work")
+        );
+        let registration = NextStep::register_app();
+        assert_eq!(registration.clone().under_dry_run(), registration);
+    }
+
+    /// The URL holds an authorization code, so no spelling of it survives,
+    /// and the template names the app once.
+    #[test]
+    fn step_two_again_leaves_the_url_to_the_caller_and_names_the_app_once() {
+        let url = "http://localhost:8080/callback?code=SECRET&state=s";
+        let again =
+            |given: &str, app| NextStep::step_two_again(&argv(&given.replace("URL", url)), app);
+        for given in [
+            "xr auth oauth2 alice --no-browser --step 2 --auth-url URL",
+            "xr auth oauth2 alice --no-browser --step 2 --auth-url=URL",
+            "xr auth oauth2 alice --no-browser --step 2 --auth-url -",
+        ] {
+            let step = again(given, None);
+            assert_eq!(step.action, NextAction::FixInput, "{given}");
+            assert!(step.command.is_none(), "{given}");
+            assert_eq!(
+                step.template.as_deref(),
+                Some("xr auth oauth2 alice --no-browser --step 2 --auth-url <redirect-url>"),
+                "{given}"
+            );
+        }
+        for given in [
+            "xr --app here auth oauth2 --no-browser --step 2 --auth-url URL",
+            "xr auth oauth2 --no-browser --step 2 --auth-url URL --app=here",
+        ] {
+            assert_eq!(
+                again(given, Some("my app")).template.as_deref(),
+                Some(
+                    "xr --app 'my app' auth oauth2 --no-browser --step 2 --auth-url <redirect-url>"
+                ),
+                "{given}"
+            );
+        }
+        assert_eq!(
+            again("xr --app here auth oauth2 --step 2 --auth-url URL", None)
+                .template
+                .as_deref(),
+            Some("xr --app here auth oauth2 --step 2 --auth-url <redirect-url>"),
+            "with no app to move to, the one given stays"
+        );
+    }
+
+    /// A store holding `work` and `home`, on `active`, beside a flow step 1
+    /// saved for `saved_app`.
+    fn snapshot_with_saved_flow(
+        tmp: &tempfile::TempDir,
+        saved_app: &str,
+        active: &str,
+    ) -> StoreSnapshot {
+        let path = tmp.path().join("auth.yml");
+        let mut store = xdk::store::TokenStore::new_with_path(&path.to_string_lossy());
+        store
+            .add_app("work", "CLIENT-ID", "SECRET")
+            .expect("add app");
+        store
+            .add_app("home", "CLIENT-ID", "SECRET")
+            .expect("add app");
+        let flow = xdk::auth::pending::PendingOAuth2State {
+            code_verifier: "verifier".to_string(),
+            state: "state".to_string(),
+            client_id: "saved-client-id".to_string(),
+            app_name: saved_app.to_string(),
+            created_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_secs(),
+            scopes: Vec::new(),
+        };
+        xdk::auth::pending::save(&flow, &xdk::auth::pending::pending_path_for_store(&path))
+            .expect("save the flow");
+        StoreSnapshot::new(&store, active, false)
+    }
+
+    #[test]
+    fn another_apps_flow_finishes_there_when_the_store_holds_that_app() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let snapshot = snapshot_with_saved_flow(&tmp, "work", "home");
+        let invocation = argv("xr auth oauth2 --no-browser --step 2 --auth-url URL");
+        let refused = Error::auth(format!("{PENDING_APP_MISMATCH} \"work\" (client_id: x)"));
+
+        let hint = pending_app_hint(&snapshot, &refused, &invocation).expect("a hint");
+
+        assert_eq!(hint.next_step.action, NextAction::FixInput);
+        assert_eq!(
+            hint.next_step.template.as_deref(),
+            Some("xr --app work auth oauth2 --no-browser --step 2 --auth-url <redirect-url>")
+        );
+        assert!(pending_app_hint(&snapshot, &Error::auth("something else"), &invocation).is_none());
+    }
+
+    /// `--app <saved>` would refuse the same way on this app, and name an
+    /// unknown app otherwise, so the only way on is a new flow.
+    #[test]
+    fn a_flow_no_stored_app_can_finish_starts_over_at_step_one() {
+        for (saved_app, active) in [("home", "home"), ("gone", "home")] {
+            let tmp = tempfile::TempDir::new().expect("tempdir");
+            let snapshot = snapshot_with_saved_flow(&tmp, saved_app, active);
+            let refused = Error::auth(format!("{PENDING_APP_MISMATCH} {saved_app:?}"));
+
+            let hint = pending_app_hint(
+                &snapshot,
+                &refused,
+                &argv("xr auth oauth2 --no-browser --step 2 --auth-url URL"),
+            )
+            .expect("a hint");
+
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{saved_app}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr auth oauth2 --no-browser --step 1"),
+                "{saved_app}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_flow_with_nothing_to_finish_or_other_scopes_starts_over_at_step_one() {
+        let invocation =
+            argv("xr auth oauth2 --no-browser --step 2 --auth-url URL --scopes dm.read");
+        for message in [
+            PENDING_NOT_FOUND.to_string(),
+            PENDING_EXPIRED.to_string(),
+            format!("{PENDING_SCOPE_MISMATCH} tweet.read, but this step names dm.read."),
+        ] {
+            let hint =
+                sign_in_again_hint(&Error::auth(message.clone()), &invocation).expect("a hint");
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{message}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr auth oauth2 --no-browser --step 1 --scopes dm.read"),
+                "{message}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_saved_file_that_does_not_parse_or_a_code_x_would_not_exchange_starts_over() {
+        let invocation = argv("xr auth oauth2 --no-browser --step 2 --auth-url URL");
+        for message in [
+            format!("{PENDING_INVALID} (cause: bad yaml)"),
+            format!("{TOKEN_EXCHANGE_CODE_REFUSED}: HTTP 400 Bad Request — invalid_grant: spent"),
+            TOKEN_EXCHANGE_NO_TOKEN.to_string(),
+            format!("{TOKEN_EXCHANGE_NO_TOKEN} (cause: not JSON)"),
+        ] {
+            let hint =
+                sign_in_again_hint(&Error::auth(message.clone()), &invocation).expect("a hint");
+            assert_eq!(hint.next_step.action, NextAction::SignIn, "{message}");
+            assert_eq!(
+                hint.next_step.command.as_deref(),
+                Some("xr auth oauth2 --no-browser --step 1"),
+                "{message}"
+            );
+        }
+    }
+
+    /// The message names what to change, and another sign-in would end at the
+    /// same refusal, so the step sends nobody back to the browser.
+    #[test]
+    fn a_refused_client_or_a_file_xr_will_not_read_is_fixed_with_no_invocation() {
+        for message in [
+            format!("{TOKEN_EXCHANGE_CLIENT_REFUSED}: HTTP 401 Unauthorized — invalid_client: no"),
+            format!("{PENDING_PERMISSIONS}: /tmp/x.pending: expected mode 0600, got 0644"),
+        ] {
+            let hint = sign_in_fault_hint(&Error::auth(message.clone())).expect("a hint");
+            assert_eq!(hint.next_step, NextStep::fix_input(None), "{message}");
+            assert!(!hint.text_lines.is_empty(), "{message}");
+            assert!(
+                sign_in_again_hint(&Error::auth(message.clone()), &[]).is_none(),
+                "{message}"
+            );
+        }
+        assert!(sign_in_fault_hint(&Error::auth("something else")).is_none());
+    }
+
+    #[test]
+    fn a_url_that_does_not_parse_is_asked_for_again() {
+        let refused = Error::auth_with_cause(REDIRECT_INVALID_URL, &"relative URL without a base");
+        let hint = redirect_url_again_hint(
+            &refused,
+            &argv("xr auth oauth2 --no-browser --step 2 --auth-url nope"),
+        )
+        .expect("a hint");
+        assert_eq!(hint.next_step.action, NextAction::FixInput);
+        assert_eq!(
+            hint.next_step.template.as_deref(),
+            Some("xr auth oauth2 --no-browser --step 2 --auth-url <redirect-url>")
+        );
+        assert!(redirect_url_again_hint(&Error::auth("other"), &[]).is_none());
     }
 
     #[test]

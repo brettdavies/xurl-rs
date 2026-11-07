@@ -276,10 +276,11 @@ one request, where Go asks `/2/users/by/username/<name>`. Both take the same cre
 Go `xurl` has no `--dry-run`: `xurl --dry-run /2/users/me` and `xurl delete --dry-run ID` exit 1 with
 `unknown flag: --dry-run`, and nothing is sent.
 
-`xr` takes `--dry-run` on every command, raw requests included. It checks the inputs and the stored credential offline
-and sends and stores nothing. A dry run that reaches its checks answers on stdout at exit 0 with `status: dry_run`,
-`would_succeed`, the credential the request would go out under, and, when the real run would fail, the `reason` and
-`exit_code` it would end on.
+`xr` takes `--dry-run` on every command, raw requests included. It checks the inputs and the stored credential offline,
+sends nothing, and changes no stored credential. A dry run that reaches its checks answers on stdout at exit 0 with
+`status: dry_run`, `would_succeed`, the credential the request would go out under, and, when the real run would fail,
+the `reason` and `exit_code` it would end on. The first command to open an old-format store upgrades it once, a dry run
+included.
 
 `XURL_DRY_RUN=1` makes every `xr` call in a process a dry run, so a migrated script can be checked whole before it
 spends anything:

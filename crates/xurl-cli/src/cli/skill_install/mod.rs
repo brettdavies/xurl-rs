@@ -52,6 +52,7 @@ use crate::cli::envelope::Reason;
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 
+mod bundle;
 mod destination;
 mod git;
 mod render;
@@ -102,6 +103,9 @@ pub enum InstallError {
         /// Exit code reported by the failed `git clone` invocation.
         code: i32,
     },
+    /// `skill update` could not swap a fresh clone in for the bundle at the
+    /// destination, or remove the copy it replaced.
+    RemoveFailed,
 }
 
 impl InstallError {
@@ -113,6 +117,15 @@ impl InstallError {
             InstallError::DestIsFile => "destination-is-file",
             InstallError::GitNotFound => "git-not-found",
             InstallError::GitCloneFailed { .. } => "git-clone-failed",
+            InstallError::RemoveFailed => "remove-failed",
+        }
+    }
+
+    /// The exit code a run that fails this way ends on.
+    fn exit_code(&self) -> i32 {
+        match self {
+            InstallError::GitCloneFailed { code } => *code,
+            _ => 1,
         }
     }
 }
@@ -149,6 +162,14 @@ pub struct InstallEnvelope {
     /// install` leaves it in place.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub legacy_install_dir: Option<String>,
+    /// The directory `skill update` refused to replace because it holds
+    /// something other than the bundle: `install_dir` or
+    /// `legacy_install_dir`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub refused_dir: Option<String>,
+    /// What went wrong and how to clear it, on a failure.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
     /// What to do about [`Self::reason`]; `None` on success.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
@@ -157,14 +178,17 @@ pub struct InstallEnvelope {
 impl InstallEnvelope {
     /// Fills [`Self::next_step`] from the failure this envelope reports.
     ///
-    /// A destination that already holds files is `skill update`'s to
-    /// replace, and a host with nothing installed is `skill install`'s to
-    /// fill, so those two name the sibling verb. A clone that failed is
-    /// tried again. The rest are the machine's state, which no `xr` command
-    /// changes.
+    /// A destination that already holds files is `skill update`'s to look
+    /// at, since it replaces a bundle and refuses anything else, and a host
+    /// with nothing installed is `skill install`'s to fill, so those two name
+    /// the sibling verb. That refusal from `skill update` itself has no
+    /// sibling left to name. A clone that failed is tried again. The rest are
+    /// the machine's state, which no `xr` command changes.
     fn with_next_step(mut self) -> Self {
         let host = self.host;
+        let action = self.action;
         self.next_step = self.reason.and_then(|reason| match reason {
+            "destination-not-empty" if action == ACTION_UPDATE => Some(NextStep::fix_input(None)),
             "destination-not-empty" => {
                 Some(NextStep::run_command(format!("xr skill update {host}")))
             }
@@ -177,6 +201,31 @@ impl InstallEnvelope {
         });
         self
     }
+
+    /// Fills [`Self::message`] on a failure that has no sentence of its own,
+    /// or a dry run's report of one.
+    fn with_message(mut self) -> Self {
+        if self.is_failure() && self.message.is_none() {
+            self.message = render::failure_message(&self);
+        }
+        self
+    }
+
+    /// Whether this reports a failure: a real run's, or the one a dry run says
+    /// its real run would end on.
+    fn is_failure(&self) -> bool {
+        self.status == STATUS_ERROR || self.would_succeed == Some(false)
+    }
+}
+
+/// The `status` of a run refused before anything was cloned: the error of a
+/// real run, and a dry run's own, which reports the refusal in its other keys.
+fn refused_status(dry_run: bool) -> &'static str {
+    if dry_run {
+        STATUS_DRY_RUN
+    } else {
+        STATUS_ERROR
+    }
 }
 
 /// Multi-host envelope for `--all` invocations.
@@ -186,10 +235,69 @@ pub struct InstallMultiEnvelope {
     pub action: &'static str,
     /// Aggregate outcome: `"ok"`, `"error"`, or `"dry_run"`.
     pub status: &'static str,
+    /// Dry-run-only: would the run succeed on every host?
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub would_succeed: Option<bool>,
     /// One [`InstallEnvelope`] per host, in [`KNOWN_HOSTS`] order.
     pub installations: Vec<InstallEnvelope>,
-    /// Worst exit code observed across [`Self::installations`].
+    /// Worst exit code observed across [`Self::installations`]; on a dry run,
+    /// the worst its real run would end on.
     pub exit_code: i32,
+    /// On a failure, the `reason` of the host with the worst exit code.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<&'static str>,
+    /// On a failure, which hosts failed and why.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    /// On a failure, the step of the host with the worst exit code. Each entry
+    /// in [`Self::installations`] carries its own.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_step: Option<NextStep>,
+}
+
+impl InstallMultiEnvelope {
+    /// Aggregates the hosts of one `--all` run. The first host with the worst
+    /// exit code speaks for the run at the top level.
+    fn of(action: &'static str, dry_run: bool, installations: Vec<InstallEnvelope>) -> Self {
+        let failed: Vec<&InstallEnvelope> = installations
+            .iter()
+            .filter(|env| env.is_failure())
+            .collect();
+        let worst = failed
+            .iter()
+            .rev()
+            .max_by_key(|env| env.exit_code.unwrap_or(1));
+        let status = match worst {
+            _ if dry_run => STATUS_DRY_RUN,
+            Some(_) => STATUS_ERROR,
+            None => STATUS_OK,
+        };
+        let message = worst.map(|_| render::hosts_failed_message(&failed, installations.len()));
+        let exit_code = worst.map_or(0, |env| env.exit_code.unwrap_or(1));
+        let reason = worst.and_then(|env| env.reason);
+        let next_step = worst.and_then(|env| env.next_step.clone());
+        let would_succeed = dry_run.then_some(worst.is_none());
+        Self {
+            action,
+            status,
+            would_succeed,
+            installations,
+            exit_code,
+            reason,
+            message,
+            next_step,
+        }
+    }
+
+    /// The code the process ends on. A dry run answers at 0 whatever it found,
+    /// and reports the real run's code in [`Self::exit_code`].
+    fn process_exit_code(&self) -> i32 {
+        if self.status == STATUS_DRY_RUN {
+            0
+        } else {
+            self.exit_code
+        }
+    }
 }
 
 const ACTION_INSTALL: &str = "skill-install";
@@ -216,7 +324,7 @@ pub fn compute_install_envelope(
     envelope.legacy_install_dir = skill_env
         .legacy_copy(host)
         .map(|path| path.display().to_string());
-    envelope.with_next_step()
+    envelope.with_next_step().with_message()
 }
 
 fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> InstallEnvelope {
@@ -236,11 +344,13 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
                 install_dir: dest_template.to_string(),
                 command_preview,
                 destination_status: DestinationStatus::Absent.as_envelope_str(),
-                status: STATUS_ERROR,
+                status: refused_status(dry_run),
                 would_succeed: if dry_run { Some(false) } else { None },
                 exit_code: Some(1),
                 reason: Some(InstallError::MissingHome.reason()),
                 legacy_install_dir: None,
+                refused_dir: None,
+                message: None,
                 next_step: None,
             };
         }
@@ -265,11 +375,13 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
                 install_dir: dest_display,
                 command_preview,
                 destination_status: status_label.as_envelope_str(),
-                status: STATUS_ERROR,
+                status: refused_status(dry_run),
                 would_succeed: if dry_run { Some(false) } else { None },
                 exit_code: Some(1),
                 reason: Some(e.reason()),
                 legacy_install_dir: None,
+                refused_dir: None,
+                message: None,
                 next_step: None,
             };
         }
@@ -290,6 +402,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: None,
+            refused_dir: None,
+            message: None,
             next_step: None,
         };
     }
@@ -308,6 +422,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(0),
             reason: None,
             legacy_install_dir: None,
+            refused_dir: None,
+            message: None,
             next_step: None,
         },
         Err(InstallError::GitCloneFailed { code }) => InstallEnvelope {
@@ -321,6 +437,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(code),
             reason: Some(InstallError::GitCloneFailed { code }.reason()),
             legacy_install_dir: None,
+            refused_dir: None,
+            message: None,
             next_step: None,
         },
         Err(InstallError::GitNotFound) => InstallEnvelope {
@@ -334,6 +452,8 @@ fn install_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Ins
             exit_code: Some(1),
             reason: Some(InstallError::GitNotFound.reason()),
             legacy_install_dir: None,
+            refused_dir: None,
+            message: None,
             next_step: None,
         },
         Err(_) => unreachable!("spawn_git_clone only emits GitCloneFailed / GitNotFound"),
@@ -389,28 +509,14 @@ fn run_for_all_hosts(
     stdout: &mut dyn Write,
     skill_env: &SkillEnv,
 ) -> i32 {
-    let mut installations = Vec::with_capacity(SkillHost::ALL.len());
-    let mut worst: i32 = 0;
-    for host in SkillHost::ALL {
-        let env = compute_install_envelope(*host, dry_run, skill_env);
-        if env.status == STATUS_ERROR {
-            worst = worst.max(env.exit_code.unwrap_or(1));
-        }
-        installations.push(env);
-    }
-    let multi = InstallMultiEnvelope {
-        action: ACTION_INSTALL,
-        status: if worst == 0 {
-            if dry_run { STATUS_DRY_RUN } else { STATUS_OK }
-        } else {
-            STATUS_ERROR
-        },
-        installations,
-        exit_code: worst,
-    };
+    let installations = SkillHost::ALL
+        .iter()
+        .map(|host| compute_install_envelope(*host, dry_run, skill_env))
+        .collect();
+    let multi = InstallMultiEnvelope::of(ACTION_INSTALL, dry_run, installations);
     let rendered = render_multi(&multi, &out.format);
     let _ = writeln!(stdout, "{rendered}");
-    worst
+    multi.process_exit_code()
 }
 
 /// Emit a hint envelope listing the known hosts. Returned when neither a host
@@ -528,5 +634,6 @@ mod tests {
             InstallError::GitCloneFailed { code: 128 }.reason(),
             "git-clone-failed"
         );
+        assert_eq!(InstallError::RemoveFailed.reason(), "remove-failed");
     }
 }
