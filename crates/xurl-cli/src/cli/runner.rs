@@ -434,7 +434,13 @@ async fn run_inner(
             EXIT_GENERAL_ERROR
         }
         Err(Failure::DryRunRefusal { ctx, error }) => {
-            let hint = recovery_hint(&error, &snapshot, &args_vec, structured, &media);
+            let hint = recovery_hint(
+                &error,
+                &snapshot,
+                &naming_dry_run(&args_vec),
+                structured,
+                &media,
+            );
             out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
             EXIT_SUCCESS
         }
@@ -467,6 +473,22 @@ async fn run_inner(
     // Every failure above wrote its envelope, which took the warnings with it.
     out.write_kept_warnings(stderr);
     code
+}
+
+/// `args` with `--dry-run` named. `XURL_DRY_RUN` selects a dry run with no flag
+/// in argv, and a step built from argv would then rerun the invocation as a
+/// real run.
+fn naming_dry_run(args: &[OsString]) -> Vec<OsString> {
+    let named = args
+        .iter()
+        .skip(1)
+        .map_while(|arg| arg.to_str().filter(|arg| *arg != "--"))
+        .any(|arg| arg == "--dry-run" || arg.starts_with("--dry-run="));
+    let mut named_args = args.to_vec();
+    if !named {
+        named_args.insert(args.len().min(1), OsString::from("--dry-run"));
+    }
+    named_args
 }
 
 /// The recovery hint for a library error, chosen from the store as this

@@ -1572,13 +1572,16 @@ async fn a_dry_run_says_the_real_run_would_refuse_the_argument() {
 async fn a_dry_run_of_a_step_with_its_arguments_right_would_succeed() {
     let redirect = redirect_url();
     for args in [
+        &[][..],
         &["--step", "1"][..],
         &["--step", "2", "--auth-url", &redirect],
     ] {
         let tmp = TempDir::new().unwrap();
         let store = tmp.path().join(".xurl");
         seed_store(&store);
-        seed_pending(&store);
+        if args.contains(&"2") {
+            seed_pending(&store);
+        }
         let mut argv = vec![
             "xr",
             "--output",
@@ -1772,6 +1775,57 @@ fn a_dry_run_reads_piped_stdin_where_the_real_run_does_and_refuses_as_it_does() 
             &real_document,
             real_code,
         ));
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
+/// `XURL_DRY_RUN` selects a dry run with no flag in argv, and a step built
+/// from argv has to name the flag all the same: followed without the variable,
+/// a step without it is a real run.
+#[test]
+fn a_dry_run_the_environment_selects_names_steps_that_keep_it() {
+    let redirect = redirect_url();
+    let mut faults = Vec::new();
+    for (name, saved, url, action) in [
+        ("no saved flow", false, redirect.as_str(), "sign-in"),
+        (
+            "redirect URL that does not parse",
+            true,
+            "not a url",
+            "fix-input",
+        ),
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        if saved {
+            seed_pending(&store);
+        }
+        let output = common::xr_with_store(&store)
+            .env("API_BASE_URL", CLOSED)
+            .env("XURL_DRY_RUN", "1")
+            .args([
+                "--output",
+                "json",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                url,
+            ])
+            .output()
+            .expect("xr runs");
+        let answer: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap_or_default();
+        if output.status.code() != Some(0) || answer["status"] != "dry_run" {
+            faults.push(format!("{name}: not a dry run: {output:?}"));
+        } else if answer["next_step"]["action"] != action {
+            faults.push(format!("{name}: the step is not {action}: {answer}"));
+        }
+        if let Some(step) = rerun_that_signs_in_for_real(&answer) {
+            faults.push(format!("{name}: the step drops --dry-run: {step}"));
+        }
     }
     assert!(faults.is_empty(), "{}", faults.join("\n"));
 }
@@ -2213,6 +2267,9 @@ fn dry_run_faults(
         return vec![format!("{name}: the dry run does not refuse: {dry}")];
     }
     let mut faults = Vec::new();
+    if dry.to_string().contains("AUTHCODE") {
+        faults.push(format!("{name}: the dry run echoes the code: {dry}"));
+    }
     if let Some(step) = rerun_that_signs_in_for_real(dry) {
         faults.push(format!("{name}: the step drops --dry-run: {step}"));
     }
