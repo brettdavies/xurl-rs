@@ -7,7 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tempfile::TempDir;
 
+use xdk::auth::Auth;
 use xdk::auth::pending::{self, PendingOAuth2State};
+use xdk::config::{Config, EnvOverrides};
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -141,6 +143,72 @@ fn load_rejects_expired_state() {
 
     // The expired file should have been deleted.
     assert!(!path.exists());
+}
+
+#[test]
+fn peek_refuses_an_expired_state_and_leaves_the_file_where_it_is() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let mut state = sample_state();
+    state.created_at = now_secs().saturating_sub(1200);
+    pending::save(&state, &path).unwrap();
+    let kept = std::fs::read(&path).unwrap();
+
+    let msg = pending::peek(&path).unwrap_err().to_string();
+
+    assert!(msg.contains("PendingStateExpired"), "got: {msg}");
+    assert_eq!(std::fs::read(&path).unwrap(), kept);
+}
+
+#[test]
+fn peek_reads_a_fresh_state_as_load_does() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let state = sample_state();
+    pending::save(&state, &path).unwrap();
+
+    assert_eq!(pending::peek(&path).unwrap(), state);
+    assert_eq!(pending::load(&path).unwrap(), state);
+    assert!(path.exists());
+}
+
+fn auth_for_the_sample_client(tmp: &TempDir) -> Auth {
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
+    cfg.client_id = "client_id_001".into();
+    cfg.client_secret = "client_secret_001".into();
+    Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &tmp.path().join(".xurl"),
+        &EnvOverrides::default(),
+    )
+}
+
+#[test]
+fn a_check_with_no_redirect_url_passes_over_a_flow_that_fits() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let mut state = sample_state();
+    state.scopes.clear();
+    pending::save(&state, &path).unwrap();
+
+    let auth = auth_for_the_sample_client(&tmp);
+
+    auth.check_remote_oauth2_step2(None, &path).unwrap();
+    assert!(path.exists());
+}
+
+#[test]
+fn a_check_with_no_redirect_url_still_wants_a_saved_flow() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let auth = auth_for_the_sample_client(&tmp);
+
+    let msg = auth
+        .check_remote_oauth2_step2(None, &path)
+        .unwrap_err()
+        .to_string();
+
+    assert!(msg.contains("PendingStateNotFound"), "got: {msg}");
 }
 
 // ── Adversarial / Red Team Tests ────────────────────────────────────────

@@ -216,6 +216,20 @@ impl NextStep {
         }
     }
 
+    /// This step's command with `--dry-run` after the program word, for a
+    /// dry run's refusal whose step reruns an invocation. A command that does
+    /// not start with the program word is left as it is.
+    #[must_use]
+    pub fn under_dry_run(mut self) -> Self {
+        if let Some(command) = &mut self.command
+            && let Some(rest) = command.strip_prefix(ROOT_COMMAND)
+            && rest.starts_with(' ')
+        {
+            *command = format!("{ROOT_COMMAND} --dry-run{rest}");
+        }
+        self
+    }
+
     /// Look at a store file that could not be loaded, starting from the
     /// command that reports on it and names its path.
     #[must_use]
@@ -1045,7 +1059,7 @@ pub fn pending_app_hint(
     }
     let path =
         xdk::auth::pending::pending_path_for_store(std::path::Path::new(&snapshot.store_path));
-    let finishes_on = xdk::auth::pending::load(&path)
+    let finishes_on = xdk::auth::pending::peek(&path)
         .ok()
         .map(|flow| flow.app_name)
         .filter(|app| *app != snapshot.active_app && snapshot.apps.contains_key(app));
@@ -1523,6 +1537,17 @@ mod tests {
                 "{message}"
             );
         }
+    }
+
+    #[test]
+    fn under_dry_run_puts_the_flag_after_the_program_word_of_a_command_only() {
+        let step = NextStep::select_app("xr auth oauth2 --no-browser --step 1 --app work".into());
+        assert_eq!(
+            step.under_dry_run().command.as_deref(),
+            Some("xr --dry-run auth oauth2 --no-browser --step 1 --app work")
+        );
+        let registration = NextStep::register_app();
+        assert_eq!(registration.clone().under_dry_run(), registration);
     }
 
     /// The URL holds an authorization code, so no spelling of it survives,

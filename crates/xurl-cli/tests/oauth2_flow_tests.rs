@@ -1572,12 +1572,16 @@ async fn a_dry_run_says_the_real_run_would_refuse_the_argument() {
 async fn a_dry_run_of_a_step_with_its_arguments_right_would_succeed() {
     let redirect = redirect_url();
     for args in [
+        &[][..],
         &["--step", "1"][..],
         &["--step", "2", "--auth-url", &redirect],
     ] {
         let tmp = TempDir::new().unwrap();
         let store = tmp.path().join(".xurl");
         seed_store(&store);
+        if args.contains(&"2") {
+            seed_pending(&store);
+        }
         let mut argv = vec![
             "xr",
             "--output",
@@ -1643,13 +1647,14 @@ fn a_dry_run_reads_piped_stdin_as_the_real_run_does() {
             Some("Failed to read redirect URL from stdin"),
         ),
         (
-            &b"http://localhost:8080/callback?code=AUTHCODE&state=s\n"[..],
+            &b"http://localhost:8080/callback?code=AUTHCODE&state=TEST-STATE-NONCE\n"[..],
             None,
         ),
     ] {
         let tmp = TempDir::new().unwrap();
         let store = tmp.path().join(".xurl");
         seed_store(&store);
+        seed_pending(&store);
 
         let output = common::xr_with_store(&store)
             .env("API_BASE_URL", "http://127.0.0.1:1")
@@ -1696,6 +1701,135 @@ fn a_dry_run_reads_piped_stdin_as_the_real_run_does() {
     }
 }
 
+/// The real run reads stdin only once the client id is there, and checks what
+/// it read against the saved flow. A dry run reads it at the same point and
+/// refuses for the same reason.
+#[test]
+fn a_dry_run_reads_piped_stdin_where_the_real_run_does_and_refuses_as_it_does() {
+    let another_state = b"http://localhost:8080/callback?code=AUTHCODE&state=ANOTHER-NONCE\n";
+    let mut faults = Vec::new();
+    for (name, client_id, saved, stdin) in [
+        ("no client id", false, true, &b""[..]),
+        ("another state", true, true, &another_state[..]),
+        (
+            "nothing on stdin, ahead of a missing flow",
+            true,
+            false,
+            &b""[..],
+        ),
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        if client_id {
+            seed_store(&store);
+        } else {
+            seed_store_without_a_client_id(&store);
+        }
+        if saved {
+            if client_id {
+                seed_pending(&store);
+            } else {
+                save_flow(&store, &saved_flow("default", "test-client-id"));
+            }
+        }
+        let run = |dry: bool| {
+            let mut command = common::xr_with_store(&store);
+            command
+                .env("API_BASE_URL", CLOSED)
+                .env("TOKEN_URL", format!("{CLOSED}/2/oauth2/token"))
+                .env("INFO_URL", format!("{CLOSED}/2/users/me"))
+                .args(["--output", "json"]);
+            if dry {
+                command.arg("--dry-run");
+            }
+            command
+                .args([
+                    "auth",
+                    "oauth2",
+                    "--no-browser",
+                    "--step",
+                    "2",
+                    "--auth-url",
+                    "-",
+                ])
+                .write_stdin(stdin)
+                .output()
+                .expect("xr runs")
+        };
+
+        let dry = run(true);
+        let real = run(false);
+
+        let real_code = real.status.code().unwrap_or_default();
+        let dry_document = serde_json::from_slice(&dry.stdout).unwrap_or_default();
+        let real_document = serde_json::from_slice(&real.stderr).unwrap_or_default();
+        if dry.status.code() != Some(0) || real_code == 0 {
+            faults.push(format!(
+                "{name}: the dry run exits {:?}, the real run {real_code}",
+                dry.status.code()
+            ));
+        }
+        faults.extend(dry_run_faults(
+            name,
+            &dry_document,
+            &real_document,
+            real_code,
+        ));
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
+/// `XURL_DRY_RUN` selects a dry run with no flag in argv, and a step built
+/// from argv has to name the flag all the same: followed without the variable,
+/// a step without it is a real run.
+#[test]
+fn a_dry_run_the_environment_selects_names_steps_that_keep_it() {
+    let redirect = redirect_url();
+    let mut faults = Vec::new();
+    for (name, saved, url, action) in [
+        ("no saved flow", false, redirect.as_str(), "sign-in"),
+        (
+            "redirect URL that does not parse",
+            true,
+            "not a url",
+            "fix-input",
+        ),
+    ] {
+        let tmp = TempDir::new().unwrap();
+        let store = tmp.path().join(".xurl");
+        seed_store(&store);
+        if saved {
+            seed_pending(&store);
+        }
+        let output = common::xr_with_store(&store)
+            .env("API_BASE_URL", CLOSED)
+            .env("XURL_DRY_RUN", "1")
+            .args([
+                "--output",
+                "json",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "2",
+                "--auth-url",
+                url,
+            ])
+            .output()
+            .expect("xr runs");
+        let answer: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap_or_default();
+        if output.status.code() != Some(0) || answer["status"] != "dry_run" {
+            faults.push(format!("{name}: not a dry run: {output:?}"));
+        } else if answer["next_step"]["action"] != action {
+            faults.push(format!("{name}: the step is not {action}: {answer}"));
+        }
+        if let Some(step) = rerun_that_signs_in_for_real(&answer) {
+            faults.push(format!("{name}: the step drops --dry-run: {step}"));
+        }
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
 #[tokio::test]
 async fn a_dry_run_in_text_says_the_real_run_would_refuse_the_argument() {
     let tmp = TempDir::new().unwrap();
@@ -1722,6 +1856,573 @@ async fn a_dry_run_in_text_says_the_real_run_would_refuse_the_argument() {
         stdout.contains("The real run would fail with exit code 2: --auth-url is required"),
         "{stdout}"
     );
+}
+
+/// In text the step is the form a person runs, and a dry run's carries
+/// `--dry-run` so that following it changes nothing.
+#[tokio::test]
+async fn a_dry_run_in_text_names_the_sign_in_step_the_real_run_names_under_dry_run() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_without_a_client_id(&store);
+    let overrides = closed_overrides(false);
+
+    let (dry_code, dry_stdout, dry_stderr) =
+        run_cli(&store, &overrides, &["xr", "--dry-run", "auth", "oauth2"]).await;
+    let (code, _, stderr) = run_cli(&store, &overrides, &["xr", "auth", "oauth2"]).await;
+
+    assert_eq!(dry_code, 0, "stderr: {dry_stderr}");
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(
+        stderr.contains("Run: xr auth oauth2 --app work"),
+        "{stderr}"
+    );
+    assert!(
+        dry_stdout.contains("Run: xr --dry-run auth oauth2 --app work"),
+        "{dry_stdout}"
+    );
+}
+
+// ── A dry run reaches the verdict the real run reaches ───────────────────
+
+/// Two apps, the target `default` with no client id and `work` with one.
+fn seed_store_without_a_client_id(store_path: &std::path::Path) {
+    std::fs::write(
+        store_path,
+        "apps:\n  default:\n    client_id: ''\n    client_secret: ''\n    oauth2_tokens: {}\n  work:\n    client_id: 'work-client-id'\n    client_secret: 'work-client-secret'\n    oauth2_tokens: {}\ndefault_app: default\n",
+    )
+    .expect("write tempdir store");
+}
+
+/// One app, `blank`, with no client id, and no other app to sign in under.
+fn seed_store_with_only_a_blank_app(store_path: &std::path::Path) {
+    std::fs::write(
+        store_path,
+        "apps:\n  blank:\n    client_id: ''\n    client_secret: ''\n    oauth2_tokens: {}\ndefault_app: blank\n",
+    )
+    .expect("write tempdir store");
+}
+
+/// The environment of a run whose endpoints are all closed ports, so a run
+/// that reached one would fail differently. Without `client_id` the app the
+/// store resolves to is the only source of one.
+fn closed_overrides(client_id: bool) -> xdk::config::EnvOverrides {
+    xdk::config::EnvOverrides {
+        client_id: client_id.then(|| "test-client-id".to_string()),
+        client_secret: client_id.then(|| "test-client-secret".to_string()),
+        token_url: Some(format!("{CLOSED}/2/oauth2/token")),
+        info_url: Some(format!("{CLOSED}/2/users/me")),
+        api_base_url: Some(CLOSED.to_string()),
+        ..xdk::config::EnvOverrides::default()
+    }
+}
+
+/// A state to run `xr auth oauth2` in, and a word of what its real run says.
+struct Verdict {
+    name: &'static str,
+    /// Whether `CLIENT_ID` is set in the environment.
+    client_id: bool,
+    seed: Box<dyn Fn(&std::path::Path)>,
+    /// Global flags, given before the command.
+    before: Vec<&'static str>,
+    args: Vec<String>,
+    says: &'static str,
+}
+
+fn verdict(
+    name: &'static str,
+    says: &'static str,
+    client_id: bool,
+    seed: impl Fn(&std::path::Path) + 'static,
+    args: &[&str],
+) -> Verdict {
+    Verdict {
+        name,
+        client_id,
+        seed: Box::new(seed),
+        before: Vec::new(),
+        args: args.iter().map(ToString::to_string).collect(),
+        says,
+    }
+}
+
+fn flow_at(redirect: &str) -> Vec<&str> {
+    vec!["--no-browser", "--step", "2", "--auth-url", redirect]
+}
+
+/// Every way the local state, the environment, and the arguments make
+/// `xr auth oauth2` fail before it sends anything, in the order the real run
+/// checks them.
+fn verdicts() -> Vec<Verdict> {
+    let redirect = redirect_url();
+    let at_redirect = |query: &str| format!("http://localhost:8080/callback?{query}");
+    let step1 = ["--no-browser", "--step", "1"];
+    let bad_scope = ["--scopes", "tweet.reed"];
+    let mut rows = vec![
+        verdict(
+            "no client id anywhere",
+            "no app carries client credentials",
+            false,
+            |_| {},
+            &step1,
+        ),
+        verdict(
+            "no client id, another app has one",
+            "app \"default\" has no client credentials; app \"work\" does",
+            false,
+            seed_store_without_a_client_id,
+            &step1,
+        ),
+        verdict(
+            "no client id, ahead of the saved flow",
+            "has no client credentials",
+            false,
+            |store| {
+                seed_store_without_a_client_id(store);
+                save_flow(store, &saved_flow("default", "test-client-id"));
+            },
+            &flow_at(&redirect),
+        ),
+        verdict(
+            "unknown scope",
+            "tweet.reed is not an OAuth2 scope",
+            true,
+            seed_store,
+            &[&step1[..], &bad_scope[..]].concat(),
+        ),
+        verdict(
+            "unknown scope, ahead of the client id",
+            "tweet.reed is not an OAuth2 scope",
+            false,
+            |_| {},
+            &[&step1[..], &bad_scope[..]].concat(),
+        ),
+        verdict(
+            "unknown scope, ahead of a missing --auth-url",
+            "tweet.reed is not an OAuth2 scope",
+            true,
+            seed_store,
+            &["--no-browser", "--step", "2", "--scopes", "tweet.reed"],
+        ),
+        verdict(
+            "missing --auth-url, ahead of the client id",
+            "--auth-url is required",
+            false,
+            |_| {},
+            &["--no-browser", "--step", "2"],
+        ),
+        verdict(
+            "no saved flow",
+            "PendingStateNotFound",
+            true,
+            seed_store,
+            &flow_at(&redirect),
+        ),
+        verdict(
+            "expired flow",
+            "PendingStateExpired",
+            true,
+            |store| {
+                seed_store(store);
+                save_flow(
+                    store,
+                    &xdk::auth::pending::PendingOAuth2State {
+                        created_at: 0,
+                        ..saved_flow("default", "test-client-id")
+                    },
+                );
+            },
+            &flow_at(&redirect),
+        ),
+        verdict(
+            "flow that does not parse",
+            "PendingStateInvalid",
+            true,
+            |store| {
+                seed_store(store);
+                let path = xdk::auth::pending::pending_path_for_store(store);
+                std::fs::write(&path, "state: [unclosed\n").unwrap();
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+                        .unwrap();
+                }
+            },
+            &flow_at(&redirect),
+        ),
+        verdict(
+            "flow saved for another client id",
+            "AppMismatch",
+            true,
+            |store| {
+                seed_store(store);
+                save_flow(store, &saved_flow("default", "another-client-id"));
+            },
+            &flow_at(&redirect),
+        ),
+        verdict(
+            "flow saved with other scopes",
+            "ScopeMismatch",
+            true,
+            |store| {
+                seed_store(store);
+                save_flow(
+                    store,
+                    &xdk::auth::pending::PendingOAuth2State {
+                        scopes: vec!["tweet.read".to_string(), "offline.access".to_string()],
+                        ..saved_flow("default", "test-client-id")
+                    },
+                );
+            },
+            &[&flow_at(&redirect)[..], &["--scopes", "dm.read"][..]].concat(),
+        ),
+        verdict(
+            "redirect URL that does not parse",
+            "InvalidRedirectURL",
+            true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at("not a url"),
+        ),
+        verdict(
+            "redirect URL with another state",
+            "StateMismatch",
+            true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&at_redirect("code=AUTHCODE&state=ANOTHER-NONCE")),
+        ),
+        verdict(
+            "redirect URL with no state",
+            "MissingState",
+            true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&at_redirect("code=AUTHCODE")),
+        ),
+        verdict(
+            "redirect URL with no code",
+            "MissingCode",
+            true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&at_redirect(&format!("state={PENDING_STATE}"))),
+        ),
+        verdict(
+            "redirect URL of a denied consent",
+            "access_denied",
+            true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&at_redirect(&format!("{DENIAL}&state={PENDING_STATE}"))),
+        ),
+    ];
+    rows.push(Verdict {
+        before: vec!["--app", "default"],
+        ..verdict(
+            "flow saved for another app",
+            "AppMismatch",
+            true,
+            |store| {
+                seed_store_two_apps(store);
+                save_flow(store, &saved_flow("work", "work-client-id"));
+            },
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "blank"],
+        ..verdict(
+            "app named, with no client id and no other app to sign in under",
+            "app \"blank\" has no client credentials.",
+            false,
+            seed_store_with_only_a_blank_app,
+            &step1,
+        )
+    });
+    rows.push(verdict(
+        "flow saved for another client id, ahead of a redirect URL that does not parse",
+        "AppMismatch",
+        true,
+        |store| {
+            seed_store(store);
+            save_flow(store, &saved_flow("default", "another-client-id"));
+        },
+        &flow_at("not a url"),
+    ));
+    #[cfg(unix)]
+    {
+        rows.push(verdict(
+            "flow with the wrong mode",
+            "PendingStatePermissions",
+            true,
+            |store| {
+                use std::os::unix::fs::PermissionsExt;
+                seed_store(store);
+                let path = seed_pending(store);
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+            },
+            &flow_at(&redirect),
+        ));
+        rows.push(verdict(
+            "flow that is a symlink",
+            "symlink",
+            true,
+            |store| {
+                seed_store(store);
+                let elsewhere = store.with_file_name("elsewhere");
+                std::fs::write(&elsewhere, "x").unwrap();
+                std::os::unix::fs::symlink(
+                    &elsewhere,
+                    xdk::auth::pending::pending_path_for_store(store),
+                )
+                .unwrap();
+            },
+            &flow_at(&redirect),
+        ));
+    }
+    rows
+}
+
+/// The store file and the flow beside it, as bytes, `None` for a path that
+/// holds nothing. A symlink counts as present however it points.
+fn on_disk(store: &std::path::Path) -> Vec<Option<Vec<u8>>> {
+    let pending = xdk::auth::pending::pending_path_for_store(store);
+    [store, pending.as_path()]
+        .iter()
+        .map(|path| {
+            std::fs::symlink_metadata(path)
+                .ok()
+                .map(|_| std::fs::read(path).unwrap_or_default())
+        })
+        .collect()
+}
+
+/// The keys of a dry-run answer that frame the command and are no part of the
+/// error the real run writes.
+const DRY_RUN_FRAME: [&str; 6] = [
+    "status",
+    "would_succeed",
+    "command",
+    "no_browser",
+    "step",
+    "username",
+];
+
+/// A step that reruns the invocation keeps `--dry-run` in a dry run, and the
+/// message that names the step with it, so the two answers agree once that
+/// word is dropped.
+fn without_dry_run(keys: &mut serde_json::Map<String, serde_json::Value>) {
+    if let Some(serde_json::Value::String(message)) = keys.get_mut("message") {
+        *message = message.replace(" --dry-run", "");
+    }
+    let Some(step) = keys.get_mut("next_step").and_then(|s| s.as_object_mut()) else {
+        return;
+    };
+    for key in ["command", "template"] {
+        if let Some(serde_json::Value::String(text)) = step.get_mut(key) {
+            *text = text.replace(" --dry-run", "");
+        }
+    }
+}
+
+/// The step of a dry run's answer that reruns an `xr auth oauth2` invocation
+/// without `--dry-run`: following it would sign in for real.
+fn rerun_that_signs_in_for_real(dry: &serde_json::Value) -> Option<String> {
+    let step = dry.get("next_step")?.as_object()?;
+    if matches!(
+        step.get("action").and_then(|action| action.as_str()),
+        Some("show-help" | "register-app")
+    ) {
+        return None;
+    }
+    ["command", "template"].iter().find_map(|key| {
+        let text = step.get(*key)?.as_str()?;
+        (text.starts_with("xr ") && text.contains(" auth oauth2") && !text.contains(" --dry-run"))
+            .then(|| text.to_string())
+    })
+}
+
+/// What differs between the dry run's answer and the real run's: the dry run
+/// refuses, ends where the real run ends, and carries the keys the real
+/// run's error carries.
+fn dry_run_faults(
+    name: &str,
+    dry: &serde_json::Value,
+    real: &serde_json::Value,
+    real_code: i32,
+) -> Vec<String> {
+    if dry["status"] != "dry_run" || dry["would_succeed"] != false {
+        return vec![format!("{name}: the dry run does not refuse: {dry}")];
+    }
+    let mut faults = Vec::new();
+    if dry.to_string().contains("AUTHCODE") {
+        faults.push(format!("{name}: the dry run echoes the code: {dry}"));
+    }
+    if let Some(step) = rerun_that_signs_in_for_real(dry) {
+        faults.push(format!("{name}: the step drops --dry-run: {step}"));
+    }
+    if dry["exit_code"] != real_code || real["exit_code"] != real_code {
+        faults.push(format!(
+            "{name}: the real run exits {real_code}, the dry run says {}",
+            dry["exit_code"]
+        ));
+    }
+    let mut from_dry = dry.as_object().expect("a JSON object").clone();
+    for key in DRY_RUN_FRAME {
+        from_dry.remove(key);
+    }
+    let mut from_real = real.as_object().expect("a JSON object").clone();
+    from_real.remove("status");
+    without_dry_run(&mut from_dry);
+    without_dry_run(&mut from_real);
+    if from_dry != from_real {
+        faults.push(format!(
+            "{name}: the keys differ\n  dry:  {dry}\n  real: {real}"
+        ));
+    }
+    faults
+}
+
+fn json_document(name: &str, text: &str) -> serde_json::Value {
+    serde_json::from_str(text.trim()).unwrap_or_else(|e| panic!("{name}: {e}: {text}"))
+}
+
+/// Runs `row` as a dry run and then as the real run on the same state, and
+/// lists what the two disagree on.
+async fn disagreements(row: Verdict) -> Vec<String> {
+    let Verdict {
+        name,
+        client_id,
+        seed,
+        before,
+        args,
+        says,
+    } = row;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed(&store);
+    let overrides = closed_overrides(client_id);
+    let command = |dry: bool| {
+        let mut argv = vec!["xr"];
+        argv.extend_from_slice(&before);
+        argv.extend_from_slice(&["--output", "json"]);
+        if dry {
+            argv.push("--dry-run");
+        }
+        argv.extend_from_slice(&["auth", "oauth2"]);
+        argv.extend(args.iter().map(String::as_str));
+        argv
+    };
+    let kept = on_disk(&store);
+
+    let (code, stdout, stderr) = run_cli(&store, &overrides, &command(true)).await;
+    let mut faults = Vec::new();
+    if code != 0 || !stderr.is_empty() {
+        faults.push(format!(
+            "{name}: the dry run exits {code} with stderr: {stderr}"
+        ));
+    }
+    if on_disk(&store) != kept {
+        faults.push(format!("{name}: the dry run changed a file"));
+    }
+    let dry = serde_json::from_str::<serde_json::Value>(stdout.trim());
+
+    let (real_code, real_stdout, real_stderr) = run_cli(&store, &overrides, &command(false)).await;
+    if real_code == 0 {
+        faults.push(format!("{name}: the real run succeeded: {real_stdout}"));
+        return faults;
+    }
+    let real = json_document(name, &real_stderr);
+    if !real["message"].as_str().unwrap_or_default().contains(says) {
+        faults.push(format!("{name}: the real run says something else: {real}"));
+    }
+    match dry {
+        Ok(dry) => faults.extend(dry_run_faults(name, &dry, &real, real_code)),
+        Err(e) => faults.push(format!("{name}: the dry run answers no document ({e})")),
+    }
+    faults
+}
+
+#[tokio::test]
+async fn a_dry_run_of_a_sign_in_the_real_run_refuses_says_so_with_the_same_keys() {
+    let mut faults = Vec::new();
+    for row in verdicts() {
+        faults.extend(disagreements(row).await);
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
+/// A dry run of a step 2 that would finish exchanges nothing and removes
+/// nothing; the real run on the same state exchanges the code once.
+#[tokio::test]
+async fn a_dry_run_of_a_step_two_that_would_finish_sends_nothing_and_leaves_the_flow() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200).mount(&server).await;
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    let pending = seed_pending(&store);
+    let overrides = step2_overrides(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{}/2/users/me", server.uri()),
+    );
+    let redirect = redirect_url();
+    let argv = |dry: bool| {
+        let mut argv = vec!["xr", "--output", "json"];
+        if dry {
+            argv.push("--dry-run");
+        }
+        argv.extend_from_slice(&[
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect,
+            "alice",
+        ]);
+        argv
+    };
+    let kept = on_disk(&store);
+
+    let (code, stdout, stderr) = run_cli(&store, &overrides, &argv(true)).await;
+
+    assert_eq!(code, 0, "{stderr}");
+    let dry = json_document("dry run", &stdout);
+    assert_eq!(dry["status"], "dry_run", "{dry}");
+    assert_eq!(dry["would_succeed"], true, "{dry}");
+    assert_eq!(dry["exit_code"], 0, "{dry}");
+    assert!(
+        server
+            .received_requests()
+            .await
+            .unwrap_or_default()
+            .is_empty(),
+        "a dry run sent a request"
+    );
+    assert_eq!(on_disk(&store), kept, "the dry run changed a file");
+
+    let (code, stdout, stderr) = run_cli(&store, &overrides, &argv(false)).await;
+
+    assert_eq!(code, 0, "{stderr}");
+    assert!(
+        stdout.contains("OAuth2 authentication successful"),
+        "{stdout}"
+    );
+    assert!(!pending.exists(), "the real run finishes the flow");
 }
 
 /// The message names the file and what is wrong with it, which is all an

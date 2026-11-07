@@ -187,17 +187,18 @@ without a step. Prefer additive envelope changes: add keys rather than renaming 
 
 `--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
-invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
-would end on, and either refusal carries the keys of the real run's error envelope, `message` and `next_step` among
-them. An invalid input answers with its real run's `reason`, `validation`, its `rule`, and the sentence for that rule as
-`message`; a step that reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out
-under (the `app` it is stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an
-expired token is reported and not refreshed, and whether X still accepts the credential is not checked. The flag
-outranks `--force` and the confirmation prompt, so a destructive command's dry run answers either way;
-`confirmation_required: true` appears only when the real run would stop to ask, so under `--force` the key is absent.
-`response_schema` names the `xr schema` invocation for a command with a typed response, and raw mode carries none; the
-same command's `--help` ends with a `Response schema:` block, both read from the schema registry. Text output summarizes
-the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`).
+invalid input, for a request no stored credential serves, or for a sign-in whose arguments, client id, saved flow, or
+redirect URL the real run refuses; `reason` says which, `exit_code` is the code the real run would end on, and each
+refusal carries the keys of the real run's error envelope, `message` and `next_step` among them. An invalid input
+answers with its real run's `reason`, `validation`, its `rule`, and the sentence for that rule as `message`; a step that
+reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
+stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
+and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
+confirmation prompt, so a destructive command's dry run answers either way; `confirmation_required: true` appears only
+when the real run would stop to ask, so under `--force` the key is absent. `response_schema` names the `xr schema`
+invocation for a command with a typed response, and raw mode carries none; the same command's `--help` ends with a
+`Response schema:` block, both read from the schema registry. Text output summarizes the same facts in lines
+(`crates/xurl-cli/src/cli/output/dry_run.rs`).
 
 ## Shortcut commands
 

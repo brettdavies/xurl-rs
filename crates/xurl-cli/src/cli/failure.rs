@@ -25,10 +25,11 @@ pub(crate) enum Failure {
     /// names what it would have destroyed; the runner renders it with the
     /// invocation that confirms.
     Unconfirmed(serde_json::Value),
-    /// A dry run its credentials refuse. Nothing failed, and the run exits
-    /// 0: the runner prints the dry-run envelope from `ctx` and `error`,
-    /// with the step the real run's error would carry, which only the runner
-    /// can choose.
+    /// A dry run whose real run would end on a [`Failure::Error`]: its
+    /// credentials, a saved flow, or an input it reports that way. Nothing
+    /// failed, and the run exits 0: the runner prints the dry-run envelope
+    /// from `ctx` and `error`, with the step the real run's error would
+    /// carry, which only the runner can choose.
     DryRunRefusal {
         /// The command's dry-run context.
         ctx: serde_json::Value,

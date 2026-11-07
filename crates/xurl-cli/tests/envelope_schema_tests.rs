@@ -145,6 +145,11 @@ fn empty_store(dir: &Path) -> std::path::PathBuf {
     &["bind", "forward", "path", "secret"],
 )]
 #[case::scheme_not_accepted(common::oauth2_store, &["usage"], &[])]
+#[case::sign_in_refused(
+    empty_store,
+    &["auth", "oauth2", "--no-browser", "--step", "1"],
+    &["no_browser", "step", "username"],
+)]
 fn a_real_dry_run_declares_every_key_but_the_commands_inputs(
     #[case] store: fn(&Path) -> std::path::PathBuf,
     #[case] args: &[&str],
