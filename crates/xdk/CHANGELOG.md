@@ -2,6 +2,66 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-11-07
+
+### Breaking changes
+
+- Remove `StreamSource::stream_key`. X no longer answers the key when a source is listed, read, or renamed, so `get_stream_sources`, `get_stream_source`, and `rename_stream_source` return sources without it. by @brettdavies in [#523](https://github.com/brettdavies/xurl-rs/pull/523)
+
+  ```rust
+  // Before
+  let sources = client.get_stream_sources().send().await?;
+  let key: Option<&String> = sources.data[0].stream_key.as_ref();
+
+  // After: the answer carries no key. `get_stream_source_key` reads it.
+  let sources = client.get_stream_sources().send().await?;
+  let key = client.get_stream_source_key(&sources.data[0].id).send().await?.data.stream_key;
+  ```
+- Change `Client::create_stream_source` to return `ApiResponse<StreamSourceCreated>`, whose `stream_key` is a `String`, so an answer without one does not decode.
+
+  ```rust
+  // Before
+  let created = client.create_stream_source("Studio A", "us-east-1").send().await?;
+  let key: Option<String> = created.data.stream_key;
+
+  // After
+  let created = client.create_stream_source("Studio A", "us-east-1").send().await?;
+  let key: String = created.data.stream_key;
+  ```
+
+### Added
+
+- Add `error::REDIRECT_MISSING_STATE`, `REDIRECT_STATE_MISMATCH`, and `REDIRECT_MISSING_CODE`, the messages of the `Error::Auth` a headless step 2 returns when it refuses its redirect URL. by @brettdavies in [#515](https://github.com/brettdavies/xurl-rs/pull/515)
+- Add `error::PENDING_NOT_FOUND` and `PENDING_EXPIRED`, the messages of the `Error::Auth` a headless step 2 returns when no live flow is saved, and `PENDING_APP_MISMATCH`, `PENDING_SCOPE_MISMATCH`, and `REDIRECT_INVALID_URL`, the start of the message when the saved flow belongs to another client, names other scopes, or the redirect URL does not parse. by @brettdavies in [#517](https://github.com/brettdavies/xurl-rs/pull/517)
+- Add `error::PENDING_PERMISSIONS`, `PENDING_INVALID`, `TOKEN_EXCHANGE_CLIENT_REFUSED`, `TOKEN_EXCHANGE_CODE_REFUSED`, and `TOKEN_EXCHANGE_NO_TOKEN`, the start of the message of the `Error::Auth` a sign-in returns when its pending file cannot be read or its token exchange fails. by @brettdavies in [#521](https://github.com/brettdavies/xurl-rs/pull/521)
+- Add `Client::get_stream_source_key`, which reads a stream source's key from `GET /2/sources/{id}/stream_key`, and `StreamSourceKey`, its response. `Debug` for `StreamSourceKey` and `StreamSourceCreated` prints the key as redacted. by @brettdavies in [#523](https://github.com/brettdavies/xurl-rs/pull/523)
+- Add `error::REFRESH_CLIENT_REFUSED`, `REFRESH_TOKEN_REFUSED`, and `REFRESH_NO_TOKEN`, the start of the message of the `Error::Auth` a refresh returns when the token endpoint refuses the client or the refresh token, or answers with no access token, and `error::TOKEN_URL_UNUSABLE`, the start of the message of the `Error::InvalidUrl` for a token URL no request can go to. by @brettdavies in [#526](https://github.com/brettdavies/xurl-rs/pull/526)
+- Add `Error::TokenEndpointForbidden`, the error for a 403 from the `OAuth2` token endpoint that is no OAuth refusal, with `kind()` `forbidden`, `next_action()` `FixInput`, and `docs_url()` on the README section about the token endpoint, `TOKEN_URL`, and proxies. by @brettdavies in [#530](https://github.com/brettdavies/xurl-rs/pull/530)
+
+### Changed
+
+- Raise the minimum supported Rust version to 1.96.0, the toolchain the repository pins. by @brettdavies in [#470](https://github.com/brettdavies/xurl-rs/pull/470)
+- Change the pre-1.0 version rule: an addition now moves the middle number, as a break does (`0.4.x` to `0.5.0`), so a `^0.4` requirement receives only fixes until it opts in to new API.
+- Change the vendored X API spec to the 2026-11-05 content of upstream 2.173, which adds `GET /2/sources/{id}/stream_key` and takes `stream_key` out of the answers that list, read, and rename a source. `API_SPEC_SHA256` and `API_SPEC_DATE` follow. by @brettdavies in [#523](https://github.com/brettdavies/xurl-rs/pull/523)
+- Change the vendored X API spec to upstream 2.174, which adds `POST /2/broadcasts`. `API_SPEC_VERSION`, `API_SPEC_SHA256`, and `API_SPEC_DATE` follow. by @brettdavies in [#532](https://github.com/brettdavies/xurl-rs/pull/532)
+
+### Fixed
+
+- Fix `webhooks::Receiver` cancelling the `CancellationToken` given to `Receiver::bind` when it drops: it stops on a child of that token, so a token shared with a signal handler or other work stays as the caller left it. Cancelling the token still stops the receiver. by @brettdavies in [#497](https://github.com/brettdavies/xurl-rs/pull/497)
+- Fix a token exchange answered with a 5xx and a body that is not JSON reporting a decode failure. by @brettdavies in [#521](https://github.com/brettdavies/xurl-rs/pull/521)
+- Fix a token exchange X did not process returning `Error::Auth`. No answer returns `Error::Http`, a 5xx or a 429 returns `Error::Api`, and a token URL no request can go to returns `Error::InvalidUrl`, so `kind()`, `exit_code()`, and `next_action()` say what happened. `Auth::oauth2_flow` and `Auth::remote_oauth2_step2` document each. by @brettdavies in [#525](https://github.com/brettdavies/xurl-rs/pull/525)
+- Fix a token refresh returning `Error::Auth` for every failure. No answer returns `Error::Http`, a 5xx or a 429 returns `Error::Api`, and a token URL no request can go to returns `Error::InvalidUrl`, and a refused refresh token no longer reports a missing access token. A refresh answered with a 5xx or a 429 also emits an `xdk::auth` warning naming the refresh. `oauth2::refresh_oauth2_token` documents each. by @brettdavies in [#526](https://github.com/brettdavies/xurl-rs/pull/526)
+- Fix the token exchange and a token refresh returning `Error::Auth` for a failure status that is no OAuth refusal. A status other than a 400 or a 401, whose body is not JSON with a string `error`, returns the `Error::Api` any request gets, or `Error::TokenEndpointForbidden` for a 403. Both grants log an `xdk::auth` warning that names the token endpoint and the status. by @brettdavies in [#530](https://github.com/brettdavies/xurl-rs/pull/530)
+- Fix `Error::next_action` returning `ReportIssue` for a 408: it returns `Retry`, and `Error::docs_url` returns the response-code reference.
+- Fix the `PendingStateInvalid` message of a saved sign-in file that does not parse, and the error of a failed `TokenStore::import_from_twurlrc`, quoting a crop of the file. Each message now names the file and the line and column where parsing stopped, and the error's `source()` and `Debug` no longer carry a crop of it. The error variants, `kind()`, `exit_code()`, and `next_action()` are unchanged, and `source()` is still the YAML parse error. by @brettdavies in [#534](https://github.com/brettdavies/xurl-rs/pull/534)
+
+### Documentation
+
+- Describe `NextAction::ResumeWait` as a wait on the processing of an upload that ended before X reported a final state, with the upload intact, rather than only a wait whose deadline passed. by @brettdavies in [#524](https://github.com/brettdavies/xurl-rs/pull/524)
+- Correct the `TokenStore::with_credentials` and `TokenStore::new_with_credentials_and_path` docs: loading a legacy-format file rewrites it once as the current YAML. by @brettdavies in [#534](https://github.com/brettdavies/xurl-rs/pull/534)
+
+**Full Changelog**: [xdk-rs-v0.4.2...xdk-rs-v0.5.0](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.4.2...xdk-rs-v0.5.0)
+
 ## [0.4.2] - 2026-11-03
 
 ### Added

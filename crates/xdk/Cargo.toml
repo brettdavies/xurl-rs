@@ -1,6 +1,6 @@
 [package]
 name = "xdk-rs"
-version = "0.4.2"
+version = "0.5.0"
 description = "Async Rust client for the X (Twitter) API: OAuth1, OAuth2 PKCE, bearer tokens, media upload, streaming. xdk is X's SDK name; this is an independent project, not affiliated with X Corp."
 documentation = "https://docs.rs/xdk-rs"
 keywords = ["twitter", "x", "api", "oauth", "async"]
@@ -131,7 +131,3 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["f
 # the entry. A standing entry understates the next break of the same kind,
 # so `scripts/release/preflight.sh api-contract` fails while one stands.
 [package.metadata.cargo-semver-checks.lints]
-# Covers `StreamSource::stream_key`: `/2/sources` answers a source's stream key
-# when the source is created and `/2/sources/{id}/stream_key` answers it
-# afterward, so no list, read, or rename response carries it.
-struct_pub_field_missing = { lint-level = "deny", required-update = "minor" }
