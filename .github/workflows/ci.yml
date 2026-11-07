@@ -557,15 +557,20 @@ jobs:
   # change how one scores, so it reaches this gate only through a PR that bumps
   # the pin and settles the score and the floor together.
   #
-  # The same job checks the release binary's size against a standing ceiling.
-  # Cargo honors [profile.release] only in the workspace root, and a profile
-  # that silently stops applying inflates `xr` several times over while every
-  # test stays green; the ceiling turns that into a red job. With every
-  # command family the release `xr` measures about 12.6 MB, and a dropped
-  # `strip` alone roughly doubles it, so the ceiling leaves room for ordinary
-  # growth and none for a lost profile.
+  # A release PR, whose head is a `release/*` branch, audits the release
+  # binary and checks its size against a standing ceiling. Cargo honors
+  # [profile.release] only in the workspace root, and a profile that silently
+  # stops applying inflates `xr` several times over while every test stays
+  # green; the ceiling turns that into a red job. With every command family
+  # the release `xr` measures about 12.6 MB, and a dropped `strip` alone
+  # roughly doubles it, so the ceiling leaves room for ordinary growth and
+  # none for a lost profile. Every other PR audits a dev build, which anc
+  # scores the same, and skips the release build.
   #
-  # A warm run builds the release binary and skips everything that grades it.
+  # A warm run, on a push, builds the same profile as the PRs that merge into
+  # its branch, so they restore a matching cache: release on `main`, which only
+  # release PRs target, and dev on `dev`. It skips everything that grades the
+  # binary.
   anc:
     name: Agent-native audit
     needs: scope
@@ -575,6 +580,7 @@ jobs:
     env:
       ANC_SCORE_FLOOR: "98"
       XR_SIZE_CEILING_BYTES: "15000000"
+      XR_PROFILE: ${{ ((github.event_name == 'pull_request' && startsWith(github.head_ref, 'release/')) || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')) && 'release' || 'dev' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
@@ -602,10 +608,15 @@ jobs:
             echo "::error title=Install anc::found '${installed}' on PATH, expected anc ${version}"
             exit 1
           fi
-      - name: Build the release binary
-        run: cargo build --release --locked --bin xr
+      - name: Build xr
+        run: |
+          set -euo pipefail
+          cargo build --profile "$XR_PROFILE" --locked --bin xr
+          # Cargo writes the dev profile to target/debug.
+          dir="$([ "$XR_PROFILE" = dev ] && echo debug || echo "$XR_PROFILE")"
+          echo "XR_BIN=target/${dir}/xr" >> "$GITHUB_ENV"
       - name: Release binary size ceiling
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && env.XR_PROFILE == 'release'
         run: |
           size="$(stat -c %s target/release/xr)"
           echo "target/release/xr is ${size} bytes (ceiling ${XR_SIZE_CEILING_BYTES})"
@@ -623,7 +634,7 @@ jobs:
           # rejects a usage error's output; any other exit means the audit never
           # ran (unreachable binary, crash) and fails outright.
           status=0
-          anc audit --command target/release/xr --output json > anc-scorecard.json || status=$?
+          anc audit --command "$XR_BIN" --output json > anc-scorecard.json || status=$?
           if [ "$status" -ne 0 ] && [ "$status" -ne 1 ] && [ "$status" -ne 2 ]; then
             echo "::error title=anc audit::anc audit exited ${status} without a verdict"
             exit 1
