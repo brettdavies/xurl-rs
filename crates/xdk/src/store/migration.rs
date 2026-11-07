@@ -103,13 +103,14 @@ impl TokenStore {
     /// Returns an error if the file cannot be read, parsed, or the store cannot be saved.
     pub fn import_from_twurlrc(&mut self, file_path: &std::path::Path) -> Result<()> {
         let data = std::fs::read(file_path)?;
-        let twurlrc: TwurlrcConfig = serde_saphyr::from_slice(&data).map_err(|e| {
-            Error::token_store(format!(
-                "cannot parse {}",
-                crate::yaml::failure_site(file_path, &e)
-            ))
-            .with_source(e)
-        })?;
+        let twurlrc: TwurlrcConfig =
+            crate::yaml::from_slice_without_snippet(&data).map_err(|e| {
+                Error::token_store(format!(
+                    "cannot parse {}",
+                    crate::yaml::failure_site(file_path, &e)
+                ))
+                .with_source(e)
+            })?;
 
         self.update(|store| {
             store.import_twurlrc_tokens(&twurlrc);

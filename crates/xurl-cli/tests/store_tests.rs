@@ -826,8 +826,27 @@ fn test_twurlrc_import_failure_names_the_file_and_quotes_nothing() {
                 faults.push(format!("{shape}: {marker} printed: {message}"));
             }
         }
-        if err.kind() != "token-store" {
-            faults.push(format!("{shape}: kind is {}: {message}", err.kind()));
+        let reference = xdk::Error::token_store("reference");
+        if err.kind() != reference.kind()
+            || err.exit_code() != reference.exit_code()
+            || err.next_action() != reference.next_action()
+        {
+            faults.push(format!("{shape}: not a token-store error: {message}"));
+        }
+        let source = std::error::Error::source(&err);
+        if !source.is_some_and(|s| s.downcast_ref::<serde_saphyr::Error>().is_some()) {
+            faults.push(format!("{shape}: the parse error is not the source"));
+        }
+        let printed = format!(
+            "{err:?}\n{}",
+            source.map(ToString::to_string).unwrap_or_default()
+        );
+        for marker in [CONSUMER_MARKER, TOKEN_MARKER] {
+            if printed.contains(marker) {
+                faults.push(format!(
+                    "{shape}: {marker} printed through Debug: {printed}"
+                ));
+            }
         }
         for (needle, what) in [
             (&*twurl_path.to_string_lossy(), "the file"),

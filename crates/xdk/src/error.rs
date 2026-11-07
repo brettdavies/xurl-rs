@@ -811,7 +811,9 @@ impl From<serde_json::Error> for Error {
     }
 }
 
-// The token store and a `.twurlrc` import are the library's only YAML.
+// The conversion carries the parse error's full text, which crops the input around the
+// failure. A parse of a file that holds secrets names its failure with
+// `crate::yaml::failure_site` instead of converting through this.
 impl From<serde_saphyr::Error> for Error {
     fn from(err: serde_saphyr::Error) -> Self {
         Self::token_store(err.to_string()).with_source(err)
@@ -875,8 +877,8 @@ pub const PENDING_EXPIRED: &str =
 pub const PENDING_PERMISSIONS: &str = "PendingStatePermissions";
 
 /// The start of the message of a saved flow's file that does not parse. The
-/// file and the position the parser stopped at follow; the file's content
-/// never does, since it holds the PKCE verifier.
+/// file and the position the parser stopped at follow; the message never
+/// quotes the file's content, which holds the PKCE verifier.
 pub const PENDING_INVALID: &str =
     "PendingStateInvalid: the pending OAuth2 state file does not parse";
 

@@ -207,7 +207,7 @@ fn read(path: &Path) -> Result<PendingOAuth2State> {
         }
         Err(e) => return Err(e.into()),
     };
-    serde_saphyr::from_str(&data).map_err(|e| {
+    crate::yaml::from_str_without_snippet(&data).map_err(|e| {
         Error::auth(format!(
             "{PENDING_INVALID}: {}",
             crate::yaml::failure_site(path, &e)

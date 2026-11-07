@@ -259,6 +259,61 @@ fn load_corrupt_yaml_returns_error() {
     );
 }
 
+/// The error keeps the parse error as its source, and neither the error's
+/// `Debug` nor the source's text quotes the file, which holds the PKCE
+/// verifier and the state nonce.
+#[test]
+fn load_corrupt_yaml_leaks_no_content_through_debug_or_the_source() {
+    const VERIFIER_MARKER: &str = "MARKER-VERIFIER-NOT-A-SECRET";
+    const STATE_MARKER: &str = "MARKER-STATE-NOT-A-SECRET";
+    let broken = [
+        (
+            "an unclosed sequence below the secrets",
+            format!(
+                "code_verifier: {VERIFIER_MARKER}\nstate: {STATE_MARKER}\nclient_id: [unclosed\n"
+            ),
+        ),
+        (
+            "an unterminated quote on the secret's own line",
+            format!("code_verifier: \"{VERIFIER_MARKER}\nstate: {STATE_MARKER}\n"),
+        ),
+        (
+            "a secret where a number belongs",
+            format!(
+                "code_verifier: {VERIFIER_MARKER}\nstate: {STATE_MARKER}\nclient_id: x\napp_name: x\ncreated_at: {VERIFIER_MARKER}\n"
+            ),
+        ),
+    ];
+    let mut faults = Vec::new();
+    for (shape, body) in &broken {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join(".xurl.pending");
+        std::fs::write(&path, body).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+
+        let err = pending::load(&path).unwrap_err();
+
+        let source = std::error::Error::source(&err);
+        if !source.is_some_and(|s| s.downcast_ref::<serde_saphyr::Error>().is_some()) {
+            faults.push(format!("{shape}: the parse error is not the source"));
+        }
+        let printed = format!(
+            "{err:?}\n{}",
+            source.map(ToString::to_string).unwrap_or_default()
+        );
+        for marker in [VERIFIER_MARKER, STATE_MARKER] {
+            if printed.contains(marker) {
+                faults.push(format!("{shape}: {marker} printed:\n{printed}"));
+            }
+        }
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
 #[test]
 fn load_valid_yaml_missing_fields_returns_error() {
     let tmp = TempDir::new().unwrap();
