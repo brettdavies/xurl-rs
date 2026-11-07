@@ -216,20 +216,16 @@ impl NextStep {
         }
     }
 
-    /// This step with `--dry-run` after the program word, for a dry run's
-    /// refusal whose step reruns an invocation. A step that does not start
-    /// with the program word is left as it is.
+    /// This step's command with `--dry-run` after the program word, for a
+    /// dry run's refusal whose step reruns an invocation. A command that does
+    /// not start with the program word is left as it is.
     #[must_use]
     pub fn under_dry_run(mut self) -> Self {
-        for text in [&mut self.command, &mut self.template]
-            .into_iter()
-            .flatten()
+        if let Some(command) = &mut self.command
+            && let Some(rest) = command.strip_prefix(ROOT_COMMAND)
+            && rest.starts_with(' ')
         {
-            if let Some(rest) = text.strip_prefix(ROOT_COMMAND)
-                && rest.starts_with(' ')
-            {
-                *text = format!("{ROOT_COMMAND} --dry-run{rest}");
-            }
+            *command = format!("{ROOT_COMMAND} --dry-run{rest}");
         }
         self
     }
@@ -1541,6 +1537,17 @@ mod tests {
                 "{message}"
             );
         }
+    }
+
+    #[test]
+    fn under_dry_run_puts_the_flag_after_the_program_word_of_a_command_only() {
+        let step = NextStep::select_app("xr auth oauth2 --no-browser --step 1 --app work".into());
+        assert_eq!(
+            step.under_dry_run().command.as_deref(),
+            Some("xr --dry-run auth oauth2 --no-browser --step 1 --app work")
+        );
+        let registration = NextStep::register_app();
+        assert_eq!(registration.clone().under_dry_run(), registration);
     }
 
     /// The URL holds an authorization code, so no spelling of it survives,
