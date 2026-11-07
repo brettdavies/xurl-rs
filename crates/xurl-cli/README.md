@@ -849,9 +849,9 @@ xr --output json --dry-run post "Hello"
   and the client id of the app it would sign in. For `--step 2` it also checks the flow step 1 saved beside the store,
   the app and scopes that flow belongs to, and the redirect URL against it. A well-formed redirect URL answers
   `would_succeed: true`, which does not vouch for its code, since nothing is sent to X. A step 1 does not check that its
-  pending file can be written. An expired flow stays on disk. `--auth-url -` reads one line of piped stdin as the real
-  run does and waits for it; on a terminal nothing is read, so the URL's contents go unchecked. These answers carry no
-  `auth` key.
+  pending file can be written or that `AUTH_URL` parses, and the browser flow's redirect URI and callback port go
+  unchecked. An expired flow stays on disk. `--auth-url -` reads one line of piped stdin as the real run does and waits
+  for it; on a terminal nothing is read, so the URL's contents go unchecked. These answers carry no `auth` key.
 - `confirmation_required: true` marks a destructive command whose real run would stop to ask, and the key appears only
   then. The flag outranks `--force` and the prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries
   the key, and `xr --dry-run delete <id> --force` leaves it out, since nothing would stop.

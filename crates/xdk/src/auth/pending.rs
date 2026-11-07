@@ -142,8 +142,8 @@ pub fn load(path: &Path) -> Result<PendingOAuth2State> {
 ///
 /// As [`load`].
 // `xr --dry-run auth oauth2` and the recovery hint it shares with the real
-// run read the flow through this, since a dry run changes no file. It is not
-// embedder API.
+// run read the flow through this, since a dry run must leave an expired flow
+// on disk. It is not embedder API.
 #[doc(hidden)]
 pub fn peek(path: &Path) -> Result<PendingOAuth2State> {
     let state = read(path)?;
