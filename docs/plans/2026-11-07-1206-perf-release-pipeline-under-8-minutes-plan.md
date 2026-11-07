@@ -120,7 +120,9 @@ not last: the caches the 06:04 UTC push to `main` saved on 2026-11-07 were evict
 ### Success Criteria
 
 - The first dual-crate release after PR3 reaches latest under 8:00 from the merge, measured from REST run timestamps as
-  the Appendix measures v4.6.0, with each phase's time recorded.
+  the Appendix measures v4.6.0, with each phase's time recorded: the release PR's `mergedAt` (`gh pr view`), each tag's
+  push from its run's `created_at`, and the `createdAt` and `updatedAt` of every run in xurl-rs and the tap
+  (`gh run list --json name,event,createdAt,updatedAt`) through finalize, whose end marks latest.
 - From the second such release on, every build row logs a cache restore from the previous release, and merge to latest
   is under 6:15.
 
@@ -244,8 +246,12 @@ Considered and not built:
   runs) and refuses while any run is listed, unless `--force`; only the account's own runs hold its 20 concurrent jobs.
   With KTD14 the release merge starts no CI run on `main`, so a cut right after the merge finds the runners free. It
   pushes the tags with one `git push`: GitHub creates no events for a push of more than three tags, so two is safe.
-  `--dry-run` prints the tags and the runner check and creates nothing. Output and exit codes follow the other
-  `scripts/release/` scripts.
+  `--dry-run` prints the tags and the runner check and creates nothing. Every check, the runner check included, runs
+  before the first `git tag`, so a refusal leaves no local tag behind to make the next run refuse; when the push fails,
+  the script deletes the tags it created and names the push error. Output and exit codes follow the other
+  `scripts/release/` scripts: exit 0 prints a `Next:` block (the tag runs to watch, then
+  `scripts/release/postflight.sh`), exit 1 a failed check, exit 2 a refusal or setup error, each refusal naming the
+  `RELEASES.md` section that answers it.
 - KTD14. **CI warms `main` after finalize, not at the merge.** `ci.yml`'s push trigger names `dev` alone.
   `finalize-release.yml` gains a `warm-main` job that needs `finalize`, holds `actions: write`, and runs
   `gh workflow run ci.yml --ref main`; `GITHUB_TOKEN` may start a `workflow_dispatch` run, and `ci.yml` already treats a
@@ -254,6 +260,14 @@ Considered and not built:
   ledger, R1). Stacked PRs restore `main`'s CI caches as before, about eight minutes later. The CI plan's KD1 warm run
   on `main` moves with it, disclosed to skills-prime. `finalize-release.yml` is a copy of the `github-repo-setup`
   template, so the job goes upstream with the other release files.
+- KTD15. **Every failure the plan adds names its code, its values, and the command that recovers.** Each new workflow
+  refusal is an `::error title=<code>::` annotation with a stable kebab-case code: `library-wait-timeout` (U2),
+  `cross-host-fallback` (U5), `release-tag-missing` and `release-tag-moved` (U6), `source-built-formula` (U7). Its
+  message names the values that caused it, the exact recovery command with the run's id filled in
+  (`gh run rerun <id> --failed`, or the `--ref <tag>` dispatch), whether anything published, and the `RELEASES.md`
+  section that answers it. `tag-release.sh` does the same on stderr with exit 2. The codes follow the global error
+  contract's stable reasons; GitHub Actions carries no exit code per refusal, so the annotation title is the
+  machine-readable field.
 
 ### High-Level Technical Design
 
@@ -420,7 +434,7 @@ Waits on: nothing.
 ### U2. The library wait moves into `publish-crate`
 
 - **Goal:** the binary's run builds while the library publishes, and publishes once the library is on crates.io.
-- **Requirements:** R3; KTD2.
+- **Requirements:** R3; KTD2, KTD15.
 - **Dependencies:** U1.
 - **Files:** `brettdavies/.github: .github/workflows/rust-release.yml`, `brettdavies/.github: RELEASES.md`
 - **Approach:**
@@ -469,7 +483,7 @@ Waits on: nothing.
 ### U5. Cross cells fetch first and fail on a host fallback
 
 - **Goal:** a cross cell that would build on the host fails at once and says why.
-- **Requirements:** R7; KTD6.
+- **Requirements:** R7; KTD6, KTD15.
 - **Dependencies:** none.
 - **Files:**
   - `brettdavies/.github: .github/workflows/rust-release.yml`
@@ -494,17 +508,20 @@ Waits on: nothing.
 ### U6. The release reads one tag and refuses a moved `main`
 
 - **Goal:** the release can run on `main` for a tag, and only for the tag at `main`'s head.
-- **Requirements:** R11, R12; KTD8, KTD9, KTD10, KTD11.
+- **Requirements:** R11, R12; KTD8, KTD9, KTD10, KTD11, KTD15.
 - **Dependencies:** U1.
 - **Files:**
   - `brettdavies/.github: .github/workflows/rust-release.yml`
   - `brettdavies/.github: .github/workflows/rust-release-matrix-check.yml`
   - `brettdavies/.github: scripts/check-release-tag-source.sh` (new), `brettdavies/.github: .github/workflows/lint.yml`
   - `brettdavies/.github: scripts/check-release-matrix-parity.sh`
-  - `brettdavies/.github: RELEASES.md`, `brettdavies/.github: RELEASES-RATIONALE.md`
+  - `brettdavies/.github: RELEASES.md` (with a caller section: pass `tag`, dispatch the release onto `main` with
+    `actions: write`, and require a package check, since publishing skips the verify compile),
+    `brettdavies/.github: RELEASES-RATIONALE.md`
 - **Approach:**
   1. Add the required `tag` input and resolve it in `validate-inputs`, peeled to its commit.
-  2. Refuse when the tag is missing or its commit is not `GITHUB_SHA`, naming both commits and the recovery dispatch.
+  2. Refuse when the tag is missing or its commit is not `GITHUB_SHA`, naming both commits, the recovery dispatch, and
+     the `RELEASES.md` section on it.
   3. Replace every ref read with the job output.
   4. Key the matrix check's cache `${{ matrix.target }}`, and extend the parity script to compare the two
      `Cache dependencies` steps' `key` and `env-vars` (KTD11).
@@ -534,7 +551,7 @@ The tap is its own repository, so this is its own PR.
 ### U7. `update-formula` lands prebuilt formulae directly
 
 - **Goal:** Homebrew serves the release about two minutes after its dispatch, with no pull request.
-- **Requirements:** R2, R10; KTD7.
+- **Requirements:** R2, R10; KTD7, KTD15.
 - **Dependencies:** none.
 - **Files:**
   - `brettdavies/homebrew-tap: .github/workflows/update-formula.yml`
@@ -572,7 +589,7 @@ xurl-rs is a third repository, so this is its own PR.
 ### U8. One script pushes both tags
 
 - **Goal:** a release cut is one command that pushes both tags into free runners.
-- **Requirements:** R3, R4; KTD13.
+- **Requirements:** R3, R4; KTD13, KTD15.
 - **Dependencies:** none.
 - **Files:**
   - `scripts/release/tag-release.sh` (new)
@@ -582,8 +599,9 @@ xurl-rs is a third repository, so this is its own PR.
     `brettdavies/agent-skills` with the upstream follow-up
   - `.github/tool-versions` and `scripts/dev-setup.sh` gain bats-core, and the CI job installs it at that version, which
     `crates/xurl-cli/tests/dev_setup_tests.rs` holds it to
-  - `RELEASES.md` (the cut, the recovery reruns), `RELEASES-PREFLIGHT.md` (the "library first, CLI second" item),
-    `RELEASES-RATIONALE.md` § "Why `xdk-rs` ships on its own tag" (its order paragraph), `AGENTS.md` § "Releasing"
+  - `RELEASES.md` (the cut, the recovery reruns, and an exit table shaped like `cut-release-branch.sh`'s),
+    `RELEASES-PREFLIGHT.md` (the "library first, CLI second" item), `RELEASES-RATIONALE.md` § "Why `xdk-rs` ships on its
+    own tag" (its order paragraph), `AGENTS.md` § "Releasing"
 - **Patterns to follow:** `scripts/release/_lib.sh` and the other `scripts/release/` scripts for flags, output, and exit
   codes.
 - **Test scenarios:**
@@ -594,6 +612,10 @@ xurl-rs is a third repository, so this is its own PR.
   - A run in a repository the account does not own: the check does not list it.
   - Local `main` behind `origin/main`: the script refuses and says to pull.
   - The binary tag already exists: the script refuses.
+  - Every refusal, the runner check's included: no local tag exists afterwards, and the next run after the cause clears
+    succeeds.
+  - The push fails: the tags this run created are deleted, and the error names the push failure.
+  - Success: the `Next:` block names the tag runs to watch and the postflight command.
   - `--dry-run`: tags and the runner check are printed, and nothing is created.
 - **Verification:** the tests pass, and the first release after PR3 meets the first Success Criterion.
 
@@ -609,8 +631,10 @@ xurl-rs is a third repository, so this is its own PR.
   2. On the push, one job with `actions: write` dispatches `release.yml` on `main` with the tag and links the workflow's
      runs in its summary.
   3. On dispatch, the pipeline calls the reusable with the tag; the caller's other inputs stay.
-  4. `RELEASES.md` gives the recovery for a failed dispatch job: nothing has built, and
-     `gh workflow run release.yml --ref main -f tag=<tag>` by hand continues the release.
+  4. `RELEASES.md` gives the recovery for a failed dispatch job: nothing has built. Since a dispatch can fail after
+     GitHub accepted it, the recovery first runs
+     `gh run list --workflow release.yml --branch main --event workflow_dispatch --limit 3` and dispatches by hand,
+     `gh workflow run release.yml --ref main -f tag=<tag>`, only when no run for the tag is listed.
 - **Execution note:** before PR3 merges, prove that crates.io Trusted Publishing accepts a dispatched run. A scratch
   xurl-rs branch whose `release.yml` runs only `rust-lang/crates-io-auth-action` (the token exchange, then the action's
   own revoke) is dispatched with `--ref <branch>`; nothing publishes. If crates.io refuses it, the same probe dispatched
@@ -967,12 +991,12 @@ REALITY: premise-table finding 12 premises, 2 unverified (P10 Trusted Publishing
 REALITY: already-done pass git log origin/dev since 2026-11-06 over the named workflows, scripts/release, and RELEASES docs shows only dependency bumps (55f770a, 9f3fda9); no commits on brettdavies/.github main or the tap since then 55f770a
 REALITY: surface-check pass gh 2.103.3 --help lists --ref, --raw-field, --failed, --all, --succeed-on-no-caches, --signer-workflow, --branch, --event; the cleanup's delete runs today .github/workflows/pr-cache-cleanup.yml:25
 REALITY: binding-decisions pass gstack-decision-search --scope branch --recent 50 holds nothing this plan reverses; KD1 to KD4 and D2 are kept .github/workflows/ci.yml:32-33
-REALITY: numbers finding the Budget's tag hop was 0:20 unmeasured and is now 0:35, from v4.6.0's measured 0:34 [measured: docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:711]; the tap row's 2:00 holds only with KTD7's plain legs [estimated]; totals 7:45 and 6:05 [estimated] docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:711
+REALITY: numbers finding the Budget's tag hop was 0:20 unmeasured and is now 0:35, from v4.6.0's measured 0:34 [measured: docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:735]; the tap row's 2:00 holds only with KTD7's plain legs [estimated]; totals 7:45 and 6:05 [estimated] docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:735
 REALITY: deferred-asks pass no linked issue; Brett's unchosen items (latest before Homebrew, backport automation) are listed in Scope Boundaries with KD3 .github/workflows/finalize-release.yml:1
 REALITY: pr-count pass no .gstack/ship-policy.json, so the default is one PR per wave; three repositories need three PRs, and each extra gate is one review and one merge by its owner .github/workflows/release.yml:17
 REALITY: prior-art pass adopt rust-cache's documented key (job id, `key` input, env prefixes, then the manifest and lockfile hash) as ci.yml already relies on it; adopt cross's documented host fallback note as the failure signal; adopt crates-io-auth-action's exchange-and-revoke for the U9 probe; nothing is patched or vendored .github/workflows/ci.yml:19-23
 REALITY: contract-assumptions pass brettdavies/.github's one open PR, 119, touches only rust-ci.yml; callers pin @main, so PR1's merge reaches them at once (Sequencing) .github/workflows/finalize-release.yml:1
-REALITY: units pass no input changes units: the Budget scales build steps by the local cold and warm ratios, and its consumers (R1's 8:00, the 6:15 criterion, KTD2's 10-minute bound and 10 s retry) stay in m:ss and seconds docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:722
+REALITY: units pass no input changes units: the Budget scales build steps by the local cold and warm ratios, and its consumers (R1's 8:00, the 6:15 criterion, KTD2's 10-minute bound and 10 s retry) stay in m:ss and seconds docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:746
 REALITY: perf-table pass the base is v4.6.0's measured run and the local profile's cold and warm builds on 4 pinned cores; the release itself re-measures both .github/workflows/release.yml:17
 REALITY: dependency-fallback pass PR2 ships alone; PR1 alone breaks every caller's release until it passes tag; PR3 needs PR1 and is ready before it merges .github/workflows/release.yml:17
 REALITY: obligation-tiers pass must-ship: every unit; next PR: the bird and agentnative-cli fast follow and the canon move; deferred: the tap's bottle path and the aws-lc finding .github/workflows/finalize-release.yml:1
@@ -1093,18 +1117,245 @@ None.
 
 None.
 
+## DX Review Record
+
+Reviewed with `/plan-devex-review` at commit 5bb0c5d, one round. Product type: Platform (a release pipeline across three
+repositories) with one CLI surface, `scripts/release/tag-release.sh`. Mode: DX POLISH. Persona, target, vehicle, and
+mode were settled from the plan's own evidence and Brett's decisions rather than asked: the Goal Capsule names who
+ships, R1 sets the clock, KD1 chose the vehicle, and KD1 to KD4 fix the scope, so expansion would add work Brett did not
+ask for.
+
+### Developer Persona Card
+
+```text
+TARGET DEVELOPER PERSONA
+========================
+Who:       the release operator: prime, an agent session that pushes the release tags, with Brett merging the release PR
+Context:   minutes after Brett merges the release PR into main; then again whenever a release run fails
+Tolerance: none for waiting on a hand-timed hop; every step should be one command it can run unattended
+Expects:   RELEASES.md names each step and each recovery; scripts refuse before they change anything; errors say what to run
+Second:    bird and agentnative-cli maintainers, whose callers break on PR1 until the fast follow (KD4)
+```
+
+### Developer Empathy Narrative
+
+Brett merges the release PR at 06:04. I pull `main`, tag `xdk-rs-v0.5.0`, and push it 34 seconds later. Then I wait: the
+library release cannot reach crates.io before the binary's run asks for it, so I watch `release-lib.yml` for 5:30, 2:50
+of it queued behind the CI run the merge itself started. Only then do I tag `v4.6.0`. Its run fails nine minutes in,
+because one cross cell fell back to host cargo; the error names a failed `cargo metadata`, not the fallback, so I read
+the log, rerun everything, and wait another ten minutes. Homebrew then takes three workflow hops. 31 minutes after the
+merge the release is latest. (Grounded in the Appendix's v4.6.0 timeline; the reading of the log is my inference.)
+
+### Competitive DX Benchmark
+
+The clock: the operator's work from the release PR's merge to both tags pushed, with the pipeline's own time beside it.
+The peers' times were not measured and their boundaries differ (each publishes from its own event), so the table
+compares the choices. Research ran from in-distribution knowledge only; no web search was made.
+
+| Tool                    | Start → result                                  | Time + evidence type                                  | DX choice                                   | Source                    |
+| ----------------------- | ----------------------------------------------- | ----------------------------------------------------- | ------------------------------------------- | ------------------------- |
+| xurl-rs today           | merge → both tags pushed                        | 6:36 operator, 31:07 to latest [measured: Appendix]   | two tags by hand, library first, then wait  | Appendix                  |
+| xurl-rs after this plan | merge → both tags pushed                        | about 0:35 operator, about 7:45 to latest [estimated] | one script, one push, a runner check        | KTD13, Budget             |
+| release-plz             | release PR merge → crates published and tagged  | not measured                                          | no command: the merge publishes             | in-distribution knowledge |
+| cargo-release           | one command → version bumped, tagged, published | not measured                                          | one command does the bump, tag, and publish | in-distribution knowledge |
+| cargo-dist              | tag push → archives, installers, Homebrew       | not measured                                          | the tag is the whole interface              | in-distribution knowledge |
+
+Target: Champion (under 2 minutes of operator work), already set by R1 and KTD13; the plan's one-command cut reaches it.
+
+### Magical Moment Specification
+
+The moment: the operator runs `scripts/release/tag-release.sh` once, minutes after the merge, and the next thing it
+reads is the `Next:` block naming the two runs to watch; under 8 minutes later both crates are live and
+`brew upgrade xurl-rs` installs the release. Vehicle: the script and the dispatched run (U8, U9), with the `Next:` block
+and the side-effect-free refusals this review adds to KTD13.
+
+### Developer Journey Map
+
+```text
+STAGE           | OPERATOR DOES                                  | FRICTION POINTS                              | STATUS
+----------------|------------------------------------------------|----------------------------------------------|--------
+1. Discover     | reads RELEASES.md § the cut, AGENTS.md          | none                                         | ok (U8 docs)
+2. Install      | scripts/dev-setup.sh for bats-core              | none                                         | ok (U8)
+3. Hello World  | tag-release.sh --dry-run, then the real run     | refusal could leave local tags               | fixed (KTD13)
+4. Real Usage   | watches the tag runs, then postflight           | no next step printed                         | fixed (KTD13 Next:)
+5. Debug        | reads a failed run's annotation                 | no stable code; rerun command not given      | fixed (KTD15)
+6. Upgrade      | bird and anc callers move to the tag input      | no caller migration section                  | fixed (U6 docs)
+```
+
+### First-Time Developer Confusion Report
+
+```text
+FIRST-TIME OPERATOR REPORT
+Persona: prime, cutting the first release under PR3
+T+0:00  Brett merges. I run tag-release.sh --dry-run: it lists both tags and an empty runner check.
+T+0:20  I run it for real. A Dependabot run started in another repository meanwhile; the script refuses, naming it.
+T+0:25  Before this review the refusal came after `git tag`: my rerun would refuse on "tag already exists". Addressed:
+        every check runs before the first tag (KTD13).
+T+1:30  The run finishes and the script pushes both tags; I had no next step to run. Addressed: the Next: block.
+T+5:00  If the library is late, publish-crate times out. Before this review the message said to rerun the failed jobs
+        without the command. Addressed: the annotation carries `gh run rerun <id> --failed` (KTD15).
+T+7:45  Latest. Measured with the commands the first Success Criterion now names.
+```
+
+### Review passes
+
+**Pass 1, Getting Started: 6 → 8.** One command with a dry run (KTD13). Gaps fixed: a refusal left local tags behind;
+success printed no next step. Residual: prime still learns of the merge from Brett, the 0:34 hop.
+
+**Pass 2, CLI design: 7 → 8.** `--dry-run`, `--force`, and `-h` match `cut-release-branch.sh`. Exit 0, 1, and 2 match
+its table. No issues beyond the exit table, now in U8's `RELEASES.md` files.
+
+**Pass 3, Error messages: 5 → 8.** Matrix under agent-ready-v1:
+
+```text
+ERROR PATH MATRIX (agent-ready-v1)
+Path                          | Class      | what | fix  | recovery | code | context | trace | redaction | channel | Cap
+tag-release runner refusal    | state      | pass | pass | fail→pass| fail→pass | pass | N/A  | pass      | pass    | CAP6:recovery
+release-tag-moved guard       | validation | pass | pass | pass     | fail→pass | pass | N/A  | pass      | pass    | none
+library-wait-timeout          | dependency | pass | fail→pass | pass | fail→pass | pass | N/A | pass     | pass    | CAP6:fix
+dispatch job API failure      | unexpected | pass | pass | fail→pass| N/A  | pass    | pass  | pass      | pass    | CAP6:recovery
+cross-host-fallback           | dependency | pass | fail→pass | pass | fail→pass | pass | pass | pass     | pass    | CAP6:fix
+```
+
+- `CAP6:tag-release:recovery local tags survive a refusal`: today's draft would leave `v<version>` local after the
+  runner check refused. Corrected: every check precedes `git tag`; a failed push deletes the tags the run made.
+- `CAP6:library-wait-timeout:fix no command`: "rerun the failed jobs" becomes `gh run rerun <id> --failed` with the id
+  filled in (KTD15).
+- `CAP6:dispatch:recovery unknown outcome`: a dispatch can fail after GitHub accepted it, so the recovery lists the
+  workflow's dispatched runs first and dispatches only when none names the tag (U9).
+- `CAP6:cross-host-fallback:fix no command`: the annotation carries the rerun command (KTD15).
+- Codes: every new refusal has a stable `::error title=<code>::` and a `RELEASES.md` section (KTD15). Redaction: no step
+  prints a token; `GH_TOKEN` is passed by name. Trace: the run log is the trace for the two unexpected paths.
+- No CAP4: tag signing is SSH and non-interactive (the `v4.6.0` tag object carries an SSH signature), and no new step
+  waits for a terminal.
+
+**Pass 4, Documentation: 6 → 8.** `RELEASES.md` gains the exit table, the failed-dispatch reconcile, and each code's
+section; `brettdavies/.github: RELEASES.md` gains the caller section (U6).
+
+**Pass 5, Upgrade path: 5 → 7.** The shared workflows break bird and agentnative-cli by decision (KD4); their callers
+fail at startup on the missing `tag` input, before anything builds. The caller section now says what each must change.
+Residual: no deprecation window, by Brett's choice.
+
+**Pass 6, Dev environment: 7 → 8.** bats-core through `scripts/dev-setup.sh` and the tool list, the suite in pre-push
+and CI (U8), `--dry-run` on the script and `dry_run` on `update-formula` (U7).
+
+**Pass 7, Community: 6 → 6.** Internal release tooling for one account. Its route to other repositories is the canon
+move into the `github-repo-setup` templates (Deferred to Follow-Up Work). No issues.
+
+**Pass 8, Measurement: 5 → 7.** The first Success Criterion names the commands that time each phase. Residual: the
+measurement is by hand at the first two releases; a timing script is out of scope.
+
+### What already exists
+
+- `cut-release-branch.sh`'s exit table and `Next:` block in `RELEASES.md`; `tag-release.sh` copies both shapes.
+- `scripts/release/_lib.sh`'s color, gate, and recovery helpers.
+- `release-matrix-check.yml`'s manual dispatch as the rehearsal path.
+- The global error contract's stable reasons, which KTD15 applies to workflow annotations.
+
+### NOT in scope
+
+- A `--output json` mode for `tag-release.sh`: no other release script has one, and the operator reads text today.
+- A script that times merge to latest: two measured releases do not justify it.
+- A deprecation window for bird and agentnative-cli: KD4 rules it out.
+
+### DX Implementation Checklist
+
+```text
+DX IMPLEMENTATION CHECKLIST
+[ ] Operator time from merge to both tags pushed < 2:00 (Champion)
+[ ] The cut is one command, with --dry-run
+[ ] Every refusal precedes the first tag; a failed push removes the tags it made
+[ ] Success prints Next: with the runs to watch and the postflight command
+[ ] Every new failure carries a stable code, its values, the recovery command, and a RELEASES.md section (KTD15)
+[ ] The failed-dispatch recovery reconciles before dispatching again
+[ ] RELEASES.md carries tag-release.sh's exit table
+[ ] brettdavies/.github RELEASES.md carries the caller section
+[ ] bats-core installs through dev-setup.sh; the suite runs in pre-push and CI
+```
+
+### DX Implementation Tasks
+
+- [ ] **T13 (P1, human: ~1h / CC: ~10 min)** xurl-rs — `tag-release.sh` refuses before tagging, cleans up a failed push,
+  prints `Next:`; exit table in `RELEASES.md`
+  - Surfaced by: Pass 1, Pass 3 (`CAP6:tag-release:recovery`)
+  - Files: `scripts/release/tag-release.sh`, `scripts/release/tests/tag-release.bats`, `RELEASES.md`
+  - Verify: the bats scenarios for a refusal, a failed push, and success pass
+- [ ] **T14 (P1, human: ~2h / CC: ~15 min)** all — stable `::error title=<code>::` annotations with values, recovery
+  command, and `RELEASES.md` section (KTD15)
+  - Surfaced by: Pass 3 (`CAP6:library-wait-timeout:fix`, `CAP6:cross-host-fallback:fix`)
+  - Files: `brettdavies/.github: .github/workflows/rust-release.yml`, `rust-release-matrix-check.yml`,
+    `brettdavies/homebrew-tap: .github/workflows/update-formula.yml`, `RELEASES.md` in each
+  - Verify: each probe's failing scenario shows the code and the filled-in command
+- [ ] **T15 (P2, human: ~20 min / CC: ~5 min)** xurl-rs — failed-dispatch recovery reconciles first (U9)
+  - Surfaced by: Pass 3 (`CAP6:dispatch:recovery`)
+  - Files: `RELEASES.md`
+  - Verify: the command lists a dispatched run when one exists
+- [ ] **T16 (P2, human: ~30 min / CC: ~5 min)** `.github` — caller section in `RELEASES.md` (U6)
+  - Surfaced by: Pass 5
+  - Files: `brettdavies/.github: RELEASES.md`
+  - Verify: the bird and agentnative-cli fast follow needs nothing the section omits
+
+Carried from the 2026-10-29 devex review of another plan on this branch (run 20261029T153646Z-3668121), not this plan's
+work: its T1 to T4 (paging rules on the first help line, the `--auth` default, the walk failure's scheme sets, changelog
+entries from the plan table), kept in the rows file as T17 to T20.
+
+### Unresolved Decisions
+
+None. No question was asked: each Step 0 choice was settled from the plan's evidence and Brett's earlier decisions, and
+every pass finding was a correction within the accepted scope.
+
+## DX Review Scorecard
+
+```text
++====================================================================+
+|              DX PLAN REVIEW — SCORECARD                             |
++====================================================================+
+| Dimension            | Score  | Prior  | Trend  |
+|----------------------|--------|--------|--------|
+| Getting Started      | 8/10   | 6/10   | ↑      |
+| API/CLI/SDK          | 8/10   | 7/10   | ↑      |
+| Error Messages       | 8/10   | 5/10   | ↑      |
+| Documentation        | 8/10   | 6/10   | ↑      |
+| Upgrade Path         | 7/10   | 5/10   | ↑      |
+| Dev Environment      | 8/10   | 7/10   | ↑      |
+| Community            | 6/10   | 6/10   | =      |
+| DX Measurement       | 7/10   | 5/10   | ↑      |
++--------------------------------------------------------------------+
+| TTHW                 | 0:35   | 6:36   | ↓      |
+| Competitive Rank     | Champion                                     |
+| Magical Moment       | designed via tag-release.sh and the dispatch |
+| Product Type         | Platform, with one CLI script                |
+| Mode                 | POLISH                                       |
+| Overall DX           | 7/10   | 6/10   | ↑      |
++====================================================================+
+| DX PRINCIPLE COVERAGE                                               |
+| Zero Friction      | covered                                        |
+| Learn by Doing     | covered (--dry-run, dry_run)                   |
+| Fight Uncertainty  | covered (KTD15, Next:)                         |
+| Opinionated + Escape Hatches | covered (--force, tag-ref dispatch)  |
+| Code in Context    | covered (exact recovery commands)              |
+| Magical Moments    | covered                                        |
+| Agents Are Users   | covered (refusals before change, stable codes) |
++====================================================================+
+```
+
+Prior scores are this review's own starting scores; the earlier DX rows on this branch reviewed other plans. Community
+stays at 6 as internal tooling, and no dimension is below 6. The TTHW row is the operator's time from merge to both tags
+pushed, measured today and estimated after.
+
 ## GSTACK REVIEW REPORT
 
-| Review         | Trigger               | Why                             | Runs | Status      | Findings                                                                      |
-| -------------- | --------------------- | ------------------------------- | ---- | ----------- | ----------------------------------------------------------------------------- |
-| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | n/a         | n/a                                                                           |
-| Outside Review | codex, plan review    | Independent 2nd opinion         | 31   | disabled    | `codex_reviews: disabled`; no outside findings                                |
-| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 21   | ISSUES OPEN | 15 issues, 0 critical gaps (all resolved: R1 D2, 12 corrections, 3 test gaps) |
-| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | n/a         | n/a                                                                           |
-| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 12   | stale       | not run on this plan; the latest run, 2026-10-29, reviewed another plan       |
+| Review         | Trigger               | Why                             | Runs | Status      | Findings                                                                         |
+| -------------- | --------------------- | ------------------------------- | ---- | ----------- | -------------------------------------------------------------------------------- |
+| CEO Review     | `/plan-ceo-review`    | Scope & strategy                | 0    | n/a         | n/a                                                                              |
+| Outside Review | codex, plan review    | Independent 2nd opinion         | 32   | disabled    | `codex_reviews: disabled` at both phases; no outside findings                    |
+| Eng Review     | `/plan-eng-review`    | Architecture & tests (required) | 21   | ISSUES OPEN | 15 issues, 0 critical gaps (all resolved: R1 D2, 12 corrections, 3 test gaps)    |
+| Design Review  | `/plan-design-review` | UI/UX gaps                      | 0    | n/a         | n/a                                                                              |
+| DX Review      | `/plan-devex-review`  | Developer experience gaps       | 13   | ISSUES OPEN | score: 6/10 → 7/10, TTHW: 6:36 → 0:35 (4 CAP6 paths fixed, mapped to T13 to T16) |
 
-- **OUTSIDE COVERAGE:** codex, plan review phase, disabled by `codex_reviews`; no outside findings.
-- **VERDICT:** no review CLEAR. The eng review's 15 findings and S1 are resolved in the plan and mapped to T1 to T8, and
-  its stored status is ISSUES OPEN; eng review required.
+- **OUTSIDE COVERAGE:** codex, plan review phase, disabled by `codex_reviews` for the eng and DX reviews; no outside
+  findings.
+- **VERDICT:** no review CLEAR. The eng and DX findings are resolved in the plan and mapped to T1 to T8 and T13 to T16;
+  both stored statuses are ISSUES OPEN; eng review required.
 
 NO UNRESOLVED DECISIONS
