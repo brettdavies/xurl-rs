@@ -834,7 +834,10 @@ fn test_twurlrc_import_failure_names_the_file_and_quotes_nothing() {
             faults.push(format!("{shape}: not a token-store error: {message}"));
         }
         let source = std::error::Error::source(&err);
-        if !source.is_some_and(|s| s.downcast_ref::<serde_saphyr::Error>().is_some()) {
+        if source
+            .and_then(|s| s.downcast_ref::<serde_saphyr::Error>())
+            .is_none()
+        {
             faults.push(format!("{shape}: the parse error is not the source"));
         }
         let printed = format!(

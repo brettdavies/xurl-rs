@@ -298,7 +298,10 @@ fn load_corrupt_yaml_leaks_no_content_through_debug_or_the_source() {
         let err = pending::load(&path).unwrap_err();
 
         let source = std::error::Error::source(&err);
-        if !source.is_some_and(|s| s.downcast_ref::<serde_saphyr::Error>().is_some()) {
+        if source
+            .and_then(|s| s.downcast_ref::<serde_saphyr::Error>())
+            .is_none()
+        {
             faults.push(format!("{shape}: the parse error is not the source"));
         }
         let printed = format!(
