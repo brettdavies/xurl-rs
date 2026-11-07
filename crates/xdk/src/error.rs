@@ -875,7 +875,8 @@ pub const PENDING_EXPIRED: &str =
 pub const PENDING_PERMISSIONS: &str = "PendingStatePermissions";
 
 /// The start of the message of a saved flow's file that does not parse. The
-/// parser's cause follows.
+/// file and the position the parser stopped at follow; the file's content
+/// never does, since it holds the PKCE verifier.
 pub const PENDING_INVALID: &str =
     "PendingStateInvalid: the pending OAuth2 state file does not parse";
 

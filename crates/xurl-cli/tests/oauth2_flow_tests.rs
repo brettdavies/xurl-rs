@@ -2492,6 +2492,74 @@ async fn step2_with_a_saved_file_that_does_not_parse_starts_over_and_step_one_re
     assert_eq!(replaced.state, query_param(&url, "state"));
 }
 
+const MARKER_VERIFIER: &str = "MARKER-VERIFIER-NOT-A-SECRET";
+const MARKER_STATE: &str = "MARKER-STATE-NOT-A-SECRET";
+
+/// A saved flow that does not parse is named by its path and the position the
+/// parser stopped at, and its content is never printed: it holds the PKCE
+/// verifier and the state nonce.
+#[tokio::test]
+async fn a_saved_flow_that_does_not_parse_is_named_and_never_quoted() {
+    let broken = [
+        (
+            "an unclosed sequence below the secrets",
+            format!(
+                "code_verifier: {MARKER_VERIFIER}\nstate: {MARKER_STATE}\nclient_id: [unclosed\n"
+            ),
+        ),
+        (
+            "an unterminated quote on the secret's own line",
+            format!("code_verifier: \"{MARKER_VERIFIER}\nstate: {MARKER_STATE}\n"),
+        ),
+        (
+            "a secret where a number belongs",
+            format!(
+                "code_verifier: {MARKER_VERIFIER}\nstate: {MARKER_STATE}\nclient_id: x\napp_name: x\ncreated_at: {MARKER_VERIFIER}\n"
+            ),
+        ),
+    ];
+    let redirect = redirect_url();
+    let mut faults = Vec::new();
+    for (shape, body) in &broken {
+        for dry in [false, true] {
+            for output in ["json", "text"] {
+                let tmp = TempDir::new().unwrap();
+                let store = tmp.path().join(".xurl");
+                seed_store(&store);
+                let path = seed_pending(&store);
+                std::fs::write(&path, body).unwrap();
+                let mut args = vec!["xr", "--output", output];
+                if dry {
+                    args.push("--dry-run");
+                }
+                args.extend_from_slice(&["auth", "oauth2"]);
+                args.extend(flow_at(&redirect));
+
+                let (_code, stdout, stderr) = run_cli(&store, &closed_overrides(true), &args).await;
+
+                let printed = format!("{stdout}{stderr}");
+                let run = format!("{shape}, dry={dry}, output={output}");
+                for marker in [MARKER_VERIFIER, MARKER_STATE] {
+                    if printed.contains(marker) {
+                        faults.push(format!("{run}: {marker} printed:\n{printed}"));
+                    }
+                }
+                for (needle, what) in [
+                    ("PendingStateInvalid", "the reason"),
+                    (&*path.to_string_lossy(), "the file"),
+                    ("line ", "the line"),
+                    ("column ", "the column"),
+                ] {
+                    if !printed.contains(needle) {
+                        faults.push(format!("{run}: {what} is not named:\n{printed}"));
+                    }
+                }
+            }
+        }
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
 /// Step 2 against the token endpoint at `base`: its exit code and envelope.
 /// The pending state survives each refusal, so the code is the only thing
 /// spent.
