@@ -790,6 +790,58 @@ fn test_twurlrc_that_is_not_yaml_is_a_token_store_error() {
     assert_eq!(err.kind(), "token-store", "got: {err:?}");
 }
 
+/// A `.twurlrc` holds the consumer and token secrets, so its import failure
+/// names the file and the position the parser stopped at, and quotes nothing.
+#[test]
+fn test_twurlrc_import_failure_names_the_file_and_quotes_nothing() {
+    const CONSUMER_MARKER: &str = "MARKER-CONSUMER-NOT-A-SECRET";
+    const TOKEN_MARKER: &str = "MARKER-TOKEN-NOT-A-SECRET";
+    let broken = [
+        (
+            "an unclosed sequence below the secrets",
+            format!(
+                "profiles:\n  user:\n    key:\n      consumer_secret: {CONSUMER_MARKER}\n      secret: {TOKEN_MARKER}\nbearer_tokens: [unclosed\n"
+            ),
+        ),
+        (
+            "a secret where a mapping belongs",
+            format!("profiles: {CONSUMER_MARKER}\nbearer_tokens: {TOKEN_MARKER}\n"),
+        ),
+    ];
+    let mut faults = Vec::new();
+    for (shape, body) in &broken {
+        let tmp = TempDir::new().expect("tempdir");
+        let twurl_path = tmp.path().join(".twurlrc");
+        std::fs::write(&twurl_path, body).expect("write .twurlrc");
+        let mut store =
+            TokenStore::new_with_path(tmp.path().join(".xurl").to_str().expect("utf-8 path"));
+
+        let err = store
+            .import_from_twurlrc(&twurl_path)
+            .expect_err("the file does not parse");
+
+        let message = err.to_string();
+        for marker in [CONSUMER_MARKER, TOKEN_MARKER] {
+            if message.contains(marker) {
+                faults.push(format!("{shape}: {marker} printed: {message}"));
+            }
+        }
+        if err.kind() != "token-store" {
+            faults.push(format!("{shape}: kind is {}: {message}", err.kind()));
+        }
+        for (needle, what) in [
+            (&*twurl_path.to_string_lossy(), "the file"),
+            ("line ", "the line"),
+            ("column ", "the column"),
+        ] {
+            if !message.contains(needle) {
+                faults.push(format!("{shape}: {what} is not named: {message}"));
+            }
+        }
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
 #[test]
 fn test_twurlrc_malformed_error() {
     let tmp = TempDir::new().unwrap();
