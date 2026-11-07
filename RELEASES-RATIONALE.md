@@ -1,3 +1,4 @@
+<!-- Canonical version: 2026.11.03 (generic) -->
 # Releases rationale
 
 Companion to [`RELEASES.md`](./RELEASES.md). RELEASES.md is the runbook (commands, paths, decision tables). This file
@@ -158,8 +159,9 @@ SemVer requires a major for every backward-incompatible change. `xr` keeps that 
 the maintainer's judgment: a break few callers can reach ships in a minor. SemVer's FAQ already weighs a version by
 its effect on users: a fix that changes behavior a large audience depends on can ship as a major. The same weighing
 runs the other way here. Majors stay reserved for breaks that reach many callers, which keeps the major number
-meaningful, the point of the clig.dev line above. The migration guide is the condition: a caller who hits such a
-break finds its replacement under `docs/migrating/`, as after a major.
+meaningful, the point of the clig.dev line above. The release agent asks the maintainer at the cut, and the migration
+guide is the condition: a caller who hits such a break finds its replacement under `docs/migrating/`, as after a
+major, and the guide's first line names the exception, which preflight's mechanics gate checks.
 
 ### Why a closed set can grow in a minor
 
@@ -168,12 +170,13 @@ compatible only when a consumer treats an unrecognized value as its default bran
 `#[non_exhaustive]` gives a Rust enum. Removing or renaming a member breaks a consumer that matched on it, so that
 remains a major.
 
-### Why `xdk-rs` breaks in the middle position before 1.0
+### Why `xdk-rs` moves the middle number for a break or an addition before 1.0
 
 Cargo's [SemVer guide](https://doc.rust-lang.org/cargo/reference/semver.html) treats `0.y.z` changes to `y` as major and
 changes to `z` as minor, and its default requirements treat versions as compatible when "their left-most non-zero
-major/minor/patch component is the same". A dependent on `^0.1.0` therefore takes `0.1.1` automatically and never
-`0.2.0`, so a break must move `y` and anything additive or a fix moves `z`.
+major/minor/patch component is the same". A dependent on `^0.4.0` therefore takes `0.4.1` automatically and never
+`0.5.0`, so a break must move `y`. An addition moves `y` too, which is stricter than Cargo requires: a `^0.y` dependent
+then receives only fixes until it opts in to new API, the promise a patch makes after 1.0. A fix moves `z`.
 
 ### Why the changelog section decides the version
 
@@ -182,7 +185,10 @@ instead of re-deriving it from commit subjects. Two gates catch a mis-filed brea
 library's API, and the preflight's command-surface and `xr schema` diffs against the last tag for the CLI. An addition
 filed under a patch section is the mistake review misses most easily, because nothing in the diff reads as wrong. So the
 `Changelog bump` check compares each PR's generated surface against its base and fails the PR while the section is still
-cheap to fix, instead of leaving the question to whoever cuts the release.
+cheap to fix, instead of leaving the question to whoever cuts the release: an addition with no minor-or-higher section,
+or a removal with neither a `Breaking changes` nor a `Fixed` bullet. `generate-changelog.py --bump` reads the same
+sections the release notes are built from, so the version and the notes cannot disagree. A `!:` commit stays a
+cross-check: a PR can break the contract with no marker, and a marker can sit on a change outside the contract.
 
 ## Triple-diff verification
 
@@ -245,10 +251,11 @@ prior squash, it's a false positive (no action). Otherwise cherry-pick the commi
 
 `scripts/generate-changelog.py` (vendored from the `github-repo-setup` skill, with the repo-local `cliff.toml`) is the
 only sanctioned way to update `CHANGELOG.md`. On an overlay-built release branch it runs as `--from-dev-prs`: the PRs
-merged into `dev` since the previous release are the entries, and each PR's body supplies its `## Changelog → ###
-Breaking changes / Added / Changed / Deprecated / Fixed / Documentation` subsections (with author and PR-link
-attribution). On a cherry-picked branch it runs `git-cliff` first to prepend a versioned entry from the branch's
-commits, then expands the same way.
+merged into `dev` since the previous release are the entries, and each PR's body supplies its
+`## Changelog (<crate>)` subsections under the six headings of [`RELEASES.md` § Versioning](./RELEASES.md#versioning)
+(`Breaking changes`, `Added`, `Changed`, `Deprecated`, `Fixed`, `Documentation`), with author and PR-link attribution.
+A heading outside the six still renders, after them. On a cherry-picked branch it runs `git-cliff` first to prepend a
+versioned entry from the branch's commits, then expands the same way.
 
 If a PR's body offers no section for a crate at all, its title becomes a bullet under the group `cliff.toml` gives the
 same commit (`type!:` under Breaking changes, `feat` under Added, `fix` under Fixed, `docs` under Documentation,
@@ -287,6 +294,18 @@ an *empty* `## Changelog` and a skipped type that nonetheless shipped something 
 the input, never to `CHANGELOG.md`.
 
 ## Release pipeline
+
+### Why the interactive sign-in is driven offline
+
+`xr auth oauth2` serves a callback only when stdout is a terminal and a browser opener succeeds, so no scripted run of
+the binary reaches that path by accident. The library's tests reach the listener, but not the shipped binary, its locked
+dependencies, or the opener it calls. A person signing in through a browser reaches all of it, and a check that depends
+on someone doing that goes unrun exactly when nobody does.
+
+The only human step on that path is a browser following a redirect. A fake `xdg-open`, a pty, and a stub provider
+synthesize it with no credential and no call to X, so `preflight.sh oauth2-interactive` runs on every release, and CI
+runs the same gate against the debug build. What it cannot show is that X itself still accepts the flow, which stays
+an optional human check in `RELEASES-PREFLIGHT.md`.
 
 ### Annotated tags + Trusted Publishing
 

@@ -242,6 +242,115 @@ async fn a_builder_with_no_credential_is_a_validation_error() {
     );
 }
 
+// ── A failed refresh of a credential held in code ─────────────────
+
+/// An embedder's credential refreshes through the same reading of the token
+/// endpoint's answer, so a 5xx is the `Error::Api` any request meets.
+#[tokio::test]
+async fn a_refresh_x_could_not_answer_is_the_error_any_request_meets() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(503).set_body_string("unavailable"))
+        .mount(&server)
+        .await;
+
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .base_url(server.uri())
+        .token_url(format!("{}/2/oauth2/token", server.uri()))
+        .build()
+        .unwrap();
+
+    let err = client.get_me().send().await.expect_err("the refresh fails");
+    assert!(
+        matches!(&err, Error::Api { status: 503, .. }),
+        "got {err:?}"
+    );
+}
+
+/// An answer that is no OAuth refusal, such as a proxy's 404 page, did not
+/// come from a token endpoint that processed the grant, so it is the
+/// `Error::Api` any request meets rather than a refused refresh token.
+#[tokio::test]
+async fn a_refresh_answered_with_no_oauth_refusal_is_the_error_any_request_meets() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(404).set_body_string("<html>Not Found</html>"))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .base_url(server.uri())
+        .token_url(format!("{}/2/oauth2/token", server.uri()))
+        .build()
+        .unwrap();
+
+    let err = client.get_me().send().await.expect_err("the refresh fails");
+    assert!(
+        matches!(&err, Error::Api { status: 404, body, .. } if body == "<html>Not Found</html>"),
+        "the token endpoint's own 404, not the API's: {err:?}"
+    );
+    assert_eq!(
+        received(&server).await.len(),
+        1,
+        "only the refresh went out"
+    );
+}
+
+/// A 403 that is no OAuth refusal at the token endpoint is not the 403 of an
+/// API request: the token URL or a proxy in front of it is what to look at.
+#[tokio::test]
+async fn a_refresh_answered_403_is_the_token_endpoints_forbidden() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .base_url(server.uri())
+        .token_url(format!("{}/2/oauth2/token", server.uri()))
+        .build()
+        .unwrap();
+
+    let err = client.get_me().send().await.expect_err("the refresh fails");
+    assert!(
+        matches!(&err, Error::TokenEndpointForbidden { body } if body == "<html>Forbidden</html>"),
+        "the token endpoint's own 403, not the API's: {err:?}"
+    );
+    assert_eq!(
+        received(&server).await.len(),
+        1,
+        "only the refresh went out"
+    );
+}
+
+/// The builder supplies the token URL here, so the error states the fact and
+/// names no environment variable an embedder never set.
+#[tokio::test]
+async fn a_token_url_no_request_can_go_to_is_named_without_an_env_var() {
+    let client = Client::builder()
+        .oauth2(expired_oauth2())
+        .base_url("http://127.0.0.1:1")
+        .token_url("not-a-url")
+        .build()
+        .unwrap();
+
+    let err = client.get_me().send().await.expect_err("the refresh fails");
+    let Error::InvalidUrl { message, .. } = &err else {
+        panic!("got {err:?}");
+    };
+    assert!(message.contains("'not-a-url'"), "{message}");
+    assert!(!message.contains("TOKEN_URL"), "{message}");
+}
+
 // ── Refresh and the hook ───────────────────────────────────────────────
 
 #[tokio::test]

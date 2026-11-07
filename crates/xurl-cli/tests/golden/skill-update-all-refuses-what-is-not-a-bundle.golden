@@ -1,0 +1,107 @@
+args: ["--output", "json", "skill", "update", "--all"]
+env: XURL_SKILL_HOME={{SKILL_HOME}}
+store: empty
+exit_code: 1
+stdout_len: 3516
+stderr_len: 0
+--- stdout ---
+{
+  "action": "skill-update",
+  "status": "error",
+  "installations": [
+    {
+      "action": "skill-update",
+      "host": "claude_code",
+      "install_dir": "{{SKILL_HOME}}/.claude/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.claude/skills/xurl-rs",
+      "destination_status": "non-empty-dir",
+      "status": "error",
+      "exit_code": 1,
+      "reason": "destination-not-empty",
+      "refused_dir": "{{SKILL_HOME}}/.claude/skills/xurl-rs",
+      "message": "{{SKILL_HOME}}/.claude/skills/xurl-rs holds something other than the xurl-rs skill bundle, so nothing was changed. Move it elsewhere, then run `xr skill update claude_code` again.",
+      "next_step": {
+        "action": "fix-input"
+      }
+    },
+    {
+      "action": "skill-update",
+      "host": "codex",
+      "install_dir": "{{SKILL_HOME}}/.agents/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.agents/skills/xurl-rs",
+      "destination_status": "absent",
+      "status": "skipped",
+      "exit_code": 0,
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install codex"
+      }
+    },
+    {
+      "action": "skill-update",
+      "host": "cursor",
+      "install_dir": "{{SKILL_HOME}}/.cursor/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.cursor/skills/xurl-rs",
+      "destination_status": "absent",
+      "status": "skipped",
+      "exit_code": 0,
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install cursor"
+      }
+    },
+    {
+      "action": "skill-update",
+      "host": "factory",
+      "install_dir": "{{SKILL_HOME}}/.factory/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.factory/skills/xurl-rs",
+      "destination_status": "absent",
+      "status": "skipped",
+      "exit_code": 0,
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install factory"
+      }
+    },
+    {
+      "action": "skill-update",
+      "host": "kiro",
+      "install_dir": "{{SKILL_HOME}}/.kiro/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.kiro/skills/xurl-rs",
+      "destination_status": "absent",
+      "status": "skipped",
+      "exit_code": 0,
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install kiro"
+      }
+    },
+    {
+      "action": "skill-update",
+      "host": "opencode",
+      "install_dir": "{{SKILL_HOME}}/.config/opencode/skills/xurl-rs",
+      "command_preview": "git clone --depth 1 https://github.com/brettdavies/xurl-rs-skill.git {{SKILL_HOME}}/.config/opencode/skills/xurl-rs",
+      "destination_status": "absent",
+      "status": "skipped",
+      "exit_code": 0,
+      "reason": "not-installed",
+      "next_step": {
+        "action": "run-command",
+        "command": "xr skill install opencode"
+      }
+    }
+  ],
+  "exit_code": 1,
+  "reason": "destination-not-empty",
+  "message": "1 of 6 hosts failed: claude_code (destination-not-empty). Each entry in `installations` says what to do about it.",
+  "next_step": {
+    "action": "fix-input"
+  }
+}
+
+--- stderr ---
+

@@ -1,23 +1,28 @@
-//! `xr skill update` orchestration. Owns the remove-then-reinstall verb for
-//! one host and for every host, plus the skip rule that keeps `--all` from
+//! `xr skill update` orchestration. Owns the replace-with-a-fresh-clone verb
+//! for one host and for every host, plus the skip rule that keeps `--all` from
 //! creating installations.
 
 use std::fs;
 use std::io::Write;
+use std::path::Path;
 
 use crate::cli::output::OutputConfig;
 
+use super::bundle::{Occupant, replace_with_clone};
+use super::git::spawn_git_clone;
 use super::{
     ACTION_UPDATE, DestinationStatus, InstallEnvelope, InstallError, InstallMultiEnvelope,
     REASON_NOT_INSTALLED, STATUS_DRY_RUN, STATUS_ERROR, STATUS_OK, STATUS_SKIPPED, SkillEnv,
-    SkillHost, compute_install_envelope, emit_envelope, emit_missing_host_envelope,
-    format_clone_command, host_envelope_str, render_envelope, render_multi, resolve_host,
+    SkillHost, build_clone_command, emit_envelope, emit_missing_host_envelope,
+    format_clone_command, host_envelope_str, refused_status, render_envelope, render_multi,
+    resolve_host,
 };
 
-/// Resolve one host's update outcome without emitting it. Removes the existing
-/// destination, and any copy at the host's legacy location, then re-runs the
-/// install unless `dry_run` is set, so the returned envelope reports what
-/// actually happened.
+/// Resolve one host's update outcome without emitting it. Replaces the bundle
+/// at the destination with a fresh clone, and removes any copy at the host's
+/// legacy location, unless `dry_run` is set, so the returned envelope reports
+/// what actually happened. Anything at either path other than a bundle is
+/// refused before a write, in a dry run and a real run alike.
 ///
 /// The `action` field is `"skill-update"` so a consumer can tell update from
 /// install at the JSON layer. Every other field mirrors the install envelope,
@@ -28,7 +33,9 @@ fn compute_update_envelope(
     dry_run: bool,
     skill_env: &SkillEnv,
 ) -> InstallEnvelope {
-    update_envelope(host, dry_run, skill_env).with_next_step()
+    update_envelope(host, dry_run, skill_env)
+        .with_next_step()
+        .with_message()
 }
 
 fn update_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> InstallEnvelope {
@@ -46,11 +53,13 @@ fn update_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Inst
                 install_dir: dest_template.to_string(),
                 command_preview: format_clone_command(url, dest_template),
                 destination_status: DestinationStatus::Absent.as_envelope_str(),
-                status: STATUS_ERROR,
+                status: refused_status(dry_run),
                 would_succeed: if dry_run { Some(false) } else { None },
                 exit_code: Some(1),
                 reason: Some(InstallError::MissingHome.reason()),
                 legacy_install_dir: None,
+                refused_dir: None,
+                message: None,
                 next_step: None,
             };
         }
@@ -58,59 +67,83 @@ fn update_envelope(host: SkillHost, dry_run: bool, skill_env: &SkillEnv) -> Inst
     };
 
     let dest_display = dest.display().to_string();
-    let command_preview = format_clone_command(url, &dest_display);
-    let dest_exists = dest.exists();
+    let occupant = Occupant::of(&dest, url);
     let legacy = skill_env.legacy_copy(host);
-    let legacy_install_dir = legacy.as_ref().map(|path| path.display().to_string());
-    let dest_label = if dest_exists {
-        DestinationStatus::NonEmptyDir.as_envelope_str()
-    } else {
-        DestinationStatus::Absent.as_envelope_str()
+    let base = InstallEnvelope {
+        action: ACTION_UPDATE,
+        host: host_str,
+        command_preview: format_clone_command(url, &dest_display),
+        install_dir: dest_display,
+        destination_status: occupant.status().as_envelope_str(),
+        status: STATUS_OK,
+        would_succeed: None,
+        exit_code: Some(0),
+        reason: None,
+        legacy_install_dir: legacy.as_ref().map(|path| path.display().to_string()),
+        refused_dir: None,
+        message: None,
+        next_step: None,
     };
+
+    let refusal = occupant
+        .refusal()
+        .map(|error| (error, dest.as_path()))
+        .or_else(|| {
+            let legacy = legacy.as_deref()?;
+            let error = Occupant::of(legacy, url).refusal()?;
+            Some((error, legacy))
+        });
+    if let Some((error, dir)) = refusal {
+        return InstallEnvelope {
+            status: refused_status(dry_run),
+            would_succeed: dry_run.then_some(false),
+            exit_code: Some(error.exit_code()),
+            reason: Some(error.reason()),
+            refused_dir: Some(dir.display().to_string()),
+            message: Some(refusal_message(dir, host_str)),
+            ..base
+        };
+    }
 
     if dry_run {
         return InstallEnvelope {
-            action: ACTION_UPDATE,
-            host: host_str,
-            install_dir: dest_display,
-            command_preview,
-            destination_status: dest_label,
             status: STATUS_DRY_RUN,
-            // Update clears the destination first, so an occupied directory is
-            // not the blocker it is for a plain install.
             would_succeed: Some(true),
-            exit_code: Some(0),
-            reason: None,
-            legacy_install_dir,
-            next_step: None,
+            ..base
         };
     }
 
-    let to_remove = [dest_exists.then_some(dest.as_path()), legacy.as_deref()];
-    if to_remove
-        .into_iter()
-        .flatten()
-        .any(|dir| fs::remove_dir_all(dir).is_err())
-    {
-        return InstallEnvelope {
-            action: ACTION_UPDATE,
-            host: host_str,
-            install_dir: dest_display,
-            command_preview,
-            destination_status: dest_label,
+    let replaced = if occupant == Occupant::Bundle {
+        replace_with_clone(url, &dest)
+    } else {
+        spawn_git_clone(&mut build_clone_command(url, &dest))
+    };
+    match replaced.and_then(|()| remove_legacy_copy(legacy.as_deref())) {
+        Ok(()) => base,
+        Err(error) => InstallEnvelope {
             status: STATUS_ERROR,
-            would_succeed: None,
-            exit_code: Some(1),
-            reason: Some("remove-failed"),
-            legacy_install_dir,
-            next_step: None,
-        };
+            exit_code: Some(error.exit_code()),
+            reason: Some(error.reason()),
+            ..base
+        },
     }
+}
 
-    let mut env = compute_install_envelope(host, false, skill_env);
-    env.action = ACTION_UPDATE;
-    env.legacy_install_dir = legacy_install_dir;
-    env
+/// The sentence a refusal carries, the same for a dry run and a real run.
+fn refusal_message(dir: &Path, host: &str) -> String {
+    format!(
+        "{} holds something other than the xurl-rs skill bundle, so nothing was changed. \
+         Move it elsewhere, then run `xr skill update {host}` again.",
+        dir.display()
+    )
+}
+
+/// Removes the copy at the host's legacy location, once the clone at its
+/// destination is in place.
+fn remove_legacy_copy(legacy: Option<&Path>) -> Result<(), InstallError> {
+    legacy.map_or(Ok(()), |dir| {
+        fs::remove_dir_all(dir).map_err(|_| InstallError::RemoveFailed)
+    })
 }
 
 /// The envelope for a host `--all` passes over because nothing is installed
@@ -133,6 +166,8 @@ fn skipped_envelope(host: SkillHost, skill_env: &SkillEnv) -> InstallEnvelope {
         exit_code: Some(0),
         reason: Some(REASON_NOT_INSTALLED),
         legacy_install_dir: None,
+        refused_dir: None,
+        message: None,
         next_step: None,
     }
     .with_next_step()
@@ -177,32 +212,20 @@ pub fn run_update_multi(
     skill_env: &SkillEnv,
 ) -> i32 {
     if all {
-        let mut installations = Vec::with_capacity(SkillHost::ALL.len());
-        let mut worst: i32 = 0;
-        for h in SkillHost::ALL {
-            let env = if is_installed(*h, skill_env) {
-                compute_update_envelope(*h, dry_run, skill_env)
-            } else {
-                skipped_envelope(*h, skill_env)
-            };
-            if env.status == STATUS_ERROR {
-                worst = worst.max(env.exit_code.unwrap_or(1));
-            }
-            installations.push(env);
-        }
-        let multi = InstallMultiEnvelope {
-            action: ACTION_UPDATE,
-            status: if worst == 0 {
-                if dry_run { STATUS_DRY_RUN } else { STATUS_OK }
-            } else {
-                STATUS_ERROR
-            },
-            installations,
-            exit_code: worst,
-        };
+        let installations = SkillHost::ALL
+            .iter()
+            .map(|h| {
+                if is_installed(*h, skill_env) {
+                    compute_update_envelope(*h, dry_run, skill_env)
+                } else {
+                    skipped_envelope(*h, skill_env)
+                }
+            })
+            .collect();
+        let multi = InstallMultiEnvelope::of(ACTION_UPDATE, dry_run, installations);
         let rendered = render_multi(&multi, &out.format);
         let _ = writeln!(stdout, "{rendered}");
-        return worst;
+        return multi.process_exit_code();
     }
     let Some(host) = host else {
         return emit_missing_host_envelope(out, stdout);
@@ -278,11 +301,11 @@ mod tests {
     }
 
     #[test]
-    fn update_without_home_is_an_error_naming_the_reason() {
+    fn update_dry_run_without_home_names_the_reason_the_real_run_fails_for() {
         let env = compute_update_envelope(first_host(), true, &SkillEnv::default());
 
         assert_eq!(env.action, "skill-update");
-        assert_eq!(env.status, "error");
+        assert_eq!(env.status, "dry_run");
         assert_eq!(env.reason, Some("home-not-set"));
         assert_eq!(env.exit_code, Some(1));
         assert_eq!(env.would_succeed, Some(false));

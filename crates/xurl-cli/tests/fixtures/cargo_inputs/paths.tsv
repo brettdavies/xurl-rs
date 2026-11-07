@@ -20,6 +20,11 @@ Cargo.lock	input
 crates/xdk/src/lib.rs	input
 scripts/generate-changelog.py	input
 .github/workflows/ci.yml	input
+.config/nextest.toml	input
 completions/xr.bash	input
-LICENSE-MIT	input
+LICENSE-MIT	inert
+.context/handoffs/handoff.txt	inert
+.github/ISSUE_TEMPLATE/bug-report.yml	inert
+.github/rulesets/protect-dev.json	inert
+.github/dependabot.yml	inert
 a-file-the-script-has-never-seen	input

@@ -45,6 +45,9 @@ pub struct StoreSnapshot {
     /// The named `OAuth2` logins each app holds, the names `-u` selects, in
     /// stable order.
     pub oauth2_logins: BTreeMap<String, Vec<String>>,
+    /// The login a request with no `-u` goes out as, per app that holds a
+    /// named one: the default user, else the app's first login.
+    pub oauth2_default_logins: BTreeMap<String, String>,
 }
 
 impl StoreSnapshot {
@@ -76,6 +79,14 @@ impl StoreSnapshot {
                 .apps
                 .iter()
                 .map(|(name, app)| (name.clone(), app.oauth2_tokens.keys().cloned().collect()))
+                .collect(),
+            oauth2_default_logins: store
+                .apps
+                .keys()
+                .filter_map(|name| {
+                    let (login, _) = store.first_oauth2_user_for_app(name)?;
+                    Some((name.clone(), login.to_string()))
+                })
                 .collect(),
         }
     }

@@ -383,6 +383,11 @@ async fn the_preflight_agrees_with_the_header_a_send_would_carry() {
     }
     assert_eq!(compared, 5 * SHORTCUT_TEMPLATES.len() * 4);
     assert_eq!(requests(&server).await, 0, "a live token needs no refresh");
+    // These loops send nothing, so nothing yields, and their length follows the
+    // declared endpoints. A `MockServer`'s drop blocks on a tokio lock, and on a
+    // spent coop budget tokio defers its wake to the scheduler this thread would
+    // have to run, so the drop would never return. Yielding refills the budget.
+    tokio::task::yield_now().await;
 }
 
 fn outcome(ok: bool) -> &'static str {

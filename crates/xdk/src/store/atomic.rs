@@ -204,7 +204,11 @@ mod tests {
         let recent = dir.path().join("store.tmp.2.2");
         fs::write(&stale, b"old secret").unwrap();
         fs::write(&recent, b"live writer").unwrap();
-        fs::File::open(&stale)
+        // Windows sets file times only through a handle opened for writing:
+        // SetFileTime needs FILE_WRITE_ATTRIBUTES, which a read-only open lacks.
+        fs::File::options()
+            .write(true)
+            .open(&stale)
             .unwrap()
             .set_modified(SystemTime::now() - Duration::from_secs(3600))
             .unwrap();

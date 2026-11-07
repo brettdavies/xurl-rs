@@ -1177,8 +1177,8 @@ pub struct Cli {
 
     /// Check inputs and credentials offline, and send nothing.
     ///
-    /// No request is sent and nothing stored changes, whichever command the
-    /// flag is on: a write, a read, or a raw request with any method. The
+    /// No request is sent and no stored credential changes, whichever command
+    /// the flag is on: a write, a read, or a raw request with any method. The
     /// answer says whether the inputs are valid and whether a stored
     /// credential serves each request the command would send:
     /// `would_succeed`, with `reason` when it is false. `auth` names the
@@ -2776,6 +2776,9 @@ pub enum BroadcastsCommands {
         action: MutesCommands,
     },
     /// Manage the RTMP and RTMPS ingest points you stream to
+    ///
+    /// `add` answers a source's stream key and `stream-key` reads it again; `list`, `get`, and
+    /// `update` carry none.
     #[command(after_help = family_help::broadcast_sources::page())]
     Sources {
         /// `sources` verb to dispatch.
@@ -2907,8 +2910,25 @@ pub enum SourcesCommands {
         common: CommonFlags,
     },
     /// Show one stream source, and whether it is receiving video
+    ///
+    /// The answer carries no stream key; `xr broadcasts sources stream-key <SOURCE_ID>` reads it.
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::GET))]
     Get {
+        /// Source ID, as `xr broadcasts sources list` prints it
+        #[arg(value_name = "SOURCE_ID")]
+        source_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Show a stream source's stream key, a credential
+    ///
+    /// The stream key is a credential: whoever holds it can stream to the source. Keep it out of
+    /// logs you share. To hand it to a program without printing it, pipe `--output json` through
+    /// `jaq -r .data.stream_key`. It needs the `broadcast.read` and `broadcast.write` scopes, or an
+    /// `OAuth1` login.
+    #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::STREAM_KEY))]
+    StreamKey {
         /// Source ID, as `xr broadcasts sources list` prints it
         #[arg(value_name = "SOURCE_ID")]
         source_id: String,
@@ -2927,7 +2947,9 @@ pub enum SourcesCommands {
     },
     /// Create a stream source
     ///
-    /// Point an encoder at its `rtmps_url` with its `stream_key`.
+    /// Point an encoder at its `rtmps_url` with its `stream_key`. `list`, `get`, and
+    /// `update` do not carry the key; `xr broadcasts sources stream-key <SOURCE_ID>`
+    /// reads it again.
     #[command(after_help = family_help::broadcast_sources::FAMILY.verb_page(&family_help::broadcast_sources::ADD))]
     Add {
         /// A label for the source
@@ -3581,13 +3603,17 @@ pub enum SkillCmd {
 
     /// Refresh an existing skill-bundle install in place.
     ///
-    /// Removes the current destination and re-runs the install pipeline so
-    /// the bundle picks up upstream changes. The destination and hardening
-    /// surface are identical to `install`. A copy at a location the host still
-    /// reads but xr does not install to, such as Codex's
-    /// `~/.codex/skills/xurl-rs`, is removed too and named in
-    /// `legacy_install_dir`. The envelope's `action` is `"skill-update"` so
-    /// agents can distinguish from a first-time install.
+    /// Clones the bundle beside the destination and swaps the clone in once it
+    /// succeeds, so a failed clone leaves the current install as it was. The
+    /// swap replaces the whole directory, along with any file added to it. Only
+    /// a clone of the bundle's repository is replaced: anything else at the
+    /// destination is refused and left alone, and the `refused_dir` key names
+    /// it. The destination and hardening surface are identical to `install`. A
+    /// copy at a location the host still reads but xr does not install to, such
+    /// as Codex's `~/.codex/skills/xurl-rs`, follows the same rule, is removed
+    /// after the swap, and is named in `legacy_install_dir`. The envelope's
+    /// `action` is `"skill-update"` so agents can distinguish from a first-time
+    /// install.
     #[command(after_help = "Examples:
   xr skill update claude_code                      # refresh Claude Code's xurl-rs bundle
   xr skill update claude_code --dry-run            # show the resolved plan without touching disk
@@ -3912,7 +3938,11 @@ pub enum MediaCommands {
         /// `--wait=false` or `--wait=0` returns after FINALIZE. The value
         /// follows `=`. A wait that reaches its deadline exits 1 with reason
         /// `processing-timeout`; the upload itself is intact, and the error
-        /// names the `xr media status` command that resumes the wait.
+        /// names the `xr media status` command that resumes the wait. So does
+        /// a status read that fails for a 5xx, a network error, or a 429 whose
+        /// reset X named, the last under `--wait-on-rate-limit`; after a 401,
+        /// or a 429 with no reset, it names that command to run once the
+        /// credential works or the window passes.
         #[arg(
             long = "wait",
             value_name = "SECS",

@@ -15,6 +15,9 @@ use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::{EXIT_USAGE_ERROR, Error};
 
+/// The command a usage error of `xr auth oauth2` closes on the help of.
+const OAUTH2_COMMAND: &str = "xr auth oauth2";
+
 /// Arguments of `xr auth oauth2`: whether to suppress the browser, which
 /// manual step to run, the redirect URL that step 2 exchanges, the scopes to
 /// request instead of every one, and the username label for the saved token.
@@ -47,31 +50,24 @@ pub(super) async fn oauth2(
         app_explicit,
         ..
     } = flags;
-    if let Some(scopes) = scopes {
-        auth.with_oauth2_scopes(&scopes)?;
-    }
-    if dry_run {
-        let ctx = json!({
+    let dry_run_ctx = || {
+        json!({
             "command": "auth-oauth2",
             "no_browser": no_browser,
             "step": step,
             "username": username,
-        });
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
-    }
-    let username_arg = username.as_deref().unwrap_or("");
-    let client = crate::cli::commands::make_client(cfg, auth)?;
-    // Refuse before any URL is built or pending file written when the
-    // target app has no client id to sign in with.
-    let refusal = {
-        let auth = client.auth().await?;
-        client_credentials_missing(&auth, app_explicit, out.format.is_structured())
+        })
     };
-    if let Some(body) = refusal {
-        out.emit_error_envelope(stderr, body);
-        return Err(Failure::Emitted {
-            exit_code: EXIT_USAGE_ERROR,
+    if let Some(scopes) = scopes
+        && let Err(error) = auth.with_oauth2_scopes(&scopes)
+    {
+        return Err(if dry_run {
+            Failure::DryRunRefusal {
+                ctx: dry_run_ctx(),
+                error,
+            }
+        } else {
+            error.into()
         });
     }
     // Headless auto-engage: stdout is not a TTY (piped run, CI, agent
@@ -81,6 +77,44 @@ pub(super) async fn oauth2(
     // path and surface the auth URL on stdout.
     let auto_engage_no_browser = !no_browser && !std::io::stdout().is_terminal();
     let effective_no_browser = no_browser || auto_engage_no_browser;
+    // The interactive flow reads neither `--step` nor `--auth-url`.
+    let refused = if effective_no_browser {
+        auth_url_refusal(step, auth_url.as_deref()).map(str::to_string)
+    } else {
+        None
+    };
+    if dry_run {
+        return dry_run_answer(
+            DryRun {
+                auth: &auth,
+                app_explicit,
+                headless: effective_no_browser,
+                step,
+                auth_url: auth_url.as_deref(),
+                refused,
+                ctx: dry_run_ctx(),
+            },
+            out,
+            stdout,
+        );
+    }
+    if let Some(message) = refused {
+        return Err(refused_argument(&message, out, stderr));
+    }
+    let username_arg = username.as_deref().unwrap_or("");
+    let client = crate::cli::commands::make_client(cfg, auth)?;
+    // Refuse before any URL is built or pending file written when the
+    // target app has no client id to sign in with.
+    let refusal = {
+        let auth = client.auth().await?;
+        client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false)
+    };
+    if let Some(body) = refusal {
+        out.emit_error_envelope(stderr, body);
+        return Err(Failure::Emitted {
+            exit_code: EXIT_USAGE_ERROR,
+        });
+    }
     if !effective_no_browser {
         // Standard interactive flow. The opener records the URL it could not
         // open, so the paste-the-URL advice can name it once the flow returns.
@@ -116,6 +150,7 @@ pub(super) async fn oauth2(
                 );
                 out.print_message(stdout, &url);
             }
+            name_the_failed_exchange(&e, out, stderr);
             return Err(e.into());
         }
         out.print_ok_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
@@ -132,11 +167,6 @@ pub(super) async fn oauth2(
         };
         match effective_step {
             Some(1) => {
-                if auth_url.is_some() {
-                    return Err(
-                        Error::auth("--auth-url is only used with --step 2, not --step 1").into(),
-                    );
-                }
                 let url = client.auth().await?.remote_oauth2_step1(&pending_path)?;
                 let app = client.auth().await?.app_name().to_string();
                 if out.format.is_structured() {
@@ -194,38 +224,25 @@ pub(super) async fn oauth2(
                 }
             }
             Some(2) => {
-                let url_value = auth_url.ok_or_else(|| {
-                    xdk::error::Error::auth(
-                        "--auth-url is required for step 2. Pass the redirect URL from your browser, \
-                         or use --auth-url - to read from stdin",
-                    )
-                })?;
+                // `auth_url_refusal` has refused a step 2 with no URL or an empty one.
+                let url_value = auth_url.unwrap_or_default();
 
                 let redirect_url = if url_value == "-" {
-                    let mut line = String::new();
-                    std::io::stdin().read_line(&mut line).map_err(|e| {
-                        xdk::error::Error::auth_with_cause(
-                            "Failed to read redirect URL from stdin",
-                            &e,
-                        )
-                        .with_source(e)
-                    })?;
-                    let trimmed = line.trim().to_string();
-                    if trimmed.is_empty() {
-                        return Err(Error::auth(
-                            "No redirect URL provided on stdin. \
-                             Pipe the URL or paste it and press Enter",
-                        )
-                        .into());
+                    match redirect_url_from_stdin() {
+                        Ok(url) => url,
+                        Err(message) => return Err(refused_argument(&message, out, stderr)),
                     }
-                    trimmed
                 } else {
                     url_value
                 };
 
-                client
+                if let Err(e) = client
                     .remote_oauth2_step2(&redirect_url, username_arg, &pending_path)
-                    .await?;
+                    .await
+                {
+                    name_the_failed_exchange(&e, out, stderr);
+                    return Err(e.into());
+                }
                 out.print_message(stdout, "\x1b[32mOAuth2 authentication successful!\x1b[0m");
             }
             None => {
@@ -239,6 +256,126 @@ pub(super) async fn oauth2(
         }
     }
     Ok(())
+}
+
+/// What a dry run of `xr auth oauth2` knows of the run it stands for.
+struct DryRun<'a> {
+    auth: &'a Auth,
+    app_explicit: bool,
+    headless: bool,
+    step: Option<u8>,
+    auth_url: Option<&'a str>,
+    /// What the headless flow refuses about `--auth-url` itself.
+    refused: Option<String>,
+    ctx: serde_json::Value,
+}
+
+/// Answers a dry run of `xr auth oauth2` with the verdict the real run
+/// reaches, from the arguments, the environment, the store, and the saved
+/// flow, in the order the real run checks them. Nothing is sent and the checks
+/// write no file.
+///
+/// On a terminal a person pastes the URL when the real run asks for it, so
+/// there is nothing to read yet and the checks of its contents are left out;
+/// piped stdin is read as the real run reads it.
+fn dry_run_answer(
+    plan: DryRun<'_>,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> CommandResult<()> {
+    let DryRun {
+        auth,
+        app_explicit,
+        headless,
+        step,
+        auth_url,
+        refused,
+        ctx,
+    } = plan;
+    if let Some(message) = refused {
+        out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
+        return Ok(());
+    }
+    if let Some(body) =
+        client_credentials_missing(auth, app_explicit, out.format.is_structured(), true)
+    {
+        out.print_dry_run_error_body(stdout, &ctx, body);
+        return Ok(());
+    }
+    if headless && step == Some(2) {
+        let redirect_url = match auth_url {
+            Some("-") if std::io::stdin().is_terminal() => None,
+            Some("-") => match redirect_url_from_stdin() {
+                Ok(url) => Some(url),
+                Err(message) => {
+                    out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
+                    return Ok(());
+                }
+            },
+            other => other.map(str::to_string),
+        };
+        let pending_path = xdk::auth::pending::pending_path_for_store(&auth.token_store.file_path);
+        if let Err(error) = auth.check_remote_oauth2_step2(redirect_url.as_deref(), &pending_path) {
+            return Err(Failure::DryRunRefusal { ctx, error });
+        }
+    }
+    out.print_dry_run(stdout, true, 0, &ctx);
+    Ok(())
+}
+
+/// Tells a person what X's answer is an answer to. An API error prints as the
+/// response body alone, and a sign-in's caller never named the endpoint.
+fn name_the_failed_exchange(error: &Error, out: &OutputConfig, stderr: &mut dyn Write) {
+    if error.is_api() {
+        out.error_context(
+            stderr,
+            "The token endpoint's answer ended the sign-in. It answered:",
+        );
+    }
+}
+
+/// The redirect URL `--auth-url -` reads from stdin, or the sentence that
+/// refuses what it read.
+fn redirect_url_from_stdin() -> Result<String, String> {
+    let mut line = String::new();
+    std::io::stdin()
+        .read_line(&mut line)
+        .map_err(|e| format!("Failed to read redirect URL from stdin: {e}."))?;
+    let url = line.trim();
+    if url.is_empty() {
+        return Err("No redirect URL provided on stdin. \
+                    Pipe the URL or paste it and press Enter."
+            .to_string());
+    }
+    Ok(url.to_string())
+}
+
+/// What the headless flow refuses about `--auth-url` itself, before any stdin
+/// is read or any saved flow is loaded, so a dry run can say it too. An empty
+/// value is a missing one, as an empty line on stdin is.
+fn auth_url_refusal(step: Option<u8>, auth_url: Option<&str>) -> Option<&'static str> {
+    match (step, auth_url) {
+        (Some(1), Some(_)) => Some("--auth-url is only used with --step 2, not --step 1."),
+        (Some(2), None) => Some(
+            "--auth-url is required for step 2. Pass the redirect URL from your browser, \
+             or use --auth-url - to read from stdin.",
+        ),
+        (Some(2), Some(url)) if url.trim().is_empty() => Some(
+            "--auth-url is empty. Pass the redirect URL from your browser, \
+             or use --auth-url - to read from stdin.",
+        ),
+        _ => None,
+    }
+}
+
+/// Refuses an argument of `xr auth oauth2`: a usage error, closing on the
+/// command's help. `xr` parses its own arguments, so the library has no part in
+/// this one.
+fn refused_argument(message: &str, out: &OutputConfig, stderr: &mut dyn Write) -> Failure {
+    out.print_invalid_args(stderr, message, " ", OAUTH2_COMMAND);
+    Failure::Emitted {
+        exit_code: EXIT_USAGE_ERROR,
+    }
 }
 
 /// Step 2 of the headless sign-in, reading the redirect URL from `auth_url`.
@@ -360,11 +497,13 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
 /// The effective client id comes from the [`Auth`] accessor, so `CLIENT_ID`
 /// exported in the environment counts regardless of how the app was
 /// selected. When another app does carry credentials the hint names it;
-/// otherwise the hint is registration, whose values only the caller has.
+/// otherwise the hint is registration, whose values only the caller has. A
+/// dry run's hint reruns the sign-in under `--dry-run`.
 fn client_credentials_missing(
     auth: &Auth,
     app_explicit: bool,
     structured: bool,
+    dry_run: bool,
 ) -> Option<ErrorBody> {
     if !auth.client_id().is_empty() {
         return None;
@@ -399,6 +538,11 @@ fn client_credentials_missing(
             },
             NextStep::register_app(),
         ),
+    };
+    let next_step = if dry_run {
+        next_step.under_dry_run()
+    } else {
+        next_step
     };
     // The text derives from the built value, so the prose and the
     // machine-readable step cannot name different commands.

@@ -1,6 +1,7 @@
 //! The webhook receiver answers X's CRC check with the documented response
 //! token, yields an event only when its signature verifies, and refuses
-//! everything else with the status X's documentation gives.
+//! everything else with the status X's documentation gives. It stops on the
+//! caller's token or when dropped, and it never cancels that token.
 //!
 //! Every expected signature below was computed outside this crate
 //! (`hmac.new(key, message, sha256)` in Python, base64-encoded), so the tests
@@ -9,6 +10,8 @@
 use std::net::SocketAddr;
 use std::time::{Duration, SystemTime};
 
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 use tokio_util::sync::CancellationToken;
 use xdk::error::{Error, NextAction};
 use xdk::webhooks::{
@@ -463,8 +466,60 @@ async fn the_testing_sender_delivers_a_sample_the_receiver_verifies() {
     assert_eq!(body["xr_test_event"], true);
 }
 
+/// How long a stop may take to reach the receiver's tasks. This is under the
+/// 10 seconds a connection waits for its body, so a connection nothing stopped
+/// is still open when it runs out.
+const STOPS_WITHIN: Duration = Duration::from_secs(5);
+
+/// A connection the receiver is serving: a `POST` whose body never comes, held
+/// past the `100 Continue` that shows its task is reading that body.
+async fn connection_in_service(receiver: &Receiver) -> TcpStream {
+    let mut stream = TcpStream::connect(receiver.local_addr())
+        .await
+        .expect("the receiver accepts");
+    stream
+        .write_all(
+            b"POST /webhook HTTP/1.1\r\n\
+              Host: receiver\r\n\
+              Content-Length: 1\r\n\
+              Expect: 100-continue\r\n\r\n",
+        )
+        .await
+        .expect("the request goes out");
+    let mut answer = [0; b"HTTP/1.1 100 Continue\r\n\r\n".len()];
+    tokio::time::timeout(STOPS_WITHIN, stream.read_exact(&mut answer))
+        .await
+        .expect("the receiver reads the body")
+        .expect("the receiver answers");
+    assert_eq!(&answer, b"HTTP/1.1 100 Continue\r\n\r\n");
+    stream
+}
+
+async fn closes(stream: &mut TcpStream) -> bool {
+    let mut byte = [0; 1];
+    matches!(
+        tokio::time::timeout(STOPS_WITHIN, stream.read(&mut byte)).await,
+        Ok(Ok(0) | Err(_))
+    )
+}
+
+async fn binds_again(address: SocketAddr) -> bool {
+    let bound = async {
+        loop {
+            let config = ReceiverConfig::new(address, both_secrets());
+            match Receiver::bind(config, CancellationToken::new()).await {
+                Err(Error::AddressInUse { .. }) => {
+                    tokio::time::sleep(Duration::from_millis(10)).await;
+                }
+                result => return result.expect("a held address is the only refusal"),
+            }
+        }
+    };
+    tokio::time::timeout(STOPS_WITHIN, bound).await.is_ok()
+}
+
 #[tokio::test]
-async fn cancelling_the_token_ends_the_event_stream() {
+async fn cancelling_the_token_ends_the_event_stream_and_stops_the_tasks() {
     let cancel = CancellationToken::new();
     let mut receiver = Receiver::bind(
         ReceiverConfig::new(loopback(), both_secrets()),
@@ -472,10 +527,68 @@ async fn cancelling_the_token_ends_the_event_stream() {
     )
     .await
     .expect("the receiver binds");
+    let address = receiver.local_addr();
+    let mut connection = connection_in_service(&receiver).await;
 
     cancel.cancel();
 
-    assert!(receiver.next_event().await.is_none());
+    let next = tokio::time::timeout(STOPS_WITHIN, receiver.next_event()).await;
+    assert!(
+        matches!(next, Ok(None)),
+        "the caller's stop ends the event stream: {next:?}"
+    );
+    assert!(
+        closes(&mut connection).await,
+        "the caller's stop ends a connection in service"
+    );
+    assert!(
+        binds_again(address).await,
+        "the caller's stop releases the port"
+    );
+}
+
+/// The token is the caller's stop: it may be a signal handler's, or shared with
+/// other work, so a receiver going away must leave it as it was.
+#[tokio::test]
+async fn dropping_the_receiver_leaves_the_callers_token_alone() {
+    let cancel = CancellationToken::new();
+    let receiver = Receiver::bind(
+        ReceiverConfig::new(loopback(), both_secrets()),
+        cancel.clone(),
+    )
+    .await
+    .expect("the receiver binds");
+
+    drop(receiver);
+
+    assert!(
+        !cancel.is_cancelled(),
+        "dropping the receiver cancelled the caller's token"
+    );
+}
+
+#[tokio::test]
+async fn dropping_the_receiver_stops_its_tasks_and_releases_the_port() {
+    let cancel = CancellationToken::new();
+    let receiver = Receiver::bind(
+        ReceiverConfig::new(loopback(), both_secrets()),
+        cancel.clone(),
+    )
+    .await
+    .expect("the receiver binds");
+    let address = receiver.local_addr();
+    let mut connection = connection_in_service(&receiver).await;
+
+    drop(receiver);
+
+    assert!(
+        closes(&mut connection).await,
+        "a connection in service ran on past the drop"
+    );
+    assert!(
+        binds_again(address).await,
+        "the accept loop held the port past the drop"
+    );
 }
 
 #[test]

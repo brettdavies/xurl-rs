@@ -43,6 +43,7 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
         out,
         stdout,
         stderr,
+        hooks,
         ..
     } = run;
     let mut secrets = SigningSecrets::for_app(&auth);
@@ -58,11 +59,13 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     } else {
         None
     };
-    let budget = listener
-        .forward_timeout
-        .map_or_else(RetryBudget::default, |secs| {
-            RetryBudget::new(Duration::from_secs(secs))
-        });
+    let budget = hooks.retry_budget.unwrap_or_else(|| {
+        listener
+            .forward_timeout
+            .map_or_else(RetryBudget::default, |secs| {
+                RetryBudget::new(Duration::from_secs(secs))
+            })
+    });
     let targets = forward_targets(&listener);
     let mut ctx = json!({
         "command": "webhooks-listen",
@@ -122,7 +125,10 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
     config.path.clone_from(&listener.path);
     config.allow_unsigned = listener.allow_unsigned;
     let cancel = crate::cli::shutdown::cancel_on_shutdown();
-    let mut receiver = Receiver::bind(config, cancel).await?;
+    let mut receiver = match &hooks.arrival_clock {
+        Some(clock) => Receiver::bind_with_clock(config, cancel, Arc::clone(clock)).await?,
+        None => Receiver::bind(config, cancel).await?,
+    };
     let url = format!("http://{}{}", receiver.local_addr(), listener.path);
     let test_command = test_command(&url, &sample);
     if out.format.is_structured() {

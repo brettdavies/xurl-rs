@@ -1,17 +1,28 @@
 #!/usr/bin/env bash
+# Canonical version: 2026.11.03 (generic)
+#
 # Pre-commit hook: fast, staged-file-scoped checks that catch the cheap
 # mistakes before they reach a commit. The whole-repo CI mirror lives in the
 # pre-push hook (scripts/hooks/pre-push); keep this hook fast enough that it
 # is never the reason someone reaches for --no-verify.
 #
-# This hook owns which files get checked; scripts/hooks/_lib.sh owns how each
-# tool runs, including its missing-tool hint, so the two hooks cannot drift
-# into checking the same thing two different ways.
+# Every check comes from scripts/hooks/_lib.sh, which both hooks source. The
+# library owns how each tool runs, including its missing-tool hint; this hook
+# owns which files get checked, so the two hooks cannot drift into checking
+# the same thing two different ways.
 #
 # Activate per clone via: git config core.hooksPath scripts/hooks
 # (This is machine-local git config: it does NOT travel with the clone, and
 # an unset core.hooksPath is the single most common reason a hook never fires.
 # Run the command above once per fresh clone, human and agent workspace alike.)
+#
+# Defensive no-ops: each check guards on its own tool being present and on the
+# relevant file type being staged, then skips cleanly. The library announces a
+# skip caused by a missing tool, and a skipped check never prints a pass line:
+# a silent skip is indistinguishable from a passing check.
+#
+# Failures aggregate. One run reports every failing check rather than stopping
+# at the first, so a commit is fixed in one pass.
 #
 # Exit codes: 0 = all staged checks pass (or cleanly skipped), 1 = failure.
 #
@@ -26,10 +37,24 @@ if ((BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 4))); 
   exit 1
 fi
 
+# A linked worktree can find core.hooksPath set to the main checkout's
+# absolute path (worktree tooling writes it), and git then runs the main
+# checkout's copy of this hook with the worktree as its working directory.
+# Hand off to the copy that worktree has checked out, so a push or commit is
+# gated by the hook its own branch carries.
+hook_self_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+hook_worktree_root=$(pwd -P)
+hook_own_copy="$hook_worktree_root/scripts/hooks/$(basename "${BASH_SOURCE[0]}")"
+if [[ "$hook_worktree_root" != "$hook_self_root" && -x "$hook_own_copy" ]]; then
+  exec "$hook_own_copy" "$@"
+fi
+
 set -uo pipefail
 
-cd "$(git rev-parse --show-toplevel)" || exit 1
-# shellcheck source=scripts/hooks/_lib.sh
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root" || exit 1
+# A CI action that checks one file at a time without -x reports SC1091 here.
+# shellcheck source=scripts/hooks/_lib.sh disable=SC1091
 . ./scripts/hooks/_lib.sh || exit 1
 
 fail=0
@@ -41,20 +66,28 @@ fail=0
 # call its tool makes in another directory finds that directory's repository
 # rather than this one.
 
-# Rust: format-check the staged .rs files.
+# The checks here read disjoint sets of paths: cargo fmt every crate's Rust
+# sources, the others the staged files of their kind. None takes a build lock
+# (`cargo fmt` compiles nothing), and markdownlint, the one that writes, writes
+# only the markdown no other check reads, so they all run together and the
+# slowest one sets the wall-clock. step_wait replays them in the order queued
+# below.
+
+# Rust: format check when a .rs file is staged, each crate under its own
+# edition.
 mapfile -t rs_files < <(staged '*.rs')
-step "rustfmt" "cargo fmt" without_git_repo_env check_rustfmt "${rs_files[@]}" || fail=1
+step_bg "rustfmt" "cargo fmt" without_git_repo_env check_rustfmt "${rs_files[@]}"
 
 # Shell: correctness on the staged scripts, the hooks included.
 mapfile -t sh_files < <(staged '*.sh' 'scripts/hooks/pre-commit' 'scripts/hooks/pre-push' 'scripts/hooks/_lib.sh')
-step "shellcheck" "shellcheck --severity=warning <file>" \
-    without_git_repo_env check_shellcheck "${sh_files[@]}" || fail=1
+step_bg "shellcheck" "shellcheck --severity=warning <file>" \
+  without_git_repo_env check_shell "${sh_files[@]}"
 
 # Workflows: lint, and check group namespacing, when one is staged.
 mapfile -t yml_files < <(staged '.github/workflows/*.yml' '.github/workflows/*.yaml')
-step "actionlint" "actionlint" without_git_repo_env check_actionlint "${yml_files[@]}" || fail=1
-step "concurrency namespacing" "bash scripts/check-workflow-concurrency.sh" \
-    without_git_repo_env check_workflow_concurrency "${yml_files[@]}" || fail=1
+step_bg "actionlint" "actionlint" without_git_repo_env check_actionlint "${yml_files[@]}"
+step_bg "concurrency namespacing" "scripts/check-workflow-concurrency.sh" \
+  without_git_repo_env check_workflow_concurrency "${yml_files[@]}"
 
 # Markdown: lint the staged docs, minus the generated changelog, which is the
 # same exclusion `tracked_markdown` makes for pre-push and the `lint /
@@ -62,11 +95,13 @@ step "concurrency namespacing" "bash scripts/check-workflow-concurrency.sh" \
 # linting it fails MD013 on content no author wrote, and it is staged on every
 # release commit.
 mapfile -t md_files < <(staged '*.md' ':!:CHANGELOG.md')
-step "markdownlint" "markdownlint-cli2 <file>" check_markdownlint "${md_files[@]}" || fail=1
+step_bg "markdownlint" "markdownlint-cli2 <file>" check_markdownlint "${md_files[@]}"
+
+step_wait || fail=1
 
 [ "$fail" -eq 0 ] || {
-    echo "pre-commit: staged checks failed" >&2
-    exit 1
+  echo "pre-commit: staged checks failed" >&2
+  exit 1
 }
 
 echo "pre-commit: staged checks passed"

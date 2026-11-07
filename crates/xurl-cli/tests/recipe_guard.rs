@@ -58,17 +58,11 @@ fn every_file_the_recipe_names_exists() {
 /// (a problem, a `Cause:`, and a `Fix:`), which is how a registry walk
 /// announces itself.
 fn walk_files() -> BTreeSet<String> {
-    let root = common::workspace_root();
     common::member_dirs()
         .iter()
         .flat_map(|member| common::rust_files(&member.join("tests")))
         .filter(|file| std::fs::read_to_string(file).is_ok_and(|source| source.contains("Cause:")))
-        .map(|file| {
-            file.strip_prefix(root)
-                .expect("under the workspace")
-                .to_string_lossy()
-                .into_owned()
-        })
+        .map(|file| common::workspace_name(&file))
         .collect()
 }
 

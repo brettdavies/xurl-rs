@@ -151,11 +151,50 @@ where
     I: IntoIterator<Item = S>,
     S: Into<OsString> + Clone,
 {
+    run_with_hooks(
+        args,
+        stdout,
+        stderr,
+        store_path,
+        overrides,
+        &RunHooks::default(),
+    )
+    .await
+}
+
+/// Values an in-process run takes in place of the ones a process uses.
+#[derive(Clone, Default)]
+pub struct RunHooks {
+    /// The clock `webhooks listen` stamps each arrival with, in place of the
+    /// system clock.
+    pub arrival_clock: Option<xdk::webhooks::ArrivalClock>,
+    /// The retry rule `webhooks listen` forwards under, in place of the one
+    /// `--forward-timeout` and the library's defaults make.
+    pub retry_budget: Option<xdk::webhooks::RetryBudget>,
+}
+
+/// [`run_with_overrides`] with `hooks` in place of what a process uses.
+pub async fn run_with_hooks<I, S>(
+    args: I,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    store_path: &Path,
+    overrides: &xdk::config::EnvOverrides,
+    hooks: &RunHooks,
+) -> i32
+where
+    I: IntoIterator<Item = S>,
+    S: Into<OsString> + Clone,
+{
     let skill_env = SkillEnv {
         home: overrides.home.clone(),
         ..SkillEnv::default()
     };
-    run_with_env(args, stdout, stderr, store_path, overrides, &skill_env).await
+    let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
+    run_inner(
+        args_vec, stdout, stderr, store_path, overrides, &skill_env, hooks,
+    )
+    .await
 }
 
 /// [`run_with_overrides`] with the skill-destination environment supplied as
@@ -174,7 +213,27 @@ where
     S: Into<OsString> + Clone,
 {
     let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
+    run_inner(
+        args_vec,
+        stdout,
+        stderr,
+        store_path,
+        overrides,
+        skill_env,
+        &RunHooks::default(),
+    )
+    .await
+}
 
+async fn run_inner(
+    args_vec: Vec<OsString>,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    store_path: &Path,
+    overrides: &xdk::config::EnvOverrides,
+    skill_env: &SkillEnv,
+    hooks: &RunHooks,
+) -> i32 {
     // Parsed in two steps, formatting a failure as `Cli::try_parse_from`
     // does, so the matches stay to name the command that ran.
     let parsed = Cli::command()
@@ -346,12 +405,13 @@ where
             .is_some_and(|value| !value.is_empty()),
     );
     let structured = out.format.is_structured();
+    let media = media_credential(&cli);
 
     // The library reports its diagnostics as `tracing` events; this renderer
     // turns them into the stderr lines the flags call for, for this dispatch
     // and this thread only.
     let diagnostics = Diagnostics::new(out.clone());
-    let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides)
+    let dispatched = crate::cli::commands::run(cli, &out, stdout, stderr, auth, overrides, hooks)
         .with_subscriber(diagnostics)
         .await;
     let invocation = || -> Vec<String> {
@@ -360,7 +420,7 @@ where
             .map(|a| a.to_string_lossy().into_owned())
             .collect()
     };
-    match dispatched {
+    let code = match dispatched {
         Ok(()) => EXIT_SUCCESS,
         Err(Failure::Emitted { exit_code }) => exit_code,
         Err(Failure::Refused { error, reason }) => {
@@ -374,7 +434,13 @@ where
             EXIT_GENERAL_ERROR
         }
         Err(Failure::DryRunRefusal { ctx, error }) => {
-            let hint = recovery_hint(&error, &snapshot, &args_vec, structured);
+            let hint = recovery_hint(
+                &error,
+                &snapshot,
+                &naming_dry_run(&args_vec),
+                structured,
+                &media,
+            );
             out.print_dry_run_refusal(stdout, &ctx, &error, hint.as_ref());
             EXIT_SUCCESS
         }
@@ -383,15 +449,46 @@ where
             out.print_dry_run_refusal(stdout, &ctx, &error, Some(&hint));
             EXIT_SUCCESS
         }
+        Err(Failure::AfterUpload {
+            error,
+            media_id,
+            waited,
+        }) => {
+            let code = error.exit_code();
+            let hint =
+                crate::cli::hints::resume_after_upload_hint(&error, &media_id, waited, &media)
+                    .or_else(|| recovery_hint(&error, &snapshot, &args_vec, structured, &media));
+            out.print_error_after_upload(stderr, &error, code, hint.as_ref(), &media_id);
+            code
+        }
         Err(Failure::Error(e)) => {
             let code = e.exit_code();
-            match recovery_hint(&e, &snapshot, &args_vec, structured) {
+            match recovery_hint(&e, &snapshot, &args_vec, structured, &media) {
                 Some(hint) => out.print_error_with_hint(stderr, &e, code, &hint),
                 None => out.print_error(stderr, &e, code),
             }
             code
         }
+    };
+    // Every failure above wrote its envelope, which took the warnings with it.
+    out.write_kept_warnings(stderr);
+    code
+}
+
+/// `args` with `--dry-run` named. `XURL_DRY_RUN` selects a dry run with no flag
+/// in argv, and a step built from argv would then rerun the invocation as a
+/// real run.
+fn naming_dry_run(args: &[OsString]) -> Vec<OsString> {
+    let named = args
+        .iter()
+        .skip(1)
+        .map_while(|arg| arg.to_str().filter(|arg| *arg != "--"))
+        .any(|arg| arg == "--dry-run" || arg.starts_with("--dry-run="));
+    let mut named_args = args.to_vec();
+    if !named {
+        named_args.insert(args.len().min(1), OsString::from("--dry-run"));
     }
+    named_args
 }
 
 /// The recovery hint for a library error, chosen from the store as this
@@ -402,6 +499,7 @@ fn recovery_hint(
     snapshot: &xdk::store::snapshot::StoreSnapshot,
     args: &[OsString],
     structured: bool,
+    media: &crate::cli::hints::MediaCredential,
 ) -> Option<crate::cli::hints::Hint> {
     let invocation: Vec<String> = args
         .iter()
@@ -416,13 +514,50 @@ fn recovery_hint(
     }
     crate::cli::hints::unloadable_store_hint(snapshot, error)
         .or_else(|| crate::cli::hints::enrollment_hint(error))
-        .or_else(|| crate::cli::hints::resume_wait_hint(error))
+        .or_else(|| crate::cli::hints::resume_wait_hint(error, media))
         .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
         .or_else(|| crate::cli::hints::no_signing_secret_hint(snapshot, error, &invocation))
         .or_else(|| crate::cli::hints::sign_in_again_hint(error, &invocation))
+        .or_else(|| crate::cli::hints::redirect_url_again_hint(error, &invocation))
+        .or_else(|| crate::cli::hints::pending_app_hint(snapshot, error, &invocation))
+        .or_else(|| crate::cli::hints::sign_in_fault_hint(error))
+        .or_else(|| {
+            crate::cli::hints::refresh_refused_hint(snapshot, error, &invocation, structured)
+        })
         .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
         .or_else(|| crate::cli::hints::mismatch_hint(snapshot, error, &invocation, structured))
         .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
+}
+
+/// The credential words of `media upload` and `media status`, the commands
+/// whose waits a step resumes; empty for every other command.
+fn media_credential(cli: &Cli) -> crate::cli::hints::MediaCredential {
+    use crate::cli::{Commands, MediaCommands};
+    let (auth, username, headers) = match &cli.command {
+        Some(Commands::Media {
+            command:
+                MediaCommands::Upload {
+                    auth_type,
+                    username,
+                    headers,
+                    ..
+                }
+                | MediaCommands::Status {
+                    auth_type,
+                    username,
+                    headers,
+                    ..
+                },
+        }) => (auth_type.clone(), username.clone(), headers.clone()),
+        _ => return crate::cli::hints::MediaCredential::default(),
+    };
+    crate::cli::hints::MediaCredential {
+        app: cli.app.clone(),
+        auth,
+        username,
+        headers,
+        rate_limit_max_wait: cli.wait_on_rate_limit.then_some(cli.rate_limit_max_wait),
+    }
 }
 
 /// Whether this error is a missing-credential failure a recovery hint answers.

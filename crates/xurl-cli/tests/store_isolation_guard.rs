@@ -33,7 +33,7 @@ mod common;
 use std::path::PathBuf;
 
 use common::{
-    Allowed, enclosing_test, member_dirs, rust_files, stale_allowlist_entries, workspace_root,
+    Allowed, enclosing_test, member_dirs, rust_files, stale_allowlist_entries, workspace_name,
 };
 
 /// Every sanctioned real-home resolution in the suite.
@@ -46,16 +46,6 @@ const ALLOWLIST: &[Allowed] = &[
     Allowed {
         file: "crates/xdk/tests/api_tests.rs",
         test: "test_from_env_without_client_id_builds_a_store_backed_client",
-        reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
-    },
-    Allowed {
-        file: "crates/xdk/tests/api_tests.rs",
-        test: "test_from_env_with_client_id_set_returns_ok",
-        reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
-    },
-    Allowed {
-        file: "crates/xdk/tests/api_tests.rs",
-        test: "test_from_env_with_client_id_but_no_secret_returns_ok",
         reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
     },
     Allowed {
@@ -124,16 +114,9 @@ fn patterns() -> Vec<String> {
 /// source file, across every workspace member. Each entry is the
 /// workspace-relative name and the text to scan, read once.
 fn scanned_sources() -> Vec<(String, String)> {
-    let root = workspace_root();
     let read = |path: &std::path::Path| {
         std::fs::read_to_string(path)
             .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
-    };
-    let name_of = |path: &std::path::Path| {
-        path.strip_prefix(root)
-            .expect("under the workspace")
-            .to_string_lossy()
-            .into_owned()
     };
     let mut files = Vec::new();
     let mut sources = Vec::new();
@@ -150,7 +133,7 @@ fn scanned_sources() -> Vec<(String, String)> {
             if under_common || is_self {
                 continue;
             }
-            files.push((name_of(&path), read(&path)));
+            files.push((workspace_name(&path), read(&path)));
         }
         for path in rust_files(&member.join("src")) {
             let source = read(&path);
@@ -187,7 +170,7 @@ fn scanned_sources() -> Vec<(String, String)> {
             source.find("#[cfg(test)]")
         };
         if let Some(offset) = offset {
-            files.push((name_of(&path), source[offset..].to_string()));
+            files.push((workspace_name(&path), source[offset..].to_string()));
         }
     }
     files

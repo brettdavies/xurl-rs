@@ -253,6 +253,45 @@ fn schema_like_contains_liked_field() {
 }
 
 #[test]
+fn list_get_and_update_answer_no_stream_key_and_add_requires_one() {
+    for verb in ["list", "get", "update"] {
+        let view = schema_json(&["broadcasts", "sources", verb]);
+        assert!(
+            view["properties"].get("stream_key").is_none(),
+            "xr broadcasts sources {verb} answers no stream key"
+        );
+    }
+    let added = schema_json(&["broadcasts", "sources", "add"]);
+    assert!(added["properties"].get("stream_key").is_some());
+    let required: Vec<&str> = added["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .collect();
+    assert!(
+        required.contains(&"stream_key"),
+        "the create answer requires `stream_key`: {required:?}"
+    );
+}
+
+#[test]
+fn the_stream_key_answer_is_the_source_id_and_its_key() {
+    let view = schema_json(&["broadcasts", "sources", "stream-key"]);
+    let mut fields: Vec<&String> = view["properties"].as_object().unwrap().keys().collect();
+    fields.sort();
+    assert_eq!(fields, ["id", "stream_key"]);
+    let mut required: Vec<&str> = view["required"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .collect();
+    required.sort_unstable();
+    assert_eq!(required, ["id", "stream_key"]);
+}
+
+#[test]
 fn schema_no_extra_named_property() {
     // #[serde(flatten)] BTreeMap should produce additionalProperties, not a named "extra" field
     let output = common::xr().args(["schema", "post"]).output().unwrap();

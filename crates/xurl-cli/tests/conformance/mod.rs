@@ -363,10 +363,11 @@ mod tests {
 
     #[test]
     fn test_differential_runner_creation() {
-        let runner = DifferentialRunner::new_with_bins(Path::new("/usr/bin/echo"), "/usr/bin/echo");
+        let xr = crate::common::xr_bin();
+        let runner = DifferentialRunner::new_with_bins(Path::new(xr), xr);
         let case = TestCase {
-            name: "echo-test".to_string(),
-            args: vec!["hello".to_string()],
+            name: "version-test".to_string(),
+            args: vec!["--version".to_string()],
             env: HashMap::new(),
             compare: vec![CompareChannel::ExitCode, CompareChannel::Stdout],
             normalize: vec![],
@@ -380,7 +381,7 @@ mod tests {
         };
 
         let result = runner.run_test(&case);
-        assert!(result.passed, "echo 'hello' should match against itself");
+        assert!(result.passed, "xr --version should match against itself");
         assert!(result.exit_code_match);
         assert!(result.stdout_match);
     }

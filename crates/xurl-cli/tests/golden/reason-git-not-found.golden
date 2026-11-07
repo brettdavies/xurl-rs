@@ -3,7 +3,7 @@ env: PATH={{SCRATCH}}/no-git
 env: XURL_SKILL_HOME={{SKILL_HOME}}
 store: empty
 exit_code: 1
-stdout_len: 396
+stdout_len: 497
 stderr_len: 0
 --- stdout ---
 {
@@ -15,6 +15,7 @@ stderr_len: 0
   "status": "error",
   "exit_code": 1,
   "reason": "git-not-found",
+  "message": "`git` was not found on PATH, so nothing was cloned. Install it, then run this again.",
   "next_step": {
     "action": "fix-input"
   }

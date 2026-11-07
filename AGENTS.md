@@ -86,26 +86,44 @@ Eight actions answer failures that are not about credentials. `show-help` rides 
 `invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
 `command` is the `xr <command> --help` to read, the help of the nearest command when the word was mistyped.
 `resume-wait` rides on reason `processing-timeout` (exit 1): a wait on media processing reached its deadline with the
-job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the `xr media status
-<media_id> --wait=<secs>` that waits again for twice as long. `wait-and-retry` rides on reason `rate-limited` (exit 3)
-when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the reset and zero once it has
-passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no command, because the request to
-send again is the caller's own. A 429 that names no reset carries neither key and no `next_step`. `--wait-on-rate-limit`
-does the wait and one retry inside `xr` when it fits `--rate-limit-max-wait` (60 seconds unless set).
+job still running. The upload is intact, the envelope names it in `media_id`, and `command` is the
+`xr media status <media_id> --wait=<secs>` that waits again for twice as long. It also rides on `network-error`,
+`server-error`, and `api-error` on a 408 when the request that failed was a status read after `xr media upload`
+finished: `retry` would send the file again, so the step waits again for as long as the wait that failed. Either way the
+step repeats the `--app`, `--auth`, and `-u` the media command ran under, so the read goes out under the same
+credential, and with `-H` it is a `template` that hides each header's value. `wait-and-retry` rides on reason
+`rate-limited` (exit 3) when the 429 named its reset. The envelope carries `retry_after_secs`, the seconds until the
+reset and zero once it has passed, and `retry_at`, the same moment in RFC 3339 UTC; the step carries `docs` and no
+command, because the request to send again is the caller's own. A 429 that names no reset carries neither key and no
+`next_step`, except on the status read after `xr media upload` finished: there the caller's own request is the upload,
+so a 429 carries `wait-and-retry` whether or not it named a reset, with the resumed wait as what to send again: when X
+named the reset, a command that waits it out under `--wait-on-rate-limit`, with the time left as
+`--rate-limit-max-wait`, and a `template` under `-H`; when X named none, a `template` to run once the window passes,
+under the upload's own `--wait-on-rate-limit`. `--wait-on-rate-limit` does the wait and one retry inside `xr` when it
+fits `--rate-limit-max-wait` (60 seconds unless set).
 
-`retry` (`network-error`, `server-error`, `git-clone-failed`) says nothing was wrong with the request. `fix-input`
-(`not-found`, `invalid-request`, `validation-failed`, `io`, and the skill verbs' machine-state reasons) says the same
-invocation fails again until its input or the state it read changes. Under `address-in-use`, a port another process
-holds, it carries `listen` again on `--port 0`: a `command`, or a `template` that hides each `-H` value. Under
-`invalid-args`, for `-u`, `--auth`, or `-t` given before a command word that takes it, it carries the invocation with
-the flag after the word, and for an old `xr schema` name or a bare scope word (`envelope`), the `xr schema` invocation
-that works; for an `xr schema --path` segment that names no property, it carries a `template` ending in `<property>`
-beside `known_properties`. Under `auth-required`, for a `webhooks listen` whose app has no secret to verify X's
-signatures by, it carries a `template` that stores the secret `--secret` names: the OAuth1 credentials under
-`--secret oauth1`, the app's client secret otherwise. `report-issue` (`internal`, `serialization`, `api-error`) names
-the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
+`retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
+request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, `forbidden` for a token endpoint's 403,
+and the skill verbs' machine-state reasons) says the same invocation fails again until its input or the state it read
+changes. Under `address-in-use`, a port another process holds, it carries `listen` again on `--port 0`: a `command`, or
+a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t` given before a command word
+that takes it, it carries the invocation with the flag after the word, and for an old `xr schema` name or a bare scope
+word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment that names no property, it
+carries a `template` ending in `<property>` beside `known_properties`. Under `auth-required`, for a `webhooks listen`
+whose app has no secret to verify X's signatures by, it carries a `template` that stores the secret `--secret` names:
+the OAuth1 credentials under `--secret oauth1`, the app's client secret otherwise. For an `auth oauth2 --step 2` whose
+redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a `template` that runs step 2
+again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401 on the status read after
+`xr media upload` finished, it carries the command that resumes the wait as a `template`, to run once the credential
+works, since reading again under the same credential fails the same way. A 403 from the token endpoint on that read,
+which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the proxy are fixed. For a
+403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the token endpoint,
+`TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other status) names the
+issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
 `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a deletion by
-accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`.
+accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`. Under
+`destination-not-empty` from `skill update` itself, whose directory holds something other than the bundle, the step is
+`fix-input` and `refused_dir` names the directory, since nothing but the caller moves what `xr` did not install.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -144,6 +162,14 @@ oauth2 NAME` lets them choose. Another user's handle is never cached, since a ha
 Streaming endpoints emit a continuous JSONL stream when `--output jsonl` is set; non-streaming endpoints emit one record
 then close.
 
+Under a structured format, each stream carries at most one document, and warnings ride inside it. Only the record
+streams write more: `-s` prints one record per line on stdout, and `webhooks listen` prints one JSON record per line. A
+`tracing` event at WARN or ERROR never prints as a line of its own: `OutputConfig::keeps_warning`, the one place that
+decides how a warning renders, keeps it as `{message, target}`, each distinct pair once. A failed run's error envelope
+carries them as `warnings`. A run that exits 0, a dry run included, leaves stdout as it would be without the warning and
+closes stderr with `{"status":"ok","warnings":[...]}`, and writes nothing there when none fired. Text output prints a
+`warning:` line as each one fires, and `--quiet` changes neither form.
+
 Text output is written for humans and the structured formats for agents, and the two need not match word for word: text
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
 kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
@@ -154,22 +180,27 @@ string. It also carries a `next_step` object `{action, command | template, docs}
 under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
 `crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
 fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
-caller finishes or decides on first: angle-bracket placeholders to fill, or, under `confirm`, the invocation that
-destroys once it runs. A new error picks an existing action where one fits, and does not ship without a step. Prefer
-additive envelope changes: add keys rather than renaming or retyping existing ones.
+caller finishes or decides on first: angle-bracket placeholders to fill; under `confirm`, the invocation that destroys
+once it runs; or, after a 401 or a 429 with no reset on the status read after `xr media upload`, the resumed wait to run
+once the credential works or the window passes. A new error picks an existing action where one fits, and does not ship
+without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
-`--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
+`--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
-invalid input or for a request no stored credential serves; `reason` says which, `exit_code` is the code the real run
-would end on, and either refusal carries the keys of the real run's error envelope, `message` and `next_step` among
-them. An invalid input answers with its real run's `reason`, `validation`, its `rule`, and the sentence for that rule as
-`message`; a step that reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out
-under (the `app` it is stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an
-expired token is reported and not refreshed, and whether X still accepts the credential is not checked. The flag
-outranks `--force` and the confirmation prompt; `confirmation_required: true` marks a destructive command that would
-stop to ask. `response_schema` names the `xr schema` invocation for a command with a typed response, and raw mode
-carries none; the same command's `--help` ends with a `Response schema:` block, both read from the schema registry. Text
-output summarizes the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`).
+invalid input, for a request no stored credential serves, or for a sign-in whose arguments, client id, saved flow, or
+redirect URL the real run refuses; `reason` says which, `exit_code` is the code the real run would end on, and each
+refusal carries the keys of the real run's error envelope, `message` and `next_step` among them. An invalid input
+answers with its real run's `reason`, `validation`, its `rule`, and the sentence for that rule as `message`; a step that
+reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
+stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
+and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
+confirmation prompt, so a destructive command's dry run answers either way; `confirmation_required: true` appears only
+when the real run would stop to ask, so under `--force` the key is absent. `response_schema` names the `xr schema`
+invocation for a command with a typed response, and raw mode carries none; the same command's `--help` ends with a
+`Response schema:` block, both read from the schema registry. Text output summarizes the same facts in lines
+(`crates/xurl-cli/src/cli/output/dry_run.rs`). The first command to open an old-format store upgrades it once, a dry run
+included: a single-file `~/.xurl` moves into the directory layout and a legacy-format store is rewritten as the current
+YAML (§ "Token store").
 
 ## Shortcut commands
 
@@ -355,7 +386,7 @@ is library, and opening the browser and printing the paste-the-URL advice is bin
 - Clippy clean, edition 2024 (`cargo clippy -- -D warnings`)
 - Formatted with rustfmt (`cargo fmt --check`); style edition pinned in `rustfmt.toml`
 - No `unwrap()` in production code
-- Comprehensive tests (`cargo test`): unit, integration, and differential conformance
+- Comprehensive tests (`cargo nextest run`, plus `cargo test --doc`): unit, integration, and differential conformance
 - Zero broken tests policy: a failing test on `dev` blocks new work until it's fixed or reverted, not until "later"
 - `cargo deny check` passes (advisories, licenses, bans, sources)
 - Cross-platform: Linux, macOS, Windows (MSVC). Pre-push and CI both run a Windows compatibility check.
@@ -366,19 +397,34 @@ distribution manifest; the pin is effectively a SHA pin. Toolchain bumps land vi
 ## Testing
 
 ```bash
-cargo test                    # unit + integration
-cargo test -- --ignored       # slower / network-dependent tests
-scripts/hooks/pre-push        # local CI mirror (fmt, clippy, test, msrv, doc, examples, the offline example
-                              # run, TLS feature cells, the docs.rs feature set, deny, shellcheck, Windows
-                              # cross-clippy, markdownlint, actionlint; cargo-hack powerset when installed)
+scripts/dev-setup.sh                        # install the tools below at the versions in .github/tool-versions
+cargo nextest run --workspace               # unit + integration; stops at the first failure
+cargo nextest run --workspace --profile ci  # what CI runs: every test, and a failed one once more
+cargo nextest run -p xurl-rs --test cli_tests help  # one test binary, its tests filtered by name
+cargo test --doc --workspace                # doc tests, which nextest does not run
+cargo nextest run --workspace --run-ignored only  # the TLS probe, and the live smoke under XURL_LIVE_SMOKE=1
+scripts/hooks/pre-push                      # local CI mirror (fmt, clippy, nextest, doc tests, msrv, doc, examples,
+                                            # the offline example run, TLS feature cells, the docs.rs feature set,
+                                            # deny, shellcheck, Windows cross-clippy, markdownlint, actionlint;
+                                            # cargo-hack powerset when installed)
 ```
+
+cargo-nextest runs the tests, locally and in CI's two `Tests` jobs, each test in its own process across every binary at
+once. Plain `cargo test` passes too, but it is not the path CI runs. It runs a binary's tests in one process, so the
+rules below hold under both runners. `.config/nextest.toml` holds two profiles: `default`, which the hook runs and which
+stops at the first failure, and `ci`, which runs everything, eight tests at a time, and reruns a failed test once. Under
+either, a test that fails and then passes on a retry fails the run, labeled `FLKY-FL`, which says to hunt a race rather
+than a regression; a retry from `--retries` counts the same. Both end a hung test after five minutes and name it, as
+`TIMEOUT` under `default` and `TRY n TMT` under `ci`'s retry. Each CI job adds `--partition hash:k/2`, which picks the
+half of the tests it runs. Tests that cannot share a machine go in a nextest test group with limited concurrency, not a
+serial run of everything.
 
 A development build run by hand moves a single-file `~/.xurl` into the directory layout like any other `xr`, and a
 released `xr` 4.3.0 or earlier cannot read the store afterwards. Set `XURL_TOKEN_STORE` to a scratch path for a manual
 run unless the move is intended.
 
 Tests never resolve the real home directory. Build stores and auth on an explicit path under a `tempfile::TempDir`
-(`TokenStore::new_with_path`, `Auth::new_with_store_path`, `run_with_store_path`).
+(`TokenStore::new_with_path`, `Auth::new_with_store_path_and_overrides`, `run_with_store_path`).
 `crates/xurl-cli/tests/store_isolation_guard.rs` fails the suite when a test file names `Auth::new(`,
 `TokenStore::new()`, `TokenStore::with_credentials(`, `Client::from_env(`, `default_store_path()`,
 `default_pending_path()`, any `dirs::` call or `env::home_dir(`, sets, removes, or reads `HOME` or another home variable
@@ -388,8 +434,22 @@ unwritable scratch path or the test's own temp store); a test that must touch th
 the reason. A companion guard in `crates/xurl-cli/tests/agentic_tests.rs` derives every environment variable either
 crate reads and fails when `xr --help` does not advertise one.
 
+Tests never read the process environment either: they pass `EnvOverrides`, empty or carrying the values the test names,
+to `Config::from_overrides` and `Auth::new_with_store_path_and_overrides`. `#[serial]` orders the few tests that export
+a variable against one another, not against a test beside them that reads the process, and a reading test also picks up
+whatever the developer's shell exports. `crates/xurl-cli/tests/env_mutation_guard.rs` fails the suite when a test sets
+or removes a variable, or calls `Config::new()`, `Config::default()`, `Auth::new_with_store_path(`,
+`EnvOverrides::from_env()`, or `env::from_process(`, outside its allowlists of the tests that prove the process read.
+
+A test that awaits through a long loop and sends no request, such as a walk over every command or endpoint, can end with
+tokio's coop budget spent, and a `MockServer` dropped then never returns: its drop blocks on a tokio lock, whose wake
+tokio defers to the scheduler that blocked thread would have to run. Run such a loop through `walk` in
+`crates/xurl-cli/tests/common/invoke.rs`, which drops its state outside the runtime, or end the test with
+`tokio::task::yield_now().await`, which refills the budget. `crates/xurl-cli/tests/walk_tests.rs` holds `walk` to this.
+
 `scripts/hooks/` holds a pair, activated together by `git config core.hooksPath scripts/hooks`: `pre-commit` runs
-format, workflow, and markdown checks over the staged files only, and `pre-push` runs the CI mirror over the repo. Run
+format, workflow, and markdown checks when a file of their kind is staged (the format check is `cargo fmt -- --check`
+over every crate, the others read only the staged files), and `pre-push` runs the CI mirror over the repo. Run
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
@@ -398,6 +458,38 @@ semver gate, the agent-native audit with the release binary's size ceiling, `Go 
 Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that binary, and
 `Windows program target`, the `webhooks listen` program-target tests on a Windows runner. Run the first five yourself
 when a change touches the CLI surface, the library API, or the release profile; the sixth needs a Windows machine.
+
+### `pre-push/missing-tool`
+
+`scripts/hooks/pre-push` runs the tests through nextest, and `cargo nextest show-config version` exited 101, because
+cargo finds no nextest, or 92, because nextest is older than `.config/nextest.toml` requires. The hook prints that error
+above the code. Run `scripts/dev-setup.sh`, which installs the version `.github/tool-versions` names; nextest's own
+hint, `cargo nextest self update`, moves past that version. The hook stops before its first cargo step, and a push that
+reaches no cargo input does not need the tool.
+
+### `pre-push/nextest-config`
+
+`cargo nextest show-config version` exited 96: nextest cannot parse `.config/nextest.toml` as TOML. The hook prints
+nextest's error, which names the line and column, above the code. Fix the file and push again; installing nextest again
+changes nothing. A value nextest parses but rejects, such as an unknown `flaky-result`, passes this check and fails at
+the test step. When nextest meets the required version but not a recommended one, it exits 10 and warns, and the push
+goes on.
+
+### `nextest-config/unsafe-retry`
+
+A profile in `.config/nextest.toml` does not resolve `flaky-result = "fail"`, or one of its overrides sets another
+value, so a test that fails and then passes on a retry would turn the run green. The retry can come from `retries` in
+the file, `--retries`, or `NEXTEST_RETRIES`, so every profile is held to this whether it retries or not.
+`[profile.default]` sets it and every profile inherits it. The message names the profile that writes the key, or
+`profile.default` when none does; set `flaky-result = "fail"` there.
+
+### `nextest-config/no-termination`
+
+A profile's `slow-timeout`, or an override's, has no `terminate-after`, so a hung test runs until the runner kills the
+job and the log never names it, or sets `on-timeout = "pass"`, which counts the test it ends as passed. A profile that
+neither sets nor inherits one is on nextest's built-in, which never ends a test. The message names the profile that
+writes the key, or `profile.default` when none does. Set `slow-timeout = { period = "60s", terminate-after = 5 }`. Under
+the `ci` profile's retry, `period` × `terminate-after` × 2 plus the build stays under a `Tests` job's 20-minute timeout.
 
 ## Releasing
 

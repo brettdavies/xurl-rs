@@ -1,0 +1,25 @@
+args: ["--output", "json", "--dry-run", "auth", "oauth2", "--no-browser", "--step", "1", "--scopes", "tweet.reed"]
+store: empty
+exit_code: 0
+stdout_len: 700
+stderr_len: 0
+--- stdout ---
+{
+  "command": "auth-oauth2",
+  "exit_code": 1,
+  "message": "tweet.reed is not an OAuth2 scope X defines. The scopes are: tweet.read, users.read, bookmark.read, follows.read, list.read, block.read, mute.read, like.read, users.email, dm.read, broadcast.read, calls.read, tweet.write, tweet.moderate.write, follows.write, bookmark.write, block.write, mute.write, like.write, list.write, media.write, dm.write, broadcast.write, calls.write, offline.access, space.read.",
+  "next_step": {
+    "action": "fix-input"
+  },
+  "no_browser": true,
+  "reason": "validation",
+  "rule": "unknown-scope",
+  "status": "dry_run",
+  "step": 1,
+  "username": null,
+  "value": "tweet.reed",
+  "would_succeed": false
+}
+
+--- stderr ---
+

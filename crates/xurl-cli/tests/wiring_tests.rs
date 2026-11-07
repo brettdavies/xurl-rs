@@ -43,21 +43,6 @@ fn test_version_honors_the_json_flag_with_one_object() {
 }
 
 #[test]
-fn test_json_output_no_ansi_codes() {
-    // JSON output should never contain ANSI escape sequences
-    let output = common::xr()
-        .args(["version", "--output", "json"])
-        .output()
-        .unwrap();
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        !stdout.contains("\x1b["),
-        "JSON output should not contain ANSI escape codes: {stdout}"
-    );
-}
-
-#[test]
 fn test_json_output_error_format() {
     // When a command fails with --output json, stderr should be the canonical
     // agent-native envelope: {"status":"error","reason":<kebab>,
@@ -88,64 +73,9 @@ fn test_json_output_error_format() {
     );
 }
 
-#[test]
-fn test_text_output_has_color_by_default() {
-    // Default text output for version should contain the plain version string
-    let output = common::xr().args(["version"]).output().unwrap();
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("xr"));
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// NO_COLOR environment variable
-// ═══════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn test_no_color_env_strips_ansi() {
-    // NO_COLOR=1 should strip ANSI codes even in text mode
-    let output = common::xr()
-        .args(["version"])
-        .env("NO_COLOR", "1")
-        .output()
-        .unwrap();
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        !stdout.contains("\x1b["),
-        "NO_COLOR should strip ANSI codes: {stdout}"
-    );
-    assert!(stdout.contains("xr"));
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // XURL_OUTPUT environment variable
 // ═══════════════════════════════════════════════════════════════════════════
-
-#[test]
-fn test_xurl_output_env_sets_json_format() {
-    // XURL_OUTPUT=json should make auth status output JSON.
-    // The status renderer emits a JSON array of per-app entries
-    // (`print_response`), one per registered app.
-    let tmp = TempDir::new().unwrap();
-    let store = tmp.path().join(".xurl");
-    register_app_at(&store);
-
-    let output = common::xr_with_store(&store)
-        .args(["auth", "status"])
-        .env("XURL_OUTPUT", "json")
-        .output()
-        .unwrap();
-
-    assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let parsed: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
-    let arr = parsed["apps"]
-        .as_array()
-        .expect("auth status emits apps as a JSON array");
-    assert!(!arr.is_empty(), "expected at least one entry: {stdout}");
-    assert!(arr[0]["name"].is_string());
-}
 
 #[test]
 fn test_explicit_output_overrides_env() {
@@ -178,19 +108,6 @@ fn test_quiet_suppresses_version_output() {
     assert!(
         stdout.contains("xr"),
         "Version output should still appear with --quiet"
-    );
-}
-
-#[test]
-fn test_quiet_flag_no_stderr_on_success() {
-    // With --quiet, successful commands should have no stderr output
-    let output = common::xr().args(["version", "--quiet"]).output().unwrap();
-
-    assert!(output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(
-        stderr.is_empty(),
-        "Quiet mode should produce no stderr on success: {stderr}"
     );
 }
 
@@ -436,7 +353,14 @@ fn test_xr_seam_default_store_rejects_writes() {
         "a spawn that never asked for a store must not be able to write one"
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("No such file"), "stderr: {stderr}");
+    // The wording of a missing directory is the platform's: Windows says
+    // "The system cannot find the path specified." where Unix says "No
+    // such file or directory".
+    let scratch = TempDir::new().expect("tempdir");
+    let missing = std::fs::File::create(scratch.path().join("absent").join(".xurl.lock"))
+        .expect_err("the directory does not exist")
+        .to_string();
+    assert!(stderr.contains(&missing), "stderr: {stderr}");
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

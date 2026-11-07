@@ -30,9 +30,9 @@ use xdk::api::response::types::{
     MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceDeleted,
-    SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob,
-    WebhookStreamLink, WebhookValidation, XCall,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, UsageCreditsData, UsageData,
+    User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -678,8 +678,7 @@ fn spec_stream_sources() {
     let examples = load_examples();
     let resp: ApiResponse<Vec<StreamSource>> =
         serde_json::from_value(examples["stream_sources"].clone()).unwrap();
-    assert_eq!(resp.data[0].id, "1x2y3z4w5v6u");
-    assert_eq!(resp.data[0].stream_key.as_deref(), Some("1x2y3z4w5v6u"));
+    assert_eq!(resp.data[0].id, "9012345678901234567");
     assert_eq!(resp.meta.and_then(|meta| meta.result_count), Some(1));
 }
 
@@ -690,6 +689,24 @@ fn spec_stream_source() {
         serde_json::from_value(examples["stream_source"].clone()).unwrap();
     assert_eq!(resp.data.region.as_deref(), Some("pdxa"));
     assert_eq!(resp.data.created_at_ms.as_deref(), Some("1761148800000"));
+}
+
+#[test]
+fn spec_stream_source_created() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSourceCreated> =
+        serde_json::from_value(examples["stream_source_created"].clone()).unwrap();
+    assert_eq!(resp.data.id, "9012345678901234567");
+    assert_eq!(resp.data.stream_key, "example-stream-key-4f2a");
+}
+
+#[test]
+fn spec_stream_source_key() {
+    let examples = load_examples();
+    let resp: ApiResponse<StreamSourceKey> =
+        serde_json::from_value(examples["stream_source_key"].clone()).unwrap();
+    assert_eq!(resp.data.id, "9012345678901234567");
+    assert_eq!(resp.data.stream_key, "example-stream-key-4f2a");
 }
 
 #[test]
@@ -1088,8 +1105,18 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         ReplyKind::Success,
     ),
     (
+        "stream_source_created",
+        endpoints::CREATE_STREAM_SOURCE,
+        ReplyKind::Success,
+    ),
+    (
         "stream_source_deleted",
         endpoints::DELETE_STREAM_SOURCE,
+        ReplyKind::Success,
+    ),
+    (
+        "stream_source_key",
+        endpoints::GET_STREAM_SOURCE_KEY,
         ReplyKind::Success,
     ),
     ("ingest_region", endpoints::GET_REGION, ReplyKind::Success),

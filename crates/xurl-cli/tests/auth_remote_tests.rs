@@ -15,7 +15,7 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use xdk::auth::Auth;
 use xdk::auth::pending;
-use xdk::config::Config;
+use xdk::config::{Config, EnvOverrides};
 use xdk::store::{App, TokenStore};
 
 // ── Test helpers ───────────────────────────────────────────────────────
@@ -45,7 +45,8 @@ impl TestServer {
 /// resolves the real `~/.xurl`.
 fn auth_for(cfg: &Config, token_store: TokenStore) -> Auth {
     let store_path = token_store.file_path.clone();
-    Auth::new_with_store_path(cfg, &store_path).with_token_store(token_store)
+    Auth::new_with_store_path_and_overrides(cfg, &store_path, &EnvOverrides::default())
+        .with_token_store(token_store)
 }
 
 fn http() -> reqwest::Client {
@@ -54,10 +55,11 @@ fn http() -> reqwest::Client {
 
 fn create_test_config(base_url: &str) -> Config {
     // `Config` has `pub(crate)` resolver fields that external callers cannot
-    // name in a struct literal; start from `Config::new()` and assign the
-    // public fields explicitly. The resolver fields are overwritten by
-    // `Auth::new_with_store_path` downstream.
-    let mut cfg = Config::new();
+    // name in a struct literal; start from `Config::from_overrides` with no
+    // overrides, which reads no environment, and assign the public fields
+    // explicitly. The resolver fields are overwritten when the `Auth` is
+    // built downstream.
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
     cfg.client_id = "test-client-id".to_string();
     cfg.client_secret = "test-client-secret".to_string();
     cfg.redirect_uri = "http://localhost:8080/callback".to_string();
@@ -402,7 +404,7 @@ async fn step2_client_id_mismatch_returns_error() {
     let state = pending::load(&pending_path).unwrap();
 
     // Create auth with a DIFFERENT client_id
-    let mut cfg2 = Config::new();
+    let mut cfg2 = Config::from_overrides(&EnvOverrides::default());
     cfg2.client_id = "different-client-id".to_string();
     cfg2.client_secret = "test-client-secret".to_string();
     cfg2.redirect_uri = "http://localhost:8080/callback".to_string();
@@ -648,6 +650,87 @@ async fn step2_garbage_redirect_url_returns_parse_error() {
         "Expected InvalidRedirectURL parse error, got: {msg}"
     );
     assert!(pending_path.exists());
+}
+
+/// An embedder matches on the variant, so these are the contract: a request
+/// X did not process is not an auth failure, whatever the sign-in was doing.
+#[tokio::test]
+async fn step2_x_did_not_process_returns_the_library_kind_for_what_happened() {
+    let ts = TestServer::new().await;
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "a-code")
+        .append_pair("state", &state.state);
+    let redirect_url = redirect.to_string();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(503).set_body_string("<html>unavailable</html>"))
+            .up_to_n_times(1),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .insert_header("x-rate-limit-reset", "4102444800")
+                    .set_body_json(serde_json::json!({"title": "Too Many Requests"})),
+            ),
+    )
+    .await;
+
+    let err = auth
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Api { status: 503, body, .. } if body.contains("unavailable")),
+        "a 5xx keeps its status and body: {err:?}"
+    );
+
+    let err = auth
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            &err,
+            xdk::Error::Api {
+                status: 429,
+                reset_at: Some(4_102_444_800),
+                ..
+            }
+        ),
+        "a 429 carries the reset its own headers name: {err:?}"
+    );
+    assert!(pending_path.exists(), "the flow is still good");
+
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(common::CLOSED, &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "a-code")
+        .append_pair("state", &state.state);
+
+    let err = auth
+        .remote_oauth2_step2(&http(), redirect.as_str(), "", &pending_path)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Http { message, .. } if message.contains("TokenExchangeError")),
+        "no answer is a transport failure that says what failed: {err:?}"
+    );
 }
 
 #[tokio::test]
@@ -1105,6 +1188,97 @@ fn seed_expired_named_oauth2(auth: &mut Auth, username: &str) {
     auth.token_store
         .save_oauth2_token(username, "old-access", "old-refresh", 0)
         .unwrap();
+}
+
+/// An embedder matches on the variant: a refresh X did not process is not an
+/// auth failure, and a failed refresh leaves the stored pair as it was.
+#[tokio::test]
+async fn a_failed_refresh_returns_the_library_kind_for_what_happened() {
+    let ts = TestServer::new().await;
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    seed_expired_named_oauth2(&mut auth, "alice");
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(503).set_body_string("<html>unavailable</html>"))
+            .up_to_n_times(1),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(
+                ResponseTemplate::new(429)
+                    .insert_header("x-rate-limit-reset", "4102444800")
+                    .set_body_json(serde_json::json!({"title": "Too Many Requests"})),
+            )
+            .up_to_n_times(1),
+    )
+    .await;
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(400).set_body_json(serde_json::json!({
+                "error": "invalid_grant",
+                "error_description": "Value passed for the token was invalid."
+            }))),
+    )
+    .await;
+
+    let err = auth
+        .refresh_oauth2_token(&http(), "alice")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Api { status: 503, body, .. } if body.contains("unavailable")),
+        "a 5xx keeps its status and body: {err:?}"
+    );
+    let err = auth
+        .refresh_oauth2_token(&http(), "alice")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            &err,
+            xdk::Error::Api {
+                status: 429,
+                reset_at: Some(4_102_444_800),
+                ..
+            }
+        ),
+        "a 429 carries the reset its own headers name: {err:?}"
+    );
+    let err = auth
+        .refresh_oauth2_token(&http(), "alice")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Auth { message, .. } if message.contains("refused the refresh token")),
+        "a refused refresh token is an auth failure that says so: {err:?}"
+    );
+    let kept = auth
+        .token_store
+        .get_oauth2_token("alice")
+        .and_then(|token| token.oauth2.as_ref())
+        .map(|oauth2| oauth2.refresh_token.clone());
+    assert_eq!(
+        kept.as_deref(),
+        Some("old-refresh"),
+        "the stored pair stays"
+    );
+
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(common::CLOSED, &tmp);
+    seed_expired_named_oauth2(&mut auth, "alice");
+    let err = auth
+        .refresh_oauth2_token(&http(), "alice")
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&err, xdk::Error::Http { message, .. } if message.contains("RefreshTokenError")),
+        "no answer is a transport failure that says what failed: {err:?}"
+    );
 }
 
 #[tokio::test]

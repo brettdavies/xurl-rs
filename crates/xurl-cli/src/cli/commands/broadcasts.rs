@@ -196,6 +196,17 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
             )
             .await
         }
+        SourcesCommands::StreamKey { source_id, common } => {
+            let ctx = json!({"command": "broadcasts-sources-stream-key", "source_id": source_id});
+            send_validated(
+                run,
+                ctx,
+                || Ok(()),
+                &common,
+                |client| client.get_stream_source_key(&source_id),
+            )
+            .await
+        }
         SourcesCommands::Add {
             name,
             region,

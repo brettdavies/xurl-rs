@@ -9,6 +9,12 @@ use clap::CommandFactory;
 
 pub mod invoke;
 pub mod listen;
+pub mod token_endpoint;
+
+/// An address no test answers. Port 1 sits below every port a test binds: a
+/// port-0 bind draws from the ephemeral range (32768 and up on Linux, 49152 and
+/// up on macOS and Windows), and `band_port` from 20000 to 32767.
+pub const CLOSED: &str = "http://127.0.0.1:1";
 
 /// Store path for spawns that never touch credentials. Its parent directory
 /// does not exist, so a read loads an empty store and a write fails loudly
@@ -126,6 +132,18 @@ impl EnvBuilder for std::process::Command {
 /// reached from here, never from `CARGO_MANIFEST_DIR`.
 pub fn workspace_root() -> &'static Path {
     Path::new(env!("CARGO_WORKSPACE_DIR"))
+}
+
+/// `path` relative to the workspace root, its components joined with `/`
+/// on every platform: the form allowlists and documents name files in,
+/// where Windows would render `crates\xdk\tests\...`.
+pub fn workspace_name(path: &Path) -> String {
+    path.strip_prefix(workspace_root())
+        .expect("under the workspace")
+        .components()
+        .map(|part| part.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 /// Every member crate directory under `crates/`, sorted.

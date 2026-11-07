@@ -91,13 +91,13 @@
             "context": "Public API semver"
           },
           {
-            "context": "Surface growth needs a minor section"
-          },
-          {
             "context": "Windows program target"
           },
           {
-            "context": "ci / Fmt, clippy, test"
+            "context": "changelog-bump / Surface growth needs a minor section"
+          },
+          {
+            "context": "ci / Fmt, clippy"
           },
           {
             "context": "ci / Package check"
@@ -110,6 +110,12 @@
           },
           {
             "context": "ci / Shellcheck"
+          },
+          {
+            "context": "ci / Tests (1/2)"
+          },
+          {
+            "context": "ci / Tests (2/2)"
           },
           {
             "context": "ci / Windows check"

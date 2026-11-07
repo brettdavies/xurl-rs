@@ -32,8 +32,8 @@ pub enum NextAction {
     // `print_invalid_args`) carry it, and no library error returns it.
     #[doc(hidden)]
     ShowHelp,
-    /// Media was still processing when the wait's deadline passed; wait on
-    /// the same media id again.
+    /// The wait on an upload's processing ended before X reported a final
+    /// state, and the upload is intact; wait on the same media id again.
     ResumeWait,
     /// X rate limited the request and said when the window resets; send it
     /// again once that time has passed.
@@ -63,6 +63,9 @@ pub enum NextAction {
 
 /// The enrollment recipe for an app X refuses.
 const ENROLLMENT_DOCS: &str = "https://github.com/brettdavies/xurl-rs#x-platform-enrollment";
+/// The token endpoint, `TOKEN_URL`, and the proxy in front of them.
+const TOKEN_ENDPOINT_DOCS: &str =
+    "https://github.com/brettdavies/xurl-rs#the-oauth2-token-endpoint";
 /// Where X documents its authentication methods.
 const AUTHENTICATION_DOCS: &str = "https://docs.x.com/resources/fundamentals/authentication";
 /// Where X documents its rate limits.
@@ -191,6 +194,20 @@ pub enum Error {
         /// reported, so a caller that waits on it waits on what X said about
         /// this request.
         reset_at: Option<u64>,
+    },
+
+    /// The `OAuth2` token endpoint answered 403 with a body that is no OAuth
+    /// refusal. X's handler refuses a code, a refresh token, or a client with
+    /// a 400, a 401, or, on any other status but a 5xx or a 429, a JSON body
+    /// with a string `error`, so this answer came from something in the way:
+    /// a proxy or firewall in front of the endpoint, or a token URL that names
+    /// another service. The token URL and the proxy are what to look at, which
+    /// the 403 of an API request never calls for, so it is not [`Self::Api`].
+    /// Every other failure status that is no refusal is an [`Self::Api`].
+    #[error("{body}")]
+    TokenEndpointForbidden {
+        /// Raw response body.
+        body: String,
     },
 
     /// An input the library refused before sending anything. `rule` names
@@ -568,12 +585,15 @@ impl Error {
     /// Pay-per-use enrollment failure is unactionable without it. A
     /// processing timeout is `ResumeWait`, and a 429 that named its reset is
     /// `WaitAndRetry`; a 429 that named none has no time to wait for. A
-    /// request that got no response and a 5xx are `Retry`. A 400, a 404, or
-    /// a 422, a file that could not be read, and an input refused before it
-    /// was sent are `FixInput`. A status with no reading of its own, a body
-    /// that could not be read, and a broken invariant are `ReportIssue`. A
-    /// credential failure is `None` here: the steps that depend on a
-    /// credential store are the binary's to choose.
+    /// request that got no response, a 5xx, and a 408, whose server never
+    /// received the whole request (RFC 9110 section 15.5.9), are `Retry`. A
+    /// 400, a 404, or a 422, a file that could not be read, and an input
+    /// refused before it was sent are `FixInput`. A status with no reading of
+    /// its own, a body that could not be read, and a broken invariant are
+    /// `ReportIssue`. A credential failure is `None` here: the steps that
+    /// depend on a credential store are the binary's to choose. The token
+    /// endpoint's 403 that is no OAuth refusal is `FixInput`: the token URL
+    /// or the proxy in front of it is what to change.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -593,7 +613,7 @@ impl Error {
                 }
                 match status {
                     429 if reset_at.is_some() => Some(NextAction::WaitAndRetry),
-                    500..=599 => Some(NextAction::Retry),
+                    408 | 500..=599 => Some(NextAction::Retry),
                     400 | 404 | 422 => Some(NextAction::FixInput),
                     // The stored-credential recovery steps are the binary's:
                     // it knows which apps hold what and names the
@@ -607,6 +627,7 @@ impl Error {
             Self::ProcessingTimeout { .. } => Some(NextAction::ResumeWait),
             Self::Http { .. } => Some(NextAction::Retry),
             Self::Io { .. }
+            | Self::TokenEndpointForbidden { .. }
             | Self::AddressInUse { .. }
             | Self::InvalidMethod(_)
             | Self::Validation { .. }
@@ -636,11 +657,12 @@ impl Error {
                 match status {
                     401 => Some(AUTHENTICATION_DOCS),
                     429 => Some(RATE_LIMIT_DOCS),
-                    400 | 404 | 422 | 500..=599 => Some(RESPONSE_CODE_DOCS),
+                    400 | 404 | 408 | 422 | 500..=599 => Some(RESPONSE_CODE_DOCS),
                     403 => None,
                     _ => Some(ISSUE_TRACKER),
                 }
             }
+            Self::TokenEndpointForbidden { .. } => Some(TOKEN_ENDPOINT_DOCS),
             Self::Auth { .. } | Self::AuthMethodMismatch(_) => Some(AUTHENTICATION_DOCS),
             Self::Http { .. }
             | Self::Io { .. }
@@ -657,10 +679,11 @@ impl Error {
         }
     }
 
-    /// Returns true if this is an API error (HTTP status >= 400).
+    /// Returns true if this is an API error (HTTP status >= 400), which the
+    /// token endpoint's 403 is too.
     #[must_use]
     pub fn is_api(&self) -> bool {
-        matches!(self, Self::Api { .. })
+        matches!(self, Self::Api { .. } | Self::TokenEndpointForbidden { .. })
     }
 
     /// Whether X answered with `errors`, no `data`, and a problem type that
@@ -705,6 +728,7 @@ impl Error {
     /// | `AddressInUse`         | `address-in-use` |
     /// | `MediaProcessingFailed` | `invalid-request` |
     /// | `AccountNotFound`      | `not-found`      |
+    /// | `TokenEndpointForbidden` | `forbidden`    |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -732,6 +756,7 @@ impl Error {
             Self::AddressInUse { .. } => "address-in-use",
             Self::MediaProcessingFailed { .. } => "invalid-request",
             Self::AccountNotFound { .. } => "not-found",
+            Self::TokenEndpointForbidden { .. } => "forbidden",
         }
     }
 
@@ -761,6 +786,7 @@ impl Error {
             | Self::InvalidPathParam { .. }
             | Self::Internal(_)
             | Self::ProcessingTimeout { .. }
+            | Self::TokenEndpointForbidden { .. }
             | Self::MediaProcessingFailed { .. } => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch(_) => EXIT_AUTH_MISMATCH,
         }
@@ -785,7 +811,9 @@ impl From<serde_json::Error> for Error {
     }
 }
 
-// The token store and a `.twurlrc` import are the library's only YAML.
+// The conversion carries the parse error's full text, which crops the input around the
+// failure. A parse of a file that holds secrets names its failure with
+// `crate::yaml::failure_site` instead of converting through this.
 impl From<serde_saphyr::Error> for Error {
     fn from(err: serde_saphyr::Error) -> Self {
         Self::token_store(err.to_string()).with_source(err)
@@ -836,6 +864,83 @@ pub const CALLBACK_PROVIDER_REFUSED: &str =
 /// The message of an interactive sign-in that could not open the browser.
 pub const BROWSER_OPEN_FAILED: &str =
     "browser-open failed; re-run with --no-browser to paste the URL manually";
+
+/// The message of a headless step 2 with no flow saved to finish.
+pub const PENDING_NOT_FOUND: &str = "PendingStateNotFound: no pending OAuth2 state file found";
+
+/// The message of a headless step 2 whose saved flow outlived its 15 minutes.
+pub const PENDING_EXPIRED: &str =
+    "PendingStateExpired: pending OAuth2 state is older than 15 minutes";
+
+/// The start of the message of a saved flow's file whose mode, owner, or link
+/// `xr` will not read or write through. The file and what is wrong follow.
+pub const PENDING_PERMISSIONS: &str = "PendingStatePermissions";
+
+/// The start of the message of a saved flow's file that does not parse. The
+/// file and the position the parser stopped at follow; the message never
+/// quotes the file's content, which holds the PKCE verifier.
+pub const PENDING_INVALID: &str =
+    "PendingStateInvalid: the pending OAuth2 state file does not parse";
+
+/// The start of the message of a token exchange that refused the client's own
+/// credentials: a 401, or `invalid_client` or `unauthorized_client` (RFC 6749
+/// section 5.2). Another authorization code would be refused the same way.
+pub const TOKEN_EXCHANGE_CLIENT_REFUSED: &str =
+    "TokenExchangeError: the token endpoint refused the client";
+
+/// The start of the message of a token exchange refused for any other reason:
+/// the authorization code is single-use, so only a new consent gets another.
+pub const TOKEN_EXCHANGE_CODE_REFUSED: &str =
+    "TokenExchangeError: the token endpoint refused the authorization code";
+
+/// The start of the message of a token exchange answered with a success that
+/// holds no token. The code is spent.
+pub const TOKEN_EXCHANGE_NO_TOKEN: &str = "TokenExchangeError: no access_token in response";
+
+/// The start of the message of a refresh that refused the client's own
+/// credentials: a 401, or `invalid_client` or `unauthorized_client` (RFC 6749
+/// section 5.2). Another sign-in would be refused the same way.
+pub const REFRESH_CLIENT_REFUSED: &str = "RefreshTokenError: the token endpoint refused the client";
+
+/// The start of the message of a refresh whose refresh token the token
+/// endpoint refused: expired, revoked, or spent. Only a new sign-in gets
+/// another.
+pub const REFRESH_TOKEN_REFUSED: &str =
+    "RefreshTokenError: the token endpoint refused the refresh token";
+
+/// The start of the message of a refresh answered with a success that holds no
+/// token. The refresh token may be spent, so the login needs a new sign-in.
+pub const REFRESH_NO_TOKEN: &str = "RefreshTokenError: no access_token in response";
+
+/// The start of the message of an [`Error::InvalidUrl`] for a token URL no
+/// request can go to. The URL follows, quoted.
+pub const TOKEN_URL_UNUSABLE: &str = "the token URL";
+
+/// The start of the message of a headless step 2 whose client id is not the
+/// one step 1 saved. The saved app's name follows, as a quoted string.
+pub const PENDING_APP_MISMATCH: &str = "AppMismatch: pending state was created for app";
+
+/// The start of the message of a headless step 2 that names scopes other than
+/// the ones step 1 saved.
+pub const PENDING_SCOPE_MISMATCH: &str = "ScopeMismatch: step 1 requested the scopes";
+
+/// The start of the message of a headless step 2 whose redirect URL does not
+/// parse. The parser's cause follows.
+pub const REDIRECT_INVALID_URL: &str = "InvalidRedirectURL: failed to parse redirect URL";
+
+/// The message of a headless step 2 whose redirect URL carried no `state`.
+pub const REDIRECT_MISSING_STATE: &str = "MissingState: no 'state' parameter found in redirect URL";
+
+/// The message of a headless step 2 whose redirect URL carried a `state` other
+/// than the one step 1 saved: a stale URL, a later step 1, or a forged request.
+pub const REDIRECT_STATE_MISMATCH: &str = "StateMismatch: the state parameter in the redirect URL does not match \
+     the pending auth flow. This may indicate a CSRF attack or that step 1 \
+     was re-run. Please start over with step 1";
+
+/// The message of a headless step 2 whose redirect URL carried the saved
+/// `state` and no authorization code.
+pub const REDIRECT_MISSING_CODE: &str = "MissingCode: no 'code' parameter found in redirect URL. \
+     Make sure you copied the full URL from your browser's address bar";
 
 // ── Exit codes ─────────────────────────────────────────────────────
 

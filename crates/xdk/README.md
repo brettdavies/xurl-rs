@@ -238,9 +238,10 @@ snippet. [Versioning](#versioning) has the rules.
 
 ## Versioning
 
-The crate is `0.x`, so Cargo reads the middle number as the breaking position: a breaking change moves it (`0.1.x` to
-`0.2.0`), and an addition or a fix moves the last number (`0.1.0` to `0.1.1`), which a `^0.1` requirement picks up. Two
-rules make the breaking releases livable:
+The crate is `0.x`, so Cargo reads the middle number as the breaking position. A breaking change or an addition moves it
+(`0.4.x` to `0.5.0`), and a fix moves the last number (`0.4.0` to `0.4.1`), which a `^0.4` requirement picks up. An
+addition moves the middle number on purpose: a `^0.y` requirement then receives only fixes until it opts in to new API.
+Two rules make the breaking releases livable:
 
 - **Every breaking entry in the [changelog](https://github.com/brettdavies/xurl-rs/blob/main/crates/xdk/CHANGELOG.md)
   carries a before/after snippet**, not only a description, so the developer who adopted at one `0.y` and upgrades two

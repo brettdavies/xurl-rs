@@ -790,76 +790,78 @@ fn test_twurlrc_that_is_not_yaml_is_a_token_store_error() {
     assert_eq!(err.kind(), "token-store", "got: {err:?}");
 }
 
+/// A `.twurlrc` holds the consumer and token secrets, so its import failure
+/// names the file and the position the parser stopped at, and quotes nothing.
 #[test]
-fn test_twurlrc_auto_import() {
-    let tmp = TempDir::new().unwrap();
-    let xurl_path = tmp.path().join(".xurl");
-    let twurl_path = tmp.path().join(".twurlrc");
+fn test_twurlrc_import_failure_names_the_file_and_quotes_nothing() {
+    const CONSUMER_MARKER: &str = "MARKER-CONSUMER-NOT-A-SECRET";
+    const TOKEN_MARKER: &str = "MARKER-TOKEN-NOT-A-SECRET";
+    let broken = [
+        (
+            "an unclosed sequence below the secrets",
+            format!(
+                "profiles:\n  user:\n    key:\n      consumer_secret: {CONSUMER_MARKER}\n      secret: {TOKEN_MARKER}\nbearer_tokens: [unclosed\n"
+            ),
+        ),
+        (
+            "a secret where a mapping belongs",
+            format!("profiles: {CONSUMER_MARKER}\nbearer_tokens: {TOKEN_MARKER}\n"),
+        ),
+    ];
+    let mut faults = Vec::new();
+    for (shape, body) in &broken {
+        let tmp = TempDir::new().expect("tempdir");
+        let twurl_path = tmp.path().join(".twurlrc");
+        std::fs::write(&twurl_path, body).expect("write .twurlrc");
+        let mut store =
+            TokenStore::new_with_path(tmp.path().join(".xurl").to_str().expect("utf-8 path"));
 
-    let twurl_content = "\
-profiles:
-  testuser:
-    test_consumer_key:
-      username: testuser
-      consumer_key: test_consumer_key
-      consumer_secret: test_consumer_secret
-      token: test_access_token
-      secret: test_token_secret
-configuration:
-  default_profile:
-  - testuser
-  - test_consumer_key";
+        let err = store
+            .import_from_twurlrc(&twurl_path)
+            .expect_err("the file does not parse");
 
-    fs::write(&twurl_path, twurl_content).unwrap();
-
-    // No .xurl file — should auto-import
-    let store = TokenStore::new_with_home(&tmp.path().to_string_lossy());
-
-    let oauth1_token = store.get_oauth1_tokens();
-    assert!(
-        oauth1_token.is_some(),
-        "OAuth1Token is nil after auto-import"
-    );
-
-    let oauth1 = oauth1_token.unwrap().oauth1.as_ref().unwrap();
-    assert_eq!(oauth1.access_token, "test_access_token");
-
-    assert!(xurl_path.exists(), ".xurl file was not created");
-}
-
-#[test]
-fn test_twurlrc_reimport_after_clear() {
-    let tmp = TempDir::new().unwrap();
-    let twurl_path = tmp.path().join(".twurlrc");
-
-    let twurl_content = "\
-profiles:
-  testuser:
-    test_consumer_key:
-      username: testuser
-      consumer_key: test_consumer_key
-      consumer_secret: test_consumer_secret
-      token: test_access_token
-      secret: test_token_secret
-configuration:
-  default_profile:
-  - testuser
-  - test_consumer_key";
-
-    fs::write(&twurl_path, twurl_content).unwrap();
-
-    let mut store = TokenStore::new_with_home(&tmp.path().to_string_lossy());
-    store.clear_oauth1_tokens().unwrap();
-
-    // Reload — should reimport from .twurlrc
-    let store = TokenStore::new_with_home(&tmp.path().to_string_lossy());
-
-    let oauth1_token = store.get_oauth1_tokens();
-    assert!(oauth1_token.is_some(), "OAuth1Token is nil after re-import");
-    assert_eq!(
-        oauth1_token.unwrap().oauth1.as_ref().unwrap().access_token,
-        "test_access_token"
-    );
+        let message = err.to_string();
+        for marker in [CONSUMER_MARKER, TOKEN_MARKER] {
+            if message.contains(marker) {
+                faults.push(format!("{shape}: {marker} printed: {message}"));
+            }
+        }
+        let reference = xdk::Error::token_store("reference");
+        if err.kind() != reference.kind()
+            || err.exit_code() != reference.exit_code()
+            || err.next_action() != reference.next_action()
+        {
+            faults.push(format!("{shape}: not a token-store error: {message}"));
+        }
+        let source = std::error::Error::source(&err);
+        if source
+            .and_then(|s| s.downcast_ref::<serde_saphyr::Error>())
+            .is_none()
+        {
+            faults.push(format!("{shape}: the parse error is not the source"));
+        }
+        let printed = format!(
+            "{err:?}\n{}",
+            source.map(ToString::to_string).unwrap_or_default()
+        );
+        for marker in [CONSUMER_MARKER, TOKEN_MARKER] {
+            if printed.contains(marker) {
+                faults.push(format!(
+                    "{shape}: {marker} printed through Debug: {printed}"
+                ));
+            }
+        }
+        for (needle, what) in [
+            (&*twurl_path.to_string_lossy(), "the file"),
+            ("line ", "the line"),
+            ("column ", "the column"),
+        ] {
+            if !message.contains(needle) {
+                faults.push(format!("{shape}: {what} is not named: {message}"));
+            }
+        }
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
 }
 
 #[test]
@@ -1745,7 +1747,11 @@ fn a_temp_file_from_an_interrupted_save_is_swept() {
     let path = tmp.path().join(".xurl");
     let stale = tmp.path().join(".xurl.tmp.1.1");
     fs::write(&stale, b"apps: {\n").unwrap();
-    fs::File::open(&stale)
+    // Windows sets file times only through a handle opened for writing:
+    // SetFileTime needs FILE_WRITE_ATTRIBUTES, which a read-only open lacks.
+    fs::File::options()
+        .write(true)
+        .open(&stale)
         .unwrap()
         .set_modified(std::time::SystemTime::now() - std::time::Duration::from_secs(3600))
         .unwrap();

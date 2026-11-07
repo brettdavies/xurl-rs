@@ -7,7 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tempfile::TempDir;
 
+use xdk::auth::Auth;
 use xdk::auth::pending::{self, PendingOAuth2State};
+use xdk::config::{Config, EnvOverrides};
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -143,6 +145,72 @@ fn load_rejects_expired_state() {
     assert!(!path.exists());
 }
 
+#[test]
+fn peek_refuses_an_expired_state_and_leaves_the_file_where_it_is() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let mut state = sample_state();
+    state.created_at = now_secs().saturating_sub(1200);
+    pending::save(&state, &path).unwrap();
+    let kept = std::fs::read(&path).unwrap();
+
+    let msg = pending::peek(&path).unwrap_err().to_string();
+
+    assert!(msg.contains("PendingStateExpired"), "got: {msg}");
+    assert_eq!(std::fs::read(&path).unwrap(), kept);
+}
+
+#[test]
+fn peek_reads_a_fresh_state_as_load_does() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let state = sample_state();
+    pending::save(&state, &path).unwrap();
+
+    assert_eq!(pending::peek(&path).unwrap(), state);
+    assert_eq!(pending::load(&path).unwrap(), state);
+    assert!(path.exists());
+}
+
+fn auth_for_the_sample_client(tmp: &TempDir) -> Auth {
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
+    cfg.client_id = "client_id_001".into();
+    cfg.client_secret = "client_secret_001".into();
+    Auth::new_with_store_path_and_overrides(
+        &cfg,
+        &tmp.path().join(".xurl"),
+        &EnvOverrides::default(),
+    )
+}
+
+#[test]
+fn a_check_with_no_redirect_url_passes_over_a_flow_that_fits() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let mut state = sample_state();
+    state.scopes.clear();
+    pending::save(&state, &path).unwrap();
+
+    let auth = auth_for_the_sample_client(&tmp);
+
+    auth.check_remote_oauth2_step2(None, &path).unwrap();
+    assert!(path.exists());
+}
+
+#[test]
+fn a_check_with_no_redirect_url_still_wants_a_saved_flow() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let auth = auth_for_the_sample_client(&tmp);
+
+    let msg = auth
+        .check_remote_oauth2_step2(None, &path)
+        .unwrap_err()
+        .to_string();
+
+    assert!(msg.contains("PendingStateNotFound"), "got: {msg}");
+}
+
 // ── Adversarial / Red Team Tests ────────────────────────────────────────
 
 #[cfg(unix)]
@@ -189,6 +257,64 @@ fn load_corrupt_yaml_returns_error() {
             .is_some(),
         "the YAML error is the auth error's source: {err:?}"
     );
+}
+
+/// The error keeps the parse error as its source, and neither the error's
+/// `Debug` nor the source's text quotes the file, which holds the PKCE
+/// verifier and the state nonce.
+#[test]
+fn load_corrupt_yaml_leaks_no_content_through_debug_or_the_source() {
+    const VERIFIER_MARKER: &str = "MARKER-VERIFIER-NOT-A-SECRET";
+    const STATE_MARKER: &str = "MARKER-STATE-NOT-A-SECRET";
+    let broken = [
+        (
+            "an unclosed sequence below the secrets",
+            format!(
+                "code_verifier: {VERIFIER_MARKER}\nstate: {STATE_MARKER}\nclient_id: [unclosed\n"
+            ),
+        ),
+        (
+            "an unterminated quote on the secret's own line",
+            format!("code_verifier: \"{VERIFIER_MARKER}\nstate: {STATE_MARKER}\n"),
+        ),
+        (
+            "a secret where a number belongs",
+            format!(
+                "code_verifier: {VERIFIER_MARKER}\nstate: {STATE_MARKER}\nclient_id: x\napp_name: x\ncreated_at: {VERIFIER_MARKER}\n"
+            ),
+        ),
+    ];
+    let mut faults = Vec::new();
+    for (shape, body) in &broken {
+        let tmp = TempDir::new().unwrap();
+        let path = tmp.path().join(".xurl.pending");
+        std::fs::write(&path, body).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+
+        let err = pending::load(&path).unwrap_err();
+
+        let source = std::error::Error::source(&err);
+        if source
+            .and_then(|s| s.downcast_ref::<serde_saphyr::Error>())
+            .is_none()
+        {
+            faults.push(format!("{shape}: the parse error is not the source"));
+        }
+        let printed = format!(
+            "{err:?}\n{}",
+            source.map(ToString::to_string).unwrap_or_default()
+        );
+        for marker in [VERIFIER_MARKER, STATE_MARKER] {
+            if printed.contains(marker) {
+                faults.push(format!("{shape}: {marker} printed:\n{printed}"));
+            }
+        }
+    }
+    assert!(faults.is_empty(), "{}", faults.join("\n"));
 }
 
 #[test]
