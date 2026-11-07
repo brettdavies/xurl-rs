@@ -184,11 +184,12 @@ reaches them.
 
 ### Dry-run envelope
 
-The answer any command gives under `--dry-run`, on stdout at exit 0 with nothing sent to X or stored: `status: dry_run`,
-whether the real run would succeed, the exit code it would end on, and the command's inputs. A command that would send a
-request also names the credential it would go out under, read offline: an expired token is reported rather than
-refreshed, and whether X still accepts the credential is not checked. When the real run would fail, `reason` names why;
-a command that would stop to ask for confirmation says so rather than asking.
+The answer any command gives under `--dry-run`, on stdout at exit 0 with nothing sent to X and no stored credential
+changed: `status: dry_run`, whether the real run would succeed, the exit code it would end on, and the command's inputs.
+A command that would send a request also names the credential it would go out under, read offline: an expired token is
+reported rather than refreshed, and whether X still accepts the credential is not checked. When the real run would fail,
+`reason` names why; a command that would stop to ask for confirmation says so rather than asking. The first command to
+open an old-format store upgrades it once, a dry run included.
 
 ### Error envelope
 

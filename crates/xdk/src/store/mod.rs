@@ -106,8 +106,9 @@ impl TokenStore {
     /// app that was migrated without them.
     ///
     /// Backfilled values stay in memory until the next explicit save, so loading
-    /// an existing store never rewrites it and concurrent readers cannot clobber
-    /// each other.
+    /// a store in the current format never rewrites it and concurrent readers
+    /// cannot clobber each other. Loading a legacy-format file rewrites it once
+    /// as the current YAML.
     #[must_use]
     pub fn with_credentials(client_id: &str, client_secret: &str) -> Self {
         let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
@@ -172,7 +173,8 @@ impl TokenStore {
     /// Creates a `TokenStore` from a specific file path with credential backfill.
     ///
     /// Like [`TokenStore::with_credentials`], the backfill stays in memory until
-    /// the next explicit save; loading never writes the file.
+    /// the next explicit save; loading writes the file only to upgrade a
+    /// legacy-format one.
     #[must_use]
     pub fn new_with_credentials_and_path(client_id: &str, client_secret: &str, path: &str) -> Self {
         let mut store = Self::new_with_path(path);

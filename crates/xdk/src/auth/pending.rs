@@ -207,8 +207,13 @@ fn read(path: &Path) -> Result<PendingOAuth2State> {
         }
         Err(e) => return Err(e.into()),
     };
-    serde_saphyr::from_str(&data)
-        .map_err(|e| Error::auth_with_cause(PENDING_INVALID, &e).with_source(e))
+    crate::yaml::from_str_without_snippet(&data).map_err(|e| {
+        Error::auth(format!(
+            "{PENDING_INVALID}: {}",
+            crate::yaml::failure_site(path, &e)
+        ))
+        .with_source(e)
+    })
 }
 
 /// Refuses a flow older than the 15-minute window.

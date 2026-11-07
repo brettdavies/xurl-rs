@@ -1177,8 +1177,8 @@ pub struct Cli {
 
     /// Check inputs and credentials offline, and send nothing.
     ///
-    /// No request is sent and nothing stored changes, whichever command the
-    /// flag is on: a write, a read, or a raw request with any method. The
+    /// No request is sent and no stored credential changes, whichever command
+    /// the flag is on: a write, a read, or a raw request with any method. The
     /// answer says whether the inputs are valid and whether a stored
     /// credential serves each request the command would send:
     /// `would_succeed`, with `reason` when it is false. `auth` names the
