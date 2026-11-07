@@ -1705,18 +1705,29 @@ fn a_dry_run_reads_piped_stdin_as_the_real_run_does() {
 fn a_dry_run_reads_piped_stdin_where_the_real_run_does_and_refuses_as_it_does() {
     let another_state = b"http://localhost:8080/callback?code=AUTHCODE&state=ANOTHER-NONCE\n";
     let mut faults = Vec::new();
-    for (name, client_id, stdin) in [
-        ("no client id", false, &b""[..]),
-        ("another state", true, &another_state[..]),
+    for (name, client_id, saved, stdin) in [
+        ("no client id", false, true, &b""[..]),
+        ("another state", true, true, &another_state[..]),
+        (
+            "nothing on stdin, ahead of a missing flow",
+            true,
+            false,
+            &b""[..],
+        ),
     ] {
         let tmp = TempDir::new().unwrap();
         let store = tmp.path().join(".xurl");
         if client_id {
             seed_store(&store);
-            seed_pending(&store);
         } else {
             seed_store_without_a_client_id(&store);
-            save_flow(&store, &saved_flow("default", "test-client-id"));
+        }
+        if saved {
+            if client_id {
+                seed_pending(&store);
+            } else {
+                save_flow(&store, &saved_flow("default", "test-client-id"));
+            }
         }
         let run = |dry: bool| {
             let mut command = common::xr_with_store(&store);
@@ -1793,6 +1804,31 @@ async fn a_dry_run_in_text_says_the_real_run_would_refuse_the_argument() {
     );
 }
 
+/// In text the step is the form a person runs, and a dry run's carries
+/// `--dry-run` so that following it changes nothing.
+#[tokio::test]
+async fn a_dry_run_in_text_names_the_sign_in_step_the_real_run_names_under_dry_run() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store_without_a_client_id(&store);
+    let overrides = closed_overrides(false);
+
+    let (dry_code, dry_stdout, dry_stderr) =
+        run_cli(&store, &overrides, &["xr", "--dry-run", "auth", "oauth2"]).await;
+    let (code, _, stderr) = run_cli(&store, &overrides, &["xr", "auth", "oauth2"]).await;
+
+    assert_eq!(dry_code, 0, "stderr: {dry_stderr}");
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(
+        stderr.contains("Run: xr auth oauth2 --app work"),
+        "{stderr}"
+    );
+    assert!(
+        dry_stdout.contains("Run: xr --dry-run auth oauth2 --app work"),
+        "{dry_stdout}"
+    );
+}
+
 // ── A dry run reaches the verdict the real run reaches ───────────────────
 
 /// Two apps, the target `default` with no client id and `work` with one.
@@ -1800,6 +1836,15 @@ fn seed_store_without_a_client_id(store_path: &std::path::Path) {
     std::fs::write(
         store_path,
         "apps:\n  default:\n    client_id: ''\n    client_secret: ''\n    oauth2_tokens: {}\n  work:\n    client_id: 'work-client-id'\n    client_secret: 'work-client-secret'\n    oauth2_tokens: {}\ndefault_app: default\n",
+    )
+    .expect("write tempdir store");
+}
+
+/// One app, `blank`, with no client id, and no other app to sign in under.
+fn seed_store_with_only_a_blank_app(store_path: &std::path::Path) {
+    std::fs::write(
+        store_path,
+        "apps:\n  blank:\n    client_id: ''\n    client_secret: ''\n    oauth2_tokens: {}\ndefault_app: blank\n",
     )
     .expect("write tempdir store");
 }
@@ -2042,6 +2087,26 @@ fn verdicts() -> Vec<Verdict> {
             &flow_at(&redirect),
         )
     });
+    rows.push(Verdict {
+        before: vec!["--app", "blank"],
+        ..verdict(
+            "app named, with no client id and no other app to sign in under",
+            "app \"blank\" has no client credentials.",
+            false,
+            seed_store_with_only_a_blank_app,
+            &step1,
+        )
+    });
+    rows.push(verdict(
+        "flow saved for another client id, ahead of a redirect URL that does not parse",
+        "AppMismatch",
+        true,
+        |store| {
+            seed_store(store);
+            save_flow(store, &saved_flow("default", "another-client-id"));
+        },
+        &flow_at("not a url"),
+    ));
     #[cfg(unix)]
     {
         rows.push(verdict(

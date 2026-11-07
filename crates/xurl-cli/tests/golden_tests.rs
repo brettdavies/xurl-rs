@@ -933,6 +933,34 @@ fn dry_run_cases() -> Vec<Case> {
             &["--output", "json", "--dry-run", "webhooks", "listen"],
         ),
         case(
+            "dry-run-sign-in-no-client-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "1",
+            ],
+        ),
+        case(
+            "dry-run-sign-in-unknown-scope",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "auth",
+                "oauth2",
+                "--no-browser",
+                "--step",
+                "1",
+                "--scopes",
+                "tweet.reed",
+            ],
+        ),
+        case(
             "dry-run-header-not-name-value",
             &[
                 "--output",
