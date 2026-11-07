@@ -185,7 +185,7 @@ once it runs; or, after a 401 or a 429 with no reset on the status read after `x
 once the credential works or the window passes. A new error picks an existing action where one fits, and does not ship
 without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing ones.
 
-`--dry-run` sends nothing and stores nothing on any command, raw mode included, and answers at exit 0 with
+`--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
 invalid input, for a request no stored credential serves, or for a sign-in whose arguments, client id, saved flow, or
 redirect URL the real run refuses; `reason` says which, `exit_code` is the code the real run would end on, and each
@@ -198,7 +198,9 @@ confirmation prompt, so a destructive command's dry run answers either way; `con
 when the real run would stop to ask, so under `--force` the key is absent. `response_schema` names the `xr schema`
 invocation for a command with a typed response, and raw mode carries none; the same command's `--help` ends with a
 `Response schema:` block, both read from the schema registry. Text output summarizes the same facts in lines
-(`crates/xurl-cli/src/cli/output/dry_run.rs`).
+(`crates/xurl-cli/src/cli/output/dry_run.rs`). The first command to open an old-format store upgrades it once, a dry run
+included: a single-file `~/.xurl` moves into the directory layout and a legacy-format store is rewritten as the current
+YAML (§ "Token store").
 
 ## Shortcut commands
 

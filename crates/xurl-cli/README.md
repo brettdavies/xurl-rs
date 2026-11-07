@@ -808,8 +808,10 @@ xr whoami --no-interactive                     # Error instead of prompt
 
 ### Dry Runs
 
-`--dry-run` sends nothing and stores nothing, whichever command it is on: a write, a read, or a raw request with any
-method. It checks the inputs and the stored credentials offline, and answers at exit 0.
+`--dry-run` sends nothing and changes no stored credential, whichever command it is on: a write, a read, or a raw
+request with any method. It checks the inputs and the stored credentials offline, and answers at exit 0. The first
+command to open an old-format store upgrades it once, a dry run included: a single-file `~/.xurl` moves into the
+directory layout and a legacy-format store is rewritten as the current YAML.
 
 ```bash
 xr --output json --dry-run post "Hello"
