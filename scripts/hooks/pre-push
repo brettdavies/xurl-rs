@@ -322,7 +322,7 @@ else
   note "rust battery (nothing in this push reaches cargo)"
 fi
 
-# ── Lint (steps 15-17) ────────────────────────────────────────────────────
+# ── Lint (steps 15-18) ────────────────────────────────────────────────────
 # These take no build lock and read disjoint files, so they run together and
 # the slowest sets their wall-clock; step_wait replays them in queue order.
 # markdownlint is the one that writes, and only to the markdown no other check
@@ -356,6 +356,23 @@ if touched '^\.github/workflows/.*\.ya?ml$'; then
   step_bg "concurrency namespacing" "scripts/check-workflow-concurrency.sh" check_workflow_concurrency_all
 else
   note "actionlint (no workflow in this push)"
+fi
+
+# 18. The release scripts' bats suites. Mirrors CI's `Release scripts` job.
+# Each test builds its own repository under a temporary directory, so the suite
+# shares nothing with the steps beside it. Its output prints only on a failure.
+check_release_scripts() {
+  have bats || skip "release scripts (bats)" "run \`scripts/dev-setup.sh\` to install bats-core" || return
+  local out
+  out=$(bats scripts/release/tests 2>&1) || {
+    printf '%s\n' "$out"
+    return 1
+  }
+}
+if touched '^scripts/release/'; then
+  step_bg "release scripts (bats)" "bats scripts/release/tests" check_release_scripts
+else
+  note "release scripts (nothing in this push under scripts/release/)"
 fi
 
 step_wait || exit 1

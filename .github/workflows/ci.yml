@@ -169,6 +169,27 @@ jobs:
       - name: Check concurrency group namespacing
         run: bash scripts/check-workflow-concurrency.sh
 
+  # The release scripts' bats suites, which scripts/hooks/pre-push runs when a
+  # push changes scripts/release/. Each test builds a repository of its own
+  # under a temporary directory, with `gh` stubbed, and reads a workspace with
+  # the runner's cargo, so the job keeps no cache.
+  release-scripts:
+    name: Release scripts
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install bats-core
+        run: |
+          set -euo pipefail
+          version="$(bash scripts/tool-version.sh bats-core)"
+          curl -fsSL "https://github.com/bats-core/bats-core/archive/refs/tags/v${version}.tar.gz" | tar -xz -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/bats-core-${version}/install.sh" "$HOME/.local"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: bats scripts/release/tests
+        run: bats scripts/release/tests
+
   # Docs build with warnings denied; a broken intra-doc link or bad code
   # fence fails here instead of surfacing after publish. Two builds: the
   # workspace with default features is what `cargo doc` gives a consumer,
