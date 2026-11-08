@@ -10,12 +10,14 @@
 # compensating local gate is the hook pair at scripts/hooks/, which mirrors these
 # jobs before the push leaves the machine.
 #
-# A push to dev or main, or a manual dispatch, is a warm run. Each job that keeps
-# a Rust cache builds what its check compiles with execution off and saves the
-# cache, and the jobs that keep none skip. A pull request restores from its own
-# ref, its base branch, and the default branch, and only a run outside a pull
-# request can write those two branches' scopes, so without warm runs every new
-# PR starts cold.
+# A push to dev, or a manual dispatch, is a warm run; finalize-release.yml
+# dispatches one on main once a release is marked latest, so the release merge
+# starts no run beside the release's own. Each job that keeps a Rust cache
+# builds what its check compiles with execution off and saves the cache, and
+# the jobs that keep none skip. A pull request restores from its own ref, its
+# base branch, and the default branch, and only a run outside a pull request
+# can write those two branches' scopes, so without warm runs every new PR
+# starts cold.
 #
 # Swatinem/rust-cache keys each cache on the job id, the `key` input, and every
 # CARGO*, RUST*, CC*, CFLAGS*, CXX*, and CMAKE* variable in the job's environment.
@@ -30,7 +32,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [dev, main]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
