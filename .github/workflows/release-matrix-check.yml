@@ -13,6 +13,13 @@
 # the matrix on any ref, a release branch included, when a release wants a
 # rehearsal.
 #
+# The weekly schedule runs on `main`, the default branch, under the release
+# build's cache keys. It restores the release's caches, which keeps them from
+# expiring between releases, and rebuilds them when they have. A retired
+# runner label or a target the toolchain stopped building fails that run, and
+# GitHub emails it to whoever last edited the cron line, rather than failing
+# the next release.
+#
 # The matrix and its build steps live in the shared workflow this calls, beside
 # the release workflow whose matrix they mirror.
 #
@@ -23,6 +30,8 @@ name: Release matrix check
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "23 9 * * 1"
   pull_request:
     branches:
       - dev

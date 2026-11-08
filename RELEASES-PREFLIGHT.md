@@ -29,8 +29,8 @@ cargo build --release --bin xr
 scripts/release/preflight.sh all          # drift + surface + api-contract + smoke + multi-app + oauth2-interactive + changelog-sections + mechanics
 ```
 
-After `git push origin vX.Y.Z` triggers the release pipeline, run
-[`scripts/release/postflight.sh all`](./RELEASES-POSTFLIGHT.md) to verify the downstream chain.
+After `scripts/release/tag-release.sh` pushes the tags, run
+[`scripts/release/postflight.sh --tag <tag> all`](./RELEASES-POSTFLIGHT.md) for each to verify the downstream chain.
 
 The script (`scripts/release/preflight.sh`) is **project-authored** on the github-repo-setup skill's skeleton: the
 shared scaffolding (gate helpers, 1Password reads, `shred -u` tempdir cleanup, subcommand dispatch, and the drift,
@@ -526,16 +526,18 @@ exercises it until the tag exists, which is the wrong moment to find a packaging
     --jq '.[].commit.message | split("\n")[0]'
   ```
 
-- [ ] **Tag order planned: library first, CLI second.** `cargo publish -p xurl-rs` resolves `xdk-rs` from crates.io, so
-  the CLI cannot publish until the library is on the index at a version its bound accepts. The CLI's `check-version`
-  refuses up front when it is not, which costs a full run to discover.
+- [ ] **Both tags go out in one push.** `cargo publish -p xurl-rs` resolves `xdk-rs` from crates.io, so the CLI cannot
+  publish until the library is on the index at a version its bound accepts. `scripts/release/tag-release.sh` pushes
+  `xdk-rs-v<version>` beside `v<version>`, and the CLI's `publish-crate` waits up to ten minutes for the library before
+  it publishes, so no tag waits on another's run. Pushing the CLI's tag alone, with the library's version untagged,
+  stops that wait as `library-wait-timeout` after the builds, with nothing published.
 
 ### Post-tag verification
 
 Moved to [`RELEASES-POSTFLIGHT.md`](./RELEASES-POSTFLIGHT.md) because tagging happens **after** the release-branch cut
 and PR-to-main merge, so verification of the tag-triggered pipeline (release.yml → homebrew-tap → finalize-release →
 crates.io publish → fresh-machine install smokes) is post-flight, not pre-flight. Run `scripts/release/postflight.sh
-all` immediately after `git push origin vX.Y.Z`.
+--tag <tag> all` for each tag `scripts/release/tag-release.sh` pushed, as its `Next:` block prints.
 
 ## Related docs
 

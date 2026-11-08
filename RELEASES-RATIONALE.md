@@ -317,6 +317,48 @@ Subsequent releases use the OIDC Trusted Publishing flow built into `release.yml
 publish (`v1.0.3` for this repo) required a regular crates.io API token because Trusted Publishing needs the crate to
 exist first; that token has since been removed.
 
+Each crate's Trusted Publishing configuration on crates.io names this repository and the workflow file, not a ref, so
+the `release.yml` run dispatched onto `main` exchanges its OIDC token as a run on the tag would. A `release.yml`
+dispatched onto a scratch branch, whose only steps were the token exchange and its revoke, received a token, and nothing
+published.
+
+### Why the release runs on `main`, dispatched from its tag
+
+GitHub Actions scopes each cache to the ref that saved it, and a run restores from its own ref and the default branch. A
+run on a tag saves into the tag's scope, which no later run reads, so a release run on its tag cannot restore the build
+its predecessor saved. A run on `main` saves into `main`'s scope, and the next release's run on `main` restores it. The
+`brettdavies/cache-scope-probe` repository showed both halves: a run dispatched onto `main` restored the previous
+release's cache, and a run on a tag restored none of the cache an earlier tag's run saved.
+
+So the tag push builds nothing. Its run, titled `Dispatch v<version>`, dispatches `release.yml` onto `main` with the tag
+as an input, and the dispatched run, titled `Release v<version>`, does the work. The tag stays the release's trigger and
+its name: the reusable reads the tag from its `tag` input and never from the ref, which names `main` in the dispatched
+run. A dispatched run builds `main`'s head rather than the tag, so the reusable refuses to run unless the tag's commit
+is the run's. A `main` that moved between the tag push and the dispatched checkout stops the run before anything builds,
+and the recovery dispatches onto the tag's own ref, which builds the tag and saves no cache a later release restores.
+
+The attestations name `refs/heads/main` as their source ref and `workflow_dispatch` as their trigger. Their source
+commit is the tagged commit, which that check holds equal to the run's, and their signer is still `rust-release.yml`.
+`gh attestation verify --signer-workflow`, which the release's own check and the tap's bump run, checks the signer and
+not the source ref, so neither check changes.
+
+The release's caches have to survive the weeks between releases. GitHub evicts the least recently used cache once a
+repository holds 10 GB, and expires one unread for seven days. CI's warm runs on `dev` and `main` therefore delete their
+caches for superseded lockfiles once every job has finished, and the weekly matrix check on `main` reads the release's
+caches under the release's own keys (§ Cross-compile target matrix).
+
+### Why the release has the account's runners to itself
+
+Every repository the account owns draws on one concurrent-job limit, and a release's build rows that queue behind
+another repository's jobs finish late by however long those take. `scripts/release/tag-release.sh` lists the queued and
+in-progress runs in every repository the account owns and has not archived, and holds the cut while any is listed;
+`--force` pushes anyway.
+
+CI runs on a push to `dev`, not on a push to `main`, so the release PR's merge starts no CI run beside the release's
+own. `main`'s CI caches still need filling, since every pull request falls back to the default branch's caches.
+`finalize-release.yml`'s `warm-main` job dispatches CI on `main` once the release is marked latest, when the release no
+longer needs the runners, and that run's prune drops `main`'s caches for older lockfiles.
+
 ### Why `make_latest: false` then `finalize-release`
 
 The GitHub Release is created visible-but-not-latest (`make_latest: false`) so its archives resolve by tag at once,
@@ -337,17 +379,18 @@ combined pipeline after the library published and the binary did not means re-pu
 which crates.io refuses.
 
 The library's tag is namespaced `<crate>-v<version>` so it cannot match the binary caller's `v[0-9]+.[0-9]+.[0-9]+`
-filter. One tag push then starts exactly one pipeline, which is what keeps the two lines from racing each other for the
-same crate.
+filter. Each tag then starts exactly one pipeline, which is what keeps the two lines from racing each other for the same
+crate, even when both tags go out in one push.
 
 Its GitHub Release keeps `make_latest: false` permanently, for a reason unrelated to the Homebrew window above: a
 visitor resolving `/releases/latest` is looking for a binary to download, and a library release carries no archive.
 Nothing finalizes it. The postflight `make-latest` gate inverts accordingly on a library tag, failing if latest ever
 resolves to one.
 
-Order is a hard dependency: the library publishes first, and the binary's `check-version` refuses up front when a
-workspace member it depends on is not yet on crates.io at the declared bound. Without that check the same failure lands
-after every cross-compile target has built, as a resolver error naming no cause.
+Order is a hard dependency: the library publishes first, and the binary's `publish-crate` waits up to ten minutes for
+each workspace member it depends on to reach crates.io at the declared bound before it publishes. The wait sits in the
+publish job rather than at the start of the run, so the binary's builds, its longest phase, run while the library
+publishes, and both tags can go out together. Without the wait, the publish fails with a resolver error naming no cause.
 
 ### Why a member's changelog window starts at the binary's backport
 
@@ -403,14 +446,19 @@ network CLI against a hosted API (X / Twitter); the binaries are consumed by int
 desktop platforms and on Linux CI runners, including Alpine and other glibc-free hosts, which the musl rows serve.
 `release.yml` passes `linux_musl_required: true`, so a musl build failure blocks the release.
 
-A release compiles the seven rows once, on the tag push. `release-matrix-check.yml` builds the same rows on a pull
-request to `dev` that changes a manifest, `Cargo.lock`, or the toolchain pin, since those are the changes that break
-a cross-compiled row, so a broken row surfaces on the change that broke it. It does not run for a release: the
-release pull request and the backport of its version bump change no dependency, and a build there would be thrown
-away minutes before the tag builds the same tree. `gh workflow run release-matrix-check.yml --ref release/v<version>`
-runs the matrix on a release branch when a release wants a rehearsal. The workflow calls
-`rust-release-matrix-check.yml` in `brettdavies/.github`, where the matrix sits beside the release workflow's and a
-lint check holds the two equal, so this repository keeps no target list of its own.
+A release compiles the seven rows once, in the run dispatched onto `main`. `release-matrix-check.yml` builds the same
+rows on a pull request to `dev` that changes a manifest, `Cargo.lock`, or the toolchain pin, since those are the changes
+that break a cross-compiled row, so a broken row surfaces on the change that broke it. It does not run for a release:
+the release pull request and the backport of its version bump change no dependency, and a build there would be thrown
+away minutes before the release builds the same tree. `gh workflow run release-matrix-check.yml --ref
+release/v<version>` runs the matrix on a release branch when a release wants a rehearsal. The workflow calls
+`rust-release-matrix-check.yml` in `brettdavies/.github`, where the matrix sits beside the release workflow's and a lint
+check holds the two equal, so this repository keeps no target list of its own.
+
+A weekly scheduled run on `main` builds the rows too, under the release build's cache keys. A retired runner label or a
+target the toolchain stopped building fails that run, and GitHub emails the failure, rather than failing the next
+release. Its reads also keep the release's caches from expiring between releases, and a run that finds them gone
+rebuilds them. Only a run on `main` saves its caches, so a pull request's run fills no cache that a release never reads.
 
 Four of the archives are also what Homebrew installs. `Formula/xurl-rs.rb` in `brettdavies/homebrew-tap` names
 `xurl-rs-aarch64-apple-darwin.tar.gz`, `xurl-rs-x86_64-apple-darwin.tar.gz`, `xurl-rs-aarch64-unknown-linux-musl.tar.gz`,
