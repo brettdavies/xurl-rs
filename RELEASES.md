@@ -9,7 +9,8 @@ lives in [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md).
 feature branch → PR to dev (squash merge)
               → dev's tree overlaid onto a release/* branch cut from main
               → PR to main (squash merge)
-              → tag push triggers crates.io publish + GitHub Release + Homebrew dispatch
+              → tag-release.sh pushes the tags; the release runs on main:
+                crates.io publish + GitHub Release + Homebrew dispatch
 ```
 
 Direct commits to `dev` or `main` are not permitted: every change has a PR number in its squash commit message.
@@ -382,39 +383,128 @@ name; the post-pick `ls-files` check catches that.
 
 ## Tagging and publishing
 
-After the `release/v<version> → main` PR merges, tag and push:
+After the `release/v<version> → main` PR merges, tag from `main`:
 
 ```bash
-git checkout main && git pull
-git tag -a -m "Release v1.3.0" v1.3.0
-git push origin main --tags
+git checkout main && git pull --ff-only
+scripts/release/tag-release.sh --dry-run   # every check, and the tags it would push; creates nothing
+scripts/release/tag-release.sh
 ```
 
-Always use annotated tags (`-a -m`). The tag push triggers `.github/workflows/release.yml`, which calls the reusable
-`brettdavies/.github/.github/workflows/rust-release.yml@main` and runs:
+The script tags `main`'s head with `v<version>`, the version in `crates/xurl-cli/Cargo.toml`, and with
+`xdk-rs-v<version>` when the library's version has no tag yet, then pushes them in one atomic push: the remote receives
+every tag or none. The tags are annotated, which a machine with `tag.gpgsign` set requires. Before it creates a tag, it
+lists the queued and in-progress workflow runs in every repository the account owns and has not archived. Those runs
+share the account's concurrent-job limit with the release's builds, so a listed run holds the cut until it finishes, or
+until `--force`. On success it prints a `Next:` block naming the runs to watch and the postflight command for each tag.
 
-| Step                  | What                                                                                                                                                                                                                                                                                                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `check-version`       | Verify the tag matches the `xurl-rs` version in `crates/xurl-cli/Cargo.toml`, and that every workspace dependency (`xdk-rs`) is on crates.io at the bound the CLI declares; a missing bound fails here by name, before any target builds (gate).                                                                                                                                            |
-| `audit`               | `cargo deny check` (license + advisory + ban).                                                                                                                                                                                                                                                                                                                                              |
-| `build`               | Cross-compile binaries for 7 targets: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`. The musl rows are required (`linux_musl_required: true`), so a musl failure blocks the release. Each archive includes binary, completions, and licenses. |
-| `sbom`                | Generate a CycloneDX SBOM of `xr` from the tagged lockfile, with a read-only token.                                                                                                                                                                                                                                                                                                         |
-| `attest`              | Sign what `build` uploaded, before anything is published: build provenance for all 7 archives and `sha256sum.txt`, and the SBOM against the archives. A failure here or in `sbom` publishes nothing (gate).                                                                                                                                                                                 |
-| `publish-crate`       | `cargo publish -p xurl-rs` to crates.io via Trusted Publishing (OIDC, no static token after first publish). Resolves `xdk-rs` from the registry, which is why the library tag goes first.                                                                                                                                                                                                   |
-| `release`             | Create a **non-draft** GitHub Release with `make_latest: false`. Includes all 7 archives + `sha256sum.txt`.                                                                                                                                                                                                                                                                                 |
-| `verify-attestations` | Download every published file and verify it against its attestation with `gh attestation verify --signer-workflow`. A failure withholds the Homebrew dispatch (gate).                                                                                                                                                                                                                       |
-| `homebrew`            | Dispatch `update-formula` to `brettdavies/homebrew-tap` (formula name: `xurl-rs`, installs `xr`).                                                                                                                                                                                                                                                                                           |
+| Exit | Meaning                                                                                                                                                      | Next                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| 0    | Every tag is pushed. Under `--dry-run`, every check passed and nothing was created.                                                                          | Watch the runs the `Next:` block names.                 |
+| 1    | `runners-busy`, or `push-failed`, after which the tags the run created are deleted.                                                                          | The code's heading below, then run the script again.    |
+| 2    | A refusal before any tag exists: `dirty-tree`, `main-not-current`, `remote-unreachable`, `tag-exists`, or `runner-check-failed`; or a missing tool, by name. | The code's heading below, or install the tool it names. |
+
+### When the cut stops
+
+Each refusal prints `error[<code>]:` on stderr with the values behind it, then a `next:` line and a `see:` line naming
+the heading here.
+
+#### `dirty-tree`
+
+The working tree has uncommitted changes, which the tagged commit would not carry. Commit or stash them, then run the
+script again.
+
+#### `main-not-current`
+
+The checkout is not on `main`, or its `main` is not `origin/main`. Off `main`, or behind it,
+`git checkout main && git pull --ff-only` fixes it. A `main` that carries commits `origin/main` lacks would tag a commit
+the remote's `main` never received, so a person decides: reset `main` to `origin/main`, or land those commits through a
+pull request first.
+
+#### `remote-unreachable`
+
+`git fetch` or `git ls-remote --tags` against the remote failed. Check `git remote -v` and the network, then run the
+script again.
+
+#### `tag-exists`
+
+`v<version>` is already on the remote, so this version was cut. A new release bumps the version first; a release already
+running is followed with `scripts/release/postflight.sh --tag v<version> all`. A tag in the checkout that the remote
+lacks is left from an earlier attempt: `git tag -d <tag>`, then run the script again. A library tag already on the
+remote is no refusal: the library did not move, and only `v<version>` is pushed.
+
+#### `runner-check-failed`
+
+`gh` could not list the account's repositories, or one repository's runs, usually because its sign-in expired. Run
+`gh auth status`, then the script again; `--force` pushes without the check.
+
+#### `runners-busy`
+
+The listed runs, each with its repository, workflow, status, and URL, are queued or in progress in a repository the
+account owns. A release started beside them waits for runners. Run the script again once they finish, or pass `--force`
+to push now.
+
+#### `push-failed`
+
+`git push --atomic` failed, and git's output, which the error quotes, says why. The script deleted the tags it created,
+so the remote received none and a second run starts clean. Fix what git names, then run the script again.
+
+### What the tags start
+
+The library's tag starts `.github/workflows/release-lib.yml` on the tag's ref, which publishes `xdk-rs`
+([§ Releasing the library](#releasing-the-library)). The binary's tag starts `.github/workflows/release.yml`, and that
+run, titled `Dispatch v<version>`, builds nothing. Its one job runs
+`gh workflow run release.yml --ref main -f tag=v<version>` and links the workflow's runs in its summary. The dispatched
+run, titled `Release v<version>`, runs on `main`, where it restores the caches earlier releases saved; a run on a tag's
+ref restores none. It calls the reusable `brettdavies/.github/.github/workflows/rust-release.yml@main` with the tag:
+
+| Step                  | What                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `validate-inputs`     | Refuse a tag that is not `v<major>.<minor>.<patch>`, one that does not exist, and one whose commit is not the commit the run checked out, `main`'s head, before anything builds (gate).                                                                                                                                                                                                                                                         |
+| `check-version`       | Verify the tag matches the `xurl-rs` version in `crates/xurl-cli/Cargo.toml` (gate).                                                                                                                                                                                                                                                                                                                                                            |
+| `audit`               | `cargo deny check` (license + advisory + ban).                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `build`               | Cross-compile binaries for 7 targets beside `check-version`, `audit`, and `sbom`: `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`, `x86_64-apple-darwin`, `aarch64-apple-darwin`, `x86_64-pc-windows-msvc`. The musl rows are required (`linux_musl_required: true`), and a failed required row cancels the others. Each archive includes binary, completions, and licenses. |
+| `sbom`                | Generate a CycloneDX SBOM of `xr` from the tagged lockfile, with a read-only token.                                                                                                                                                                                                                                                                                                                                                             |
+| `attest`              | Once `build`, `sbom`, `check-version`, and `audit` pass, sign what `build` uploaded, before anything is published: build provenance for all 7 archives and `sha256sum.txt`, and the SBOM against the archives. A failure here publishes nothing (gate).                                                                                                                                                                                         |
+| `publish-crate`       | Wait up to ten minutes for `xdk-rs` to reach crates.io at the bound the CLI declares, so the library tag pushed beside this one publishes first, then `cargo publish -p xurl-rs --no-verify` via Trusted Publishing (OIDC, no static token). The verify compile is skipped because `ci / Package check` ran `cargo publish --dry-run --workspace` on the release PR, whose tree is the tagged tree.                                             |
+| `release`             | Create a **non-draft** GitHub Release with `make_latest: false`. Includes all 7 archives + `sha256sum.txt`.                                                                                                                                                                                                                                                                                                                                     |
+| `verify-attestations` | Download every published file and verify each against its attestation with `gh attestation verify --signer-workflow`, all at once. A failure withholds the Homebrew dispatch (gate).                                                                                                                                                                                                                                                            |
+| `homebrew`            | Dispatch `update-formula` to `brettdavies/homebrew-tap` (formula name: `xurl-rs`, installs `xr`).                                                                                                                                                                                                                                                                                                                                               |
+
+Each coded stop in the reusable is an error annotation titled with its code, which links the heading in
+[`brettdavies/.github`'s README](https://github.com/brettdavies/.github/blob/main/README.md) that gives the recovery.
+Two of them follow from how this release runs. `release-tag-moved` means `main` moved past the tag before the dispatched
+run checked it out; the annotation gives the dispatch onto the tag's own ref, which releases on cold caches.
+`library-wait-timeout` means `xdk-rs` did not reach crates.io within the wait; once `release-lib.yml` is green, `gh run
+rerun <id> --failed` continues the release with its builds and attestations kept.
 
 The tap's formula installs this release's archives. Its `update-formula` workflow downloads the four it names (the two
 `apple-darwin` and the two `linux-musl` archives), verifies each against the attestation `attest` made, and pins its
 checksum; an archive with no attestation stops the bump, so `attest: true` in `release.yml` is what lets a release reach
 Homebrew. The tap then installs and tests the formula from those archives on four platforms and lands the bump on its
-`main`. It builds no bottle: the binaries are compiled once, by `release.yml`, and `brew install` downloads the archive.
+`main` in the same run. It builds no bottle: the binaries are compiled once, by `release.yml`, and `brew install`
+downloads the archive.
 
-After the homebrew-tap workflow lands the formula bump, it dispatches `finalize-release` back to this repo, which
-idempotently flips `make_latest: true`.
+After the tap lands the formula bump, it dispatches `finalize-release` back to this repo, which idempotently flips
+`make_latest: true`. Its `warm-main` job then runs `gh workflow run ci.yml --ref main`: the release merge starts no CI
+run, so the release has the account's runners to itself, and `main`'s CI caches fill once the release is out.
 
-→ Rationale (`make_latest` flow, target matrix, annotated-tag gotcha):
+#### When the dispatch job fails
+
+A failed `Dispatch the release onto main` job built nothing. GitHub can accept a dispatch and still fail the job, so
+look for the release run before you start one:
+
+```bash
+gh run list --workflow release.yml --branch main --event workflow_dispatch --limit 3
+```
+
+When no run titled `Release v<version>` is listed, dispatch it by hand:
+
+```bash
+gh workflow run release.yml --ref main -f tag=v<version>
+```
+
+→ Rationale (the dispatched run, `make_latest` flow, target matrix, annotated-tag gotcha):
 [`RELEASES-RATIONALE.md` § Release pipeline](./RELEASES-RATIONALE.md#release-pipeline).
 
 ### After publish: sync `dev` with the release
@@ -465,9 +555,11 @@ if that does not pass, warns with the generator's own reason line.
 GitHub Release (`make_latest: false`, so the binary's release stays the repository's latest) from that changelog. No
 binaries, no Homebrew.
 
-**Order is a rule.** `cargo publish -p xurl-rs` resolves `xdk-rs` from the registry, so the library tag is pushed and
-its run is green before any CLI tag whose `xdk-rs` bound moved. The CLI's `check-version` job fails by name when the
-bound `crates/xurl-cli/Cargo.toml` declares is not on the index, before any target builds.
+**Order is a rule.** `cargo publish -p xurl-rs` resolves `xdk-rs` from the registry, so the library reaches crates.io
+before the CLI publishes. `scripts/release/tag-release.sh` pushes both tags in one push, the CLI's builds run while the
+library publishes, and the CLI's `publish-crate` job waits up to ten minutes for the bound `crates/xurl-cli/Cargo.toml`
+declares to reach the index. A bound still missing after the wait stops as `library-wait-timeout`, with nothing
+published and the builds kept.
 
 The repository root's `CHANGELOG.md` is prose routing to the two crate changelogs and carries no release history.
 `generate-changelog.py` refuses to write a file carrying its `changelog-router` marker and names `--crate` instead, so a
@@ -501,13 +593,11 @@ read from the PRs' `## Changelog (xdk-rs)` blocks rather than passed to the scri
 #    Edit the PR body and regenerate; never hand-edit the changelog. A PR with no such
 #    block keeps its commit subject as its bullet.
 
-# 2. After the release PR merges, tag the library first, then the CLI, both on the
-#    merge commit.
-git checkout main && git pull
-git tag -a -m "Release xdk-rs-v0.2.0" xdk-rs-v0.2.0
-git push origin xdk-rs-v0.2.0
-gh run watch "$(gh run list --workflow release-lib.yml --limit 1 --json databaseId --jq '.[0].databaseId')" --exit-status
-# ...then the CLI's `vX.Y.Z` tag as in § Tagging and publishing, and confirm the pair.
+# 2. After the release PR merges, tag both crates on the merge commit in one push
+#    (§ Tagging and publishing), then confirm the library's release and the pair.
+git checkout main && git pull --ff-only
+scripts/release/tag-release.sh
+scripts/release/postflight.sh --tag xdk-rs-v0.2.0 all
 scripts/release/postflight.sh --tag v1.3.0 tags
 ```
 
