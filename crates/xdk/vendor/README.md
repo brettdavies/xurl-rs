@@ -12,7 +12,7 @@ matrix in `crates/xdk/src/api/auth_matrix.rs` (see `crates/xdk/build.rs`).
 | Path count          | 201                                                                |
 | File size           | 1335965 bytes                                                      |
 | SHA256              | `eebfe4a6669bb5936cdeaa9ed6b45b945a20d76874f591ef5b4cb5726069a3fe` |
-| Refreshed (UTC)     | 2026-11-07                                                         |
+| Refreshed (UTC)     | 2026-11-08                                                         |
 
 ## Refresh
 
