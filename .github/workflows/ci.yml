@@ -590,10 +590,10 @@ jobs:
   # none for a lost profile. Every other PR audits a dev build, which anc
   # scores the same, and skips the release build.
   #
-  # A warm run, on a push, builds the same profile as the PRs that merge into
-  # its branch, so they restore a matching cache: release on `main`, which only
-  # release PRs target, and dev on `dev`. It skips everything that grades the
-  # binary.
+  # A warm run builds the same profile as the PRs that merge into its branch,
+  # so they restore a matching cache: release on `main`, whose warm run
+  # finalize-release dispatches and which only release PRs target, and dev on
+  # `dev`. It skips everything that grades the binary.
   anc:
     name: Agent-native audit
     needs: scope
