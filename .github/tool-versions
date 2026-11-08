@@ -17,6 +17,7 @@ cargo-nextest=0.9.150
 # these is the oldest version that passes. bash is the oldest the hooks run under.
 actionlint=1.7.12
 bash=4.4.0
+bats-core=1.14.0
 markdownlint-cli2=0.24.0
 ripgrep=15.2.0
 shellcheck=0.11.0
