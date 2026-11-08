@@ -405,7 +405,8 @@ cargo test --doc --workspace                # doc tests, which nextest does not 
 cargo nextest run --workspace --run-ignored only  # the TLS probe, and the live smoke under XURL_LIVE_SMOKE=1
 scripts/hooks/pre-push                      # local CI mirror (fmt, clippy, nextest, doc tests, msrv, doc, examples,
                                             # the offline example run, TLS feature cells, the docs.rs feature set,
-                                            # deny, shellcheck, Windows cross-clippy, markdownlint, actionlint;
+                                            # deny, shellcheck, Windows cross-clippy, markdownlint, actionlint,
+                                            # the release scripts' bats suites when scripts/release/ changes;
                                             # cargo-hack powerset when installed)
 ```
 
