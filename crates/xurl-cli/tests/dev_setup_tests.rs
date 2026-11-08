@@ -410,6 +410,7 @@ case "$name" in
   anc) say_version agentnative "anc " "" ;;
   rg) say_version ripgrep "ripgrep " " (rev 0123456789)" ;;
   bash) say_version bash "GNU bash, version " "(1)-release" ;;
+  bats) say_version bats-core "Bats " "" ;;
   shellcheck) printf 'ShellCheck\n'; say_version shellcheck "version: " "" ;;
   markdownlint-cli2)
     say_version markdownlint-cli2 "markdownlint-cli2 v" " (markdownlint v0.42.0)"
@@ -425,6 +426,7 @@ const STUBBED_COMMANDS: &[&str] = &[
     "anc",
     "rg",
     "bash",
+    "bats",
     "shellcheck",
     "markdownlint-cli2",
     "actionlint",

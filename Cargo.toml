@@ -13,7 +13,7 @@ rust-version = "1.96.0"
 # Versions shared by both members live here so the two manifests cannot drift
 # apart on a dependency they both compile.
 [workspace.dependencies]
-xdk-rs = { version = "0.5.0", path = "crates/xdk" }
+xdk-rs = { version = "0.5.1", path = "crates/xdk" }
 # No TLS backend on this entry: `xdk-rs` selects one through its own
 # `rustls` / `native-tls` features, and a backend named here would be on in
 # every configuration, including the ones meant to prove it absent.
@@ -36,10 +36,18 @@ proptest = { version = "1", default-features = false, features = ["std"] }
 serial_test = "4"
 regex = "1"
 
-# Cargo honors profiles only in the workspace root; a member-level profile is
-# ignored with a warning, and the release binary silently loses lto and strip.
+# Cargo reads profiles from the workspace root only, so this table builds every
+# workspace binary and the release archives. `cargo install xurl-rs` builds the
+# published crate as its own root and reads the copy in crates/xurl-cli/Cargo.toml
+# instead; crates/xurl-cli/tests/release_profile_guard.rs holds the two equal.
+#
+# Of the profiles measured on 4 cores, thin LTO over 4 units at opt-level "z"
+# builds fastest (44 s cold) and gives the smallest `xr` (9.2 MB). CPU-bound
+# commands run up to half again as long, a few milliseconds, and a networked
+# call about 1.4 ms longer, against the round trip to X.
 [profile.release]
 strip = true
-lto = true
-codegen-units = 1
+lto = "thin"
+codegen-units = 4
+opt-level = "z"
 panic = "abort"

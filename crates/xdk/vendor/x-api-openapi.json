@@ -4060,7 +4060,7 @@
             "type": "string"
           },
           "org_only": {
-            "description": "Whether only members of the bot's developer account can add it to group chats. An org-only bot has no public profile and doesn't appear in public search. Defaults to false. Applies only when the request creates the bot: a handle that already names one of the project's bots keeps that bot's setting.",
+            "description": "Whether only members of the bot's developer account can add it to group chats. An org-only bot has no public profile and doesn't appear in public search. Everyone in its developer account should be able to message it, so leave its Direct Messages open to everyone rather than premium senders only. Defaults to false. Applies only when the request creates the bot: a handle that already names one of the project's bots keeps that bot's setting.",
             "type": "boolean"
           },
           "scopes": {
@@ -14527,8 +14527,20 @@
         "type": "object"
       },
       "MediaOrganicMetrics": {
-        "description": "Organic nonpublic engagement metrics for the media at the time of the request.",
+        "description": "Lifetime organic engagement metrics for the media at the time of the request.\nOnly available to the user who uploaded the video.",
         "properties": {
+          "cta_url_click_count": {
+            "description": "Number of clicks on the video's call-to-action URL.",
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "cta_watch_click_count": {
+            "description": "Number of clicks on the video's \"watch\" call to action.",
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
           "playback_0_count": {
             "description": "Number of users who started playback (0% quartile) of this video.",
             "format": "int64",
@@ -14560,7 +14572,13 @@
             "type": "integer"
           },
           "view_count": {
-            "description": "The number of organic views of this video. Null when the backend returns quartile data without a view count.",
+            "description": "The number of organic views of this video.",
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "watch_time_ms": {
+            "description": "Total time this video has been watched, in milliseconds.",
             "format": "int64",
             "nullable": true,
             "type": "integer"
@@ -20018,7 +20036,7 @@
             "type": "string"
           },
           "dm_permission": {
-            "description": "Who may send Direct Messages to the bot.",
+            "description": "Who may send the bot Direct Messages: everyone, or premium for verified senders only. Premium isn't meant for org-only bots, since everyone in an org-only bot's developer account should be able to message it, verified or not; requesting premium for one may be refused with a 400. The no_one value is deprecated and kept only so bots that already use it can keep it; choosing it for any other bot may be refused with a 400.",
             "enum": [
               "everyone",
               "premium",
@@ -20952,7 +20970,7 @@
         "description": "At least one of `allow_dms_from`, `always_allow_dms_from_subscribers`, `dm_quality_filter`, `dm_receipt_settings`, `av_settings` is required.",
         "properties": {
           "allow_dms_from": {
-            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
+            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows). A bot may get a 400 for choosing `following` when it doesn't already have it, and an org-only bot for choosing `verified`.",
             "enum": [
               "all",
               "verified",
@@ -21004,7 +21022,7 @@
       "UpdateChatSettingsResponseData": {
         "properties": {
           "allow_dms_from": {
-            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows).",
+            "description": "Who can send the user messages: `all` (anyone), `verified` (verified accounts only), or `following` (accounts the user follows). A bot may get a 400 for choosing `following` when it doesn't already have it, and an org-only bot for choosing `verified`.",
             "enum": [
               "all",
               "verified",
@@ -26502,7 +26520,7 @@
     },
     "/2/chat/conversations": {
       "get": {
-        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox, newest first: the most recently active conversation comes first. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and each conversation's latest notifying message. Request them with chat_conversation.fields=unread,last_read_event_id,newest_event_id.\n\nThe filters unread_only, type, is_archived, is_muted, participant_ids, participant_query, start_time and end_time are optional, and all filters must match (AND). participant_query keeps conversations where another participant's username, or a word of their display name, starts with the query, ignoring case and accents; with a leading @ it matches usernames only. It considers the 100 people who best match the query, uses only public profile information, and never matches group names, nicknames or messages. start_time and end_time apply to the time of each conversation's latest message.\n\nEach page covers max_results conversations and returns those that match, so a page can hold fewer than max_results, or none, while meta.next_token is set and has_more is true: keep paging, passing meta.next_token as pagination_token. Once a page reaches a conversation whose latest message is older than start_time, has_more is false. A pagination_token only works with the same filters as the request that returned it; with other filters, the request fails with a 400.\n\nWhen both are provided, `start_time` must be earlier than `end_time`.",
+        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox, newest first: the most recently active conversation comes first. To find the chat with a particular person, start with participant_query set to their @username or name. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and each conversation's latest notifying message. Request them with chat_conversation.fields=unread,last_read_event_id,newest_event_id.\n\nThe filters unread_only, type, is_archived, is_muted, participant_ids, participant_query, start_time and end_time are optional, and all filters must match (AND). participant_query keeps conversations where another participant's username, or a word of their display name, starts with the query, ignoring case and accents; with a leading @ it matches usernames only. It considers the 100 people who best match the query, uses only public profile information, and never matches group names, nicknames or messages. start_time and end_time apply to the time of each conversation's latest message.\n\nEach page covers max_results conversations and returns those that match, so a page can hold fewer than max_results, or none, while meta.next_token is set and has_more is true: keep paging, passing meta.next_token as pagination_token. Once a page reaches a conversation whose latest message is older than start_time, has_more is false. A pagination_token only works with the same filters as the request that returned it; with other filters, the request fails with a 400.\n\nWhen both are provided, `start_time` must be earlier than `end_time`.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -26596,7 +26614,7 @@
             "style": "form"
           },
           {
-            "description": "Name or @username prefix (1-50 chars); keeps chats where any other participant matches it.",
+            "description": "Start here to find someone's chat: their @username or a word of their name (1-50 chars).",
             "in": "query",
             "name": "participant_query",
             "required": false,
@@ -28556,13 +28574,14 @@
     },
     "/2/chat/conversations/{id}/messages": {
       "post": {
-        "description": "Sends a message or reaction to a specific Chat conversation. Send `encoded_message_create_event`, an end-to-end encrypted event built with the Chat XDK. `content`, a plaintext message or reaction sent unencrypted, is only a fallback for a 1:1 conversation that X Chat can't encrypt because one of the two users has connected an enterprise app that reads their DMs; check that the recipient's `receives_your_chat` user field is `unencrypted` before using it. Otherwise a `content` send is refused, and retrying it won't help: HTTP 400 https://api.x.com/2/problems/encryption-required when the conversation can be encrypted or is a group (send `encoded_message_create_event` instead), 400 https://api.x.com/2/problems/xchat-setup-required when you haven't set up X Chat, 400 https://api.x.com/2/problems/recipient-xchat-setup-required when the recipient hasn't, and 403 https://api.x.com/2/problems/message-request-not-supported when it would be a message request. HTTP 503 https://api.x.com/2/problems/chat-permissions-unavailable means the check failed and nothing was sent; retry it. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. A recipient who cannot be messaged (closed inbox, system/notification account, or a 1:1 block) returns HTTP 403 with type https://api.x.com/2/problems/recipient-not-messageable.",
+        "description": "Sends a message or reaction to a specific Chat conversation, which you can find with `participant_query` on Get Chat Conversations. Send `encoded_message_create_event`, an end-to-end encrypted event built with the Chat XDK. `content`, a plaintext message or reaction sent unencrypted, is only a fallback for a 1:1 conversation that X Chat can't encrypt because one of the two users has connected an enterprise app that reads their DMs; check that the recipient's `receives_your_chat` user field is `unencrypted` before using it. Otherwise a `content` send is refused, and retrying it won't help: HTTP 400 https://api.x.com/2/problems/encryption-required when the conversation can be encrypted or is a group (send `encoded_message_create_event` instead), 400 https://api.x.com/2/problems/xchat-setup-required when you haven't set up X Chat, 400 https://api.x.com/2/problems/recipient-xchat-setup-required when the recipient hasn't, and 403 https://api.x.com/2/problems/message-request-not-supported when it would be a message request. HTTP 503 https://api.x.com/2/problems/chat-permissions-unavailable means the check failed and nothing was sent; retry it. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. A recipient who cannot be messaged (closed inbox, system/notification account, or a 1:1 block) returns HTTP 403 with type https://api.x.com/2/problems/recipient-not-messageable.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
         "operationId": "sendChatMessage",
         "parameters": [
           {
+            "description": "A conversation's id from Get Chat Conversations, or the recipient's user ID for a 1:1 chat.",
             "in": "path",
             "name": "id",
             "required": true,

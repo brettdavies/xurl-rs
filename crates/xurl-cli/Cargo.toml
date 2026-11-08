@@ -1,6 +1,6 @@
 [package]
 name = "xurl-rs"
-version = "4.6.0"
+version = "4.6.1"
 description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
 documentation = "https://docs.rs/xurl-rs"
 keywords = ["twitter", "x", "api", "cli", "oauth"]
@@ -95,6 +95,16 @@ regex.workspace = true
 serde-saphyr.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 serial_test.workspace = true
+
+# Read only when this crate builds as its own root, as `cargo install xurl-rs`
+# does; inside the workspace Cargo ignores it, with a warning, for the root's
+# table, which tests/release_profile_guard.rs holds equal to this one.
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 4
+opt-level = "z"
+panic = "abort"
 
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/v{ version }/xurl-rs-{ target }.tar.gz"
