@@ -8,16 +8,29 @@
 # verify the published files against their attestations -> homebrew-tap tests the
 # formula bump and lands it -> finalize-release marks the release latest.
 #
+# The tag push compiles nothing: its run dispatches the release onto `main`.
+# Actions caches are scoped to the ref a run starts on, and a tag's run never
+# restores one saved under another tag, so a release run on its tag builds every
+# row cold. A run on `main` restores the caches the previous release saved there.
+# The reusable holds the dispatched run to the tagged commit.
+#
 # The `build` job is the only place a release compiles its binaries. With a
 # prebuilt formula (homebrew-tap-publish's formula-prebuilt.rb), the tap
 # installs the published archives and builds no bottle; a source-built formula
 # is built and bottled in the tap's own CI instead.
 name: Release
+run-name: ${{ github.event_name == 'push' && 'Dispatch' || 'Release' }} ${{ inputs.tag || github.ref_name }}
 
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'The release tag, v<major>.<minor>.<patch>'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -26,9 +39,35 @@ permissions:
   attestations: write
 
 jobs:
+  dispatch:
+    name: Dispatch the release onto main
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the release onto main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          runs="gh run list --repo ${GITHUB_REPOSITORY} --workflow release.yml --branch main --event workflow_dispatch --limit 3 --json displayTitle,status,url"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag="$TAG"
+          echo "::notice title=release-dispatched::Release ${TAG} runs on main: ${runs}"
+          {
+            echo "Release ${TAG} was dispatched onto main. Its run is titled \`Release ${TAG}\`:"
+            echo
+            echo "\`\`\`sh"
+            echo "${runs}"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   pipeline:
+    if: github.event_name == 'workflow_dispatch'
     uses: brettdavies/.github/.github/workflows/rust-release.yml@main
     with:
+      tag: ${{ inputs.tag }}
       crate: xurl-rs
       bin: xr
       # Each crate keeps its changelog beside its own manifest, so the release
