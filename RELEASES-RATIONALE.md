@@ -328,14 +328,14 @@ GitHub Actions scopes each cache to the ref that saved it, and a run restores fr
 run on a tag saves into the tag's scope, which no later run reads, so a release run on its tag cannot restore the build
 its predecessor saved. A run on `main` saves into `main`'s scope, and the next release's run on `main` restores it. The
 `brettdavies/cache-scope-probe` repository showed both halves: a run dispatched onto `main` restored the previous
-release's cache, and a run on a tag restored none.
+release's cache, and a run on a tag restored none of the cache an earlier tag's run saved.
 
 So the tag push builds nothing. Its run, titled `Dispatch v<version>`, dispatches `release.yml` onto `main` with the tag
 as an input, and the dispatched run, titled `Release v<version>`, does the work. The tag stays the release's trigger and
 its name: the reusable reads the tag from its `tag` input and never from the ref, which names `main` in the dispatched
 run. A dispatched run builds `main`'s head rather than the tag, so the reusable refuses to run unless the tag's commit
 is the run's. A `main` that moved between the tag push and the dispatched checkout stops the run before anything builds,
-and the recovery dispatches onto the tag's own ref, which builds the tag on cold caches.
+and the recovery dispatches onto the tag's own ref, which builds the tag and saves no cache a later release restores.
 
 The attestations name `refs/heads/main` as their source ref and `workflow_dispatch` as their trigger. Their source
 commit is the tagged commit, which that check holds equal to the run's, and their signer is still `rust-release.yml`.

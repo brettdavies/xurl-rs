@@ -9,9 +9,9 @@
 # formula bump and lands it -> finalize-release marks the release latest.
 #
 # The tag push compiles nothing: its run dispatches the release onto `main`.
-# Actions caches are scoped to the ref a run starts on, and a tag's run never
-# restores one saved under another tag, so a release run on its tag builds every
-# row cold. A run on `main` restores the caches the previous release saved there.
+# Actions scopes each cache to the ref of the run that saved it, so a release
+# run on its tag saves where no later release reads, and a run on `main`
+# restores the caches the previous release saved there.
 # The reusable holds the dispatched run to the tagged commit.
 #
 # The `build` job is the only place a release compiles its binaries. With a

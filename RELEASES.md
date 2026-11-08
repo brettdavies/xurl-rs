@@ -457,12 +457,12 @@ so the remote received none and a second run starts clean. Fix what git names, t
 
 ### What the tags start
 
-The library's tag starts `.github/workflows/release-lib.yml` on the tag's ref, which publishes `xdk-rs`
-([§ Releasing the library](#releasing-the-library)). The binary's tag starts `.github/workflows/release.yml`, and that
-run, titled `Dispatch v<version>`, builds nothing. Its one job runs
-`gh workflow run release.yml --ref main -f tag=v<version>` and links the workflow's runs in its summary. The dispatched
-run, titled `Release v<version>`, runs on `main`, where it restores the caches earlier releases saved; a run on a tag's
-ref restores none. It calls the reusable `brettdavies/.github/.github/workflows/rust-release.yml@main` with the tag:
+The library's tag starts `.github/workflows/release-lib.yml` on the tag's ref, which publishes `xdk-rs` ([§ Releasing
+the library](#releasing-the-library)). The binary's tag starts `.github/workflows/release.yml`, and that run, titled
+`Dispatch v<version>`, builds nothing. Its one job runs `gh workflow run release.yml --ref main -f tag=v<version>` and
+links the workflow's runs in its summary. The dispatched run, titled `Release v<version>`, runs on `main`, where it
+restores the caches earlier releases saved; a run on a tag's ref saves into the tag's scope, which no later release
+reads. It calls the reusable `brettdavies/.github/.github/workflows/rust-release.yml@main` with the tag:
 
 | Step                  | What                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -480,9 +480,9 @@ ref restores none. It calls the reusable `brettdavies/.github/.github/workflows/
 Each coded stop in the reusable is an error annotation titled with its code, which links the heading in
 [`brettdavies/.github`'s README](https://github.com/brettdavies/.github/blob/main/README.md) that gives the recovery.
 Two of them follow from how this release runs. `release-tag-moved` means `main` moved past the tag before the dispatched
-run checked it out; the annotation gives the dispatch onto the tag's own ref, which releases on cold caches.
-`library-wait-timeout` means `xdk-rs` did not reach crates.io within the wait; once `release-lib.yml` is green, `gh run
-rerun <id> --failed` continues the release with its builds and attestations kept.
+run checked it out; the annotation gives the dispatch onto the tag's own ref, which releases the tagged commit and saves
+no cache a later release restores. `library-wait-timeout` means `xdk-rs` did not reach crates.io within the wait; once
+`release-lib.yml` is green, `gh run rerun <id> --failed` continues the release with its builds and attestations kept.
 
 The tap's formula installs this release's archives. Its `update-formula` workflow downloads the four it names (the two
 `apple-darwin` and the two `linux-musl` archives), verifies each against the attestation `attest` made, and pins its
