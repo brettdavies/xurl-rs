@@ -10,12 +10,14 @@
 # compensating local gate is the hook pair at scripts/hooks/, which mirrors these
 # jobs before the push leaves the machine.
 #
-# A push to dev or main, or a manual dispatch, is a warm run. Each job that keeps
-# a Rust cache builds what its check compiles with execution off and saves the
-# cache, and the jobs that keep none skip. A pull request restores from its own
-# ref, its base branch, and the default branch, and only a run outside a pull
-# request can write those two branches' scopes, so without warm runs every new
-# PR starts cold.
+# A push to dev, or a manual dispatch, is a warm run; finalize-release.yml
+# dispatches one on main once a release is marked latest, so the release merge
+# starts no run beside the release's own. Each job that keeps a Rust cache
+# builds what its check compiles with execution off and saves the cache, and
+# the jobs that keep none skip. A pull request restores from its own ref, its
+# base branch, and the default branch, and only a run outside a pull request
+# can write those two branches' scopes, so without warm runs every new PR
+# starts cold.
 #
 # Swatinem/rust-cache keys each cache on the job id, the `key` input, and every
 # CARGO*, RUST*, CC*, CFLAGS*, CXX*, and CMAKE* variable in the job's environment.
@@ -30,7 +32,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [dev, main]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
@@ -168,6 +170,27 @@ jobs:
         run: bash scripts/lint-stdio.sh
       - name: Check concurrency group namespacing
         run: bash scripts/check-workflow-concurrency.sh
+
+  # The release scripts' bats suites, which scripts/hooks/pre-push runs when a
+  # push changes scripts/release/. Each test builds a repository of its own
+  # under a temporary directory, with `gh` stubbed, and reads a workspace with
+  # the runner's cargo, so the job keeps no cache.
+  release-scripts:
+    name: Release scripts
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install bats-core
+        run: |
+          set -euo pipefail
+          version="$(bash scripts/tool-version.sh bats-core)"
+          curl -fsSL "https://github.com/bats-core/bats-core/archive/refs/tags/v${version}.tar.gz" | tar -xz -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/bats-core-${version}/install.sh" "$HOME/.local"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: bats scripts/release/tests
+        run: bats scripts/release/tests
 
   # Docs build with warnings denied; a broken intra-doc link or bad code
   # fence fails here instead of surfacing after publish. Two builds: the
@@ -654,3 +677,41 @@ jobs:
           path: |
             anc-scorecard.json
             anc-rows.tsv
+
+  # A warm run saves each job's cache under a key that ends in the hash of the
+  # manifests, the lockfile, and the toolchain, so every lockfile change leaves
+  # the ref holding the caches of the one before. Dev's held 5.5 GB of those on
+  # 2026-11-07, against the repository's 10 GB, and GitHub evicts the least
+  # recently used first, which takes the release's build caches between
+  # releases. After a warm run that every job finished, this keeps the most
+  # recently used cache of each key and deletes the rest. The run restored or
+  # saved each cache it uses, so those are the ones kept. Pull requests' caches
+  # are pr-cache-cleanup.yml's.
+  prune-caches:
+    name: Prune superseded caches
+    needs: [scope, warm, docs, completions, windows, consumer, features, msrv, parity, feature-powerset, anc]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Delete this ref's superseded rust-cache entries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          gh cache list --ref "$REF" --limit 1000 --json id,key,lastAccessedAt,sizeInBytes \
+            | jq -r '[.[] | select(.key | startswith("v0-rust-"))]
+                | group_by(.key | sub("-[^-]+$"; ""))
+                | .[] | sort_by(.lastAccessedAt) | .[:-1][]
+                | "\(.id)\t\(.sizeInBytes)\t\(.key)"' > stale.tsv
+          freed=0
+          while IFS=$'\t' read -r id size key; do
+            gh cache delete "$id"
+            echo "deleted ${key}"
+            freed=$((freed + size))
+          done < stale.tsv
+          echo "Deleted $(wc -l < stale.tsv) superseded caches on ${REF}, $((freed / 1048576)) MB"

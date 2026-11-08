@@ -94,6 +94,9 @@
             "context": "Public API semver"
           },
           {
+            "context": "Release scripts"
+          },
+          {
             "context": "Windows program target"
           },
           {

@@ -405,7 +405,8 @@ cargo test --doc --workspace                # doc tests, which nextest does not 
 cargo nextest run --workspace --run-ignored only  # the TLS probe, and the live smoke under XURL_LIVE_SMOKE=1
 scripts/hooks/pre-push                      # local CI mirror (fmt, clippy, nextest, doc tests, msrv, doc, examples,
                                             # the offline example run, TLS feature cells, the docs.rs feature set,
-                                            # deny, shellcheck, Windows cross-clippy, markdownlint, actionlint;
+                                            # deny, shellcheck, Windows cross-clippy, markdownlint, actionlint,
+                                            # the release scripts' bats suites when scripts/release/ changes;
                                             # cargo-hack powerset when installed)
 ```
 
@@ -496,7 +497,8 @@ the `ci` profile's retry, `period` × `terminate-after` × 2 plus the build stay
 See [`RELEASES.md`](RELEASES.md) for the operational runbook, [`RELEASES-PREFLIGHT.md`](RELEASES-PREFLIGHT.md) for the
 pre-cut go/no-go checklist, and [`RELEASES-RATIONALE.md`](RELEASES-RATIONALE.md) for the why behind every rule. The
 short version: feature branch → PR to `dev` (squash) → `dev`'s tree overlaid onto `release/v<version>` cut from `main` →
-PR to `main` (squash) → annotated tag push triggers `release.yml`.
+PR to `main` (squash) → `scripts/release/tag-release.sh` pushes the annotated tags in one push → the binary's tag run
+dispatches `release.yml` onto `main`, and the library's tag runs `release-lib.yml`.
 
 ### Spec-refresh PRs
 
