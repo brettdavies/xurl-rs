@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2026-11-08
+
+### Changed
+
+- Change the vendored X API spec to the 2026-11-08 content of upstream 2.174, which adds `cta_url_click_count`, `cta_watch_click_count`, and `watch_time_ms` to a media's `organic_metrics` (read into `Media.extra` when a request asks for it). `API_SPEC_SHA256` and `API_SPEC_DATE` follow. by @brettdavies in [#539](https://github.com/brettdavies/xurl-rs/pull/539)
+
+**Full Changelog**: [xdk-rs-v0.5.0...xdk-rs-v0.5.1](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.5.0...xdk-rs-v0.5.1)
+
 ## [0.5.0] - 2026-11-07
 
 ### Breaking changes
