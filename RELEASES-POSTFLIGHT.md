@@ -1,10 +1,11 @@
 <!-- Canonical version: 2026.11.03 (generic) -->
 # Post-release verification: `xurl-rs`
 
-Operational post-flight checklist. Runs **after** the `release/v<version> → main` PR merges and you push the tag (`git
-push origin vX.Y.Z`) per [`RELEASES.md` § Tagging and publishing](./RELEASES.md#tagging-and-publishing). Verifies that
-the tag-triggered pipeline landed cleanly across `release.yml` → `homebrew-tap` → `finalize-release.yml`, and that the
-published artifacts resolve on the public distribution channels.
+Operational post-flight checklist. Runs **after** the `release/v<version> → main` PR merges and
+`scripts/release/tag-release.sh` pushes the tags per [`RELEASES.md` § Tagging and
+publishing](./RELEASES.md#tagging-and-publishing). Verifies that the tag-triggered pipeline landed cleanly across
+`release.yml` → `homebrew-tap` → `finalize-release.yml`, and that the published artifacts resolve on the public
+distribution channels.
 
 Companion to [`RELEASES-PREFLIGHT.md`](./RELEASES-PREFLIGHT.md), which gates the release-branch cut. Both docs follow
 the same go/no-go shape: every box is explicit, an unchecked or red item holds the next release (or motivates a hotfix).
@@ -30,8 +31,8 @@ Sub-commands let you re-run one verification in isolation:
 
 | Sub-command     | What it checks                                                                                                                                                                                                                         | Source of truth                                         |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `release`       | The tag's pipeline concluded `"success"`: `release.yml`, or `release-lib.yml` on an `xdk-rs-v*` tag                                                                                                                                    | `gh run view`                                           |
-| `tap`           | `brettdavies/homebrew-tap` `update-formula` (repository_dispatch) + `Publish formula` (workflow_run) ran SUCCESS. SKIPs on a library tag                                                                                               | `gh run list -R brettdavies/homebrew-tap`               |
+| `release`       | The tag's pipeline concluded `"success"`: the `release.yml` run titled `Release vX.Y.Z`, which the tag's push dispatches onto `main`, or `release-lib.yml`'s run on an `xdk-rs-v*` tag                                                 | `gh run view`                                           |
+| `tap`           | `brettdavies/homebrew-tap`'s `update-formula` run titled `Update xurl-rs to vX.Y.Z` ran SUCCESS; it lands the bump on the tap's `main`. SKIPs on a library tag                                                                         | `gh run list -R brettdavies/homebrew-tap`               |
 | `finalize`      | `finalize-release.yml` callback ran in this repo (cross-repo dispatch loop closed). SKIPs on a library tag                                                                                                                             | `gh run list -e repository_dispatch`                    |
 | `make-latest`   | GitHub Release `vX.Y.Z` is non-draft, non-prerelease, and `releases/latest` resolves to it. On an `xdk-rs-v*` tag the check inverts: latest must not be it                                                                             | `gh api /releases/latest`                               |
 | `crates`        | `crates.io` shows the tag's crate at its version: `xurl-rs` for `vX.Y.Z`, `xdk-rs` for `xdk-rs-vX.Y.Z`                                                                                                                                 | `crates.io` index API                                   |
@@ -44,7 +45,9 @@ The `tap` and `finalize` gates accept only downstream runs created at or after t
 until that run exists: the tap repo is shared across every CLI, so a name-only match would return another release's runs
 while this one is still queued. The `tap` gate also SKIPs when no workflow under `.github/workflows/` calls the
 `rust-release.yml` reusable or sends `update-formula` itself: a repo that dispatches nothing to the tap would otherwise
-pass on another CLI's formula bump. `release.yml` here calls the reusable, so the gate runs.
+pass on another CLI's formula bump. `release.yml` here calls the reusable, so the gate runs. It matches the tap's run by
+its title, which names the formula and version and marks a rehearsal `(dry run)`, so neither a rehearsal nor another
+formula's bump counts.
 
 Flags:
 
@@ -68,17 +71,18 @@ manifest.
 
 ## Checklist
 
-Run immediately after the tag push triggers `release.yml`.
+Run once the tags are pushed.
 
-- [ ] **`release.yml` green end-to-end.** `gh run watch <id> --exit-status` then verify with `gh run view <id> --json
-  conclusion --jq .conclusion` because the watcher exit code alone is not authoritative (a completed watcher is not a
-  green watcher). Builds the seven cross-compile targets, publishes to crates.io via OIDC Trusted Publishing, and
-  dispatches `update-formula` into the homebrew-tap. Run `scripts/release/postflight.sh release` for the automated
-  check.
-- [ ] **Homebrew-tap dispatch landed.** `gh run list -R brettdavies/homebrew-tap --limit 5` should show a recent
-  `update-formula` (event=repository_dispatch) and a `Publish formula` (event=workflow_run) both SUCCESS. The publish
-  workflow pushes the formula bump to tap `main` as one `chore(xurl-rs): bump to v<version>` commit, with no bottle: the
-  formula installs this release's archives. Run `scripts/release/postflight.sh tap` for the automated check.
+- [ ] **`release.yml` green end-to-end.** The run is the one titled `Release vX.Y.Z`, which `gh run list --workflow
+  release.yml --event workflow_dispatch --limit 3` lists. `gh run watch <id> --exit-status` then verify with `gh run
+  view <id> --json conclusion --jq .conclusion` because the watcher exit code alone is not authoritative (a completed
+  watcher is not a green watcher). Builds the seven cross-compile targets, publishes to crates.io via OIDC Trusted
+  Publishing, and dispatches `update-formula` into the homebrew-tap. Run `scripts/release/postflight.sh release` for the
+  automated check.
+- [ ] **Homebrew-tap dispatch landed.** `gh run list -R brettdavies/homebrew-tap --limit 5` should show a recent `Update
+  xurl-rs to v<version>` run SUCCESS. Its `land` job pushes the formula bump to tap `main` as one `chore(xurl-rs): bump
+  to v<version>` commit, with no bottle: the formula installs this release's archives. Run
+  `scripts/release/postflight.sh tap` for the automated check.
 - [ ] **`finalize-release.yml` callback ran.** After the formula lands, the tap dispatches back to this repo and the
   callback flips the GitHub Release `make_latest: true`. Check `gh run list -e repository_dispatch --limit 3`; expect a
   `finalize-release` SUCCESS. Run `scripts/release/postflight.sh finalize` for the automated check.

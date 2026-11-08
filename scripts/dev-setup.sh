@@ -107,11 +107,12 @@ quietly() {
 recipe() {
   case "$1" in
     agentnative | cargo-deny | cargo-hack | cargo-nextest) installer=cargo ;;
-    actionlint | bash | markdownlint-cli2 | ripgrep | shellcheck) installer=brew ;;
+    actionlint | bash | bats-core | markdownlint-cli2 | ripgrep | shellcheck) installer=brew ;;
     *) return 1 ;;
   esac
   case "$1" in
     agentnative) probe=(anc --version) ;;
+    bats-core) probe=(bats --version) ;;
     cargo-*) probe=(cargo "${1#cargo-}" --version) ;;
     markdownlint-cli2) probe=(markdownlint-cli2 --help) ;;
     ripgrep) probe=(rg --version) ;;

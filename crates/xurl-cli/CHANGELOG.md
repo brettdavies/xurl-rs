@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.6.1] - 2026-11-08
+
+### Changed
+
+- Change the release build to optimize for size: `xr` is about 28% smaller, and CPU-bound commands such as `xr completions` take a few milliseconds longer. by @brettdavies in [#541](https://github.com/brettdavies/xurl-rs/pull/541)
+- Change `cargo install xurl-rs` to build with the same release profile as the release archives, so a source install is stripped and size-optimized too.
+
+**Full Changelog**: [v4.6.0...v4.6.1](https://github.com/brettdavies/xurl-rs/compare/v4.6.0...v4.6.1)
+
 ## [4.6.0] - 2026-11-07
 
 ### Added
