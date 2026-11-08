@@ -53,10 +53,15 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           runs="gh run list --repo ${GITHUB_REPOSITORY} --workflow release.yml --branch main --event workflow_dispatch --limit 3 --json displayTitle,status,url"
-          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag="$TAG"
+          runs_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/workflows/release.yml?query=event%3Aworkflow_dispatch"
+          docs="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/RELEASES.md#when-the-dispatch-job-fails"
+          if ! gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f tag="$TAG"; then
+            echo "::error title=release-dispatch-failed::Release ${TAG} was not dispatched onto main, and nothing was built. GitHub can accept a dispatch and still fail this step, so list the runs first: ${runs}. Only when none is titled Release ${TAG}, run: gh workflow run release.yml --repo ${GITHUB_REPOSITORY} --ref main -f tag=${TAG}. See ${docs}"
+            exit 1
+          fi
           echo "::notice title=release-dispatched::Release ${TAG} runs on main: ${runs}"
           {
-            echo "Release ${TAG} was dispatched onto main. Its run is titled \`Release ${TAG}\`:"
+            echo "Release ${TAG} was dispatched onto main. Its run is titled \`Release ${TAG}\`, listed at ${runs_url}, or by:"
             echo
             echo "\`\`\`sh"
             echo "${runs}"

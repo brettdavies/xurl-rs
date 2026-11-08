@@ -460,7 +460,7 @@ so the remote received none and a second run starts clean. Fix what git names, t
 The library's tag starts `.github/workflows/release-lib.yml` on the tag's ref, which publishes `xdk-rs` ([§ Releasing
 the library](#releasing-the-library)). The binary's tag starts `.github/workflows/release.yml`, and that run, titled
 `Dispatch v<version>`, builds nothing. Its one job runs `gh workflow run release.yml --ref main -f tag=v<version>` and
-links the workflow's runs in its summary. The dispatched run, titled `Release v<version>`, runs on `main`, where it
+links the dispatched runs in its summary. The dispatched run, titled `Release v<version>`, runs on `main`, where it
 restores the caches earlier releases saved; a run on a tag's ref saves into the tag's scope, which no later release
 reads. It calls the reusable `brettdavies/.github/.github/workflows/rust-release.yml@main` with the tag:
 
@@ -497,8 +497,9 @@ run, so the release has the account's runners to itself, and `main`'s CI caches 
 
 #### When the dispatch job fails
 
-A failed `Dispatch the release onto main` job built nothing. GitHub can accept a dispatch and still fail the job, so
-look for the release run before you start one:
+A failed `Dispatch the release onto main` job built nothing. Its error annotation, titled `release-dispatch-failed`,
+links here, and `scripts/release/postflight.sh release` fails on it. GitHub can accept a dispatch and still fail the job,
+so look for the release run before you start one:
 
 ```bash
 gh run list --workflow release.yml --branch main --event workflow_dispatch --limit 3
