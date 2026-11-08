@@ -398,11 +398,11 @@ lists the queued and in-progress workflow runs in every repository the account o
 share the account's concurrent-job limit with the release's builds, so a listed run holds the cut until it finishes, or
 until `--force`. On success it prints a `Next:` block naming the runs to watch and the postflight command for each tag.
 
-| Exit | Meaning                                                                                                                                                      | Next                                                    |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| 0    | Every tag is pushed. Under `--dry-run`, every check passed and nothing was created.                                                                          | Watch the runs the `Next:` block names.                 |
-| 1    | `runners-busy`, or `push-failed`, after which the tags the run created are deleted.                                                                          | The code's heading below, then run the script again.    |
-| 2    | A refusal before any tag exists: `dirty-tree`, `main-not-current`, `remote-unreachable`, `tag-exists`, or `runner-check-failed`; or a missing tool, by name. | The code's heading below, or install the tool it names. |
+| Exit | Meaning                                                                                                                                                                              | Next                                                    |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| 0    | Every tag is pushed. Under `--dry-run`, every check passed and nothing was created.                                                                                                  | Watch the runs the `Next:` block names.                 |
+| 1    | `runners-busy`, or `push-failed`, after which the tags the run created are deleted.                                                                                                  | The code's heading below, then run the script again.    |
+| 2    | A refusal before any tag exists: `dirty-tree`, `main-not-current`, `remote-unreachable`, `workspace-unreadable`, `tag-exists`, or `runner-check-failed`; or a missing tool, by name. | The code's heading below, or install the tool it names. |
 
 ### When the cut stops
 
@@ -425,6 +425,12 @@ pull request first.
 
 `git fetch` or `git ls-remote --tags` against the remote failed. Check `git remote -v` and the network, then run the
 script again.
+
+#### `workspace-unreadable`
+
+`cargo metadata` failed, and the error quotes what cargo printed, so the script cannot tell which workspace members to
+tag. Without that check it would tag `v<version>` alone and leave `xdk-rs-v<version>` behind. The usual cause is a
+toolchain that `rust-toolchain.toml` pins and rustup could not install. Fix what cargo names, then run the script again.
 
 #### `tag-exists`
 

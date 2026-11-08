@@ -236,6 +236,18 @@ local_tags() { "$REAL_GIT" -C "$W" tag --list | tr '\n' ' '; }
   [ "$(local_tags)" = "v1.2.0 " ]
 }
 
+@test "a workspace cargo cannot read refuses before any tag" {
+  real_cargo="$(command -v cargo)"
+  printf '#!/usr/bin/env bash\nif [ "$1" = metadata ]; then echo "error: toolchain 1.96.0 is not installed" >&2; exit 101; fi\nexec "%s" "$@"\n' "$real_cargo" >"$T/bin/cargo"
+  chmod +x "$T/bin/cargo"
+  tag_release
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"error[workspace-unreadable]"* ]]
+  [[ "$output" == *"toolchain 1.96.0 is not installed"* ]]
+  [ -z "$(local_tags)" ]
+  [ -z "$(remote_tags)" ]
+}
+
 @test "an unreachable remote refuses before any tag" {
   "$REAL_GIT" -C "$W" remote set-url origin "$T/missing.git"
   tag_release

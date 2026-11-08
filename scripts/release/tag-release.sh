@@ -29,8 +29,8 @@
 #   1 = a check failed: runs hold the account's runners, or the push failed,
 #       in which case the tags this run created are deleted
 #   2 = a refusal or setup error: a dirty worktree, main not at origin/main, a
-#       remote that does not answer, a tag that already exists, an unreadable
-#       runner check, or a missing tool
+#       remote that does not answer, a workspace cargo cannot read, a tag that
+#       already exists, an unreadable runner check, or a missing tool
 #
 # Each refusal prints `error[<code>]:` on stderr with the values behind it, the
 # next step, and the RELEASES.md section that answers it.
@@ -128,6 +128,13 @@ version=$(project_version)
   echo "no version in $(release_manifest); set RELEASE_MANIFEST in scripts/release/release.env" >&2
   exit 2
 }
+
+# release_members reads cargo metadata and answers nothing when cargo fails,
+# which would cut the binary's tag without the library's.
+if ! metadata_err=$(cargo metadata --format-version 1 --no-deps 2>&1 >/dev/null); then
+  refuse workspace-unreadable 2 "cargo metadata failed, so the workspace members to tag are unknown:
+$(indent <<<"$metadata_err")" "fix what cargo names, then run this again"
+fi
 
 remote_tags=$(git ls-remote --tags --refs "$REMOTE" 2>/dev/null | sed 's#.*refs/tags/##') \
   || refuse remote-unreachable 2 "git ls-remote --tags ${REMOTE} failed" "git remote -v and the network, then run this again"
