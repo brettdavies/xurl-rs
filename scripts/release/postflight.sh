@@ -328,10 +328,17 @@ gate_release() {
 
   run=$(release_run databaseId,status,conclusion)
   if [[ -z "$run" ]]; then
-    if [[ -n "$(gh run list --repo "$repo" --workflow "$wf" --branch "$tag" --limit 1 --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)" ]]; then
-      gate_skip "$wf run for $tag" "the tag's run dispatches the release, and no run titled Release $tag has started yet"
-    else
+    local dispatch run_id
+    dispatch=$(gh run list --repo "$repo" --workflow "$wf" --branch "$tag" --limit 5 \
+      --json displayTitle,databaseId,status,conclusion \
+      --jq "[.[] | select(.displayTitle == \"Dispatch $tag\")][0] // empty" 2>/dev/null || true)
+    if [[ -z "$dispatch" ]]; then
       gate_skip "$wf run for $tag" "no run found for tag $tag yet (push the tag?)"
+    elif [[ "$(jaq -r .status <<<"$dispatch")" == "completed" && "$(jaq -r .conclusion <<<"$dispatch")" != "success" ]]; then
+      run_id=$(jaq -r .databaseId <<<"$dispatch")
+      gate_fail "$wf run $run_id" "Dispatch $tag concluded $(jaq -r .conclusion <<<"$dispatch") and no run titled Release $tag exists (see RELEASES.md#when-the-dispatch-job-fails)"
+    else
+      gate_skip "$wf run for $tag" "the tag's run dispatches the release, and no run titled Release $tag has started yet"
     fi
     return
   fi

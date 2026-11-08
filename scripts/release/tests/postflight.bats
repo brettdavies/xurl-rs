@@ -71,6 +71,14 @@ postflight() {
   [[ "$output" != *"✓"* ]]
 }
 
+@test "a failed dispatch job fails the release gate rather than waiting" {
+  run_entry 1 o/r release.yml push v9.9.9 "Dispatch v9.9.9" failure 2026-11-08T01:00:00Z
+  postflight release
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"✗ release.yml run 1"* ]]
+  [[ "$output" == *"RELEASES.md#when-the-dispatch-job-fails"* ]]
+}
+
 @test "a caller that releases on the tag push is read from the tag's own run" {
   run_entry 7 o/r release.yml push v9.9.9 "chore(release): v9.9.9" success 2026-11-08T01:00:00Z
   postflight release
