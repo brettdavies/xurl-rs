@@ -208,14 +208,16 @@ Considered and not built:
   `brew trust --tap`. The bump downloads and verifies the archives concurrently, as KTD5 does. With those setup steps
   kept as `tests.yml` runs them, the tap row takes about 3:10 against the Budget's 2:00.
 - KTD8. **The tag's run dispatches the release onto `main`.** `rust-release.yml` takes a required `tag` input and reads
-  no ref. `validate-inputs` resolves the tag, peels it to its commit, refuses unless that commit is `GITHUB_SHA` (R12),
-  and exports the tag as the output every later job reads: the version check, the release notes, the GitHub Release's
-  `tag_name`, the attestation downloads, and the Homebrew payload. xurl-rs's `release.yml` runs one job on the tag push,
-  `gh workflow run release.yml --ref main -f tag=<tag>` under `GITHUB_TOKEN` with `actions: write`; GitHub lets that
-  token start a `workflow_dispatch` run. On dispatch, the caller passes the tag to the reusable. The dispatched run's
-  caches live in `main`'s scope, which the next release's dispatched run restores (Appendix, cache-scope probe). When
-  `main` has moved past the tag, the guard refuses, and `gh workflow run release.yml --ref <tag> -f tag=<tag>` releases
-  from the tag's own ref on cold caches.
+  no ref. A dispatched input skips the push trigger's tag pattern, so `validate-inputs` first refuses a tag that does
+  not match `^v[0-9]+\.[0-9]+\.[0-9]+$`, the form bird, agentnative-cli, and xurl-rs all tag releases in, and every step
+  reads the tag through `env:`. It then resolves the tag, peels it to its commit, refuses unless that commit is
+  `GITHUB_SHA` (R12), and exports the tag as the output every later job reads: the version check, the release notes, the
+  GitHub Release's `tag_name`, the attestation downloads, and the Homebrew payload. xurl-rs's `release.yml` runs one job
+  on the tag push, `gh workflow run release.yml --ref main -f tag=<tag>` under `GITHUB_TOKEN` with `actions: write`;
+  GitHub lets that token start a `workflow_dispatch` run. On dispatch, the caller passes the tag to the reusable. The
+  dispatched run's caches live in `main`'s scope, which the next release's dispatched run restores (Appendix,
+  cache-scope probe). When `main` has moved past the tag, the guard refuses, and
+  `gh workflow run release.yml --ref <tag> -f tag=<tag>` releases from the tag's own ref on cold caches.
 - KTD9. **The attestations name `main` as their source ref.** In a dispatched run, the certificate's
   `sourceRepositoryRef` becomes `refs/heads/main` and `buildTrigger` becomes `workflow_dispatch`.
   `sourceRepositoryDigest` stays the tagged commit, which the guard enforces, and the signer stays
@@ -264,12 +266,12 @@ Considered and not built:
   template, so the job goes upstream with the other release files.
 - KTD15. **Every failure the plan adds names its code, its values, and the command that recovers.** Each new workflow
   refusal is an `::error title=<code>::` annotation with a stable kebab-case code: `library-wait-timeout` (U2),
-  `cross-host-fallback` (U5), `release-tag-missing` and `release-tag-moved` (U6), `source-built-formula` (U7). Its
-  message names the values that caused it, the exact recovery command with the run's id filled in
-  (`gh run rerun <id> --failed`, or the `--ref <tag>` dispatch), whether anything published, and the `RELEASES.md`
-  section that answers it. `tag-release.sh` does the same on stderr with exit 2. The codes follow the global error
-  contract's stable reasons; GitHub Actions carries no exit code per refusal, so the annotation title is the
-  machine-readable field.
+  `cross-host-fallback` (U5), `release-tag-invalid`, `release-tag-missing`, and `release-tag-moved` (U6),
+  `source-built-formula` (U7). Its message names the values that caused it, the exact recovery command with the run's id
+  filled in (`gh run rerun <id> --failed`, or the `--ref <tag>` dispatch), whether anything published, and the
+  `RELEASES.md` section that answers it. `tag-release.sh` does the same on stderr with exit 2. The codes follow the
+  global error contract's stable reasons; GitHub Actions carries no exit code per refusal, so the annotation title is
+  the machine-readable field.
 
 ### High-Level Technical Design
 
@@ -523,8 +525,9 @@ Waits on: nothing.
     `actions: write`, and require a package check, since publishing skips the verify compile),
     `brettdavies/.github: RELEASES-RATIONALE.md`
 - **Approach:**
-  1. Add the required `tag` input and resolve it under `refs/tags/` in `validate-inputs`, peeled to its commit, so a
-     branch name or a commit id does not resolve.
+  1. Add the required `tag` input. In `validate-inputs`, refuse it with `release-tag-invalid` unless it matches
+     `^v[0-9]+\.[0-9]+\.[0-9]+$`, as the job checks every other input, then resolve it under `refs/tags/`, peeled to its
+     commit, so a branch name or a commit id does not resolve. Later steps read it through `env:`.
   2. Refuse when the tag is missing or its commit is not `GITHUB_SHA`, naming both commits, the recovery dispatch, and
      the `RELEASES.md` section on it.
   3. Replace every ref read with the job output, and give the `Create GitHub Release` step its `tag_name` from it.
@@ -540,6 +543,8 @@ Waits on: nothing.
   - A dispatch onto `main` with a tag behind it: the run refuses before any build, naming both commits and the
     `--ref <tag>` recovery.
   - A dispatch naming a tag that does not exist, or a branch such as `main`: the run refuses.
+  - A dispatch naming the library tag on the same commit, or a tag named `4.6.0`: the run refuses before any build,
+    naming the pattern.
   - A dispatch onto the tag's own ref: the guard passes.
   - The lint fails on a seeded ref read and on a release step without `tag_name`, and passes on the tree.
   - The parity script fails when the two `Cache dependencies` steps differ in `key` or `env-vars`, and passes on the
@@ -997,12 +1002,12 @@ REALITY: premise-table finding 12 premises, 2 unverified (P10 Trusted Publishing
 REALITY: already-done pass git log origin/dev since 2026-11-06 over the named workflows, scripts/release, and RELEASES docs shows only dependency bumps (55f770a, 9f3fda9); no commits on brettdavies/.github main or the tap since then 55f770a
 REALITY: surface-check pass gh 2.103.3 --help lists --ref, --raw-field, --failed, --all, --succeed-on-no-caches, --signer-workflow, --branch, --event; the cleanup's delete runs today .github/workflows/pr-cache-cleanup.yml:25
 REALITY: binding-decisions pass gstack-decision-search --scope branch --recent 50 holds nothing this plan reverses; KD1 to KD4 and D2 are kept .github/workflows/ci.yml:32-33
-REALITY: numbers finding the Budget's tag hop was 0:20 unmeasured and is now 0:35, from v4.6.0's measured 0:34 [measured: docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:741]; the tap row's 2:00 holds only with KTD7's plain legs [estimated]; totals 7:45 and 6:05 [estimated] docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:741
+REALITY: numbers finding the Budget's tag hop was 0:20 unmeasured and is now 0:35, from v4.6.0's measured 0:34 [measured: docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:746]; the tap row's 2:00 holds only with KTD7's plain legs [estimated]; totals 7:45 and 6:05 [estimated] docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:746
 REALITY: deferred-asks pass no linked issue; Brett's unchosen items (latest before Homebrew, backport automation) are listed in Scope Boundaries with KD3 .github/workflows/finalize-release.yml:1
 REALITY: pr-count pass no .gstack/ship-policy.json, so the default is one PR per wave; three repositories need three PRs, and each extra gate is one review and one merge by its owner .github/workflows/release.yml:17
 REALITY: prior-art pass adopt rust-cache's documented key (job id, `key` input, env prefixes, then the manifest and lockfile hash) as ci.yml already relies on it; adopt cross's documented host fallback note as the failure signal; adopt crates-io-auth-action's exchange-and-revoke for the U9 probe; nothing is patched or vendored .github/workflows/ci.yml:19-23
 REALITY: contract-assumptions pass brettdavies/.github's one open PR, 119, touches only rust-ci.yml; callers pin @main, so PR1's merge reaches them at once (Sequencing) .github/workflows/finalize-release.yml:1
-REALITY: units pass no input changes units: the Budget scales build steps by the local cold and warm ratios, and its consumers (R1's 8:00, the 6:15 criterion, KTD2's 10-minute bound and 10 s retry) stay in m:ss and seconds docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:752
+REALITY: units pass no input changes units: the Budget scales build steps by the local cold and warm ratios, and its consumers (R1's 8:00, the 6:15 criterion, KTD2's 10-minute bound and 10 s retry) stay in m:ss and seconds docs/plans/2026-11-07-1206-perf-release-pipeline-under-8-minutes-plan.md:757
 REALITY: perf-table pass the base is v4.6.0's measured run and the local profile's cold and warm builds on 4 pinned cores; the release itself re-measures both .github/workflows/release.yml:17
 REALITY: dependency-fallback pass PR2 ships alone; PR1 alone breaks every caller's release until it passes tag; PR3 needs PR1 and is ready before it merges .github/workflows/release.yml:17
 REALITY: obligation-tiers pass must-ship: every unit; next PR: the bird and agentnative-cli fast follow and the canon move; deferred: the tap's bottle path and the aws-lc finding .github/workflows/finalize-release.yml:1
@@ -1348,25 +1353,6 @@ every pass finding was a correction within the accepted scope.
 Prior scores are this review's own starting scores; the earlier DX rows on this branch reviewed other plans. Community
 stays at 6 as internal tooling, and no dimension is below 6. The TTHW row is the operator's time from merge to both tags
 pushed, measured today and estimated after.
-
-## Deferred / Open Questions
-
-These are review items left for the author. They do not block implementation and are not the plan's Open Questions.
-
-### From 2026-11-07 review
-
-- **A dispatched tag passes the release run's guards without being a release tag** — U6. The release reads one tag and
-  refuses a moved `main` (P2, security-lens and adversarial, confidence 75)
-
-  A dispatch naming the library tag, which sits on the same commit as the binary's, passes the commit guard and runs
-  seven builds before the version check refuses it. The version check's `${TAG#v}` comparison also accepts a tag
-  named `4.6.0` at `main`'s head, so a release could publish under a name that is not its release tag. The push
-  trigger's pattern guards tag pushes only. The solutions entry on dispatched tag inputs
-  (`docs/solutions/security-issues/workflow-dispatch-tag-input-bypasses-prefix-strip-version-guard.md`) records the
-  same gap.
-  Change: before resolving the tag, `validate-inputs` refuses one that does not match `^v[0-9]+\.[0-9]+\.[0-9]+$`,
-  with its own KTD15 code, and hands the tag to every step through `env:`. That pattern matches every caller's release
-  tags (bird, agentnative-cli, xurl-rs).
 
 ## GSTACK REVIEW REPORT
 
