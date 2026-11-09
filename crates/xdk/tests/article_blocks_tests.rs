@@ -3,7 +3,13 @@
 //! lines join into one, and a line starting `#`, `##`, `###`, `-`, `1.`, or
 //! `>` is a block of its own.
 
+mod common;
+
+use serde_json::Value;
 use xdk::api::shortcuts::article_blocks;
+
+const EVERY_MARKER: &str =
+    "# One\n## Two\n### Three\n- item\n1. first\n12. twelfth\n> quoted\nplain";
 
 fn kinds_and_texts(body: &str) -> Vec<(String, String)> {
     article_blocks(body)
@@ -18,13 +24,12 @@ fn pair(kind: &str, text: &str) -> (String, String) {
 
 #[test]
 fn every_block_type_has_its_marker() {
-    let body = "# One\n## Two\n### Three\n- item\n1. first\n12. twelfth\n> quoted\nplain";
     assert_eq!(
-        kinds_and_texts(body),
+        kinds_and_texts(EVERY_MARKER),
         vec![
             pair("header-one", "One"),
             pair("header-two", "Two"),
-            pair("header-three", "Three"),
+            pair("header-two", "Three"),
             pair("unordered-list-item", "item"),
             pair("ordered-list-item", "first"),
             pair("ordered-list-item", "twelfth"),
@@ -32,6 +37,23 @@ fn every_block_type_has_its_marker() {
             pair("unstyled", "plain"),
         ]
     );
+}
+
+#[test]
+fn every_block_type_is_one_the_vendored_spec_lists() {
+    let spec = common::load_spec();
+    let listed = spec
+        .pointer("/components/schemas/ArticleCreateDraftContentStateBlocks/properties/type/enum")
+        .and_then(Value::as_array)
+        .expect("the spec lists the article block types");
+    for block in article_blocks(EVERY_MARKER) {
+        assert!(
+            listed.iter().any(|kind| kind == block.kind),
+            "`{}` reads as block type `{}`, which the vendored spec does not list",
+            block.text,
+            block.kind
+        );
+    }
 }
 
 #[test]

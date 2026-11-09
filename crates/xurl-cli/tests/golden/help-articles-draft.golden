@@ -1,12 +1,12 @@
 args: ["articles", "draft", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7486
+stdout_len: 7546
 stderr_len: 0
 --- stdout ---
 Save a draft X Article from a plain-text body
 
-A blank line ends a paragraph. A line that starts with `#`, `##`, or `###` and a space is a header, `-` a list item, `1.` a numbered item, and `>` a quote.
+A blank line ends a paragraph. A line that starts with `#`, `##`, or `###` and a space is a header (X articles have two header levels, so `###` reads as `##`), `-` a list item, `1.` a numbered item, and `>` a quote.
 
 Usage: xr articles draft [OPTIONS] --title <TITLE> --body-file <PATH>
 

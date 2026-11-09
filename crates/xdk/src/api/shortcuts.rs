@@ -250,8 +250,7 @@ pub struct ArticleBlock {
     /// The block's text, without its marker.
     pub text: String,
     /// The block type: `unstyled`, `header-one`, `header-two`,
-    /// `header-three`, `unordered-list-item`, `ordered-list-item`, or
-    /// `blockquote`.
+    /// `unordered-list-item`, `ordered-list-item`, or `blockquote`.
     #[serde(rename = "type")]
     pub kind: &'static str,
 }
@@ -260,8 +259,9 @@ pub struct ArticleBlock {
 ///
 /// A blank line ends a paragraph, and consecutive plain lines join into one,
 /// separated by a space. A line that starts with a marker and a space is a
-/// block of its own: `#`, `##`, and `###` are headers, `-` an unordered list
-/// item, a number and `.` an ordered one, and `>` a quote.
+/// block of its own: `#`, `##`, and `###` are headers (X articles have two
+/// header levels, so `###` reads as `##`), `-` an unordered list item, a
+/// number and `.` an ordered one, and `>` a quote.
 #[must_use]
 pub fn article_blocks(body: &str) -> Vec<ArticleBlock> {
     let mut blocks = Vec::new();
@@ -295,7 +295,9 @@ pub fn article_blocks(body: &str) -> Vec<ArticleBlock> {
 /// The block type a line's marker names, and the text after it.
 fn marked_block(line: &str) -> Option<(&'static str, &str)> {
     const MARKERS: &[(&str, &str)] = &[
-        ("### ", "header-three"),
+        // X articles have two header levels; the deeper one keeps a `###`
+        // line a header instead of publishing its marker as text.
+        ("### ", "header-two"),
         ("## ", "header-two"),
         ("# ", "header-one"),
         ("- ", "unordered-list-item"),
