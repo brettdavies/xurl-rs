@@ -1,7 +1,7 @@
 [package]
 name = "xurl-rs"
 version = "4.6.1"
-description = "A fast, ergonomic CLI for the X (Twitter) API — OAuth1/2, Bearer, media upload, streaming"
+description = "A fast, ergonomic CLI for the X (Twitter) API: OAuth1/2, Bearer, media upload, streaming, webhooks"
 documentation = "https://docs.rs/xurl-rs"
 keywords = ["twitter", "x", "api", "cli", "oauth"]
 categories = ["command-line-utilities", "web-programming", "api-bindings"]
