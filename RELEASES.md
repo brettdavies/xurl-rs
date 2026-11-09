@@ -493,7 +493,8 @@ downloads the archive.
 
 After the tap lands the formula bump, it dispatches `finalize-release` back to this repo, which idempotently flips
 `make_latest: true`. Its `warm-main` job then runs `gh workflow run ci.yml --ref main`: the release merge starts no CI
-run, so the release has the account's runners to itself, and `main`'s CI caches fill once the release is out.
+run, so the release has the account's runners to itself, and `main`'s CI caches fill once the release is out. That run
+saves one entry shared by CI's Linux jobs, one for the Windows job, and one for each of the four reusable CI jobs.
 
 #### When the dispatch job fails
 
