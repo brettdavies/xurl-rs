@@ -5,8 +5,8 @@
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](#license)
 
 Async Rust client for the X (Twitter) API v2: credentials held in code, one typed call per endpoint, OAuth1, OAuth2
-PKCE, bearer tokens, media upload, and streaming. `xdk` is the name X uses for its own SDKs; this is an independent
-project, not affiliated with, endorsed by, or maintained by X. The `xr` command-line tool
+PKCE, bearer tokens, media upload, streaming, and webhooks. `xdk` is the name X uses for its own SDKs; this is an
+independent project, not affiliated with, endorsed by, or maintained by X. The `xr` command-line tool
 ([`xurl-rs`](https://crates.io/crates/xurl-rs)) is built on this crate.
 
 ## Quick start

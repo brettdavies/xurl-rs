@@ -5,7 +5,8 @@
 [![agent-native](https://anc.dev/badge/xr.svg)](https://anc.dev/score/xr)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](#license)
 
-A fast, ergonomic CLI for the X (Twitter) API. OAuth1, OAuth2 PKCE, Bearer auth. Media upload. Streaming. Agent-native.
+A fast, ergonomic CLI for the X (Twitter) API. OAuth1, OAuth2 PKCE, Bearer auth. Media upload. Streaming. Webhooks.
+Agent-native.
 
 Rust port of [xurl](https://github.com/xdevplatform/xurl): faster, type-safe, with shell completions and
 machine-readable output. An independent project, not affiliated with, endorsed by, or maintained by X.
@@ -199,8 +200,9 @@ xr articles publish 1850000000000000003        # Publish (asks first; --force sk
 ```
 
 The body is plain text: a blank line ends a paragraph, and a line that starts with `#`, `##`, or `###` and a space is a
-header, `-` a list item, `1.` a numbered item, and `>` a quote. `xr` turns it into the blocks X's Articles API takes.
-`--cover <MEDIA_ID>` puts an image uploaded with `xr media upload` above the article.
+header (X articles have two header levels, so `###` reads as `##`), `-` a list item, `1.` a numbered item, and `>` a
+quote. `xr` turns it into the blocks X's Articles API takes. `--cover <MEDIA_ID>` puts an image uploaded with
+`xr media upload` above the article.
 
 ### Community Notes
 

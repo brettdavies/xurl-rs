@@ -9,7 +9,7 @@
 Two crates for the X (Twitter) API v2, in one repository:
 
 - **`xdk-rs`**, an async Rust client library: credentials in code, one typed call per endpoint, OAuth1, OAuth2 PKCE,
-  bearer tokens, media upload, streaming.
+  bearer tokens, media upload, streaming, webhooks.
   [The library](#the-library-xdk-rs) · [crates/xdk/README.md](crates/xdk/README.md) · [docs.rs](https://docs.rs/xdk-rs)
 - **`xurl-rs`**, the `xr` command-line tool built on it: a Rust port of X's own `xurl` with shell completions,
   machine-readable output, and structured exit codes for agents.
@@ -55,8 +55,8 @@ docs.rs landing page, where it is compiled as a doctest.
 ## The CLI: xr
 
 `xr` calls the X API from a shell or an agent: curl-style raw requests, shortcut commands over the common endpoints,
-every auth flow, chunked media upload, streaming, seven output formats, and a typed error envelope with structured exit
-codes. It installs with `brew install brettdavies/tap/xurl-rs` or `cargo install --locked xurl-rs`.
+every auth flow, chunked media upload, streaming, webhooks, seven output formats, and a typed error envelope with
+structured exit codes. It installs with `brew install brettdavies/tap/xurl-rs` or `cargo install --locked xurl-rs`.
 
 - [Install](crates/xurl-cli/README.md#install), [Quick start](crates/xurl-cli/README.md#quick-start), and the
   [command reference](crates/xurl-cli/README.md#commands)

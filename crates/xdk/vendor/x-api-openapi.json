@@ -2482,12 +2482,11 @@
             "type": "string"
           },
           "type": {
-            "description": "The block type. Use atomic for non-text embeds (image, post, markdown, divider, latex).",
+            "description": "The block type. Articles have two heading levels, header-one and header-two. Use atomic for non-text embeds (image, post, markdown, divider, latex).",
             "enum": [
               "unstyled",
               "header-one",
               "header-two",
-              "header-three",
               "unordered-list-item",
               "ordered-list-item",
               "blockquote",
@@ -5536,7 +5535,7 @@
             "type": "boolean"
           },
           "media_ids": {
-            "description": "Media IDs to attach to the tweet.",
+            "description": "Media IDs to attach to the Post, in the order given.",
             "items": {
               "pattern": "^[0-9]{1,19}$",
               "type": "string"
@@ -18869,14 +18868,14 @@
         "properties": {
           "content": {
             "$ref": "#/components/schemas/SendChatMessageContent",
-            "description": "Plaintext message or reaction, sent unencrypted. Only accepted for a 1:1 conversation that can't be encrypted because one of the two users has connected an enterprise app that reads their DMs. Set exactly one of `message`, `reaction_add`, or `reaction_remove`. Omit when sending `encoded_message_create_event`."
+            "description": "Unencrypted fallback: use only when the recipient's `receives_your_chat` is `unencrypted`."
           },
           "conversation_token": {
             "description": "Optional conversation token.",
             "type": "string"
           },
           "encoded_message_create_event": {
-            "description": "Base64-encoded Thrift MessageCreateEvent containing encrypted message contents. Omit when sending `content`.",
+            "description": "Default. The end-to-end encrypted message: a base64 Thrift MessageCreateEvent from the Chat XDK.",
             "type": "string"
           },
           "encoded_message_event_signature": {
@@ -22108,7 +22107,7 @@
             "$ref": "#/components/schemas/UserPublicMetrics"
           },
           "receives_your_chat": {
-            "description": "How you can send a Chat message to this User: encrypted, unencrypted, or none.",
+            "description": "How you can send a Chat message to this User: encrypted (end-to-end, the default), unencrypted (X Chat can't encrypt your 1:1 chat, so send plaintext `content` instead), or none (you can't message them).",
             "type": "string"
           },
           "receives_your_dm": {
@@ -26520,7 +26519,7 @@
     },
     "/2/chat/conversations": {
       "get": {
-        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox, newest first: the most recently active conversation comes first. To find the chat with a particular person, start with participant_query set to their @username or name. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and each conversation's latest notifying message. Request them with chat_conversation.fields=unread,last_read_event_id,newest_event_id.\n\nThe filters unread_only, type, is_archived, is_muted, participant_ids, participant_query, start_time and end_time are optional, and all filters must match (AND). participant_query keeps conversations where another participant's username, or a word of their display name, starts with the query, ignoring case and accents; with a leading @ it matches usernames only. It considers the 100 people who best match the query, uses only public profile information, and never matches group names, nicknames or messages. start_time and end_time apply to the time of each conversation's latest message.\n\nEach page covers max_results conversations and returns those that match, so a page can hold fewer than max_results, or none, while meta.next_token is set and has_more is true: keep paging, passing meta.next_token as pagination_token. Once a page reaches a conversation whose latest message is older than start_time, has_more is false. A pagination_token only works with the same filters as the request that returned it; with other filters, the request fails with a 400.\n\nWhen both are provided, `start_time` must be earlier than `end_time`.",
+        "description": "Retrieves a list of Chat conversations for the authenticated user's inbox, newest first: the most recently active conversation comes first. To find the chat with a particular person, start with participant_query set to their @username or name; with expansions=participant_ids, user.fields=receives_your_chat says how you can message each match. The unread, last_read_event_id and newest_event_id fields give your read state, computed from your latest read receipt and each conversation's latest notifying message. Request them with chat_conversation.fields=unread,last_read_event_id,newest_event_id.\n\nThe filters unread_only, type, is_archived, is_muted, participant_ids, participant_query, start_time and end_time are optional, and all filters must match (AND). participant_query keeps conversations where another participant's username, or a word of their display name, starts with the query, ignoring case and accents; with a leading @ it matches usernames only. It considers the 100 people who best match the query, uses only public profile information, and never matches group names, nicknames or messages. start_time and end_time apply to the time of each conversation's latest message.\n\nEach page covers max_results conversations and returns those that match, so a page can hold fewer than max_results, or none, while meta.next_token is set and has_more is true: keep paging, passing meta.next_token as pagination_token. Once a page reaches a conversation whose latest message is older than start_time, has_more is false. A pagination_token only works with the same filters as the request that returned it; with other filters, the request fails with a 400.\n\nWhen both are provided, `start_time` must be earlier than `end_time`.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -26888,7 +26887,7 @@
         ]
       },
       "get": {
-        "description": "Returns metadata for a Chat conversation including type, muted status, group details, and your unread state. For the unread state, request chat_conversation.fields=unread,last_read_event_id,newest_event_id: those fields give your read state, computed from your latest read receipt and the conversation's latest notifying message. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users.",
+        "description": "Returns metadata for a Chat conversation including type, muted status, group details, and your unread state. For the unread state, request chat_conversation.fields=unread,last_read_event_id,newest_event_id: those fields give your read state, computed from your latest read receipt and the conversation's latest notifying message. Use chat_conversation.fields to select which fields are returned. Use expansions to hydrate member, admin, or participant user objects. Use user.fields to control which profile fields are returned for expanded users; in a 1:1 chat, user.fields=receives_your_chat on the participant says how you can message them: encrypted, unencrypted, or none.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -28574,7 +28573,7 @@
     },
     "/2/chat/conversations/{id}/messages": {
       "post": {
-        "description": "Sends a message or reaction to a specific Chat conversation, which you can find with `participant_query` on Get Chat Conversations. Send `encoded_message_create_event`, an end-to-end encrypted event built with the Chat XDK. `content`, a plaintext message or reaction sent unencrypted, is only a fallback for a 1:1 conversation that X Chat can't encrypt because one of the two users has connected an enterprise app that reads their DMs; check that the recipient's `receives_your_chat` user field is `unencrypted` before using it. Otherwise a `content` send is refused, and retrying it won't help: HTTP 400 https://api.x.com/2/problems/encryption-required when the conversation can be encrypted or is a group (send `encoded_message_create_event` instead), 400 https://api.x.com/2/problems/xchat-setup-required when you haven't set up X Chat, 400 https://api.x.com/2/problems/recipient-xchat-setup-required when the recipient hasn't, and 403 https://api.x.com/2/problems/message-request-not-supported when it would be a message request. HTTP 503 https://api.x.com/2/problems/chat-permissions-unavailable means the check failed and nothing was sent; retry it. For 1:1 conversations, provide the recipient's user ID; the server constructs the canonical conversation ID from the authenticated user and recipient. A recipient who cannot be messaged (closed inbox, system/notification account, or a 1:1 block) returns HTTP 403 with type https://api.x.com/2/problems/recipient-not-messageable.",
+        "description": "Sends a message or reaction to a Chat conversation, which you can find with `participant_query` on Get Chat Conversations. Send it end-to-end encrypted by default: `encoded_message_create_event`, built with the Chat XDK. Plaintext `content` is only a fallback for a 1:1 chat that X Chat can't encrypt: use it only when the recipient's `receives_your_chat` user field (`user.fields=receives_your_chat`) is `unencrypted`. When `content` is refused, nothing is sent and the problem's `detail` says why; HTTP 400 https://api.x.com/2/problems/encryption-required means the chat can be encrypted or is a group, so send it encrypted instead. A recipient you can't message (closed inbox, system account, or a block) returns HTTP 403 https://api.x.com/2/problems/recipient-not-messageable.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -33204,7 +33203,7 @@
         ]
       },
       "post": {
-        "description": "Uploads a media file for use in posts, direct messages, or ads. The response carries the media identifiers, including the media_key used to reference the asset in later calls. The media field carries the file content base64-encoded in JSON bodies (raw bytes in multipart bodies); media_category is tweet_image, tweet_video, or tweet_gif for posts and ads, dm_image/dm_video/dm_gif for DMs, or subtitles. For X Ads accounts, register the returned media_key via create_media_library_item to add it to the account's media library and use it in campaigns.",
+        "description": "Uploads a media file in one request and returns its id. Send the file base64-encoded in media (raw bytes in multipart bodies). For a Post, set media_category to tweet_image (JPG, PNG, GIF or WEBP, up to 5 MB) or tweet_gif, then pass the returned id in media.media_ids on Create or Edit Post. DM media uses dm_image or dm_gif. Use the chunked upload endpoints for video.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload"
         },
@@ -35167,7 +35166,7 @@
         ]
       },
       "post": {
-        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Supports paid partnership disclosure via the paid_partnership field.",
+        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each file with Upload Media. Supports paid partnership disclosure via the paid_partnership field.",
         "operationId": "createPosts",
         "requestBody": {
           "content": {
@@ -43165,6 +43164,7 @@
         "operationId": "getUsersPublicKey",
         "parameters": [
           {
+            "description": "Numeric user ID, not `me`. For your own keys, use the `id` from Get My User (`GET /2/users/me`).",
             "in": "path",
             "name": "id",
             "required": true,

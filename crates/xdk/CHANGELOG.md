@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2026-11-09
+
+### Changed
+
+- Change the vendored X API spec to the 2026-11-09 content of upstream 2.174, which removes the `header-three` article block type. `API_SPEC_SHA256` and `API_SPEC_DATE` follow. by @brettdavies in [#547](https://github.com/brettdavies/xurl-rs/pull/547)
+
+### Fixed
+
+- Fix `article_blocks` producing a `header-three` block for a `### ` line, a type X's Articles API no longer lists. The line now becomes `header-two`. by @brettdavies in [#547](https://github.com/brettdavies/xurl-rs/pull/547)
+
+**Full Changelog**: [xdk-rs-v0.5.1...xdk-rs-v0.5.2](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.5.1...xdk-rs-v0.5.2)
+
 ## [0.5.1] - 2026-11-08
 
 ### Changed
