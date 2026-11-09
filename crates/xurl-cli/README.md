@@ -200,8 +200,9 @@ xr articles publish 1850000000000000003        # Publish (asks first; --force sk
 ```
 
 The body is plain text: a blank line ends a paragraph, and a line that starts with `#`, `##`, or `###` and a space is a
-header, `-` a list item, `1.` a numbered item, and `>` a quote. `xr` turns it into the blocks X's Articles API takes.
-`--cover <MEDIA_ID>` puts an image uploaded with `xr media upload` above the article.
+header (X articles have two header levels, so `###` reads as `##`), `-` a list item, `1.` a numbered item, and `>` a
+quote. `xr` turns it into the blocks X's Articles API takes. `--cover <MEDIA_ID>` puts an image uploaded with
+`xr media upload` above the article.
 
 ### Community Notes
 
