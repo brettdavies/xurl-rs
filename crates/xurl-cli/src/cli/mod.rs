@@ -2558,8 +2558,9 @@ pub enum ArticlesCommands {
     /// Save a draft X Article from a plain-text body
     ///
     /// A blank line ends a paragraph. A line that starts with `#`, `##`, or
-    /// `###` and a space is a header, `-` a list item, `1.` a numbered item,
-    /// and `>` a quote.
+    /// `###` and a space is a header (X articles have two header levels, so
+    /// `###` reads as `##`), `-` a list item, `1.` a numbered item, and `>` a
+    /// quote.
     #[command(after_help = family_help::articles::FAMILY.verb_page(&family_help::articles::DRAFT))]
     Draft {
         /// The article's title
