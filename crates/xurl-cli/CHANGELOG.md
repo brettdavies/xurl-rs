@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.6.2] - 2026-11-09
+
+### Fixed
+
+- Fix `xr articles draft` sending a `### ` line as a block type X's Articles API no longer lists. The line now goes out as a `##` header, because X articles have two header levels. by @brettdavies in [#547](https://github.com/brettdavies/xurl-rs/pull/547)
+
+**Full Changelog**: [v4.6.1...v4.6.2](https://github.com/brettdavies/xurl-rs/compare/v4.6.1...v4.6.2)
+
 ## [4.6.1] - 2026-11-08
 
 ### Changed
