@@ -344,8 +344,14 @@ not the source ref, so neither check changes.
 
 The release's caches have to survive the weeks between releases. GitHub evicts the least recently used cache once a
 repository holds 10 GB, and expires one unread for seven days. CI's warm runs on `dev` and `main` therefore delete their
-caches for superseded lockfiles once every job has finished, and the weekly matrix check on `main` reads the release's
-caches under the release's own keys (§ Cross-compile target matrix).
+caches for superseded manifests and lockfiles once every job has finished, and the weekly matrix check on `main` reads
+the release's caches under the release's own keys (§ Cross-compile target matrix).
+
+CI's own caches stay small for the same reason. The Linux jobs `ci.yml` defines restore one entry, `ci-linux`, which only
+its `warm-linux` job saves, so a branch holds six CI entries of about 1.7 GB, and a pull request that moves a cache key
+saves about 1.2 GB. Every workspace manifest is part of the key, so editing any `Cargo.toml` field but a version moves
+the keys as a `Cargo.lock` change does. The repository is fullest at `warm-main` after a release, when `main` holds two
+sets of CI caches and two sets of release builds until the prune runs, about 7.6 GB with `dev`'s set counted.
 
 ### Why the release has the account's runners to itself
 
@@ -357,7 +363,8 @@ in-progress runs in every repository the account owns and has not archived, and 
 CI runs on a push to `dev`, not on a push to `main`, so the release PR's merge starts no CI run beside the release's
 own. `main`'s CI caches still need filling, since every pull request falls back to the default branch's caches.
 `finalize-release.yml`'s `warm-main` job dispatches CI on `main` once the release is marked latest, when the release no
-longer needs the runners, and that run's prune drops `main`'s caches for older lockfiles.
+longer needs the runners, and that run's prune drops `main`'s caches for older manifests and lockfiles, the
+previous release's build caches among them.
 
 ### Why `make_latest: false` then `finalize-release`
 
