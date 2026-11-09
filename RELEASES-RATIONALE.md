@@ -350,8 +350,12 @@ the release's caches under the release's own keys (§ Cross-compile target matri
 CI's own caches stay small for the same reason. The Linux jobs `ci.yml` defines restore one entry, `ci-linux`, which only
 its `warm-linux` job saves, so a branch holds six CI entries of about 1.7 GB, and a pull request that moves a cache key
 saves about 1.2 GB. Every workspace manifest is part of the key, so editing any `Cargo.toml` field but a version moves
-the keys as a `Cargo.lock` change does. The repository is fullest at `warm-main` after a release, when `main` holds two
-sets of CI caches and two sets of release builds until the prune runs, about 7.6 GB with `dev`'s set counted.
+the keys as a `Cargo.lock` change does. Between toolchain changes the repository is fullest at `warm-main` after a
+release, when `main` holds two sets of CI caches and two sets of release builds until the prune runs, about 7.6 GB with
+`dev`'s set counted. A change to the toolchain pin, or to the Rust the runner image installs, moves every key's
+toolchain hash, which the prune does not group across, so each old set stays until it has gone unread for seven days. A
+release inside those seven days takes the total to about 9.3 GB, and GitHub evicts the old sets first, as the least
+recently read.
 
 ### Why the release has the account's runners to itself
 

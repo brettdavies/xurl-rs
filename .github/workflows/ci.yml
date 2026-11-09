@@ -147,9 +147,10 @@ jobs:
 
   # Builds what the Linux jobs below compile, in one job, so one entry holds all
   # of it. Cargo keeps each feature set's artifacts side by side, and each job
-  # then finds its own. `MSRV` and `Feature powerset` only check what the list
-  # already compiled, so they stay off it. A command a job adds without a line
-  # here still passes, and that job compiles it on every run.
+  # then finds its own. `MSRV` and `Feature powerset` have no commands here: each
+  # compiles a few units these commands miss, and neither is on the critical path.
+  # A command a job adds without a line here still passes, and that job compiles
+  # it on every run.
   warm-linux:
     name: Warm the shared Linux cache
     needs: scope
