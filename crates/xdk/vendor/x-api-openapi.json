@@ -892,7 +892,8 @@
               "juicebox_config",
               "public_key",
               "public_key_version",
-              "signing_public_key"
+              "signing_public_key",
+              "user_id"
             ],
             "type": "string"
           },
@@ -1567,6 +1568,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "AddChatGroupMembersRequest": {
@@ -1765,6 +1771,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "AddConversationKeysRequest": {
@@ -2146,10 +2157,10 @@
                 "type": "string"
               }
             ],
-            "description": "The media chunk to upload."
+            "description": "One segment of the file: base64-encoded in JSON bodies, raw bytes in multipart bodies."
           },
           "segment_index": {
-            "description": "The index of this segment in the upload sequence.",
+            "description": "The segment's position in the file, counting from 0.",
             "maximum": 9999,
             "minimum": 0,
             "type": "integer"
@@ -2439,7 +2450,7 @@
             "type": "array"
           },
           "entities": {
-            "description": "Non-text entities referenced by blocks (links, embedded posts, images, emoji,          markdown/code/tables, dividers, LaTeX). Full set matches article storage.",
+            "description": "Non-text entities referenced by blocks (links, embedded posts, images, emoji, markdown/code/tables, dividers, LaTeX). Full set matches article storage.",
             "items": {
               "$ref": "#/components/schemas/ArticleCreateDraftContentStateEntities"
             },
@@ -2460,14 +2471,14 @@
             "description": "Block-level metadata for mentions, hashtags, cashtags, and URLs."
           },
           "entity_ranges": {
-            "description": "References to entries in entities.",
+            "description": "Entity references. Each item has offset, length and key, the entity's key as an integer (0 for \"0\").",
             "items": {
               "$ref": "#/components/schemas/ArticleCreateDraftContentStateBlocksEntityRanges"
             },
             "type": "array"
           },
           "inline_style_ranges": {
-            "description": "Inline formatting ranges.",
+            "description": "Inline styles. Each item has offset, length and style: bold, italic or strikethrough, in lowercase.",
             "items": {
               "$ref": "#/components/schemas/ArticleCreateDraftContentStateBlocksInlineStyleRanges"
             },
@@ -2478,7 +2489,7 @@
             "type": "string"
           },
           "text": {
-            "description": "The text content of this block. For latex entities, this holds the LaTeX source;          for divider/markdown/image/post atomic placeholders, typically a single space.",
+            "description": "The text content of this block. For latex entities, this holds the LaTeX source; for divider/markdown/image/post atomic placeholders, typically a single space.",
             "type": "string"
           },
           "type": {
@@ -2639,7 +2650,7 @@
         "additionalProperties": false,
         "properties": {
           "key": {
-            "description": "Index into the entities array.",
+            "description": "The key of the referenced entity, as an integer.",
             "minimum": 0,
             "type": "integer"
           },
@@ -2695,7 +2706,7 @@
         "additionalProperties": false,
         "properties": {
           "key": {
-            "description": "The entity key referenced by entity_ranges.",
+            "description": "The entity's key, a string such as \"0\". entity_ranges refer to it as an integer.",
             "type": "string"
           },
           "value": {
@@ -2713,7 +2724,7 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ArticleCreateDraftContentStateEntitiesValueData",
-            "description": "Entity payload. Fields depend on the entity type: post_id (post), url (link),          media_items (image), entity_key (emoji and other opaque keys), markdown (markdown /          code blocks / GFM tables). divider and latex use an empty data object; latex source          is the block text; emoji uses block text for the character(s). There is no separate          table entity type in article storage; tables are markdown."
+            "description": "Fields: post_id (post), url (link), media_items (image), markdown (markdown), entity_key (emoji). divider and latex use an empty data object; latex source is the block text, and emoji uses the block text for the character(s). Tables are markdown; article storage has no table entity type."
           },
           "mutability": {
             "description": "Whether the entity can be edited. Recommended: immutable for post, image, divider, latex; mutable for link and markdown (matches the in-app Articles composer).",
@@ -2725,7 +2736,7 @@
             "type": "string"
           },
           "type": {
-            "description": "The entity type. markdown carries code blocks, GFM tables, and other Markdown;          emoji maps to backend TWEMOJI (Twemoji is internal); divider is a horizontal rule;          latex renders TeX from the block text. Tables are not a separate enum value — use          type markdown with a pipe table in data.markdown.",
+            "description": "The entity type. markdown carries code blocks, GFM tables, and other Markdown; emoji maps to backend TWEMOJI (Twemoji is internal); divider is a horizontal rule; latex renders TeX from the block text. Tables are not a separate enum value — use type markdown with a pipe table in data.markdown.",
             "enum": [
               "post",
               "link",
@@ -2818,7 +2829,7 @@
         "properties": {
           "content_state": {
             "$ref": "#/components/schemas/ArticleCreateDraftContentState",
-            "description": "DraftJS content state representing the article body. Special formatting          (markdown/code/tables, dividers, LaTeX, emoji, images, embedded posts) uses atomic          blocks with entity_ranges pointing into entities."
+            "description": "DraftJS content state representing the article body. Special formatting (markdown/code/tables, dividers, LaTeX, emoji, images, embedded posts) uses atomic blocks with entity_ranges pointing into entities."
           },
           "cover_media": {
             "$ref": "#/components/schemas/ArticleCreateDraftCoverMedia",
@@ -4409,6 +4420,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "CreateChatConversationRequest": {
@@ -5765,7 +5781,7 @@
           },
           "text": {
             "default": "",
-            "description": "Text of the tweet. Required unless media is provided.  Defaulted to an empty string so it is always sent: the backend's `tweet_text` variable is non-null and rejects an absent value.",
+            "description": "Text of the Post. Required unless media is provided. At most 280 characters unless the account has X Premium.",
             "type": "string"
           }
         },
@@ -17178,6 +17194,10 @@
           },
           "signing_public_key": {
             "type": "string"
+          },
+          "user_id": {
+            "description": "ID of the user the key belongs to. Returned by Get Public Keys for Multiple Users.",
+            "type": "string"
           }
         },
         "type": "object"
@@ -17764,6 +17784,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "RemoveChatGroupMembersGroupKeyRotationDataRotatedPmkBundle": {
@@ -18126,7 +18151,7 @@
             "type": "string"
           },
           "name": {
-            "description": "The bot's display name.",
+            "description": "The bot's display name. May be absent for an org-only bot.",
             "type": "string"
           },
           "scopes": {
@@ -18145,7 +18170,7 @@
             "type": "integer"
           },
           "username": {
-            "description": "The bot's X handle (screen name).",
+            "description": "The bot's X handle (screen name). May be absent for an org-only bot.",
             "type": "string"
           }
         },
@@ -20779,6 +20804,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "UpdateChatGroupRequest": {
@@ -33132,13 +33162,14 @@
     },
     "/2/media/upload": {
       "get": {
-        "description": "Retrieves the status of a Media upload by its ID.",
+        "description": "Returns how far X has processed an uploaded media file, in processing_info.state: pending, in_progress, succeeded or failed. Call it after Finalize Media Upload returns processing_info, waiting check_after_secs between calls, until the state is succeeded. A failed state means the media can't be used.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload-status#media-upload-status"
         },
         "operationId": "getMediaUploadStatus",
         "parameters": [
           {
+            "description": "The media id from Initialize Media Upload.",
             "in": "query",
             "name": "media_id",
             "required": true,
@@ -33148,6 +33179,7 @@
             "style": "form"
           },
           {
+            "description": "Always STATUS; can be left out.",
             "in": "query",
             "name": "command",
             "required": false,
@@ -33203,7 +33235,7 @@
         ]
       },
       "post": {
-        "description": "Uploads a media file in one request and returns its id. Send the file base64-encoded in media (raw bytes in multipart bodies). For a Post, set media_category to tweet_image (JPG, PNG, GIF or WEBP, up to 5 MB) or tweet_gif, then pass the returned id in media.media_ids on Create or Edit Post. DM media uses dm_image or dm_gif. Use the chunked upload endpoints for video.",
+        "description": "Uploads a media file in one request and returns its id. Send the file base64-encoded in media (raw bytes in multipart bodies). For a Post, set media_category to tweet_image (JPG, PNG, GIF or WEBP, up to 5 MB) or tweet_gif, then pass the returned id in media.media_ids on Create or Edit Post. DM media uses dm_image or dm_gif. For video, use Initialize Media Upload.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload"
         },
@@ -33268,7 +33300,7 @@
     },
     "/2/media/upload/initialize": {
       "post": {
-        "description": "Initializes a media upload.",
+        "description": "Starts a chunked media upload and returns its id. Use it for video and for other files too large for one request. For a video on a Post, set media_category to tweet_video, media_type to the file's type (for example video/mp4) and total_bytes to the file's size. Send the file with Append Media Upload, call Finalize Media Upload, then pass the id in media.media_ids on Create or Edit Post.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload"
         },
@@ -33328,10 +33360,11 @@
     },
     "/2/media/upload/{id}/append": {
       "post": {
-        "description": "Appends data to a Media upload request.",
+        "description": "Appends one segment of the file to a chunked upload. Send the segment base64-encoded in media (raw bytes in multipart bodies) and its position in the file in segment_index, counting from 0. A segment can be up to 8 MB; in a JSON body keep it to 4 MB or less, because base64 adds a third. After the last segment, call Finalize Media Upload.",
         "operationId": "appendMediaUpload",
         "parameters": [
           {
+            "description": "The upload id from Initialize Media Upload.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -33402,13 +33435,14 @@
     },
     "/2/media/upload/{id}/finalize": {
       "post": {
-        "description": "Finalizes a Media upload request.",
+        "description": "Completes a chunked upload once every segment is appended. For video the result carries processing_info: the media can go on a Post only when its state is succeeded, so call Get Media Upload Status until it is. A result without processing_info is ready to use.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload"
         },
         "operationId": "finalizeMediaUpload",
         "parameters": [
           {
+            "description": "The upload id from Initialize Media Upload.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -34484,7 +34518,7 @@
             "required": true,
             "schema": {
               "items": {
-                "pattern": "^[a-zA-Z0-9]{1,13}$",
+                "pattern": "^[a-zA-Z0-9]{1,24}$",
                 "type": "string"
               },
               "maxItems": 100,
@@ -34745,7 +34779,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -34821,7 +34855,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -34915,7 +34949,7 @@
             "name": "id",
             "required": true,
             "schema": {
-              "pattern": "^[a-zA-Z0-9]{1,13}$",
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
               "type": "string"
             },
             "style": "simple"
@@ -35166,7 +35200,7 @@
         ]
       },
       "post": {
-        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each file with Upload Media. Supports paid partnership disclosure via the paid_partnership field.",
+        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each image with Upload Media, or a video with Initialize Media Upload. Supports paid partnership disclosure via the paid_partnership field.",
         "operationId": "createPosts",
         "requestBody": {
           "content": {
@@ -40196,13 +40230,14 @@
     },
     "/2/users/public_keys": {
       "get": {
-        "description": "Returns registered public keys for X Chat encryption for the specified users.",
+        "description": "Returns the public keys that up to 100 users registered for X Chat encryption, looked up by numeric user ID. Each key carries the user_id of the user it belongs to.\n\nEvery key field is returned by default, so public_key.fields can be left out. It takes public_key, signing_public_key, identity_public_key_signature, public_key_version, juicebox_config and user_id.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
         "operationId": "getUsersPublicKeys",
         "parameters": [
           {
+            "description": "Comma-separated numeric user IDs (1-100), not @usernames.",
             "explode": false,
             "in": "query",
             "name": "ids",
@@ -40364,11 +40399,13 @@
         "operationId": "searchUsers",
         "parameters": [
           {
+            "description": "A name or @username (1-50 chars): letters and digits in any language, spaces, and _ ' . - @ & \"",
             "in": "query",
             "name": "query",
             "required": true,
             "schema": {
-              "pattern": "^[A-Za-z0-9_' ]{1,50}$",
+              "maxLength": 50,
+              "pattern": "^[\\p{L}\\p{M}\\p{N}\\p{Zs}_'’.@&\"-]+$",
               "type": "string"
             },
             "style": "form"
@@ -40705,7 +40742,7 @@
         ]
       },
       "post": {
-        "description": "Causes the source User to block the target User.",
+        "description": "Causes the source User to block the target User. A block also removes any follow between the two Users, in both directions, and unblocking does not restore it. Each call blocks one account: block only accounts the authenticated User named or approved, because finding or reviewing accounts is not approval to block them.",
         "operationId": "usersIdBlock",
         "parameters": [
           {
@@ -40779,6 +40816,7 @@
         "operationId": "getUsersBookmarks",
         "parameters": [
           {
+            "description": "The authenticated user's numeric ID, not `me`: the `id` from Get My User (`GET /2/users/me`).",
             "in": "path",
             "name": "id",
             "required": true,
@@ -40878,6 +40916,7 @@
         "operationId": "createUsersBookmark",
         "parameters": [
           {
+            "description": "The authenticated user's numeric ID, not `me`: the `id` from Get My User (`GET /2/users/me`).",
             "in": "path",
             "name": "id",
             "required": true,
@@ -40945,6 +40984,7 @@
         "operationId": "getUsersBookmarkFolders",
         "parameters": [
           {
+            "description": "The authenticated user's numeric ID, not `me`: the `id` from Get My User (`GET /2/users/me`).",
             "in": "path",
             "name": "id",
             "required": true,
@@ -41025,6 +41065,7 @@
         "operationId": "createUsersBookmarkFolder",
         "parameters": [
           {
+            "description": "The authenticated user's numeric ID, not `me`: the `id` from Get My User (`GET /2/users/me`).",
             "in": "path",
             "name": "id",
             "required": true,
@@ -41091,6 +41132,7 @@
         "operationId": "getUsersBookmarksByFolderId",
         "parameters": [
           {
+            "description": "The authenticated user's numeric ID, not `me`: the `id` from Get My User (`GET /2/users/me`).",
             "in": "path",
             "name": "id",
             "required": true,
@@ -41186,6 +41228,7 @@
         "operationId": "deleteUsersBookmark",
         "parameters": [
           {
+            "description": "The authenticated user's numeric ID, not `me`: the `id` from Get My User (`GET /2/users/me`).",
             "in": "path",
             "name": "id",
             "required": true,
@@ -43157,7 +43200,7 @@
     },
     "/2/users/{id}/public_keys": {
       "get": {
-        "description": "Returns a user's registered public keys for X Chat encryption.",
+        "description": "Returns a user's registered public keys for X Chat encryption.\n\nEvery key field is returned by default, so public_key.fields can be left out. It takes public_key, signing_public_key, identity_public_key_signature, public_key_version and juicebox_config.",
         "externalDocs": {
           "url": "https://developer.x.com/"
         },
@@ -44102,7 +44145,7 @@
     },
     "/2/users/{source_user_id}/blocking/{target_user_id}": {
       "delete": {
-        "description": "Causes the source User to unblock the target User.",
+        "description": "Causes the source User to unblock the target User. Unblocking does not restore any follow the block removed, so blocking and then unblocking a follower removes them as a follower: do that only for followers the authenticated User approved removing.",
         "externalDocs": {
           "url": "https://developer.twitter.com/en/docs/twitter-api/users/blocks/api-reference/delete-users-user_id-blocking"
         },

@@ -523,6 +523,7 @@ Examples:
     xr block @spammer
   Block (JSON envelope):
     xr block @spammer --output json
+  Blocking also removes any follow between you and them, both ways; unblocking does not restore it.
 ";
 
 /// `xr unblock` examples — paired text + JSON.
@@ -532,6 +533,7 @@ Examples:
     xr unblock @spammer
   Unblock (JSON envelope):
     xr unblock @spammer --output json
+  Unblocking does not restore a follow the block removed.
 ";
 
 /// `xr blocked` examples — paired text + JSON.

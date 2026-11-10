@@ -1216,7 +1216,7 @@ fn dry_run_cases() -> Vec<Case> {
         ),
         case(
             "dry-run-invalid-user-query",
-            &["--output", "json", "--dry-run", "search-users", "rust-lang"],
+            &["--output", "json", "--dry-run", "search-users", "rust#lang"],
         ),
         case(
             "dry-run-invalid-media-key",

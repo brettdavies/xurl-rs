@@ -173,7 +173,7 @@ xr spaces posts 1DXxyRYNejbKM                  # The posts shared in a Space
 ```
 
 `xr spaces by-creator` takes handles and numeric ids in any mix: it resolves every handle in one lookup before it asks
-for the Spaces, and passes ids through as they are. A Space id is 1 to 13 letters or digits; anything else is refused
+for the Spaces, and passes ids through as they are. A Space id is 1 to 24 letters or digits; anything else is refused
 with `invalid-space-id` before any request.
 
 ### Filtered stream rules
