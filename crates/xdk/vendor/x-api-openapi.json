@@ -1568,6 +1568,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "AddChatGroupMembersRequest": {
@@ -1766,6 +1771,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "AddConversationKeysRequest": {
@@ -2147,10 +2157,10 @@
                 "type": "string"
               }
             ],
-            "description": "The media chunk to upload."
+            "description": "One segment of the file: base64-encoded in JSON bodies, raw bytes in multipart bodies."
           },
           "segment_index": {
-            "description": "The index of this segment in the upload sequence.",
+            "description": "The segment's position in the file, counting from 0.",
             "maximum": 9999,
             "minimum": 0,
             "type": "integer"
@@ -4410,6 +4420,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "CreateChatConversationRequest": {
@@ -5766,7 +5781,7 @@
           },
           "text": {
             "default": "",
-            "description": "Text of the tweet. Required unless media is provided.  Defaulted to an empty string so it is always sent: the backend's `tweet_text` variable is non-null and rejects an absent value.",
+            "description": "Text of the Post. Required unless media is provided. At most 280 characters unless the account has X Premium.",
             "type": "string"
           }
         },
@@ -17769,6 +17784,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "RemoveChatGroupMembersGroupKeyRotationDataRotatedPmkBundle": {
@@ -18131,7 +18151,7 @@
             "type": "string"
           },
           "name": {
-            "description": "The bot's display name.",
+            "description": "The bot's display name. May be absent for an org-only bot.",
             "type": "string"
           },
           "scopes": {
@@ -18150,7 +18170,7 @@
             "type": "integer"
           },
           "username": {
-            "description": "The bot's X handle (screen name).",
+            "description": "The bot's X handle (screen name). May be absent for an org-only bot.",
             "type": "string"
           }
         },
@@ -20784,6 +20804,11 @@
             "type": "string"
           }
         },
+        "required": [
+          "user_id",
+          "encrypted_conversation_key",
+          "public_key_version"
+        ],
         "type": "object"
       },
       "UpdateChatGroupRequest": {
@@ -33137,13 +33162,14 @@
     },
     "/2/media/upload": {
       "get": {
-        "description": "Retrieves the status of a Media upload by its ID.",
+        "description": "Returns how far X has processed an uploaded media file, in processing_info.state: pending, in_progress, succeeded or failed. Call it after Finalize Media Upload returns processing_info, waiting check_after_secs between calls, until the state is succeeded. A failed state means the media can't be used.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload-status#media-upload-status"
         },
         "operationId": "getMediaUploadStatus",
         "parameters": [
           {
+            "description": "The media id from Initialize Media Upload.",
             "in": "query",
             "name": "media_id",
             "required": true,
@@ -33153,6 +33179,7 @@
             "style": "form"
           },
           {
+            "description": "Always STATUS; can be left out.",
             "in": "query",
             "name": "command",
             "required": false,
@@ -33208,7 +33235,7 @@
         ]
       },
       "post": {
-        "description": "Uploads a media file in one request and returns its id. Send the file base64-encoded in media (raw bytes in multipart bodies). For a Post, set media_category to tweet_image (JPG, PNG, GIF or WEBP, up to 5 MB) or tweet_gif, then pass the returned id in media.media_ids on Create or Edit Post. DM media uses dm_image or dm_gif. Use the chunked upload endpoints for video.",
+        "description": "Uploads a media file in one request and returns its id. Send the file base64-encoded in media (raw bytes in multipart bodies). For a Post, set media_category to tweet_image (JPG, PNG, GIF or WEBP, up to 5 MB) or tweet_gif, then pass the returned id in media.media_ids on Create or Edit Post. DM media uses dm_image or dm_gif. For video, use Initialize Media Upload.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload"
         },
@@ -33273,7 +33300,7 @@
     },
     "/2/media/upload/initialize": {
       "post": {
-        "description": "Initializes a media upload.",
+        "description": "Starts a chunked media upload and returns its id. Use it for video and for other files too large for one request. For a video on a Post, set media_category to tweet_video, media_type to the file's type (for example video/mp4) and total_bytes to the file's size. Send the file with Append Media Upload, call Finalize Media Upload, then pass the id in media.media_ids on Create or Edit Post.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload"
         },
@@ -33333,10 +33360,11 @@
     },
     "/2/media/upload/{id}/append": {
       "post": {
-        "description": "Appends data to a Media upload request.",
+        "description": "Appends one segment of the file to a chunked upload. Send the segment base64-encoded in media (raw bytes in multipart bodies) and its position in the file in segment_index, counting from 0. A segment can be up to 8 MB; in a JSON body keep it to 4 MB or less, because base64 adds a third. After the last segment, call Finalize Media Upload.",
         "operationId": "appendMediaUpload",
         "parameters": [
           {
+            "description": "The upload id from Initialize Media Upload.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -33407,13 +33435,14 @@
     },
     "/2/media/upload/{id}/finalize": {
       "post": {
-        "description": "Finalizes a Media upload request.",
+        "description": "Completes a chunked upload once every segment is appended. For video the result carries processing_info: the media can go on a Post only when its state is succeeded, so call Get Media Upload Status until it is. A result without processing_info is ready to use.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/media/media-upload"
         },
         "operationId": "finalizeMediaUpload",
         "parameters": [
           {
+            "description": "The upload id from Initialize Media Upload.",
             "in": "path",
             "name": "id",
             "required": true,
@@ -35171,7 +35200,7 @@
         ]
       },
       "post": {
-        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each file with Upload Media. Supports paid partnership disclosure via the paid_partnership field.",
+        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each image with Upload Media, or a video with Initialize Media Upload. Supports paid partnership disclosure via the paid_partnership field.",
         "operationId": "createPosts",
         "requestBody": {
           "content": {
@@ -40370,11 +40399,13 @@
         "operationId": "searchUsers",
         "parameters": [
           {
+            "description": "A name or @username (1-50 chars): letters and digits in any language, spaces, and _ ' . - @ & \"",
             "in": "query",
             "name": "query",
             "required": true,
             "schema": {
-              "pattern": "^[A-Za-z0-9_' ]{1,50}$",
+              "maxLength": 50,
+              "pattern": "^[\\p{L}\\p{M}\\p{N}\\p{Zs}_'’.@&\"-]+$",
               "type": "string"
             },
             "style": "form"
