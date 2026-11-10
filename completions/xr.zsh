@@ -402,7 +402,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
 '-h[Print help (see more with '\''--help'\'')]' \
 '--help[Print help (see more with '\''--help'\'')]' \
-':query -- Search query. A user search is 1 to 50 letters, digits, underscores, apostrophes, or spaces.:_default' \
+':query -- Search query. A user search is 1 to 50 characters\: letters and digits in any language, spaces, and _ '\'' ’ . - @ & ".:_default' \
 && ret=0
 ;;
 (users)

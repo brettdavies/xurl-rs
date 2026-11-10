@@ -2823,6 +2823,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
+ "icu_properties",
  "percent-encoding",
  "phf",
  "phf_codegen",

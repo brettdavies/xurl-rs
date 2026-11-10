@@ -187,7 +187,7 @@ async fn inputs_outside_the_spec_are_refused_before_any_request() {
     for (args, reason) in [
         (vec!["spaces", "get", "not-a-space!"], "invalid-space-id"),
         (
-            vec!["spaces", "posts", "1DXxyRYNejbKMxx"],
+            vec!["spaces", "posts", "1DXxyRYNejbKMxxxxxxxxxxxx"],
             "invalid-space-id",
         ),
         (

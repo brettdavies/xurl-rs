@@ -8,6 +8,8 @@
 
 use std::collections::HashMap;
 
+use icu_properties::CodePointMapData;
+use icu_properties::props::{GeneralCategory, GeneralCategoryGroup};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
@@ -541,7 +543,7 @@ pub const LIST_DESCRIPTION_MAX_CHARS: usize = 100;
 /// The most ids one lookup takes, the spec's `maxItems` on `ids`.
 pub const LOOKUP_IDS_MAX: usize = 100;
 
-/// The longest user search query, from the spec's pattern on `query`.
+/// The longest user search query, the spec's `maxLength` on `query`.
 pub const USER_SEARCH_QUERY_MAX_CHARS: usize = 50;
 
 /// Validates a post / reply / quote body.
@@ -630,13 +632,21 @@ pub fn is_user_id_form(account: &str) -> bool {
 }
 
 /// Validates a user search query against the spec's pattern: 1 to
-/// [`USER_SEARCH_QUERY_MAX_CHARS`] letters, digits, underscores, apostrophes,
-/// or spaces.
+/// [`USER_SEARCH_QUERY_MAX_CHARS`] characters, each a letter, mark, or digit
+/// in any script, a space, or one of `_ ' ’ . @ & " -`.
 ///
 /// # Errors
 /// Returns `invalid-user-query` for a query outside that pattern.
 pub fn validate_user_search_query(query: &str) -> std::result::Result<(), &'static str> {
-    let allowed = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '\'' | ' ');
+    let categories = GeneralCategoryGroup::Letter
+        .union(GeneralCategoryGroup::Mark)
+        .union(GeneralCategoryGroup::Number)
+        .union(GeneralCategoryGroup::SpaceSeparator);
+    let category = CodePointMapData::<GeneralCategory>::new();
+    let allowed = |c: char| {
+        categories.contains(category.get(c))
+            || matches!(c, '_' | '\'' | '\u{2019}' | '.' | '@' | '&' | '"' | '-')
+    };
     if query.is_empty()
         || query.chars().count() > USER_SEARCH_QUERY_MAX_CHARS
         || !query.chars().all(allowed)
@@ -770,13 +780,13 @@ pub fn validate_media_keys<S: AsRef<str>>(keys: &[S]) -> std::result::Result<(),
         .try_for_each(|key| validate_media_key(key.as_ref()))
 }
 
-/// Validates a Space id against the spec's pattern: 1 to 13 letters or
+/// Validates a Space id against the spec's pattern: 1 to 24 letters or
 /// digits.
 ///
 /// # Errors
 /// Returns `invalid-space-id` for anything else.
 pub fn validate_space_id(id: &str) -> std::result::Result<(), &'static str> {
-    if id.is_empty() || id.len() > 13 || !id.bytes().all(|b| b.is_ascii_alphanumeric()) {
+    if id.is_empty() || id.len() > 24 || !id.bytes().all(|b| b.is_ascii_alphanumeric()) {
         return Err("invalid-space-id");
     }
     Ok(())

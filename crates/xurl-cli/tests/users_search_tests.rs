@@ -119,7 +119,7 @@ async fn search_users_refuses_a_query_outside_the_spec_pattern_before_any_reques
     let store = oauth2_store(tmp.path());
     let too_long = "a".repeat(51);
 
-    for query in ["", "rust-lang", too_long.as_str()] {
+    for query in ["", "rust#lang", too_long.as_str()] {
         let (code, stdout, stderr) = run(
             &store,
             &server.uri(),
@@ -142,7 +142,7 @@ async fn search_users_refuses_a_query_outside_the_spec_pattern_before_any_reques
 async fn the_query_help_states_the_rule_its_validator_enforces() {
     let tmp = TempDir::new().expect("tempdir");
     let rule = format!(
-        "1 to {} letters, digits, underscores, apostrophes, or spaces",
+        "1 to {} characters: letters and digits in any language",
         xdk::api::shortcuts::USER_SEARCH_QUERY_MAX_CHARS
     );
     let (code, stdout, stderr) = run(
@@ -163,5 +163,5 @@ async fn the_query_help_states_the_rule_its_validator_enforces() {
         .split("Examples:")
         .nth(1)
         .expect("an Examples section");
-    assert!(!examples.contains("letters, digits"), "{examples}");
+    assert!(!examples.contains("letters and digits"), "{examples}");
 }
