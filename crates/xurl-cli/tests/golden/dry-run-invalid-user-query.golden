@@ -1,18 +1,18 @@
-args: ["--output", "json", "--dry-run", "search-users", "rust-lang"]
+args: ["--output", "json", "--dry-run", "search-users", "rust#lang"]
 store: empty
 exit_code: 0
-stdout_len: 412
+stdout_len: 438
 stderr_len: 0
 --- stdout ---
 {
   "command": "search-users",
   "exit_code": 1,
-  "message": "A user search is 1 to 50 letters, digits, underscores, apostrophes, or spaces.",
+  "message": "A user search is 1 to 50 characters: letters and digits in any language, spaces, and _ ' ’ . - @ & \".",
   "next_step": {
     "action": "show-help",
     "command": "xr search-users --help"
   },
-  "query": "rust-lang",
+  "query": "rust#lang",
   "reason": "validation",
   "response_schema": "xr schema search-users",
   "rule": "invalid-user-query",
