@@ -523,8 +523,7 @@ Examples:
     xr block @spammer
   Block (JSON envelope):
     xr block @spammer --output json
-  A block also removes any follow between you and the account, in both directions; xr unblock
-  does not restore it.
+  Blocking also removes any follow between you and them, both ways; unblocking does not restore it.
 ";
 
 /// `xr unblock` examples — paired text + JSON.

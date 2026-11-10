@@ -1,8 +1,8 @@
 //! `xr search-users` finds accounts by keyword through `GET /2/users/search`.
 //! That endpoint pages with `next_token` rather than `pagination_token`, takes
-//! a user login only, and accepts a query of 1 to 50 letters, digits,
-//! underscores, apostrophes, and spaces; a query outside that is refused
-//! before any request.
+//! a user login only, and accepts a query of 1 to 50 letters and digits in
+//! any language, spaces, and `_ ' ’ . - @ & "`; a query outside that is
+//! refused before any request.
 
 mod common;
 
