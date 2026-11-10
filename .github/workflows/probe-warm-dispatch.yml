@@ -1,0 +1,29 @@
+name: Probe warm dispatch
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  probe:
+    if: github.head_ref == 'feat/ci-shared-cache-workflows'
+    permissions:
+      actions: write
+    uses: brettdavies/.github/.github/workflows/warm-dispatch.yml@feat/cache-prune-warm-dispatch
+    with:
+      ref: feat/ci-shared-cache-workflows
+
+  # A pull request whose keys match its base saves nothing, so the cleanup probe
+  # saves this entry to give pr-cache-cleanup.yml something to delete.
+  marker:
+    name: Save a cleanup marker
+    if: github.head_ref == 'test/probe-pr-cache-cleanup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo "${{ github.run_id }}" > cleanup-marker
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: cleanup-marker
+          key: probe-cleanup-marker-${{ github.run_id }}
