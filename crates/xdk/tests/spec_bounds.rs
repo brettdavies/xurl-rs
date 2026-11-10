@@ -28,9 +28,9 @@ const NOT_SPEC_BOUNDS: &[(&str, &str)] = &[(
 enum Site {
     /// A property of a component schema.
     Property(&'static str, &'static str),
-    /// A query parameter of an operation, by path and name.
+    /// A query parameter of an operation, `METHOD /path`, by name.
     Query(&'static str, &'static str),
-    /// A path parameter of an operation, by path and name.
+    /// A path parameter of an operation, `METHOD /path`, by name.
     Path(&'static str, &'static str),
 }
 
@@ -102,11 +102,11 @@ const BOUNDS: &[Bound] = &[
         value: n(LOOKUP_IDS_MAX),
         keyword: "maxItems",
         sites: &[
-            Site::Query("/2/users", "ids"),
-            Site::Query("/2/users/by", "usernames"),
-            Site::Query("/2/tweets", "ids"),
-            Site::Query("/2/media", "media_keys"),
-            Site::Query("/2/spaces", "ids"),
+            Site::Query("GET /2/users", "ids"),
+            Site::Query("GET /2/users/by", "usernames"),
+            Site::Query("GET /2/tweets", "ids"),
+            Site::Query("GET /2/media", "media_keys"),
+            Site::Query("GET /2/spaces", "ids"),
         ],
     },
     Bound {
@@ -188,7 +188,7 @@ const BOUNDS: &[Bound] = &[
         constant: "USER_SEARCH_QUERY_MAX_CHARS",
         value: n(USER_SEARCH_QUERY_MAX_CHARS),
         keyword: "maxLength",
-        sites: &[Site::Query("/2/users/search", "query")],
+        sites: &[Site::Query("GET /2/users/search", "query")],
     },
 ];
 
@@ -205,24 +205,26 @@ const PATTERNS: &[Pattern] = &[
         validator: "validate_space_id",
         check: validate_space_id,
         sites: &[
-            Site::Query("/2/spaces", "ids"),
-            Site::Path("/2/spaces/{id}", "id"),
-            Site::Path("/2/spaces/{id}/tweets", "id"),
+            Site::Query("GET /2/spaces", "ids"),
+            Site::Path("GET /2/spaces/{id}", "id"),
+            Site::Path("GET /2/spaces/{id}/tweets", "id"),
         ],
     },
     Pattern {
         validator: "validate_broadcast_id",
         check: validate_broadcast_id,
         sites: &[
-            Site::Query("/2/broadcasts", "ids"),
-            Site::Path("/2/broadcasts/{id}", "id"),
+            Site::Path("GET /2/broadcasts/{id}", "id"),
+            Site::Path("DELETE /2/broadcasts/{id}", "id"),
+            Site::Path("GET /2/broadcasts/{id}/chat", "id"),
+            Site::Query("DELETE /2/broadcasts/chat/mutes/{user_id}", "broadcast_id"),
             Site::Property("MuteChatUserRequest", "broadcast_id"),
         ],
     },
     Pattern {
         validator: "validate_user_search_query",
         check: validate_user_search_query,
-        sites: &[Site::Query("/2/users/search", "query")],
+        sites: &[Site::Query("GET /2/users/search", "query")],
     },
 ];
 
@@ -288,21 +290,28 @@ fn schema_at<'a>(spec: &'a Value, site: &Site) -> (String, Option<&'a Value>) {
                 "/components/schemas/{schema}/properties/{property}"
             )),
         ),
-        Site::Query(path, name) => (
-            format!("GET {path} query parameter {name}"),
-            get_parameter(spec, path, "query", name),
+        Site::Query(operation, name) => (
+            format!("{operation} query parameter {name}"),
+            parameter(spec, operation, "query", name),
         ),
-        Site::Path(path, name) => (
-            format!("GET {path} path parameter {name}"),
-            get_parameter(spec, path, "path", name),
+        Site::Path(operation, name) => (
+            format!("{operation} path parameter {name}"),
+            parameter(spec, operation, "path", name),
         ),
     }
 }
 
-/// The schema of the GET parameter `name` in `location` on `path`.
-fn get_parameter<'a>(spec: &'a Value, path: &str, location: &str, name: &str) -> Option<&'a Value> {
+/// The schema of the parameter `name` in `location` on `operation`,
+/// `METHOD /path`.
+fn parameter<'a>(
+    spec: &'a Value,
+    operation: &str,
+    location: &str,
+    name: &str,
+) -> Option<&'a Value> {
+    let (method, path) = operation.split_once(' ')?;
     let shared = &spec["components"]["parameters"];
-    spec["paths"][path]["get"]["parameters"]
+    spec["paths"][path][method.to_ascii_lowercase()]["parameters"]
         .as_array()
         .into_iter()
         .flatten()
