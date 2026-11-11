@@ -70,7 +70,7 @@ impl Client {
         }
     }
 
-    /// One attempt at [`Self::send_request_with`].
+    /// One attempt at [`Self::send_request_carrying`].
     async fn send_request_once(
         &self,
         options: &RequestOptions,
