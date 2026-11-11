@@ -171,7 +171,7 @@ async fn a_refresh_with_no_answer_is_a_network_error_that_names_its_cause() {
 
 /// A dry run of a command whose login has expired checks the store the way
 /// the refresh does before its grant: a store it cannot write is the `io`
-/// refusal the real run ends on, not `would_succeed: true`.
+/// refusal the real run ends on, in the same words, not `would_succeed: true`.
 #[cfg(unix)]
 #[tokio::test]
 async fn an_expired_login_s_dry_run_on_a_store_it_cannot_write_refuses_as_the_real_run_does() {
@@ -213,7 +213,7 @@ async fn an_expired_login_s_dry_run_on_a_store_it_cannot_write_refuses_as_the_re
         dry["would_succeed"], false,
         "the dry run does not refuse: {dry}"
     );
-    for key in ["reason", "exit_code", "next_step"] {
+    for key in ["reason", "exit_code", "message", "next_step"] {
         assert_eq!(
             dry[key], real[key],
             "{key} differs\n  dry:  {dry}\n  real: {real}"
