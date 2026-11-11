@@ -920,3 +920,68 @@ async fn a_refresh_leaves_a_login_cleared_during_its_grant_cleared() {
         "the cleared login came back"
     );
 }
+
+/// A refresh of the unnamed login while another process signs bob in under
+/// `alice`, the name X answers the refresh with: bob's login stands, and the
+/// refreshed pair stays unnamed.
+#[tokio::test]
+async fn a_refresh_does_not_name_an_unnamed_login_over_one_signed_in_under_that_name() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| unnamed(store, true));
+    let server = answering(
+        ("POST", "/token"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: |store| {
+                let mut store = reloaded(store);
+                store
+                    .save_oauth2_token_for_app(
+                        APP,
+                        "alice",
+                        "BOB-ACCESS",
+                        "BOB-REFRESH",
+                        expiry(false),
+                    )
+                    .expect("bob signs in");
+                store
+                    .set_oauth2_account_for_app(APP, "alice", "99", Some("bob"), Some("Bob"))
+                    .expect("bob's account");
+            },
+            body: refreshed_pair(),
+        },
+    )
+    .await;
+    for route in ["/me", "/2/users/me"] {
+        Mock::given(method("GET"))
+            .and(path(route))
+            .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+            .mount(&server)
+            .await;
+    }
+
+    client(&store, &server)
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let under_alice = after
+        .get_oauth2_token_for_app(APP, "alice")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("a login under alice");
+    assert_eq!(
+        (
+            under_alice.access_token.as_str(),
+            under_alice.user_id.as_deref()
+        ),
+        ("BOB-ACCESS", Some("99")),
+        "the refresh replaced the login signed in under alice"
+    );
+    let kept = after
+        .get_oauth2_token_unnamed_for_app(APP)
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("the refreshed pair is kept");
+    assert_eq!(kept.access_token, "REFRESHED-ACCESS");
+}

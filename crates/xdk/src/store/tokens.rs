@@ -137,6 +137,16 @@ impl TokenStore {
             {
                 return Ok(());
             }
+            // A pair minted from the unnamed slot moves under its username
+            // only while that label is free; one taken during the grant
+            // holds a login stored there meanwhile, so the pair stays put.
+            let name = name.filter(|label| {
+                minted_from.is_none_or(|from| from.slot.is_some())
+                    || !store
+                        .resolve_app(app_name)
+                        .oauth2_tokens
+                        .contains_key(*label)
+            });
             if answered && let Some(user_id) = &token.user_id {
                 store.share_account_names(
                     user_id,
