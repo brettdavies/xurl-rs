@@ -1160,6 +1160,15 @@ What makes a store unloadable:
 To recover, repair the file, or move it aside and register again (`xr auth apps add`, then `xr auth oauth2`). To keep
 `xr`'s credentials apart from Go `xurl`'s, set `XURL_TOKEN_STORE` to a path of `xr`'s own.
 
+### Token Store Could Not Be Written
+
+A sign-in buys tokens only the store can keep, and a refresh spends the refresh token it sends. So `xr auth oauth2`, its
+dry run, and the refresh of an expired login check that the store can be written before they ask for consent or send
+anything. When the store's directory takes no new file, they exit 5 with reason `io`, naming the store and its
+directory. When the directory does not exist and cannot be created, they exit 77 with reason `token-store`, naming the
+store. The stored login keeps working once the directory takes writes again. To check, `xr` creates an empty file where
+the save creates its own and removes it at once, a dry run included.
+
 ## Relationship to xurl
 
 `xr` is an independent Rust port of [`xdevplatform/xurl`](https://github.com/xdevplatform/xurl), X's own Go CLI. It
