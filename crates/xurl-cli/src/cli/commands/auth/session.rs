@@ -164,11 +164,6 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
             Err(Error::validation("nothing-to-clear"))
         }
     };
-    if dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        return rehearsed(&auth.token_store, clear_named, ctx, out, stdout);
-    }
-
     let target = if all {
         "all credentials"
     } else if oauth1 {
@@ -180,6 +175,15 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
     } else {
         ""
     };
+    if dry_run {
+        // Only a named target stops the real run to ask.
+        let ctx = if target.is_empty() {
+            ctx
+        } else {
+            destructive_dry_run_context(ctx, force)
+        };
+        return rehearsed(&auth.token_store, clear_named, ctx, out, stdout);
+    }
     if !target.is_empty() {
         let prompt = format!("Clear {target}?");
         if !gate_destructive(force, no_interactive, quiet, &prompt, &ctx)? {

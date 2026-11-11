@@ -383,6 +383,10 @@ async fn a_store_write_s_dry_run_refuses_as_its_real_run_does(
             "{args:?}: {key} differs\n  dry:  {dry}\n  real: {real}"
         );
     }
+    assert!(
+        dry.get("confirmation_required").is_none(),
+        "{args:?}: the real run refused without asking, and the dry run says it would ask: {dry}"
+    );
 }
 
 // ── The page exists ────────────────────────────────────────────────────
