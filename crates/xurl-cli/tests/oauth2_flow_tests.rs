@@ -1883,6 +1883,87 @@ async fn a_dry_run_in_text_names_the_sign_in_step_the_real_run_names_under_dry_r
     );
 }
 
+/// The store file stops parsing while the person consents: the code the
+/// callback delivers is not exchanged, since the store could not keep the
+/// tokens it buys.
+#[tokio::test]
+async fn the_interactive_flow_does_not_spend_the_code_when_the_store_cannot_keep_its_tokens() {
+    let server = MockServer::start().await;
+    let token_url = format!("{}/2/oauth2/token", server.uri());
+    let info_url = format!("{}/2/users/me", server.uri());
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "ACCESS-TOKEN",
+            "refresh_token": "REFRESH-TOKEN",
+            "expires_in": 7200
+        })))
+        .mount(&server)
+        .await;
+
+    let mut ended = None;
+    for _ in 0..20 {
+        let port = band_port();
+        let redirect_uri = format!("http://127.0.0.1:{port}/callback");
+        let tmp = TempDir::new().unwrap();
+        let store_path = tmp.path().join(".xurl");
+        let mut auth = test_auth(
+            test_config(&token_url, &info_url, &redirect_uri),
+            &tmp,
+            &redirect_uri,
+        );
+        let breaking_opener = move |url: &str| -> std::io::Result<()> {
+            std::fs::write(&store_path, "apps: [half an edit")?;
+            let state = Url::parse(url)
+                .expect("the opener receives a valid auth URL")
+                .query_pairs()
+                .find(|(name, _)| name == "state")
+                .map(|(_, value)| value.into_owned())
+                .expect("the auth URL carries a state");
+            let mut stream = StdTcpStream::connect(("127.0.0.1", port))?;
+            stream.set_read_timeout(Some(Duration::from_secs(2)))?;
+            write!(
+                stream,
+                "GET /callback?code=AUTHCODE&state={state} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
+            )?;
+            let _ = stream.read_to_string(&mut String::new());
+            Ok(())
+        };
+        match run_oauth2_flow(
+            &mut auth,
+            &reqwest::Client::new(),
+            "testuser",
+            CancellationToken::new(),
+            breaking_opener,
+        )
+        .await
+        {
+            Err(error) if failed_to_bind(&error, port) => {}
+            outcome => {
+                ended = Some(outcome);
+                break;
+            }
+        }
+    }
+    let outcome = ended.expect("a port the flow could bind in 20 picks");
+
+    let spent = server
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .filter(|request| request.url.path() == "/2/oauth2/token")
+        .count();
+    assert_eq!(
+        spent, 0,
+        "the code was exchanged though its tokens could not be stored: {outcome:?}"
+    );
+    assert!(
+        matches!(outcome, Err(xdk::Error::TokenStore { .. })),
+        "{outcome:?}"
+    );
+}
+
 // ── A dry run reaches the verdict the real run reaches ───────────────────
 
 /// Two apps, the target `default` with no client id and `work` with one.
@@ -2126,6 +2207,16 @@ fn verdicts() -> Vec<Verdict> {
                 seed_pending(store);
             },
             &flow_at(&at_redirect(&format!("{DENIAL}&state={PENDING_STATE}"))),
+        ),
+        verdict(
+            "store that does not parse",
+            "could not be loaded",
+            true,
+            |store| {
+                std::fs::write(store, "apps: [half an edit").unwrap();
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
         ),
     ];
     rows.push(Verdict {

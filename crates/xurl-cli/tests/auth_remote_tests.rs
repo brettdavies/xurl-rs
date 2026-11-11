@@ -540,8 +540,8 @@ async fn step2_failed_exchange_preserves_pending_for_retry() {
 }
 
 /// Step 2 against a store file that exists but does not parse: the store
-/// refuses before the code is sent, so the same redirect URL still works
-/// once the file is fixed. The dry run of the step meets the same refusal.
+/// refuses before the code is sent, so the code is not spent and the saved
+/// flow is kept. The dry run of the step meets the same refusal.
 #[tokio::test]
 async fn step2_does_not_spend_the_code_when_the_store_cannot_keep_its_tokens() {
     let ts = TestServer::new().await;
