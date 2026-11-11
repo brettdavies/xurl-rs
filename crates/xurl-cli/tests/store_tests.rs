@@ -1616,6 +1616,28 @@ fn a_deleted_store_file_stays_deleted_after_a_stale_view_writes() {
     );
 }
 
+/// A writer that truncates the file before writing it, rather than replacing
+/// it by rename, leaves it empty for a moment. A write from a loaded view in
+/// that moment keeps the apps the view held.
+#[test]
+fn a_store_file_caught_empty_mid_write_keeps_its_apps() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut view = store_at(&path);
+    view.add_app("work", "CLIENT-ID", "SECRET").unwrap();
+    view.save_bearer_token_for_app("work", "BEARER").unwrap();
+
+    fs::write(&path, b"").unwrap();
+    view.add_app("other", "OTHER-ID", "OTHER-SECRET").unwrap();
+
+    let on_disk = store_at(&path);
+    assert!(
+        on_disk.get_bearer_token_for_app("work").is_some(),
+        "the store lost its apps to a moment it was empty: {:?}",
+        on_disk.list_apps()
+    );
+}
+
 /// A refresh rotating a token and a registration in another loaded view
 /// both land; the rotated refresh token is the one every later refresh needs.
 #[test]
