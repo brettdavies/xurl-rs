@@ -63,27 +63,10 @@ fn empty_config() -> Config {
 
 fn create_temp_token_store() -> (TokenStore, TempDir) {
     let tmp = TempDir::new().expect("Failed to create temp directory");
-    let file_path = tmp.path().join(".xurl");
-
-    let mut store = TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "default".to_string(),
-        file_path,
-        load_state: xdk::store::LoadState::Loaded,
-    };
-    store.apps.insert(
-        "default".to_string(),
-        App {
-            client_id: String::new(),
-            client_secret: String::new(),
-            default_user: String::new(),
-            redirect_uri: String::new(),
-            oauth2_tokens: BTreeMap::new(),
-            oauth1_token: None,
-            bearer_token: None,
-            unnamed_oauth2_token: None,
-        },
-    );
+    let mut store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
+    store
+        .add_app("default", "", "")
+        .expect("add the default app");
 
     (store, tmp)
 }

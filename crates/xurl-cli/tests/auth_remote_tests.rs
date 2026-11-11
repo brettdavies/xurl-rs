@@ -73,27 +73,10 @@ fn create_test_config(base_url: &str) -> Config {
 
 fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
     let cfg = create_test_config(base_url);
-
-    let file_path = tmp.path().join(".xurl");
-    let mut store = TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "default".to_string(),
-        file_path,
-        load_state: xdk::store::LoadState::Loaded,
-    };
-    store.apps.insert(
-        "default".to_string(),
-        App {
-            client_id: "test-client-id".to_string(),
-            client_secret: "test-client-secret".to_string(),
-            default_user: String::new(),
-            redirect_uri: String::new(),
-            oauth2_tokens: BTreeMap::new(),
-            oauth1_token: None,
-            bearer_token: None,
-            unnamed_oauth2_token: None,
-        },
-    );
+    let mut store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
+    store
+        .add_app("default", "test-client-id", "test-client-secret")
+        .expect("add the default app");
 
     auth_for(&cfg, store)
 }

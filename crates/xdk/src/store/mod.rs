@@ -194,11 +194,15 @@ impl TokenStore {
 
     /// Reads the backing file and records how it resolved.
     ///
+    /// The view's apps and default app become the file's, so a reload keeps
+    /// no app another process removed, or a file another process deleted.
     /// A missing or empty file is a fresh store, not a damaged one: an empty
     /// store is empty, and the next save is allowed. A file that exists but
     /// cannot be read or parsed leaves `apps` empty and records the failure,
     /// which makes every save refuse.
     fn load_backing_file(&mut self) {
+        self.apps.clear();
+        self.default_app.clear();
         self.load_state = match fs::read(&self.file_path) {
             // A file with no content is a fresh store: an editor that saved
             // a blank buffer left nothing for a parser to reject.

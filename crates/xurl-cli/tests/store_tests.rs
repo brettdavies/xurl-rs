@@ -21,27 +21,10 @@ use xdk::store::{App, TokenStore, TokenType};
 /// Returns the store and the TempDir guard (drop cleans up).
 fn create_temp_token_store() -> (TokenStore, TempDir) {
     let tmp = TempDir::new().expect("Failed to create temp directory");
-    let file_path = tmp.path().join(".xurl");
-
-    let mut store = TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "default".to_string(),
-        file_path,
-        load_state: xdk::store::LoadState::Loaded,
-    };
-    store.apps.insert(
-        "default".to_string(),
-        App {
-            client_id: String::new(),
-            client_secret: String::new(),
-            default_user: String::new(),
-            redirect_uri: String::new(),
-            oauth2_tokens: BTreeMap::new(),
-            oauth1_token: None,
-            bearer_token: None,
-            unnamed_oauth2_token: None,
-        },
-    );
+    let mut store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
+    store
+        .add_app("default", "", "")
+        .expect("add the default app");
 
     (store, tmp)
 }
@@ -681,25 +664,8 @@ fn test_yaml_persistence() {
     let xurl_path = tmp.path().join(".xurl");
 
     // Create and save
-    let mut s1 = TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "myapp".to_string(),
-        file_path: xurl_path.clone(),
-        load_state: xdk::store::LoadState::Loaded,
-    };
-    s1.apps.insert(
-        "myapp".to_string(),
-        App {
-            client_id: "cid".to_string(),
-            client_secret: "csec".to_string(),
-            default_user: String::new(),
-            redirect_uri: String::new(),
-            oauth2_tokens: BTreeMap::new(),
-            oauth1_token: None,
-            bearer_token: None,
-            unnamed_oauth2_token: None,
-        },
-    );
+    let mut s1 = TokenStore::new_with_path(&xurl_path.to_string_lossy());
+    s1.add_app("myapp", "cid", "csec").unwrap();
     s1.save_bearer_token("yaml-bearer").unwrap();
 
     // Reload
@@ -1603,6 +1569,50 @@ fn two_loaded_stores_writing_the_same_file_keep_both_apps() {
         reloaded.list_apps(),
         vec!["alpha".to_string(), "beta".to_string()],
         "a write from one loaded view erased the other's"
+    );
+}
+
+/// One view removes the only app; another, loaded before the removal, then
+/// writes. The removed app and its credentials stay removed.
+#[test]
+fn a_removed_last_app_stays_removed_after_a_stale_view_writes() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut first = store_at(&path);
+    first.add_app("work", "CLIENT-ID", "SECRET").unwrap();
+    first.save_bearer_token_for_app("work", "BEARER").unwrap();
+    let mut second = store_at(&path);
+
+    first.remove_app("work").unwrap();
+    second.add_app("other", "OTHER-ID", "OTHER-SECRET").unwrap();
+
+    let on_disk = store_at(&path);
+    assert!(
+        on_disk.get_app("work").is_none(),
+        "the removed app came back with its bearer token: {:?}",
+        on_disk.list_apps()
+    );
+}
+
+/// The same race through a deleted store file: a view loaded before the
+/// deletion writes, and the deleted credentials stay deleted.
+#[test]
+fn a_deleted_store_file_stays_deleted_after_a_stale_view_writes() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut first = store_at(&path);
+    first.add_app("work", "CLIENT-ID", "SECRET").unwrap();
+    first.save_bearer_token_for_app("work", "BEARER").unwrap();
+    let mut second = store_at(&path);
+
+    fs::remove_file(&path).unwrap();
+    second.add_app("other", "OTHER-ID", "OTHER-SECRET").unwrap();
+
+    let on_disk = store_at(&path);
+    assert!(
+        on_disk.get_bearer_token_for_app("work").is_none(),
+        "the deleted bearer token came back: {:?}",
+        on_disk.list_apps()
     );
 }
 

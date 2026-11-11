@@ -2,15 +2,13 @@
 //! and a token refresh both complete under `#[tokio::test]` with no
 //! `spawn_blocking` and no nested runtime.
 
-use std::collections::BTreeMap;
-
 use tempfile::TempDir;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 use xdk::api::Client;
 use xdk::auth::Auth;
 use xdk::config::{Config, EnvOverrides};
-use xdk::store::{App, LoadState, OAuth2Token, Token, TokenStore, TokenType};
+use xdk::store::TokenStore;
 
 /// An `Auth` over a store in `tmp`, built with no environment, so a variable
 /// the shell exports never reaches the test.
@@ -35,39 +33,22 @@ fn config_for(server: &MockServer) -> Config {
 }
 
 fn store_with_oauth2(tmp: &TempDir, expiration_time: u64) -> TokenStore {
-    let mut store = TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "default".to_string(),
-        file_path: tmp.path().join(".xurl"),
-        load_state: LoadState::Loaded,
-    };
-    let mut app = App {
-        client_id: "cid".to_string(),
-        client_secret: "csec".to_string(),
-        default_user: "alice".to_string(),
-        redirect_uri: String::new(),
-        oauth2_tokens: BTreeMap::new(),
-        oauth1_token: None,
-        bearer_token: None,
-        unnamed_oauth2_token: None,
-    };
-    app.oauth2_tokens.insert(
-        "alice".to_string(),
-        Token {
-            token_type: TokenType::Oauth2,
-            bearer: None,
-            oauth2: Some(OAuth2Token {
-                access_token: "stale-access-token".to_string(),
-                refresh_token: "refresh-1".to_string(),
-                expiration_time,
-                user_id: None,
-                account_username: None,
-                display_name: None,
-            }),
-            oauth1: None,
-        },
-    );
-    store.apps.insert("default".to_string(), app);
+    let mut store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
+    store
+        .add_app("default", "cid", "csec")
+        .expect("add the app");
+    store
+        .save_oauth2_token_for_app(
+            "default",
+            "alice",
+            "stale-access-token",
+            "refresh-1",
+            expiration_time,
+        )
+        .expect("save alice's login");
+    store
+        .set_default_user("default", "alice")
+        .expect("alice is the default user");
     store
 }
 
