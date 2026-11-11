@@ -12,12 +12,17 @@
 //! act; `xr` calls it on the first command that opens the store.
 //!
 //! ```text
-//!                                    locate_store     adopt_directory_layout
-//! <dir> missing or a directory     -> <dir>/auth.yml   <dir>/auth.yml
-//! <dir> a regular file             -> <dir>            moved to <dir>/auth.yml
-//! <dir> a symbolic link to a file  -> <dir>            <dir>
-//! the move fails                   ->                  put back; <dir>
+//!                                        locate_store       adopt_directory_layout
+//! <dir> missing or a directory         -> <dir>/auth.yml     <dir>/auth.yml
+//! <dir> a regular file                 -> <dir>              moved to <dir>/auth.yml
+//! <dir> a symbolic link to a file      -> <dir>              <dir>
+//! <dir>.migrating, no <dir>/auth.yml   -> <dir>.migrating    moved to <dir>/auth.yml
+//! the move fails                       ->                    left where it was
 //! ```
+//!
+//! A `<dir>.migrating` file is a store a move left between its two renames.
+//! Until `<dir>/auth.yml` exists it is the only copy of the store, so a reader
+//! opens it and a write lands in it.
 
 use std::ffi::OsStr;
 use std::fs;
@@ -52,7 +57,8 @@ pub(crate) fn store_path_under(home: &Path) -> PathBuf {
 ///
 /// `store_path` itself, unless it is in the directory layout and a file still
 /// sits where its directory belongs: that file is the same store in the
-/// single-file layout, and its path is returned.
+/// single-file layout, and its path is returned. A store a move left at
+/// `<dir>.migrating`, with nothing at `store_path`, is returned the same way.
 #[must_use]
 pub fn locate_store(store_path: &Path) -> PathBuf {
     match directory_of(store_path) {
@@ -130,13 +136,17 @@ fn directory_of(store_path: &Path) -> Option<&Path> {
 }
 
 /// `store_path`, unless a file, or a symbolic link to one, occupies its
-/// directory's path. Once [`adopt_directory_layout`] has moved a regular
-/// file, only a link is left to find there: a link cannot be turned into a
-/// directory without breaking whatever placed it, so the store stays where
-/// it points.
+/// directory's path, or a move stranded the store at `<dir>.migrating`. Once
+/// [`adopt_directory_layout`] has moved a regular file, only a link is left
+/// to find there: a link cannot be turned into a directory without breaking
+/// whatever placed it, so the store stays where it points.
 fn path_to_open(dir: &Path, store_path: &Path) -> PathBuf {
     if fs::metadata(dir).is_ok_and(|meta| meta.is_file()) {
-        dir.to_path_buf()
+        return dir.to_path_buf();
+    }
+    let aside = with_suffix(dir, ".migrating");
+    if !store_path.exists() && is_regular_file(&aside) {
+        aside
     } else {
         store_path.to_path_buf()
     }
@@ -158,16 +168,19 @@ fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
 ///
 /// A stranded file beside a store that is already in its directory is not
 /// that store's content any more. It is kept under a `.bak` name, so it stops
-/// sending every later call down the locked path.
+/// sending every later call down the locked path. The pending sign-in state
+/// and lock files a reader of the stranded file kept beside it go the way
+/// [`move_sidecars`] takes the single-file layout's.
 fn finish_interrupted_move(dir: &Path, aside: &Path, store_path: &Path) {
     if !aside.exists() || is_regular_file(dir) {
         return;
     }
     if store_path.exists() {
-        let _ = fs::rename(aside, with_suffix(aside, ".bak"));
+        keep_as_backup(aside, store_path);
         return;
     }
     if create_store_dir(dir).is_ok() && fs::rename(aside, store_path).is_ok() {
+        move_sidecars(aside, store_path);
         tracing::info!(
             target: STORE_TARGET,
             kind = "layout-moved",
@@ -184,7 +197,7 @@ fn move_into_directory(dir: &Path, aside: &Path, store_path: &Path) -> io::Resul
     if aside.exists() {
         // A stranded file from an attempt that could not be finished is kept,
         // not overwritten.
-        let _ = fs::rename(aside, with_suffix(aside, ".bak"));
+        keep_as_backup(aside, dir);
     }
     fs::rename(dir, aside)?;
     if let Err(e) = create_store_dir(dir) {
@@ -197,6 +210,23 @@ fn move_into_directory(dir: &Path, aside: &Path, store_path: &Path) -> io::Resul
         return Err(e);
     }
     Ok(())
+}
+
+/// Renames a stranded store to `<aside>.bak`, with a warning naming both,
+/// since the store at `current` is the one every later call reads and the
+/// credentials left in the stranded file would otherwise vanish unannounced.
+fn keep_as_backup(aside: &Path, current: &Path) {
+    let backup = with_suffix(aside, ".bak");
+    if fs::rename(aside, &backup).is_ok() {
+        tracing::warn!(
+            target: STORE_TARGET,
+            "kept {} as {}: an interrupted move left a token store there, and {} holds the store now, so the credentials in {} are no longer read",
+            aside.display(),
+            backup.display(),
+            current.display(),
+            backup.display(),
+        );
+    }
 }
 
 /// Carries the pending sign-in state across and drops the two lock files the
@@ -353,6 +383,44 @@ mod tests {
         assert_eq!(adopt_directory_layout(&store), store);
         assert_eq!(fs::read(&store).unwrap(), STORE);
         assert!(!with_suffix(&dir, ".migrating").exists());
+    }
+
+    /// A process killed between the move's renames leaves the store at
+    /// `.xurl.migrating` and nothing at `.xurl`. A write before the next move
+    /// lands in that store, and the move then carries the store and what its
+    /// writer kept beside it into the directory.
+    #[test]
+    fn a_write_before_an_interrupted_move_finishes_lands_in_its_store() {
+        let tmp = TempDir::new().unwrap();
+        let (dir, store) = paths(&tmp);
+        let stranded = with_suffix(&dir, ".migrating");
+        fs::write(&stranded, STORE).unwrap();
+
+        let opened = locate_store(&store);
+        let mut writer = crate::store::TokenStore::new_with_path(&opened.to_string_lossy());
+        writer.add_app("other", "OTHER-ID", "OTHER-SECRET").unwrap();
+        fs::write(with_suffix(&opened, ".pending"), b"pending").unwrap();
+
+        assert_eq!(adopt_directory_layout(&store), store);
+        let moved = crate::store::TokenStore::new_with_path(&store.to_string_lossy());
+        let left: Vec<_> = fs::read_dir(tmp.path())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        assert!(
+            moved.get_app("work").is_some() && moved.get_app("other").is_some(),
+            "the store at {} holds {:?}; the directory holds {left:?}",
+            store.display(),
+            moved.list_apps()
+        );
+        assert_eq!(
+            fs::read(with_suffix(&store, ".pending")).unwrap(),
+            b"pending"
+        );
+        assert!(
+            !left.iter().any(|name| name.starts_with(".xurl.migrating")),
+            "the stranded store's files are left behind: {left:?}"
+        );
     }
 
     #[test]

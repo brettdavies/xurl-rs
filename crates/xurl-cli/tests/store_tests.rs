@@ -1981,6 +1981,46 @@ fn a_single_file_store_moves_on_first_use_and_the_command_says_so() {
         .stderr(predicates::str::is_empty());
 }
 
+/// A store an interrupted move stranded at `.xurl.migrating` is kept as a
+/// `.bak` file once another store has taken its place, whether that store is
+/// in the directory or a single file a release that reads only that layout
+/// wrote, and the command names the file it kept.
+#[test]
+fn a_stranded_store_kept_as_a_backup_is_named_in_a_warning() {
+    for in_place in ["in its directory", "a single file"] {
+        let tmp = TempDir::new().unwrap();
+        let (file, in_directory) = single_file_store(&tmp);
+        if in_place == "in its directory" {
+            assert_eq!(
+                xdk::store::adopt_directory_layout(&in_directory),
+                in_directory
+            );
+        }
+        let stranded = tmp.path().join(".xurl.migrating");
+        let mut old = TokenStore::new_with_path(&stranded.to_string_lossy());
+        old.add_app("old", "OLD-ID", "OLD-SECRET").expect("add app");
+        let backup = tmp.path().join(".xurl.migrating.bak");
+
+        let assert = common::xr_with_store(&in_directory)
+            .args(["auth", "status"])
+            .assert()
+            .success();
+        let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
+        assert!(
+            backup.is_file(),
+            "{in_place}: the stranded store is kept as {}",
+            backup.display()
+        );
+        assert!(
+            stderr.contains("warning")
+                && stderr.contains(&*backup.to_string_lossy())
+                && stderr.contains(&*stranded.to_string_lossy()),
+            "{in_place}: the warning names the stranded store and its backup: {stderr}"
+        );
+        assert!(file.is_dir() && in_directory.is_file(), "{in_place}");
+    }
+}
+
 /// Under a structured format stderr carries envelopes only, so the move is
 /// made and not announced.
 #[test]
