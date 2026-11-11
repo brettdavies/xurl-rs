@@ -687,8 +687,8 @@ pub(crate) async fn refresh_grant(
 ///
 /// Returns an error when no cached token is found or the refresh lock cannot
 /// be taken, and [`Error::TokenStore`] when the store file exists but cannot
-/// be loaded or the store's directory cannot be created, or [`Error::Io`]
-/// when the save's temp file cannot be created beside the store, each refused
+/// be loaded, or [`Error::Io`] when the store's directory cannot be created or
+/// the save's temp file cannot be created beside the store, each refused
 /// before the grant so the refresh token is not spent on a pair the store
 /// could not keep. When the refresh itself fails:
 /// [`Error::Auth`] when the token endpoint refuses the refresh token or the

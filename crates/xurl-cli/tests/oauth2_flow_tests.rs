@@ -908,10 +908,12 @@ async fn an_interactive_sign_in_on_a_store_it_cannot_write_opens_no_browser() {
     use std::os::unix::fs::PermissionsExt;
     let opened = Arc::new(Mutex::new(false));
     let mut writable = false;
+    let mut dir = std::path::PathBuf::new();
 
     let (returned, _) = run_interactive_after(
         |store| {
-            let dir = store.parent().unwrap();
+            dir = store.parent().unwrap().to_path_buf();
+            let dir = &dir;
             std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o500)).unwrap();
             // A process that may write a read-only directory (root) cannot
             // be refused this way.
@@ -928,6 +930,11 @@ async fn an_interactive_sign_in_on_a_store_it_cannot_write_opens_no_browser() {
     assert!(
         matches!(&returned, Err(xdk::Error::Io { message, .. }) if message.starts_with("cannot write")),
         "{returned:?}"
+    );
+    let names_the_directory = format!("cannot create a file in {}", dir.display());
+    assert!(
+        matches!(&returned, Err(xdk::Error::Io { message, .. }) if message.contains(&names_the_directory)),
+        "the refusal does not name the directory that refused: {returned:?}"
     );
 }
 
@@ -2715,6 +2722,57 @@ async fn a_dry_run_of_a_sign_in_the_real_run_refuses_says_so_with_the_same_keys(
         faults.extend(disagreements(row).await);
     }
     assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
+/// A store whose directory cannot be created refuses `--step 1` with the
+/// error its save meets, and the dry run answers with the same keys.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_sign_in_whose_store_directory_cannot_be_created_refuses_as_its_dry_run_says() {
+    use std::os::unix::fs::PermissionsExt;
+    if !a_read_only_dir_refuses_new_files() {
+        return;
+    }
+    let tmp = TempDir::new().unwrap();
+    let home = tmp.path().join("home");
+    std::fs::create_dir(&home).unwrap();
+    let store = home.join(".xurl").join("auth.yml");
+    let overrides = closed_overrides(true);
+    let argv = |dry: bool| {
+        let mut argv = vec!["xr", "--output", "json"];
+        if dry {
+            argv.push("--dry-run");
+        }
+        argv.extend_from_slice(&["auth", "oauth2", "--no-browser", "--step", "1"]);
+        argv
+    };
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o500)).unwrap();
+
+    let (dry_code, dry_stdout, dry_stderr) = run_cli(&store, &overrides, &argv(true)).await;
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &argv(false)).await;
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+    let real = json_document("real run", &stderr);
+    assert_eq!(code, 5, "{real}");
+    assert_eq!(real["reason"], "io", "{real}");
+    assert_eq!(real["next_step"]["action"], "fix-input", "{real}");
+    assert!(
+        real["next_step"]["docs"]
+            .as_str()
+            .unwrap_or_default()
+            .ends_with("#token-store-could-not-be-written"),
+        "{real}"
+    );
+    assert_eq!(dry_code, 0, "{dry_stderr}");
+    let dry = json_document("dry run", &dry_stdout);
+    assert_eq!(dry["would_succeed"], false, "{dry}");
+    for key in ["reason", "exit_code", "next_step"] {
+        assert_eq!(
+            dry[key], real[key],
+            "{key}: the dry run {dry}, the real run {real}"
+        );
+    }
+    assert_eq!(std::fs::read_dir(&home).unwrap().count(), 0);
 }
 
 /// A dry run of a step 2 that would finish exchanges nothing and removes

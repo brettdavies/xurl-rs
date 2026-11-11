@@ -19,6 +19,8 @@ use xurl::cli;
 
 /// The page the `inspect-store` step names.
 const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
+#[cfg(unix)]
+const STORE_WRITE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-written";
 
 async fn run_at(store: &Path, args: &[&str]) -> (i32, String, String) {
     let mut stdout: Vec<u8> = Vec::new();
@@ -138,6 +140,62 @@ async fn a_store_that_could_not_be_loaded_carries_inspect_store(#[case] args: &[
             .expect("the message is a string")
             .contains(store.to_str().expect("utf-8 path")),
         "the message names the file: {v}"
+    );
+}
+
+/// A store whose directory cannot be created is a filesystem refusal like a
+/// directory that takes no new file: `io`, with the page on an unwritable
+/// store, and a message naming the directory and both ways out.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_store_whose_directory_cannot_be_created_is_io_with_the_page() {
+    use std::os::unix::fs::PermissionsExt;
+    let tmp = TempDir::new().expect("tempdir");
+    let home = tmp.path().join("home");
+    std::fs::create_dir(&home).expect("home");
+    let store = home.join(".xurl").join("auth.yml");
+    let secret = tmp.path().join("client-secret");
+    std::fs::write(&secret, "shh\n").expect("write the secret");
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o500)).expect("chmod");
+    // A process that may write a read-only directory (root) cannot be
+    // refused this way.
+    let writable = std::fs::write(home.join("probe"), b"").is_ok();
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "apps",
+            "add",
+            "work",
+            "--client-id",
+            "abcdefgh",
+            "--client-secret-file",
+            secret.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).expect("chmod");
+    if writable {
+        return;
+    }
+
+    assert_eq!(code, 5, "stderr: {stderr}");
+    let v = envelope(&stderr);
+    assert_eq!(v["reason"], "io", "{v}");
+    assert_eq!(
+        v["next_step"],
+        serde_json::json!({"action": "fix-input", "docs": STORE_WRITE_DOCS}),
+        "{v}"
+    );
+    let message = v["message"].as_str().unwrap_or_default();
+    let dir = home.join(".xurl");
+    assert!(
+        message.contains(&dir.display().to_string()) && message.contains("XURL_TOKEN_STORE"),
+        "the message names the directory and both ways out: {v}"
     );
 }
 

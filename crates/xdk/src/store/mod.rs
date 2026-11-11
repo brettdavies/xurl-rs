@@ -745,9 +745,11 @@ impl TokenStore {
     }
 
     fn dir_refused(&self, e: std::io::Error) -> Error {
-        Error::token_store(format!(
-            "cannot create the directory of {}: {e}",
-            self.file_path.display()
+        let dir = self.file_path.parent().unwrap_or(Path::new("."));
+        Error::io(format!(
+            "{} {}: {e}",
+            crate::error::STORE_DIR_UNCREATABLE,
+            dir.display()
         ))
         .with_source(e)
     }
@@ -779,9 +781,10 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// The token-store error of a store that could not be loaded or whose
-    /// directory cannot be created, as the save returns them, and an I/O error
-    /// naming the store when the temp file cannot be created.
+    /// The token-store error of a store that could not be loaded, and the I/O
+    /// errors the save returns: one naming the store's directory when it
+    /// cannot be created, and one naming the store when the temp file cannot
+    /// be created.
     // `xr auth oauth2` and its dry run meet this before the credential check
     // (`crates/xurl-cli/src/cli/commands/auth/signin.rs`): a client id the
     // unloadable file holds is not one the store can be said to lack.
@@ -789,11 +792,28 @@ impl TokenStore {
     pub fn refuse_unless_writable(&self) -> Result<()> {
         self.refuse_if_load_failed()?;
         if let Some(dir) = layout::outermost_store_dir_to_create(&self.file_path) {
+            // A link whose target is missing is not there to `exists()`, but
+            // the save's `mkdir` meets it in the directory's place.
+            if dir.symlink_metadata().is_ok() {
+                return Err(self.dir_refused(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    format!("{} is a link to a path that does not exist", dir.display()),
+                )));
+            }
             return atomic::probe_temp_file(dir).map_err(|e| self.dir_refused(e));
         }
         let target = atomic::resolve(&self.file_path);
+        let dir = target
+            .parent()
+            .filter(|dir| !dir.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
         atomic::probe_temp_file(&target).map_err(|e| {
-            Error::io(format!("cannot write {}: {e}", target.display())).with_source(e)
+            Error::io(format!(
+                "cannot write {}: cannot create a file in {}: {e}",
+                target.display(),
+                dir.display()
+            ))
+            .with_source(e)
         })
     }
 }

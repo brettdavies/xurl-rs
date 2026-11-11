@@ -404,8 +404,8 @@ impl Auth {
     /// client. A store file that exists but cannot be loaded, or that holds no
     /// app by the name set with [`Self::with_app_name`], is
     /// [`Error::TokenStore`], and a store the save cannot write is
-    /// [`Error::TokenStore`] or [`Error::Io`] as the save would return it, each
-    /// met before the listener binds and again before the code is sent.
+    /// [`Error::Io`] as the save would return it, each met before the listener
+    /// binds and again before the code is sent.
     pub async fn oauth2_flow<F>(
         &mut self,
         http: &reqwest::Client,

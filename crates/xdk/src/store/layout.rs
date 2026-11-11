@@ -621,12 +621,38 @@ mod tests {
             fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o700)).unwrap();
             if !writable {
                 assert!(
-                    matches!(&refused, Err(crate::Error::TokenStore { message, .. })
-                        if message.starts_with("cannot create the directory of")),
+                    matches!(&refused, Err(crate::Error::Io { message, .. })
+                        if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
                     "{refused:?}"
                 );
                 assert_eq!(fs::read_dir(tmp.path()).unwrap().count(), 0);
             }
         }
+    }
+
+    /// A link that leads nowhere, where the store's directory goes, refuses
+    /// the probe as it refuses the save's `mkdir`.
+    #[cfg(unix)]
+    #[test]
+    fn a_store_directory_that_is_a_dangling_link_is_refused() {
+        let tmp = TempDir::new().unwrap();
+        let dir = tmp.path().join(".xurl");
+        std::os::unix::fs::symlink(tmp.path().join("nowhere"), &dir).unwrap();
+        let mut view =
+            super::super::TokenStore::new_with_path(&dir.join(AUTH_FILE_NAME).to_string_lossy());
+
+        let refused = view.refuse_unless_writable();
+        let saved = view.add_app("work", "id", "secret");
+
+        assert!(
+            matches!(&saved, Err(crate::Error::Io { message, .. })
+                if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
+            "{saved:?}"
+        );
+        assert!(
+            matches!(&refused, Err(crate::Error::Io { message, .. })
+                if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
+            "{refused:?}"
+        );
     }
 }
