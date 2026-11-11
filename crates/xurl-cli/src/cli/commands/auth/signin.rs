@@ -103,10 +103,11 @@ pub(super) async fn oauth2(
     }
     let username_arg = username.as_deref().unwrap_or("");
     let client = crate::cli::commands::make_client(cfg, auth)?;
-    // Refuse before any URL is built or pending file written when the
-    // target app has no client id to sign in with.
+    // Refuse before any URL is built or pending file written when the store
+    // cannot be loaded or the target app has no client id to sign in with.
     let refusal = {
         let auth = client.auth().await?;
+        auth.token_store.refuse_if_load_failed()?;
         client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false)
     };
     if let Some(body) = refusal {
@@ -295,6 +296,9 @@ fn dry_run_answer(
     if let Some(message) = refused {
         out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
         return Ok(());
+    }
+    if let Err(error) = auth.token_store.refuse_if_load_failed() {
+        return Err(Failure::DryRunRefusal { ctx, error });
     }
     if let Some(body) =
         client_credentials_missing(auth, app_explicit, out.format.is_structured(), true)
