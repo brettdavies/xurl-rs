@@ -19,6 +19,7 @@ use xurl::cli;
 
 /// The page the `inspect-store` step names.
 const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
+#[cfg(unix)]
 const STORE_WRITE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-written";
 
 async fn run_at(store: &Path, args: &[&str]) -> (i32, String, String) {
