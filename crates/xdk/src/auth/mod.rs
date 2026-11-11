@@ -401,7 +401,8 @@ impl Auth {
     /// reset), or a proxy's 404, [`Error::TokenEndpointForbidden`] when that
     /// status is a 403, [`Error::InvalidUrl`] when the token URL is not one a
     /// request can go to, and [`Error::Auth`] when it refuses the code or the
-    /// client. A store file that exists but cannot be loaded is
+    /// client. A store file that exists but cannot be loaded, or that holds no
+    /// app by the name set with [`Self::with_app_name`], is
     /// [`Error::TokenStore`], and a store the save cannot write is
     /// [`Error::TokenStore`] or [`Error::Io`] as the save would return it, each
     /// met before the listener binds and again before the code is sent.

@@ -942,6 +942,12 @@ pub const REDIRECT_STATE_MISMATCH: &str = "StateMismatch: the state parameter in
 pub const REDIRECT_MISSING_CODE: &str = "MissingCode: no 'code' parameter found in redirect URL. \
      Make sure you copied the full URL from your browser's address bar";
 
+// ── Store failure messages ─────────────────────────────────────────
+
+/// The start of the message of a store operation, a token save included, that
+/// names an app the store does not hold. The name follows, quoted.
+pub const APP_NOT_FOUND: &str = "the store holds no app named";
+
 // ── Exit codes ─────────────────────────────────────────────────────
 
 /// Structured exit codes for machine-readable error handling.

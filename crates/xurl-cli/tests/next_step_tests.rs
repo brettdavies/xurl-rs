@@ -142,9 +142,10 @@ async fn a_store_that_could_not_be_loaded_carries_inspect_store(#[case] args: &[
 }
 
 /// `token-store` is also the reason for a name the store does not hold. The
-/// file loaded, so there is nothing to inspect and no step.
+/// file loaded, so there is nothing to inspect: the step lists the names it
+/// does hold.
 #[tokio::test]
-async fn a_name_the_store_does_not_hold_carries_no_step() {
+async fn a_name_the_store_does_not_hold_points_at_the_apps_it_holds() {
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
     let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
@@ -158,7 +159,11 @@ async fn a_name_the_store_does_not_hold_carries_no_step() {
     assert_eq!(code, 77, "stderr: {stderr}");
     let v = envelope(&stderr);
     assert_eq!(v["reason"], "token-store", "{v}");
-    assert!(v.get("next_step").is_none(), "{v}");
+    assert_eq!(
+        v["next_step"],
+        serde_json::json!({"action": "fix-input", "command": "xr auth status"}),
+        "{v}"
+    );
 }
 
 /// A command that needs a credential from the unloadable store keeps the step

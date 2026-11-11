@@ -269,7 +269,28 @@ impl TokenStore {
         if self.apps.contains_key(name) {
             Ok(())
         } else {
-            Err(Error::token_store(format!("app {name:?} not found")))
+            Err(Self::app_not_found(name))
+        }
+    }
+
+    fn app_not_found(name: &str) -> Error {
+        Error::token_store(format!("{} {name:?}", crate::error::APP_NOT_FOUND))
+    }
+
+    /// The not-found error for a credential meant for `name`, an app this
+    /// view does not hold. An empty name is the default app, which a save
+    /// creates in a store that holds none. `xr auth oauth2` reads it before
+    /// consent (`crates/xurl-cli/src/cli/commands/auth/signin.rs`).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::TokenStore`] when `name` is not empty and names no app.
+    #[doc(hidden)]
+    pub fn refuse_if_app_missing(&self, name: &str) -> Result<()> {
+        if name.is_empty() {
+            Ok(())
+        } else {
+            self.require_app(name)
         }
     }
 
@@ -319,7 +340,7 @@ impl TokenStore {
             let app = store
                 .apps
                 .get_mut(name)
-                .ok_or_else(|| Error::token_store(format!("app {name:?} not found")))?;
+                .ok_or_else(|| Self::app_not_found(name))?;
             if !client_id.is_empty() {
                 app.client_id = client_id.to_string();
             }
