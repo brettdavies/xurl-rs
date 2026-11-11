@@ -1705,22 +1705,13 @@ fn readers_never_observe_a_partial_store() {
     let path = tmp.path().join(".xurl");
     let mut store = store_at(&path);
     for i in 0..300 {
-        store.apps.insert(
-            format!("app{i:03}"),
-            App {
-                client_id: "i".repeat(200),
-                client_secret: "s".repeat(200),
-                default_user: String::new(),
-                redirect_uri: String::new(),
-                oauth2_tokens: BTreeMap::new(),
-                oauth1_token: None,
-                bearer_token: None,
-                unnamed_oauth2_token: None,
-            },
-        );
+        store
+            .add_app(&format!("app{i:03}"), &"i".repeat(200), &"s".repeat(200))
+            .unwrap();
     }
     store.save_bearer_token_for_app("app000", "b0").unwrap();
     let total = store.list_apps().len();
+    assert_eq!(total, 300, "the file under test holds every seeded app");
 
     let stop = Arc::new(AtomicBool::new(false));
     let reader = {
