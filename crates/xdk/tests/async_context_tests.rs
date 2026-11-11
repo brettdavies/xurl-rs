@@ -323,3 +323,60 @@ async fn dropping_a_stream_mid_response_releases_its_connection() {
         "the server must see the connection close when the stream is dropped"
     );
 }
+
+/// A chunked HTTP/1.1 server that sends one whole line and the start of a
+/// second, then closes the connection inside the chunk that carries it.
+async fn mid_line_breaking_server() -> String {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.unwrap();
+        let mut request = [0u8; 4096];
+        let _ = socket.read(&mut request).await;
+        let whole = "{\"data\":{\"id\":\"1\"}}\n";
+        let half = "{\"data\":{\"id\":\"2\",\"te";
+        let response = format!(
+            "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n{:x}\r\n{whole}\r\n{:x}\r\n{half}",
+            whole.len(),
+            half.len() + 40,
+        );
+        socket.write_all(response.as_bytes()).await.unwrap();
+        socket.flush().await.unwrap();
+    });
+    format!("http://{addr}")
+}
+
+/// A stream whose connection breaks inside a line reports the failure and
+/// ends there; the part of the line it had received is never a line.
+#[tokio::test]
+async fn a_stream_that_breaks_inside_a_line_yields_nothing_after_its_error() {
+    let mut cfg = Config::from_overrides(&EnvOverrides::default());
+    cfg.api_base_url = mid_line_breaking_server().await;
+    let tmp = TempDir::new().unwrap();
+    let client = Client::new(&cfg, auth_in(&cfg, &tmp)).expect("client builds");
+    let options = xdk::api::RequestOptions {
+        method: "GET".to_string(),
+        target: xdk::api::RequestTarget::Template {
+            path: "/2/tweets/sample/stream".to_string(),
+            path_params: std::collections::HashMap::new(),
+            query: Vec::new(),
+        },
+        no_auth: true,
+        ..Default::default()
+    };
+    let mut lines = client.stream_request(&options).await.expect("stream opens");
+
+    let mut seen = Vec::new();
+    for _ in 0..4 {
+        seen.push(lines.next_line().await.map_err(|_| ()));
+    }
+
+    assert_eq!(seen[0], Ok(Some("{\"data\":{\"id\":\"1\"}}".to_string())));
+    assert_eq!(seen[1], Err(()), "the broken connection is reported");
+    assert_eq!(
+        &seen[2..],
+        &[Ok(None), Ok(None)],
+        "the stream went on after its error: {seen:?}"
+    );
+}
