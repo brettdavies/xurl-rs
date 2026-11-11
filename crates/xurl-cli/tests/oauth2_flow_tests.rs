@@ -2462,6 +2462,19 @@ fn verdicts() -> Vec<Verdict> {
             &flow_at(&redirect),
         )
     });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "flow saved for another app, ahead of an app the store does not hold, step 2",
+            "AppMismatch",
+            true,
+            |store| {
+                seed_store_two_apps(store);
+                save_flow(store, &saved_flow("work", "work-client-id"));
+            },
+            &flow_at(&redirect),
+        )
+    });
     rows.push(verdict(
         "flow saved for another client id, ahead of a redirect URL that does not parse",
         "AppMismatch",

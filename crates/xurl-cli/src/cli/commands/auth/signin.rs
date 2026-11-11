@@ -105,13 +105,14 @@ pub(super) async fn oauth2(
     let client = crate::cli::commands::make_client(cfg, auth)?;
     // Refuse before any URL is built or pending file written when the store
     // cannot be loaded or written, the target app has no client id to sign in
-    // with, or the store holds no app by the name `--app` gives.
+    // with, or the store holds no app by the name `--app` gives. Step 2 checks
+    // the app after the saved flow, whose owner names the app to run it under.
     let refusal = {
         let auth = client.auth().await?;
         auth.token_store.refuse_unless_writable()?;
         let refusal =
             client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false);
-        if refusal.is_none() {
+        if refusal.is_none() && !(effective_no_browser && step == Some(2)) {
             auth.token_store.refuse_if_app_missing(auth.app_name())?;
         }
         refusal
@@ -312,10 +313,11 @@ fn dry_run_answer(
         out.print_dry_run_error_body(stdout, &ctx, body);
         return Ok(());
     }
-    if let Err(error) = auth.token_store.refuse_if_app_missing(auth.app_name()) {
+    let step2 = headless && step == Some(2);
+    if !step2 && let Err(error) = auth.token_store.refuse_if_app_missing(auth.app_name()) {
         return Err(Failure::DryRunRefusal { ctx, error });
     }
-    if headless && step == Some(2) {
+    if step2 {
         let redirect_url = match auth_url {
             Some("-") if std::io::stdin().is_terminal() => None,
             Some("-") => match redirect_url_from_stdin() {
