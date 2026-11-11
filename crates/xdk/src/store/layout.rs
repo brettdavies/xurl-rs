@@ -145,11 +145,29 @@ fn path_to_open(dir: &Path, store_path: &Path) -> PathBuf {
         return dir.to_path_buf();
     }
     let aside = with_suffix(dir, ".migrating");
-    if !store_path.exists() && is_regular_file(&aside) {
+    if !store_path.exists() && is_own_stranded_store(&aside) {
         aside
     } else {
         store_path.to_path_buf()
     }
+}
+
+/// Whether `aside` can be a store this user's move stranded: a regular file,
+/// which on Unix the current user owns and no one else may write. A file
+/// another user placed beside a store path in a shared directory is not
+/// opened as the store.
+fn is_own_stranded_store(aside: &Path) -> bool {
+    let Ok(meta) = fs::symlink_metadata(aside) else {
+        return false;
+    };
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        if meta.uid() != rustix::process::getuid().as_raw() || meta.mode() & 0o022 != 0 {
+            return false;
+        }
+    }
+    meta.is_file()
 }
 
 /// Whether `path` is a regular file itself, not a link to one.
@@ -168,9 +186,13 @@ fn with_suffix(path: &Path, suffix: &str) -> PathBuf {
 ///
 /// A stranded file beside a store that is already in its directory is not
 /// that store's content any more. It is kept under a `.bak` name, so it stops
-/// sending every later call down the locked path. The pending sign-in state
-/// and lock files a reader of the stranded file kept beside it go the way
-/// [`move_sidecars`] takes the single-file layout's.
+/// sending every later call down the locked path.
+///
+/// The move waits for a write through the stranded path, which holds that
+/// path's lock, so the write lands in the file that moves. The single-file
+/// layout's pending sign-in state goes the way [`move_sidecars`] takes it on
+/// a move that was not interrupted, and so do the pending state and lock
+/// files a reader of the stranded file kept beside it.
 fn finish_interrupted_move(dir: &Path, aside: &Path, store_path: &Path) {
     if !aside.exists() || is_regular_file(dir) {
         return;
@@ -179,7 +201,14 @@ fn finish_interrupted_move(dir: &Path, aside: &Path, store_path: &Path) {
         keep_as_backup(aside, store_path);
         return;
     }
-    if create_store_dir(dir).is_ok() && fs::rename(aside, store_path).is_ok() {
+    if create_store_dir(dir).is_err() {
+        return;
+    }
+    let writer = StoreLock::acquire(aside);
+    let moved = fs::rename(aside, store_path).is_ok();
+    drop(writer);
+    if moved {
+        move_sidecars(dir, store_path);
         move_sidecars(aside, store_path);
         tracing::info!(
             target: STORE_TARGET,
@@ -379,10 +408,65 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let (dir, store) = paths(&tmp);
         fs::write(with_suffix(&dir, ".migrating"), STORE).unwrap();
+        fs::write(with_suffix(&dir, ".pending"), b"pending").unwrap();
 
         assert_eq!(adopt_directory_layout(&store), store);
         assert_eq!(fs::read(&store).unwrap(), STORE);
         assert!(!with_suffix(&dir, ".migrating").exists());
+        assert_eq!(
+            fs::read(with_suffix(&store, ".pending")).unwrap(),
+            b"pending",
+            "the single-file layout's pending sign-in moves with the store"
+        );
+        assert!(!with_suffix(&dir, ".pending").exists());
+    }
+
+    /// A write through the stranded path holds that path's lock; the move
+    /// waits for it, so the write is in the store that moves.
+    #[test]
+    fn an_interrupted_move_waits_for_a_write_through_the_stranded_path() {
+        let tmp = TempDir::new().unwrap();
+        let (dir, store) = paths(&tmp);
+        let stranded = with_suffix(&dir, ".migrating");
+        fs::write(&stranded, STORE).unwrap();
+        let writer = StoreLock::acquire(&stranded).unwrap();
+        let (moved, finished) = std::sync::mpsc::channel();
+        let mover = {
+            let store = store.clone();
+            std::thread::spawn(move || {
+                let opened = adopt_directory_layout(&store);
+                let _ = moved.send(());
+                opened
+            })
+        };
+
+        let waited = finished
+            .recv_timeout(std::time::Duration::from_millis(300))
+            .is_err();
+        fs::write(&stranded, b"written while the move waited").unwrap();
+        drop(writer);
+
+        assert_eq!(mover.join().unwrap(), store);
+        assert!(waited, "the move did not wait for the write");
+        assert_eq!(fs::read(&store).unwrap(), b"written while the move waited");
+    }
+
+    /// A stranded file someone else could have written is not opened as the
+    /// store.
+    #[cfg(unix)]
+    #[test]
+    fn a_stranded_file_others_may_write_is_not_opened() {
+        use std::os::unix::fs::PermissionsExt;
+        let tmp = TempDir::new().unwrap();
+        let (dir, store) = paths(&tmp);
+        let stranded = with_suffix(&dir, ".migrating");
+        fs::write(&stranded, STORE).unwrap();
+        fs::set_permissions(&stranded, fs::Permissions::from_mode(0o666)).unwrap();
+
+        assert_eq!(locate_store(&store), store);
+
+        fs::set_permissions(&stranded, fs::Permissions::from_mode(0o600)).unwrap();
+        assert_eq!(locate_store(&store), stranded);
     }
 
     /// A process killed between the move's renames leaves the store at
@@ -395,6 +479,11 @@ mod tests {
         let (dir, store) = paths(&tmp);
         let stranded = with_suffix(&dir, ".migrating");
         fs::write(&stranded, STORE).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&stranded, fs::Permissions::from_mode(0o600)).unwrap();
+        }
 
         let opened = locate_store(&store);
         let mut writer = crate::store::TokenStore::new_with_path(&opened.to_string_lossy());
