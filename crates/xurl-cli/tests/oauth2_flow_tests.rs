@@ -829,6 +829,16 @@ fn urlencode(value: &str) -> String {
 async fn run_interactive(
     opener: impl Fn(&str, &str) -> std::io::Result<()> + Send + Sync + 'static,
 ) -> (xdk::error::Result<String>, CancellationToken) {
+    run_interactive_after(|_| {}, opener).await
+}
+
+/// [`run_interactive`], with `change` made to the store's path once the
+/// `Auth` has loaded it. The directory the store is in is writable again
+/// once the flow returns.
+async fn run_interactive_after(
+    change: impl FnOnce(&std::path::Path),
+    opener: impl Fn(&str, &str) -> std::io::Result<()> + Send + Sync + 'static,
+) -> (xdk::error::Result<String>, CancellationToken) {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
     let target = listener.local_addr().expect("its address").to_string();
     let redirect_uri = format!("http://{target}/callback");
@@ -839,6 +849,7 @@ async fn run_interactive(
         &redirect_uri,
     );
     let mut auth = test_auth(cfg, &tmp, &redirect_uri);
+    change(&tmp.path().join(".xurl"));
     let cancel = CancellationToken::new();
     let returned = run_oauth2_flow_on(
         &mut auth,
@@ -849,7 +860,75 @@ async fn run_interactive(
         move |url| opener(url, &target),
     )
     .await;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
     (returned, cancel)
+}
+
+/// An opener that records it ran and then consents, following the redirect
+/// with the authorize URL's own state.
+fn consenting_opener(
+    opened: &Arc<Mutex<bool>>,
+) -> impl Fn(&str, &str) -> std::io::Result<()> + Send + Sync + 'static {
+    let opened = Arc::clone(opened);
+    move |url, target| {
+        *opened.lock().unwrap() = true;
+        follow_redirect(target, &state_of(url))
+    }
+}
+
+/// A store file that stopped parsing after the `Auth` loaded it refuses the
+/// sign-in before the browser opens: the consent would buy tokens the store
+/// refuses to keep.
+#[tokio::test]
+async fn an_interactive_sign_in_on_a_store_that_does_not_parse_opens_no_browser() {
+    let opened = Arc::new(Mutex::new(false));
+
+    let (returned, _) = run_interactive_after(
+        |store| std::fs::write(store, "apps: [half an edit").unwrap(),
+        consenting_opener(&opened),
+    )
+    .await;
+
+    assert!(!*opened.lock().unwrap(), "the browser opened: {returned:?}");
+    assert!(
+        matches!(returned, Err(xdk::Error::TokenStore { .. })),
+        "{returned:?}"
+    );
+}
+
+/// A store whose directory stopped taking new files refuses the sign-in
+/// before the browser opens, with the error its save would have met.
+#[cfg(unix)]
+#[tokio::test]
+async fn an_interactive_sign_in_on_a_store_it_cannot_write_opens_no_browser() {
+    use std::os::unix::fs::PermissionsExt;
+    let opened = Arc::new(Mutex::new(false));
+    let mut writable = false;
+
+    let (returned, _) = run_interactive_after(
+        |store| {
+            let dir = store.parent().unwrap();
+            std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+            // A process that may write a read-only directory (root) cannot
+            // be refused this way.
+            writable = std::fs::write(dir.join("probe"), b"").is_ok();
+        },
+        consenting_opener(&opened),
+    )
+    .await;
+    if writable {
+        return;
+    }
+
+    assert!(!*opened.lock().unwrap(), "the browser opened: {returned:?}");
+    assert!(
+        matches!(&returned, Err(xdk::Error::Io { message, .. }) if message.starts_with("cannot write")),
+        "{returned:?}"
+    );
 }
 
 /// Follows the redirect to `target` the way a browser does: one GET carrying
@@ -2332,8 +2411,52 @@ fn verdicts() -> Vec<Verdict> {
             },
             &flow_at(&redirect),
         ));
+        if a_read_only_dir_refuses_new_files() {
+            rows.push(verdict(
+                "store whose directory takes no new file, step 1",
+                "cannot write",
+                true,
+                |store| {
+                    seed_store(store);
+                    make_dir_read_only(store);
+                },
+                &step1,
+            ));
+            rows.push(verdict(
+                "store whose directory takes no new file, step 2",
+                "cannot write",
+                true,
+                |store| {
+                    seed_store(store);
+                    seed_pending(store);
+                    make_dir_read_only(store);
+                },
+                &flow_at(&redirect),
+            ));
+        }
     }
     rows
+}
+
+/// Makes the directory `store` is in read-only; [`disagreements`] makes it
+/// writable again.
+#[cfg(unix)]
+fn make_dir_read_only(store: &std::path::Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = store.parent().unwrap();
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+}
+
+/// Whether a read-only directory refuses this process a new file, which it
+/// does not for root.
+#[cfg(unix)]
+fn a_read_only_dir_refuses_new_files() -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    let tmp = TempDir::new().unwrap();
+    std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o500)).unwrap();
+    let refused = std::fs::write(tmp.path().join("probe"), b"").is_err();
+    std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+    refused
 }
 
 /// The store file and the flow beside it, as bytes, `None` for a path that
@@ -2481,6 +2604,11 @@ async fn disagreements(row: Verdict) -> Vec<String> {
     let dry = serde_json::from_str::<serde_json::Value>(stdout.trim());
 
     let (real_code, real_stdout, real_stderr) = run_cli(&store, &overrides, &command(false)).await;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
     if real_code == 0 {
         faults.push(format!("{name}: the real run succeeded: {real_stdout}"));
         return faults;

@@ -133,6 +133,32 @@ fn sync_parent(_target: &Path) -> io::Result<()> {
     Ok(())
 }
 
+/// How a temp file is created: new, never an existing file, and `0600`.
+fn temp_file_options() -> OpenOptions {
+    let mut opts = OpenOptions::new();
+    opts.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    opts
+}
+
+/// Creates a temp file beside `path`, named as a write to `path` names its
+/// own, and removes it again.
+///
+/// # Errors
+///
+/// Returns the error creating it.
+pub(crate) fn probe_temp_file(path: &Path) -> io::Result<()> {
+    let tmp = TempFile {
+        path: temp_path_for(path),
+        published: false,
+    };
+    temp_file_options().open(&tmp.path).map(drop)
+}
+
 /// Replaces the contents of `path` with `bytes` atomically.
 ///
 /// # Errors
@@ -147,16 +173,8 @@ pub(crate) fn write_atomically(path: &Path, bytes: &[u8]) -> io::Result<()> {
         published: false,
     };
 
-    let mut opts = OpenOptions::new();
-    opts.write(true).create_new(true);
-    #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
-        opts.mode(0o600);
-    }
-
-    {
-        let mut file = opts.open(&tmp.path)?;
+        let mut file = temp_file_options().open(&tmp.path)?;
         file.write_all(bytes)?;
         file.flush()?;
         file.sync_all()?;
