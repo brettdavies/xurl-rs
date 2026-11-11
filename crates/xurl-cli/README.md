@@ -838,7 +838,8 @@ xr --output json --dry-run post "Hello"
 ```
 
 - `would_succeed` is `false` when an input is invalid, when no stored credential serves a request the command would
-  send, or when the arguments, client id, saved flow, or redirect URL of a sign-in are refused. `reason` says which, and
+  send, when the arguments, client id, saved flow, or redirect URL of a sign-in are refused, or when the token store
+  would refuse the write the command makes or the refresh its expired OAuth2 login needs. `reason` says which, and
   `exit_code` is the code the real run would end on. Each refusal also carries the keys of the real run's error
   envelope: `message` and the `next_step` the real run would name, plus, for a credential, `endpoint`, `supported`, and
   `available_in_app`. An invalid input's `reason` is `validation`, as in the real run, its `rule` the validator's code,
@@ -846,19 +847,26 @@ xr --output json --dry-run post "Hello"
   rule names one. A step that reruns the invocation keeps `--dry-run`, so following it sends nothing either.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
-  belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed. Whether X still accepts
-  the credential is not checked, since nothing is sent to find out.
-- A sign-in's dry run makes the real run's checks of its arguments, the client id, and for `--step 2` the saved flow and
-  the redirect URL, in the real run's order, and a refusal answers as the real run's error does: `xr --dry-run auth
-  oauth2` checks `--scopes`, the `--step` and `--auth-url` arguments, and the client id of the app it would sign in. For
-  `--step 2` it also checks the flow step 1 saved beside the store, the app and scopes that flow belongs to, and the
-  redirect URL against it. A well-formed redirect URL answers `would_succeed: true`, which does not vouch for its code,
-  since nothing is sent to X. A dry run saves no flow, so rehearsing step 2 needs a real step 1 first. It does not check
-  that a step 1 can write its pending file, that `AUTH_URL` or `TOKEN_URL` is one a request can go to, that the store
-  would accept the write after the exchange, or, in the browser flow, that the redirect URI parses and the callback port
-  binds. An expired flow stays on disk, where the real run deletes it. `--auth-url -` reads one line of piped stdin as
-  the real run does and waits for it; on a terminal nothing is read, so the URL's contents go unchecked. These answers
-  carry no `auth` key.
+  belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed, once the store passes
+  the check the refresh makes before it asks X: a store that does not load, or whose directory takes no new file,
+  answers as the real run's refusal does. Whether X still accepts the credential is not checked, since nothing is sent
+  to find out.
+- A sign-in's dry run makes the real run's checks of its arguments, the client id, the store, and for `--step 2` the
+  saved flow and the redirect URL, in the real run's order, and a refusal answers as the real run's error does: `xr
+  --dry-run auth oauth2` checks `--scopes`, the `--step` and `--auth-url` arguments, the client id of the app it would
+  sign in, and that the store loads, takes a new file in its directory, and holds the app `--app` names. For `--step 2`
+  it also checks the flow step 1 saved beside the store, the app and scopes that flow belongs to, and the redirect URL
+  against it. A well-formed redirect URL answers `would_succeed: true`, which does not vouch for its code, since nothing
+  is sent to X. A dry run saves no flow, so rehearsing step 2 needs a real step 1 first. It does not check that
+  `AUTH_URL` or `TOKEN_URL` is one a request can go to, or, in the browser flow, that the redirect URI parses and the
+  callback port binds. An expired flow stays on disk, where the real run deletes it. `--auth-url -` reads one line of
+  piped stdin as the real run does and waits for it; on a terminal nothing is read, so the URL's contents go unchecked.
+  These answers carry no `auth` key.
+- A command that writes the token store, `auth app`, `auth oauth1`, `auth apps add`, `update`, `remove`, and
+  `redirect-uri set`, `auth clear`, and `auth default` given an app, makes the checks its write makes, against the store
+  as the dry run read it: that the file loads, holds the app or user the command names and no app by the name `auth apps
+  add` registers, and takes a new file in its directory. `auth clear` with nothing named answers the real run's
+  `nothing-to-clear`. The check of the directory creates one empty file there and removes it at once.
 - `confirmation_required: true` marks a destructive command whose real run would stop to ask, and the key appears only
   then. The flag outranks `--force` and the prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries
   the key, and `xr --dry-run delete <id> --force` leaves it out, since nothing would stop.
@@ -1167,10 +1175,12 @@ A command that writes the token store exits 5 with reason `io` when the store ca
 new file, or does not exist and cannot be created. The message names the store or its directory. To recover, change the
 permissions of the directory that holds it, or set `XURL_TOKEN_STORE` to a writable path.
 
-A sign-in buys tokens only the store can keep, and a refresh spends the refresh token it sends. So `xr auth oauth2`, its
-dry run, and the refresh of an expired login check that the store can be written before they ask for consent or send
-anything, and the stored login keeps working once the directory takes writes again. To check, `xr` creates an empty file
-where the save creates its own and removes it at once, a dry run included.
+A sign-in buys tokens only the store can keep, and a refresh spends the refresh token it sends. So `xr auth oauth2` and
+the refresh of an expired login check that the store can be written before they ask for consent or send anything, and
+the stored login keeps working once the directory takes writes again. A dry run makes the same check wherever its real
+run writes the store: a sign-in, a command whose expired login the real run would refresh, and the `auth` commands that
+change the store. To check, `xr` creates an empty file where the save creates its own and removes it at once, a dry run
+included.
 
 ## Relationship to xurl
 

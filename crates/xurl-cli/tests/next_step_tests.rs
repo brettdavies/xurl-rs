@@ -251,6 +251,140 @@ async fn text_mode_names_the_page_for_an_unloadable_store() {
     assert!(stderr.contains(STORE_DOCS), "stderr: {stderr}");
 }
 
+// ── A store write's dry run ────────────────────────────────────────────
+
+/// What a store-write case runs against.
+#[derive(Clone, Copy)]
+enum Held {
+    /// A file that exists and is not a store.
+    Unloadable,
+    /// A store holding the one app `work`.
+    Work,
+    /// A store holding `work`, in a directory that takes no new file.
+    #[cfg(unix)]
+    ReadOnly,
+}
+
+/// Seeds `tmp` with a store as `held` describes and a secret file.
+fn seed_store_write(held: Held, tmp: &TempDir) {
+    std::fs::create_dir(tmp.path().join("home")).expect("home");
+    let store = tmp.path().join("home").join(".xurl");
+    match held {
+        Held::Unloadable => {
+            std::fs::write(&store, ":::: not yaml [\n").expect("write the broken store")
+        }
+        _ => {
+            let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+            ts.add_app("work", "abcdefgh", "shh").expect("add app");
+        }
+    }
+    std::fs::write(tmp.path().join("secret"), "shh\n").expect("write the secret");
+}
+
+/// `xr --output json [--dry-run] <args>` on the store [`seed_store_write`]
+/// left in `tmp`, with each `SECRET` in `args` read from its file: the exit
+/// code, the document the run printed, and whether the store file is as it
+/// was.
+async fn store_write(
+    #[cfg_attr(not(unix), allow(unused_variables))] held: Held,
+    tmp: &TempDir,
+    args: &[&str],
+    dry_run: bool,
+) -> (i32, serde_json::Value, bool) {
+    let store = tmp.path().join("home").join(".xurl");
+    let secret = tmp.path().join("secret");
+    let secret = secret.to_str().expect("utf-8 path");
+    let mut argv = vec!["xr", "--output", "json"];
+    if dry_run {
+        argv.push("--dry-run");
+    }
+    argv.extend(
+        args.iter()
+            .map(|arg| if *arg == "SECRET" { secret } else { arg }),
+    );
+    let before = std::fs::read(&store).expect("read the store");
+    #[cfg(unix)]
+    let home_mode = |mode| {
+        use std::os::unix::fs::PermissionsExt;
+        if matches!(held, Held::ReadOnly) {
+            std::fs::set_permissions(
+                tmp.path().join("home"),
+                std::fs::Permissions::from_mode(mode),
+            )
+            .expect("chmod");
+        }
+    };
+    #[cfg(unix)]
+    home_mode(0o500);
+    let (code, stdout, stderr) = run_at(&store, &argv).await;
+    #[cfg(unix)]
+    home_mode(0o700);
+    let unchanged = std::fs::read(&store).expect("read the store") == before;
+    (
+        code,
+        envelope(if dry_run { &stdout } else { &stderr }),
+        unchanged,
+    )
+}
+
+/// A dry run of a command that writes the store answers what its real run
+/// fails with: `would_succeed: false` with the same reason, exit code,
+/// message, and step. It writes nothing.
+#[rstest::rstest]
+#[case::app_unloadable(Held::Unloadable, &["auth", "app", "--bearer-token-file", "SECRET"])]
+#[case::oauth1_unloadable(Held::Unloadable, &["auth", "oauth1", "--consumer-key", "ck", "--consumer-secret-file", "SECRET", "--access-token-file", "SECRET", "--token-secret-file", "SECRET"])]
+#[case::apps_add_unloadable(Held::Unloadable, &["auth", "apps", "add", "new", "--client-id", "abcdefgh", "--client-secret-file", "SECRET"])]
+#[case::apps_update_unloadable(Held::Unloadable, &["auth", "apps", "update", "work", "--client-id", "abcdefgh"])]
+#[case::apps_remove_unloadable(Held::Unloadable, &["auth", "apps", "remove", "work", "--force"])]
+#[case::redirect_uri_unloadable(Held::Unloadable, &["auth", "apps", "redirect-uri", "set", "work", "http://localhost:8080/callback"])]
+#[case::clear_unloadable(Held::Unloadable, &["auth", "clear", "--all", "--force"])]
+#[case::default_unloadable(Held::Unloadable, &["auth", "default", "work"])]
+#[case::app_for_a_missing_app(Held::Work, &["--app", "ghost", "auth", "app", "--bearer-token-file", "SECRET"])]
+#[case::oauth1_for_a_missing_app(Held::Work, &["--app", "ghost", "auth", "oauth1", "--consumer-key", "ck", "--consumer-secret-file", "SECRET", "--access-token-file", "SECRET", "--token-secret-file", "SECRET"])]
+#[case::apps_add_taken(Held::Work, &["auth", "apps", "add", "work", "--client-id", "abcdefgh", "--client-secret-file", "SECRET"])]
+#[case::apps_update_missing(Held::Work, &["auth", "apps", "update", "ghost", "--client-id", "abcdefgh"])]
+#[case::apps_remove_missing(Held::Work, &["auth", "apps", "remove", "ghost", "--force"])]
+#[case::redirect_uri_missing(Held::Work, &["auth", "apps", "redirect-uri", "set", "ghost", "http://localhost:8080/callback"])]
+#[case::default_missing(Held::Work, &["auth", "default", "ghost"])]
+#[case::default_user_missing(Held::Work, &["auth", "default", "work", "alice"])]
+#[case::clear_nothing(Held::Work, &["auth", "clear"])]
+#[cfg_attr(unix, case::app_read_only(Held::ReadOnly, &["auth", "app", "--bearer-token-file", "SECRET"]))]
+#[cfg_attr(unix, case::apps_add_read_only(Held::ReadOnly, &["auth", "apps", "add", "new", "--client-id", "abcdefgh", "--client-secret-file", "SECRET"]))]
+#[cfg_attr(unix, case::clear_read_only(Held::ReadOnly, &["auth", "clear", "--all", "--force"]))]
+#[cfg_attr(unix, case::default_read_only(Held::ReadOnly, &["auth", "default", "work"]))]
+#[tokio::test]
+async fn a_store_write_s_dry_run_refuses_as_its_real_run_does(
+    #[case] held: Held,
+    #[case] args: &[&str],
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(held, &tmp);
+    let (code, real, _) = store_write(held, &tmp, args, false).await;
+    if code == 0 {
+        // A process that may write a read-only directory (root) cannot be
+        // refused this way.
+        assert!(
+            !matches!(held, Held::Unloadable | Held::Work),
+            "{args:?}: the real run succeeded: {real}"
+        );
+        return;
+    }
+    let (dry_code, dry, unchanged) = store_write(held, &tmp, args, true).await;
+    assert_eq!(dry_code, 0, "{args:?}: {dry}");
+    assert!(unchanged, "{args:?}: the dry run changed the store");
+    assert_eq!(
+        (&dry["status"], &dry["would_succeed"]),
+        (&serde_json::json!("dry_run"), &serde_json::json!(false)),
+        "{args:?}: the dry run does not refuse where the real run says {real}: {dry}"
+    );
+    for key in ["reason", "exit_code", "message", "next_step"] {
+        assert_eq!(
+            dry[key], real[key],
+            "{args:?}: {key} differs\n  dry:  {dry}\n  real: {real}"
+        );
+    }
+}
+
 // ── The page exists ────────────────────────────────────────────────────
 
 /// The step's page is a section of the CLI README, so the heading it anchors
