@@ -2133,6 +2133,23 @@ fn verdicts() -> Vec<Verdict> {
             &flow_at(&redirect),
         ),
         verdict(
+            "flow that is not UTF-8",
+            "PendingStateInvalid",
+            true,
+            |store| {
+                seed_store(store);
+                let path = xdk::auth::pending::pending_path_for_store(store);
+                std::fs::write(&path, b"state: \xff\xfe\n").unwrap();
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+                        .unwrap();
+                }
+            },
+            &flow_at(&redirect),
+        ),
+        verdict(
             "flow saved for another client id",
             "AppMismatch",
             true,
