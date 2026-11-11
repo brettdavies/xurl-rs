@@ -725,40 +725,14 @@ jobs:
             anc-scorecard.json
             anc-rows.tsv
 
-  # A warm run saves each job's cache under a key that ends in the hash of the
-  # manifests, the lockfile, and the toolchain, so every lockfile change leaves
-  # the ref holding the caches of the one before. Dev's held 5.5 GB of those on
-  # 2026-11-07, against the repository's 10 GB, and GitHub evicts the least
-  # recently used first, which takes the release's build caches between
-  # releases. After a warm run that every job finished, this keeps the most
-  # recently used cache of each key and deletes the rest. The run restored or
-  # saved each cache it uses, so those are the ones kept. Pull requests' caches
-  # are pr-cache-cleanup.yml's.
+  # CI saves under dev and main only in a warm run, so this is where a manifest
+  # or lockfile change's superseded rust-cache entries leave those branches.
+  # `needs` names the three jobs that save a cache in a warm run, so the prune
+  # follows their saves, and `scope`, whose answers those jobs run on.
   prune-caches:
-    name: Prune superseded caches
     needs: [scope, warm, warm-linux, windows]
     if: ${{ !cancelled() && github.event_name != 'pull_request' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
     permissions:
       actions: write
-    steps:
-      - name: Delete this ref's superseded rust-cache entries
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          REF: ${{ github.ref }}
-        run: |
-          set -euo pipefail
-          gh cache list --ref "$REF" --limit 1000 --json id,key,lastAccessedAt,sizeInBytes \
-            | jq -r '[.[] | select(.key | startswith("v0-rust-"))]
-                | group_by(.key | sub("-[^-]+$"; ""))
-                | .[] | sort_by(.lastAccessedAt) | .[:-1][]
-                | "\(.id)\t\(.sizeInBytes)\t\(.key)"' > stale.tsv
-          freed=0
-          while IFS=$'\t' read -r id size key; do
-            gh cache delete "$id"
-            echo "deleted ${key}"
-            freed=$((freed + size))
-          done < stale.tsv
-          echo "Deleted $(wc -l < stale.tsv) superseded caches on ${REF}, $((freed / 1048576)) MB"
+      contents: read
+    uses: brettdavies/.github/.github/workflows/rust-cache-prune.yml@main
