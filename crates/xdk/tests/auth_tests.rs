@@ -1442,4 +1442,30 @@ mod refresh_across_processes {
             "a login that needs no refresh never opens the refresh lock"
         );
     }
+
+    /// The store file stops parsing after this process loaded it, as a
+    /// half-saved edit leaves it: the refresh is refused before its grant, so
+    /// the stored refresh token still works once the file is fixed.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_refresh_is_not_sent_when_the_store_cannot_keep_its_pair() {
+        let server = MockServer::start().await;
+        new_pair_after(Duration::ZERO).mount(&server).await;
+        let tmp = TempDir::new().expect("tempdir");
+        let store_path = tmp.path().join(".xurl");
+        seed_login(&store_path, now_secs() - 10);
+        let mut auth = auth_on(&server, &store_path);
+        std::fs::write(&store_path, "apps: [half an edit").expect("break the store file");
+
+        let refused = auth.refresh_oauth2_token(&http(), "alice").await;
+
+        assert_eq!(
+            refreshes_received(&server).await,
+            0,
+            "the refresh token was spent on a pair the store refused: {refused:?}"
+        );
+        assert!(
+            matches!(refused, Err(xdk::Error::TokenStore { .. })),
+            "{refused:?}"
+        );
+    }
 }

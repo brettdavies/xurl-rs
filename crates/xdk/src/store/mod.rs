@@ -724,7 +724,7 @@ impl TokenStore {
     /// Returns a token-store error naming the path when the file exists but
     /// could not be loaded, so a store the loader did not understand is
     /// never overwritten.
-    fn refuse_if_load_failed(&self) -> Result<()> {
+    pub(crate) fn refuse_if_load_failed(&self) -> Result<()> {
         if self.load_failed() {
             return Err(Error::token_store(format!(
                 "refusing to write {}: the file exists but could not be loaded; fix or move it, then retry",

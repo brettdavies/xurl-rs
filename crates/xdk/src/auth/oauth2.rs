@@ -148,9 +148,10 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 ///
 /// # Errors
 ///
-/// Returns an error if the token-exchange request fails or the response is
-/// missing an access token. A failed `/2/users/me` lookup is warned, not
-/// returned.
+/// Returns [`Error::TokenStore`], before the code is sent, when the store
+/// file exists but cannot be loaded. Returns an error if the token-exchange
+/// request fails or the response is missing an access token. A failed
+/// `/2/users/me` lookup is warned, not returned.
 pub(crate) async fn exchange_code_for_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -158,6 +159,10 @@ pub(crate) async fn exchange_code_for_token(
     verifier: &str,
     username: &str,
 ) -> Result<String> {
+    // A code is single-use: the store refuses before the code is spent on
+    // tokens it could not keep.
+    auth.token_store.reload();
+    auth.token_store.refuse_if_load_failed()?;
     let token_url = auth.token_url().to_string();
     let request = http
         .post(&token_url)
@@ -458,7 +463,7 @@ pub(crate) fn check_remote_step2(
     if let Some(redirect_url) = redirect_url {
         redirect_code(&pending_state, redirect_url)?;
     }
-    Ok(())
+    auth.token_store.refuse_if_load_failed()
 }
 
 /// Refuses a saved flow that belongs to another client or names other scopes
@@ -665,7 +670,9 @@ pub(crate) async fn refresh_grant(
 /// # Errors
 ///
 /// Returns an error when no cached token is found or the refresh lock cannot
-/// be taken, and when the refresh itself fails:
+/// be taken, and [`Error::TokenStore`] when the store file exists but cannot
+/// be loaded, which is refused before the grant so the refresh token is not
+/// spent on a pair the store could not keep. When the refresh itself fails:
 /// [`Error::Auth`] when the token endpoint refuses the refresh token or the
 /// client, or answers with no access token; [`Error::Http`] when it does not
 /// answer; [`Error::Api`] when it answers a failure status that is no OAuth
@@ -690,6 +697,7 @@ pub async fn refresh_oauth2_token(
     let _refresh_lock =
         RefreshLock::acquire_off_runtime(auth.token_store.file_path.clone()).await?;
     auth.token_store.reload();
+    auth.token_store.refuse_if_load_failed()?;
     let (stored_as, oauth2) = stored_oauth2_user(auth, username)
         .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
     if !is_expired(&oauth2) {
