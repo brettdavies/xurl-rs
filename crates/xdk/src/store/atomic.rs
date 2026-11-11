@@ -145,13 +145,6 @@ fn temp_file_options() -> OpenOptions {
     opts
 }
 
-/// Creates a temp file beside `path`, named as a write to `path` names its
-/// own, and removes it again. A file already holding the name is not this
-/// probe's, so it is left alone.
-///
-/// # Errors
-///
-/// Returns the error creating it.
 /// The error of a write that could not create its temp file beside
 /// `target`, naming the directory that refused it.
 pub(crate) fn no_temp_file(target: &Path, e: &io::Error) -> io::Error {
@@ -165,6 +158,13 @@ pub(crate) fn no_temp_file(target: &Path, e: &io::Error) -> io::Error {
     )
 }
 
+/// Creates a temp file beside `path`, named as a write to `path` names its
+/// own, and removes it again. A file already holding the name is not this
+/// probe's, so it is left alone.
+///
+/// # Errors
+///
+/// Returns the error creating it.
 pub(crate) fn probe_temp_file(path: &Path) -> io::Result<()> {
     let path = temp_path_for(path);
     temp_file_options().open(&path).map(drop)?;
