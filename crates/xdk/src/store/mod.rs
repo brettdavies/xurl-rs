@@ -26,6 +26,7 @@ pub use layout::{
     AUTH_FILE_NAME, STORE_TARGET, adopt_directory_layout, default_store_path, locate_store,
 };
 pub(crate) use lock::RefreshLock;
+pub(crate) use tokens::MintedFrom;
 
 use std::collections::BTreeMap;
 use std::fs;
