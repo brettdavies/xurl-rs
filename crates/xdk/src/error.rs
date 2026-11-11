@@ -595,7 +595,8 @@ impl Error {
     /// `ReportIssue`. A credential failure is `None` here: the steps that
     /// depend on a credential store are the binary's to choose. The token
     /// endpoint's 403 that is no OAuth refusal is `FixInput`: the token URL
-    /// or the proxy in front of it is what to change.
+    /// or the proxy in front of it is what to change. So is a store operation
+    /// that names an app the store does not hold: the name is what to change.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -637,6 +638,9 @@ impl Error {
             | Self::InvalidPathParam { .. }
             | Self::MediaProcessingFailed { .. }
             | Self::AccountNotFound { .. } => Some(NextAction::FixInput),
+            Self::TokenStore { message, .. } if message.starts_with(APP_NOT_FOUND) => {
+                Some(NextAction::FixInput)
+            }
             Self::Auth { .. } | Self::TokenStore { .. } | Self::AuthMethodMismatch(_) => None,
             Self::Internal(_) | Self::Json { .. } => Some(NextAction::ReportIssue),
         }

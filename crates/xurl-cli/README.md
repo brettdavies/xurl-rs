@@ -983,7 +983,7 @@ prose instead; the two need not match word for word.
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as listed below; none on a request's 401 except after an upload        |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
-| `token-store`                | `inspect-store` when the store file could not be loaded; `fix-input` with `xr auth status` for an app name it does not hold                      |
+| `token-store`                | `inspect-store` when the store file could not be loaded; `fix-input` with `xr auth status` for an app name it does not hold; none otherwise      |
 | `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
 | `forbidden`                  | `enroll-app` when X names enrollment; `fix-input` for a 403 from the token endpoint that is no OAuth refusal; none otherwise                     |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset, or after `xr media upload` finished (a `template` with no reset or under `-H`); none otherwise    |

@@ -157,8 +157,8 @@ mod tests {
                 "Auth Error: NoAuthMethod: no authentication method available",
             ),
             (
-                Error::token_store("app \"nosuchapp\" not found"),
-                "Token Store Error: app \"nosuchapp\" not found",
+                Error::token_store(format!("{} \"nosuchapp\"", xdk::error::APP_NOT_FOUND)),
+                "Token Store Error: the store holds no app named \"nosuchapp\"",
             ),
             (
                 Error::json("failed to parse media ID from init response"),
