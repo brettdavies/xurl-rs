@@ -274,8 +274,8 @@ struct DryRun<'a> {
 
 /// Answers a dry run of `xr auth oauth2` with the verdict the real run
 /// reaches, from the arguments, the environment, the store, and the saved
-/// flow, in the order the real run checks them. Nothing is sent and the checks
-/// write no file.
+/// flow, in the order the real run checks them. Nothing is sent, and the one
+/// file the checks create is the store probe's empty temp file, removed at once.
 ///
 /// On a terminal a person pastes the URL when the real run asks for it, so
 /// there is nothing to read yet and the checks of its contents are left out;

@@ -768,11 +768,28 @@ impl TokenStore {
     pub fn refuse_unless_writable(&self) -> Result<()> {
         self.refuse_if_load_failed()?;
         if let Some(dir) = layout::outermost_store_dir_to_create(&self.file_path) {
+            // A link whose target is missing is not there to `exists()`, but
+            // the save's `mkdir` meets it in the directory's place.
+            if dir.symlink_metadata().is_ok() {
+                return Err(self.dir_refused(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    format!("{} is a link to a path that does not exist", dir.display()),
+                )));
+            }
             return atomic::probe_temp_file(dir).map_err(|e| self.dir_refused(e));
         }
         let target = atomic::resolve(&self.file_path);
+        let dir = target
+            .parent()
+            .filter(|dir| !dir.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
         atomic::probe_temp_file(&target).map_err(|e| {
-            Error::io(format!("cannot write {}: {e}", target.display())).with_source(e)
+            Error::io(format!(
+                "cannot write {}: cannot create a file in {}: {e}",
+                target.display(),
+                dir.display()
+            ))
+            .with_source(e)
         })
     }
 }

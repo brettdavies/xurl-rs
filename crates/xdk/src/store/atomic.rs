@@ -146,17 +146,20 @@ fn temp_file_options() -> OpenOptions {
 }
 
 /// Creates a temp file beside `path`, named as a write to `path` names its
-/// own, and removes it again.
+/// own, and removes it again. A file already holding the name is not this
+/// probe's, so it is left alone.
 ///
 /// # Errors
 ///
 /// Returns the error creating it.
 pub(crate) fn probe_temp_file(path: &Path) -> io::Result<()> {
-    let tmp = TempFile {
-        path: temp_path_for(path),
+    let path = temp_path_for(path);
+    temp_file_options().open(&path).map(drop)?;
+    drop(TempFile {
+        path,
         published: false,
-    };
-    temp_file_options().open(&tmp.path).map(drop)
+    });
+    Ok(())
 }
 
 /// Replaces the contents of `path` with `bytes` atomically.
