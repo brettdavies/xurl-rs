@@ -222,6 +222,59 @@ async fn an_expired_login_s_dry_run_on_a_store_it_cannot_write_refuses_as_the_re
     assert_refresh_token_kept(&store);
 }
 
+/// `whoami --cached` sends nothing, so an expired login's refresh is not its
+/// concern: with the account stored, it answers from the store, and so does
+/// its dry run, even where the refresh could not write.
+#[cfg(unix)]
+#[tokio::test]
+async fn whoami_cached_answers_an_expired_login_from_a_store_it_cannot_write() {
+    use std::os::unix::fs::PermissionsExt;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+    TokenStore::new_with_path(store.to_str().expect("utf-8 path"))
+        .set_oauth2_account_for_app(APP, LOGIN, "42", Some(LOGIN), Some("Alice"))
+        .expect("store the account");
+    let token_url = format!("{CLOSED}/2/oauth2/token");
+    let set_mode = |mode| {
+        std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(mode)).unwrap();
+    };
+    set_mode(0o500);
+    let real = run(
+        &store,
+        &token_url,
+        &["--output", "json", "whoami", "--cached", "-u", LOGIN],
+    )
+    .await;
+    let dry = run(
+        &store,
+        &token_url,
+        &[
+            "--output",
+            "json",
+            "--dry-run",
+            "whoami",
+            "--cached",
+            "-u",
+            LOGIN,
+        ],
+    )
+    .await;
+    set_mode(0o700);
+
+    let (code, stdout, stderr) = real;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let answered: Value = serde_json::from_str(stdout.trim()).expect("one JSON document");
+    assert_eq!(answered["source"], "cache", "{answered}");
+    let (dry_code, stdout, _) = dry;
+    let dry: Value = serde_json::from_str(stdout.trim()).expect("one JSON document");
+    assert_eq!(dry_code, 0, "{dry}");
+    assert_eq!(
+        (&dry["would_succeed"], &dry["source"]),
+        (&json!(true), &json!("cache")),
+        "{dry}"
+    );
+}
+
 /// A server error is the same answer whatever its body holds; a proxy's error
 /// page is the usual one that holds no JSON.
 #[tokio::test]

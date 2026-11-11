@@ -86,6 +86,28 @@ impl Client {
     /// when the store cannot be loaded, and [`Error::Io`] when it cannot be
     /// written.
     pub async fn auth_preflight(&self, options: &RequestOptions) -> Result<Option<AuthPreflight>> {
+        let found = self.stored_credential(options).await?;
+        if found.as_ref().is_some_and(|found| found.token_expired) {
+            self.credentials().await.refuse_unless_refresh_keeps()?;
+        }
+        Ok(found)
+    }
+
+    /// [`Self::auth_preflight`] without the check an expired token's refresh
+    /// makes of the store: the credential as the store holds it.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::AuthMethodMismatch`] and [`Error::Auth`] as
+    /// [`Self::auth_preflight`] returns them.
+    // `xr whoami --cached` answers from the stored account with it, in
+    // `crates/xurl-cli/src/cli/commands/reads.rs`: it sends nothing, so no
+    // refresh runs.
+    #[doc(hidden)]
+    pub async fn stored_credential(
+        &self,
+        options: &RequestOptions,
+    ) -> Result<Option<AuthPreflight>> {
         if !attaches_credential(options) {
             return Ok(None);
         }
@@ -110,9 +132,6 @@ impl Client {
                 let state = credentials
                     .oauth2_state(&username)
                     .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
-                if state.expired {
-                    credentials.refuse_unless_refresh_keeps()?;
-                }
                 AuthPreflight {
                     scheme: WireScheme::OAuth2,
                     app: credentials.credential_app(WireScheme::OAuth2),

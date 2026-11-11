@@ -336,6 +336,27 @@ impl<T: DeserializeOwned> Call<T> {
     /// Everything [`Client::auth_preflight`] returns, plus the error of a
     /// request that could not be built.
     pub async fn auth_preflight(&self) -> Result<Option<AuthPreflight>> {
+        self.client.auth_preflight(&self.preflight_request()?).await
+    }
+
+    /// [`Client::stored_credential`] for the request as built so far.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Client::stored_credential`] returns, plus the error of a
+    /// request that could not be built.
+    // `xr whoami --cached` reads the stored account with it, in
+    // `crates/xurl-cli/src/cli/commands/reads.rs`.
+    #[doc(hidden)]
+    pub async fn stored_credential(&self) -> Result<Option<AuthPreflight>> {
+        self.client
+            .stored_credential(&self.preflight_request()?)
+            .await
+    }
+
+    /// The request a preflight reads: the one built so far, with the
+    /// credential choices the call's options make.
+    fn preflight_request(&self) -> Result<RequestOptions> {
         if let Some(error) = &self.failed {
             // `failed` holds only a body that did not serialize.
             return Err(Error::json(error.to_string()));
@@ -344,7 +365,7 @@ impl<T: DeserializeOwned> Call<T> {
         request.auth_type.clone_from(&self.options.auth_type);
         request.username.clone_from(&self.options.username);
         request.no_auth = self.options.no_auth;
-        self.client.auth_preflight(&request).await
+        Ok(request)
     }
 
     /// Performs the request and decodes the response.
