@@ -920,3 +920,208 @@ async fn a_refresh_leaves_a_login_cleared_during_its_grant_cleared() {
         "the cleared login came back"
     );
 }
+
+/// A refresh of the unnamed login while another process signs bob in under
+/// `alice`, the name X answers the refresh with: bob's login stands, and the
+/// refreshed pair stays unnamed.
+#[tokio::test]
+async fn a_refresh_does_not_name_an_unnamed_login_over_one_signed_in_under_that_name() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| unnamed(store, true));
+    let server = answering(
+        ("POST", "/token"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: |store| {
+                let mut store = reloaded(store);
+                store
+                    .save_oauth2_token_for_app(
+                        APP,
+                        "alice",
+                        "BOB-ACCESS",
+                        "BOB-REFRESH",
+                        expiry(false),
+                    )
+                    .expect("bob signs in");
+                store
+                    .set_oauth2_account_for_app(APP, "alice", "99", Some("bob"), Some("Bob"))
+                    .expect("bob's account");
+            },
+            body: refreshed_pair(),
+        },
+    )
+    .await;
+    for route in ["/me", "/2/users/me"] {
+        Mock::given(method("GET"))
+            .and(path(route))
+            .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+            .mount(&server)
+            .await;
+    }
+
+    client(&store, &server)
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let under_alice = after
+        .get_oauth2_token_for_app(APP, "alice")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("a login under alice");
+    assert_eq!(
+        (
+            under_alice.access_token.as_str(),
+            under_alice.user_id.as_deref()
+        ),
+        ("BOB-ACCESS", Some("99")),
+        "the refresh replaced the login signed in under alice"
+    );
+    let kept = after
+        .get_oauth2_token_unnamed_for_app(APP)
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("the refreshed pair is kept");
+    assert_eq!(kept.access_token, "REFRESHED-ACCESS");
+}
+
+/// A refresh of the unnamed login while another process's `/2/users/me`
+/// answer under the same login stores it under `alice`: the refreshed pair
+/// replaces it there, so the refresh token the grant spent is not left
+/// behind.
+#[tokio::test]
+async fn a_refresh_follows_an_unnamed_login_named_during_its_grant() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| unnamed(store, true));
+    let server = answering(
+        ("POST", "/token"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: |store| {
+                reloaded(store)
+                    .name_unnamed_oauth2_token_for_app(APP, "alice")
+                    .expect("the answer names the login");
+            },
+            body: refreshed_pair(),
+        },
+    )
+    .await;
+    for route in ["/me", "/2/users/me"] {
+        Mock::given(method("GET"))
+            .and(path(route))
+            .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+            .mount(&server)
+            .await;
+    }
+
+    client(&store, &server)
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let token = after
+        .get_oauth2_token_for_app(APP, "alice")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("a login under alice");
+    assert_eq!(
+        (token.access_token.as_str(), token.refresh_token.as_str()),
+        ("REFRESHED-ACCESS", "REFRESHED-REFRESH"),
+        "the login under alice holds the refresh token the grant spent"
+    );
+}
+
+/// A refresh of the unnamed login while another process stores bob's login
+/// in the unnamed slot: bob's login stands, and nothing is stored under the
+/// name the refresh learned.
+#[tokio::test]
+async fn a_refresh_of_the_unnamed_login_leaves_one_stored_there_during_its_grant() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| unnamed(store, true));
+    let server = answering(
+        ("POST", "/token"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: |store| {
+                reloaded(store)
+                    .save_oauth2_token_unnamed_for_app(
+                        APP,
+                        "BOB-ACCESS",
+                        "BOB-REFRESH",
+                        expiry(false),
+                    )
+                    .expect("bob signs in unnamed");
+            },
+            body: refreshed_pair(),
+        },
+    )
+    .await;
+    for route in ["/me", "/2/users/me"] {
+        Mock::given(method("GET"))
+            .and(path(route))
+            .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+            .mount(&server)
+            .await;
+    }
+
+    client(&store, &server)
+        .get_me()
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let unnamed = after
+        .get_oauth2_token_unnamed_for_app(APP)
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("a login in the unnamed slot");
+    assert_eq!(
+        unnamed.access_token, "BOB-ACCESS",
+        "bob's login was replaced"
+    );
+    assert!(
+        after.get_oauth2_token_for_app(APP, "alice").is_none(),
+        "the refreshed pair was stored under the name it learned"
+    );
+}
+
+/// An expired `work` login without an id, refreshed inside the send: the
+/// answer is recorded on the token the request carried, the refreshed one.
+#[tokio::test]
+async fn a_me_answer_is_recorded_on_the_token_a_refresh_inside_the_send_minted() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| named(store, "work", true));
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(refreshed_pair()))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+        .mount(&server)
+        .await;
+
+    client(&store, &server)
+        .get_me()
+        .username("work")
+        .send_saving_identity()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let token = after
+        .get_oauth2_token_for_app(APP, "work")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("a login under work");
+    assert_eq!(
+        (token.access_token.as_str(), token.user_id.as_deref()),
+        ("REFRESHED-ACCESS", Some("42"))
+    );
+}

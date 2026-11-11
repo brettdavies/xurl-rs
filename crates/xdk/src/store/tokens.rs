@@ -107,9 +107,9 @@ impl TokenStore {
 
     /// [`Self::put_oauth2_token`], or [`Self::put_answered_oauth2_token`]
     /// when `answered`, for a pair a refresh minted from the token `from`
-    /// names. Nothing is written unless that slot still holds the token the
-    /// refresh sent: a login another process signed in or cleared there
-    /// while the grant was in flight stands.
+    /// names. Nothing is written once the token the refresh sent is gone: a
+    /// login another process signed in or cleared in its place while the
+    /// grant was in flight stands.
     pub(crate) fn put_refreshed_oauth2_token(
         &mut self,
         app_name: &str,
@@ -132,11 +132,16 @@ impl TokenStore {
         minted_from: Option<&MintedFrom<'_>>,
     ) -> Result<()> {
         self.update(|store| {
-            if let Some(from) = minted_from
-                && !from.still_stored(store.resolve_app(app_name))
-            {
-                return Ok(());
-            }
+            let (destination, drop_unnamed) = match minted_from {
+                None => (name.map(str::to_string), drop_unnamed),
+                Some(from) => {
+                    match from.destination(store.resolve_app(app_name), name, drop_unnamed) {
+                        Some(destination) => destination,
+                        None => return Ok(()),
+                    }
+                }
+            };
+            let name = destination.as_deref();
             if answered && let Some(user_id) = &token.user_id {
                 store.share_account_names(
                     user_id,
@@ -802,14 +807,39 @@ pub(crate) struct MintedFrom<'a> {
 }
 
 impl MintedFrom<'_> {
-    /// Whether `app` still holds that token in that slot.
-    fn still_stored(&self, app: &super::App) -> bool {
+    /// Where in `app` a refresh that asked for `name` and `drop_unnamed`
+    /// writes its pair, and whether it empties the unnamed slot; `None` once
+    /// the token it was minted from is gone, so a login another process
+    /// stored or cleared in its place stands.
+    ///
+    /// A token read from the unnamed slot can have been moved under its
+    /// username meanwhile by a `/2/users/me` answer under the same login, and
+    /// the pair replaces it there. One still unnamed moves under `name` only
+    /// while that label is free.
+    fn destination(
+        &self,
+        app: &super::App,
+        name: Option<&str>,
+        drop_unnamed: bool,
+    ) -> Option<(Option<String>, bool)> {
+        let minted_from = |token: Option<&Token>| {
+            token
+                .and_then(|token| token.oauth2.as_ref())
+                .is_some_and(|token| token.refresh_token == self.refresh_token)
+        };
         match self.slot {
-            Some(name) => app.oauth2_tokens.get(name),
-            None => app.unnamed_oauth2_token.as_ref(),
+            Some(slot) => minted_from(app.oauth2_tokens.get(slot))
+                .then(|| (name.map(str::to_string), drop_unnamed)),
+            None if minted_from(app.unnamed_oauth2_token.as_ref()) => {
+                let name = name.filter(|label| !app.oauth2_tokens.contains_key(*label));
+                Some((name.map(str::to_string), drop_unnamed && name.is_some()))
+            }
+            None => app
+                .oauth2_tokens
+                .iter()
+                .find(|(_, token)| minted_from(Some(token)))
+                .map(|(label, _)| (Some(label.clone()), false)),
         }
-        .and_then(|token| token.oauth2.as_ref())
-        .is_some_and(|token| token.refresh_token == self.refresh_token)
     }
 }
 

@@ -646,12 +646,15 @@ pub(crate) async fn refresh_grant(
 ///   caller's label for it and need not be the username X knows;
 /// - a login stored without a name is stored under the username X answers
 ///   with, and the unnamed slot is emptied; when that lookup fails it stays
-///   in the unnamed slot, with a `tracing` warning.
+///   in the unnamed slot, with a `tracing` warning, and it also stays there
+///   when another login was stored under that username during the grant.
 ///
-/// The pair is written only while that slot still holds the token it was
-/// minted from. A login another process signs in or clears there while the
-/// grant is out is left as that process stored it, and the new access token
-/// still goes out with the caller's request.
+/// The pair is written only while the store still holds the token it was
+/// minted from. A login another process signs in or clears in its place
+/// while the grant is out is left as that process stored it, and the new
+/// access token still goes out with the caller's request. A login stored
+/// without a name that a `/2/users/me` answer stored under its username
+/// meanwhile is refreshed there.
 ///
 /// `/2/users/me` is asked only for what the store lacks of the account: a
 /// name, or its id. A caller that supplies `username`, and a login that

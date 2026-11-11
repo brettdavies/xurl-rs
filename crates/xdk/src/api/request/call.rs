@@ -75,7 +75,9 @@ impl Call<ApiResponse<User>> {
     /// out with: when this is `GET /2/users/me` under a user credential from
     /// the store, the account's id is stored beside that credential, and an
     /// `OAuth2` token stored without a username is stored under the one X
-    /// answered with.
+    /// answered with. Each write lands only while the store still holds the
+    /// access token the request carried, so a login stored in its place
+    /// meanwhile keeps its own account.
     ///
     /// Any other call is sent as [`Call::send`] sends it. A lookup of
     /// another user says nothing about the stored login, so it stores
