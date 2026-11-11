@@ -169,6 +169,59 @@ async fn a_refresh_with_no_answer_is_a_network_error_that_names_its_cause() {
     );
 }
 
+/// A dry run of a command whose login has expired checks the store the way
+/// the refresh does before its grant: a store it cannot write is the `io`
+/// refusal the real run ends on, not `would_succeed: true`.
+#[cfg(unix)]
+#[tokio::test]
+async fn an_expired_login_s_dry_run_on_a_store_it_cannot_write_refuses_as_the_real_run_does() {
+    use std::os::unix::fs::PermissionsExt;
+    let tmp = TempDir::new().unwrap();
+    let store = expired_login(tmp.path());
+    let token_url = format!("{CLOSED}/2/oauth2/token");
+    let set_mode = |mode| {
+        std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(mode)).unwrap();
+    };
+    set_mode(0o500);
+    // A process that may write a read-only directory (root) cannot be
+    // refused this way.
+    let writable = std::fs::write(tmp.path().join("probe"), b"").is_ok();
+    let real = run(
+        &store,
+        &token_url,
+        &["--output", "json", "whoami", "-u", LOGIN],
+    )
+    .await;
+    let dry = run(
+        &store,
+        &token_url,
+        &["--output", "json", "--dry-run", "whoami", "-u", LOGIN],
+    )
+    .await;
+    set_mode(0o700);
+    if writable {
+        return;
+    }
+
+    let (code, _, stderr) = real;
+    let real: Value = serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    assert_reason(code, &real, "io", xdk::error::EXIT_NETWORK_ERROR);
+    let (dry_code, stdout, _) = dry;
+    let dry: Value = serde_json::from_str(stdout.trim()).expect("one JSON document");
+    assert_eq!(dry_code, 0, "{dry}");
+    assert_eq!(
+        dry["would_succeed"], false,
+        "the dry run does not refuse: {dry}"
+    );
+    for key in ["reason", "exit_code", "next_step"] {
+        assert_eq!(
+            dry[key], real[key],
+            "{key} differs\n  dry:  {dry}\n  real: {real}"
+        );
+    }
+    assert_refresh_token_kept(&store);
+}
+
 /// A server error is the same answer whatever its body holds; a proxy's error
 /// page is the usual one that holds no JSON.
 #[tokio::test]

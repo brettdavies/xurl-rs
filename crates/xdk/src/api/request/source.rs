@@ -170,6 +170,15 @@ impl CredentialSource {
         }
     }
 
+    /// The refusal a refresh meets before its grant when the store cannot
+    /// keep the refreshed pair. Direct credentials keep theirs in memory.
+    pub(crate) fn refuse_unless_refresh_keeps(&self) -> Result<()> {
+        match self {
+            Self::Store(auth) => auth.token_store.refuse_unless_writable(),
+            Self::Direct(_) => Ok(()),
+        }
+    }
+
     /// The token an `OAuth2` request for `username` would use, or `None`
     /// when the credentials hold none for it.
     pub(crate) fn oauth2_state(&self, username: &str) -> Option<OAuth2State> {
