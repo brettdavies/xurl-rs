@@ -6,7 +6,7 @@ use std::io::{IsTerminal, Write};
 use serde_json::json;
 
 use super::secret::{self, SecretArg};
-use super::{AuthCtx, AuthGlobalFlags};
+use super::{AuthCtx, AuthGlobalFlags, rehearsed};
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::{NextStep, quote_app_name, shell_word};
@@ -14,6 +14,7 @@ use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::{EXIT_USAGE_ERROR, Error};
+use xdk::store::TokenStore;
 
 /// The command a usage error of `xr auth oauth2` closes on the help of.
 const OAUTH2_COMMAND: &str = "xr auth oauth2";
@@ -440,32 +441,34 @@ pub(super) fn oauth1(args: Oauth1Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
         secret::resolve_from_process([consumer_secret, access_token, token_secret])
             .map_err(|e| e.report("xr auth oauth1", out, stderr))?
             .map(Option::unwrap_or_default);
-    if dry_run {
-        let ctx = json!({"command": "auth-oauth1"});
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
-    }
     // Multi-app save: route OAuth1 tokens to the active app
     // (set by `--app NAME` or default). The no-arg variant fell
     // back to the default app even with `--app NAME` set, so a
     // user running `xr auth oauth1 --app NAME …` would silently
     // overwrite default's OAuth1 instead of populating NAME.
     let candidate = auth.app_name().to_string();
-    auth.token_store.save_oauth1_tokens_for_app(
-        &candidate,
-        &access_token,
-        &token_secret,
-        &consumer_key,
-        &consumer_secret,
-    )?;
     // Auto-default the first signed-in app so the user does not
-    // need an explicit `xr auth default <name>` follow-up. Clone
-    // the app name first; `promote_...` takes `&mut self` on the
-    // store which would otherwise alias the immutable `&str`
-    // borrow from `auth.app_name()`.
-    let _ = auth
-        .token_store
-        .promote_to_default_if_first_credentialed(&candidate)?;
+    // need an explicit `xr auth default <name>` follow-up.
+    let save = |store: &mut TokenStore| {
+        store.save_oauth1_tokens_for_app(
+            &candidate,
+            &access_token,
+            &token_secret,
+            &consumer_key,
+            &consumer_secret,
+        )?;
+        store.promote_to_default_if_first_credentialed(&candidate)
+    };
+    if dry_run {
+        return rehearsed(
+            &auth.token_store,
+            save,
+            json!({"command": "auth-oauth1"}),
+            out,
+            stdout,
+        );
+    }
+    save(&mut auth.token_store)?;
     out.print_message(
         stdout,
         "\x1b[32mOAuth1 credentials saved successfully!\x1b[0m",
@@ -485,11 +488,6 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
     let [bearer_token] = secret::resolve_from_process([bearer_token])
         .map_err(|e| e.report("xr auth app", out, stderr))?
         .map(Option::unwrap_or_default);
-    if dry_run {
-        let ctx = json!({"command": "auth-app"});
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
-    }
     // Multi-app save: route the bearer to the active app
     // (set by `--app NAME` or default). The no-arg variant
     // silently fell back to the default app even with `--app
@@ -497,11 +495,20 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
     // would overwrite default's bearer instead of populating
     // NAME's entry.
     let candidate = auth.app_name().to_string();
-    auth.token_store
-        .save_bearer_token_for_app(&candidate, &bearer_token)?;
-    let _ = auth
-        .token_store
-        .promote_to_default_if_first_credentialed(&candidate)?;
+    let save = |store: &mut TokenStore| {
+        store.save_bearer_token_for_app(&candidate, &bearer_token)?;
+        store.promote_to_default_if_first_credentialed(&candidate)
+    };
+    if dry_run {
+        return rehearsed(
+            &auth.token_store,
+            save,
+            json!({"command": "auth-app"}),
+            out,
+            stdout,
+        );
+    }
+    save(&mut auth.token_store)?;
     out.print_ok_message(stdout, "\x1b[32mApp authentication successful!\x1b[0m");
     Ok(())
 }

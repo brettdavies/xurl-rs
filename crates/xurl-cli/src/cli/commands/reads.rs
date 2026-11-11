@@ -180,20 +180,27 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             let client = make_client(cfg, auth)?;
             let call = with_flags(client.get_me(), &common, None);
             if flags.dry_run {
-                let credential = call.auth_preflight().await;
                 let mut ctx = json!({"command": "whoami"});
-                if cached {
+                let credential = if cached {
+                    let held = call.stored_credential().await;
                     let stored = matches!(
-                        &credential,
+                        &held,
                         Ok(Some(found)) if stored_identity(found).is_some()
                     );
                     ctx["cached"] = json!(true);
                     ctx["source"] = json!(if stored { "cache" } else { "api" });
-                }
+                    if stored {
+                        held
+                    } else {
+                        call.auth_preflight().await
+                    }
+                } else {
+                    call.auth_preflight().await
+                };
                 return DryRun::new(ctx).answer(out, stdout, [credential]);
             }
             if cached
-                && let Ok(Some(found)) = call.auth_preflight().await
+                && let Ok(Some(found)) = call.stored_credential().await
                 && let Some(stored) = stored_identity(&found)
             {
                 out.print_response(stdout, &stored);

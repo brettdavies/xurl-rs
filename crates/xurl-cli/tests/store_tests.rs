@@ -1674,6 +1674,47 @@ fn a_token_saved_for_an_app_another_view_removed_lands_nowhere() {
     assert_eq!(on_disk.list_apps(), vec!["personal".to_string()]);
 }
 
+/// A rehearsal saves nothing, and one that ends on an error leaves the
+/// thread's next write saving as it always does.
+#[test]
+fn a_write_after_a_failed_rehearsal_is_saved() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut store = store_at(&path);
+    store.add_app("work", "W-ID", "W-SECRET").unwrap();
+
+    store
+        .rehearse(|copy| copy.add_app("rehearsed", "R-ID", "R-SECRET"))
+        .unwrap();
+    let refused = store.rehearse(|copy| copy.remove_app("ghost"));
+    assert!(
+        matches!(refused, Err(xdk::Error::TokenStore { .. })),
+        "{refused:?}"
+    );
+    store.add_app("saved", "S-ID", "S-SECRET").unwrap();
+
+    assert_eq!(
+        store_at(&path).list_apps(),
+        vec!["saved".to_string(), "work".to_string()],
+        "the rehearsed app was saved, or the write after the failed rehearsal was not"
+    );
+}
+
+/// A rehearsal checks the file as it stands, not the view it started from.
+#[test]
+fn a_rehearsal_reads_the_store_another_view_changed() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let stale = store_at(&path);
+    store_at(&path).add_app("work", "W-ID", "W-SECRET").unwrap();
+
+    let removed = stale.rehearse(|copy| copy.remove_app("work"));
+    assert!(
+        removed.is_ok(),
+        "the rehearsal missed an app another view added: {removed:?}"
+    );
+}
+
 /// A refresh rotating a token and a registration in another loaded view
 /// both land; the rotated refresh token is the one every later refresh needs.
 #[test]

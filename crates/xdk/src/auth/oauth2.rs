@@ -712,6 +712,9 @@ pub async fn refresh_oauth2_token(
         return Ok(oauth2.access_token.clone());
     }
 
+    // The refresh lock is a new file beside the store, so a directory that
+    // takes none is refused before it, naming the store as the save would.
+    auth.token_store.refuse_unless_writable()?;
     let _refresh_lock =
         RefreshLock::acquire_off_runtime(auth.token_store.file_path.clone()).await?;
     auth.token_store.reload();

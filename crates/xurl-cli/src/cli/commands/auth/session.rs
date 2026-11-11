@@ -8,6 +8,7 @@ use serde_json::json;
 use super::{
     AuthCtx, AuthGlobalFlags, StoredAccountEntry, build_app_status_entries,
     destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
+    rehearsed,
 };
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
@@ -15,6 +16,7 @@ use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
 use xdk::error::{EXIT_GENERAL_ERROR, Error, Result};
+use xdk::store::TokenStore;
 
 pub(super) fn status(auth: &Auth, out: &OutputConfig, stdout: &mut dyn Write) -> CommandResult<()> {
     // Read through the runner-constructed store so tempdir-based
@@ -149,12 +151,19 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         "bearer": bearer,
     });
 
-    if dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
-    }
-
+    let clear_named = |store: &mut TokenStore| {
+        if all {
+            store.clear_all()
+        } else if oauth1 {
+            store.clear_oauth1_tokens()
+        } else if let Some(username) = &oauth2_username {
+            store.clear_oauth2_token(username)
+        } else if bearer {
+            store.clear_bearer_token()
+        } else {
+            Err(Error::validation("nothing-to-clear"))
+        }
+    };
     let target = if all {
         "all credentials"
     } else if oauth1 {
@@ -166,6 +175,15 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
     } else {
         ""
     };
+    if dry_run {
+        // Only a named target stops the real run to ask.
+        let ctx = if target.is_empty() {
+            ctx
+        } else {
+            destructive_dry_run_context(ctx, force)
+        };
+        return rehearsed(&auth.token_store, clear_named, ctx, out, stdout);
+    }
     if !target.is_empty() {
         let prompt = format!("Clear {target}?");
         if !gate_destructive(force, no_interactive, quiet, &prompt, &ctx)? {
@@ -173,21 +191,17 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         }
     }
 
-    if all {
-        auth.token_store.clear_all()?;
-        out.print_ok_message(stdout, "All authentication cleared!");
+    clear_named(&mut auth.token_store)?;
+    let cleared = if all {
+        "All authentication cleared!".to_string()
     } else if oauth1 {
-        auth.token_store.clear_oauth1_tokens()?;
-        out.print_ok_message(stdout, "OAuth1 tokens cleared!");
-    } else if let Some(username) = oauth2_username {
-        auth.token_store.clear_oauth2_token(&username)?;
-        out.print_ok_message(stdout, &format!("OAuth2 token cleared for {username}!"));
-    } else if bearer {
-        auth.token_store.clear_bearer_token()?;
-        out.print_ok_message(stdout, "Bearer token cleared!");
+        "OAuth1 tokens cleared!".to_string()
+    } else if let Some(username) = &oauth2_username {
+        format!("OAuth2 token cleared for {username}!")
     } else {
-        return Err(Error::validation("nothing-to-clear").into());
-    }
+        "Bearer token cleared!".to_string()
+    };
+    out.print_ok_message(stdout, &cleared);
     Ok(())
 }
 
@@ -215,11 +229,15 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
             "app_name": app_name,
             "username": username,
         });
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
+        let Some(app) = app_name.as_deref() else {
+            out.print_dry_run(stdout, true, 0, &ctx);
+            return Ok(());
+        };
+        let save = |store: &mut TokenStore| save_default(store, app, username.as_deref());
+        return rehearsed(&auth.token_store, save, ctx, out, stdout);
     }
     if let Some(app_name) = app_name {
-        save_default(auth, &app_name, username.as_deref())?;
+        save_default(&mut auth.token_store, &app_name, username.as_deref())?;
         out.print_ok_message(stdout, &default_set_message(&app_name, username.as_deref()));
     } else {
         // Interactive picker — gate on `--no-interactive` AND on
@@ -269,7 +287,7 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
         } else {
             None
         };
-        save_default(auth, &app_choice, user_choice.as_deref())?;
+        save_default(&mut auth.token_store, &app_choice, user_choice.as_deref())?;
         out.print_ok_message(
             stdout,
             &default_set_message(&app_choice, user_choice.as_deref()),
@@ -280,10 +298,10 @@ pub(super) fn set_default(args: SetDefaultArgs, ctx: AuthCtx<'_>) -> CommandResu
 
 /// Saves the default app, with its default user when one was named, as one
 /// change to the store.
-fn save_default(auth: &mut Auth, app: &str, user: Option<&str>) -> Result<()> {
+fn save_default(store: &mut TokenStore, app: &str, user: Option<&str>) -> Result<()> {
     match user {
-        Some(user) => auth.token_store.set_default_app_and_user(app, user),
-        None => auth.token_store.set_default_app(app),
+        Some(user) => store.set_default_app_and_user(app, user),
+        None => store.set_default_app(app),
     }
 }
 

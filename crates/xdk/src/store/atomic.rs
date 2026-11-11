@@ -145,6 +145,19 @@ fn temp_file_options() -> OpenOptions {
     opts
 }
 
+/// The error of a write that could not create its temp file beside
+/// `target`, naming the directory that refused it.
+pub(crate) fn no_temp_file(target: &Path, e: &io::Error) -> io::Error {
+    let dir = target
+        .parent()
+        .filter(|dir| !dir.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    io::Error::new(
+        e.kind(),
+        format!("cannot create a file in {}: {e}", dir.display()),
+    )
+}
+
 /// Creates a temp file beside `path`, named as a write to `path` names its
 /// own, and removes it again. A file already holding the name is not this
 /// probe's, so it is left alone.
@@ -177,7 +190,9 @@ pub(crate) fn write_atomically(path: &Path, bytes: &[u8]) -> io::Result<()> {
     };
 
     {
-        let mut file = temp_file_options().open(&tmp.path)?;
+        let mut file = temp_file_options()
+            .open(&tmp.path)
+            .map_err(|e| no_temp_file(&target, &e))?;
         file.write_all(bytes)?;
         file.flush()?;
         file.sync_all()?;
