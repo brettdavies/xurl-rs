@@ -2669,13 +2669,14 @@ async fn a_sign_in_whose_store_directory_cannot_be_created_refuses_as_its_dry_ru
     std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
 
     let real = json_document("real run", &stderr);
-    assert_eq!(code, 77, "{real}");
-    assert_eq!(real["reason"], "token-store", "{real}");
+    assert_eq!(code, 5, "{real}");
+    assert_eq!(real["reason"], "io", "{real}");
+    assert_eq!(real["next_step"]["action"], "fix-input", "{real}");
     assert!(
-        real["message"]
+        real["next_step"]["docs"]
             .as_str()
             .unwrap_or_default()
-            .contains("cannot create the directory of"),
+            .ends_with("#token-store-could-not-be-written"),
         "{real}"
     );
     assert_eq!(dry_code, 0, "{dry_stderr}");

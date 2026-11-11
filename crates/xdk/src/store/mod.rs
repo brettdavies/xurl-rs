@@ -724,9 +724,11 @@ impl TokenStore {
     }
 
     fn dir_refused(&self, e: std::io::Error) -> Error {
-        Error::token_store(format!(
-            "cannot create the directory of {}: {e}",
-            self.file_path.display()
+        let dir = self.file_path.parent().unwrap_or(Path::new("."));
+        Error::io(format!(
+            "{} {}: {e}",
+            crate::error::STORE_DIR_UNCREATABLE,
+            dir.display()
         ))
         .with_source(e)
     }
@@ -758,9 +760,10 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// The token-store error of a store that could not be loaded or whose
-    /// directory cannot be created, as the save returns them, and an I/O error
-    /// naming the store when the temp file cannot be created.
+    /// The token-store error of a store that could not be loaded, and the I/O
+    /// errors the save returns: one naming the store's directory when it
+    /// cannot be created, and one naming the store when the temp file cannot
+    /// be created.
     // `xr auth oauth2` and its dry run meet this before the credential check
     // (`crates/xurl-cli/src/cli/commands/auth/signin.rs`): a client id the
     // unloadable file holds is not one the store can be said to lack.

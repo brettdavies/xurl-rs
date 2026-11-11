@@ -403,8 +403,8 @@ impl Auth {
     /// request can go to, and [`Error::Auth`] when it refuses the code or the
     /// client. A store file that exists but cannot be loaded is
     /// [`Error::TokenStore`], and a store the save cannot write is
-    /// [`Error::TokenStore`] or [`Error::Io`] as the save would return it, each
-    /// met before the listener binds and again before the code is sent.
+    /// [`Error::Io`] as the save would return it, each met before the listener
+    /// binds and again before the code is sent.
     pub async fn oauth2_flow<F>(
         &mut self,
         http: &reqwest::Client,

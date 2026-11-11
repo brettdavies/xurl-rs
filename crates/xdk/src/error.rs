@@ -74,6 +74,8 @@ const RATE_LIMIT_DOCS: &str = "https://docs.x.com/resources/fundamentals/rate-li
 const RESPONSE_CODE_DOCS: &str = "https://docs.x.com/x-api/fundamentals/response-codes-and-errors";
 /// Where a fault of the library or of `xr` is reported.
 const ISSUE_TRACKER: &str = "https://github.com/brettdavies/xurl-rs/issues";
+/// What makes a token store unwritable, and the two ways out.
+const STORE_WRITE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-written";
 
 /// Whether an API refusal is X declining the app itself rather than the
 /// request: a 403 whose body carries either enrollment marker.
@@ -663,6 +665,9 @@ impl Error {
                 }
             }
             Self::TokenEndpointForbidden { .. } => Some(TOKEN_ENDPOINT_DOCS),
+            Self::Io { message, .. } if message.starts_with(STORE_DIR_UNCREATABLE) => {
+                Some(STORE_WRITE_DOCS)
+            }
             Self::Auth { .. } | Self::AuthMethodMismatch(_) => Some(AUTHENTICATION_DOCS),
             Self::Http { .. }
             | Self::Io { .. }
@@ -941,6 +946,16 @@ pub const REDIRECT_STATE_MISMATCH: &str = "StateMismatch: the state parameter in
 /// `state` and no authorization code.
 pub const REDIRECT_MISSING_CODE: &str = "MissingCode: no 'code' parameter found in redirect URL. \
      Make sure you copied the full URL from your browser's address bar";
+
+// ── Store failure messages ─────────────────────────────────────────
+
+/// The start of the message of an [`Error::Io`] for a token store whose
+/// directory cannot be created. The directory and the cause follow.
+// `xr` appends its recovery to this message in
+// `crates/xurl-cli/src/cli/output/message.rs`; an embedder classifies the
+// error through `next_action()` and `docs_url()`.
+#[doc(hidden)]
+pub const STORE_DIR_UNCREATABLE: &str = "cannot create the token store's directory";
 
 // ── Exit codes ─────────────────────────────────────────────────────
 

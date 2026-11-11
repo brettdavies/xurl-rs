@@ -621,8 +621,8 @@ mod tests {
             fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o700)).unwrap();
             if !writable {
                 assert!(
-                    matches!(&refused, Err(crate::Error::TokenStore { message, .. })
-                        if message.starts_with("cannot create the directory of")),
+                    matches!(&refused, Err(crate::Error::Io { message, .. })
+                        if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
                     "{refused:?}"
                 );
                 assert_eq!(fs::read_dir(tmp.path()).unwrap().count(), 0);
@@ -644,10 +644,14 @@ mod tests {
         let refused = view.refuse_unless_writable();
         let saved = view.add_app("work", "id", "secret");
 
-        assert!(saved.is_err(), "the save the probe stands for succeeded");
         assert!(
-            matches!(&refused, Err(crate::Error::TokenStore { message, .. })
-                if message.starts_with("cannot create the directory of")),
+            matches!(&saved, Err(crate::Error::Io { message, .. })
+                if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
+            "{saved:?}"
+        );
+        assert!(
+            matches!(&refused, Err(crate::Error::Io { message, .. })
+                if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
             "{refused:?}"
         );
     }
