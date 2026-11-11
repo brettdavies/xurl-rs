@@ -104,26 +104,28 @@ fits `--rate-limit-max-wait` (60 seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
 request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, `forbidden` for a token endpoint's 403,
-and the skill verbs' machine-state reasons) says the same invocation fails again until its input or the state it read
-changes. Under `address-in-use`, a port another process holds, it carries `listen` again on `--port 0`: a `command`, or
-a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t` given before a command word
-that takes it, it carries the invocation with the flag after the word, and for an old `xr schema` name or a bare scope
-word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment that names no property, it
-carries a `template` ending in `<property>` beside `known_properties`. Under `auth-required`, for a `webhooks listen`
-whose app has no secret to verify X's signatures by, it carries a `template` that stores the secret `--secret` names:
-the OAuth1 credentials under `--secret oauth1`, the app's client secret otherwise. For an `auth oauth2 --step 2` whose
-redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a `template` that runs step 2
-again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401 on the status read after
-`xr media upload` finished, it carries the command that resumes the wait as a `template`, to run once the credential
-works, since reading again under the same credential fails the same way. A 403 from the token endpoint on that read,
-which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the proxy are fixed. For a
-403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the token endpoint,
-`TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other status) names the
-issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
-`--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a deletion by
-accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`. Under
-`destination-not-empty` from `skill update` itself, whose directory holds something other than the bundle, the step is
-`fix-input` and `refused_dir` names the directory, since nothing but the caller moves what `xr` did not install.
+`token-store` for an app name the store does not hold, and the skill verbs' machine-state reasons) says the same
+invocation fails again until its input or the state it read changes. Under `token-store`, it carries `xr auth status`,
+which lists the apps the store holds. Under `address-in-use`, a port another process holds, it carries `listen` again on
+`--port 0`: a `command`, or a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t`
+given before a command word that takes it, it carries the invocation with the flag after the word, and for an old `xr
+schema` name or a bare scope word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment
+that names no property, it carries a `template` ending in `<property>` beside `known_properties`. Under `auth-required`,
+for a `webhooks listen` whose app has no secret to verify X's signatures by, it carries a `template` that stores the
+secret `--secret` names: the OAuth1 credentials under `--secret oauth1`, the app's client secret otherwise. For an `auth
+oauth2 --step 2` whose redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a
+`template` that runs step 2 again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401
+on the status read after `xr media upload` finished, it carries the command that resumes the wait as a `template`, to
+run once the credential works, since reading again under the same credential fails the same way. A 403 from the token
+endpoint on that read, which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the
+proxy are fixed. For a 403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the
+token endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other
+status) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
+invocation with `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a
+deletion by accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or
+`not-installed`. Under `destination-not-empty` from `skill update` itself, whose directory holds something other than
+the bundle, the step is `fix-input` and `refused_dir` names the directory, since nothing but the caller moves what `xr`
+did not install.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.

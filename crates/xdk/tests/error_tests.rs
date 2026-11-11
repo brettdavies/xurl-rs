@@ -367,6 +367,7 @@ fn a_refused_input_is_fixed_before_another_try() {
             name: "id".into(),
             value: "1/2".into(),
         },
+        Error::token_store(format!("{} \"ghost\"", xdk::error::APP_NOT_FOUND)),
     ];
     for err in refused {
         assert_eq!(err.next_action(), Some(NextAction::FixInput), "{err:?}");

@@ -149,7 +149,8 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 /// # Errors
 ///
 /// Returns the store's refusal, before the code is sent, when the store file
-/// exists but cannot be loaded or cannot be written. Returns an error if the
+/// exists but cannot be loaded or cannot be written, or holds no app by the
+/// name the sign-in is for. Returns an error if the
 /// token-exchange request fails or the response is missing an access token. A
 /// failed `/2/users/me` lookup is warned, not returned.
 pub(crate) async fn exchange_code_for_token(
@@ -162,7 +163,7 @@ pub(crate) async fn exchange_code_for_token(
     // A code is single-use: the store refuses before the code is spent on
     // tokens it could not keep.
     auth.token_store.reload();
-    auth.token_store.refuse_unless_writable()?;
+    refuse_unless_store_keeps(auth)?;
     let token_url = auth.token_url().to_string();
     let request = http
         .post(&token_url)
@@ -312,7 +313,7 @@ where
     // The person's consent is asked for only when the store can keep the
     // tokens it buys.
     auth.token_store.reload();
-    auth.token_store.refuse_unless_writable()?;
+    refuse_unless_store_keeps(auth)?;
     let state = new_state();
 
     let (verifier, challenge) = generate_code_verifier_and_challenge();
@@ -378,10 +379,11 @@ where
 /// # Errors
 ///
 /// Returns the store's refusal when the store file exists but cannot be
-/// loaded or cannot be written, and an error if the authorization URL is
-/// invalid or the pending state file cannot be written.
+/// loaded or cannot be written, or holds no app by the name the sign-in is
+/// for, and an error if the authorization URL is invalid or the pending state
+/// file cannot be written.
 pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
-    auth.token_store.refuse_unless_writable()?;
+    refuse_unless_store_keeps(auth)?;
     if pending_path.exists() {
         tracing::warn!(target: "xdk::auth", "overwriting previous pending auth flow");
     }
@@ -470,7 +472,14 @@ pub(crate) fn check_remote_step2(
     if let Some(redirect_url) = redirect_url {
         redirect_code(&pending_state, redirect_url)?;
     }
-    auth.token_store.refuse_unless_writable()
+    refuse_unless_store_keeps(auth)
+}
+
+/// The store's refusal of the tokens a sign-in would buy: the file cannot be
+/// loaded or written, or holds no app by the name the sign-in is for.
+fn refuse_unless_store_keeps(auth: &Auth) -> Result<()> {
+    auth.token_store.refuse_unless_writable()?;
+    auth.token_store.refuse_if_app_missing(auth.app_name())
 }
 
 /// Refuses a saved flow that belongs to another client or names other scopes

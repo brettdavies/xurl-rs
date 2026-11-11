@@ -872,10 +872,15 @@ fn test_save_oauth2_token_to_nonexistent_app_fails() {
     let (mut store, _tmp) = create_temp_token_store();
 
     let result = store.save_oauth2_token_for_app("nonexistent", "user", "at", "rt", 1);
-    // The implementation resolves to default app when app not found,
-    // so this may succeed. Adjust expectation to match implementation.
-    // If it doesn't fail, that's the current behavior.
-    let _ = result;
+
+    assert!(
+        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        "a save for an app the store does not hold was not refused: {result:?}"
+    );
+    assert!(
+        store.get_oauth2_token_for_app("default", "user").is_none(),
+        "the token meant for another app landed on the default app"
+    );
 }
 
 #[test]
@@ -1163,22 +1168,20 @@ fn test_has_tokens_returns_true_for_unnamed_only_app() {
 }
 
 #[test]
-fn test_save_unnamed_to_missing_app_auto_creates() {
+fn test_save_unnamed_to_missing_app_refuses() {
     let (mut store, _tmp) = create_temp_token_store();
 
-    // No "ghost" app exists; resolve_app_mut falls back to the active app
-    // (or freshly creates "default"). The save must NOT return an error.
-    store
-        .save_oauth2_token_unnamed_for_app("ghost", "ghost-at", "ghost-rt", 9_999)
-        .expect("save into missing app must not error (auto-create / fallback)");
+    let result = store.save_oauth2_token_unnamed_for_app("ghost", "ghost-at", "ghost-rt", 9_999);
 
-    // The active app (default) now holds the token; "ghost" remains absent.
+    assert!(
+        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        "a save for an app the store does not hold was not refused: {result:?}"
+    );
     let active = store.get_default_app().to_string();
-    let tok = store
-        .get_oauth2_token_unnamed_for_app(&active)
-        .expect("token landed in the active app");
-    assert_eq!(tok.oauth2.as_ref().unwrap().access_token, "ghost-at");
-
+    assert!(
+        store.get_oauth2_token_unnamed_for_app(&active).is_none(),
+        "the token meant for a missing app landed in the active app"
+    );
     assert!(
         store.get_app("ghost").is_none(),
         "ghost app should not have been registered"
@@ -1636,6 +1639,39 @@ fn a_store_file_caught_empty_mid_write_keeps_its_apps() {
         "the store lost its apps to a moment it was empty: {:?}",
         on_disk.list_apps()
     );
+}
+
+/// A token saved for an app another view removed is refused, so it lands on
+/// no other app.
+#[test]
+fn a_token_saved_for_an_app_another_view_removed_lands_nowhere() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut seed = store_at(&path);
+    seed.add_app("personal", "P-ID", "P-SECRET").unwrap();
+    seed.save_oauth1_tokens_for_app("personal", "AT", "TS", "CK", "CS")
+        .unwrap();
+    seed.add_app("work", "W-ID", "W-SECRET").unwrap();
+
+    let mut saver = store_at(&path);
+    store_at(&path).remove_app("work").unwrap();
+    let result = saver.save_oauth1_tokens_for_app("work", "AT2", "TS2", "CK2", "CS2");
+
+    assert!(
+        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        "a save for a removed app was not refused: {result:?}"
+    );
+    let on_disk = store_at(&path);
+    let personal = on_disk
+        .get_oauth1_tokens_for_app("personal")
+        .and_then(|token| token.oauth1.as_ref())
+        .map(|pair| pair.access_token.as_str());
+    assert_eq!(
+        personal,
+        Some("AT"),
+        "the pair meant for the removed app replaced another app's"
+    );
+    assert_eq!(on_disk.list_apps(), vec!["personal".to_string()]);
 }
 
 /// A refresh rotating a token and a registration in another loaded view

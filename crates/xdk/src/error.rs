@@ -595,7 +595,8 @@ impl Error {
     /// `ReportIssue`. A credential failure is `None` here: the steps that
     /// depend on a credential store are the binary's to choose. The token
     /// endpoint's 403 that is no OAuth refusal is `FixInput`: the token URL
-    /// or the proxy in front of it is what to change.
+    /// or the proxy in front of it is what to change. So is a store operation
+    /// that names an app the store does not hold: the name is what to change.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -637,6 +638,9 @@ impl Error {
             | Self::InvalidPathParam { .. }
             | Self::MediaProcessingFailed { .. }
             | Self::AccountNotFound { .. } => Some(NextAction::FixInput),
+            Self::TokenStore { message, .. } if message.starts_with(APP_NOT_FOUND) => {
+                Some(NextAction::FixInput)
+            }
             Self::Auth { .. } | Self::TokenStore { .. } | Self::AuthMethodMismatch(_) => None,
             Self::Internal(_) | Self::Json { .. } => Some(NextAction::ReportIssue),
         }
@@ -948,6 +952,15 @@ pub const REDIRECT_MISSING_CODE: &str = "MissingCode: no 'code' parameter found 
      Make sure you copied the full URL from your browser's address bar";
 
 // ── Store failure messages ─────────────────────────────────────────
+
+/// The start of the message of an [`Error::TokenStore`] for a store operation,
+/// a token save included, that names an app the store does not hold. The name
+/// follows, quoted.
+// `xr` names the apps the store holds when a message starts with this, in
+// `crates/xurl-cli/src/cli/hints.rs`; an embedder classifies the error through
+// `next_action()`.
+#[doc(hidden)]
+pub const APP_NOT_FOUND: &str = "the store holds no app named";
 
 /// The start of the message of an [`Error::Io`] for a token store whose
 /// directory cannot be created. The directory and the cause follow.

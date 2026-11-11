@@ -21,9 +21,11 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns an error if the store cannot be saved to disk.
+    /// Returns an error if `app_name` names an app the store does not hold
+    /// (an empty name is the default app), or the store cannot be saved.
     pub fn save_bearer_token_for_app(&mut self, app_name: &str, token: &str) -> Result<()> {
         self.update(|store| {
+            store.refuse_if_app_missing(app_name)?;
             let app = store.resolve_app_mut(app_name);
             app.bearer_token = Some(Token {
                 token_type: TokenType::Bearer,
@@ -54,7 +56,8 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns an error if the store cannot be saved to disk.
+    /// Returns an error if `app_name` names an app the store does not hold
+    /// (an empty name is the default app), or the store cannot be saved.
     pub fn save_oauth2_token_for_app(
         &mut self,
         app_name: &str,
@@ -133,7 +136,10 @@ impl TokenStore {
     ) -> Result<()> {
         self.update(|store| {
             let (destination, drop_unnamed) = match minted_from {
-                None => (name.map(str::to_string), drop_unnamed),
+                None => {
+                    store.refuse_if_app_missing(app_name)?;
+                    (name.map(str::to_string), drop_unnamed)
+                }
                 Some(from) => {
                     match from.destination(store.resolve_app(app_name), name, drop_unnamed) {
                         Some(destination) => destination,
@@ -325,7 +331,8 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns an error if the store cannot be saved to disk.
+    /// Returns an error if `app_name` names an app the store does not hold
+    /// (an empty name is the default app), or the store cannot be saved.
     pub fn save_oauth2_token_unnamed_for_app(
         &mut self,
         app_name: &str,
@@ -431,7 +438,8 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns an error if the store cannot be saved to disk.
+    /// Returns an error if `app_name` names an app the store does not hold
+    /// (an empty name is the default app), or the store cannot be saved.
     pub fn save_oauth1_tokens_for_app(
         &mut self,
         app_name: &str,
@@ -441,6 +449,7 @@ impl TokenStore {
         consumer_secret: &str,
     ) -> Result<()> {
         self.update(|store| {
+            store.refuse_if_app_missing(app_name)?;
             let app = store.resolve_app_mut(app_name);
             app.oauth1_token = Some(Token {
                 token_type: TokenType::Oauth1,

@@ -6007,6 +6007,51 @@ async fn test_auth_app_reads_the_bearer_token_from_a_file() {
     assert_eq!(bearer, "BEARER-FROM-FILE");
 }
 
+/// `auth app` for an app the store does not hold stores nothing, and the
+/// refusal points at the command that lists the apps it holds.
+#[tokio::test]
+async fn test_auth_app_for_an_app_the_store_lacks_stores_nothing() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let mut seed = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    seed.add_app("personal", "P-ID", "P-SECRET")
+        .expect("add_app");
+    seed.save_bearer_token_for_app("personal", "PERSONAL-BEARER")
+        .expect("seed bearer");
+    let bearer_file = tmp.path().join("bearer");
+    std::fs::write(&bearer_file, "GHOST-BEARER\n").expect("secret file");
+
+    let (code, _stdout, stderr) = run_at(
+        &store,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "--app",
+            "ghost",
+            "auth",
+            "app",
+            "--bearer-token-file",
+            bearer_file.to_str().expect("utf-8 path"),
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let envelope: serde_json::Value = serde_json::from_str(&stderr).expect("one JSON envelope");
+    assert_eq!(envelope["reason"], "token-store", "{envelope}");
+    assert_eq!(
+        envelope["next_step"],
+        serde_json::json!({"action": "fix-input", "command": "xr auth status"}),
+        "{envelope}"
+    );
+    let ts = xdk::store::TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    let bearer = ts
+        .get_bearer_token_for_app("personal")
+        .and_then(|token| token.bearer.clone());
+    assert_eq!(bearer.as_deref(), Some("PERSONAL-BEARER"));
+}
+
 /// Stdin carries one value, so a second `-` is a usage error naming both flags.
 #[test]
 fn test_oauth1_rejects_a_second_stdin_secret() {

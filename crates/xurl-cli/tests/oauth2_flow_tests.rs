@@ -938,6 +938,67 @@ async fn an_interactive_sign_in_on_a_store_it_cannot_write_opens_no_browser() {
     );
 }
 
+/// A sign-in for an app another process removed while the person consented
+/// sends no code, so the tokens it would buy land on no other app.
+#[tokio::test]
+async fn an_interactive_sign_in_for_an_app_removed_during_consent_sends_no_code() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200)
+        .expect(0)
+        .mount(&server)
+        .await;
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+    let target = listener.local_addr().expect("its address").to_string();
+    let redirect_uri = format!("http://{target}/callback");
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    let app = format!(
+        "    client_id: 'test-client-id'\n    client_secret: 'test-client-secret'\n    redirect_uri: '{redirect_uri}'\n    oauth2_tokens: {{}}\n"
+    );
+    std::fs::write(
+        &store,
+        format!("apps:\n  default:\n{app}  work:\n{app}default_app: default\n"),
+    )
+    .unwrap();
+    let mut cfg = test_config(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{CLOSED}/2/users/me"),
+        &redirect_uri,
+    );
+    cfg.app_name = "work".to_string();
+    let mut auth = Auth::new_with_store_path_and_overrides(&cfg, &store, &EnvOverrides::default());
+    let other_process = store.to_str().unwrap().to_string();
+
+    let returned = run_oauth2_flow_on(
+        &mut auth,
+        &reqwest::Client::new(),
+        "testuser",
+        listener,
+        CancellationToken::new(),
+        move |url| {
+            xdk::store::TokenStore::new_with_path(&other_process)
+                .remove_app("work")
+                .map_err(std::io::Error::other)?;
+            follow_redirect(&target, &state_of(url))
+        },
+    )
+    .await;
+
+    let sent = server.received_requests().await.unwrap_or_default().len();
+    assert_eq!(sent, 0, "the code was sent: {returned:?}");
+    assert!(
+        matches!(&returned, Err(xdk::Error::TokenStore { message, .. }) if message.contains("work")),
+        "{returned:?}"
+    );
+    let on_disk = xdk::store::TokenStore::new_with_path(store.to_str().unwrap());
+    assert!(
+        on_disk
+            .get_oauth2_token_for_app("default", "testuser")
+            .is_none(),
+        "the removed app's tokens landed on another app"
+    );
+}
+
 /// Follows the redirect to `target` the way a browser does: one GET carrying
 /// a code and `state`.
 fn follow_redirect(target: &str, state: &str) -> std::io::Result<()> {
@@ -2376,6 +2437,42 @@ fn verdicts() -> Vec<Verdict> {
             false,
             seed_store_with_only_a_blank_app,
             &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, step 1",
+            "\"ghost\"",
+            true,
+            seed_store,
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, step 2",
+            "\"ghost\"",
+            true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "flow saved for another app, ahead of an app the store does not hold, step 2",
+            "AppMismatch",
+            true,
+            |store| {
+                seed_store_two_apps(store);
+                save_flow(store, &saved_flow("work", "work-client-id"));
+            },
+            &flow_at(&redirect),
         )
     });
     rows.push(verdict(
