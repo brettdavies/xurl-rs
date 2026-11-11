@@ -2241,6 +2241,15 @@ fn verdicts() -> Vec<Verdict> {
             &flow_at(&redirect),
         ),
         verdict(
+            "store that does not parse, step 1",
+            "could not be loaded",
+            true,
+            |store| {
+                std::fs::write(store, "apps: [half an edit").unwrap();
+            },
+            &step1,
+        ),
+        verdict(
             "client id only in a store that does not parse, step 1",
             "could not be loaded",
             false,
