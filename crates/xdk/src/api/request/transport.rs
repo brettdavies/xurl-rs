@@ -353,7 +353,9 @@ type ByteStream = Pin<Box<dyn Stream<Item = reqwest::Result<Bytes>> + Send>>;
 ///
 /// A [`Stream`] of lines; [`Self::next_line`] is the same thing without a
 /// stream combinator. Empty keep-alive lines are skipped. Dropping the
-/// stream closes the connection.
+/// stream closes the connection. When the connection fails, the stream
+/// yields the error and then ends: the part of a line received before the
+/// failure is dropped, never yielded as a line.
 pub struct StreamLines {
     body: ByteStream,
     buf: Vec<u8>,
@@ -361,7 +363,8 @@ pub struct StreamLines {
 }
 
 impl StreamLines {
-    /// The next line, or `None` once the server has ended the stream.
+    /// The next line, or `None` once the server has ended the stream or the
+    /// connection has failed.
     ///
     /// # Errors
     ///
@@ -414,6 +417,7 @@ impl Stream for StreamLines {
                 Poll::Ready(Some(Ok(chunk))) => self.buf.extend_from_slice(&chunk),
                 Poll::Ready(Some(Err(e))) => {
                     self.done = true;
+                    self.buf.clear();
                     return Poll::Ready(Some(Err(Error::io(e.to_string()).with_source(e))));
                 }
             }
