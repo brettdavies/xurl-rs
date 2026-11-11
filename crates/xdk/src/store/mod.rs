@@ -196,17 +196,25 @@ impl TokenStore {
     ///
     /// The view's apps and default app become the file's, so a reload keeps
     /// no app another process removed, or a file another process deleted.
-    /// A missing or empty file is a fresh store, not a damaged one: an empty
-    /// store is empty, and the next save is allowed. A file that exists but
-    /// cannot be read or parsed leaves `apps` empty and records the failure,
-    /// which makes every save refuse.
+    /// A missing file is a fresh store, not a damaged one, and the next save
+    /// is allowed. A file with nothing but whitespace in it leaves the view
+    /// as it was: a writer that truncates the file before writing it, rather
+    /// than replacing it by rename, leaves it empty for a moment, and a save
+    /// from a view that read it then would write every app away. A view that
+    /// held nothing yet loads such a file as a fresh store. A file that exists
+    /// but cannot be read or parsed leaves `apps` empty and records the
+    /// failure, which makes every save refuse.
     fn load_backing_file(&mut self) {
+        let read = fs::read(&self.file_path);
+        if read
+            .as_ref()
+            .is_ok_and(|data| data.iter().all(u8::is_ascii_whitespace))
+        {
+            return;
+        }
         self.apps.clear();
         self.default_app.clear();
-        self.load_state = match fs::read(&self.file_path) {
-            // A file with no content is a fresh store: an editor that saved
-            // a blank buffer left nothing for a parser to reject.
-            Ok(data) if data.iter().all(u8::is_ascii_whitespace) => LoadState::Fresh,
+        self.load_state = match read {
             Ok(data) => {
                 if self.load_from_data(&data) {
                     LoadState::Loaded
