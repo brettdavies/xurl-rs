@@ -276,6 +276,11 @@ fn move_sidecars(dir: &Path, store_path: &Path) {
 /// owns that directory; a path in any other shape names a directory the
 /// caller chose, and a missing one stays an error.
 pub(crate) fn ensure_store_dir(path: &Path) -> io::Result<()> {
+    store_dir_to_create(path).map_or(Ok(()), create_store_dir)
+}
+
+/// The directory [`ensure_store_dir`] creates for `path`, if any.
+fn store_dir_to_create(path: &Path) -> Option<&Path> {
     let in_layout = path
         .file_name()
         .and_then(OsStr::to_str)
@@ -283,12 +288,21 @@ pub(crate) fn ensure_store_dir(path: &Path) -> io::Result<()> {
             name.strip_prefix(AUTH_FILE_NAME)
                 .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
         });
-    match path.parent() {
-        Some(dir) if in_layout && !dir.as_os_str().is_empty() && !dir.exists() => {
-            create_store_dir(dir)
-        }
-        _ => Ok(()),
+    path.parent()
+        .filter(|dir| in_layout && !dir.as_os_str().is_empty() && !dir.exists())
+}
+
+/// The outermost directory [`ensure_store_dir`] creates for `path`: the one
+/// whose parent exists, and so the one whose creation can be refused.
+pub(crate) fn outermost_store_dir_to_create(path: &Path) -> Option<&Path> {
+    let mut dir = store_dir_to_create(path)?;
+    while let Some(parent) = dir
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty() && !parent.exists())
+    {
+        dir = parent;
     }
+    Some(dir)
 }
 
 /// Creates the store's directory, readable by its owner alone.
@@ -581,5 +595,64 @@ mod tests {
         }
         assert_eq!(opened, dir);
         assert_eq!(fs::read(&dir).unwrap(), STORE);
+    }
+
+    /// A store whose directories a save would create is writable when the
+    /// first of them can be made, and the probe leaves nothing behind either
+    /// way.
+    #[test]
+    fn a_store_whose_directories_are_missing_is_probed_where_they_would_be_made() {
+        let tmp = TempDir::new().unwrap();
+        let home = tmp.path().join("home");
+        let store = home.join(".xurl").join(AUTH_FILE_NAME);
+        let view = super::super::TokenStore::new_with_path(&store.to_string_lossy());
+
+        assert!(view.refuse_unless_writable().is_ok());
+        assert_eq!(fs::read_dir(tmp.path()).unwrap().count(), 0);
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o500)).unwrap();
+            // A process that may write a read-only directory (root) cannot
+            // be refused this way.
+            let writable = fs::write(tmp.path().join("probe"), b"").is_ok();
+            let refused = view.refuse_unless_writable();
+            fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o700)).unwrap();
+            if !writable {
+                assert!(
+                    matches!(&refused, Err(crate::Error::Io { message, .. })
+                        if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
+                    "{refused:?}"
+                );
+                assert_eq!(fs::read_dir(tmp.path()).unwrap().count(), 0);
+            }
+        }
+    }
+
+    /// A link that leads nowhere, where the store's directory goes, refuses
+    /// the probe as it refuses the save's `mkdir`.
+    #[cfg(unix)]
+    #[test]
+    fn a_store_directory_that_is_a_dangling_link_is_refused() {
+        let tmp = TempDir::new().unwrap();
+        let dir = tmp.path().join(".xurl");
+        std::os::unix::fs::symlink(tmp.path().join("nowhere"), &dir).unwrap();
+        let mut view =
+            super::super::TokenStore::new_with_path(&dir.join(AUTH_FILE_NAME).to_string_lossy());
+
+        let refused = view.refuse_unless_writable();
+        let saved = view.add_app("work", "id", "secret");
+
+        assert!(
+            matches!(&saved, Err(crate::Error::Io { message, .. })
+                if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
+            "{saved:?}"
+        );
+        assert!(
+            matches!(&refused, Err(crate::Error::Io { message, .. })
+                if message.starts_with(crate::error::STORE_DIR_UNCREATABLE)),
+            "{refused:?}"
+        );
     }
 }

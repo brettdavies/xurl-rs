@@ -720,13 +720,17 @@ impl TokenStore {
 
     /// Creates the store's own directory before a write needs it.
     fn ensure_dir(&self) -> Result<()> {
-        ensure_store_dir(&self.file_path).map_err(|e| {
-            Error::token_store(format!(
-                "cannot create the directory of {}: {e}",
-                self.file_path.display()
-            ))
-            .with_source(e)
-        })
+        ensure_store_dir(&self.file_path).map_err(|e| self.dir_refused(e))
+    }
+
+    fn dir_refused(&self, e: std::io::Error) -> Error {
+        let dir = self.file_path.parent().unwrap_or(Path::new("."));
+        Error::io(format!(
+            "{} {}: {e}",
+            crate::error::STORE_DIR_UNCREATABLE,
+            dir.display()
+        ))
+        .with_source(e)
     }
 
     /// The refusal every write path shares.
@@ -736,11 +740,7 @@ impl TokenStore {
     /// Returns a token-store error naming the path when the file exists but
     /// could not be loaded, so a store the loader did not understand is
     /// never overwritten.
-    // `xr auth oauth2` meets this refusal before its credential check
-    // (`crates/xurl-cli/src/cli/commands/auth/signin.rs`), since a client id
-    // the unloadable file holds is not one the store can be said to lack.
-    #[doc(hidden)]
-    pub fn refuse_if_load_failed(&self) -> Result<()> {
+    pub(crate) fn refuse_if_load_failed(&self) -> Result<()> {
         if self.load_failed() {
             return Err(Error::token_store(format!(
                 "refusing to write {}: the file exists but could not be loaded; fix or move it, then retry",
@@ -748,6 +748,52 @@ impl TokenStore {
             )));
         }
         Ok(())
+    }
+
+    /// The refusals a save meets that do not depend on what it writes, met
+    /// ahead of the work that ends in the save: the file exists but could not
+    /// be loaded, the store's directory cannot be created, or the save's temp
+    /// file cannot be created beside the store. The probe for the last two
+    /// creates an empty file beside the store, or beside the directory the
+    /// save would create, and removes it at once, so the disk is left as it
+    /// was found.
+    ///
+    /// # Errors
+    ///
+    /// The token-store error of a store that could not be loaded, and the I/O
+    /// errors the save returns: one naming the store's directory when it
+    /// cannot be created, and one naming the store when the temp file cannot
+    /// be created.
+    // `xr auth oauth2` and its dry run meet this before the credential check
+    // (`crates/xurl-cli/src/cli/commands/auth/signin.rs`): a client id the
+    // unloadable file holds is not one the store can be said to lack.
+    #[doc(hidden)]
+    pub fn refuse_unless_writable(&self) -> Result<()> {
+        self.refuse_if_load_failed()?;
+        if let Some(dir) = layout::outermost_store_dir_to_create(&self.file_path) {
+            // A link whose target is missing is not there to `exists()`, but
+            // the save's `mkdir` meets it in the directory's place.
+            if dir.symlink_metadata().is_ok() {
+                return Err(self.dir_refused(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    format!("{} is a link to a path that does not exist", dir.display()),
+                )));
+            }
+            return atomic::probe_temp_file(dir).map_err(|e| self.dir_refused(e));
+        }
+        let target = atomic::resolve(&self.file_path);
+        let dir = target
+            .parent()
+            .filter(|dir| !dir.as_os_str().is_empty())
+            .unwrap_or(Path::new("."));
+        atomic::probe_temp_file(&target).map_err(|e| {
+            Error::io(format!(
+                "cannot write {}: cannot create a file in {}: {e}",
+                target.display(),
+                dir.display()
+            ))
+            .with_source(e)
+        })
     }
 }
 

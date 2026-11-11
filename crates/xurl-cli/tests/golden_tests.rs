@@ -102,6 +102,9 @@ enum Store {
     BearerEnv,
     /// A seeded store carrying one app with an OAuth2 token.
     OAuth2,
+    /// No credential, at a path a sign-in could write: a directory that
+    /// exists and holds no store file.
+    Writable,
 }
 
 #[derive(Default)]
@@ -129,6 +132,13 @@ fn case(name: &str, args: &[&str]) -> Case {
         name: name.to_string(),
         args: args.iter().map(|a| (*a).to_string()).collect(),
         ..Case::default()
+    }
+}
+
+fn writable(c: Case) -> Case {
+    Case {
+        store: Store::Writable,
+        ..c
     }
 }
 
@@ -335,6 +345,12 @@ impl Scratch {
             .expect("the held address")
             .port()
             .to_string()
+    }
+
+    fn writable_store(&self) -> PathBuf {
+        let dir = self.dir.path().join("writable-store");
+        std::fs::create_dir_all(&dir).expect("store dir");
+        dir.join(".xurl")
     }
 
     /// The seeded store, written on the first call and shared by every case
@@ -592,10 +608,10 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
             "auth-method-mismatch",
             &["--output", "json", "whoami"],
         )),
-        reason_case(
+        writable(reason_case(
             "client-credentials-missing",
             &["--output", "json", "auth", "oauth2"],
-        ),
+        )),
         bearer(reason_case(
             "rate-limited",
             &["--output", "json", "search", "--auth", "app", "q429"],
@@ -932,7 +948,7 @@ fn dry_run_cases() -> Vec<Case> {
             "dry-run-listen-no-signing-secret",
             &["--output", "json", "--dry-run", "webhooks", "listen"],
         ),
-        case(
+        writable(case(
             "dry-run-sign-in-no-client-id",
             &[
                 "--output",
@@ -944,7 +960,7 @@ fn dry_run_cases() -> Vec<Case> {
                 "--step",
                 "1",
             ],
-        ),
+        )),
         case(
             "dry-run-sign-in-unknown-scope",
             &[
@@ -1533,7 +1549,7 @@ fn text_cases() -> Vec<Case> {
         case("text-validation", &["post", ""]),
         case("validation-code-json", &["--output", "json", "post", ""]),
         bearer(case("text-auth-method-mismatch", &["whoami"])),
-        case("text-client-credentials-missing", &["auth", "oauth2"]),
+        writable(case("text-client-credentials-missing", &["auth", "oauth2"])),
         bearer(case(
             "text-rate-limited",
             &["search", "--auth", "app", "q429"],
@@ -1653,6 +1669,7 @@ fn all_cases(bin: &str, scratch: &Scratch) -> Vec<Case> {
 fn capture(case: &Case, bin: &str, api: &MockApi, scratch: &Scratch) -> Captured {
     let mut cmd = match case.store {
         Store::OAuth2 => common::xr_std_with_store_at(bin, &scratch.oauth2_store()),
+        Store::Writable => common::xr_std_with_store_at(bin, &scratch.writable_store()),
         Store::Empty | Store::BearerEnv => common::xr_std_at(bin),
     };
     if matches!(case.store, Store::BearerEnv) {
@@ -1797,6 +1814,7 @@ fn store_label(store: Store) -> &'static str {
         Store::Empty => "empty",
         Store::BearerEnv => "bearer-env",
         Store::OAuth2 => "oauth2",
+        Store::Writable => "writable",
     }
 }
 

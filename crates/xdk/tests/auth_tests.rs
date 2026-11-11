@@ -1181,6 +1181,31 @@ fn authorize_scope(auth: &Auth, tmp: &TempDir) -> String {
         .expect("the URL carries a scope")
 }
 
+/// Step 1 on a store that does not parse hands out no URL and saves no flow:
+/// the consent it asks for would buy tokens the store refuses to keep.
+#[test]
+fn a_step_one_on_a_store_that_does_not_parse_saves_no_flow() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store_path = tmp.path().join(".xurl");
+    std::fs::write(&store_path, "apps: [half an edit").expect("write the store");
+    let auth = auth_for(
+        &test_config(),
+        TokenStore::new_with_path(&store_path.to_string_lossy()),
+    );
+    let pending = tmp.path().join(".xurl.pending");
+
+    let refused = auth.remote_oauth2_step1(&pending);
+
+    assert!(
+        matches!(refused, Err(xdk::Error::TokenStore { .. })),
+        "{refused:?}"
+    );
+    assert!(
+        !pending.exists(),
+        "step 1 saved a flow step 2 cannot finish"
+    );
+}
+
 #[test]
 fn test_a_sign_in_requests_every_scope_by_default() {
     let (token_store, tmp) = create_temp_token_store();
@@ -1448,6 +1473,45 @@ mod refresh_across_processes {
         );
         assert!(
             matches!(refused, Err(xdk::Error::TokenStore { .. })),
+            "{refused:?}"
+        );
+    }
+
+    /// The store's directory stops taking new files after this process
+    /// loaded the store and an earlier refresh left its lock: the refresh is
+    /// refused before its grant, so the stored refresh token still works once
+    /// the directory is writable.
+    #[cfg(unix)]
+    #[tokio::test(flavor = "multi_thread")]
+    async fn a_refresh_is_not_sent_when_the_store_cannot_be_written() {
+        use std::os::unix::fs::PermissionsExt;
+        let server = MockServer::start().await;
+        new_pair_after(Duration::ZERO).mount(&server).await;
+        let tmp = TempDir::new().expect("tempdir");
+        let dir = tmp.path().join("store");
+        std::fs::create_dir(&dir).expect("store dir");
+        let store_path = dir.join(".xurl");
+        seed_login(&store_path, now_secs() - 10);
+        let mut auth = auth_on(&server, &store_path);
+        std::fs::write(refresh_lock_path(&store_path), b"").expect("the refresh lock");
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o500)).expect("chmod");
+        // A process that may write a read-only directory (root) cannot be
+        // refused this way.
+        let writable = std::fs::write(dir.join("probe"), b"").is_ok();
+
+        let refused = auth.refresh_oauth2_token(&http(), "alice").await;
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).expect("chmod");
+        if writable {
+            return;
+        }
+
+        assert_eq!(
+            refreshes_received(&server).await,
+            0,
+            "the refresh token was spent on a pair the store could not write: {refused:?}"
+        );
+        assert!(
+            matches!(&refused, Err(xdk::Error::Io { message, .. }) if message.starts_with("cannot write")),
             "{refused:?}"
         );
     }

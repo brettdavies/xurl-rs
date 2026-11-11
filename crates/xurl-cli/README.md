@@ -1005,7 +1005,7 @@ prose instead; the two need not match word for word.
 | `not-found`                  | `fix-input`                                                                                                                                      |
 | `invalid-request`            | `fix-input`                                                                                                                                      |
 | `validation-failed`          | `fix-input`                                                                                                                                      |
-| `io`                         | `fix-input`                                                                                                                                      |
+| `io`                         | `fix-input`, with `docs` when the token store's directory cannot be created                                                                      |
 | `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                                                        |
 | `home-not-set`               | `fix-input`                                                                                                                                      |
 | `destination-is-file`        | `fix-input`                                                                                                                                      |
@@ -1159,6 +1159,17 @@ What makes a store unloadable:
 
 To recover, repair the file, or move it aside and register again (`xr auth apps add`, then `xr auth oauth2`). To keep
 `xr`'s credentials apart from Go `xurl`'s, set `XURL_TOKEN_STORE` to a path of `xr`'s own.
+
+### Token Store Could Not Be Written
+
+A command that writes the token store exits 5 with reason `io` when the store cannot be written: its directory takes no
+new file, or does not exist and cannot be created. The message names the store or its directory. To recover, change the
+permissions of the directory that holds it, or set `XURL_TOKEN_STORE` to a writable path.
+
+A sign-in buys tokens only the store can keep, and a refresh spends the refresh token it sends. So `xr auth oauth2`, its
+dry run, and the refresh of an expired login check that the store can be written before they ask for consent or send
+anything, and the stored login keeps working once the directory takes writes again. To check, `xr` creates an empty file
+where the save creates its own and removes it at once, a dry run included.
 
 ## Relationship to xurl
 

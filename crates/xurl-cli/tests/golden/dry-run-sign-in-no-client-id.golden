@@ -1,5 +1,5 @@
 args: ["--output", "json", "--dry-run", "auth", "oauth2", "--no-browser", "--step", "1"]
-store: empty
+store: writable
 exit_code: 0
 stdout_len: 501
 stderr_len: 0
