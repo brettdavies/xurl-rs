@@ -5508,6 +5508,32 @@
         },
         "type": "object"
       },
+      "CreatePostsClip": {
+        "additionalProperties": false,
+        "properties": {
+          "end_seconds": {
+            "description": "Second of the video at which the clip ends. A clip is 5 to 60 seconds long and at most 30% of the video.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "post_id": {
+            "description": "The ID of the Post whose video is clipped. The Post must have exactly one video, longer than 2 minutes.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "start_seconds": {
+            "description": "Second of the video at which the clip starts.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "post_id",
+          "start_seconds",
+          "end_seconds"
+        ],
+        "type": "object"
+      },
       "CreatePostsEditOptions": {
         "additionalProperties": false,
         "properties": {
@@ -5714,6 +5740,10 @@
           "card_uri": {
             "description": "Card URI parameter.",
             "type": "string"
+          },
+          "clip": {
+            "$ref": "#/components/schemas/CreatePostsClip",
+            "description": "Clip of another Post's video to share. Cannot be combined with media, a poll, a card, a quoted Post or a direct message deep link."
           },
           "community_id": {
             "description": "Community to post the tweet to.",
@@ -35200,7 +35230,7 @@
         ]
       },
       "post": {
-        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each image with Upload Media, or a video with Initialize Media Upload. Supports paid partnership disclosure via the paid_partnership field.",
+        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each image with Upload Media, or a video with Initialize Media Upload. Supports paid partnership disclosure via the paid_partnership field. To share a clip of another Post's video, set clip to that Post's id and a range of 5 to 60 seconds.",
         "operationId": "createPosts",
         "requestBody": {
           "content": {
