@@ -656,3 +656,267 @@ async fn a_refresh_that_asks_names_the_account_in_every_app() {
     assert_eq!(names_in(&after, APP, "alice"), answered);
     assert_eq!(names_in(&after, OTHER_APP, "alice"), answered);
 }
+
+/// Changes the store as another process would while a request is out, then
+/// answers it: the change lands before the answer, which orders the race.
+struct ChangeThenAnswer {
+    store: std::path::PathBuf,
+    change: fn(&Path),
+    body: serde_json::Value,
+}
+
+impl wiremock::Respond for ChangeThenAnswer {
+    fn respond(&self, _: &wiremock::Request) -> ResponseTemplate {
+        (self.change)(&self.store);
+        ResponseTemplate::new(200).set_body_json(self.body.clone())
+    }
+}
+
+fn alice_answer() -> serde_json::Value {
+    serde_json::json!({"data": {"id": "42", "name": "Alice", "username": "alice"}})
+}
+
+fn refreshed_pair() -> serde_json::Value {
+    serde_json::json!({
+        "access_token": "REFRESHED-ACCESS",
+        "refresh_token": "REFRESHED-REFRESH",
+        "expires_in": 7200
+    })
+}
+
+/// Another process signs bob, account 99, in under the label `work`.
+fn sign_bob_in_as_work(store: &Path) {
+    let mut store = reloaded(store);
+    store
+        .save_oauth2_token_for_app(APP, "work", "BOB-ACCESS", "BOB-REFRESH", expiry(false))
+        .expect("bob signs in");
+    store
+        .set_oauth2_account_for_app(APP, "work", "99", Some("bob"), Some("Bob"))
+        .expect("bob's account");
+}
+
+async fn answering(route: (&str, &str), responder: ChangeThenAnswer) -> MockServer {
+    let server = MockServer::start().await;
+    Mock::given(method(route.0))
+        .and(path(route.1))
+        .respond_with(responder)
+        .mount(&server)
+        .await;
+    server
+}
+
+/// `xr whoami` under `work` while bob signs in under that label: the
+/// answer is alice's and says nothing about bob's token.
+#[tokio::test]
+async fn a_me_answer_is_not_recorded_on_a_login_stored_under_its_label_meanwhile() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| named(store, "work", false));
+    let server = answering(
+        ("GET", "/2/users/me"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: sign_bob_in_as_work,
+            body: alice_answer(),
+        },
+    )
+    .await;
+
+    client(&store, &server)
+        .get_me()
+        .username("work")
+        .send_saving_identity()
+        .await
+        .expect("X answers");
+
+    let after = reloaded(&store);
+    let token = after
+        .get_oauth2_token_for_app(APP, "work")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("bob's login is stored");
+    assert_eq!(token.access_token, "BOB-ACCESS");
+    assert_eq!(
+        (token.user_id.as_deref(), token.account_username.as_deref()),
+        (Some("99"), Some("bob")),
+        "bob's token is labelled with the account the answer named"
+    );
+}
+
+/// The same race through the unnamed slot: a token another process stores
+/// there while the request is out is not moved under the answer's name.
+#[tokio::test]
+async fn a_me_answer_does_not_name_an_unnamed_login_stored_meanwhile() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| unnamed(store, false));
+    let server = answering(
+        ("GET", "/2/users/me"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: |store| {
+                reloaded(store)
+                    .save_oauth2_token_unnamed_for_app(
+                        APP,
+                        "BOB-ACCESS",
+                        "BOB-REFRESH",
+                        expiry(false),
+                    )
+                    .expect("bob's unnamed login");
+            },
+            body: alice_answer(),
+        },
+    )
+    .await;
+
+    client(&store, &server)
+        .get_me()
+        .send_saving_identity()
+        .await
+        .expect("X answers");
+
+    let after = reloaded(&store);
+    assert!(
+        after.get_oauth2_token_for_app(APP, "alice").is_none(),
+        "bob's token was stored under alice"
+    );
+    let unnamed = after
+        .get_oauth2_token_unnamed_for_app(APP)
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("bob's token stays unnamed");
+    assert_eq!(
+        (unnamed.access_token.as_str(), unnamed.user_id.as_deref()),
+        ("BOB-ACCESS", None)
+    );
+}
+
+/// The same race under OAuth1: an access pair stored while the request is
+/// out does not take the answer's account.
+#[tokio::test]
+async fn a_me_answer_under_oauth1_is_not_recorded_on_a_pair_stored_meanwhile() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, oauth1);
+    let server = answering(
+        ("GET", "/2/users/me"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: |store| {
+                reloaded(store)
+                    .save_oauth1_tokens_for_app(APP, "BOB-ACCESS", "BOB-SECRET", "KEY", "CONSUMER")
+                    .expect("bob's access pair");
+            },
+            body: alice_answer(),
+        },
+    )
+    .await;
+
+    client(&store, &server)
+        .get_me()
+        .auth(WireScheme::OAuth1)
+        .send_saving_identity()
+        .await
+        .expect("X answers");
+
+    let after = reloaded(&store);
+    let pair = after
+        .get_oauth1_tokens_for_app(APP)
+        .and_then(|token| token.oauth1.as_ref())
+        .expect("bob's pair is stored");
+    assert_eq!(
+        (pair.access_token.as_str(), pair.user_id.as_deref()),
+        ("BOB-ACCESS", None),
+        "bob's pair took the account the answer named"
+    );
+}
+
+/// A refresh of alice's expired `work` login while bob signs in under that
+/// label: bob's login stands, and the refreshed pair is not stored.
+#[tokio::test]
+async fn a_refresh_leaves_a_login_signed_in_during_its_grant() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| {
+        named(store, "work", true);
+        store
+            .set_oauth2_account_for_app(APP, "work", "42", Some("alice"), Some("Alice"))
+            .expect("alice's account");
+    });
+    let server = answering(
+        ("POST", "/token"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: sign_bob_in_as_work,
+            body: refreshed_pair(),
+        },
+    )
+    .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+        .mount(&server)
+        .await;
+
+    client(&store, &server)
+        .get_me()
+        .username("work")
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    let after = reloaded(&store);
+    let token = after
+        .get_oauth2_token_for_app(APP, "work")
+        .and_then(|token| token.oauth2.as_ref())
+        .expect("a login under work");
+    assert_eq!(
+        (token.access_token.as_str(), token.user_id.as_deref()),
+        ("BOB-ACCESS", Some("99")),
+        "the refresh put alice back under work"
+    );
+}
+
+/// A refresh of the expired `work` login while another process clears it:
+/// the login stays cleared.
+#[tokio::test]
+async fn a_refresh_leaves_a_login_cleared_during_its_grant_cleared() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, |store| {
+        named(store, "work", true);
+        store
+            .set_oauth2_account_for_app(APP, "work", "42", Some("alice"), Some("Alice"))
+            .expect("alice's account");
+    });
+    let server = answering(
+        ("POST", "/token"),
+        ChangeThenAnswer {
+            store: store.clone(),
+            change: |store| {
+                reloaded(store)
+                    .clear_oauth2_token_for_app(APP, "work")
+                    .expect("clear work");
+            },
+            body: refreshed_pair(),
+        },
+    )
+    .await;
+    Mock::given(method("GET"))
+        .and(path("/2/users/me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(alice_answer()))
+        .mount(&server)
+        .await;
+
+    client(&store, &server)
+        .get_me()
+        .username("work")
+        .send()
+        .await
+        .expect("the refreshed token is sent");
+
+    assert!(
+        reloaded(&store)
+            .get_oauth2_token_for_app(APP, "work")
+            .is_none(),
+        "the cleared login came back"
+    );
+}

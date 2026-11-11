@@ -19,7 +19,7 @@ use crate::error::{
     BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
     REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
 };
-use crate::store::{OAuth2Token, RefreshLock};
+use crate::store::{MintedFrom, OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
 
 /// The scope that makes X issue a refresh token. Every sign-in requests it:
@@ -643,6 +643,11 @@ pub(crate) async fn refresh_grant(
 ///   with, and the unnamed slot is emptied; when that lookup fails it stays
 ///   in the unnamed slot, with a `tracing` warning.
 ///
+/// The pair is written only while that slot still holds the token it was
+/// minted from. A login another process signs in or clears there while the
+/// grant is out is left as that process stored it, and the new access token
+/// still goes out with the caller's request.
+///
 /// `/2/users/me` is asked only for what the store lacks of the account: a
 /// name, or its id. A caller that supplies `username`, and a login that
 /// holds both, send the grant and nothing else.
@@ -720,19 +725,31 @@ pub async fn refresh_oauth2_token(
     // has nothing to ask X for: the id is the account's for good, and the
     // name is the key the caller selects the login by.
     let complete = stored_as.is_some() && token.user_id.is_some();
+    let from = MintedFrom {
+        slot: stored_as.as_deref(),
+        refresh_token: &oauth2.refresh_token,
+    };
     if username.is_empty() && complete {
-        auth.token_store
-            .put_oauth2_token(&app_name, stored_as.as_deref(), token, false)?;
+        auth.token_store.put_refreshed_oauth2_token(
+            &app_name,
+            &from,
+            stored_as.as_deref(),
+            token,
+            false,
+            false,
+        )?;
     } else if username.is_empty() {
         match auth.fetch_identity(http, &new_access_token).await {
             Ok(identity) => {
                 identity.record_on(&mut token);
                 let name = stored_as.as_deref().unwrap_or(&identity.username);
-                auth.token_store.put_answered_oauth2_token(
+                auth.token_store.put_refreshed_oauth2_token(
                     &app_name,
+                    &from,
                     Some(name),
                     token,
                     stored_as.is_none(),
+                    true,
                 )?;
             }
             Err(_) => {
@@ -742,13 +759,25 @@ pub async fn refresh_oauth2_token(
                         "refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
                     );
                 }
-                auth.token_store
-                    .put_oauth2_token(&app_name, stored_as.as_deref(), token, false)?;
+                auth.token_store.put_refreshed_oauth2_token(
+                    &app_name,
+                    &from,
+                    stored_as.as_deref(),
+                    token,
+                    false,
+                    false,
+                )?;
             }
         }
     } else {
-        auth.token_store
-            .put_oauth2_token(&app_name, Some(username), token, false)?;
+        auth.token_store.put_refreshed_oauth2_token(
+            &app_name,
+            &from,
+            Some(username),
+            token,
+            false,
+            false,
+        )?;
     }
 
     Ok(new_access_token)
