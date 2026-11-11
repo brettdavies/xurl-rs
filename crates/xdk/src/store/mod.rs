@@ -686,8 +686,15 @@ impl TokenStore {
     /// file is left as it was.
     pub fn update<R>(&mut self, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
         if REHEARSING.with(std::cell::Cell::get) {
+            // In the order the real write meets them, so a store failing
+            // two checks is refused with the one the real write names.
+            if layout::outermost_store_dir_to_create(&self.file_path).is_some() {
+                self.refuse_unless_writable()?;
+            }
+            self.refuse_if_load_failed()?;
+            let out = f(self)?;
             self.refuse_unless_writable()?;
-            return f(self);
+            return Ok(out);
         }
         self.ensure_dir()?;
         let lock = lock::StoreLock::acquire(&self.file_path)?;
