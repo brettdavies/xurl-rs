@@ -1975,6 +1975,11 @@ fn seed_store_without_a_client_id(store_path: &std::path::Path) {
     .expect("write tempdir store");
 }
 
+/// A store an edit left half written: the client id is in it, but the file
+/// does not parse, so nothing in it can be read.
+const CLIENT_ID_IN_A_BROKEN_STORE: &str =
+    "apps:\n  default:\n    client_id: 'test-client-id'\n    oauth2_tokens: [half an edit\n";
+
 /// One app, `blank`, with no client id, and no other app to sign in under.
 fn seed_store_with_only_a_blank_app(store_path: &std::path::Path) {
     std::fs::write(
@@ -2231,6 +2236,34 @@ fn verdicts() -> Vec<Verdict> {
             true,
             |store| {
                 std::fs::write(store, "apps: [half an edit").unwrap();
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        ),
+        verdict(
+            "store that does not parse, step 1",
+            "could not be loaded",
+            true,
+            |store| {
+                std::fs::write(store, "apps: [half an edit").unwrap();
+            },
+            &step1,
+        ),
+        verdict(
+            "client id only in a store that does not parse, step 1",
+            "could not be loaded",
+            false,
+            |store| {
+                std::fs::write(store, CLIENT_ID_IN_A_BROKEN_STORE).unwrap();
+            },
+            &step1,
+        ),
+        verdict(
+            "client id only in a store that does not parse, step 2",
+            "could not be loaded",
+            false,
+            |store| {
+                std::fs::write(store, CLIENT_ID_IN_A_BROKEN_STORE).unwrap();
                 seed_pending(store);
             },
             &flow_at(&redirect),

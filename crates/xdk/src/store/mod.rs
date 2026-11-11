@@ -736,7 +736,11 @@ impl TokenStore {
     /// Returns a token-store error naming the path when the file exists but
     /// could not be loaded, so a store the loader did not understand is
     /// never overwritten.
-    pub(crate) fn refuse_if_load_failed(&self) -> Result<()> {
+    // `xr auth oauth2` meets this refusal before its credential check
+    // (`crates/xurl-cli/src/cli/commands/auth/signin.rs`), since a client id
+    // the unloadable file holds is not one the store can be said to lack.
+    #[doc(hidden)]
+    pub fn refuse_if_load_failed(&self) -> Result<()> {
         if self.load_failed() {
             return Err(Error::token_store(format!(
                 "refusing to write {}: the file exists but could not be loaded; fix or move it, then retry",
