@@ -97,8 +97,12 @@ fn confirm_destructive(prompt: &str) -> Result<bool> {
 
     let stdin = std::io::stdin();
     let mut line = String::new();
-    if stdin.lock().read_line(&mut line).is_err() {
-        return Ok(false);
+    match stdin.lock().read_line(&mut line) {
+        Err(_) => return Ok(false),
+        Ok(0) => {
+            let _ = writeln!(std::io::stderr());
+        }
+        Ok(_) => {}
     }
     let answer = line.trim().to_ascii_lowercase();
     Ok(matches!(answer.as_str(), "y" | "yes"))

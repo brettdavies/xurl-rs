@@ -135,6 +135,27 @@ fn declining_a_clear_changes_nothing_and_says_so(#[case] answer: &str) {
     assert_eq!(logins(&store), ["alice"], "the login was cleared");
 }
 
+/// End of input at the prompt leaves the cursor after it, so the stop starts
+/// a line of its own, as it does after a typed answer.
+#[test]
+fn declining_with_end_of_input_starts_the_message_on_its_own_line() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = store_with_a_login(&tmp);
+
+    let ran = on_a_terminal(&store, CLEAR, "\u{4}");
+
+    assert_eq!(ran.code, Some(1), "{}", ran.terminal);
+    let terminal = ran.terminal.replace("\r\n", "\n");
+    let at = terminal
+        .find("Cancelled")
+        .unwrap_or_else(|| panic!("no stop: {terminal:?}"));
+    assert_eq!(
+        terminal[..at].chars().last(),
+        Some('\n'),
+        "the stop follows the prompt line: {terminal:?}"
+    );
+}
+
 /// Under a structured format the stop is one `cancelled` document on stderr
 /// that names what the prompt asked about.
 #[test]
