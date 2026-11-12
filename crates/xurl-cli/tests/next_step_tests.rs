@@ -345,6 +345,7 @@ async fn store_write(
 #[case::app_for_a_missing_app(Held::Work, &["--app", "ghost", "auth", "app", "--bearer-token-file", "SECRET"])]
 #[case::oauth1_for_a_missing_app(Held::Work, &["--app", "ghost", "auth", "oauth1", "--consumer-key", "ck", "--consumer-secret-file", "SECRET", "--access-token-file", "SECRET", "--token-secret-file", "SECRET"])]
 #[case::apps_add_taken(Held::Work, &["auth", "apps", "add", "work", "--client-id", "abcdefgh", "--client-secret-file", "SECRET"])]
+#[case::apps_add_bad_redirect_uri(Held::Work, &["auth", "apps", "add", "new", "--client-id", "abcdefgh", "--client-secret-file", "SECRET", "--redirect-uri", "not a url"])]
 #[case::apps_update_missing(Held::Work, &["auth", "apps", "update", "ghost", "--client-id", "abcdefgh"])]
 #[case::apps_remove_missing(Held::Work, &["auth", "apps", "remove", "ghost", "--force"])]
 #[case::redirect_uri_missing(Held::Work, &["auth", "apps", "redirect-uri", "set", "ghost", "http://localhost:8080/callback"])]
@@ -391,6 +392,51 @@ async fn a_store_write_s_dry_run_refuses_as_its_real_run_does(
     assert!(
         dry.get("confirmation_required").is_none(),
         "{args:?}: the real run refused without asking, and the dry run says it would ask: {dry}"
+    );
+}
+
+/// A redirect URI the store refuses leaves the store as it was, so the same
+/// command with a URI it accepts then registers the app.
+#[tokio::test]
+async fn apps_add_with_a_refused_redirect_uri_registers_nothing() {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(Held::Empty, &tmp);
+    let add = [
+        "auth",
+        "apps",
+        "add",
+        "new",
+        "--client-id",
+        "abcdefgh",
+        "--client-secret-file",
+        "SECRET",
+        "--redirect-uri",
+    ];
+    let with = |uri| [&add[..], &[uri]].concat();
+
+    let (code, refused, unchanged) =
+        store_write(Held::Empty, &tmp, &with("not a url"), false).await;
+    assert_eq!(code, 1, "{refused}");
+    assert_eq!(refused["reason"], "validation", "{refused}");
+    assert_eq!(refused["rule"], "invalid-redirect-uri", "{refused}");
+    assert!(unchanged, "the refused add changed the store: {refused}");
+
+    let store = tmp.path().join("home").join(".xurl");
+    let secret = tmp.path().join("secret");
+    let mut argv = vec!["xr", "--output", "json"];
+    argv.extend(with("https://example.com/cb").into_iter().map(|arg| {
+        if arg == "SECRET" {
+            secret.to_str().expect("utf-8 path")
+        } else {
+            arg
+        }
+    }));
+    let (code, _stdout, stderr) = run_at(&store, &argv).await;
+    assert_eq!(code, 0, "the same command with a good URI failed: {stderr}");
+    let held = TokenStore::load_from_path(store.to_str().expect("utf-8 path"));
+    assert_eq!(
+        held.get_app_redirect_uri("new"),
+        Some("https://example.com/cb")
     );
 }
 

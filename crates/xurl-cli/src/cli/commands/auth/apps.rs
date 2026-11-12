@@ -68,6 +68,9 @@ fn add(
         ..
     } = ctx;
     let register = |store: &mut TokenStore| {
+        if let Some(uri) = redirect_uri.filter(|uri| !uri.is_empty()) {
+            config::Config::validate_redirect_uri(uri)?;
+        }
         store.add_app(name, client_id, client_secret)?;
         match redirect_uri {
             Some(uri) => store.set_app_redirect_uri(name, uri),
