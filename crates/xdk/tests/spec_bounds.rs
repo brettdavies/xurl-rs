@@ -2,7 +2,9 @@
 //! vendored spec sets, so a refresh that moves a bound fails here rather than
 //! leaving the validator refusing what X accepts, or passing what X refuses.
 //! Every integer constant `shortcuts.rs` declares has a row here or a reason
-//! it mirrors no bound, so a bound added later cannot skip the check.
+//! it mirrors no bound, so a bound added later cannot skip the check. A
+//! validator that checks an input's characters agrees with the spec's
+//! `pattern` on every sample input below.
 
 use serde_json::Value;
 use xdk::api::shortcuts::{
@@ -11,7 +13,8 @@ use xdk::api::shortcuts::{
     CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX,
     DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
-    USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
+    USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS, validate_broadcast_id, validate_space_id,
+    validate_user_search_query,
 };
 
 /// Integer constants in `shortcuts.rs` that mirror no spec bound, each with
@@ -25,8 +28,10 @@ const NOT_SPEC_BOUNDS: &[(&str, &str)] = &[(
 enum Site {
     /// A property of a component schema.
     Property(&'static str, &'static str),
-    /// A query parameter of an operation, by path and name.
+    /// A query parameter of an operation, `METHOD /path`, by name.
     Query(&'static str, &'static str),
+    /// A path parameter of an operation, `METHOD /path`, by name.
+    Path(&'static str, &'static str),
 }
 
 /// A constant, its value, the spec keyword it mirrors, and each place the
@@ -97,11 +102,11 @@ const BOUNDS: &[Bound] = &[
         value: n(LOOKUP_IDS_MAX),
         keyword: "maxItems",
         sites: &[
-            Site::Query("/2/users", "ids"),
-            Site::Query("/2/users/by", "usernames"),
-            Site::Query("/2/tweets", "ids"),
-            Site::Query("/2/media", "media_keys"),
-            Site::Query("/2/spaces", "ids"),
+            Site::Query("GET /2/users", "ids"),
+            Site::Query("GET /2/users/by", "usernames"),
+            Site::Query("GET /2/tweets", "ids"),
+            Site::Query("GET /2/media", "media_keys"),
+            Site::Query("GET /2/spaces", "ids"),
         ],
     },
     Bound {
@@ -182,24 +187,92 @@ const BOUNDS: &[Bound] = &[
     Bound {
         constant: "USER_SEARCH_QUERY_MAX_CHARS",
         value: n(USER_SEARCH_QUERY_MAX_CHARS),
-        keyword: "pattern",
-        sites: &[Site::Query("/2/users/search", "query")],
+        keyword: "maxLength",
+        sites: &[Site::Query("GET /2/users/search", "query")],
     },
 ];
 
-/// The bound `keyword` sets in `schema`. For `pattern`, the upper count of
-/// the pattern's last `{m,n}` quantifier.
-fn stated_bound(schema: &Value, keyword: &str) -> Option<u64> {
-    if keyword != "pattern" {
-        return schema[keyword].as_u64();
-    }
-    let pattern = schema["pattern"].as_str()?;
-    let quantifier = &pattern[pattern.rfind('{')? + 1..];
-    quantifier[..quantifier.find('}')?]
-        .split(',')
-        .nth(1)?
-        .parse()
-        .ok()
+/// A validator that checks an input's characters, and each place the spec
+/// states the `pattern` it mirrors.
+struct Pattern {
+    validator: &'static str,
+    check: fn(&str) -> Result<(), &'static str>,
+    sites: &'static [Site],
+}
+
+const PATTERNS: &[Pattern] = &[
+    Pattern {
+        validator: "validate_space_id",
+        check: validate_space_id,
+        sites: &[
+            Site::Query("GET /2/spaces", "ids"),
+            Site::Path("GET /2/spaces/{id}", "id"),
+            Site::Path("GET /2/spaces/{id}/tweets", "id"),
+        ],
+    },
+    Pattern {
+        validator: "validate_broadcast_id",
+        check: validate_broadcast_id,
+        sites: &[
+            Site::Path("GET /2/broadcasts/{id}", "id"),
+            Site::Path("DELETE /2/broadcasts/{id}", "id"),
+            Site::Path("GET /2/broadcasts/{id}/chat", "id"),
+            Site::Query("DELETE /2/broadcasts/chat/mutes/{user_id}", "broadcast_id"),
+            Site::Property("MuteChatUserRequest", "broadcast_id"),
+        ],
+    },
+    Pattern {
+        validator: "validate_user_search_query",
+        check: validate_user_search_query,
+        sites: &[Site::Query("GET /2/users/search", "query")],
+    },
+];
+
+/// Inputs on both sides of each pattern above: lengths at and past each
+/// bound, letters, marks, digits, and spaces outside ASCII, and the
+/// characters a pattern names or leaves out.
+fn samples() -> Vec<String> {
+    let mut samples: Vec<String> = [
+        "",
+        "1DXxyRYNejbKM",
+        "1DXxyRYNejbKMxxxxxxxxxxx",
+        "1DXxyRYNejbKMxxxxxxxxxxxx",
+        "not-an-id!",
+        "\u{e9}1",
+        "rust lang",
+        "rust-lang",
+        "rust#lang",
+        "rust_lang",
+        "@jack",
+        "O'Brien",
+        "O\u{2019}Brien",
+        "A&B",
+        "\"quoted\"",
+        "J. R. R.",
+        "Jos\u{e9}",
+        "Jose\u{301}",
+        "\u{540d}\u{524d}",
+        "\u{661}\u{662}",
+        "full\u{3000}width",
+        "tab\there",
+        "line\u{2028}break",
+        "\u{24b6}",
+        "crab \u{1f980}",
+    ]
+    .iter()
+    .map(ToString::to_string)
+    .collect();
+    samples.extend([49, 50, 51].map(|n| "a".repeat(n)));
+    samples
+}
+
+/// Whether `schema` accepts `input`: its `pattern`, and its `minLength` and
+/// `maxLength` where set.
+fn spec_accepts(schema: &Value, pattern: &regex::Regex, input: &str) -> bool {
+    let chars = input.chars().count() as u64;
+    pattern.is_match(input)
+        && schema["minLength"].as_u64().is_none_or(|min| chars >= min)
+        && schema["maxLength"].as_u64().is_none_or(|max| chars <= max)
 }
 
 fn spec() -> Value {
@@ -217,21 +290,37 @@ fn schema_at<'a>(spec: &'a Value, site: &Site) -> (String, Option<&'a Value>) {
                 "/components/schemas/{schema}/properties/{property}"
             )),
         ),
-        Site::Query(path, name) => {
-            let shared = &spec["components"]["parameters"];
-            let found = spec["paths"][*path]["get"]["parameters"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(|parameter| match parameter["$ref"].as_str() {
-                    Some(reference) => &shared[reference.rsplit('/').next().unwrap_or_default()],
-                    None => parameter,
-                })
-                .find(|parameter| parameter["in"] == "query" && parameter["name"] == *name)
-                .map(|parameter| &parameter["schema"]);
-            (format!("GET {path} query parameter {name}"), found)
-        }
+        Site::Query(operation, name) => (
+            format!("{operation} query parameter {name}"),
+            parameter(spec, operation, "query", name),
+        ),
+        Site::Path(operation, name) => (
+            format!("{operation} path parameter {name}"),
+            parameter(spec, operation, "path", name),
+        ),
     }
+}
+
+/// The schema of the parameter `name` in `location` on `operation`,
+/// `METHOD /path`.
+fn parameter<'a>(
+    spec: &'a Value,
+    operation: &str,
+    location: &str,
+    name: &str,
+) -> Option<&'a Value> {
+    let (method, path) = operation.split_once(' ')?;
+    let shared = &spec["components"]["parameters"];
+    spec["paths"][path][method.to_ascii_lowercase()]["parameters"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|parameter| match parameter["$ref"].as_str() {
+            Some(reference) => &shared[reference.rsplit('/').next().unwrap_or_default()],
+            None => parameter,
+        })
+        .find(|parameter| parameter["in"] == location && parameter["name"] == name)
+        .map(|parameter| &parameter["schema"])
 }
 
 #[test]
@@ -241,7 +330,7 @@ fn every_validator_bound_is_the_one_the_vendored_spec_sets() {
     for bound in BOUNDS {
         for site in bound.sites {
             let (at, schema) = schema_at(&spec, site);
-            let stated = schema.and_then(|schema| stated_bound(schema, bound.keyword));
+            let stated = schema.and_then(|schema| schema[bound.keyword].as_u64());
             if stated != Some(bound.value) {
                 drift.push(format!(
                     "{} is {}, and the spec's {} at {at} is {}",
@@ -258,6 +347,52 @@ fn every_validator_bound_is_the_one_the_vendored_spec_sets() {
         "a validator bound in crates/xdk/src/api/shortcuts.rs differs from the vendored spec:\n{}\n\
          Set each constant to the spec's value. A bound the spec lowered refuses calls that \
          passed before, so the PR's Changelog records it as a change in behavior.",
+        drift.join("\n")
+    );
+}
+
+#[test]
+fn every_character_validator_agrees_with_the_vendored_spec_pattern() {
+    let spec = spec();
+    let samples = samples();
+    let mut drift = Vec::new();
+    for row in PATTERNS {
+        for site in row.sites {
+            let (at, schema) = schema_at(&spec, site);
+            let schema = schema.map(|schema| {
+                if schema["type"] == "array" {
+                    &schema["items"]
+                } else {
+                    schema
+                }
+            });
+            let Some((schema, pattern)) = schema.and_then(|schema| {
+                let pattern = regex::Regex::new(schema["pattern"].as_str()?).ok()?;
+                Some((schema, pattern))
+            }) else {
+                drift.push(format!("{at} states no pattern this test can compile"));
+                continue;
+            };
+            for input in &samples {
+                let spec_says = spec_accepts(schema, &pattern, input);
+                if (row.check)(input).is_ok() != spec_says {
+                    drift.push(format!(
+                        "{} {} {input:?}, which the spec at {at} {}",
+                        row.validator,
+                        if spec_says { "refuses" } else { "accepts" },
+                        if spec_says { "accepts" } else { "refuses" },
+                    ));
+                }
+            }
+        }
+    }
+    assert!(
+        drift.is_empty(),
+        "a validator in crates/xdk/src/api/shortcuts.rs disagrees with the vendored spec's \
+         pattern:\n{}\nChange the validator to the spec's pattern, and the sentence for its \
+         rule in crates/xurl-cli/src/cli/output/validation.rs with it. A pattern the spec \
+         narrowed refuses calls that passed before, so the PR's Changelog records it as a \
+         change in behavior.",
         drift.join("\n")
     );
 }

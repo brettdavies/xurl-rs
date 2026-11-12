@@ -21,9 +21,11 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns an error if the store cannot be saved to disk.
+    /// Returns an error if `app_name` names an app the store does not hold
+    /// (an empty name is the default app), or the store cannot be saved.
     pub fn save_bearer_token_for_app(&mut self, app_name: &str, token: &str) -> Result<()> {
         self.update(|store| {
+            store.refuse_if_app_missing(app_name)?;
             let app = store.resolve_app_mut(app_name);
             app.bearer_token = Some(Token {
                 token_type: TokenType::Bearer,
@@ -54,7 +56,8 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns an error if the store cannot be saved to disk.
+    /// Returns an error if `app_name` names an app the store does not hold
+    /// (an empty name is the default app), or the store cannot be saved.
     pub fn save_oauth2_token_for_app(
         &mut self,
         app_name: &str,
@@ -89,7 +92,7 @@ impl TokenStore {
         token: OAuth2Token,
         drop_unnamed: bool,
     ) -> Result<()> {
-        self.write_oauth2_token(app_name, name, token, drop_unnamed, false)
+        self.write_oauth2_token(app_name, name, token, drop_unnamed, false, None)
     }
 
     /// [`Self::put_oauth2_token`] for a token whose names `/2/users/me` just
@@ -102,7 +105,24 @@ impl TokenStore {
         token: OAuth2Token,
         drop_unnamed: bool,
     ) -> Result<()> {
-        self.write_oauth2_token(app_name, name, token, drop_unnamed, true)
+        self.write_oauth2_token(app_name, name, token, drop_unnamed, true, None)
+    }
+
+    /// [`Self::put_oauth2_token`], or [`Self::put_answered_oauth2_token`]
+    /// when `answered`, for a pair a refresh minted from the token `from`
+    /// names. Nothing is written once the token the refresh sent is gone: a
+    /// login another process signed in or cleared in its place while the
+    /// grant was in flight stands.
+    pub(crate) fn put_refreshed_oauth2_token(
+        &mut self,
+        app_name: &str,
+        from: &MintedFrom<'_>,
+        name: Option<&str>,
+        token: OAuth2Token,
+        drop_unnamed: bool,
+        answered: bool,
+    ) -> Result<()> {
+        self.write_oauth2_token(app_name, name, token, drop_unnamed, answered, Some(from))
     }
 
     fn write_oauth2_token(
@@ -112,8 +132,22 @@ impl TokenStore {
         mut token: OAuth2Token,
         drop_unnamed: bool,
         answered: bool,
+        minted_from: Option<&MintedFrom<'_>>,
     ) -> Result<()> {
         self.update(|store| {
+            let (destination, drop_unnamed) = match minted_from {
+                None => {
+                    store.refuse_if_app_missing(app_name)?;
+                    (name.map(str::to_string), drop_unnamed)
+                }
+                Some(from) => {
+                    match from.destination(store.resolve_app(app_name), name, drop_unnamed) {
+                        Some(destination) => destination,
+                        None => return Ok(()),
+                    }
+                }
+            };
+            let name = destination.as_deref();
             if answered && let Some(user_id) = &token.user_id {
                 store.share_account_names(
                     user_id,
@@ -197,10 +231,54 @@ impl TokenStore {
         account_username: Option<&str>,
         display_name: Option<&str>,
     ) -> Result<bool> {
+        self.write_oauth2_account(
+            app_name,
+            username,
+            None,
+            user_id,
+            account_username,
+            display_name,
+        )
+    }
+
+    /// [`Self::set_oauth2_account_for_app`] for an answer that came back
+    /// under the access token `sent_under`. The account is recorded on the
+    /// slot's token only while it is still that token, so a login another
+    /// process stored there while the request was out keeps its own; the
+    /// names are still written onto the credentials that hold `user_id`.
+    pub(crate) fn record_oauth2_account(
+        &mut self,
+        app_name: &str,
+        username: &str,
+        sent_under: &str,
+        user_id: &str,
+        account_username: Option<&str>,
+        display_name: Option<&str>,
+    ) -> Result<bool> {
+        self.write_oauth2_account(
+            app_name,
+            username,
+            Some(sent_under),
+            user_id,
+            account_username,
+            display_name,
+        )
+    }
+
+    fn write_oauth2_account(
+        &mut self,
+        app_name: &str,
+        username: &str,
+        sent_under: Option<&str>,
+        user_id: &str,
+        account_username: Option<&str>,
+        display_name: Option<&str>,
+    ) -> Result<bool> {
         fn slot<'a>(
             store: &'a mut TokenStore,
             app_name: &str,
             username: &str,
+            sent_under: Option<&str>,
         ) -> Option<&'a mut OAuth2Token> {
             let app = store.resolve_app_mut(app_name);
             let token = if username.is_empty() {
@@ -208,7 +286,9 @@ impl TokenStore {
             } else {
                 app.oauth2_tokens.get_mut(username)
             };
-            token.and_then(|token| token.oauth2.as_mut())
+            token
+                .and_then(|token| token.oauth2.as_mut())
+                .filter(|token| sent_under.is_none_or(|sent| token.access_token == sent))
         }
         if user_id.is_empty() {
             return Ok(false);
@@ -223,7 +303,8 @@ impl TokenStore {
         } else {
             self.get_oauth2_token_for_app(app_name, username)
         }
-        .and_then(|token| token.oauth2.as_ref());
+        .and_then(|token| token.oauth2.as_ref())
+        .filter(|token| sent_under.is_none_or(|sent| token.access_token == sent));
         if current.and_then(recorded).is_none()
             && !self.has_account_names_to_share(user_id, account_username, display_name)
         {
@@ -231,7 +312,7 @@ impl TokenStore {
         }
         self.update(|store| {
             let mut changed = false;
-            if let Some(token) = slot(store, app_name, username)
+            if let Some(token) = slot(store, app_name, username, sent_under)
                 && let Some(next) = recorded(token)
             {
                 next.write_oauth2(token);
@@ -250,7 +331,8 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns an error if the store cannot be saved to disk.
+    /// Returns an error if `app_name` names an app the store does not hold
+    /// (an empty name is the default app), or the store cannot be saved.
     pub fn save_oauth2_token_unnamed_for_app(
         &mut self,
         app_name: &str,
@@ -284,9 +366,37 @@ impl TokenStore {
         app_name: &str,
         username: &str,
     ) -> Result<bool> {
+        self.name_unnamed_oauth2_token(app_name, username, None)
+    }
+
+    /// [`Self::name_unnamed_oauth2_token_for_app`] for a username learned
+    /// under the access token `sent_under`: the unnamed token moves only
+    /// while it is still that token.
+    pub(crate) fn name_unnamed_oauth2_token_holding(
+        &mut self,
+        app_name: &str,
+        username: &str,
+        sent_under: &str,
+    ) -> Result<bool> {
+        self.name_unnamed_oauth2_token(app_name, username, Some(sent_under))
+    }
+
+    fn name_unnamed_oauth2_token(
+        &mut self,
+        app_name: &str,
+        username: &str,
+        sent_under: Option<&str>,
+    ) -> Result<bool> {
         let movable = |store: &Self| {
             let app = store.resolve_app(app_name);
-            app.unnamed_oauth2_token.is_some() && !app.oauth2_tokens.contains_key(username)
+            app.unnamed_oauth2_token.as_ref().is_some_and(|token| {
+                sent_under.is_none_or(|sent| {
+                    token
+                        .oauth2
+                        .as_ref()
+                        .is_some_and(|token| token.access_token == sent)
+                })
+            }) && !app.oauth2_tokens.contains_key(username)
         };
         if username.is_empty() || !movable(self) {
             return Ok(false);
@@ -328,7 +438,8 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns an error if the store cannot be saved to disk.
+    /// Returns an error if `app_name` names an app the store does not hold
+    /// (an empty name is the default app), or the store cannot be saved.
     pub fn save_oauth1_tokens_for_app(
         &mut self,
         app_name: &str,
@@ -338,6 +449,7 @@ impl TokenStore {
         consumer_secret: &str,
     ) -> Result<()> {
         self.update(|store| {
+            store.refuse_if_app_missing(app_name)?;
             let app = store.resolve_app_mut(app_name);
             app.oauth1_token = Some(Token {
                 token_type: TokenType::Oauth1,
@@ -385,6 +497,37 @@ impl TokenStore {
         account_username: Option<&str>,
         display_name: Option<&str>,
     ) -> Result<bool> {
+        self.write_oauth1_account(app_name, None, user_id, account_username, display_name)
+    }
+
+    /// [`Self::set_oauth1_account_for_app`] for an answer that came back
+    /// under the access token `sent_under`, recorded on the pair only while
+    /// it is still that pair, as [`Self::record_oauth2_account`] does.
+    pub(crate) fn record_oauth1_account(
+        &mut self,
+        app_name: &str,
+        sent_under: &str,
+        user_id: &str,
+        account_username: Option<&str>,
+        display_name: Option<&str>,
+    ) -> Result<bool> {
+        self.write_oauth1_account(
+            app_name,
+            Some(sent_under),
+            user_id,
+            account_username,
+            display_name,
+        )
+    }
+
+    fn write_oauth1_account(
+        &mut self,
+        app_name: &str,
+        sent_under: Option<&str>,
+        user_id: &str,
+        account_username: Option<&str>,
+        display_name: Option<&str>,
+    ) -> Result<bool> {
         if user_id.is_empty() {
             return Ok(false);
         }
@@ -395,7 +538,8 @@ impl TokenStore {
         };
         let current = self
             .get_oauth1_tokens_for_app(app_name)
-            .and_then(|token| token.oauth1.as_ref());
+            .and_then(|token| token.oauth1.as_ref())
+            .filter(|token| sent_under.is_none_or(|sent| token.access_token == sent));
         if current.and_then(recorded).is_none()
             && !self.has_account_names_to_share(user_id, account_username, display_name)
         {
@@ -408,6 +552,7 @@ impl TokenStore {
                 .oauth1_token
                 .as_mut()
                 .and_then(|token| token.oauth1.as_mut())
+                .filter(|token| sent_under.is_none_or(|sent| token.access_token == sent))
                 && let Some(next) = recorded(token)
             {
                 next.write_oauth1(token);
@@ -660,6 +805,50 @@ impl TokenStore {
     pub fn has_bearer_token(&self) -> bool {
         self.active_app()
             .is_some_and(|app| app.bearer_token.is_some())
+    }
+}
+
+/// The stored token a refreshed pair was minted from: the slot the refresh
+/// read it from, `None` for the unnamed one, and the refresh token it sent.
+pub(crate) struct MintedFrom<'a> {
+    pub(crate) slot: Option<&'a str>,
+    pub(crate) refresh_token: &'a str,
+}
+
+impl MintedFrom<'_> {
+    /// Where in `app` a refresh that asked for `name` and `drop_unnamed`
+    /// writes its pair, and whether it empties the unnamed slot; `None` once
+    /// the token it was minted from is gone, so a login another process
+    /// stored or cleared in its place stands.
+    ///
+    /// A token read from the unnamed slot can have been moved under its
+    /// username meanwhile by a `/2/users/me` answer under the same login, and
+    /// the pair replaces it there. One still unnamed moves under `name` only
+    /// while that label is free.
+    fn destination(
+        &self,
+        app: &super::App,
+        name: Option<&str>,
+        drop_unnamed: bool,
+    ) -> Option<(Option<String>, bool)> {
+        let minted_from = |token: Option<&Token>| {
+            token
+                .and_then(|token| token.oauth2.as_ref())
+                .is_some_and(|token| token.refresh_token == self.refresh_token)
+        };
+        match self.slot {
+            Some(slot) => minted_from(app.oauth2_tokens.get(slot))
+                .then(|| (name.map(str::to_string), drop_unnamed)),
+            None if minted_from(app.unnamed_oauth2_token.as_ref()) => {
+                let name = name.filter(|label| !app.oauth2_tokens.contains_key(*label));
+                Some((name.map(str::to_string), drop_unnamed && name.is_some()))
+            }
+            None => app
+                .oauth2_tokens
+                .iter()
+                .find(|(_, token)| minted_from(Some(token)))
+                .map(|(label, _)| (Some(label.clone()), false)),
+        }
     }
 }
 

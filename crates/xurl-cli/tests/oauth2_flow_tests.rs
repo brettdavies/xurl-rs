@@ -829,6 +829,16 @@ fn urlencode(value: &str) -> String {
 async fn run_interactive(
     opener: impl Fn(&str, &str) -> std::io::Result<()> + Send + Sync + 'static,
 ) -> (xdk::error::Result<String>, CancellationToken) {
+    run_interactive_after(|_| {}, opener).await
+}
+
+/// [`run_interactive`], with `change` made to the store's path once the
+/// `Auth` has loaded it. The directory the store is in is writable again
+/// once the flow returns.
+async fn run_interactive_after(
+    change: impl FnOnce(&std::path::Path),
+    opener: impl Fn(&str, &str) -> std::io::Result<()> + Send + Sync + 'static,
+) -> (xdk::error::Result<String>, CancellationToken) {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
     let target = listener.local_addr().expect("its address").to_string();
     let redirect_uri = format!("http://{target}/callback");
@@ -839,6 +849,7 @@ async fn run_interactive(
         &redirect_uri,
     );
     let mut auth = test_auth(cfg, &tmp, &redirect_uri);
+    change(&tmp.path().join(".xurl"));
     let cancel = CancellationToken::new();
     let returned = run_oauth2_flow_on(
         &mut auth,
@@ -849,7 +860,143 @@ async fn run_interactive(
         move |url| opener(url, &target),
     )
     .await;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
     (returned, cancel)
+}
+
+/// An opener that records it ran and then consents, following the redirect
+/// with the authorize URL's own state.
+fn consenting_opener(
+    opened: &Arc<Mutex<bool>>,
+) -> impl Fn(&str, &str) -> std::io::Result<()> + Send + Sync + 'static {
+    let opened = Arc::clone(opened);
+    move |url, target| {
+        *opened.lock().unwrap() = true;
+        follow_redirect(target, &state_of(url))
+    }
+}
+
+/// A store file that stopped parsing after the `Auth` loaded it refuses the
+/// sign-in before the browser opens: the consent would buy tokens the store
+/// refuses to keep.
+#[tokio::test]
+async fn an_interactive_sign_in_on_a_store_that_does_not_parse_opens_no_browser() {
+    let opened = Arc::new(Mutex::new(false));
+
+    let (returned, _) = run_interactive_after(
+        |store| std::fs::write(store, "apps: [half an edit").unwrap(),
+        consenting_opener(&opened),
+    )
+    .await;
+
+    assert!(!*opened.lock().unwrap(), "the browser opened: {returned:?}");
+    assert!(
+        matches!(returned, Err(xdk::Error::TokenStore { .. })),
+        "{returned:?}"
+    );
+}
+
+/// A store whose directory stopped taking new files refuses the sign-in
+/// before the browser opens, with the error its save would have met.
+#[cfg(unix)]
+#[tokio::test]
+async fn an_interactive_sign_in_on_a_store_it_cannot_write_opens_no_browser() {
+    use std::os::unix::fs::PermissionsExt;
+    let opened = Arc::new(Mutex::new(false));
+    let mut writable = false;
+    let mut dir = std::path::PathBuf::new();
+
+    let (returned, _) = run_interactive_after(
+        |store| {
+            dir = store.parent().unwrap().to_path_buf();
+            let dir = &dir;
+            std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+            // A process that may write a read-only directory (root) cannot
+            // be refused this way.
+            writable = std::fs::write(dir.join("probe"), b"").is_ok();
+        },
+        consenting_opener(&opened),
+    )
+    .await;
+    if writable {
+        return;
+    }
+
+    assert!(!*opened.lock().unwrap(), "the browser opened: {returned:?}");
+    assert!(
+        matches!(&returned, Err(xdk::Error::Io { message, .. }) if message.starts_with("cannot write")),
+        "{returned:?}"
+    );
+    let names_the_directory = format!("cannot create a file in {}", dir.display());
+    assert!(
+        matches!(&returned, Err(xdk::Error::Io { message, .. }) if message.contains(&names_the_directory)),
+        "the refusal does not name the directory that refused: {returned:?}"
+    );
+}
+
+/// A sign-in for an app another process removed while the person consented
+/// sends no code, so the tokens it would buy land on no other app.
+#[tokio::test]
+async fn an_interactive_sign_in_for_an_app_removed_during_consent_sends_no_code() {
+    let server = MockServer::start().await;
+    token_mock(ok_token_body(), 200)
+        .expect(0)
+        .mount(&server)
+        .await;
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("a loopback port");
+    let target = listener.local_addr().expect("its address").to_string();
+    let redirect_uri = format!("http://{target}/callback");
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    let app = format!(
+        "    client_id: 'test-client-id'\n    client_secret: 'test-client-secret'\n    redirect_uri: '{redirect_uri}'\n    oauth2_tokens: {{}}\n"
+    );
+    std::fs::write(
+        &store,
+        format!("apps:\n  default:\n{app}  work:\n{app}default_app: default\n"),
+    )
+    .unwrap();
+    let mut cfg = test_config(
+        &format!("{}/2/oauth2/token", server.uri()),
+        &format!("{CLOSED}/2/users/me"),
+        &redirect_uri,
+    );
+    cfg.app_name = "work".to_string();
+    let mut auth = Auth::new_with_store_path_and_overrides(&cfg, &store, &EnvOverrides::default());
+    let other_process = store.to_str().unwrap().to_string();
+
+    let returned = run_oauth2_flow_on(
+        &mut auth,
+        &reqwest::Client::new(),
+        "testuser",
+        listener,
+        CancellationToken::new(),
+        move |url| {
+            xdk::store::TokenStore::new_with_path(&other_process)
+                .remove_app("work")
+                .map_err(std::io::Error::other)?;
+            follow_redirect(&target, &state_of(url))
+        },
+    )
+    .await;
+
+    let sent = server.received_requests().await.unwrap_or_default().len();
+    assert_eq!(sent, 0, "the code was sent: {returned:?}");
+    assert!(
+        matches!(&returned, Err(xdk::Error::TokenStore { message, .. }) if message.contains("work")),
+        "{returned:?}"
+    );
+    let on_disk = xdk::store::TokenStore::new_with_path(store.to_str().unwrap());
+    assert!(
+        on_disk
+            .get_oauth2_token_for_app("default", "testuser")
+            .is_none(),
+        "the removed app's tokens landed on another app"
+    );
 }
 
 /// Follows the redirect to `target` the way a browser does: one GET carrying
@@ -1883,6 +2030,87 @@ async fn a_dry_run_in_text_names_the_sign_in_step_the_real_run_names_under_dry_r
     );
 }
 
+/// The store file stops parsing while the person consents: the code the
+/// callback delivers is not exchanged, since the store could not keep the
+/// tokens it buys.
+#[tokio::test]
+async fn the_interactive_flow_does_not_spend_the_code_when_the_store_cannot_keep_its_tokens() {
+    let server = MockServer::start().await;
+    let token_url = format!("{}/2/oauth2/token", server.uri());
+    let info_url = format!("{}/2/users/me", server.uri());
+    Mock::given(method("POST"))
+        .and(path("/2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "ACCESS-TOKEN",
+            "refresh_token": "REFRESH-TOKEN",
+            "expires_in": 7200
+        })))
+        .mount(&server)
+        .await;
+
+    let mut ended = None;
+    for _ in 0..20 {
+        let port = band_port();
+        let redirect_uri = format!("http://127.0.0.1:{port}/callback");
+        let tmp = TempDir::new().unwrap();
+        let store_path = tmp.path().join(".xurl");
+        let mut auth = test_auth(
+            test_config(&token_url, &info_url, &redirect_uri),
+            &tmp,
+            &redirect_uri,
+        );
+        let breaking_opener = move |url: &str| -> std::io::Result<()> {
+            std::fs::write(&store_path, "apps: [half an edit")?;
+            let state = Url::parse(url)
+                .expect("the opener receives a valid auth URL")
+                .query_pairs()
+                .find(|(name, _)| name == "state")
+                .map(|(_, value)| value.into_owned())
+                .expect("the auth URL carries a state");
+            let mut stream = StdTcpStream::connect(("127.0.0.1", port))?;
+            stream.set_read_timeout(Some(Duration::from_secs(2)))?;
+            write!(
+                stream,
+                "GET /callback?code=AUTHCODE&state={state} HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
+            )?;
+            let _ = stream.read_to_string(&mut String::new());
+            Ok(())
+        };
+        match run_oauth2_flow(
+            &mut auth,
+            &reqwest::Client::new(),
+            "testuser",
+            CancellationToken::new(),
+            breaking_opener,
+        )
+        .await
+        {
+            Err(error) if failed_to_bind(&error, port) => {}
+            outcome => {
+                ended = Some(outcome);
+                break;
+            }
+        }
+    }
+    let outcome = ended.expect("a port the flow could bind in 20 picks");
+
+    let spent = server
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .filter(|request| request.url.path() == "/2/oauth2/token")
+        .count();
+    assert_eq!(
+        spent, 0,
+        "the code was exchanged though its tokens could not be stored: {outcome:?}"
+    );
+    assert!(
+        matches!(outcome, Err(xdk::Error::TokenStore { .. })),
+        "{outcome:?}"
+    );
+}
+
 // ── A dry run reaches the verdict the real run reaches ───────────────────
 
 /// Two apps, the target `default` with no client id and `work` with one.
@@ -1893,6 +2121,11 @@ fn seed_store_without_a_client_id(store_path: &std::path::Path) {
     )
     .expect("write tempdir store");
 }
+
+/// A store an edit left half written: the client id is in it, but the file
+/// does not parse, so nothing in it can be read.
+const CLIENT_ID_IN_A_BROKEN_STORE: &str =
+    "apps:\n  default:\n    client_id: 'test-client-id'\n    oauth2_tokens: [half an edit\n";
 
 /// One app, `blank`, with no client id, and no other app to sign in under.
 fn seed_store_with_only_a_blank_app(store_path: &std::path::Path) {
@@ -2052,6 +2285,23 @@ fn verdicts() -> Vec<Verdict> {
             &flow_at(&redirect),
         ),
         verdict(
+            "flow that is not UTF-8",
+            "PendingStateInvalid",
+            true,
+            |store| {
+                seed_store(store);
+                let path = xdk::auth::pending::pending_path_for_store(store);
+                std::fs::write(&path, b"state: \xff\xfe\n").unwrap();
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+                        .unwrap();
+                }
+            },
+            &flow_at(&redirect),
+        ),
+        verdict(
             "flow saved for another client id",
             "AppMismatch",
             true,
@@ -2127,6 +2377,44 @@ fn verdicts() -> Vec<Verdict> {
             },
             &flow_at(&at_redirect(&format!("{DENIAL}&state={PENDING_STATE}"))),
         ),
+        verdict(
+            "store that does not parse",
+            "could not be loaded",
+            true,
+            |store| {
+                std::fs::write(store, "apps: [half an edit").unwrap();
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        ),
+        verdict(
+            "store that does not parse, step 1",
+            "could not be loaded",
+            true,
+            |store| {
+                std::fs::write(store, "apps: [half an edit").unwrap();
+            },
+            &step1,
+        ),
+        verdict(
+            "client id only in a store that does not parse, step 1",
+            "could not be loaded",
+            false,
+            |store| {
+                std::fs::write(store, CLIENT_ID_IN_A_BROKEN_STORE).unwrap();
+            },
+            &step1,
+        ),
+        verdict(
+            "client id only in a store that does not parse, step 2",
+            "could not be loaded",
+            false,
+            |store| {
+                std::fs::write(store, CLIENT_ID_IN_A_BROKEN_STORE).unwrap();
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        ),
     ];
     rows.push(Verdict {
         before: vec!["--app", "default"],
@@ -2149,6 +2437,42 @@ fn verdicts() -> Vec<Verdict> {
             false,
             seed_store_with_only_a_blank_app,
             &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, step 1",
+            "\"ghost\"",
+            true,
+            seed_store,
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, step 2",
+            "\"ghost\"",
+            true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "flow saved for another app, ahead of an app the store does not hold, step 2",
+            "AppMismatch",
+            true,
+            |store| {
+                seed_store_two_apps(store);
+                save_flow(store, &saved_flow("work", "work-client-id"));
+            },
+            &flow_at(&redirect),
         )
     });
     rows.push(verdict(
@@ -2191,8 +2515,52 @@ fn verdicts() -> Vec<Verdict> {
             },
             &flow_at(&redirect),
         ));
+        if a_read_only_dir_refuses_new_files() {
+            rows.push(verdict(
+                "store whose directory takes no new file, step 1",
+                "cannot write",
+                true,
+                |store| {
+                    seed_store(store);
+                    make_dir_read_only(store);
+                },
+                &step1,
+            ));
+            rows.push(verdict(
+                "store whose directory takes no new file, step 2",
+                "cannot write",
+                true,
+                |store| {
+                    seed_store(store);
+                    seed_pending(store);
+                    make_dir_read_only(store);
+                },
+                &flow_at(&redirect),
+            ));
+        }
     }
     rows
+}
+
+/// Makes the directory `store` is in read-only; [`disagreements`] makes it
+/// writable again.
+#[cfg(unix)]
+fn make_dir_read_only(store: &std::path::Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = store.parent().unwrap();
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o500)).unwrap();
+}
+
+/// Whether a read-only directory refuses this process a new file, which it
+/// does not for root.
+#[cfg(unix)]
+fn a_read_only_dir_refuses_new_files() -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    let tmp = TempDir::new().unwrap();
+    std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o500)).unwrap();
+    let refused = std::fs::write(tmp.path().join("probe"), b"").is_err();
+    std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+    refused
 }
 
 /// The store file and the flow beside it, as bytes, `None` for a path that
@@ -2340,6 +2708,11 @@ async fn disagreements(row: Verdict) -> Vec<String> {
     let dry = serde_json::from_str::<serde_json::Value>(stdout.trim());
 
     let (real_code, real_stdout, real_stderr) = run_cli(&store, &overrides, &command(false)).await;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(tmp.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+    }
     if real_code == 0 {
         faults.push(format!("{name}: the real run succeeded: {real_stdout}"));
         return faults;
@@ -2362,6 +2735,57 @@ async fn a_dry_run_of_a_sign_in_the_real_run_refuses_says_so_with_the_same_keys(
         faults.extend(disagreements(row).await);
     }
     assert!(faults.is_empty(), "{}", faults.join("\n"));
+}
+
+/// A store whose directory cannot be created refuses `--step 1` with the
+/// error its save meets, and the dry run answers with the same keys.
+#[cfg(unix)]
+#[tokio::test]
+async fn a_sign_in_whose_store_directory_cannot_be_created_refuses_as_its_dry_run_says() {
+    use std::os::unix::fs::PermissionsExt;
+    if !a_read_only_dir_refuses_new_files() {
+        return;
+    }
+    let tmp = TempDir::new().unwrap();
+    let home = tmp.path().join("home");
+    std::fs::create_dir(&home).unwrap();
+    let store = home.join(".xurl").join("auth.yml");
+    let overrides = closed_overrides(true);
+    let argv = |dry: bool| {
+        let mut argv = vec!["xr", "--output", "json"];
+        if dry {
+            argv.push("--dry-run");
+        }
+        argv.extend_from_slice(&["auth", "oauth2", "--no-browser", "--step", "1"]);
+        argv
+    };
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o500)).unwrap();
+
+    let (dry_code, dry_stdout, dry_stderr) = run_cli(&store, &overrides, &argv(true)).await;
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &argv(false)).await;
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+
+    let real = json_document("real run", &stderr);
+    assert_eq!(code, 5, "{real}");
+    assert_eq!(real["reason"], "io", "{real}");
+    assert_eq!(real["next_step"]["action"], "fix-input", "{real}");
+    assert!(
+        real["next_step"]["docs"]
+            .as_str()
+            .unwrap_or_default()
+            .ends_with("#token-store-could-not-be-written"),
+        "{real}"
+    );
+    assert_eq!(dry_code, 0, "{dry_stderr}");
+    let dry = json_document("dry run", &dry_stdout);
+    assert_eq!(dry["would_succeed"], false, "{dry}");
+    for key in ["reason", "exit_code", "next_step"] {
+        assert_eq!(
+            dry[key], real[key],
+            "{key}: the dry run {dry}, the real run {real}"
+        );
+    }
+    assert_eq!(std::fs::read_dir(&home).unwrap().count(), 0);
 }
 
 /// A dry run of a step 2 that would finish exchanges nothing and removes

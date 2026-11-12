@@ -1,6 +1,6 @@
 [package]
 name = "xdk-rs"
-version = "0.5.2"
+version = "0.6.0"
 description = "Async Rust client for the X (Twitter) API: OAuth1, OAuth2 PKCE, bearer tokens, media upload, streaming, webhooks. xdk is X's SDK name; this is an independent project, not affiliated with X Corp."
 documentation = "https://docs.rs/xdk-rs"
 keywords = ["twitter", "x", "api", "oauth", "async"]
@@ -86,6 +86,9 @@ wiremock = { workspace = true, optional = true }
 
 # Utilities
 thiserror = "2"
+# The user search query's character classes are Unicode general categories.
+# url already compiles this crate, with its data, through idna.
+icu_properties = { version = "2.2", default-features = false, features = ["compiled_data"] }
 dirs = "7"
 percent-encoding = "2"
 phf = "0.14"

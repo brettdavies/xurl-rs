@@ -80,9 +80,34 @@ impl Client {
     ///
     /// The error a send would stop on before its first request:
     /// [`Error::AuthMethodMismatch`] when the endpoint accepts no scheme the
-    /// credentials can serve, and [`Error::Auth`] when no credential serves
-    /// the scheme selected.
+    /// credentials can serve, [`Error::Auth`] when no credential serves
+    /// the scheme selected, and for an expired `OAuth2` token in a token
+    /// store, what its refresh meets before the grant: [`Error::TokenStore`]
+    /// when the store cannot be loaded, and [`Error::Io`] when it cannot be
+    /// written.
     pub async fn auth_preflight(&self, options: &RequestOptions) -> Result<Option<AuthPreflight>> {
+        let found = self.stored_credential(options).await?;
+        if found.as_ref().is_some_and(|found| found.token_expired) {
+            self.credentials().await.refuse_unless_refresh_keeps()?;
+        }
+        Ok(found)
+    }
+
+    /// [`Self::auth_preflight`] without the check an expired token's refresh
+    /// makes of the store: the credential as the store holds it.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::AuthMethodMismatch`] and [`Error::Auth`] as
+    /// [`Self::auth_preflight`] returns them.
+    // `xr whoami --cached` answers from the stored account with it, in
+    // `crates/xurl-cli/src/cli/commands/reads.rs`: it sends nothing, so no
+    // refresh runs.
+    #[doc(hidden)]
+    pub async fn stored_credential(
+        &self,
+        options: &RequestOptions,
+    ) -> Result<Option<AuthPreflight>> {
         if !attaches_credential(options) {
             return Ok(None);
         }

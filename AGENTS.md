@@ -104,26 +104,28 @@ fits `--rate-limit-max-wait` (60 seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
 request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, `forbidden` for a token endpoint's 403,
-and the skill verbs' machine-state reasons) says the same invocation fails again until its input or the state it read
-changes. Under `address-in-use`, a port another process holds, it carries `listen` again on `--port 0`: a `command`, or
-a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t` given before a command word
-that takes it, it carries the invocation with the flag after the word, and for an old `xr schema` name or a bare scope
-word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment that names no property, it
-carries a `template` ending in `<property>` beside `known_properties`. Under `auth-required`, for a `webhooks listen`
-whose app has no secret to verify X's signatures by, it carries a `template` that stores the secret `--secret` names:
-the OAuth1 credentials under `--secret oauth1`, the app's client secret otherwise. For an `auth oauth2 --step 2` whose
-redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a `template` that runs step 2
-again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401 on the status read after
-`xr media upload` finished, it carries the command that resumes the wait as a `template`, to run once the credential
-works, since reading again under the same credential fails the same way. A 403 from the token endpoint on that read,
-which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the proxy are fixed. For a
-403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the token endpoint,
-`TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other status) names the
-issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the invocation with
-`--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a deletion by
-accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or `not-installed`. Under
-`destination-not-empty` from `skill update` itself, whose directory holds something other than the bundle, the step is
-`fix-input` and `refused_dir` names the directory, since nothing but the caller moves what `xr` did not install.
+`token-store` for an app name the store does not hold, and the skill verbs' machine-state reasons) says the same
+invocation fails again until its input or the state it read changes. Under `token-store`, it carries `xr auth status`,
+which lists the apps the store holds. Under `address-in-use`, a port another process holds, it carries `listen` again on
+`--port 0`: a `command`, or a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t`
+given before a command word that takes it, it carries the invocation with the flag after the word, and for an old `xr
+schema` name or a bare scope word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment
+that names no property, it carries a `template` ending in `<property>` beside `known_properties`. Under `auth-required`,
+for a `webhooks listen` whose app has no secret to verify X's signatures by, it carries a `template` that stores the
+secret `--secret` names: the OAuth1 credentials under `--secret oauth1`, the app's client secret otherwise. For an `auth
+oauth2 --step 2` whose redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a
+`template` that runs step 2 again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401
+on the status read after `xr media upload` finished, it carries the command that resumes the wait as a `template`, to
+run once the credential works, since reading again under the same credential fails the same way. A 403 from the token
+endpoint on that read, which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the
+proxy are fixed. For a 403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the
+token endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other
+status) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
+invocation with `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a
+deletion by accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or
+`not-installed`. Under `destination-not-empty` from `skill update` itself, whose directory holds something other than
+the bundle, the step is `fix-input` and `refused_dir` names the directory, since nothing but the caller moves what `xr`
+did not install.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -187,20 +189,21 @@ without a step. Prefer additive envelope changes: add keys rather than renaming 
 
 `--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
-invalid input, for a request no stored credential serves, or for a sign-in whose arguments, client id, saved flow, or
-redirect URL the real run refuses; `reason` says which, `exit_code` is the code the real run would end on, and each
-refusal carries the keys of the real run's error envelope, `message` and `next_step` among them. An invalid input
-answers with its real run's `reason`, `validation`, its `rule`, and the sentence for that rule as `message`; a step that
-reruns the invocation keeps `--dry-run`. `auth` names the credential the request would go out under (the `app` it is
-stored under, its `scheme`, and for OAuth2 `username` and `token_expired`), read offline: an expired token is reported
-and not refreshed, and whether X still accepts the credential is not checked. The flag outranks `--force` and the
-confirmation prompt, so a destructive command's dry run answers either way; `confirmation_required: true` appears only
-when the real run would stop to ask, so under `--force` the key is absent. `response_schema` names the `xr schema`
-invocation for a command with a typed response, and raw mode carries none; the same command's `--help` ends with a
-`Response schema:` block, both read from the schema registry. Text output summarizes the same facts in lines
-(`crates/xurl-cli/src/cli/output/dry_run.rs`). The first command to open an old-format store upgrades it once, a dry run
-included: a single-file `~/.xurl` moves into the directory layout and a legacy-format store is rewritten as the current
-YAML (§ "Token store").
+invalid input, for a request no stored credential serves, for a sign-in whose arguments, client id, saved flow, or
+redirect URL the real run refuses, or for a store write or an expired OAuth2 login's refresh the token store would
+refuse; `reason` says which, `exit_code` is the code the real run would end on, and each refusal carries the keys of the
+real run's error envelope, `message` and `next_step` among them. An invalid input answers with its real run's `reason`,
+`validation`, its `rule`, and the sentence for that rule as `message`; a step that reruns the invocation keeps
+`--dry-run`. `auth` names the credential the request would go out under (the `app` it is stored under, its `scheme`, and
+for OAuth2 `username` and `token_expired`), read offline: an expired token is reported and not refreshed once the store
+passes the check the refresh makes before it asks X, and whether X still accepts the credential is not checked. The flag
+outranks `--force` and the confirmation prompt, so a destructive command's dry run answers either way;
+`confirmation_required: true` appears only when the real run would stop to ask, so under `--force` the key is absent.
+`response_schema` names the `xr schema` invocation for a command with a typed response, and raw mode carries none; the
+same command's `--help` ends with a `Response schema:` block, both read from the schema registry. Text output summarizes
+the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`). The first command to open an old-format store
+upgrades it once, a dry run included: a single-file `~/.xurl` moves into the directory layout and a legacy-format store
+is rewritten as the current YAML (§ "Token store").
 
 ## Shortcut commands
 

@@ -198,7 +198,7 @@ fn read(path: &Path) -> Result<PendingOAuth2State> {
         return Err(Error::auth(PENDING_NOT_FOUND));
     }
 
-    let data = match fs::read_to_string(path) {
+    let data = match fs::read(path) {
         Ok(d) => d,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             return Err(Error::auth(
@@ -207,7 +207,15 @@ fn read(path: &Path) -> Result<PendingOAuth2State> {
         }
         Err(e) => return Err(e.into()),
     };
-    crate::yaml::from_str_without_snippet(&data).map_err(|e| {
+    let data = std::str::from_utf8(&data).map_err(|e| {
+        Error::auth(format!(
+            "{PENDING_INVALID}: {} is not UTF-8 from byte {}",
+            path.display(),
+            e.valid_up_to()
+        ))
+        .with_source(e)
+    })?;
+    crate::yaml::from_str_without_snippet(data).map_err(|e| {
         Error::auth(format!(
             "{PENDING_INVALID}: {}",
             crate::yaml::failure_site(path, &e)

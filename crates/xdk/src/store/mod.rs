@@ -26,6 +26,7 @@ pub use layout::{
     AUTH_FILE_NAME, STORE_TARGET, adopt_directory_layout, default_store_path, locate_store,
 };
 pub(crate) use lock::RefreshLock;
+pub(crate) use tokens::MintedFrom;
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -35,6 +36,27 @@ use std::path::{Path, PathBuf};
 pub use types::{App, LoadState, OAuth1Token, OAuth2Token, Token, TokenType};
 
 use crate::error::{Error, Result};
+
+thread_local! {
+    /// Set while [`TokenStore::rehearse`] runs on this thread, so a write
+    /// checks and applies its change and saves nothing.
+    static REHEARSING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Restores [`REHEARSING`] when a rehearsal ends, by a panic included.
+struct Rehearsal(bool);
+
+impl Rehearsal {
+    fn begin() -> Self {
+        Self(REHEARSING.with(|rehearsing| rehearsing.replace(true)))
+    }
+}
+
+impl Drop for Rehearsal {
+    fn drop(&mut self) {
+        REHEARSING.with(|rehearsing| rehearsing.set(self.0));
+    }
+}
 
 // ── TokenStore ───────────────────────────────────────────────────────
 
@@ -193,15 +215,27 @@ impl TokenStore {
 
     /// Reads the backing file and records how it resolved.
     ///
-    /// A missing or empty file is a fresh store, not a damaged one: an empty
-    /// store is empty, and the next save is allowed. A file that exists but
-    /// cannot be read or parsed leaves `apps` empty and records the failure,
-    /// which makes every save refuse.
+    /// The view's apps and default app become the file's, so a reload keeps
+    /// no app another process removed, or a file another process deleted.
+    /// A missing file is a fresh store, not a damaged one, and the next save
+    /// is allowed. A file with nothing but whitespace in it leaves the view
+    /// as it was: a writer that truncates the file before writing it, rather
+    /// than replacing it by rename, leaves it empty for a moment, and a save
+    /// from a view that read it then would write every app away. A view that
+    /// held nothing yet loads such a file as a fresh store. A file that exists
+    /// but cannot be read or parsed leaves `apps` empty and records the
+    /// failure, which makes every save refuse.
     fn load_backing_file(&mut self) {
-        self.load_state = match fs::read(&self.file_path) {
-            // A file with no content is a fresh store: an editor that saved
-            // a blank buffer left nothing for a parser to reject.
-            Ok(data) if data.iter().all(u8::is_ascii_whitespace) => LoadState::Fresh,
+        let read = fs::read(&self.file_path);
+        if read
+            .as_ref()
+            .is_ok_and(|data| data.iter().all(u8::is_ascii_whitespace))
+        {
+            return;
+        }
+        self.apps.clear();
+        self.default_app.clear();
+        self.load_state = match read {
             Ok(data) => {
                 if self.load_from_data(&data) {
                     LoadState::Loaded
@@ -256,7 +290,28 @@ impl TokenStore {
         if self.apps.contains_key(name) {
             Ok(())
         } else {
-            Err(Error::token_store(format!("app {name:?} not found")))
+            Err(Self::app_not_found(name))
+        }
+    }
+
+    fn app_not_found(name: &str) -> Error {
+        Error::token_store(format!("{} {name:?}", crate::error::APP_NOT_FOUND))
+    }
+
+    /// The not-found error for a credential meant for `name`, an app this
+    /// view does not hold. An empty name is the default app, which a save
+    /// creates in a store that holds none. `xr auth oauth2` reads it before
+    /// consent (`crates/xurl-cli/src/cli/commands/auth/signin.rs`).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::TokenStore`] when `name` is not empty and names no app.
+    #[doc(hidden)]
+    pub fn refuse_if_app_missing(&self, name: &str) -> Result<()> {
+        if name.is_empty() {
+            Ok(())
+        } else {
+            self.require_app(name)
         }
     }
 
@@ -306,7 +361,7 @@ impl TokenStore {
             let app = store
                 .apps
                 .get_mut(name)
-                .ok_or_else(|| Error::token_store(format!("app {name:?} not found")))?;
+                .ok_or_else(|| Self::app_not_found(name))?;
             if !client_id.is_empty() {
                 app.client_id = client_id.to_string();
             }
@@ -581,6 +636,39 @@ impl TokenStore {
 
     // ── Persistence ──────────────────────────────────────────────────
 
+    /// Runs `f` on a copy of the store as a write runs it, and saves nothing:
+    /// `f`'s mutators meet every check their write makes, the store's
+    /// writability among them, and the copy is dropped.
+    ///
+    /// The copy is read from the file, as a write reads it once it holds the
+    /// lock, and keeps the client credentials this view backfilled, as that
+    /// reload does. Each write inside `f` then sees the ones before it, as it
+    /// would see them saved. No lock is taken. The writability probe creates
+    /// one empty file beside the store and removes it at once.
+    ///
+    /// `f` must not await or hand the store to another thread: the rehearsal
+    /// is marked on the calling thread, since `TokenStore`'s fields are all
+    /// public and a field to mark it would break a struct literal.
+    ///
+    /// # Errors
+    ///
+    /// What the write would return before its save: the refusals of
+    /// [`Self::refuse_unless_writable`], and `f`'s own.
+    // `xr` answers `--dry-run` of the `auth` commands that write the store
+    // with it, in `crates/xurl-cli/src/cli/commands/auth/`.
+    #[doc(hidden)]
+    pub fn rehearse<R>(&self, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
+        let mut copy = Self {
+            apps: self.apps.clone(),
+            default_app: self.default_app.clone(),
+            file_path: self.file_path.clone(),
+            load_state: self.load_state,
+        };
+        copy.reload_locked();
+        let _rehearsal = Rehearsal::begin();
+        f(&mut copy)
+    }
+
     /// Applies `f` to the on-disk state and persists the result, holding the
     /// sidecar lock across the whole read-modify-write.
     ///
@@ -597,6 +685,17 @@ impl TokenStore {
     /// cannot be loaded, `f` fails, or the save fails. When `f` fails, the
     /// file is left as it was.
     pub fn update<R>(&mut self, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
+        if REHEARSING.with(std::cell::Cell::get) {
+            // In the order the real write meets them, so a store failing
+            // two checks is refused with the one the real write names.
+            if layout::outermost_store_dir_to_create(&self.file_path).is_some() {
+                self.refuse_unless_writable()?;
+            }
+            self.refuse_if_load_failed()?;
+            let out = f(self)?;
+            self.refuse_unless_writable()?;
+            return Ok(out);
+        }
         self.ensure_dir()?;
         let lock = lock::StoreLock::acquire(&self.file_path)?;
         if lock.is_reentrant() {
@@ -690,8 +789,7 @@ impl TokenStore {
         };
         let data = crate::yaml::to_string(&sf)
             .map_err(|e| Error::token_store(e.to_string()).with_source(e))?;
-        write_atomically(&self.file_path, data.as_bytes())?;
-        Ok(())
+        write_atomically(&self.file_path, data.as_bytes()).map_err(|e| self.write_refused(e))
     }
 }
 
@@ -707,13 +805,17 @@ impl TokenStore {
 
     /// Creates the store's own directory before a write needs it.
     fn ensure_dir(&self) -> Result<()> {
-        ensure_store_dir(&self.file_path).map_err(|e| {
-            Error::token_store(format!(
-                "cannot create the directory of {}: {e}",
-                self.file_path.display()
-            ))
-            .with_source(e)
-        })
+        ensure_store_dir(&self.file_path).map_err(|e| self.dir_refused(e))
+    }
+
+    fn dir_refused(&self, e: std::io::Error) -> Error {
+        let dir = self.file_path.parent().unwrap_or(Path::new("."));
+        Error::io(format!(
+            "{} {}: {e}",
+            crate::error::STORE_DIR_UNCREATABLE,
+            dir.display()
+        ))
+        .with_source(e)
     }
 
     /// The refusal every write path shares.
@@ -723,7 +825,7 @@ impl TokenStore {
     /// Returns a token-store error naming the path when the file exists but
     /// could not be loaded, so a store the loader did not understand is
     /// never overwritten.
-    fn refuse_if_load_failed(&self) -> Result<()> {
+    pub(crate) fn refuse_if_load_failed(&self) -> Result<()> {
         if self.load_failed() {
             return Err(Error::token_store(format!(
                 "refusing to write {}: the file exists but could not be loaded; fix or move it, then retry",
@@ -731,6 +833,49 @@ impl TokenStore {
             )));
         }
         Ok(())
+    }
+
+    /// The refusals a save meets that do not depend on what it writes, met
+    /// ahead of the work that ends in the save: the file exists but could not
+    /// be loaded, the store's directory cannot be created, or the save's temp
+    /// file cannot be created beside the store. The probe for the last two
+    /// creates an empty file beside the store, or beside the directory the
+    /// save would create, and removes it at once, so the disk is left as it
+    /// was found.
+    ///
+    /// # Errors
+    ///
+    /// The token-store error of a store that could not be loaded, and the I/O
+    /// errors the save returns: one naming the store's directory when it
+    /// cannot be created, and one naming the store when the temp file cannot
+    /// be created.
+    // `xr auth oauth2` and its dry run meet this before the credential check
+    // (`crates/xurl-cli/src/cli/commands/auth/signin.rs`): a client id the
+    // unloadable file holds is not one the store can be said to lack.
+    #[doc(hidden)]
+    pub fn refuse_unless_writable(&self) -> Result<()> {
+        self.refuse_if_load_failed()?;
+        if let Some(dir) = layout::outermost_store_dir_to_create(&self.file_path) {
+            // A link whose target is missing is not there to `exists()`, but
+            // the save's `mkdir` meets it in the directory's place.
+            if dir.symlink_metadata().is_ok() {
+                return Err(self.dir_refused(std::io::Error::new(
+                    std::io::ErrorKind::AlreadyExists,
+                    format!("{} is a link to a path that does not exist", dir.display()),
+                )));
+            }
+            return atomic::probe_temp_file(dir).map_err(|e| self.dir_refused(e));
+        }
+        let target = atomic::resolve(&self.file_path);
+        atomic::probe_temp_file(&target)
+            .map_err(|e| self.write_refused(atomic::no_temp_file(&target, &e)))
+    }
+
+    /// The error of a save that could not write the store file, naming the
+    /// file the store resolves to.
+    fn write_refused(&self, e: std::io::Error) -> Error {
+        let target = atomic::resolve(&self.file_path);
+        Error::io(format!("cannot write {}: {e}", target.display())).with_source(e)
     }
 }
 

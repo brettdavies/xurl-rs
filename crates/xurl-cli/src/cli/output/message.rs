@@ -5,12 +5,15 @@
 //! byte-identical across releases.
 
 use xdk::api::auth_matrix::WireScheme;
-use xdk::error::{AuthMismatch, Error, MismatchShape, TOKEN_URL_UNUSABLE};
+use xdk::error::{AuthMismatch, Error, MismatchShape, STORE_DIR_UNCREATABLE, TOKEN_URL_UNUSABLE};
 
 /// The message `xr` prints for `error`, in text mode and in the envelope.
 pub(crate) fn render(error: &Error) -> String {
     match error {
         Error::Http { message, .. } => format!("HTTP Error: {message}"),
+        Error::Io { message, .. } if message.starts_with(STORE_DIR_UNCREATABLE) => format!(
+            "IO Error: {message}. Change the permissions of the directory that holds it, or set XURL_TOKEN_STORE to a writable path"
+        ),
         Error::Io { message, .. } => format!("IO Error: {message}"),
         Error::InvalidMethod(method) => format!("Invalid Method: Invalid HTTP method: {method}"),
         Error::Validation { rule, value } => {
@@ -154,8 +157,8 @@ mod tests {
                 "Auth Error: NoAuthMethod: no authentication method available",
             ),
             (
-                Error::token_store("app \"nosuchapp\" not found"),
-                "Token Store Error: app \"nosuchapp\" not found",
+                Error::token_store(format!("{} \"nosuchapp\"", xdk::error::APP_NOT_FOUND)),
+                "Token Store Error: the store holds no app named \"nosuchapp\"",
             ),
             (
                 Error::json("failed to parse media ID from init response"),
