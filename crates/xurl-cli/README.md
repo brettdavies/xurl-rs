@@ -1007,8 +1007,10 @@ with the invocation under `--auth` set to it. When another app does, the step is
 `--app`. When the scheme to get is OAuth2, the step signs in. Otherwise the step is `fix-input` with a `template` that
 stores that scheme, each secret left as a placeholder: `xr auth app --bearer-token-file <path>` for a command that takes
 only the app's bearer token. The scheme to get is the one `--auth` named when the command accepts it, else the first the
-command accepts. A raw request is held to the schemes the auth matrix lists for its method and path, and to every
-scheme when it lists none.
+command accepts. A request that names a login with `-u` is served only by OAuth2 held by an app that stores that login,
+or by a bearer token on an endpoint that accepts no OAuth2; a caller who named OAuth1 or the bearer token with `--auth`
+has not asked for a login. A raw request is held to the schemes the auth matrix lists for its method and path, a path
+that carries an id taking those of the template it fits, and to every scheme when it lists none.
 
 ### Which Errors Carry a Step
 
