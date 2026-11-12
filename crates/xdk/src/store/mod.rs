@@ -903,7 +903,7 @@ impl TokenStore {
         }
         let target = atomic::resolve(&self.file_path);
         atomic::probe_temp_file(&target)
-            .map_err(|e| self.write_refused(atomic::no_temp_file(&target, &e)))
+            .map_err(|e| self.write_refused(atomic::no_temp_file(&target, e)))
     }
 
     /// The error of a save that could not write the store file, naming the
