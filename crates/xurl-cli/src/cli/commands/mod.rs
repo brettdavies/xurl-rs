@@ -44,7 +44,7 @@ use serde_json::json;
 
 use crate::cli::envelope::{DryRunAuth, Reason};
 use crate::cli::failure::{CommandResult, Failure};
-use crate::cli::output::OutputConfig;
+use crate::cli::output::{OutputConfig, without_rendered_url};
 use crate::cli::{Cli, Commands, CommonFlags};
 use xdk::api::auth_matrix::WireScheme;
 use xdk::api::shortcuts;
@@ -1173,7 +1173,14 @@ where
     if let Some(dry_run) = dry_run {
         return dry_run.answer(out, stdout, credentials);
     }
-    credentials.into_iter().collect::<Result<Vec<_>>>()?;
+    let stands_in = !shortcuts::is_user_id_form(account);
+    credentials
+        .into_iter()
+        .collect::<Result<Vec<_>>>()
+        .map_err(|error| match stands_in {
+            true => without_rendered_url(&error).unwrap_or(error),
+            false => error,
+        })?;
     if !confirm.gate(&flags, &ctx)? {
         return Ok(());
     }

@@ -129,3 +129,31 @@ async fn a_runnable_invocation_still_asks(#[case] held: Held, #[case] args: &[&s
     assert_eq!(dry["would_succeed"], true, "{args:?}: {dry}");
     assert_eq!(dry["confirmation_required"], true, "{args:?}: {dry}");
 }
+
+/// A handle is looked up after the question, so a credential refusal before
+/// it names the endpoint's template; a numeric id renders into the path.
+#[rstest::rstest]
+#[case::handle("@jack", None)]
+#[case::numeric_id(
+    "12345",
+    Some("/2/account_activity/webhooks/1146654567674912769/subscriptions/12345/all")
+)]
+#[tokio::test]
+async fn a_subscription_refusal_names_no_id_it_has_not_looked_up(
+    #[case] account: &str,
+    #[case] rendered_url: Option<&str>,
+) {
+    let args = ["webhooks", "subscriptions", "remove", WEBHOOK_ID, account];
+    let (code, real) = invoke(Held::OAuth1, &args, false).await;
+    assert_eq!(
+        (code, real["reason"].as_str()),
+        (2, Some("auth-method-mismatch")),
+        "{real}"
+    );
+    assert_eq!(real["rendered_url"].as_str(), rendered_url, "{real}");
+    let message = real["message"].as_str().expect("message");
+    assert!(
+        !message.contains("/subscriptions/0/"),
+        "the message names the stand-in id: {message}"
+    );
+}

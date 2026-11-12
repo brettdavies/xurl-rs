@@ -643,19 +643,8 @@ impl OutputConfig {
         hint: Option<&crate::cli::hints::Hint>,
     ) {
         let ctx = &self.with_pointer(ctx);
-        let reworded;
-        let error = match error {
-            // A dry run looks no id up, so a path it rendered would carry a
-            // stand-in. Without one the message names the endpoint's template.
-            Error::AuthMethodMismatch(mismatch) if mismatch.rendered_url.is_some() => {
-                reworded = Error::from(xdk::error::AuthMismatch {
-                    rendered_url: None,
-                    ..(**mismatch).clone()
-                });
-                &reworded
-            }
-            other => other,
-        };
+        let reworded = without_rendered_url(error);
+        let error = reworded.as_ref().unwrap_or(error);
         let exit_code = error.exit_code();
         let advice = match hint {
             Some(hint) if !self.quiet => hint.text_lines.as_slice(),
@@ -919,6 +908,22 @@ fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
         _ => {}
     }
     body
+}
+
+/// `error` with the path it rendered taken out, when it carries one and
+/// names it: a request built with a stand-in for an id not yet looked up
+/// renders a path no real request has, so the message names the endpoint's
+/// template instead.
+pub(crate) fn without_rendered_url(error: &Error) -> Option<Error> {
+    match error {
+        Error::AuthMethodMismatch(mismatch) if mismatch.rendered_url.is_some() => {
+            Some(Error::from(xdk::error::AuthMismatch {
+                rendered_url: None,
+                ..(**mismatch).clone()
+            }))
+        }
+        _ => None,
+    }
 }
 
 /// The reason for a library error: its `kind()`, which the set spells the
