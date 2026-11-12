@@ -85,9 +85,11 @@ A request that no stored credential serves (`auth-required` for a missing creden
 step from `crates/xurl-cli/src/cli/credential_step.rs`, which reads the schemes the command's row in
 `crates/xurl-cli/src/cli/accepted_auth.rs` accepts, the schemes each app stores, and the scheme `--auth` named. The
 active app storing an accepted scheme gives `fix-input` with the invocation under that `--auth`; another app storing one
-gives `select-app`; a command that accepts a login gives the sign-in step; and otherwise `fix-input` carries a
-`template` that stores an accepted scheme, such as `xr auth app --bearer-token-file <path>`. The message's `Add
-credentials with:` tail takes its command from the same `setup_invocation`.
+gives `select-app`; when the scheme to get is OAuth2, the step is the sign-in; and otherwise `fix-input` carries a
+`template` that stores that scheme, such as `xr auth app --bearer-token-file <path>`. The scheme to get is the one
+`--auth` named when the command accepts it, else the first the command accepts. The message's `Add credentials with:`
+tail takes its command from the same `setup_invocation`. A raw request is held to the schemes the auth matrix lists for
+its method and path, and to every scheme when the matrix does not list them.
 
 Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
 `invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,

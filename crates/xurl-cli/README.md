@@ -994,9 +994,11 @@ prose instead; the two need not match word for word.
 A request that no stored credential serves takes its step from the schemes its command accepts, the schemes each app
 stores, and the scheme `--auth` named. When the active app stores a scheme the command accepts, the step is `fix-input`
 with the invocation under `--auth` set to it. When another app does, the step is `select-app` with the invocation under
-`--app`. When the command accepts a login, the step signs in. Otherwise the step is `fix-input` with a `template` that
-stores a scheme the command accepts, each secret left as a placeholder: `xr auth app --bearer-token-file <path>` for a
-command that takes only the app's bearer token.
+`--app`. When the scheme to get is OAuth2, the step signs in. Otherwise the step is `fix-input` with a `template` that
+stores that scheme, each secret left as a placeholder: `xr auth app --bearer-token-file <path>` for a command that takes
+only the app's bearer token. The scheme to get is the one `--auth` named when the command accepts it, else the first the
+command accepts. A raw request is held to the schemes the auth matrix lists for its method and path, and to every
+scheme when it lists none.
 
 ### Which Errors Carry a Step
 
@@ -1027,7 +1029,7 @@ command that takes only the app's bearer token.
 | `not-found`                  | `fix-input`                                                                                                                                      |
 | `invalid-request`            | `fix-input`                                                                                                                                      |
 | `validation-failed`          | `fix-input`                                                                                                                                      |
-| `io`                         | `fix-input`, with `docs` when the token store's directory cannot be created or takes no new file                                                 |
+| `io`                         | `fix-input`, with `docs` when the token store's directory cannot be created or the store file cannot be written                                  |
 | `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                                                        |
 | `home-not-set`               | `fix-input`                                                                                                                                      |
 | `destination-is-file`        | `fix-input`                                                                                                                                      |
@@ -1186,8 +1188,9 @@ To recover, repair the file, or move it aside and register again (`xr auth apps 
 
 A command that writes the token store exits 5 with reason `io` when the store cannot be written: its directory takes no
 new file, so the store, its temp file, or a lock file beside it cannot be created, or the directory does not exist and
-cannot be created. The message names the store, the lock file, or the directory. To recover, change the
-permissions of the directory that holds it, or set `XURL_TOKEN_STORE` to a writable path.
+cannot be created, or the save fails after the temp file is made. The message names the store, the lock file, or the
+directory. To recover, change the permissions of the directory that holds it, or set `XURL_TOKEN_STORE` to a writable
+path.
 
 A sign-in buys tokens only the store can keep, and a refresh spends the refresh token it sends. So `xr auth oauth2` and
 the refresh of an expired login check that the store can be written before they ask for consent or send anything, and

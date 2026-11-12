@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "usage"]
 store: oauth2
 exit_code: 0
-stdout_len: 642
+stdout_len: 654
 stderr_len: 0
 --- stdout ---
 {
@@ -16,7 +16,7 @@ stderr_len: 0
   "method": "GET",
   "next_step": {
     "action": "fix-input",
-    "template": "xr auth app --bearer-token-file <path>"
+    "template": "xr auth app --app myapp --bearer-token-file <path>"
   },
   "reason": "auth-method-mismatch",
   "requested": null,

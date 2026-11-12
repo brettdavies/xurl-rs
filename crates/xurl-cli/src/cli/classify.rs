@@ -139,11 +139,33 @@ pub(crate) fn invoked_credential<S: AsRef<std::ffi::OsStr>>(
             .filter(|value| !value.is_empty())
             .cloned()
     };
+    let request = words
+        .is_empty()
+        .then(|| named("url"))
+        .flatten()
+        .map(|url| RawRequest {
+            method: named("method").unwrap_or_else(|| "GET".to_string()),
+            path: request_path(&url).to_string(),
+        });
     Some(InvokedCredential {
         command: words.join(" "),
         auth: named("auth_type"),
         of: named("of").is_some(),
+        request,
     })
+}
+
+/// The path of `url`, an absolute path or an absolute http(s) URL, without
+/// its host, query, or fragment.
+fn request_path(url: &str) -> &str {
+    let path = match url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+    {
+        Some(rest) => rest.find('/').map_or("", |at| &rest[at..]),
+        None => url,
+    };
+    path.split(['?', '#']).next().unwrap_or(path)
 }
 
 /// What an invocation says about the credential its requests go out under.
@@ -154,6 +176,15 @@ pub(crate) struct InvokedCredential {
     pub(crate) auth: Option<String>,
     /// Whether `--of` named another account.
     pub(crate) of: bool,
+    /// The method and path of a raw request; `None` for a command, and for
+    /// a raw invocation that names no URL.
+    pub(crate) request: Option<RawRequest>,
+}
+
+/// The method and path a raw request names.
+pub(crate) struct RawRequest {
+    pub(crate) method: String,
+    pub(crate) path: String,
 }
 
 /// Whether the whole token reads as a command name: a letter, then letters,
