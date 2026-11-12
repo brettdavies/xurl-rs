@@ -58,6 +58,22 @@ impl Drop for Rehearsal {
     }
 }
 
+/// Whether [`TokenStore::rehearse`] runs on this thread.
+fn rehearsing() -> bool {
+    REHEARSING.with(std::cell::Cell::get)
+}
+
+/// Refuses a write while a rehearsal runs on this thread: a rehearsal saves
+/// nothing, so a write path that reaches the disk anyway is a defect.
+fn refuse_if_rehearsing() -> Result<()> {
+    if rehearsing() {
+        return Err(Error::Internal(
+            "a token store write was attempted during a rehearsal".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 // ── TokenStore ───────────────────────────────────────────────────────
 
 /// Manages authentication tokens across multiple apps.
@@ -699,7 +715,7 @@ impl TokenStore {
     /// cannot be loaded, `f` fails, or the save fails. When `f` fails, the
     /// file is left as it was.
     pub fn update<R>(&mut self, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
-        if REHEARSING.with(std::cell::Cell::get) {
+        if rehearsing() {
             // In the order the real write meets them, so a store failing
             // two checks is refused with the one the real write names.
             if layout::outermost_store_dir_to_create(&self.file_path).is_some() {
@@ -734,6 +750,9 @@ impl TokenStore {
         F: FnOnce(&mut Self) -> Result<R> + Send + 'static,
         R: Send + 'static,
     {
+        // The pool thread below carries no rehearsal mark, so the check is
+        // made here, where the caller's thread still does.
+        refuse_if_rehearsing()?;
         // A blocking-pool thread has no thread-local dispatcher, so the
         // caller's is carried in; otherwise the store's warnings vanish.
         let dispatch = tracing::Dispatch::default();
@@ -789,6 +808,7 @@ impl TokenStore {
     ///
     /// Returns an error when the lock cannot be taken or the save fails.
     pub(crate) fn save_locked(&self) -> Result<()> {
+        refuse_if_rehearsing()?;
         self.ensure_dir()?;
         let _lock = lock::StoreLock::acquire(&self.file_path)?;
         self.save_to_file()
@@ -796,6 +816,7 @@ impl TokenStore {
 
     /// Writes the store to its file as YAML, atomically and `0600`.
     pub(crate) fn save_to_file(&self) -> Result<()> {
+        refuse_if_rehearsing()?;
         self.refuse_if_load_failed()?;
         let sf = types::StoreFile {
             apps: self.apps.clone(),
@@ -914,3 +935,6 @@ fn validate_app_name(name: &str) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod rehearsal_tests;
