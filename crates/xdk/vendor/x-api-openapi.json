@@ -1142,6 +1142,7 @@
               "is_identity_verified",
               "location",
               "name",
+              "org_only",
               "parody",
               "profile_banner_url",
               "profile_image_url",
@@ -4070,7 +4071,7 @@
             "type": "string"
           },
           "org_only": {
-            "description": "Whether only members of the bot's developer account can add it to group chats. An org-only bot has no public profile and doesn't appear in public search. Everyone in its developer account should be able to message it, so leave its Direct Messages open to everyone rather than premium senders only. Defaults to false. Applies only when the request creates the bot: a handle that already names one of the project's bots keeps that bot's setting.",
+            "description": "Whether only members of the bot's developer account can add it to group chats. An org-only bot has no public profile and doesn't appear in public search. Everyone in its developer account should be able to message it, so leave its Direct Messages open to everyone rather than premium senders only. Defaults to false. Applies only when the request creates the bot: a handle that already names one of the project's bots keeps that bot's setting, which the response's org_only reports.",
             "type": "boolean"
           },
           "scopes": {
@@ -4111,6 +4112,10 @@
             "description": "The bot's display name.",
             "type": "string"
           },
+          "org_only": {
+            "description": "Whether the bot is org only. For a handle that already names one of the project's bots, this is that bot's current setting. Absent when X couldn't read the setting back.",
+            "type": "boolean"
+          },
           "scopes": {
             "description": "Scopes granted to the bot's bearer token.",
             "items": {
@@ -4145,6 +4150,11 @@
             "maximum": 6,
             "minimum": 0,
             "type": "integer"
+          },
+          "live_category_id": {
+            "description": "The live category the host picked, e.g. `gaming`. Ids come from the live category list in the docs; an unknown id is a 400. Ignored when the source already has a live broadcast.",
+            "maxLength": 64,
+            "type": "string"
           },
           "locale": {
             "description": "Broadcast language, e.g. `en`.",
@@ -4198,6 +4208,10 @@
           },
           "language": {
             "description": "Broadcast language.",
+            "type": "string"
+          },
+          "live_category_id": {
+            "description": "The broadcast's live category. Missing when it has none.",
             "type": "string"
           },
           "media_key": {
@@ -22143,6 +22157,10 @@
             "description": "The friendly name of this User, as shown on their profile.",
             "type": "string"
           },
+          "org_only": {
+            "description": "Indicates if this User is an org-only bot, which only members of its developer account can add to group chats. Omitted when it can't be determined for you, so it is never reported as false in that case. A bot can read its own value with its own token.",
+            "type": "boolean"
+          },
           "parody": {
             "description": "Indicates if this User is a parody account.",
             "type": "boolean"
@@ -24155,7 +24173,7 @@
     },
     "/2/bots/{id}": {
       "delete": {
-        "description": "Deletes a bot account from the calling app's project.",
+        "description": "Deletes a bot account from the calling app's project. With an OAuth 2.0 user token, the user must be an admin of the project's developer account. On API Connect, where the request bills the user's own account, the bot is deleted from the user's project instead.",
         "operationId": "deleteBot",
         "parameters": [
           {
@@ -24199,6 +24217,9 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
           }
         ],
         "summary": "Delete Bot",
