@@ -131,11 +131,11 @@ endpoint on that read, which a refresh during the wait meets, carries the same t
 proxy are fixed. For a 403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the
 token endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other
 status) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
-invocation with `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a
-deletion by accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or
-`not-installed`. Under `destination-not-empty` from `skill update` itself, whose directory holds something other than
-the bundle, the step is `fix-input` and `refused_dir` names the directory, since nothing but the caller moves what `xr`
-did not install.
+invocation with `--force`, under the `--app` the refusal's `app` key names: it is never a `command`, so an agent that
+runs every command it is handed cannot confirm a deletion by accident. `run-command` names the sibling skill verb that
+repairs `destination-not-empty` or `not-installed`. Under `destination-not-empty` from `skill update` itself, whose
+directory holds something other than the bundle, the step is `fix-input` and `refused_dir` names the directory, since
+nothing but the caller moves what `xr` did not install.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -279,8 +279,8 @@ never the tests.
   token in the vendored spec but whose request drops `--cursor`, and for one whose `-n` help states a larger page size
   than its request sends; a paged list through the list helpers passes all three. A command with a post id argument
   checks it with `valid_post_id` before any other input, so a value that is neither digits nor a post URL is refused
-  as `invalid-post-id` before a request goes out; `crates/xurl-cli/tests/post_id_guard.rs` fails for a command that
-  accepts one or sends first.
+  as `invalid-post-id` before a request goes out (`post --clip` has its own rule, `invalid-clip-post-id`);
+  `crates/xurl-cli/tests/post_id_guard.rs` fails for a command that accepts one or sends first.
 - **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes

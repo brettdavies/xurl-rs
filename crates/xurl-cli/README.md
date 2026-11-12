@@ -665,6 +665,12 @@ Write the per-app stored redirect URI. The scheme must be `https`, or `http` wit
 xr auth apps redirect-uri set prod http://localhost:8080/callback
 ```
 
+`xr auth clear` removes credentials from one app: the one `--app` or `XURL_APP` names, else the default app. `--all`
+clears everything that app holds and no other app's. An app the store does not hold is refused, as is an
+`--oauth2-username` the app has no login for. Its prompt, its dry run, and its `confirmation-required` refusal name the
+app, and the refusal's `confirm` template carries `--app` so the rerun acts on the same one. A store that holds no app
+has none to name: the `app` key is `null`.
+
 If you run `xr auth oauth2` without `--app`, the default app has no `client_id` set, and another registered app does
 have credentials, the CLI prints a warning suggesting `xr auth oauth2 --app NAME` so the token lands on the right app
 instead of the credential-less default.
@@ -1026,7 +1032,7 @@ scheme when it lists none.
 | `missing-host`               | `show-help`                                                                                                                                      |
 | `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                  |
 | `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                            |
-| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                                                                     |
+| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`, under the `--app` the refusal names                                                |
 | `network-error`              | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
 | `server-error`               | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
 | `git-clone-failed`           | `retry`                                                                                                                                          |
