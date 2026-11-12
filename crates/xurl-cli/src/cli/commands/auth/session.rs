@@ -6,9 +6,8 @@ use std::io::Write;
 use serde_json::json;
 
 use super::{
-    AuthCtx, AuthGlobalFlags, StoredAccountEntry, build_app_status_entries,
-    destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
-    rehearsed,
+    AuthCtx, AuthGlobalFlags, StoredAccountEntry, build_app_status_entries, env_bearer_app,
+    gate_destructive, print_no_apps_registered, rehearsed, rehearsed_asking,
 };
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
@@ -177,15 +176,12 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
     };
     if dry_run {
         // Only a named target stops the real run to ask.
-        let ctx = if target.is_empty() {
-            ctx
-        } else {
-            destructive_dry_run_context(ctx, force)
-        };
-        return rehearsed(&auth.token_store, clear_named, ctx, out, stdout);
+        let ask = (!target.is_empty()).then_some(force);
+        return rehearsed_asking(&auth.token_store, clear_named, ctx, ask, out, stdout);
     }
     if !target.is_empty() {
         let prompt = format!("Clear {target}?");
+        auth.token_store.rehearse(clear_named)?;
         if !gate_destructive(force, no_interactive, quiet, &prompt, &ctx)? {
             return Ok(());
         }

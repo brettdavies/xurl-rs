@@ -352,6 +352,10 @@ async fn store_write(
 #[case::default_missing(Held::Work, &["auth", "default", "ghost"])]
 #[case::default_user_missing(Held::Work, &["auth", "default", "work", "alice"])]
 #[case::clear_nothing(Held::Work, &["auth", "clear"])]
+#[case::apps_remove_missing_unforced(Held::Work, &["--no-interactive", "auth", "apps", "remove", "ghost"])]
+#[case::clear_unloadable_unforced(Held::Unloadable, &["--no-interactive", "auth", "clear", "--all"])]
+#[case::apps_update_bad_redirect_uri(Held::Work, &["auth", "apps", "update", "work", "--client-id", "newclient", "--redirect-uri", "not a url"])]
+#[cfg_attr(unix, case::clear_read_only_unforced(Held::ReadOnly, &["--no-interactive", "auth", "clear", "--all"]))]
 #[cfg_attr(unix, case::app_read_only(Held::ReadOnly, &["auth", "app", "--bearer-token-file", "SECRET"]))]
 #[cfg_attr(unix, case::app_for_a_missing_app_read_only(Held::ReadOnly, &["--app", "ghost", "auth", "app", "--bearer-token-file", "SECRET"]))]
 #[cfg_attr(unix, case::oauth1_for_a_missing_app_read_only(Held::ReadOnly, &["--app", "ghost", "auth", "oauth1", "--consumer-key", "ck", "--consumer-secret-file", "SECRET", "--access-token-file", "SECRET", "--token-secret-file", "SECRET"]))]
@@ -438,6 +442,57 @@ async fn apps_add_with_a_refused_redirect_uri_registers_nothing() {
         held.get_app_redirect_uri("new"),
         Some("https://example.com/cb")
     );
+}
+
+/// A redirect URI the store refuses leaves the app as it was: `apps update`
+/// checks it before it saves the client id.
+#[tokio::test]
+async fn apps_update_with_a_refused_redirect_uri_changes_nothing() {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(Held::Work, &tmp);
+    let (code, refused, unchanged) = store_write(
+        Held::Work,
+        &tmp,
+        &[
+            "auth",
+            "apps",
+            "update",
+            "work",
+            "--client-id",
+            "newclient",
+            "--redirect-uri",
+            "not a url",
+        ],
+        false,
+    )
+    .await;
+    assert_eq!(code, 1, "{refused}");
+    assert_eq!(refused["reason"], "validation", "{refused}");
+    assert_eq!(refused["rule"], "invalid-redirect-uri", "{refused}");
+    assert!(unchanged, "the refused update changed the store: {refused}");
+}
+
+/// A store command whose write the store accepts still asks, and its dry run
+/// says so.
+#[rstest::rstest]
+#[case::apps_remove(&["auth", "apps", "remove", "work"])]
+#[case::clear(&["auth", "clear", "--all"])]
+#[tokio::test]
+async fn a_store_command_that_would_run_still_asks(#[case] args: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(Held::Work, &tmp);
+    let args = [&["--no-interactive"][..], args].concat();
+    let (code, real, unchanged) = store_write(Held::Work, &tmp, &args, false).await;
+    assert_eq!(
+        (code, real["reason"].as_str()),
+        (1, Some("confirmation-required")),
+        "{args:?}: {real}"
+    );
+    assert!(unchanged, "{args:?}: the unconfirmed run changed the store");
+    let (dry_code, dry, _) = store_write(Held::Work, &tmp, &args, true).await;
+    assert_eq!(dry_code, 0, "{args:?}: {dry}");
+    assert_eq!(dry["would_succeed"], true, "{args:?}: {dry}");
+    assert_eq!(dry["confirmation_required"], true, "{args:?}: {dry}");
 }
 
 /// A dry run of a store write its real run makes answers `would_succeed:

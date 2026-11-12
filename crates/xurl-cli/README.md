@@ -869,10 +869,10 @@ xr --output json --dry-run post "Hello"
   add` registers, and takes a new file in its directory. `auth clear` with nothing named answers the real run's
   `nothing-to-clear`. The check of the directory creates one empty file there and removes it at once.
 - `confirmation_required: true` marks a destructive command whose real run would stop to ask, and the key appears only
-  then. The real run refuses an invalid input or a credential that does not serve before it asks, so a dry run with
-  `would_succeed: false` leaves the key out. The flag outranks `--force` and the prompt, so the dry run answers either
-  way: `xr --dry-run delete <id>` carries the key, and `xr --dry-run delete <id> --force` leaves it out, since nothing
-  would stop.
+  then. The real run refuses an invalid input, a credential that does not serve, or a store write the store refuses
+  before it asks, so a dry run with `would_succeed: false` leaves the key out. The flag outranks `--force` and the
+  prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries the key, and `xr --dry-run delete <id>
+  --force` leaves it out, since nothing would stop.
 - `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
   typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
   ends with a `Response schema:` block naming it.
