@@ -270,7 +270,7 @@
         "GET /2/broadcasts/categories"
       ],
       "status": "raw-only",
-      "reason": "The live categories a host can pick when going live, listed to fill `live_category_id` on POST /2/broadcasts. `xr` leaves that call to the app that drives the encoder (broadcasts-go-live-one-call) and no `xr broadcasts` command sends a category, so the list has nothing in `xr` to supply. Raw mode still reaches it; `xr broadcasts list` and `get` already show a broadcast's `live_category_id`.",
+      "reason": "The live categories a host can pick when going live, listed to fill `live_category_id` on POST /2/broadcasts. `xr` leaves that call to the app that drives the encoder (broadcasts-go-live-one-call) and no `xr broadcasts` command sends a category, so the list has nothing in `xr` to supply. Raw mode still reaches it; `xr broadcasts list` and `get` show a broadcast's `live_category_id` whenever X returns it.",
       "decided": "2026-11-12",
       "by": "Brett, on #573",
       "revisit_when": {
