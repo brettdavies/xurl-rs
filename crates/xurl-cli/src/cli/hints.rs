@@ -1929,6 +1929,29 @@ mod tests {
         );
     }
 
+    /// An app that holds only a bearer token or OAuth1 keys is not signed
+    /// in: a rerun there finds no login either.
+    #[test]
+    fn an_app_holding_no_login_is_not_offered_as_signed_in() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let mut store =
+            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
+        for app in ["work", "other"] {
+            store.add_app(app, "CLIENT-ID", "SECRET").expect("add app");
+        }
+        store.set_default_app("work").expect("default");
+        store
+            .save_bearer_token_for_app("other", "BEARER")
+            .expect("save bearer");
+        store
+            .save_oauth1_tokens_for_app("other", "AT", "TS", "CK", "CS")
+            .expect("save oauth1");
+
+        let hint = choose_hint(&snapshot_of(&store), &words(&["xr", "whoami"]), true);
+
+        assert_eq!(hint.next_step, NextStep::sign_in_as(None, None, true));
+    }
+
     /// A rerun against another app names that app once, under the name
     /// every hint gives the binary: the `--app` the caller passed is
     /// dropped in either spelling, since clap refuses the flag twice.
