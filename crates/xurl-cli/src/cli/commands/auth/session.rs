@@ -155,8 +155,11 @@ impl<'a> ClearTarget<'a> {
         }
     }
 
-    fn prompt(&self, app: &str) -> String {
-        format!("Clear {} in app {app:?}?", self.label())
+    fn prompt(&self, app: Option<&str>) -> String {
+        match app {
+            Some(app) => format!("Clear {} in app {app:?}?", self.label()),
+            None => format!("Clear {} in the default app?", self.label()),
+        }
     }
 
     fn cleared_message(&self) -> String {
@@ -205,9 +208,12 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         ..
     } = flags;
     let app = auth.app_name().to_string();
+    let acting_app = Some(auth.token_store.get_active_app_name(&app))
+        .filter(|name| !name.is_empty())
+        .map(str::to_string);
     let ctx = json!({
         "command": "auth-clear",
-        "app": auth.token_store.get_active_app_name(&app),
+        "app": acting_app,
         "all": args.all,
         "oauth1": args.oauth1,
         "oauth2_username": args.oauth2_username,
@@ -229,7 +235,7 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         return Err(nothing_to_clear().into());
     };
     auth.token_store.rehearse(clear_named)?;
-    let prompt = target.prompt(auth.token_store.get_active_app_name(&app));
+    let prompt = target.prompt(acting_app.as_deref());
     gate_destructive(force, no_interactive, quiet, &prompt, &ctx)?;
 
     target.clear(&mut auth.token_store, &app)?;
@@ -395,12 +401,16 @@ mod tests {
     #[test]
     fn the_confirmation_names_what_goes_and_the_app_it_goes_from() {
         assert_eq!(
-            ClearTarget::OAuth2("alice").prompt("work"),
+            ClearTarget::OAuth2("alice").prompt(Some("work")),
             r#"Clear OAuth2 token in app "work"?"#
         );
         assert_eq!(
-            ClearTarget::All.prompt("default"),
+            ClearTarget::All.prompt(Some("default")),
             r#"Clear all credentials in app "default"?"#
+        );
+        assert_eq!(
+            ClearTarget::Bearer.prompt(None),
+            "Clear bearer token in the default app?"
         );
     }
 }

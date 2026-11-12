@@ -1230,7 +1230,7 @@ mod tests {
     #[test]
     fn a_confirmation_refusal_names_the_command_in_text_and_in_a_key_of_its_own() {
         let ctx = serde_json::json!({"command": "lists-remove", "list_id": "456"});
-        let step = || crate::cli::hints::NextStep::confirm(&["xr".to_string()]);
+        let step = || crate::cli::hints::NextStep::confirm(&["xr".to_string()], None);
 
         let text = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Never);
         let mut line = Vec::new();

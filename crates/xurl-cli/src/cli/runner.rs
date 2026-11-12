@@ -430,7 +430,8 @@ async fn run_inner(
             error.exit_code()
         }
         Err(Failure::Unconfirmed(ctx)) => {
-            let next_step = NextStep::confirm(&invocation());
+            let app = ctx.get("app").and_then(serde_json::Value::as_str);
+            let next_step = NextStep::confirm(&invocation(), app);
             out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR, next_step);
             EXIT_GENERAL_ERROR
         }

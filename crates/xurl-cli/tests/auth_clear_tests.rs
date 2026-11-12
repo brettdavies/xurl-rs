@@ -84,7 +84,7 @@ fn a_clear_acts_on_the_app_app_selects(#[case] selector: &[&str], #[case] left: 
     );
 }
 
-/// Without `--app` the default app is the one cleared, as it always was.
+/// Without `--app` the default app is the one cleared.
 #[test]
 fn a_clear_without_app_acts_on_the_default_app() {
     let tmp = TempDir::new().expect("tempdir");
@@ -151,4 +151,127 @@ fn a_clear_names_the_app_it_acts_on(#[case] app: &[&str], #[case] acting: &str) 
     let refused = json(&refused, &refused.stderr);
     assert_eq!(refused["reason"], "confirmation-required", "{refused}");
     assert_eq!(refused["app"], acting, "refusal: {refused}");
+}
+
+/// The `confirm` template a refusal hands out clears the app the refusal
+/// names, whether the app came from `--app`, from `XURL_APP`, or from the
+/// store's default.
+#[rstest::rstest]
+#[case::named(&["--app", "second"], None, "second", "first")]
+#[case::environment(&[], Some("second"), "second", "first")]
+#[case::default(&[], None, "first", "second")]
+fn the_confirm_template_clears_the_app_the_refusal_names(
+    #[case] app: &[&str],
+    #[case] environment: Option<&str>,
+    #[case] cleared: &str,
+    #[case] untouched: &str,
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = two_app_store(&tmp);
+    let mut refusing = common::xr_with_store(&store);
+    if let Some(app) = environment {
+        refusing.env("XURL_APP", app);
+    }
+    let output = refusing
+        .args(["--output", "json", "--no-interactive"])
+        .args(app)
+        .args(["auth", "clear", "--all"])
+        .output()
+        .expect("xr runs");
+    let refused: serde_json::Value = serde_json::from_slice(&output.stderr).expect("a document");
+    let template = refused["next_step"]["template"]
+        .as_str()
+        .unwrap_or_else(|| panic!("no template: {refused}"));
+    let words: Vec<&str> = template.split_whitespace().collect();
+    assert_eq!(
+        words.iter().filter(|word| **word == "--app").count(),
+        1,
+        "{template}"
+    );
+    assert_eq!(held(&store, cleared), everything(), "refusing changed it");
+
+    let confirmed = run(&store, &words[1..]);
+
+    assert_eq!(
+        confirmed.status.code(),
+        Some(0),
+        "{template}: {}",
+        String::from_utf8_lossy(&confirmed.stderr)
+    );
+    assert_eq!(held(&store, cleared), (false, vec![], false), "{template}");
+    assert_eq!(held(&store, untouched), everything(), "{template}");
+}
+
+/// A login is looked up in the app `--app` selects. `second` holds `bob` and
+/// the default app does not, so the same selector clears it in one and is
+/// refused in the other.
+#[test]
+fn a_login_is_looked_up_in_the_app_app_selects() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = two_app_store(&tmp);
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    ts.save_oauth2_token_for_app("second", "bob", "user-at", "user-rt", 9_999_999_999)
+        .expect("save_oauth2");
+
+    let refused = run(
+        &store,
+        &[
+            "--app",
+            "first",
+            "auth",
+            "clear",
+            "--force",
+            "--oauth2-username",
+            "bob",
+        ],
+    );
+
+    assert_ne!(
+        refused.status.code(),
+        Some(0),
+        "the default app holds no bob"
+    );
+    assert_eq!(
+        held(&store, "second").1,
+        ["alice", "bob"],
+        "refusal changed it"
+    );
+
+    let cleared = run(
+        &store,
+        &[
+            "--app",
+            "second",
+            "auth",
+            "clear",
+            "--force",
+            "--oauth2-username",
+            "bob",
+        ],
+    );
+
+    assert_eq!(
+        cleared.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&cleared.stderr)
+    );
+    assert_eq!(held(&store, "second").1, ["alice"]);
+    assert_eq!(held(&store, "first"), everything());
+}
+
+/// A store that holds no app has none for a clear to name: the dry run says
+/// so with `null`, not with an empty name.
+#[test]
+fn a_clear_of_an_empty_store_names_no_app() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let output = run(
+        &store,
+        &["--output", "json", "--dry-run", "auth", "clear", "--bearer"],
+    );
+
+    let planned: serde_json::Value = serde_json::from_slice(&output.stdout).expect("a document");
+    assert_eq!(planned["app"], serde_json::Value::Null, "{planned}");
 }
