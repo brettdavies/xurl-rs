@@ -1,0 +1,30 @@
+args: ["--output", "json", "--dry-run", "post", "hi", "--clip", "1585341984679469056", "--clip-start", "30", "--clip-end", "30"]
+store: empty
+exit_code: 0
+stdout_len: 492
+stderr_len: 0
+--- stdout ---
+{
+  "body": "hi",
+  "clip": {
+    "end_seconds": 30,
+    "post_id": "1585341984679469056",
+    "start_seconds": 30
+  },
+  "command": "post",
+  "exit_code": 1,
+  "media_ids": [],
+  "message": "A clip ends after it starts: --clip-end is greater than --clip-start.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr post --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema post",
+  "rule": "invalid-clip-range",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

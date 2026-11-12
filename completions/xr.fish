@@ -134,6 +134,9 @@ complete -c xr -n "__fish_xr_needs_command" -a "examples" -d 'Print a curated ga
 complete -c xr -n "__fish_xr_needs_command" -a "validate" -d 'Validate a JSON document against a bundled response schema'
 complete -c xr -n "__fish_xr_needs_command" -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c xr -n "__fish_xr_using_subcommand post" -l media-id -d 'Media ID(s) to attach (repeatable)' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l clip -d 'Share a clip of another post\'s video: its id or URL. Needs --clip-start and --clip-end; cannot be combined with --media-id' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l clip-start -d 'Second of the video at which the clip starts' -r
+complete -c xr -n "__fish_xr_using_subcommand post" -l clip-end -d 'Second of the video at which the clip ends. X takes a clip of 5 to 60 seconds, at most 30% of the video' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -l auth -d 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s u -l username -d '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`' -r
 complete -c xr -n "__fish_xr_using_subcommand post" -s v -l verbose -d 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary' -r -f -a "true\t''

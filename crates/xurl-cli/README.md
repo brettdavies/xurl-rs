@@ -101,6 +101,7 @@ alice`.
 ```bash
 xr post "Hello world!"                        # Post
 xr post "With media" --media-id 12345          # Post with media
+xr post "Worth watching" --clip 1585341984679469056 --clip-start 30 --clip-end 60 # Post a clip of another post's video
 xr reply 1585341984679469056 "Nice!"           # Reply
 xr reply https://x.com/elonmusk/status/1585341984679469056 "Nice!" # Reply by URL
 xr quote 1585341984679469056 "My take"         # Quote

@@ -1,0 +1,30 @@
+args: ["--output", "json", "--dry-run", "post", "hi", "--clip", "not-an-id", "--clip-start", "0", "--clip-end", "10"]
+store: empty
+exit_code: 0
+stdout_len: 464
+stderr_len: 0
+--- stdout ---
+{
+  "body": "hi",
+  "clip": {
+    "end_seconds": 10,
+    "post_id": "not-an-id",
+    "start_seconds": 0
+  },
+  "command": "post",
+  "exit_code": 1,
+  "media_ids": [],
+  "message": "A clip's post id is 1 to 19 digits, or a post URL.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr post --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema post",
+  "rule": "invalid-clip-post-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

@@ -6,15 +6,27 @@ use serde_json::json;
 use super::{Run, dry_run_or_validate, make_client, send_confirmed, send_or_report, with_flags};
 use crate::cli::failure::CommandResult;
 use crate::cli::{Commands, CommonFlags};
-use xdk::api::shortcuts;
+use xdk::api::shortcuts::{self, PostClip};
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
         Commands::Post {
             text,
             media_ids,
+            clip,
+            clip_start,
+            clip_end,
             common,
-        } => post(run, &text, &media_ids, &common).await,
+        } => {
+            let clip = clip.zip(clip_start).zip(clip_end).map(
+                |((post_id, start_seconds), end_seconds)| PostClip {
+                    post_id,
+                    start_seconds,
+                    end_seconds,
+                },
+            );
+            post(run, &text, &media_ids, clip.as_ref(), &common).await
+        }
         Commands::Reply {
             post_id,
             text,
@@ -39,6 +51,7 @@ async fn post(
     run: Run<'_>,
     text: &str,
     media_ids: &[String],
+    clip: Option<&PostClip>,
     common: &CommonFlags,
 ) -> CommandResult<()> {
     let Run {
@@ -49,17 +62,25 @@ async fn post(
         stdout,
         ..
     } = run;
-    let ctx = json!({
+    let mut ctx = json!({
         "command": "post",
         "body": text,
         "media_ids": media_ids,
     });
+    if let Some(clip) = clip {
+        ctx["clip"] = json!(clip);
+    }
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
         shortcuts::validate_post_body(text)?;
-        shortcuts::validate_media_attachments(media_ids)
+        shortcuts::validate_media_attachments(media_ids)?;
+        clip.map_or(Ok(()), shortcuts::validate_post_clip)
     })?;
     let client = make_client(cfg, auth)?;
-    let call = with_flags(client.create_post(text, media_ids), common, None);
+    let call = match clip {
+        Some(clip) => client.create_clip_post(text, clip),
+        None => client.create_post(text, media_ids),
+    };
+    let call = with_flags(call, common, None);
     send_or_report(out, stdout, dry_run, call).await?;
     Ok(())
 }

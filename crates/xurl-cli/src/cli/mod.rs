@@ -139,6 +139,8 @@ Examples:
     xr post \"Hello world\" --output json
   Post with media (run `xr media upload` first to get an ID):
     xr post \"Look at this\" --media-id 1234567890 --output json
+  Post a clip of another post's video (the post needs exactly one video, over 2 minutes):
+    xr post \"Worth watching\" --clip 1585341984679469056 --clip-start 30 --clip-end 60 --output json
   Post quietly (suppress human-readable banners):
     xr post \"Ship it\" --quiet --output json
 ";
@@ -1281,6 +1283,20 @@ pub enum Commands {
         /// Media ID(s) to attach (repeatable)
         #[arg(long = "media-id")]
         media_ids: Vec<String>,
+        /// Share a clip of another post's video: its id or URL. Needs --clip-start and --clip-end; cannot be combined with --media-id
+        #[arg(
+            long,
+            value_name = "POST",
+            requires_all = ["clip_start", "clip_end"],
+            conflicts_with = "media_ids"
+        )]
+        clip: Option<String>,
+        /// Second of the video at which the clip starts
+        #[arg(long = "clip-start", value_name = "SECONDS", requires = "clip")]
+        clip_start: Option<u32>,
+        /// Second of the video at which the clip ends. X takes a clip of 5 to 60 seconds, at most 30% of the video
+        #[arg(long = "clip-end", value_name = "SECONDS", requires = "clip")]
+        clip_end: Option<u32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,
