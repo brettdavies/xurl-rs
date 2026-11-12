@@ -204,8 +204,10 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         quiet,
         ..
     } = flags;
+    let app = auth.app_name().to_string();
     let ctx = json!({
         "command": "auth-clear",
+        "app": auth.token_store.get_active_app_name(&app),
         "all": args.all,
         "oauth1": args.oauth1,
         "oauth2_username": args.oauth2_username,
@@ -213,7 +215,6 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
     });
     let force = args.force;
     let target = ClearTarget::from_args(&args);
-    let app = auth.app_name().to_string();
 
     let clear_named = |store: &mut TokenStore| match &target {
         Some(target) => target.clear(store, &app),

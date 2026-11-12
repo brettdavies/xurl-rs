@@ -117,3 +117,38 @@ fn a_clear_of_an_empty_store_without_app_changes_nothing(#[case] selector: &str)
     );
     assert!(!store.exists(), "the clear created {}", store.display());
 }
+
+/// The dry run and the `confirmation-required` refusal of a clear name the
+/// app they act on: the one `--app` selects, else the default app.
+#[rstest::rstest]
+#[case::named(&["--app", "second"], "second")]
+#[case::default(&[], "first")]
+fn a_clear_names_the_app_it_acts_on(#[case] app: &[&str], #[case] acting: &str) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = two_app_store(&tmp);
+    let json = |output: &std::process::Output, stream: &[u8]| -> serde_json::Value {
+        assert!(
+            serde_json::from_slice::<serde_json::Value>(stream).is_ok(),
+            "no document: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        serde_json::from_slice(stream).expect("a document")
+    };
+
+    let mut args = vec!["--output", "json"];
+    args.extend_from_slice(app);
+    args.extend(["auth", "clear", "--all"]);
+
+    let mut dry = args.clone();
+    dry.insert(0, "--dry-run");
+    let planned = run(&store, &dry);
+    let planned = json(&planned, &planned.stdout);
+    assert_eq!(planned["app"], acting, "dry run: {planned}");
+
+    let mut asking = args.clone();
+    asking.insert(0, "--no-interactive");
+    let refused = run(&store, &asking);
+    let refused = json(&refused, &refused.stderr);
+    assert_eq!(refused["reason"], "confirmation-required", "{refused}");
+    assert_eq!(refused["app"], acting, "refusal: {refused}");
+}
