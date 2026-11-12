@@ -339,6 +339,31 @@ impl TokenStore {
         }
     }
 
+    /// What a clear checks before it removes anything: the store loaded, the
+    /// app `app_name` names exists (an empty name is the default app, which a
+    /// clear leaves alone when the store holds none), and `username`, when
+    /// given, is a login that app holds.
+    ///
+    /// # Errors
+    ///
+    /// The token-store error of a store that could not be loaded, of an app
+    /// the store does not hold, or of a login the app does not hold.
+    // `xr auth clear` and its dry run meet this ahead of the clear
+    // (`crates/xurl-cli/src/cli/commands/auth/session.rs`).
+    #[doc(hidden)]
+    pub fn refuse_if_clear_target_missing(
+        &self,
+        app_name: &str,
+        username: Option<&str>,
+    ) -> Result<()> {
+        self.refuse_if_load_failed()?;
+        self.refuse_if_app_missing(app_name)?;
+        match username {
+            Some(username) => Self::require_user(self.resolve_app(app_name), username),
+            None => Ok(()),
+        }
+    }
+
     /// The not-found error for `username` in `app`, checked on the caller's
     /// view before the lock is taken and again on disk truth inside it, as
     /// [`Self::require_app`] is.
