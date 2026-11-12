@@ -88,8 +88,11 @@ active app storing an accepted scheme gives `fix-input` with the invocation unde
 gives `select-app`; when the scheme to get is OAuth2, the step is the sign-in; and otherwise `fix-input` carries a
 `template` that stores that scheme, such as `xr auth app --bearer-token-file <path>`. The scheme to get is the one
 `--auth` named when the command accepts it, else the first the command accepts. The message's `Add credentials with:`
-tail takes its command from the same `setup_invocation`. A raw request is held to the schemes the auth matrix lists for
-its method and path, and to every scheme when the matrix does not list them.
+tail takes its command from the same `setup_invocation`. A request that names a login with `-u` is served only by OAuth2
+held by an app that stores that login, or by a bearer token on an endpoint that accepts no OAuth2; a caller who named
+OAuth1 or the bearer token with `--auth` has not asked for a login. A raw request is held to the schemes the auth matrix
+lists for its method and path, a path that carries an id taking those of the template it fits, and to every scheme when
+the matrix lists none.
 
 Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
 `invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
