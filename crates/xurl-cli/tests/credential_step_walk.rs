@@ -70,31 +70,38 @@ fn other_with_login(ts: &mut TokenStore) {
         .expect("save oauth2");
 }
 
-/// One thing a store can hold: what the active app stores, and the scheme the
-/// other registered app stores, if any.
+/// One thing a store can hold: what the active app stores (`holds`), and the
+/// scheme the other registered app stores, if any.
 struct Shape {
     name: &'static str,
     seed: Seed,
+    holds: &'static [WireScheme],
 }
 
 fn shapes() -> Vec<Shape> {
-    let fills: [(&str, Fill); 7] = [
-        ("an empty app", nothing),
-        ("a login", live_oauth2_only),
-        ("OAuth1 keys", oauth1_only),
-        ("a bearer token", bearer_only),
+    let fills: [(&str, Fill, &[WireScheme]); 7] = [
+        ("an empty app", nothing, &[]),
+        ("a login", live_oauth2_only, &[WireScheme::OAuth2]),
+        ("OAuth1 keys", oauth1_only, &[WireScheme::OAuth1]),
+        ("a bearer token", bearer_only, &[WireScheme::App]),
         (
             "nothing, another app with a bearer token",
             other_with_bearer,
+            &[],
         ),
-        ("nothing, another app with OAuth1 keys", other_with_oauth1),
-        ("nothing, another app with a login", other_with_login),
+        (
+            "nothing, another app with OAuth1 keys",
+            other_with_oauth1,
+            &[],
+        ),
+        ("nothing, another app with a login", other_with_login, &[]),
     ];
     fills
         .into_iter()
-        .map(|(name, fill)| Shape {
+        .map(|(name, fill, holds)| Shape {
             name,
             seed: Seed::of(fill),
+            holds,
         })
         .collect()
 }
@@ -209,7 +216,8 @@ async fn faults(mock: &MockX, shapes: &[Shape], case: &Case) -> Vec<String> {
             &tail[1]
         ));
     }
-    if case.login && accepted.contains(&WireScheme::OAuth2) {
+    let binds = case.login && matches!(case.named, None | Some("oauth2"));
+    if binds && accepted.contains(&WireScheme::OAuth2) {
         for (text, _) in &named[1..] {
             if let Some(other) = AUTH_FLAG
                 .captures(text)
@@ -226,6 +234,23 @@ async fn faults(mock: &MockX, shapes: &[Shape], case: &Case) -> Vec<String> {
         }
     }
 
+    if let Some(stored) = step["template"].as_str().and_then(|t| SETUP.captures(t)) {
+        let template = step["template"].as_str().unwrap_or_default();
+        let app_is_active = APP_FLAG
+            .captures(template)
+            .is_none_or(|app| &app[1] != OTHER);
+        let scheme = WireScheme::from_wire(&stored[1]);
+        if app_is_active && scheme.is_some_and(|scheme| shape.holds.contains(&scheme)) {
+            found.push(format!(
+                "{what}: the step `{template}` stores a credential the app already holds\n  \
+                 Cause: a held scheme the request accepts was passed over, so the same refusal \
+                 comes back after the credential is stored again.\n  \
+                 Fix: let the held scheme serve, or take the sign-in, in \
+                 crates/xurl-cli/src/cli/credential_step.rs."
+            ));
+        }
+    }
+
     let followable = matches!(step["action"].as_str(), Some("fix-input" | "select-app"));
     if let (true, Some(command)) = (followable, step["command"].as_str()) {
         let mut rerun = base.clone();
@@ -234,6 +259,9 @@ async fn faults(mock: &MockX, shapes: &[Shape], case: &Case) -> Vec<String> {
         }
         if let Some(app) = APP_FLAG.captures(command) {
             rerun.extend(["--app".to_string(), app[1].to_string()]);
+        }
+        if case.login && command.contains(UNHELD_LOGIN) {
+            rerun.extend(["-u".to_string(), UNHELD_LOGIN.to_string()]);
         }
         let after = run_xr(&origin, &shape.seed, name, &rerun, false).await;
         let again = Ran::document(&after.stderr);
@@ -287,7 +315,7 @@ fn walked(shapes: &[Shape], targets: Vec<Target>) -> Vec<String> {
         for shape in 0..shapes.len() {
             for named in [None, Some("oauth2"), Some("oauth1"), Some("app")] {
                 for login in [false, true] {
-                    if login && !(target.takes_login && matches!(named, None | Some("oauth2"))) {
+                    if login && !target.takes_login {
                         continue;
                     }
                     cases.push(Case {

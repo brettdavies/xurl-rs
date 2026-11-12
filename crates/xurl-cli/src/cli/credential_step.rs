@@ -187,6 +187,11 @@ pub(crate) struct Need<'a> {
 /// the app is named and not registered      -> register-app
 /// otherwise                                -> fix-input, the template that stores the scheme to get
 /// ```
+///
+/// A named login (`-u`) is served only by OAuth2 held by an app that stores
+/// it, or by a bearer token on an endpoint that accepts no OAuth2. A caller
+/// who named OAuth1 or the bearer token with `--auth` has not asked for a
+/// login, and every accepted scheme serves.
 #[must_use]
 pub(crate) fn credential_hint(
     snapshot: &StoreSnapshot,
@@ -199,15 +204,24 @@ pub(crate) fn credential_hint(
     }
     let target = snapshot.active_app.as_str();
     let login = requested_login(invocation);
+    // The request reads `-u` only under OAuth2, so a caller who named another
+    // scheme has not asked for a login, as long as the rerun keeps that scheme.
+    let names_another_scheme = need
+        .requested
+        .is_some_and(|scheme| scheme != WireScheme::OAuth2);
     let serves = |app: &str| -> Option<WireScheme> {
         snapshot.schemes_held(app).into_iter().find(|scheme| {
             need.accepted.contains(scheme)
-                && login.as_ref().is_none_or(|login| {
-                    *scheme == WireScheme::OAuth2
-                        && snapshot
-                            .apps_holding_login(login)
-                            .iter()
-                            .any(|holder| holder == app)
+                && login.as_ref().is_none_or(|login| match scheme {
+                    WireScheme::OAuth2 => snapshot
+                        .apps_holding_login(login)
+                        .iter()
+                        .any(|holder| holder == app),
+                    _ if names_another_scheme => true,
+                    // A bearer token acts as no account, so it stands in for
+                    // a login only where the endpoint offers none to pick.
+                    WireScheme::App => !need.accepted.contains(&WireScheme::OAuth2),
+                    WireScheme::OAuth1 => false,
                 })
         })
     };
@@ -565,6 +579,67 @@ mod tests {
             assert!(!named.contains("--auth oauth1"), "{held:?}: {named}");
             assert!(!named.contains("--auth app"), "{held:?}: {named}");
         }
+    }
+
+    /// A bearer token acts as no account, so on an endpoint with no OAuth2
+    /// login to pick it serves a request that names one, and the step is the
+    /// rerun under it, not a template that stores the token again.
+    #[test]
+    fn a_bearer_serves_a_named_login_where_the_endpoint_takes_no_oauth2() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let snapshot = snapshot(&tmp, &[("work", &[WireScheme::App])], "work");
+
+        let named = mismatch(&["app"], Some("oauth2"), &[], None);
+        let step = step_of(mismatch_hint(
+            &snapshot,
+            &named,
+            &words(&["xr", "usage", "--auth", "oauth2", "-u", "alice"]),
+            true,
+        ));
+        assert_eq!(
+            step,
+            (
+                NextAction::FixInput,
+                Some("xr usage --auth app -u alice".into()),
+                None
+            )
+        );
+
+        let raw = no_credential_hint(
+            Missing::Anything,
+            &snapshot,
+            &words(&["xr", "-u", "alice", "/2/usage/tweets"]),
+            true,
+        );
+        assert_eq!(raw.next_step.action, NextAction::FixInput, "{raw:?}");
+        assert_eq!(
+            raw.next_step.command.as_deref(),
+            Some("xr -u alice /2/usage/tweets --auth app"),
+            "{raw:?}"
+        );
+    }
+
+    /// The request reads `-u` only under OAuth2, so a caller who named
+    /// OAuth1 or the bearer token is served by another app that holds it.
+    #[test]
+    fn a_scheme_named_with_auth_outranks_a_login() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let snapshot = snapshot(&tmp, &[("personal", &[WireScheme::OAuth1])], "work");
+        let invocation = words(&["xr", "post", "hi", "--auth", "oauth1", "-u", "alice"]);
+
+        let hint = no_credential_hint(
+            Missing::Scheme(WireScheme::OAuth1),
+            &snapshot,
+            &invocation,
+            true,
+        );
+
+        assert_eq!(hint.next_step.action, NextAction::SelectApp, "{hint:?}");
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr --app personal post hi --auth oauth1 -u alice"),
+            "{hint:?}"
+        );
     }
 
     /// A raw request to a path that carries an id is held to the schemes of
