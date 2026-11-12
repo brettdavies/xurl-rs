@@ -265,6 +265,9 @@ enum Held {
     /// A store holding `work`, in a directory that takes no new file.
     #[cfg(unix)]
     ReadOnly,
+    /// As `ReadOnly`, with no lock file beside the store yet.
+    #[cfg(unix)]
+    ReadOnlyNoLock,
 }
 
 /// Seeds `tmp` with a store as `held` describes and a secret file.
@@ -280,6 +283,10 @@ fn seed_store_write(held: Held, tmp: &TempDir) {
             let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
             ts.add_app("work", "abcdefgh", "shh").expect("add app");
         }
+    }
+    #[cfg(unix)]
+    if matches!(held, Held::ReadOnlyNoLock) {
+        std::fs::remove_file(tmp.path().join("home").join(".xurl.lock")).expect("remove the lock");
     }
     std::fs::write(tmp.path().join("secret"), "shh\n").expect("write the secret");
 }
@@ -309,7 +316,7 @@ async fn store_write(
     #[cfg(unix)]
     let home_mode = |mode| {
         use std::os::unix::fs::PermissionsExt;
-        if matches!(held, Held::ReadOnly) {
+        if matches!(held, Held::ReadOnly | Held::ReadOnlyNoLock) {
             std::fs::set_permissions(
                 tmp.path().join("home"),
                 std::fs::Permissions::from_mode(mode),
@@ -396,6 +403,78 @@ async fn a_store_write_s_dry_run_refuses_as_its_real_run_does(
     assert!(
         dry.get("confirmation_required").is_none(),
         "{args:?}: the real run refused without asking, and the dry run says it would ask: {dry}"
+    );
+}
+
+/// A refusal that names an app or a login the store holds, or does not, sends
+/// the reader to the command that lists them. The dry run carries the same
+/// step as its real run.
+#[rstest::rstest]
+#[case::app_name_taken(Held::Work, &["auth", "apps", "add", "work", "--client-id", "abcdefgh", "--client-secret-file", "SECRET"])]
+#[case::unknown_login(Held::Work, &["auth", "default", "work", "alice"])]
+#[case::unknown_app(Held::Work, &["auth", "default", "ghost"])]
+#[tokio::test]
+async fn a_refusal_naming_a_store_entry_carries_the_status_command(
+    #[case] held: Held,
+    #[case] args: &[&str],
+) {
+    let step = serde_json::json!({"action": "fix-input", "command": "xr auth status"});
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(held, &tmp);
+    let (code, real, _) = store_write(held, &tmp, args, false).await;
+    assert_eq!(
+        (code, &real["reason"]),
+        (77, &serde_json::json!("token-store")),
+        "{real}"
+    );
+    assert_eq!(real["next_step"], step, "{args:?}: {real}");
+    let (_, dry, _) = store_write(held, &tmp, args, true).await;
+    assert_eq!(dry["next_step"], step, "{args:?}: {dry}");
+}
+
+/// A store write refused because its directory takes no new file carries the
+/// page on writing the store, whether the refusal is the lock file's or the
+/// save's temp file's.
+#[cfg(unix)]
+#[rstest::rstest]
+#[case::temp_file(Held::ReadOnly, "cannot create a file in")]
+#[case::lock_file(Held::ReadOnlyNoLock, "cannot open the store lock")]
+#[tokio::test]
+async fn a_store_write_the_directory_refuses_names_the_page(
+    #[case] held: Held,
+    #[case] cause: &str,
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(held, &tmp);
+    let args = [
+        "auth",
+        "apps",
+        "add",
+        "new",
+        "--client-id",
+        "abcdefgh",
+        "--client-secret-file",
+        "SECRET",
+    ];
+    let (code, real, _) = store_write(held, &tmp, &args, false).await;
+    if code == 0 {
+        // A process that may write a read-only directory (root) cannot be
+        // refused this way.
+        return;
+    }
+    assert_eq!(
+        (code, &real["reason"]),
+        (5, &serde_json::json!("io")),
+        "{real}"
+    );
+    assert!(
+        real["message"].as_str().unwrap_or_default().contains(cause),
+        "the refusal is not the one under test: {real}"
+    );
+    assert_eq!(
+        real["next_step"],
+        serde_json::json!({"action": "fix-input", "docs": STORE_WRITE_DOCS}),
+        "{real}"
     );
 }
 

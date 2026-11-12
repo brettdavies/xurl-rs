@@ -104,9 +104,9 @@ fits `--rate-limit-max-wait` (60 seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
 request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, `forbidden` for a token endpoint's 403,
-`token-store` for an app name the store does not hold, and the skill verbs' machine-state reasons) says the same
+`token-store` for an app or login name the store refuses, and the skill verbs' machine-state reasons) says the same
 invocation fails again until its input or the state it read changes. Under `token-store`, it carries `xr auth status`,
-which lists the apps the store holds. Under `address-in-use`, a port another process holds, it carries `listen` again on
+which lists what the store holds. Under `address-in-use`, a port another process holds, it carries `listen` again on
 `--port 0`: a `command`, or a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t`
 given before a command word that takes it, it carries the invocation with the flag after the word, and for an old `xr
 schema` name or a bare scope word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment
