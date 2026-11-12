@@ -195,9 +195,7 @@ fn remove(ctx: AuthCtx<'_>, name: &str, force: bool) -> CommandResult<()> {
     }
     let prompt = format!("Remove app {name:?}?");
     auth.token_store.rehearse(|store| store.remove_app(name))?;
-    if !gate_destructive(force, flags.no_interactive, flags.quiet, &prompt, &ctx)? {
-        return Ok(());
-    }
+    gate_destructive(force, flags.no_interactive, flags.quiet, &prompt, &ctx)?;
     auth.token_store.remove_app(name)?;
     out.print_ok_message(stdout, &format!("\x1b[32mApp {name:?} removed.\x1b[0m"));
     Ok(())

@@ -25,6 +25,10 @@ pub(crate) enum Failure {
     /// names what it would have destroyed; the runner renders it with the
     /// invocation that confirms.
     Unconfirmed(serde_json::Value),
+    /// A destructive command whose prompt the person answered no. Nothing
+    /// changed; the value is the context the prompt asked about, which the
+    /// runner puts in the cancelled document.
+    Declined(serde_json::Value),
     /// A dry run whose real run would end on a [`Failure::Error`]: its
     /// credentials, a saved flow, or an input it reports that way. Nothing
     /// failed, and the run exits 0: the runner prints the dry-run envelope

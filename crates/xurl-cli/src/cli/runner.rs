@@ -434,6 +434,10 @@ async fn run_inner(
             out.print_confirmation_required(stderr, &ctx, EXIT_GENERAL_ERROR, next_step);
             EXIT_GENERAL_ERROR
         }
+        Err(Failure::Declined(ctx)) => {
+            out.print_declined(stderr, &ctx, EXIT_GENERAL_ERROR);
+            EXIT_GENERAL_ERROR
+        }
         Err(Failure::DryRunRefusal { ctx, error }) => {
             let hint = recovery_hint(
                 &error,

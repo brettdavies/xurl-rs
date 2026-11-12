@@ -120,30 +120,34 @@ pub(super) fn destructive_dry_run_context(
     ctx
 }
 
-/// Gates a destructive op on `--force` / TTY confirmation: `true` to go
-/// ahead, `false` when the person declined, and the `confirmation-required`
-/// refusal, carrying `ctx`, when nobody can be asked.
+/// Gates a destructive op on `--force` / TTY confirmation: `Ok` to go ahead,
+/// the `confirmation-required` refusal, carrying `ctx`, when nobody can be
+/// asked, and the declined stop, carrying `ctx`, when the person answered no.
 ///
 /// Callers answer `--dry-run` before they reach this gate.
 ///
 /// Rules:
 /// - `--force` → proceed.
 /// - `--no-interactive` without `--force` → confirmation required.
-/// - Interactive terminal without `--force` → dialoguer confirm.
+/// - Interactive terminal without `--force` → ask on stdin.
 pub(super) fn gate_destructive(
     force: bool,
     no_interactive: bool,
     quiet: bool,
     prompt: &str,
     ctx: &serde_json::Value,
-) -> CommandResult<bool> {
+) -> CommandResult<()> {
     if force {
-        return Ok(true);
+        return Ok(());
     }
     if no_interactive || !is_interactive(no_interactive, quiet) {
         return Err(Failure::Unconfirmed(ctx.clone()));
     }
-    Ok(confirm_destructive(prompt)?)
+    if confirm_destructive(prompt)? {
+        Ok(())
+    } else {
+        Err(Failure::Declined(ctx.clone()))
+    }
 }
 
 /// What a destructive request asks before it goes out. It asks once the
@@ -156,10 +160,9 @@ struct Confirm<'a> {
 }
 
 impl Confirm<'_> {
-    /// Whether the real run goes ahead: `false` when the person declined,
-    /// and the `confirmation-required` refusal, carrying `ctx`, when nobody
-    /// can be asked.
-    fn gate(self, flags: &GlobalFlags, ctx: &serde_json::Value) -> CommandResult<bool> {
+    /// `Ok` when the real run goes ahead; otherwise the stop
+    /// [`gate_destructive`] names.
+    fn gate(self, flags: &GlobalFlags, ctx: &serde_json::Value) -> CommandResult<()> {
         gate_destructive(
             self.force,
             flags.no_interactive,
@@ -408,9 +411,7 @@ where
     let call = with_flags(build(&client), common, None);
     if dry_run.is_none() {
         call.auth_preflight().await?;
-        if !confirm.gate(&flags, &ctx)? {
-            return Ok(());
-        }
+        confirm.gate(&flags, &ctx)?;
     }
     send_or_report(out, stdout, dry_run, call).await
 }
@@ -1234,9 +1235,7 @@ where
             true => without_rendered_url(&error).unwrap_or(error),
             false => error,
         })?;
-    if !confirm.gate(&flags, &ctx)? {
-        return Ok(());
-    }
+    confirm.gate(&flags, &ctx)?;
     let id = resolve_account_id(&client, account, common).await?;
     let response = with_flags(build(&client, &id), common, None).send().await?;
     print_typed(out, stdout, &response)?;

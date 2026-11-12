@@ -230,9 +230,7 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
     };
     auth.token_store.rehearse(clear_named)?;
     let prompt = target.prompt(auth.token_store.get_active_app_name(&app));
-    if !gate_destructive(force, no_interactive, quiet, &prompt, &ctx)? {
-        return Ok(());
-    }
+    gate_destructive(force, no_interactive, quiet, &prompt, &ctx)?;
 
     target.clear(&mut auth.token_store, &app)?;
     out.print_ok_message(stdout, &target.cleared_message());

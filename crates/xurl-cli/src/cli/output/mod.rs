@@ -38,6 +38,11 @@ use xdk::error::Error;
 /// to report.
 const BINARY_WARNING_TARGET: &str = "xr";
 
+/// What a run says when the person answers no at a destructive command's
+/// prompt: the text line, and the `message` of the structured document.
+const DECLINED_LINE: &str = "Cancelled: nothing was changed.";
+const DECLINED_MESSAGE: &str = "cancelled at the prompt";
+
 /// Output format for machine/human consumption.
 #[derive(Clone, Debug, ValueEnum, PartialEq, Eq)]
 pub enum OutputFormat {
@@ -709,6 +714,36 @@ impl OutputConfig {
             ..ErrorBody::default()
         };
         self.emit_error_envelope(err, body);
+    }
+
+    /// Reports a destructive command whose prompt the person answered no:
+    /// the line `Cancelled: nothing was changed.` in text, and under a
+    /// structured format the run's one document, `status: "cancelled"`
+    /// with `exit_code`, a `message`, and the command's context, warnings
+    /// included.
+    pub(crate) fn print_declined(
+        &self,
+        err: &mut dyn Write,
+        ctx: &serde_json::Value,
+        exit_code: i32,
+    ) {
+        if !self.format.is_structured() {
+            let _ = writeln!(err, "{DECLINED_LINE}");
+            return;
+        }
+        let mut obj = serde_json::Map::new();
+        obj.insert("status".into(), Value::String("cancelled".into()));
+        obj.insert("exit_code".into(), Value::from(exit_code));
+        obj.insert("message".into(), Value::String(DECLINED_MESSAGE.into()));
+        if let Some(map) = ctx.as_object() {
+            for (k, v) in map {
+                obj.insert(k.clone(), v.clone());
+            }
+        }
+        if let Some(warnings) = self.warnings.take() {
+            obj.insert("warnings".into(), serde_json::json!(warnings));
+        }
+        self.write_structured(err, &Value::Object(obj));
     }
 
     /// Emits a verbose diagnostic line to `err` when verbose is on, quiet is

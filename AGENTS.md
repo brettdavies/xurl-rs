@@ -211,7 +211,9 @@ It is absent too when the real run refuses first: a destructive command checks i
 asks, and a store command checks the write itself, so the `confirm` template is handed out only for an invocation that
 passes those checks. The `confirmation-required` refusal carries every key of the command's context that its dry run
 carries, with the same value, each declared on `ErrorBody` and copied by `print_confirmation_required`; its `message`
-leaves the command's name to `command`.
+leaves the command's name to `command`. A prompt answered no stops the command before it writes and ends the run at exit
+1 through `Failure::Declined`: text prints `Cancelled: nothing was changed.` on stderr, and a structured format prints
+one document there, `status` `cancelled` with `exit_code`, `message`, the command's context keys, and any `warnings`.
 `response_schema` names the `xr schema` invocation for a command with a typed response, and raw mode carries none; the
 same command's `--help` ends with a `Response schema:` block, both read from the schema registry. Text output summarizes
 the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`). The first command to open an old-format store

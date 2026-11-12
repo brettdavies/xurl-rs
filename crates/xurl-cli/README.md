@@ -876,6 +876,10 @@ xr --output json --dry-run post "Hello"
   The `confirmation-required` refusal of the same invocation carries each key of the command's input that the dry run
   does, with the same value: `xr --no-interactive lists remove <id>` names `list_id`, as its dry run does. Its `message`
   does not name the command; `command` does.
+- A prompt answered no stops the command before it writes and exits 1. Text prints `Cancelled: nothing was changed.` on
+  stderr. A structured format prints one document on stderr, `status` `cancelled`, with `exit_code` 1, `message`
+  `cancelled at the prompt`, and the command's context keys beside them: `xr auth clear --all` names `app` and `all`, as
+  its dry run does. Any answer but `y` or `yes` declines, an end of input included.
 - `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
   typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
   ends with a `Response schema:` block naming it.
@@ -899,7 +903,7 @@ Try 'xr bookmark-folders add --help'.
 | Code | Meaning                                                     | Agent Action                                                   |
 | ---- | ----------------------------------------------------------- | -------------------------------------------------------------- |
 | 0    | Success                                                     | Continue                                                       |
-| 1    | General error                                               | Log and handle                                                 |
+| 1    | General error, or a prompt answered no (`cancelled`)        | Log and handle                                                 |
 | 2    | Invalid arguments, unknown command, or auth-method mismatch | Fix the flag, read `suggestion`, or pick an accepted `--auth`  |
 | 3    | Rate limited                                                | Wait `retry_after_secs`, or until `retry_at`, then retry       |
 | 4    | Not found                                                   | Resource doesn't exist                                         |
