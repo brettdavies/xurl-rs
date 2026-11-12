@@ -873,6 +873,9 @@ xr --output json --dry-run post "Hello"
   before it asks, so a dry run with `would_succeed: false` leaves the key out. The flag outranks `--force` and the
   prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries the key, and `xr --dry-run delete <id>
   --force` leaves it out, since nothing would stop.
+  The `confirmation-required` refusal of the same invocation carries each key of the command's input that the dry run
+  does, with the same value: `xr --no-interactive lists remove <id>` names `list_id`, as its dry run does. Its `message`
+  does not name the command; `command` does.
 - `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
   typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
   ends with a `Response schema:` block naming it.
@@ -981,12 +984,23 @@ as `<property>`, a template, also under `invalid-args`; and, under `auth-require
 secret `webhooks listen` lacks, and a template that runs `xr auth oauth2 --step 2` again with the redirect URL left as
 `<redirect-url>`, because that URL holds an authorization code: when the URL did not parse, or when the saved sign-in
 belongs to another app the store holds, which the template names; and the resumed wait after a 401 on the status read
-after `xr media upload`, a template too, also under `auth-required`. Under `token-store`, for an app name the store does
-not hold, the step is `xr auth status`, which lists the apps it does. A `validation` refusal names the input rule it
+after `xr media upload`, a template too, also under `auth-required`. Under `token-store`, for an app or login name the
+store refuses, the step is `xr auth status`, which lists what it holds. A `validation` refusal names the input rule it
 broke in `rule`, the validator's kebab-case code (`invalid-username`, `no-list-changes`, ...), with the sentence for it
 in `message`, and `value` carries the offending input when the rule names one: an app name, a redirect URI, or a
 header's position among the `-H` headers. Branch on `rule`, not on the sentence. Text mode prints the same advice as
 prose instead; the two need not match word for word.
+
+A request that no stored credential serves takes its step from the schemes its command accepts, the schemes each app
+stores, and the scheme `--auth` named. When the active app stores a scheme the command accepts, the step is `fix-input`
+with the invocation under `--auth` set to it. When another app does, the step is `select-app` with the invocation under
+`--app`. When the scheme to get is OAuth2, the step signs in. Otherwise the step is `fix-input` with a `template` that
+stores that scheme, each secret left as a placeholder: `xr auth app --bearer-token-file <path>` for a command that takes
+only the app's bearer token. The scheme to get is the one `--auth` named when the command accepts it, else the first the
+command accepts. A request that names a login with `-u` is served only by OAuth2 held by an app that stores that login,
+or by a bearer token on an endpoint that accepts no OAuth2; a caller who named OAuth1 or the bearer token with `--auth`
+has not asked for a login. A raw request is held to the schemes the auth matrix lists for its method and path, a path
+that carries an id taking those of the template it fits, and to every scheme when it lists none.
 
 ### Which Errors Carry a Step
 
@@ -994,8 +1008,8 @@ prose instead; the two need not match word for word.
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as listed below; none on a request's 401 except after an upload        |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
-| `token-store`                | `inspect-store` when the store file could not be loaded; `fix-input` with `xr auth status` for an app name it does not hold; none otherwise      |
-| `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
+| `token-store`                | `inspect-store` when the store file could not be loaded; `fix-input` with `xr auth status` for an app or login name it refuses; none otherwise   |
+| `auth-method-mismatch`       | `select-app`, `sign-in`, `register-app`, or `fix-input`, as listed above; none when the error names no app                                       |
 | `forbidden`                  | `enroll-app` when X names enrollment; `fix-input` for a 403 from the token endpoint that is no OAuth refusal; none otherwise                     |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset, or after `xr media upload` finished (a `template` with no reset or under `-H`); none otherwise    |
 | `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
@@ -1017,7 +1031,7 @@ prose instead; the two need not match word for word.
 | `not-found`                  | `fix-input`                                                                                                                                      |
 | `invalid-request`            | `fix-input`                                                                                                                                      |
 | `validation-failed`          | `fix-input`                                                                                                                                      |
-| `io`                         | `fix-input`, with `docs` when the token store's directory cannot be created                                                                      |
+| `io`                         | `fix-input`, with `docs` when the token store's directory cannot be created or the store file cannot be written                                  |
 | `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                                                        |
 | `home-not-set`               | `fix-input`                                                                                                                                      |
 | `destination-is-file`        | `fix-input`                                                                                                                                      |
@@ -1175,8 +1189,10 @@ To recover, repair the file, or move it aside and register again (`xr auth apps 
 ### Token Store Could Not Be Written
 
 A command that writes the token store exits 5 with reason `io` when the store cannot be written: its directory takes no
-new file, or does not exist and cannot be created. The message names the store or its directory. To recover, change the
-permissions of the directory that holds it, or set `XURL_TOKEN_STORE` to a writable path.
+new file, so the store, its temp file, or a lock file beside it cannot be created, or the directory does not exist and
+cannot be created, or the save fails after the temp file is made. The message names the store, the lock file, or the
+directory. To recover, change the permissions of the directory that holds it, or set `XURL_TOKEN_STORE` to a writable
+path.
 
 A sign-in buys tokens only the store can keep, and a refresh spends the refresh token it sends. So `xr auth oauth2` and
 the refresh of an expired login check that the store can be written before they ask for consent or send anything, and

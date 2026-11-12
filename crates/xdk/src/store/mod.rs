@@ -323,7 +323,8 @@ impl TokenStore {
             Ok(())
         } else {
             Err(Error::token_store(format!(
-                "user {username:?} not found in app"
+                "user {username:?} {}",
+                crate::error::USER_NOT_FOUND
             )))
         }
     }
@@ -332,7 +333,10 @@ impl TokenStore {
     /// [`Self::require_app`].
     fn refuse_if_app_present(&self, name: &str) -> Result<()> {
         if self.apps.contains_key(name) {
-            Err(Error::token_store(format!("app {name:?} already exists")))
+            Err(Error::token_store(format!(
+                "app {name:?} {}",
+                crate::error::APP_NAME_TAKEN
+            )))
         } else {
             Ok(())
         }
@@ -875,7 +879,12 @@ impl TokenStore {
     /// file the store resolves to.
     fn write_refused(&self, e: std::io::Error) -> Error {
         let target = atomic::resolve(&self.file_path);
-        Error::io(format!("cannot write {}: {e}", target.display())).with_source(e)
+        Error::io(format!(
+            "{}{}: {e}",
+            crate::error::STORE_WRITE_REFUSED,
+            target.display()
+        ))
+        .with_source(e)
     }
 }
 

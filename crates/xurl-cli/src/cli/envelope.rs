@@ -347,21 +347,26 @@ pub struct ErrorBody {
     /// failed. After `xr media upload` finished, a `wait-and-retry` on the
     /// status read carries the resumed wait: a command that waits out the
     /// reset X named under `--wait-on-rate-limit`, or a template when X named
-    /// none or the media command was given `-H`. Three `fix-input` steps carry
-    /// an invocation:
-    /// `listen` again on a free port, under `address-in-use`, and two under
-    /// `invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved
-    /// after the command word it came before, and the `xr schema`
-    /// invocation that works for an old name or a scope word. Six carry a
-    /// template: the `xr schema --path` invocation with the segment that
-    /// named nothing left as `<property>`, under `invalid-args`, three under
-    /// `auth-required`: the command that stores the secret `webhooks
-    /// listen` lacks, `auth oauth2 --step 2` again with its redirect URL
-    /// left as `<redirect-url>`, and the resumed wait after a 401 on the
-    /// status read after `xr media upload`, to run once the credential
-    /// works; `resume-wait` when the media command was given `-H`, with each
-    /// header's value left as `<value>`; and that `wait-and-retry` when X
-    /// named no reset or under `-H`.
+    /// none or the media command was given `-H`. A `fix-input` step carries
+    /// an invocation: `listen` again on a free port, under `address-in-use`;
+    /// under `invalid-args`, the invocation with `-u`, `--auth`, or `-t`
+    /// moved after the command word it came before, and the `xr schema`
+    /// invocation that works for an old name or a scope word; under
+    /// `auth-required` and `auth-method-mismatch`, the invocation rerun under
+    /// the `--auth` scheme the app holds; and `xr auth status`, under
+    /// `token-store`. A step carries a template for: the `xr schema --path`
+    /// invocation with the segment that named nothing left as `<property>`,
+    /// under `invalid-args`; under `auth-required`, the command that stores
+    /// the secret `webhooks listen` lacks, `auth oauth2 --step 2` again with
+    /// its redirect URL left as `<redirect-url>`, and the resumed wait after
+    /// a 401 on the status read after `xr media upload`, to run once the
+    /// credential works; under `auth-required` and `auth-method-mismatch`, the
+    /// command that stores a credential the endpoint accepts, each secret
+    /// left as a placeholder, and a `fix-input` or `select-app` rerun whose
+    /// invocation held a `-H` header; `resume-wait` when the media command was
+    /// given `-H`; and `wait-and-retry` when X named no reset or under `-H`.
+    /// Each `-H` header keeps its name in a template and has its value left as
+    /// `<value>`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next_step: Option<NextStep>,
     /// What the library warned about before the run failed, each distinct
@@ -449,6 +454,51 @@ pub struct ErrorBody {
     /// Whether `auth clear` targeted the bearer token.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bearer: Option<bool>,
+    /// Article `articles publish` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub article_id: Option<String>,
+    /// Broadcast `broadcasts remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub broadcast_id: Option<String>,
+    /// Scheduled broadcast `broadcasts scheduled cancel` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled_id: Option<String>,
+    /// Stream source `broadcasts sources remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_id: Option<String>,
+    /// Scheduled call `calls scheduled cancel` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled_call_id: Option<String>,
+    /// Occurrences of a recurring call `calls scheduled cancel` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    /// Start time of the one occurrence `calls scheduled cancel` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub occurrence_start_time: Option<String>,
+    /// Whether `calls scheduled cancel` notifies the invitees.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify_invitees: Option<bool>,
+    /// Direct message event `dm-events remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_id: Option<String>,
+    /// List `lists remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub list_id: Option<String>,
+    /// Community Note `notes remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note_id: Option<String>,
+    /// Filtered-stream rules `stream rules remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rule_ids: Option<Vec<String>>,
+    /// Whether `stream rules remove` only validates.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validate_only: Option<bool>,
+    /// Webhook a destructive `webhooks` verb targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub webhook_id: Option<String>,
+    /// Account whose subscription `webhooks subscriptions remove` ends.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
 
     /// Schema name a `validate` invocation named.
     #[serde(skip_serializing_if = "Option::is_none")]

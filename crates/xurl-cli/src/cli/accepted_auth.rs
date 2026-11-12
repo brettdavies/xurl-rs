@@ -2,7 +2,9 @@
 //! matrix for the endpoints the command's requests reach.
 
 use clap::Command;
-use xdk::api::auth_matrix::{Endpoint, WireScheme, endpoints as ep, supported_auth};
+use xdk::api::auth_matrix::{
+    Endpoint, WireScheme, endpoints as ep, supported_auth, supported_auth_for_request,
+};
 
 /// A command and the endpoints its requests reach: by default, and when
 /// `--of` names another user, for the commands that take it.
@@ -364,17 +366,42 @@ fn help_for(row: &Row) -> String {
     )
 }
 
+/// The schemes the command at `path` accepts, in preference order: those of
+/// its `--of` endpoints when `with_of` is set and the row names any. `None`
+/// for a command with no row.
+pub fn accepted_by_command(path: &str, with_of: bool) -> Option<Vec<WireScheme>> {
+    let row = ROWS.iter().find(|row| row.path == path)?;
+    let endpoints = if with_of && !row.with_of.is_empty() {
+        row.with_of
+    } else {
+        row.endpoints
+    };
+    Some(accepted_by(endpoints))
+}
+
+/// The schemes the auth matrix lists for a raw request's `method` and
+/// `path`, in preference order; every scheme when the matrix does not list
+/// the pair, since X arbitrates a request the matrix does not know.
+pub fn accepted_by_request(method: &str, path: &str) -> Vec<WireScheme> {
+    supported_auth_for_request(method, path)
+        .unwrap_or_else(|| WireScheme::ALL_BY_PREFERENCE.to_vec())
+}
+
 /// The schemes every endpoint in `endpoints` accepts, in preference order.
 fn accepted_by(endpoints: &[Endpoint]) -> Vec<WireScheme> {
     WireScheme::ALL_BY_PREFERENCE
         .into_iter()
         .filter(|scheme| {
-            endpoints.iter().all(|endpoint| {
-                supported_auth(endpoint.method, endpoint.path)
-                    .is_none_or(|accepted| accepted.iter().any(|entry| entry.wire() == *scheme))
-            })
+            endpoints
+                .iter()
+                .all(|endpoint| accepts(endpoint.method, endpoint.path, *scheme))
         })
         .collect()
+}
+
+fn accepts(method: &str, path: &str, scheme: WireScheme) -> bool {
+    supported_auth(method, path)
+        .is_none_or(|accepted| accepted.iter().any(|entry| entry.wire() == scheme))
 }
 
 fn listed(schemes: &[WireScheme]) -> String {

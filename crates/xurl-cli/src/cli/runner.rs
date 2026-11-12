@@ -403,7 +403,8 @@ async fn run_inner(
             .client_id
             .as_deref()
             .is_some_and(|value| !value.is_empty()),
-    );
+    )
+    .with_env_bearer(auth.env_bearer_token_present());
     let structured = out.format.is_structured();
     let media = media_credential(&cli);
 
@@ -505,15 +506,16 @@ fn recovery_hint(
         .iter()
         .map(|a| a.to_string_lossy().into_owned())
         .collect();
-    if carries_no_auth_method(error) {
-        return Some(crate::cli::hints::choose_hint(
+    if let Some(missing) = crate::cli::credential_step::missing_credential(error) {
+        return Some(crate::cli::credential_step::no_credential_hint(
+            missing,
             snapshot,
             &invocation,
             structured,
         ));
     }
     crate::cli::hints::unloadable_store_hint(snapshot, error)
-        .or_else(|| crate::cli::hints::app_not_found_hint(error))
+        .or_else(|| crate::cli::hints::store_name_hint(error))
         .or_else(|| crate::cli::hints::enrollment_hint(error))
         .or_else(|| crate::cli::hints::resume_wait_hint(error, media))
         .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))
@@ -526,7 +528,9 @@ fn recovery_hint(
             crate::cli::hints::refresh_refused_hint(snapshot, error, &invocation, structured)
         })
         .or_else(|| crate::cli::hints::wait_and_retry_hint(error))
-        .or_else(|| crate::cli::hints::mismatch_hint(snapshot, error, &invocation, structured))
+        .or_else(|| {
+            crate::cli::credential_step::mismatch_hint(snapshot, error, &invocation, structured)
+        })
         .or_else(|| crate::cli::hints::general_hint(error, &invoked_help(args)))
 }
 
@@ -559,18 +563,6 @@ fn media_credential(cli: &Cli) -> crate::cli::hints::MediaCredential {
         headers,
         rate_limit_max_wait: cli.wait_on_rate_limit.then_some(cli.rate_limit_max_wait),
     }
-}
-
-/// Whether this error is a missing-credential failure a recovery hint answers.
-///
-/// Both messages are constants shared with their construction sites, so the
-/// seam and the library agree on the exact strings.
-fn carries_no_auth_method(error: &xdk::error::Error) -> bool {
-    matches!(
-        error,
-        xdk::error::Error::Auth { message, .. }
-            if message == xdk::error::NO_AUTH_METHOD || message == xdk::error::NO_OAUTH2_TOKEN
-    )
 }
 
 /// Whether a clap error is a help or version display rather than a failure.

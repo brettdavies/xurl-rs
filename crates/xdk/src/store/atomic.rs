@@ -154,7 +154,11 @@ pub(crate) fn no_temp_file(target: &Path, e: &io::Error) -> io::Error {
         .unwrap_or(Path::new("."));
     io::Error::new(
         e.kind(),
-        format!("cannot create a file in {}: {e}", dir.display()),
+        format!(
+            "{} {}: {e}",
+            crate::error::STORE_FILE_UNCREATABLE,
+            dir.display()
+        ),
     )
 }
 

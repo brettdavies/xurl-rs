@@ -116,6 +116,25 @@ fn classified_status(status: u16, body: &str) -> u16 {
     }
 }
 
+/// Whether a [`Error::TokenStore`] message refuses a name the store does not
+/// take: an app it does not hold, one it already holds, or a login the app
+/// does not hold.
+fn names_a_store_entry(message: &str) -> bool {
+    message.starts_with(APP_NOT_FOUND)
+        || message.ends_with(APP_NAME_TAKEN)
+        || message.ends_with(USER_NOT_FOUND)
+}
+
+/// Whether an [`Error::Io`] message refuses a store write: the store's
+/// directory cannot be created, a lock file in it cannot be opened, or the
+/// save could not write the store file.
+fn refuses_a_store_write(message: &str) -> bool {
+    message.starts_with(STORE_DIR_UNCREATABLE)
+        || message.starts_with(STORE_LOCK_UNOPENABLE)
+        || message.starts_with(REFRESH_LOCK_UNOPENABLE)
+        || message.starts_with(STORE_WRITE_REFUSED)
+}
+
 /// `Display` of [`Error::Validation`]: the rule, with the value after a colon.
 fn validation_display(rule: &str, value: Option<&str>) -> String {
     match value {
@@ -596,7 +615,9 @@ impl Error {
     /// depend on a credential store are the binary's to choose. The token
     /// endpoint's 403 that is no OAuth refusal is `FixInput`: the token URL
     /// or the proxy in front of it is what to change. So is a store operation
-    /// that names an app the store does not hold: the name is what to change.
+    /// that names an app the store does not hold, registers a name it already
+    /// holds, or names a login the app does not hold: the name is what to
+    /// change.
     ///
     /// [`NextAction`] is library API by intent, not a rendering detail: an
     /// embedder branches on it the way `xr` renders it, so it stays on the
@@ -638,7 +659,7 @@ impl Error {
             | Self::InvalidPathParam { .. }
             | Self::MediaProcessingFailed { .. }
             | Self::AccountNotFound { .. } => Some(NextAction::FixInput),
-            Self::TokenStore { message, .. } if message.starts_with(APP_NOT_FOUND) => {
+            Self::TokenStore { message, .. } if names_a_store_entry(message) => {
                 Some(NextAction::FixInput)
             }
             Self::Auth { .. } | Self::TokenStore { .. } | Self::AuthMethodMismatch(_) => None,
@@ -650,7 +671,9 @@ impl Error {
     ///
     /// An enrollment refusal names the recipe that moves the app to the
     /// right package, a credential failure points at X's authentication
-    /// overview, and a 429 at its rate-limit rules. One arm per variant, so
+    /// overview, and a 429 at its rate-limit rules. A store write refused
+    /// because the store's directory takes no new file names the page on
+    /// writing the store. One arm per variant, so
     /// a new variant decides its pointer before it ships.
     #[must_use]
     pub fn docs_url(&self) -> Option<&'static str> {
@@ -669,9 +692,7 @@ impl Error {
                 }
             }
             Self::TokenEndpointForbidden { .. } => Some(TOKEN_ENDPOINT_DOCS),
-            Self::Io { message, .. } if message.starts_with(STORE_DIR_UNCREATABLE) => {
-                Some(STORE_WRITE_DOCS)
-            }
+            Self::Io { message, .. } if refuses_a_store_write(message) => Some(STORE_WRITE_DOCS),
             Self::Auth { .. } | Self::AuthMethodMismatch(_) => Some(AUTHENTICATION_DOCS),
             Self::Http { .. }
             | Self::Io { .. }
@@ -850,6 +871,12 @@ pub const NO_AUTH_METHOD: &str = "NoAuthMethod: no authentication method availab
 /// The message every missing-`OAuth2`-token failure carries.
 pub const NO_OAUTH2_TOKEN: &str = "TokenNotFound: oauth2 token not found";
 
+/// The message every missing-`OAuth1`-token failure carries.
+pub const NO_OAUTH1_TOKEN: &str = "TokenNotFound: OAuth1 token not found";
+
+/// The message every missing-bearer-token failure carries.
+pub const NO_BEARER_TOKEN: &str = "TokenNotFound: bearer token not found";
+
 /// The message of an interactive sign-in whose callback carried a `state`
 /// other than the one its authorize URL sent: a stale browser tab, a second
 /// sign-in, or a forged request.
@@ -970,6 +997,38 @@ pub const APP_NOT_FOUND: &str = "the store holds no app named";
 #[doc(hidden)]
 pub const STORE_DIR_UNCREATABLE: &str = "cannot create the token store's directory";
 
+/// The words in the message of an [`Error::Io`] for a save that could not
+/// create its temp file beside the store. The directory and the cause follow.
+pub(crate) const STORE_FILE_UNCREATABLE: &str = "cannot create a file in";
+
+/// The start of the message of an [`Error::Io`] for a save that could not
+/// write the store file. The file and the cause follow.
+pub(crate) const STORE_WRITE_REFUSED: &str = "cannot write ";
+
+/// The start of the message of an [`Error::Io`] for a store lock file that
+/// cannot be opened. The path and the cause follow.
+pub(crate) const STORE_LOCK_UNOPENABLE: &str = "cannot open the store lock";
+
+/// The start of the message of an [`Error::Io`] for a refresh lock file that
+/// cannot be opened. The path and the cause follow.
+pub(crate) const REFRESH_LOCK_UNOPENABLE: &str = "cannot open the refresh lock";
+
+/// The end of the message of an [`Error::TokenStore`] for registering an app
+/// under a name the store already holds. The quoted name comes before it.
+// `xr` names the apps the store holds when a message ends with this, in
+// `crates/xurl-cli/src/cli/hints.rs`; an embedder classifies the error through
+// `next_action()`.
+#[doc(hidden)]
+pub const APP_NAME_TAKEN: &str = "already exists";
+
+/// The end of the message of an [`Error::TokenStore`] for a login the named
+/// app does not hold. The quoted name comes before it.
+// `xr` names what the store holds when a message ends with this, in
+// `crates/xurl-cli/src/cli/hints.rs`; an embedder classifies the error through
+// `next_action()`.
+#[doc(hidden)]
+pub const USER_NOT_FOUND: &str = "not found in app";
+
 // ── Exit codes ─────────────────────────────────────────────────────
 
 /// Structured exit codes for machine-readable error handling.
@@ -1050,6 +1109,27 @@ mod tests {
         assert_eq!(refused.next_action(), Some(NextAction::EnrollApp));
         let forbidden = Error::api(403, "CLIENT-FORBIDDEN");
         assert_eq!(forbidden.next_action(), Some(NextAction::EnrollApp));
+    }
+
+    #[test]
+    fn only_a_store_write_refusal_names_the_store_write_page() {
+        let refused = [
+            format!("{STORE_DIR_UNCREATABLE} /x: denied"),
+            format!("{STORE_LOCK_UNOPENABLE} /x: denied"),
+            format!("{REFRESH_LOCK_UNOPENABLE} /x: denied"),
+            format!("{STORE_WRITE_REFUSED}/x/auth.yml: {STORE_FILE_UNCREATABLE} /x: denied"),
+        ];
+        for message in refused {
+            assert_eq!(
+                Error::io(message.clone()).docs_url(),
+                Some(STORE_WRITE_DOCS),
+                "{message}"
+            );
+        }
+        let unrelated = format!(
+            "could not write the checkpoint /x/cp.json: {STORE_FILE_UNCREATABLE} /x: denied"
+        );
+        assert_eq!(Error::io(unrelated).docs_url(), None);
     }
 
     #[test]

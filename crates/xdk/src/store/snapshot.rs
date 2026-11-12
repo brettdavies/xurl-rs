@@ -17,6 +17,7 @@
 use std::collections::BTreeMap;
 
 use super::{LoadState, TokenStore};
+use crate::api::auth_matrix::WireScheme;
 
 /// What one app carries, without carrying any of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +26,12 @@ pub struct AppFacts {
     pub has_client_id: bool,
     /// Whether the app holds any token: `OAuth2`, `OAuth1`, or bearer.
     pub has_tokens: bool,
+    /// Whether the app holds an `OAuth2` login, named or not.
+    pub has_oauth2: bool,
+    /// Whether the app holds `OAuth1` tokens.
+    pub has_oauth1: bool,
+    /// Whether the app holds a bearer token.
+    pub has_bearer: bool,
 }
 
 /// Secret-free snapshot of the store as one run observed it.
@@ -38,6 +45,9 @@ pub struct StoreSnapshot {
     pub active_app: String,
     /// Whether `CLIENT_ID` supplied a client id for this run.
     pub env_client_id_present: bool,
+    /// Whether `XURL_BEARER_TOKEN` supplied a bearer token for this run,
+    /// which serves a request without being stored in any app.
+    pub env_bearer_present: bool,
     /// How the backing file resolved.
     pub load_state: LoadState,
     /// Path of the backing file, so a hint can name it.
@@ -64,6 +74,10 @@ impl StoreSnapshot {
                     AppFacts {
                         has_client_id: !app.client_id.is_empty(),
                         has_tokens: app.has_tokens(),
+                        has_oauth2: !app.oauth2_tokens.is_empty()
+                            || app.unnamed_oauth2_token.is_some(),
+                        has_oauth1: app.oauth1_token.is_some(),
+                        has_bearer: app.bearer_token.is_some(),
                     },
                 )
             })
@@ -73,6 +87,7 @@ impl StoreSnapshot {
             default_app: store.default_app.clone(),
             active_app: store.get_active_app_name(active_app).to_string(),
             env_client_id_present,
+            env_bearer_present: false,
             load_state: store.load_state,
             store_path: store.file_path.display().to_string(),
             oauth2_logins: store
@@ -89,6 +104,30 @@ impl StoreSnapshot {
                 })
                 .collect(),
         }
+    }
+
+    /// This snapshot with `XURL_BEARER_TOKEN` marked as supplying a bearer.
+    #[must_use]
+    pub fn with_env_bearer(mut self, present: bool) -> Self {
+        self.env_bearer_present = present;
+        self
+    }
+
+    /// The schemes `app` can serve a request with, in auto-detect preference
+    /// order: what it stores, and the environment's bearer for the active
+    /// app.
+    #[must_use]
+    pub fn schemes_held(&self, app: &str) -> Vec<WireScheme> {
+        let facts = self.apps.get(app);
+        let env_bearer = self.env_bearer_present && app == self.active_app;
+        WireScheme::ALL_BY_PREFERENCE
+            .into_iter()
+            .filter(|scheme| match scheme {
+                WireScheme::OAuth2 => facts.is_some_and(|facts| facts.has_oauth2),
+                WireScheme::OAuth1 => facts.is_some_and(|facts| facts.has_oauth1),
+                WireScheme::App => env_bearer || facts.is_some_and(|facts| facts.has_bearer),
+            })
+            .collect()
     }
 
     /// Names of apps carrying a client id, in stable order.
@@ -111,12 +150,13 @@ impl StoreSnapshot {
             .collect()
     }
 
-    /// Names of apps already holding a token, in stable order.
+    /// Names of apps holding an `OAuth2` login, named or not, in stable
+    /// order.
     #[must_use]
-    pub fn apps_with_tokens(&self) -> Vec<String> {
+    pub fn apps_with_login(&self) -> Vec<String> {
         self.apps
             .iter()
-            .filter(|(_, facts)| facts.has_tokens)
+            .filter(|(_, facts)| facts.has_oauth2)
             .map(|(name, _)| name.clone())
             .collect()
     }

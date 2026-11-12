@@ -38,6 +38,12 @@ use xdk::error::Error;
 /// to report.
 const BINARY_WARNING_TARGET: &str = "xr";
 
+/// The `confirmation-required` refusal's sentence. The `message` of its
+/// document leaves the command to the `command` key; its text line names the
+/// command between the two parts.
+const CONFIRMATION_REQUIRED: &str = "confirmation required";
+const CONFIRMATION_HOW: &str = "pass --force or run interactively";
+
 /// Output format for machine/human consumption.
 #[derive(Clone, Debug, ValueEnum, PartialEq, Eq)]
 pub enum OutputFormat {
@@ -466,11 +472,18 @@ impl OutputConfig {
     ///
     /// Building the typed [`ErrorBody`] here is what keeps the generated
     /// schema honest: a key no field declares cannot be emitted.
-    pub(crate) fn emit_error_envelope(&self, err: &mut dyn Write, mut body: ErrorBody) {
-        body.warnings = self.warnings.take();
+    pub(crate) fn emit_error_envelope(&self, err: &mut dyn Write, body: ErrorBody) {
         let display = body.message.clone().unwrap_or_default();
+        self.emit_error_envelope_as(err, body, &display);
+    }
+
+    /// [`Self::emit_error_envelope`] with the text line `display` in place of
+    /// the body's `message`, for an error whose text names what its
+    /// structured form carries in a key of its own.
+    fn emit_error_envelope_as(&self, err: &mut dyn Write, mut body: ErrorBody, display: &str) {
+        body.warnings = self.warnings.take();
         let envelope = body.into_value();
-        self.write_envelope_or_text_error(err, &envelope, &display);
+        self.write_envelope_or_text_error(err, &envelope, display);
     }
 
     /// Writes the warnings no error envelope carried: the status-ok document
@@ -676,25 +689,43 @@ impl OutputConfig {
         };
         let get_str = |k: &str| map.get(k).and_then(Value::as_str).map(str::to_string);
         let get_bool = |k: &str| map.get(k).and_then(Value::as_bool);
-        let command = get_str("command");
-        let target = command.as_deref().unwrap_or("operation");
         let body = ErrorBody {
             reason: Reason::ConfirmationRequired,
             exit_code,
-            message: Some(format!(
-                "confirmation required for {target} — pass --force or run interactively"
-            )),
-            command,
+            message: Some(format!("{CONFIRMATION_REQUIRED} — {CONFIRMATION_HOW}")),
+            command: get_str("command"),
             post_id: get_str("post_id"),
             name: get_str("name"),
             all: get_bool("all"),
             oauth1: get_bool("oauth1"),
             oauth2_username: map.get("oauth2_username").cloned(),
             bearer: get_bool("bearer"),
+            app: get_str("app"),
+            article_id: get_str("article_id"),
+            broadcast_id: get_str("broadcast_id"),
+            scheduled_id: get_str("scheduled_id"),
+            source_id: get_str("source_id"),
+            scheduled_call_id: get_str("scheduled_call_id"),
+            scope: get_str("scope"),
+            occurrence_start_time: get_str("occurrence_start_time"),
+            notify_invitees: get_bool("notify_invitees"),
+            event_id: get_str("event_id"),
+            list_id: get_str("list_id"),
+            note_id: get_str("note_id"),
+            rule_ids: map
+                .get("rule_ids")
+                .and_then(|ids| serde_json::from_value::<Vec<String>>(ids.clone()).ok()),
+            validate_only: get_bool("validate_only"),
+            webhook_id: get_str("webhook_id"),
+            user_id: get_str("user_id"),
             next_step: Some(next_step),
             ..ErrorBody::default()
         };
-        self.emit_error_envelope(err, body);
+        let text = match &body.command {
+            Some(command) => format!("{CONFIRMATION_REQUIRED} for {command} — {CONFIRMATION_HOW}"),
+            None => format!("{CONFIRMATION_REQUIRED} — {CONFIRMATION_HOW}"),
+        };
+        self.emit_error_envelope_as(err, body, &text);
     }
 
     /// Emits a verbose diagnostic line to `err` when verbose is on, quiet is
@@ -1158,6 +1189,31 @@ mod tests {
         assert!(
             buf.is_empty(),
             "warnings on stderr must be suppressed under JSON modes"
+        );
+    }
+
+    #[test]
+    fn a_confirmation_refusal_names_the_command_in_text_and_in_a_key_of_its_own() {
+        let ctx = serde_json::json!({"command": "lists-remove", "list_id": "456"});
+        let step = || crate::cli::hints::NextStep::confirm(&["xr".to_string()]);
+
+        let text = OutputConfig::new(OutputFormat::Text, false, false, ColorChoice::Never);
+        let mut line = Vec::new();
+        text.print_confirmation_required(&mut line, &ctx, 1, step());
+        let line = String::from_utf8(line).unwrap();
+        assert!(
+            line.contains("confirmation required for lists-remove — pass --force"),
+            "{line}"
+        );
+
+        let json = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+        let mut doc = Vec::new();
+        json.print_confirmation_required(&mut doc, &ctx, 1, step());
+        let doc: serde_json::Value = serde_json::from_slice(&doc).unwrap();
+        assert_eq!(doc["command"], "lists-remove");
+        assert_eq!(
+            doc["message"],
+            "confirmation required — pass --force or run interactively"
         );
     }
 

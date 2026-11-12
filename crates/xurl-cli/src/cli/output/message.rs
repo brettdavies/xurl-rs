@@ -4,6 +4,7 @@
 //! recovery wording here are part of `xr`'s output contract and stay
 //! byte-identical across releases.
 
+use crate::cli::credential_step::setup_invocation;
 use xdk::api::auth_matrix::WireScheme;
 use xdk::error::{AuthMismatch, Error, MismatchShape, STORE_DIR_UNCREATABLE, TOKEN_URL_UNUSABLE};
 
@@ -63,10 +64,14 @@ fn auth_method_mismatch_message(mismatch: &AuthMismatch) -> String {
     let method = &mismatch.method;
     let supported = &mismatch.supported;
     let app_name = mismatch.app.as_deref().unwrap_or("the active app");
-    let suggest_first = |fallback: &str| {
+    let suggest_first = || {
         supported
             .first()
-            .map(|s| format!(" Add credentials with: xr auth {s} --app {fallback}."))
+            .and_then(|scheme| WireScheme::from_wire(scheme))
+            .map(|scheme| {
+                let command = setup_invocation(scheme, mismatch.app.as_deref());
+                format!(" Add credentials with: {command}.")
+            })
             .unwrap_or_default()
     };
     let list = |items: &[String]| {
@@ -101,7 +106,7 @@ fn auth_method_mismatch_message(mismatch: &AuthMismatch) -> String {
         MismatchShape::EmptyIntersection { available } => {
             let has = list(available);
             let accepts = list(supported);
-            let suggest = suggest_first(app_name);
+            let suggest = suggest_first();
             format!(
                 "No stored auth method on app '{app_name}' is accepted at {method} {display_path}. App has: {has}. Endpoint accepts: {accepts}.{suggest}"
             )
@@ -210,7 +215,7 @@ mod tests {
         );
         assert_eq!(
             render(&mismatch(None, Some(&["app"]), Some(""), None)),
-            "No stored auth method on app '' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1. Add credentials with: xr auth oauth2 --app ."
+            "No stored auth method on app '' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1. Add credentials with: xr auth oauth2."
         );
         assert_eq!(
             render(&mismatch(

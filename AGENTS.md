@@ -81,6 +81,19 @@ be loaded. It carries `docs`, the README section on recovering the file, and its
 names the file. When a store command is what failed (reason `token-store`), the message already names the file and the
 step carries `docs` alone.
 
+A request that no stored credential serves (`auth-required` for a missing credential, `auth-method-mismatch`) takes its
+step from `crates/xurl-cli/src/cli/credential_step.rs`, which reads the schemes the command's row in
+`crates/xurl-cli/src/cli/accepted_auth.rs` accepts, the schemes each app stores, and the scheme `--auth` named. The
+active app storing an accepted scheme gives `fix-input` with the invocation under that `--auth`; another app storing one
+gives `select-app`; when the scheme to get is OAuth2, the step is the sign-in; and otherwise `fix-input` carries a
+`template` that stores that scheme, such as `xr auth app --bearer-token-file <path>`. The scheme to get is the one
+`--auth` named when the command accepts it, else the first the command accepts. The message's `Add credentials with:`
+tail takes its command from the same `setup_invocation`. A request that names a login with `-u` is served only by OAuth2
+held by an app that stores that login, or by a bearer token on an endpoint that accepts no OAuth2; a caller who named
+OAuth1 or the bearer token with `--auth` has not asked for a login. A raw request is held to the schemes the auth matrix
+lists for its method and path, a path that carries an id taking those of the template it fits, and to every scheme when
+the matrix lists none.
+
 Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
 `invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
 `invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
@@ -104,9 +117,9 @@ fits `--rate-limit-max-wait` (60 seconds unless set).
 
 `retry` (`network-error`, `server-error`, `git-clone-failed`, and `api-error` on a 408) says nothing was wrong with the
 request. `fix-input` (`not-found`, `invalid-request`, `validation-failed`, `io`, `forbidden` for a token endpoint's 403,
-`token-store` for an app name the store does not hold, and the skill verbs' machine-state reasons) says the same
+`token-store` for an app or login name the store refuses, and the skill verbs' machine-state reasons) says the same
 invocation fails again until its input or the state it read changes. Under `token-store`, it carries `xr auth status`,
-which lists the apps the store holds. Under `address-in-use`, a port another process holds, it carries `listen` again on
+which lists what the store holds. Under `address-in-use`, a port another process holds, it carries `listen` again on
 `--port 0`: a `command`, or a `template` that hides each `-H` value. Under `invalid-args`, for `-u`, `--auth`, or `-t`
 given before a command word that takes it, it carries the invocation with the flag after the word, and for an old `xr
 schema` name or a bare scope word (`envelope`), the `xr schema` invocation that works; for an `xr schema --path` segment
@@ -201,7 +214,9 @@ outranks `--force` and the confirmation prompt, so a destructive command's dry r
 `confirmation_required: true` appears only when the real run would stop to ask, so under `--force` the key is absent.
 It is absent too when the real run refuses first: a destructive command checks its inputs and its credential before it
 asks, and a store command checks the write itself, so the `confirm` template is handed out only for an invocation that
-passes those checks.
+passes those checks. The `confirmation-required` refusal carries every key of the command's context that its dry run
+carries, with the same value, each declared on `ErrorBody` and copied by `print_confirmation_required`; its `message`
+leaves the command's name to `command`.
 `response_schema` names the `xr schema` invocation for a command with a typed response, and raw mode carries none; the
 same command's `--help` ends with a `Response schema:` block, both read from the schema registry. Text output summarizes
 the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`). The first command to open an old-format store
@@ -259,15 +274,18 @@ never the tests.
   under. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
   `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command that sends a request or changes stored state under
   `--dry-run`, or whose dry run and real run disagree on the credential, and the dry-run golden fixtures pin the
-  envelope. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command with `--max-results` that ignores the
-  global `--limit`, for one whose endpoint declares a page token in the vendored spec but whose request drops
-  `--cursor`, and for one whose `-n` help states a larger page size than its request sends; a paged list through the
-  list helpers passes all three.
+  envelope. `crates/xurl-cli/tests/confirmation_context_guard.rs` fails for a destructive command whose
+  `confirmation-required` refusal leaves out a key its dry run carries. `crates/xurl-cli/tests/help_claims_guard.rs`
+  fails for a command with `--max-results` that ignores the global `--limit`, for one whose endpoint declares a page
+  token in the vendored spec but whose request drops `--cursor`, and for one whose `-n` help states a larger page size
+  than its request sends; a paged list through the list helpers passes all three.
 - **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes
   `--auth` with no row, for a row naming no such command, and for a row whose schemes differ from the ones the
-  command's dry run accepts.
+  command's dry run accepts. `crates/xurl-cli/tests/credential_step_walk.rs` runs each of those commands over every
+  shape a store can have and with each scheme the caller can name, and fails for a credential refusal that carries no
+  step, names a scheme the row refuses, or sends the caller to a step that is refused again.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema/mod.rs`, named by the command's words as `xr help` takes them, then
   `scripts/generate-response-schemas.sh`, which writes the words joined with `-` as the file name.
