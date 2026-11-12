@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, effective_limit, list_paged, send_to_accounts, send_validated};
+use super::{Run, effective_limit, list_paged, no_checks, send_to_accounts, send_validated};
 use crate::cli::failure::CommandResult;
 use crate::cli::{CommonFlags, SpacesCommands};
 use xdk::api::{Client, shortcuts};
@@ -23,13 +23,9 @@ pub(super) async fn run(action: SpacesCommands, run: Run<'_>) -> CommandResult<(
                 "max_results": max_results,
             });
             let n = effective_limit(max_results, run.flags.global_limit);
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client: &Client| client.search_spaces(&query, state.as_deref(), n),
-            )
+            send_validated(run, ctx, no_checks, &common, |client: &Client| {
+                client.search_spaces(&query, state.as_deref(), n)
+            })
             .await
         }
         SpacesCommands::Get { space_ids, common } => {

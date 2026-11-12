@@ -273,7 +273,10 @@ never the tests.
   `confirmation-required` refusal leaves out a key its dry run carries. `crates/xurl-cli/tests/help_claims_guard.rs`
   fails for a command with `--max-results` that ignores the global `--limit`, for one whose endpoint declares a page
   token in the vendored spec but whose request drops `--cursor`, and for one whose `-n` help states a larger page size
-  than its request sends; a paged list through the list helpers passes all three.
+  than its request sends; a paged list through the list helpers passes all three. A command with a post id argument
+  checks it with `valid_post_id` before any other input, so a value that is neither digits nor a post URL is refused
+  as `invalid-post-id` before a request goes out; `crates/xurl-cli/tests/post_id_guard.rs` fails for a command that
+  accepts one or sends first.
 - **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes

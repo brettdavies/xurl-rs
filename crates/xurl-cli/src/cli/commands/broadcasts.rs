@@ -7,7 +7,7 @@ use serde_json::json;
 
 use super::{
     DryRun, Run, act_on_user, act_on_user_with, broadcast_chat, broadcast_scheduled, list_paged,
-    make_client, send_confirmed, send_or_report, send_validated, with_flags,
+    make_client, no_checks, send_confirmed, send_or_report, send_validated, with_flags,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::{BroadcastsCommands, ModeratorsCommands, MutesCommands, SourcesCommands};
@@ -70,7 +70,7 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
             list_paged(
                 run,
                 ctx,
-                || Ok(()),
+                no_checks,
                 max_results,
                 &common,
                 Client::list_broadcasts,
@@ -117,7 +117,7 @@ async fn mutes(action: MutesCommands, run: Run<'_>) -> CommandResult<()> {
             list_paged(
                 run,
                 ctx,
-                || Ok(()),
+                no_checks,
                 max_results,
                 &common,
                 Client::get_chat_mutes,
@@ -179,32 +179,24 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
     match action {
         SourcesCommands::List { common } => {
             let ctx = json!({"command": "broadcasts-sources-list"});
-            send_validated(run, ctx, || Ok(()), &common, Client::get_stream_sources).await
+            send_validated(run, ctx, no_checks, &common, Client::get_stream_sources).await
         }
         SourcesCommands::Region { common } => {
             let ctx = json!({"command": "broadcasts-sources-region"});
-            send_validated(run, ctx, || Ok(()), &common, Client::get_region).await
+            send_validated(run, ctx, no_checks, &common, Client::get_region).await
         }
         SourcesCommands::Get { source_id, common } => {
             let ctx = json!({"command": "broadcasts-sources-get", "source_id": source_id});
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client| client.get_stream_source(&source_id),
-            )
+            send_validated(run, ctx, no_checks, &common, |client| {
+                client.get_stream_source(&source_id)
+            })
             .await
         }
         SourcesCommands::StreamKey { source_id, common } => {
             let ctx = json!({"command": "broadcasts-sources-stream-key", "source_id": source_id});
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client| client.get_stream_source_key(&source_id),
-            )
+            send_validated(run, ctx, no_checks, &common, |client| {
+                client.get_stream_source_key(&source_id)
+            })
             .await
         }
         SourcesCommands::Add {
@@ -245,15 +237,9 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
         } => {
             let ctx = json!({"command": "broadcasts-sources-remove", "source_id": source_id});
             let prompt = format!("Delete stream source {source_id}?");
-            send_confirmed(
-                run,
-                ctx,
-                &prompt,
-                force,
-                || Ok(()),
-                &common,
-                |client| client.delete_stream_source(&source_id),
-            )
+            send_confirmed(run, ctx, &prompt, force, no_checks, &common, |client| {
+                client.delete_stream_source(&source_id)
+            })
             .await
         }
     }

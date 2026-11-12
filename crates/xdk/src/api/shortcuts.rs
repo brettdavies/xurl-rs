@@ -1082,10 +1082,16 @@ pub fn validate_target_username(input: &str) -> std::result::Result<(), &'static
 /// Validates a post identifier (URL or ID).
 ///
 /// # Errors
-/// Returns `empty-post-id` when the resolver yields the empty string.
+/// Returns `empty-post-id` when the resolver yields the empty string, and
+/// `invalid-post-id` when it yields anything but one to nineteen ASCII
+/// digits, such as a handle or a URL that names no post.
 pub fn validate_post_id(input: &str) -> std::result::Result<(), &'static str> {
-    if resolve_post_id(input).is_empty() {
+    let id = resolve_post_id(input);
+    if id.is_empty() {
         return Err("empty-post-id");
+    }
+    if !is_numeric_id(&id) {
+        return Err("invalid-post-id");
     }
     Ok(())
 }

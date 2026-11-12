@@ -7,8 +7,9 @@
 use serde_json::json;
 
 use super::{
-    DryRun, Run, dry_run_or_validate, effective_limit, list_for_post, list_for_user, list_paged,
-    make_client, print_typed, send_or_report, send_validated, with_flags,
+    DryRun, Invalid, Run, dry_run_or_validate, effective_limit, list_for_post, list_for_user,
+    list_paged, make_client, print_typed, send_or_report, send_validated, valid_post_id,
+    with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
@@ -25,20 +26,17 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 stdout,
                 ..
             } = run;
-            let dry_run = flags
-                .dry_run
-                .then(|| DryRun::new(json!({"command": "read", "post_id": post_id})));
+            let ctx = json!({"command": "read", "post_id": post_id});
+            let dry_run = dry_run_or_validate(flags.dry_run, ctx, || valid_post_id(&post_id))?;
             let client = make_client(cfg, auth)?;
             let call = with_flags(client.read_post(&post_id), &common, None);
             send_or_report(out, stdout, dry_run, call).await?;
         }
         Commands::Posts { post_ids, common } => {
             let ctx = json!({"command": "posts", "post_ids": post_ids});
-            let validator = || {
+            let validator = || -> Result<(), Invalid> {
                 shortcuts::validate_lookup_ids(&post_ids)?;
-                post_ids
-                    .iter()
-                    .try_for_each(|id| shortcuts::validate_post_id(id))
+                post_ids.iter().try_for_each(|id| valid_post_id(id))
             };
             send_validated(run, ctx, validator, &common, |client: &Client| {
                 client.read_posts(&post_ids)
@@ -156,12 +154,11 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 "end": end,
                 "granularity": granularity,
             });
-            let validator = || {
+            let validator = || -> Result<(), Invalid> {
                 shortcuts::validate_lookup_ids(&post_ids)?;
-                post_ids
-                    .iter()
-                    .try_for_each(|id| shortcuts::validate_post_id(id))?;
-                shortcuts::validate_time_window(Some(&start), Some(&end))
+                post_ids.iter().try_for_each(|id| valid_post_id(id))?;
+                shortcuts::validate_time_window(Some(&start), Some(&end))?;
+                Ok(())
             };
             send_validated(run, ctx, validator, &common, |client: &Client| {
                 client.post_analytics(&post_ids, &start, &end, granularity.as_deref())

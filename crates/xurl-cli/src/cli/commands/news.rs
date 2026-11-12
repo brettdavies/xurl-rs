@@ -2,7 +2,7 @@
 
 use serde_json::json;
 
-use super::{Run, effective_limit, send_validated};
+use super::{Run, effective_limit, no_checks, send_validated};
 use crate::cli::NewsCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::{Client, shortcuts};
@@ -22,13 +22,9 @@ pub(super) async fn run(action: NewsCommands, run: Run<'_>) -> CommandResult<()>
                 "max_age_hours": max_age_hours,
             });
             let n = effective_limit(max_results, run.flags.global_limit);
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client: &Client| client.search_news(&query, n, max_age_hours),
-            )
+            send_validated(run, ctx, no_checks, &common, |client: &Client| {
+                client.search_news(&query, n, max_age_hours)
+            })
             .await
         }
         NewsCommands::Get { story_id, common } => {

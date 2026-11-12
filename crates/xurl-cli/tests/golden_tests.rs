@@ -652,7 +652,7 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
                 "/2/tweets/search/recent",
             ],
         )),
-        reason_case("invalid-path-param", &["--output", "json", "read", "1/2"]),
+        reason_case("invalid-path-param", &["--output", "json", "user", "a/b"]),
         bearer(reason_case(
             "invalid-url",
             &["--output", "json", "--auth", "app", "http://[bad"],
@@ -1068,6 +1068,10 @@ fn dry_run_cases() -> Vec<Case> {
         case(
             "dry-run-empty-post-id",
             &["--output", "json", "--dry-run", "like", ""],
+        ),
+        case(
+            "dry-run-invalid-post-id",
+            &["--output", "json", "--dry-run", "like", "@jack"],
         ),
         case(
             "dry-run-invalid-time-window",
