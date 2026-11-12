@@ -359,6 +359,11 @@ async fn store_write(
 #[case::default_missing(Held::Work, &["auth", "default", "ghost"])]
 #[case::default_user_missing(Held::Work, &["auth", "default", "work", "alice"])]
 #[case::clear_nothing(Held::Work, &["auth", "clear"])]
+#[case::clear_for_a_missing_app(Held::Work, &["--app", "ghost", "auth", "clear", "--all", "--force"])]
+#[case::clear_for_a_missing_app_on_a_new_store(Held::Empty, &["--app", "ghost", "auth", "clear", "--all", "--force"])]
+#[case::clear_for_a_missing_app_unforced(Held::Work, &["--no-interactive", "--app", "ghost", "auth", "clear", "--all"])]
+#[case::clear_an_unknown_login(Held::Work, &["auth", "clear", "--oauth2-username", "alice", "--force"])]
+#[case::clear_an_unknown_login_in_a_named_app(Held::Work, &["--app", "work", "auth", "clear", "--oauth2-username", "alice", "--force"])]
 #[case::apps_remove_missing_unforced(Held::Work, &["--no-interactive", "auth", "apps", "remove", "ghost"])]
 #[case::clear_unloadable_unforced(Held::Unloadable, &["--no-interactive", "auth", "clear", "--all"])]
 #[case::apps_update_bad_redirect_uri(Held::Work, &["auth", "apps", "update", "work", "--client-id", "newclient", "--redirect-uri", "not a url"])]
@@ -414,6 +419,8 @@ async fn a_store_write_s_dry_run_refuses_as_its_real_run_does(
 #[case::app_name_taken(Held::Work, &["auth", "apps", "add", "work", "--client-id", "abcdefgh", "--client-secret-file", "SECRET"])]
 #[case::unknown_login(Held::Work, &["auth", "default", "work", "alice"])]
 #[case::unknown_app(Held::Work, &["auth", "default", "ghost"])]
+#[case::clear_unknown_app(Held::Work, &["--app", "ghost", "auth", "clear", "--all", "--force"])]
+#[case::clear_unknown_login(Held::Work, &["auth", "clear", "--oauth2-username", "alice", "--force"])]
 #[tokio::test]
 async fn a_refusal_naming_a_store_entry_carries_the_status_command(
     #[case] held: Held,
@@ -585,6 +592,7 @@ async fn a_refused_redirect_uri_takes_the_help_of_its_command(
 #[rstest::rstest]
 #[case::apps_remove(&["auth", "apps", "remove", "work"])]
 #[case::clear(&["auth", "clear", "--all"])]
+#[case::clear_a_named_app(&["--app", "work", "auth", "clear", "--all"])]
 #[tokio::test]
 async fn a_store_command_that_would_run_still_asks(#[case] args: &[&str]) {
     let tmp = TempDir::new().expect("tempdir");
@@ -613,6 +621,8 @@ async fn a_store_command_that_would_run_still_asks(#[case] args: &[&str]) {
 #[case::apps_remove(Held::Work, &["auth", "apps", "remove", "work", "--force"])]
 #[case::redirect_uri(Held::Work, &["auth", "apps", "redirect-uri", "set", "work", "http://localhost:8080/callback"])]
 #[case::clear(Held::Work, &["auth", "clear", "--all", "--force"])]
+#[case::clear_a_named_app(Held::Work, &["--app", "work", "auth", "clear", "--all", "--force"])]
+#[case::clear_a_new_store(Held::Empty, &["auth", "clear", "--all", "--force"])]
 #[case::default(Held::Work, &["auth", "default", "work"])]
 #[case::app_on_a_new_store(Held::Empty, &["auth", "app", "--bearer-token-file", "SECRET"])]
 #[case::oauth1_on_a_new_store(Held::Empty, &["auth", "oauth1", "--consumer-key", "ck", "--consumer-secret-file", "SECRET", "--access-token-file", "SECRET", "--token-secret-file", "SECRET"])]

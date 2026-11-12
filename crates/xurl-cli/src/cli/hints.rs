@@ -368,20 +368,17 @@ impl NextStep {
         }
     }
 
-    /// Run `invocation` again with `--force`. It is a template and not a
-    /// command: running it destroys what the command names, so the caller
-    /// decides.
+    /// Run `invocation` again with `--force`, on `app` when the refusal named
+    /// one, so an app that came from `XURL_APP` or the store's default is the
+    /// one the rerun acts on. It is a template and not a command: running it
+    /// destroys what the command names, so the caller decides.
     #[must_use]
-    pub fn confirm(invocation: &[String]) -> Self {
-        let mut words: Vec<String> = invocation.iter().map(|arg| shell_word(arg)).collect();
-        if let Some(program) = words.first_mut() {
-            *program = ROOT_COMMAND.to_string();
-        }
-        words.push("--force".to_string());
+    pub fn confirm(invocation: &[String], app: Option<&str>) -> Self {
+        let rerun = rerun_command(invocation, app, None);
         Self {
             action: NextAction::Confirm,
             command: None,
-            template: Some(words.join(" ")),
+            template: Some(format!("{} --force", rerun.line)),
             docs: None,
         }
     }
@@ -1906,7 +1903,7 @@ mod tests {
             .iter()
             .map(|arg| (*arg).to_string())
             .collect();
-        let step = NextStep::confirm(&invocation);
+        let step = NextStep::confirm(&invocation, None);
         assert_eq!(step.action, NextAction::Confirm);
         assert!(
             step.command.is_none(),
@@ -1915,6 +1912,34 @@ mod tests {
         assert_eq!(
             step.template.as_deref(),
             Some("xr auth apps remove 'my app' --force")
+        );
+    }
+
+    /// A refusal that names the app its command acts on pins it into the
+    /// template, once, whether or not the invocation named it.
+    #[test]
+    fn confirm_names_the_app_the_refusal_acts_on() {
+        let words =
+            |args: &[&str]| -> Vec<String> { args.iter().map(|a| (*a).to_string()).collect() };
+
+        let from_the_environment =
+            NextStep::confirm(&words(&["xr", "auth", "clear", "--all"]), Some("second"));
+        assert_eq!(
+            from_the_environment.template.as_deref(),
+            Some("xr --app second auth clear --all --force")
+        );
+        let named = NextStep::confirm(
+            &words(&["xr", "--app=second", "auth", "clear", "--all"]),
+            Some("second"),
+        );
+        assert_eq!(
+            named.template.as_deref(),
+            Some("xr --app second auth clear --all --force")
+        );
+        let unnamed = NextStep::confirm(&words(&["xr", "auth", "clear", "--all"]), None);
+        assert_eq!(
+            unnamed.template.as_deref(),
+            Some("xr auth clear --all --force")
         );
     }
 

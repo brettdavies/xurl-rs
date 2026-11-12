@@ -134,11 +134,11 @@ endpoint on that read, which a refresh during the wait meets, carries the same t
 proxy are fixed. For a 403 from the token endpoint that is no OAuth refusal, `docs` names the README section on the
 token endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other
 status) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and carries a `template`, the
-invocation with `--force`: it is never a `command`, so an agent that runs every command it is handed cannot confirm a
-deletion by accident. `run-command` names the sibling skill verb that repairs `destination-not-empty` or
-`not-installed`. Under `destination-not-empty` from `skill update` itself, whose directory holds something other than
-the bundle, the step is `fix-input` and `refused_dir` names the directory, since nothing but the caller moves what `xr`
-did not install.
+invocation with `--force`, under the `--app` the refusal's `app` key names: it is never a `command`, so an agent that
+runs every command it is handed cannot confirm a deletion by accident. `run-command` names the sibling skill verb that
+repairs `destination-not-empty` or `not-installed`. Under `destination-not-empty` from `skill update` itself, whose
+directory holds something other than the bundle, the step is `fix-input` and `refused_dir` names the directory, since
+nothing but the caller moves what `xr` did not install.
 
 `crates/xdk/src/auth/` holds the four implementations. OAuth1 signing follows RFC 5849 (HMAC-SHA1, percent-encoded base
 string, sorted parameter list). PKCE is the standard `code_verifier`/`code_challenge` flow with refresh-token rotation.
@@ -216,7 +216,9 @@ It is absent too when the real run refuses first: a destructive command checks i
 asks, and a store command checks the write itself, so the `confirm` template is handed out only for an invocation that
 passes those checks. The `confirmation-required` refusal carries every key of the command's context that its dry run
 carries, with the same value, each declared on `ErrorBody` and copied by `print_confirmation_required`; its `message`
-leaves the command's name to `command`.
+leaves the command's name to `command`. A prompt answered no stops the command before it writes and ends the run at exit
+1 through `Failure::Declined`: text prints `Cancelled: nothing was changed.` on stderr, and a structured format prints
+one document there, `status` `cancelled` with `exit_code`, `message`, the command's context keys, and any `warnings`.
 `response_schema` names the `xr schema` invocation for a command with a typed response, and raw mode carries none; the
 same command's `--help` ends with a `Response schema:` block, both read from the schema registry. Text output summarizes
 the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`). The first command to open an old-format store
@@ -278,7 +280,10 @@ never the tests.
   `confirmation-required` refusal leaves out a key its dry run carries. `crates/xurl-cli/tests/help_claims_guard.rs`
   fails for a command with `--max-results` that ignores the global `--limit`, for one whose endpoint declares a page
   token in the vendored spec but whose request drops `--cursor`, and for one whose `-n` help states a larger page size
-  than its request sends; a paged list through the list helpers passes all three.
+  than its request sends; a paged list through the list helpers passes all three. A command with a post id argument
+  checks it with `valid_post_id` before any other input, so a value that is neither digits nor a post URL is refused
+  as `invalid-post-id` before a request goes out (`post --clip` has its own rule, `invalid-clip-post-id`);
+  `crates/xurl-cli/tests/post_id_guard.rs` fails for a command that accepts one or sends first.
 - **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes

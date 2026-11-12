@@ -58,6 +58,22 @@ impl Drop for Rehearsal {
     }
 }
 
+/// Whether [`TokenStore::rehearse`] runs on this thread.
+fn rehearsing() -> bool {
+    REHEARSING.with(std::cell::Cell::get)
+}
+
+/// Refuses a write while a rehearsal runs on this thread: a rehearsal saves
+/// nothing, so a write path that reaches the disk anyway is a defect.
+fn refuse_if_rehearsing() -> Result<()> {
+    if rehearsing() {
+        return Err(Error::Internal(
+            "a token store write was attempted during a rehearsal".to_string(),
+        ));
+    }
+    Ok(())
+}
+
 // ── TokenStore ───────────────────────────────────────────────────────
 
 /// Manages authentication tokens across multiple apps.
@@ -294,6 +310,14 @@ impl TokenStore {
         }
     }
 
+    /// [`Self::require_app`] for a write: a store that could not be loaded
+    /// holds no apps because it was not read, so it is refused as unloadable
+    /// before the name is looked up.
+    fn require_app_to_write(&self, name: &str) -> Result<()> {
+        self.refuse_if_load_failed()?;
+        self.require_app(name)
+    }
+
     fn app_not_found(name: &str) -> Error {
         Error::token_store(format!("{} {name:?}", crate::error::APP_NOT_FOUND))
     }
@@ -312,6 +336,31 @@ impl TokenStore {
             Ok(())
         } else {
             self.require_app(name)
+        }
+    }
+
+    /// What a clear checks before it removes anything: the store loaded, the
+    /// app `app_name` names exists (an empty name is the default app, which a
+    /// clear leaves alone when the store holds none), and `username`, when
+    /// given, is a login that app holds.
+    ///
+    /// # Errors
+    ///
+    /// The token-store error of a store that could not be loaded, of an app
+    /// the store does not hold, or of a login the app does not hold.
+    // `xr auth clear` and its dry run meet this ahead of the clear
+    // (`crates/xurl-cli/src/cli/commands/auth/session.rs`).
+    #[doc(hidden)]
+    pub fn refuse_if_clear_target_missing(
+        &self,
+        app_name: &str,
+        username: Option<&str>,
+    ) -> Result<()> {
+        self.refuse_if_load_failed()?;
+        self.refuse_if_app_missing(app_name)?;
+        match username {
+            Some(username) => Self::require_user(self.resolve_app(app_name), username),
+            None => Ok(()),
         }
     }
 
@@ -360,7 +409,7 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn update_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
-        self.require_app(name)?;
+        self.require_app_to_write(name)?;
         self.update(|store| {
             let app = store
                 .apps
@@ -382,7 +431,7 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn remove_app(&mut self, name: &str) -> Result<()> {
-        self.require_app(name)?;
+        self.require_app_to_write(name)?;
         self.update(|store| {
             store.require_app(name)?;
             store.apps.remove(name);
@@ -399,7 +448,7 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn set_default_app(&mut self, name: &str) -> Result<()> {
-        self.require_app(name)?;
+        self.require_app_to_write(name)?;
         self.update(|store| {
             store.require_app(name)?;
             store.default_app = name.to_string();
@@ -482,6 +531,7 @@ impl TokenStore {
     /// Returns an error if the app is not found, the username is not found
     /// in that app, or the store cannot be saved.
     pub fn set_default_app_and_user(&mut self, name: &str, username: &str) -> Result<()> {
+        self.refuse_if_load_failed()?;
         self.require_user_in_app(name, username)?;
         self.update(|store| {
             store.require_user_in_app(name, username)?;
@@ -516,6 +566,7 @@ impl TokenStore {
     ///
     /// Returns an error if the username is not found in the app or the store cannot be saved.
     pub fn set_default_user(&mut self, app_name: &str, username: &str) -> Result<()> {
+        self.refuse_if_load_failed()?;
         Self::require_user(self.resolve_app(app_name), username)?;
         self.update(|store| {
             let app = store.resolve_app_mut(app_name);
@@ -544,7 +595,7 @@ impl TokenStore {
     /// Returns an error if the URI fails validation or the store cannot be saved.
     pub fn set_app_redirect_uri(&mut self, name: &str, uri: &str) -> Result<()> {
         if !name.is_empty() {
-            self.require_app(name)?;
+            self.require_app_to_write(name)?;
         }
         if !uri.is_empty() {
             let _ = crate::config::Config::validate_redirect_uri(uri)?;
@@ -689,7 +740,7 @@ impl TokenStore {
     /// cannot be loaded, `f` fails, or the save fails. When `f` fails, the
     /// file is left as it was.
     pub fn update<R>(&mut self, f: impl FnOnce(&mut Self) -> Result<R>) -> Result<R> {
-        if REHEARSING.with(std::cell::Cell::get) {
+        if rehearsing() {
             // In the order the real write meets them, so a store failing
             // two checks is refused with the one the real write names.
             if layout::outermost_store_dir_to_create(&self.file_path).is_some() {
@@ -724,6 +775,9 @@ impl TokenStore {
         F: FnOnce(&mut Self) -> Result<R> + Send + 'static,
         R: Send + 'static,
     {
+        // The pool thread below carries no rehearsal mark, so the check is
+        // made here, where the caller's thread still does.
+        refuse_if_rehearsing()?;
         // A blocking-pool thread has no thread-local dispatcher, so the
         // caller's is carried in; otherwise the store's warnings vanish.
         let dispatch = tracing::Dispatch::default();
@@ -779,6 +833,7 @@ impl TokenStore {
     ///
     /// Returns an error when the lock cannot be taken or the save fails.
     pub(crate) fn save_locked(&self) -> Result<()> {
+        refuse_if_rehearsing()?;
         self.ensure_dir()?;
         let _lock = lock::StoreLock::acquire(&self.file_path)?;
         self.save_to_file()
@@ -786,6 +841,7 @@ impl TokenStore {
 
     /// Writes the store to its file as YAML, atomically and `0600`.
     pub(crate) fn save_to_file(&self) -> Result<()> {
+        refuse_if_rehearsing()?;
         self.refuse_if_load_failed()?;
         let sf = types::StoreFile {
             apps: self.apps.clone(),
@@ -872,7 +928,7 @@ impl TokenStore {
         }
         let target = atomic::resolve(&self.file_path);
         atomic::probe_temp_file(&target)
-            .map_err(|e| self.write_refused(atomic::no_temp_file(&target, &e)))
+            .map_err(|e| self.write_refused(atomic::no_temp_file(&target, e)))
     }
 
     /// The error of a save that could not write the store file, naming the
@@ -909,3 +965,6 @@ fn validate_app_name(name: &str) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod rehearsal_tests;

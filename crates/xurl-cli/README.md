@@ -665,6 +665,12 @@ Write the per-app stored redirect URI. The scheme must be `https`, or `http` wit
 xr auth apps redirect-uri set prod http://localhost:8080/callback
 ```
 
+`xr auth clear` removes credentials from one app: the one `--app` or `XURL_APP` names, else the default app. `--all`
+clears everything that app holds and no other app's. An app the store does not hold is refused, as is an
+`--oauth2-username` the app has no login for. Its prompt, its dry run, and its `confirmation-required` refusal name the
+app, and the refusal's `confirm` template carries `--app` so the rerun acts on the same one. A store that holds no app
+has none to name: the `app` key is `null`.
+
 If you run `xr auth oauth2` without `--app`, the default app has no `client_id` set, and another registered app does
 have credentials, the CLI prints a warning suggesting `xr auth oauth2 --app NAME` so the token lands on the right app
 instead of the credential-less default.
@@ -876,6 +882,10 @@ xr --output json --dry-run post "Hello"
   The `confirmation-required` refusal of the same invocation carries each key of the command's input that the dry run
   does, with the same value: `xr --no-interactive lists remove <id>` names `list_id`, as its dry run does. Its `message`
   does not name the command; `command` does.
+- A prompt answered no stops the command before it writes and exits 1. Text prints `Cancelled: nothing was changed.` on
+  stderr. A structured format prints one document on stderr, `status` `cancelled`, with `exit_code` 1, `message`
+  `cancelled at the prompt`, and the command's context keys beside them: `xr auth clear --all` names `app` and `all`, as
+  its dry run does. Any answer but `y` or `yes` declines, an end of input included.
 - `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
   typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
   ends with a `Response schema:` block naming it.
@@ -899,7 +909,7 @@ Try 'xr bookmark-folders add --help'.
 | Code | Meaning                                                     | Agent Action                                                   |
 | ---- | ----------------------------------------------------------- | -------------------------------------------------------------- |
 | 0    | Success                                                     | Continue                                                       |
-| 1    | General error                                               | Log and handle                                                 |
+| 1    | General error, or a prompt answered no (`cancelled`)        | Log and handle                                                 |
 | 2    | Invalid arguments, unknown command, or auth-method mismatch | Fix the flag, read `suggestion`, or pick an accepted `--auth`  |
 | 3    | Rate limited                                                | Wait `retry_after_secs`, or until `retry_at`, then retry       |
 | 4    | Not found                                                   | Resource doesn't exist                                         |
@@ -1024,7 +1034,7 @@ that carries an id taking those of the template it fits, and to every scheme whe
 | `missing-host`               | `show-help`                                                                                                                                      |
 | `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                  |
 | `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                            |
-| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`                                                                                     |
+| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`, under the `--app` the refusal names                                                |
 | `network-error`              | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
 | `server-error`               | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
 | `git-clone-failed`           | `retry`                                                                                                                                          |

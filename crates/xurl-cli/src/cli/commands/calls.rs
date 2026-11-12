@@ -3,7 +3,7 @@
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use super::{Run, send_confirmed, send_to_accounts, send_validated, stand_in_ids};
+use super::{Run, no_checks, send_confirmed, send_to_accounts, send_validated, stand_in_ids};
 use crate::cli::failure::CommandResult;
 use crate::cli::{
     CallAnswer, CallDetailsArgs, CallScope, CallsCommands, OccurrenceArgs,
@@ -17,13 +17,9 @@ pub(super) async fn run(target: CallsCommands, run: Run<'_>) -> CommandResult<()
     match target {
         CallsCommands::Get { call_id, common } => {
             let ctx = json!({"command": "calls-get", "call_id": call_id});
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client| client.get_call(&call_id),
-            )
+            send_validated(run, ctx, no_checks, &common, |client| {
+                client.get_call(&call_id)
+            })
             .await
         }
         CallsCommands::Scheduled { action } => scheduled(action, run).await,
@@ -66,13 +62,9 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
                 "command": "calls-scheduled-get",
                 "scheduled_call_id": scheduled_call_id,
             });
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client| client.get_scheduled_call(&scheduled_call_id),
-            )
+            send_validated(run, ctx, no_checks, &common, |client| {
+                client.get_scheduled_call(&scheduled_call_id)
+            })
             .await
         }
         ScheduledCallsCommands::Add {

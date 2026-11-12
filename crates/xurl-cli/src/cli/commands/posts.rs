@@ -3,7 +3,10 @@
 
 use serde_json::json;
 
-use super::{Run, dry_run_or_validate, make_client, send_confirmed, send_or_report, with_flags};
+use super::{
+    Invalid, Run, dry_run_or_validate, make_client, send_confirmed, send_or_report, valid_post_id,
+    with_flags,
+};
 use crate::cli::failure::CommandResult;
 use crate::cli::{Commands, CommonFlags};
 use xdk::api::shortcuts::{self, PostClip};
@@ -106,10 +109,11 @@ async fn reply(
         "body": text,
         "media_ids": media_ids,
     });
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_post_id(post_id)?;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || -> Result<(), Invalid> {
+        valid_post_id(post_id)?;
         shortcuts::validate_post_body(text)?;
-        shortcuts::validate_media_attachments(media_ids)
+        shortcuts::validate_media_attachments(media_ids)?;
+        Ok(())
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(client.reply_to_post(post_id, text, media_ids), common, None);
@@ -131,9 +135,10 @@ async fn quote(run: Run<'_>, post_id: &str, text: &str, common: &CommonFlags) ->
         "post_id": post_id,
         "body": text,
     });
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_post_id(post_id)?;
-        shortcuts::validate_post_body(text)
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || -> Result<(), Invalid> {
+        valid_post_id(post_id)?;
+        shortcuts::validate_post_body(text)?;
+        Ok(())
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(client.quote_post(post_id, text), common, None);
@@ -149,7 +154,7 @@ async fn delete(
 ) -> CommandResult<()> {
     let ctx = json!({"command": "delete", "post_id": post_id});
     let prompt = format!("Delete post {post_id}?");
-    let validate = || shortcuts::validate_post_id(post_id);
+    let validate = || valid_post_id(post_id);
     send_confirmed(run, ctx, &prompt, force, validate, common, |client| {
         client.delete_post(post_id)
     })

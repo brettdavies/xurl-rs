@@ -41,6 +41,9 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
         }
         "empty-username" => "The username is empty.".to_string(),
         "empty-post-id" => "The post id is empty; give an id or a post URL.".to_string(),
+        "invalid-post-id" => format!(
+            "{given} is not a post id: give 1 to 19 digits, alone or as the id in a post URL."
+        ),
         "mixed-ids-and-handles" => {
             "Give every account as a handle or every one as an id; X looks up each form \
              separately."

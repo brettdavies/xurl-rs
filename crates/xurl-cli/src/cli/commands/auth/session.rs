@@ -121,14 +121,79 @@ pub(super) struct ClearArgs {
     pub(super) force: bool,
 }
 
+/// What `xr auth clear` removes, picked once from the four selectors. When
+/// several are given the first of this order wins: all, `OAuth1`, an `OAuth2`
+/// login, bearer.
+enum ClearTarget<'a> {
+    All,
+    OAuth1,
+    OAuth2(&'a str),
+    Bearer,
+}
+
+impl<'a> ClearTarget<'a> {
+    fn from_args(args: &'a ClearArgs) -> Option<Self> {
+        if args.all {
+            Some(Self::All)
+        } else if args.oauth1 {
+            Some(Self::OAuth1)
+        } else if let Some(username) = &args.oauth2_username {
+            Some(Self::OAuth2(username))
+        } else if args.bearer {
+            Some(Self::Bearer)
+        } else {
+            None
+        }
+    }
+
+    fn label(&self) -> &'static str {
+        match self {
+            Self::All => "all credentials",
+            Self::OAuth1 => "OAuth1 tokens",
+            Self::OAuth2(_) => "OAuth2 token",
+            Self::Bearer => "bearer token",
+        }
+    }
+
+    fn prompt(&self, app: Option<&str>) -> String {
+        match app {
+            Some(app) => format!("Clear {} in app {app:?}?", self.label()),
+            None => format!("Clear {} in the default app?", self.label()),
+        }
+    }
+
+    fn cleared_message(&self) -> String {
+        match self {
+            Self::All => "All authentication cleared!".to_string(),
+            Self::OAuth1 => "OAuth1 tokens cleared!".to_string(),
+            Self::OAuth2(username) => format!("OAuth2 token cleared for {username}!"),
+            Self::Bearer => "Bearer token cleared!".to_string(),
+        }
+    }
+
+    /// Clears the target from the app `app` names, or the default app when it
+    /// is empty. The checks come first, so a rehearsal of this is refused as
+    /// the real run is.
+    fn clear(&self, store: &mut TokenStore, app: &str) -> Result<()> {
+        let login = match self {
+            Self::OAuth2(username) => Some(*username),
+            Self::All | Self::OAuth1 | Self::Bearer => None,
+        };
+        store.refuse_if_clear_target_missing(app, login)?;
+        match self {
+            Self::All => store.clear_all_for_app(app),
+            Self::OAuth1 => store.clear_oauth1_tokens_for_app(app),
+            Self::OAuth2(username) => store.clear_oauth2_token_for_app(app, username),
+            Self::Bearer => store.clear_bearer_token_for_app(app),
+        }
+    }
+}
+
+fn nothing_to_clear() -> Error {
+    Error::validation("nothing-to-clear")
+}
+
 pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
-    let ClearArgs {
-        all,
-        oauth1,
-        oauth2_username,
-        bearer,
-        force,
-    } = args;
     let AuthCtx {
         auth,
         flags,
@@ -142,62 +207,39 @@ pub(super) fn clear(args: ClearArgs, ctx: AuthCtx<'_>) -> CommandResult<()> {
         quiet,
         ..
     } = flags;
+    let app = auth.app_name().to_string();
+    let acting_app = Some(auth.token_store.get_active_app_name(&app))
+        .filter(|name| !name.is_empty())
+        .map(str::to_string);
     let ctx = json!({
         "command": "auth-clear",
-        "all": all,
-        "oauth1": oauth1,
-        "oauth2_username": oauth2_username,
-        "bearer": bearer,
+        "app": acting_app,
+        "all": args.all,
+        "oauth1": args.oauth1,
+        "oauth2_username": args.oauth2_username,
+        "bearer": args.bearer,
     });
+    let force = args.force;
+    let target = ClearTarget::from_args(&args);
 
-    let clear_named = |store: &mut TokenStore| {
-        if all {
-            store.clear_all()
-        } else if oauth1 {
-            store.clear_oauth1_tokens()
-        } else if let Some(username) = &oauth2_username {
-            store.clear_oauth2_token(username)
-        } else if bearer {
-            store.clear_bearer_token()
-        } else {
-            Err(Error::validation("nothing-to-clear"))
-        }
-    };
-    let target = if all {
-        "all credentials"
-    } else if oauth1 {
-        "OAuth1 tokens"
-    } else if oauth2_username.is_some() {
-        "OAuth2 token"
-    } else if bearer {
-        "bearer token"
-    } else {
-        ""
+    let clear_named = |store: &mut TokenStore| match &target {
+        Some(target) => target.clear(store, &app),
+        None => Err(nothing_to_clear()),
     };
     if dry_run {
         // Only a named target stops the real run to ask.
-        let ask = (!target.is_empty()).then_some(force);
+        let ask = target.as_ref().map(|_| force);
         return rehearsed_asking(&auth.token_store, clear_named, ctx, ask, out, stdout);
     }
-    if !target.is_empty() {
-        let prompt = format!("Clear {target}?");
-        auth.token_store.rehearse(clear_named)?;
-        if !gate_destructive(force, no_interactive, quiet, &prompt, &ctx)? {
-            return Ok(());
-        }
-    }
-
-    clear_named(&mut auth.token_store)?;
-    let cleared = if all {
-        "All authentication cleared!".to_string()
-    } else if oauth1 {
-        "OAuth1 tokens cleared!".to_string()
-    } else if let Some(username) = &oauth2_username {
-        format!("OAuth2 token cleared for {username}!")
-    } else {
-        "Bearer token cleared!".to_string()
+    let Some(target) = &target else {
+        return Err(nothing_to_clear().into());
     };
-    out.print_ok_message(stdout, &cleared);
+    auth.token_store.rehearse(clear_named)?;
+    let prompt = target.prompt(acting_app.as_deref());
+    gate_destructive(force, no_interactive, quiet, &prompt, &ctx)?;
+
+    target.clear(&mut auth.token_store, &app)?;
+    out.print_ok_message(stdout, &target.cleared_message());
     Ok(())
 }
 
@@ -350,4 +392,25 @@ fn prompt_select(label: &str, items: &[String]) -> Result<Option<String>> {
         return Ok(None);
     }
     Ok(Some(items[idx - 1].clone()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_confirmation_names_what_goes_and_the_app_it_goes_from() {
+        assert_eq!(
+            ClearTarget::OAuth2("alice").prompt(Some("work")),
+            r#"Clear OAuth2 token in app "work"?"#
+        );
+        assert_eq!(
+            ClearTarget::All.prompt(Some("default")),
+            r#"Clear all credentials in app "default"?"#
+        );
+        assert_eq!(
+            ClearTarget::Bearer.prompt(None),
+            "Clear bearer token in the default app?"
+        );
+    }
 }
