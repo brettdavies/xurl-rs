@@ -294,6 +294,14 @@ impl TokenStore {
         }
     }
 
+    /// [`Self::require_app`] for a write: a store that could not be loaded
+    /// holds no apps because it was not read, so it is refused as unloadable
+    /// before the name is looked up.
+    fn require_app_to_write(&self, name: &str) -> Result<()> {
+        self.refuse_if_load_failed()?;
+        self.require_app(name)
+    }
+
     fn app_not_found(name: &str) -> Error {
         Error::token_store(format!("{} {name:?}", crate::error::APP_NOT_FOUND))
     }
@@ -360,7 +368,7 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn update_app(&mut self, name: &str, client_id: &str, client_secret: &str) -> Result<()> {
-        self.require_app(name)?;
+        self.require_app_to_write(name)?;
         self.update(|store| {
             let app = store
                 .apps
@@ -382,7 +390,7 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn remove_app(&mut self, name: &str) -> Result<()> {
-        self.require_app(name)?;
+        self.require_app_to_write(name)?;
         self.update(|store| {
             store.require_app(name)?;
             store.apps.remove(name);
@@ -399,7 +407,7 @@ impl TokenStore {
     ///
     /// Returns an error if the app is not found or the store cannot be saved.
     pub fn set_default_app(&mut self, name: &str) -> Result<()> {
-        self.require_app(name)?;
+        self.require_app_to_write(name)?;
         self.update(|store| {
             store.require_app(name)?;
             store.default_app = name.to_string();
@@ -482,6 +490,7 @@ impl TokenStore {
     /// Returns an error if the app is not found, the username is not found
     /// in that app, or the store cannot be saved.
     pub fn set_default_app_and_user(&mut self, name: &str, username: &str) -> Result<()> {
+        self.refuse_if_load_failed()?;
         self.require_user_in_app(name, username)?;
         self.update(|store| {
             store.require_user_in_app(name, username)?;
@@ -516,6 +525,7 @@ impl TokenStore {
     ///
     /// Returns an error if the username is not found in the app or the store cannot be saved.
     pub fn set_default_user(&mut self, app_name: &str, username: &str) -> Result<()> {
+        self.refuse_if_load_failed()?;
         Self::require_user(self.resolve_app(app_name), username)?;
         self.update(|store| {
             let app = store.resolve_app_mut(app_name);
@@ -544,7 +554,7 @@ impl TokenStore {
     /// Returns an error if the URI fails validation or the store cannot be saved.
     pub fn set_app_redirect_uri(&mut self, name: &str, uri: &str) -> Result<()> {
         if !name.is_empty() {
-            self.require_app(name)?;
+            self.require_app_to_write(name)?;
         }
         if !uri.is_empty() {
             let _ = crate::config::Config::validate_redirect_uri(uri)?;
