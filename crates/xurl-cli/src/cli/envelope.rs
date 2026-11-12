@@ -449,6 +449,51 @@ pub struct ErrorBody {
     /// Whether `auth clear` targeted the bearer token.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bearer: Option<bool>,
+    /// Article `articles publish` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub article_id: Option<String>,
+    /// Broadcast `broadcasts remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub broadcast_id: Option<String>,
+    /// Scheduled broadcast `broadcasts scheduled cancel` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled_id: Option<String>,
+    /// Stream source `broadcasts sources remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_id: Option<String>,
+    /// Scheduled call `calls scheduled cancel` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scheduled_call_id: Option<String>,
+    /// Occurrences of a recurring call `calls scheduled cancel` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    /// Start time of the one occurrence `calls scheduled cancel` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub occurrence_start_time: Option<String>,
+    /// Whether `calls scheduled cancel` notifies the invitees.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notify_invitees: Option<bool>,
+    /// Direct message event `dm-events remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_id: Option<String>,
+    /// List `lists remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub list_id: Option<String>,
+    /// Community Note `notes remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note_id: Option<String>,
+    /// Filtered-stream rules `stream rules remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rule_ids: Option<Vec<String>>,
+    /// Whether `stream rules remove` only validates.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validate_only: Option<bool>,
+    /// Webhook a destructive `webhooks` verb targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub webhook_id: Option<String>,
+    /// Account whose subscription `webhooks subscriptions remove` ends.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
 
     /// Schema name a `validate` invocation named.
     #[serde(skip_serializing_if = "Option::is_none")]

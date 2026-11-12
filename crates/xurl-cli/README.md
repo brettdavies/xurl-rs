@@ -873,6 +873,9 @@ xr --output json --dry-run post "Hello"
   before it asks, so a dry run with `would_succeed: false` leaves the key out. The flag outranks `--force` and the
   prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries the key, and `xr --dry-run delete <id>
   --force` leaves it out, since nothing would stop.
+  The `confirmation-required` refusal of the same invocation carries each key of the command's input that the dry run
+  does, with the same value: `xr --no-interactive lists remove <id>` names `list_id`, as its dry run does. Its `message`
+  does not name the command; `command` does.
 - `response_schema` names the `xr schema` invocation that describes the command's response, on every command with a
   typed response, whether the real run would succeed or not. A raw request carries none. The same command's `--help`
   ends with a `Response schema:` block naming it.

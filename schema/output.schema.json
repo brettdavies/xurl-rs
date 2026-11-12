@@ -368,6 +368,13 @@
             "null"
           ]
         },
+        "article_id": {
+          "description": "Article `articles publish` targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "available_in_app": {
           "description": "Auth schemes available for the active app.",
           "items": {
@@ -389,6 +396,13 @@
           "description": "Whether `auth clear` targeted the bearer token.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "broadcast_id": {
+          "description": "Broadcast `broadcasts remove` targeted.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -415,6 +429,13 @@
         },
         "endpoint": {
           "description": "Endpoint template the request targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event_id": {
+          "description": "Direct message event `dm-events remove` targeted.",
           "type": [
             "string",
             "null"
@@ -484,6 +505,13 @@
             "null"
           ]
         },
+        "list_id": {
+          "description": "List `lists remove` targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "media_id": {
           "description": "Media id whose processing a wait gave up on, under\n`processing-timeout`, where the upload is intact; or the one X\nrefused after processing it, under `invalid-request`. `media upload`\ncarries it on any error that ends its wait, since the upload finished\nand stdout holds no result.",
           "type": [
@@ -523,6 +551,20 @@
           ],
           "description": "What the caller should do next, when a recovery step exists.\n\n`action` is closed: `register-app`, `sign-in`, `select-app`,\n`inspect-store`, `enroll-app`, `show-help`, `resume-wait`,\n`wait-and-retry`, `retry`, `fix-input`, `report-issue`, `confirm`,\n`run-command`. A newer release can add an action, so treat one you\ndo not recognize as your default branch. A step carries either a\n`command`, runnable verbatim by a non-TTY caller, or a `template`\nthe caller finishes or decides on first, never both: a template\nholds angle-bracket placeholders only the caller can fill; under\n`confirm`, the invocation that destroys once it runs; or, after a\n401 or a 429 with no reset on the status read after `xr media\nupload`, the resumed wait to run once the credential works or the\nwindow passes. One whose recovery is not an `xr`\ninvocation carries neither, and `docs` when a page covers it:\n`enroll-app`, `wait-and-retry`, `retry`, `fix-input`,\n`report-issue`, and `inspect-store` when a store command is what\nfailed. After `xr media upload` finished, a `wait-and-retry` on the\nstatus read carries the resumed wait: a command that waits out the\nreset X named under `--wait-on-rate-limit`, or a template when X named\nnone or the media command was given `-H`. Three `fix-input` steps carry\nan invocation:\n`listen` again on a free port, under `address-in-use`, and two under\n`invalid-args`: the invocation with `-u`, `--auth`, or `-t` moved\nafter the command word it came before, and the `xr schema`\ninvocation that works for an old name or a scope word. Six carry a\ntemplate: the `xr schema --path` invocation with the segment that\nnamed nothing left as `<property>`, under `invalid-args`, three under\n`auth-required`: the command that stores the secret `webhooks\nlisten` lacks, `auth oauth2 --step 2` again with its redirect URL\nleft as `<redirect-url>`, and the resumed wait after a 401 on the\nstatus read after `xr media upload`, to run once the credential\nworks; `resume-wait` when the media command was given `-H`, with each\nheader's value left as `<value>`; and that `wait-and-retry` when X\nnamed no reset or under `-H`."
         },
+        "note_id": {
+          "description": "Community Note `notes remove` targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notify_invitees": {
+          "description": "Whether `calls scheduled cancel` notifies the invitees.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "oauth1": {
           "description": "Whether `auth clear` targeted the `OAuth1` token.",
           "type": [
@@ -532,6 +574,13 @@
         },
         "oauth2_username": {
           "description": "The `OAuth2` user `auth clear` targeted; `null` when unset."
+        },
+        "occurrence_start_time": {
+          "description": "Start time of the one occurrence `calls scheduled cancel` targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "other_apps_with_creds": {
           "description": "Other apps holding credentials, when the active one holds none.",
@@ -601,8 +650,46 @@
             "null"
           ]
         },
+        "rule_ids": {
+          "description": "Filtered-stream rules `stream rules remove` targeted.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "scheduled_call_id": {
+          "description": "Scheduled call `calls scheduled cancel` targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scheduled_id": {
+          "description": "Scheduled broadcast `broadcasts scheduled cancel` targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "schema": {
           "description": "Schema name a `validate` invocation named.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scope": {
+          "description": "Occurrences of a recurring call `calls scheduled cancel` targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_id": {
+          "description": "Stream source `broadcasts sources remove` targeted.",
           "type": [
             "string",
             "null"
@@ -629,8 +716,22 @@
             "null"
           ]
         },
+        "user_id": {
+          "description": "Account whose subscription `webhooks subscriptions remove` ends.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "valid": {
           "description": "Whether the document validated.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "validate_only": {
+          "description": "Whether `stream rules remove` only validates.",
           "type": [
             "boolean",
             "null"
@@ -650,6 +751,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "webhook_id": {
+          "description": "Webhook a destructive `webhooks` verb targeted.",
+          "type": [
+            "string",
             "null"
           ]
         },
