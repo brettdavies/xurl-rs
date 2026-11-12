@@ -522,7 +522,7 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
     let login = login.as_deref();
     let holders = match login {
         Some(login) => snapshot.apps_holding_login(login),
-        None => snapshot.apps_with_tokens(),
+        None => snapshot.apps_with_login(),
     };
     if let Some(app) = holders.iter().find(|name| *name != target) {
         let command = rerun_with_app(invocation, app);
@@ -1125,42 +1125,6 @@ pub fn wait_and_retry_hint(error: &Error) -> Option<Hint> {
     })
 }
 
-/// Builds the hint for a scheme mismatch the store can answer.
-///
-/// ```text
-/// the active app stores nothing, another does  -> select-app, rerunning this invocation
-/// the endpoint takes OAuth2, the app has none  -> the step that gets a login: see choose_hint
-/// the caller named the scheme, or neither fits -> none; the message lists what is accepted
-/// ```
-#[must_use]
-pub fn mismatch_hint(
-    snapshot: &StoreSnapshot,
-    error: &Error,
-    invocation: &[String],
-    headless: bool,
-) -> Option<Hint> {
-    let Error::AuthMethodMismatch(mismatch) = error else {
-        return None;
-    };
-    match mismatch.shape() {
-        xdk::error::MismatchShape::WrongApp { others } => {
-            let app = others.first()?;
-            let command = rerun_with_app(invocation, app);
-            Some(Hint {
-                text_lines: vec![format!("App {app:?} is already signed in. Run: {command}")],
-                next_step: NextStep::select_app(command),
-            })
-        }
-        xdk::error::MismatchShape::EmptyIntersection { available }
-            if mismatch.supported.iter().any(|scheme| scheme == "oauth2")
-                && !available.iter().any(|scheme| scheme == "oauth2") =>
-        {
-            Some(choose_hint(snapshot, invocation, headless))
-        }
-        _ => None,
-    }
-}
-
 /// Builds the hint for an argument the command refused: the help of the
 /// command the invocation names.
 #[must_use]
@@ -1235,21 +1199,46 @@ fn detail_line(body: &str) -> Option<String> {
 /// registration enforces. Nothing after `--` is a flag, so it is kept as it
 /// was.
 fn rerun_with_app(invocation: &[String], app: &str) -> String {
-    let mut parts = vec![
-        ROOT_COMMAND.to_string(),
-        "--app".to_string(),
-        quote_app_name(app),
-    ];
+    rerun_command(invocation, Some(app), None)
+}
+
+/// [`rerun_with_app`] generalized: `app`, when given, replaces the `--app` of
+/// the invocation, and `auth`, when given, replaces its `--auth` (or is
+/// added after its last word before `--`), so the rerun asks for the scheme
+/// the credential holds.
+pub(crate) fn rerun_command(
+    invocation: &[String],
+    app: Option<&str>,
+    auth: Option<xdk::api::auth_matrix::WireScheme>,
+) -> String {
+    let mut parts = vec![ROOT_COMMAND.to_string()];
+    if let Some(app) = app {
+        parts.push("--app".to_string());
+        parts.push(quote_app_name(app));
+    }
+    let mut set_auth = auth.map(|scheme| scheme.as_wire().to_string());
     let mut rest = invocation.iter().skip(1);
     while let Some(arg) = rest.next() {
         if arg == "--" {
+            if let Some(scheme) = set_auth.take() {
+                parts.push(format!("--auth {scheme}"));
+            }
             parts.push(shell_word(arg));
             parts.extend(rest.by_ref().map(|arg| shell_word(arg)));
-        } else if arg == "--app" {
+        } else if app.is_some() && arg == "--app" {
             rest.next();
-        } else if !arg.starts_with("--app=") {
+        } else if set_auth.is_some() && arg == "--auth" {
+            rest.next();
+            parts.push("--auth".to_string());
+            parts.push(set_auth.take().unwrap_or_default());
+        } else if set_auth.is_some() && arg.starts_with("--auth=") {
+            parts.push(format!("--auth={}", set_auth.take().unwrap_or_default()));
+        } else if !(app.is_some() && arg.starts_with("--app=")) {
             parts.push(shell_word(arg));
         }
+    }
+    if let Some(scheme) = set_auth {
+        parts.push(format!("--auth {scheme}"));
     }
     parts.join(" ")
 }
@@ -1870,50 +1859,8 @@ mod tests {
         );
     }
 
-    fn mismatch(
-        supported: &[&str],
-        requested: Option<&str>,
-        available: &[&str],
-        others: Option<&[&str]>,
-    ) -> Error {
-        let strings = |items: &[&str]| items.iter().map(ToString::to_string).collect::<Vec<_>>();
-        Error::from(xdk::error::AuthMismatch {
-            endpoint: "/2/users/me".into(),
-            rendered_url: None,
-            method: "GET".into(),
-            requested: requested.map(str::to_string),
-            supported: strings(supported),
-            available_in_app: Some(strings(available)),
-            app: Some("work".into()),
-            other_apps_with_creds: others.map(strings),
-        })
-    }
-
     fn snapshot_of(store: &xdk::store::TokenStore) -> StoreSnapshot {
         StoreSnapshot::new(store, "work", false)
-    }
-
-    #[test]
-    fn a_mismatch_the_store_can_answer_names_the_app_or_the_sign_in() {
-        let tmp = tempfile::TempDir::new().expect("tempdir");
-        let mut store =
-            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
-        store
-            .add_app("work", "CLIENT-ID", "SECRET")
-            .expect("add app");
-        let snapshot = snapshot_of(&store);
-        let invocation: Vec<String> = ["xr", "whoami"].iter().map(|a| (*a).to_string()).collect();
-
-        let elsewhere = mismatch(&["oauth2"], None, &[], Some(&["personal"]));
-        let step = mismatch_hint(&snapshot, &elsewhere, &invocation, true).expect("a step");
-        assert_eq!(
-            step.next_step,
-            NextStep::select_app("xr --app personal whoami".to_string())
-        );
-
-        let no_login = mismatch(&["oauth2", "oauth1"], None, &["app"], None);
-        let step = mismatch_hint(&snapshot, &no_login, &invocation, true).expect("a step");
-        assert_eq!(step.next_step, NextStep::sign_in(None, true));
     }
 
     /// Two signed-in apps, `personal` (the default, holding `alice`) and
@@ -1980,21 +1927,6 @@ mod tests {
             hint.next_step.command.as_deref(),
             Some("xr auth oauth2 nobody")
         );
-    }
-
-    #[test]
-    fn a_mismatch_only_the_caller_can_answer_carries_no_step() {
-        let tmp = tempfile::TempDir::new().expect("tempdir");
-        let store =
-            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
-        let snapshot = snapshot_of(&store);
-        let invocation: Vec<String> = ["xr", "usage"].iter().map(|a| (*a).to_string()).collect();
-
-        let named = mismatch(&["oauth2"], Some("app"), &["app"], None);
-        assert!(mismatch_hint(&snapshot, &named, &invocation, true).is_none());
-        let bearer_only = mismatch(&["app"], None, &["oauth2"], None);
-        assert!(mismatch_hint(&snapshot, &bearer_only, &invocation, true).is_none());
-        assert!(mismatch_hint(&snapshot, &Error::auth("x"), &invocation, true).is_none());
     }
 
     /// A rerun against another app names that app once, under the name

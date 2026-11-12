@@ -364,6 +364,19 @@ fn help_for(row: &Row) -> String {
     )
 }
 
+/// The schemes the command at `path` accepts, in preference order: those of
+/// its `--of` endpoints when `with_of` is set and the row names any. `None`
+/// for a command with no row.
+pub fn accepted_by_command(path: &str, with_of: bool) -> Option<Vec<WireScheme>> {
+    let row = ROWS.iter().find(|row| row.path == path)?;
+    let endpoints = if with_of && !row.with_of.is_empty() {
+        row.with_of
+    } else {
+        row.endpoints
+    };
+    Some(accepted_by(endpoints))
+}
+
 /// The schemes every endpoint in `endpoints` accepts, in preference order.
 fn accepted_by(endpoints: &[Endpoint]) -> Vec<WireScheme> {
     WireScheme::ALL_BY_PREFERENCE

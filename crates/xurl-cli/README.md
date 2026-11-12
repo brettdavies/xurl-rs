@@ -988,6 +988,13 @@ in `message`, and `value` carries the offending input when the rule names one: a
 header's position among the `-H` headers. Branch on `rule`, not on the sentence. Text mode prints the same advice as
 prose instead; the two need not match word for word.
 
+A request that no stored credential serves takes its step from the schemes its command accepts, the schemes each app
+stores, and the scheme `--auth` named. When the active app stores a scheme the command accepts, the step is `fix-input`
+with the invocation under `--auth` set to it. When another app does, the step is `select-app` with the invocation under
+`--app`. When the command accepts a login, the step signs in. Otherwise the step is `fix-input` with a `template` that
+stores a scheme the command accepts, each secret left as a placeholder: `xr auth app --bearer-token-file <path>` for a
+command that takes only the app's bearer token.
+
 ### Which Errors Carry a Step
 
 | `reason`                     | `next_step.action`                                                                                                                               |
@@ -995,7 +1002,7 @@ prose instead; the two need not match word for word.
 | `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as listed below; none on a request's 401 except after an upload        |
 | `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
 | `token-store`                | `inspect-store` when the store file could not be loaded; `fix-input` with `xr auth status` for an app or login name it refuses; none otherwise   |
-| `auth-method-mismatch`       | `select-app`, `sign-in`, or `register-app` when the endpoint takes a login the app lacks; none otherwise                                         |
+| `auth-method-mismatch`       | `select-app`, `sign-in`, `register-app`, or `fix-input`, as listed above; none when the error names no app                                       |
 | `forbidden`                  | `enroll-app` when X names enrollment; `fix-input` for a 403 from the token endpoint that is no OAuth refusal; none otherwise                     |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset, or after `xr media upload` finished (a `template` with no reset or under `-H`); none otherwise    |
 | `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |

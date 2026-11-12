@@ -81,6 +81,14 @@ be loaded. It carries `docs`, the README section on recovering the file, and its
 names the file. When a store command is what failed (reason `token-store`), the message already names the file and the
 step carries `docs` alone.
 
+A request that no stored credential serves (`auth-required` for a missing credential, `auth-method-mismatch`) takes its
+step from `crates/xurl-cli/src/cli/credential_step.rs`, which reads the schemes the command's row in
+`crates/xurl-cli/src/cli/accepted_auth.rs` accepts, the schemes each app stores, and the scheme `--auth` named. The
+active app storing an accepted scheme gives `fix-input` with the invocation under that `--auth`; another app storing one
+gives `select-app`; a command that accepts a login gives the sign-in step; and otherwise `fix-input` carries a
+`template` that stores an accepted scheme, such as `xr auth app --bearer-token-file <path>`. The message's `Add
+credentials with:` tail takes its command from the same `setup_invocation`.
+
 Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
 `invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
 `invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):
