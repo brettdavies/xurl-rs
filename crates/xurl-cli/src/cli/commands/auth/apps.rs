@@ -10,7 +10,7 @@ use super::{
     AuthCtx, RedirectUriGetResponse, RedirectUriSetResponse, build_app_status_entries,
     env_bearer_app, gate_destructive, print_no_apps_registered, rehearsed, rehearsed_asking,
 };
-use crate::cli::failure::CommandResult;
+use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use crate::cli::{AppCommands, RedirectUriCommands};
@@ -66,8 +66,13 @@ fn add(
         stdout,
         ..
     } = ctx;
+    let ctx = json!({
+        "command": "app-add",
+        "name": name,
+        "has_redirect_uri": redirect_uri.is_some(),
+    });
+    refuse_redirect_uri(redirect_uri, flags.dry_run, &ctx)?;
     let register = |store: &mut TokenStore| {
-        validate_redirect_uri(redirect_uri)?;
         store.add_app(name, client_id, client_secret)?;
         match redirect_uri {
             Some(uri) => store.set_app_redirect_uri(name, uri),
@@ -75,11 +80,6 @@ fn add(
         }
     };
     if flags.dry_run {
-        let ctx = json!({
-            "command": "app-add",
-            "name": name,
-            "has_redirect_uri": redirect_uri.is_some(),
-        });
         return rehearsed(&auth.token_store, register, ctx, out, stdout);
     }
     register(&mut auth.token_store)?;
@@ -103,14 +103,29 @@ fn add(
     Ok(())
 }
 
-/// Refuses a redirect URI the store would refuse, ahead of the first write of
-/// a command that registers or changes an app. An empty URI clears the stored
-/// one and takes no check.
-fn validate_redirect_uri(uri: Option<&str>) -> Result<(), Error> {
-    match uri.filter(|uri| !uri.is_empty()) {
-        Some(uri) => config::Config::validate_redirect_uri(uri).map(drop),
-        None => Ok(()),
-    }
+/// Refuses a redirect URI the store would refuse, as an argument `xr`
+/// refused, ahead of the first write of a command that registers or changes
+/// an app. An empty URI clears the stored one and takes no check.
+fn refuse_redirect_uri(
+    uri: Option<&str>,
+    dry_run: bool,
+    ctx: &serde_json::Value,
+) -> CommandResult<()> {
+    let Some(uri) = uri.filter(|uri| !uri.is_empty()) else {
+        return Ok(());
+    };
+    config::Config::validate_redirect_uri(uri)
+        .map(drop)
+        .map_err(|error| {
+            if dry_run {
+                Failure::DryRunInvalid {
+                    ctx: ctx.clone(),
+                    error,
+                }
+            } else {
+                Failure::refused(error)
+            }
+        })
 }
 
 fn update(
@@ -137,8 +152,8 @@ fn update(
         "has_client_secret": client_secret.is_some(),
         "has_redirect_uri": redirect_uri.is_some(),
     });
+    refuse_redirect_uri(redirect_uri, flags.dry_run, &ctx)?;
     let change = |store: &mut TokenStore| {
-        validate_redirect_uri(redirect_uri)?;
         if client_id.is_some() || client_secret.is_some() {
             store.update_app(
                 name,
@@ -304,12 +319,13 @@ fn run_redirect_uri_command(
             }
         }
         RedirectUriCommands::Set { name, uri } => {
+            let ctx = json!({
+                "command": "redirect-uri-set",
+                "app": name,
+                "redirect_uri": uri,
+            });
+            refuse_redirect_uri(Some(&uri), dry_run, &ctx)?;
             if dry_run {
-                let ctx = json!({
-                    "command": "redirect-uri-set",
-                    "app": name,
-                    "redirect_uri": uri,
-                });
                 return rehearsed(
                     &auth.token_store,
                     |store| store.set_app_redirect_uri(&name, &uri),

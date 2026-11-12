@@ -362,6 +362,7 @@ async fn store_write(
 #[case::apps_remove_missing_unforced(Held::Work, &["--no-interactive", "auth", "apps", "remove", "ghost"])]
 #[case::clear_unloadable_unforced(Held::Unloadable, &["--no-interactive", "auth", "clear", "--all"])]
 #[case::apps_update_bad_redirect_uri(Held::Work, &["auth", "apps", "update", "work", "--client-id", "newclient", "--redirect-uri", "not a url"])]
+#[case::redirect_uri_set_bad_uri(Held::Work, &["auth", "apps", "redirect-uri", "set", "work", "not a url"])]
 #[cfg_attr(unix, case::clear_read_only_unforced(Held::ReadOnly, &["--no-interactive", "auth", "clear", "--all"]))]
 #[cfg_attr(unix, case::app_read_only(Held::ReadOnly, &["auth", "app", "--bearer-token-file", "SECRET"]))]
 #[cfg_attr(unix, case::app_for_a_missing_app_read_only(Held::ReadOnly, &["--app", "ghost", "auth", "app", "--bearer-token-file", "SECRET"]))]
@@ -549,6 +550,34 @@ async fn apps_update_with_a_refused_redirect_uri_changes_nothing() {
     assert_eq!(refused["reason"], "validation", "{refused}");
     assert_eq!(refused["rule"], "invalid-redirect-uri", "{refused}");
     assert!(unchanged, "the refused update changed the store: {refused}");
+}
+
+/// A redirect URI the command refuses is an argument `xr` refused, so the step
+/// is the help of the command that took it, in the real run and the dry run.
+#[rstest::rstest]
+#[case::add(&["auth", "apps", "add", "new", "--client-id", "abcdefgh", "--client-secret-file", "SECRET", "--redirect-uri", "not a url"], "xr auth apps add --help")]
+#[case::update(&["auth", "apps", "update", "work", "--client-id", "newclient", "--redirect-uri", "not a url"], "xr auth apps update --help")]
+#[case::redirect_uri_set(&["auth", "apps", "redirect-uri", "set", "work", "not a url"], "xr auth apps redirect-uri set --help")]
+#[tokio::test]
+async fn a_refused_redirect_uri_takes_the_help_of_its_command(
+    #[case] args: &[&str],
+    #[case] help: &str,
+) {
+    let expected = serde_json::json!({"action": "show-help", "command": help});
+    for dry_run in [false, true] {
+        let tmp = TempDir::new().expect("tempdir");
+        seed_store_write(Held::Work, &tmp);
+        let (_, document, unchanged) = store_write(Held::Work, &tmp, args, dry_run).await;
+        assert_eq!(document["rule"], "invalid-redirect-uri", "{document}");
+        assert_eq!(
+            document["next_step"], expected,
+            "dry_run={dry_run}: {document}"
+        );
+        assert!(
+            unchanged,
+            "dry_run={dry_run}: the refusal changed the store"
+        );
+    }
 }
 
 /// A store command whose write the store accepts still asks, and its dry run
