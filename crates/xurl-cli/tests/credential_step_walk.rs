@@ -107,12 +107,13 @@ fn shapes() -> Vec<Shape> {
 }
 
 /// What a run exercises: how it is invoked, the schemes its requests
-/// accept, and the arguments that stand for it without a scheme.
+/// accept, the arguments that stand for it without a scheme, and whether it
+/// also runs with a named login.
 struct Target {
     name: String,
     args: Vec<String>,
     accepted: Vec<WireScheme>,
-    takes_login: bool,
+    walks_login: bool,
 }
 
 /// One run: a target, a store shape, and the scheme the caller named.
@@ -279,28 +280,46 @@ async fn faults(mock: &MockX, shapes: &[Shape], case: &Case) -> Vec<String> {
     found
 }
 
-#[test]
-fn every_credential_refusal_names_a_step_its_command_accepts() {
+/// One test per way a caller names a scheme, so each has its own time limit
+/// and a partitioned run can put them on different machines.
+#[rstest::rstest]
+#[case::unnamed(None)]
+#[case::oauth2(Some("oauth2"))]
+#[case::oauth1(Some("oauth1"))]
+#[case::app(Some("app"))]
+fn every_credential_refusal_names_a_step_its_command_accepts(#[case] named: Option<&'static str>) {
     let shapes = shapes();
     let paths: Vec<String> = runnable_paths()
         .into_iter()
         .filter(|path| takes_a_credential(path))
         .collect();
-    let targets: Vec<Target> = paths
+    let mut targets: Vec<Target> = paths
         .iter()
         .filter_map(|path| {
             Some(Target {
                 name: path.clone(),
                 args: arguments_for(path),
                 accepted: xurl::cli::accepted_auth::accepted_by_command(path, false)?,
-                takes_login: command_at(path)
+                walks_login: command_at(path)
                     .get_arguments()
                     .any(|arg| arg.get_id() == "username"),
             })
         })
         .collect();
+    // A named login is served by the schemes the request accepts, the store,
+    // and the scheme named, none of which the command changes, so one command
+    // per set of accepted schemes runs with `-u`.
+    let mut with_login: Vec<Vec<WireScheme>> = Vec::new();
+    for target in &mut targets {
+        if target.walks_login {
+            target.walks_login = !with_login.contains(&target.accepted);
+            if target.walks_login {
+                with_login.push(target.accepted.clone());
+            }
+        }
+    }
 
-    let found = walked(&shapes, targets);
+    let found = walked(&shapes, targets, &[named]);
     assert!(
         found.is_empty(),
         "these credential refusals send a caller somewhere the command does not accept:\n{}",
@@ -308,14 +327,15 @@ fn every_credential_refusal_names_a_step_its_command_accepts() {
     );
 }
 
-/// Every target over every store shape and every scheme the caller can name.
-fn walked(shapes: &[Shape], targets: Vec<Target>) -> Vec<String> {
+/// Every target over every store shape and each way of naming a scheme in
+/// `namings`.
+fn walked(shapes: &[Shape], targets: Vec<Target>, namings: &[Option<&'static str>]) -> Vec<String> {
     let mut cases = Vec::new();
     for target in targets {
         for shape in 0..shapes.len() {
-            for named in [None, Some("oauth2"), Some("oauth1"), Some("app")] {
+            for &named in namings {
                 for login in [false, true] {
-                    if login && !target.takes_login {
+                    if login && !target.walks_login {
                         continue;
                     }
                     cases.push(Case {
@@ -323,7 +343,7 @@ fn walked(shapes: &[Shape], targets: Vec<Target>) -> Vec<String> {
                             name: target.name.clone(),
                             args: target.args.clone(),
                             accepted: target.accepted.clone(),
-                            takes_login: target.takes_login,
+                            walks_login: target.walks_login,
                         },
                         shape,
                         named,
@@ -392,7 +412,7 @@ fn raw_targets() -> Vec<Target> {
             name: format!("raw {method} {path}"),
             args: vec!["-X".to_string(), method, path],
             accepted,
-            takes_login: true,
+            walks_login: true,
         })
         .collect()
 }
@@ -407,7 +427,11 @@ fn every_raw_credential_refusal_names_a_step_its_endpoint_accepts() {
         targets.len()
     );
 
-    let found = walked(&shapes, targets);
+    let found = walked(
+        &shapes,
+        targets,
+        &[None, Some("oauth2"), Some("oauth1"), Some("app")],
+    );
     assert!(
         found.is_empty(),
         "these credential refusals send a raw request somewhere its endpoint does not accept:\n{}",
