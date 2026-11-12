@@ -300,12 +300,12 @@ impl Auth {
         let token = self
             .token_store
             .get_oauth1_tokens_for_app(&self.app_name)
-            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
+            .ok_or_else(|| Error::auth(crate::error::NO_OAUTH1_TOKEN))?;
 
         let oauth1_token = token
             .oauth1
             .as_ref()
-            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
+            .ok_or_else(|| Error::auth(crate::error::NO_OAUTH1_TOKEN))?;
 
         oauth1::build_oauth1_header(method, url_str, oauth1_token, additional_params)
     }
@@ -665,12 +665,12 @@ pub fn resolve_bearer_token(
 
     let token = store
         .get_bearer_token_for_app(app_name)
-        .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))?;
+        .ok_or_else(|| Error::auth(crate::error::NO_BEARER_TOKEN))?;
 
     let bearer = token
         .bearer
         .as_ref()
-        .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))?;
+        .ok_or_else(|| Error::auth(crate::error::NO_BEARER_TOKEN))?;
 
     Ok(format!("Bearer {bearer}"))
 }

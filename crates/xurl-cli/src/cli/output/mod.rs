@@ -676,21 +676,35 @@ impl OutputConfig {
         };
         let get_str = |k: &str| map.get(k).and_then(Value::as_str).map(str::to_string);
         let get_bool = |k: &str| map.get(k).and_then(Value::as_bool);
-        let command = get_str("command");
-        let target = command.as_deref().unwrap_or("operation");
         let body = ErrorBody {
             reason: Reason::ConfirmationRequired,
             exit_code,
-            message: Some(format!(
-                "confirmation required for {target} — pass --force or run interactively"
-            )),
-            command,
+            message: Some("confirmation required — pass --force or run interactively".to_string()),
+            command: get_str("command"),
             post_id: get_str("post_id"),
             name: get_str("name"),
             all: get_bool("all"),
             oauth1: get_bool("oauth1"),
             oauth2_username: map.get("oauth2_username").cloned(),
             bearer: get_bool("bearer"),
+            app: get_str("app"),
+            article_id: get_str("article_id"),
+            broadcast_id: get_str("broadcast_id"),
+            scheduled_id: get_str("scheduled_id"),
+            source_id: get_str("source_id"),
+            scheduled_call_id: get_str("scheduled_call_id"),
+            scope: get_str("scope"),
+            occurrence_start_time: get_str("occurrence_start_time"),
+            notify_invitees: get_bool("notify_invitees"),
+            event_id: get_str("event_id"),
+            list_id: get_str("list_id"),
+            note_id: get_str("note_id"),
+            rule_ids: map
+                .get("rule_ids")
+                .and_then(|ids| serde_json::from_value::<Vec<String>>(ids.clone()).ok()),
+            validate_only: get_bool("validate_only"),
+            webhook_id: get_str("webhook_id"),
+            user_id: get_str("user_id"),
             next_step: Some(next_step),
             ..ErrorBody::default()
         };

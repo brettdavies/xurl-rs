@@ -6,6 +6,7 @@
 pub mod accepted_auth;
 mod classify;
 pub mod commands;
+pub(crate) mod credential_step;
 mod failure;
 pub mod hints;
 mod misplaced_flags;

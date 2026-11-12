@@ -111,6 +111,51 @@ pub(crate) fn requested_login<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<S
         .cloned()
 }
 
+/// The deepest parsed command of `args`, or `None` when they do not parse.
+fn parsed_leaf<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<(Vec<String>, clap::ArgMatches)> {
+    let matches = Cli::command()
+        .try_get_matches_from(args.iter().map(AsRef::as_ref))
+        .ok()?;
+    let mut words = Vec::new();
+    let mut current = &matches;
+    while let Some((name, sub)) = current.subcommand() {
+        words.push(name.to_string());
+        current = sub;
+    }
+    Some((words, current.clone()))
+}
+
+/// The credential facts of the invocation `args` runs: the words of the
+/// command it names (empty for a raw request), the scheme `--auth` named, and
+/// whether `--of` named another account. `None` when `args` do not parse.
+pub(crate) fn invoked_credential<S: AsRef<std::ffi::OsStr>>(
+    args: &[S],
+) -> Option<InvokedCredential> {
+    let (words, leaf) = parsed_leaf(args)?;
+    let named = |id: &str| {
+        leaf.try_get_one::<String>(id)
+            .ok()
+            .flatten()
+            .filter(|value| !value.is_empty())
+            .cloned()
+    };
+    Some(InvokedCredential {
+        command: words.join(" "),
+        auth: named("auth_type"),
+        of: named("of").is_some(),
+    })
+}
+
+/// What an invocation says about the credential its requests go out under.
+pub(crate) struct InvokedCredential {
+    /// The command's words, space-separated; empty for a raw request.
+    pub(crate) command: String,
+    /// The scheme `--auth` named.
+    pub(crate) auth: Option<String>,
+    /// Whether `--of` named another account.
+    pub(crate) of: bool,
+}
+
 /// Whether the whole token reads as a command name: a letter, then letters,
 /// digits, or hyphens.
 fn is_command_word(word: &str) -> bool {
