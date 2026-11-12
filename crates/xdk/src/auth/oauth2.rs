@@ -19,7 +19,7 @@ use crate::error::{
     BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
     REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
 };
-use crate::store::{OAuth2Token, RefreshLock};
+use crate::store::{MintedFrom, OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
 
 /// The scope that makes X issue a refresh token. Every sign-in requests it:
@@ -148,9 +148,11 @@ pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Resul
 ///
 /// # Errors
 ///
-/// Returns an error if the token-exchange request fails or the response is
-/// missing an access token. A failed `/2/users/me` lookup is warned, not
-/// returned.
+/// Returns the store's refusal, before the code is sent, when the store file
+/// exists but cannot be loaded or cannot be written, or holds no app by the
+/// name the sign-in is for. Returns an error if the
+/// token-exchange request fails or the response is missing an access token. A
+/// failed `/2/users/me` lookup is warned, not returned.
 pub(crate) async fn exchange_code_for_token(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -158,6 +160,10 @@ pub(crate) async fn exchange_code_for_token(
     verifier: &str,
     username: &str,
 ) -> Result<String> {
+    // A code is single-use: the store refuses before the code is spent on
+    // tokens it could not keep.
+    auth.token_store.reload();
+    refuse_unless_store_keeps(auth)?;
     let token_url = auth.token_url().to_string();
     let request = http
         .post(&token_url)
@@ -255,8 +261,9 @@ pub(crate) async fn exchange_code_for_token(
 ///
 /// # Errors
 ///
-/// Returns an error if the authorization URL is invalid, the opener fails,
-/// the callback server fails, or the token exchange fails.
+/// Returns the store's refusal, as [`Auth::oauth2_flow`] names it, before the
+/// listener binds, and an error if the authorization URL is invalid, the
+/// opener fails, the callback server fails, or the token exchange fails.
 pub async fn run_oauth2_flow<F>(
     auth: &mut Auth,
     http: &reqwest::Client,
@@ -303,6 +310,10 @@ async fn run_flow<F>(
 where
     F: Fn(&str) -> std::io::Result<()> + Send + Sync + 'static,
 {
+    // The person's consent is asked for only when the store can keep the
+    // tokens it buys.
+    auth.token_store.reload();
+    refuse_unless_store_keeps(auth)?;
     let state = new_state();
 
     let (verifier, challenge) = generate_code_verifier_and_challenge();
@@ -367,9 +378,12 @@ where
 ///
 /// # Errors
 ///
-/// Returns an error if the authorization URL is invalid or the pending
-/// state file cannot be written.
+/// Returns the store's refusal when the store file exists but cannot be
+/// loaded or cannot be written, or holds no app by the name the sign-in is
+/// for, and an error if the authorization URL is invalid or the pending state
+/// file cannot be written.
 pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
+    refuse_unless_store_keeps(auth)?;
     if pending_path.exists() {
         tracing::warn!(target: "xdk::auth", "overwriting previous pending auth flow");
     }
@@ -458,7 +472,14 @@ pub(crate) fn check_remote_step2(
     if let Some(redirect_url) = redirect_url {
         redirect_code(&pending_state, redirect_url)?;
     }
-    Ok(())
+    refuse_unless_store_keeps(auth)
+}
+
+/// The store's refusal of the tokens a sign-in would buy: the file cannot be
+/// loaded or written, or holds no app by the name the sign-in is for.
+fn refuse_unless_store_keeps(auth: &Auth) -> Result<()> {
+    auth.token_store.refuse_unless_writable()?;
+    auth.token_store.refuse_if_app_missing(auth.app_name())
 }
 
 /// Refuses a saved flow that belongs to another client or names other scopes
@@ -641,7 +662,15 @@ pub(crate) async fn refresh_grant(
 ///   caller's label for it and need not be the username X knows;
 /// - a login stored without a name is stored under the username X answers
 ///   with, and the unnamed slot is emptied; when that lookup fails it stays
-///   in the unnamed slot, with a `tracing` warning.
+///   in the unnamed slot, with a `tracing` warning, and it also stays there
+///   when another login was stored under that username during the grant.
+///
+/// The pair is written only while the store still holds the token it was
+/// minted from. A login another process signs in or clears in its place
+/// while the grant is out is left as that process stored it, and the new
+/// access token still goes out with the caller's request. A login stored
+/// without a name that a `/2/users/me` answer stored under its username
+/// meanwhile is refreshed there.
 ///
 /// `/2/users/me` is asked only for what the store lacks of the account: a
 /// name, or its id. A caller that supplies `username`, and a login that
@@ -657,7 +686,11 @@ pub(crate) async fn refresh_grant(
 /// # Errors
 ///
 /// Returns an error when no cached token is found or the refresh lock cannot
-/// be taken, and when the refresh itself fails:
+/// be taken, and [`Error::TokenStore`] when the store file exists but cannot
+/// be loaded, or [`Error::Io`] when the store's directory cannot be created or
+/// the save's temp file cannot be created beside the store, each refused
+/// before the grant so the refresh token is not spent on a pair the store
+/// could not keep. When the refresh itself fails:
 /// [`Error::Auth`] when the token endpoint refuses the refresh token or the
 /// client, or answers with no access token; [`Error::Http`] when it does not
 /// answer; [`Error::Api`] when it answers a failure status that is no OAuth
@@ -679,9 +712,13 @@ pub async fn refresh_oauth2_token(
         return Ok(oauth2.access_token.clone());
     }
 
+    // The refresh lock is a new file beside the store, so a directory that
+    // takes none is refused before it, naming the store as the save would.
+    auth.token_store.refuse_unless_writable()?;
     let _refresh_lock =
         RefreshLock::acquire_off_runtime(auth.token_store.file_path.clone()).await?;
     auth.token_store.reload();
+    auth.token_store.refuse_unless_writable()?;
     let (stored_as, oauth2) = stored_oauth2_user(auth, username)
         .ok_or_else(|| Error::auth(crate::error::NO_OAUTH2_TOKEN))?;
     if !is_expired(&oauth2) {
@@ -720,19 +757,31 @@ pub async fn refresh_oauth2_token(
     // has nothing to ask X for: the id is the account's for good, and the
     // name is the key the caller selects the login by.
     let complete = stored_as.is_some() && token.user_id.is_some();
+    let from = MintedFrom {
+        slot: stored_as.as_deref(),
+        refresh_token: &oauth2.refresh_token,
+    };
     if username.is_empty() && complete {
-        auth.token_store
-            .put_oauth2_token(&app_name, stored_as.as_deref(), token, false)?;
+        auth.token_store.put_refreshed_oauth2_token(
+            &app_name,
+            &from,
+            stored_as.as_deref(),
+            token,
+            false,
+            false,
+        )?;
     } else if username.is_empty() {
         match auth.fetch_identity(http, &new_access_token).await {
             Ok(identity) => {
                 identity.record_on(&mut token);
                 let name = stored_as.as_deref().unwrap_or(&identity.username);
-                auth.token_store.put_answered_oauth2_token(
+                auth.token_store.put_refreshed_oauth2_token(
                     &app_name,
+                    &from,
                     Some(name),
                     token,
                     stored_as.is_none(),
+                    true,
                 )?;
             }
             Err(_) => {
@@ -742,13 +791,25 @@ pub async fn refresh_oauth2_token(
                         "refresh succeeded but /2/users/me lookup failed; token stored under unnamed slot"
                     );
                 }
-                auth.token_store
-                    .put_oauth2_token(&app_name, stored_as.as_deref(), token, false)?;
+                auth.token_store.put_refreshed_oauth2_token(
+                    &app_name,
+                    &from,
+                    stored_as.as_deref(),
+                    token,
+                    false,
+                    false,
+                )?;
             }
         }
     } else {
-        auth.token_store
-            .put_oauth2_token(&app_name, Some(username), token, false)?;
+        auth.token_store.put_refreshed_oauth2_token(
+            &app_name,
+            &from,
+            Some(username),
+            token,
+            false,
+            false,
+        )?;
     }
 
     Ok(new_access_token)

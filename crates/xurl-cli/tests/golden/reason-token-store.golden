@@ -2,13 +2,17 @@ args: ["--output", "json", "auth", "apps", "remove", "nosuchapp", "--force"]
 store: empty
 exit_code: 77
 stdout_len: 0
-stderr_len: 133
+stderr_len: 229
 --- stdout ---
 
 --- stderr ---
 {
   "exit_code": 77,
-  "message": "Token Store Error: app \"nosuchapp\" not found",
+  "message": "Token Store Error: the store holds no app named \"nosuchapp\"",
+  "next_step": {
+    "action": "fix-input",
+    "command": "xr auth status"
+  },
   "reason": "token-store",
   "status": "error"
 }

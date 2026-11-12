@@ -85,6 +85,35 @@ fn load_nonexistent_returns_error() {
     );
 }
 
+/// A saved flow whose bytes are not UTF-8 is an invalid flow, the refusal a
+/// flow that does not parse gets. It is named by its path and the offset of
+/// the first byte that is not UTF-8, never by its content: the file holds the
+/// PKCE verifier.
+#[test]
+fn a_saved_flow_that_is_not_utf8_is_an_invalid_flow_named_by_its_offset() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl.pending");
+    let mut bytes = b"code_verifier: MARKER-VERIFIER-NOT-A-SECRET\n".to_vec();
+    let offset = bytes.len();
+    bytes.extend_from_slice(&[0xff, 0xfe, b'x']);
+    std::fs::write(&path, &bytes).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+
+    let msg = pending::load(&path).unwrap_err().to_string();
+
+    assert!(
+        msg.contains("PendingStateInvalid")
+            && msg.contains(&*path.to_string_lossy())
+            && msg.contains(&format!("byte {offset}")),
+        "the refusal names the file and the offset: {msg}"
+    );
+    assert!(!msg.contains("MARKER"), "the content is quoted: {msg}");
+}
+
 #[test]
 fn delete_removes_file() {
     let tmp = TempDir::new().unwrap();

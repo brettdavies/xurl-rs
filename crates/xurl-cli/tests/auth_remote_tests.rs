@@ -73,27 +73,10 @@ fn create_test_config(base_url: &str) -> Config {
 
 fn create_test_auth(base_url: &str, tmp: &TempDir) -> Auth {
     let cfg = create_test_config(base_url);
-
-    let file_path = tmp.path().join(".xurl");
-    let mut store = TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "default".to_string(),
-        file_path,
-        load_state: xdk::store::LoadState::Loaded,
-    };
-    store.apps.insert(
-        "default".to_string(),
-        App {
-            client_id: "test-client-id".to_string(),
-            client_secret: "test-client-secret".to_string(),
-            default_user: String::new(),
-            redirect_uri: String::new(),
-            oauth2_tokens: BTreeMap::new(),
-            oauth1_token: None,
-            bearer_token: None,
-            unnamed_oauth2_token: None,
-        },
-    );
+    let mut store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
+    store
+        .add_app("default", "test-client-id", "test-client-secret")
+        .expect("add the default app");
 
     auth_for(&cfg, store)
 }
@@ -537,6 +520,67 @@ async fn step2_failed_exchange_preserves_pending_for_retry() {
 
     // Pending file should be preserved for retry
     assert!(pending_path.exists());
+}
+
+/// Step 2 against a store file that exists but does not parse: the store
+/// refuses before the code is sent, so the code is not spent and the saved
+/// flow is kept. The dry run of the step meets the same refusal.
+#[tokio::test]
+async fn step2_does_not_spend_the_code_when_the_store_cannot_keep_its_tokens() {
+    let ts = TestServer::new().await;
+    let tmp = TempDir::new().unwrap();
+    let mut auth = create_test_auth(ts.uri(), &tmp);
+    let pending_path = tmp.path().join(".xurl.pending");
+    auth.remote_oauth2_step1(&pending_path).unwrap();
+    let state = pending::load(&pending_path).unwrap();
+    ts.mount(
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "remote-access-token",
+                "refresh_token": "remote-refresh-token",
+                "expires_in": 7200
+            }))),
+    )
+    .await;
+    let store_path = auth.token_store().file_path.clone();
+    std::fs::write(&store_path, "apps: [half an edit").unwrap();
+    let mut redirect = Url::parse("http://localhost:8080/callback").unwrap();
+    redirect
+        .query_pairs_mut()
+        .append_pair("code", "unspent-code")
+        .append_pair("state", &state.state);
+    let redirect_url = redirect.to_string();
+
+    let err = auth
+        .remote_oauth2_step2(&http(), &redirect_url, "", &pending_path)
+        .await
+        .unwrap_err();
+
+    let spent = ts
+        .server
+        .received_requests()
+        .await
+        .unwrap()
+        .iter()
+        .filter(|request| request.url.path() == "/2/oauth2/token")
+        .count();
+    assert_eq!(
+        spent, 0,
+        "the code was exchanged though its tokens could not be stored: {err:?}"
+    );
+    assert!(matches!(err, xdk::Error::TokenStore { .. }), "{err:?}");
+    assert!(pending_path.exists(), "the flow is kept for the next run");
+    let dry_run = Auth::new_with_store_path_and_overrides(
+        &create_test_config(ts.uri()),
+        &store_path,
+        &EnvOverrides::default(),
+    );
+    let checked = dry_run.check_remote_oauth2_step2(Some(&redirect_url), &pending_path);
+    assert!(
+        matches!(checked, Err(xdk::Error::TokenStore { .. })),
+        "{checked:?}"
+    );
 }
 
 #[tokio::test]

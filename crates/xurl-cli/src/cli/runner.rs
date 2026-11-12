@@ -513,6 +513,7 @@ fn recovery_hint(
         ));
     }
     crate::cli::hints::unloadable_store_hint(snapshot, error)
+        .or_else(|| crate::cli::hints::app_not_found_hint(error))
         .or_else(|| crate::cli::hints::enrollment_hint(error))
         .or_else(|| crate::cli::hints::resume_wait_hint(error, media))
         .or_else(|| crate::cli::hints::address_in_use_hint(error, &invocation))

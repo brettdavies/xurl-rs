@@ -401,7 +401,11 @@ impl Auth {
     /// reset), or a proxy's 404, [`Error::TokenEndpointForbidden`] when that
     /// status is a 403, [`Error::InvalidUrl`] when the token URL is not one a
     /// request can go to, and [`Error::Auth`] when it refuses the code or the
-    /// client.
+    /// client. A store file that exists but cannot be loaded, or that holds no
+    /// app by the name set with [`Self::with_app_name`], is
+    /// [`Error::TokenStore`], and a store the save cannot write is
+    /// [`Error::Io`] as the save would return it, each met before the listener
+    /// binds and again before the code is sent.
     pub async fn oauth2_flow<F>(
         &mut self,
         http: &reqwest::Client,
@@ -436,8 +440,9 @@ impl Auth {
     ///
     /// # Errors
     ///
-    /// Returns an error if the authorization URL is invalid or the pending
-    /// state file cannot be written.
+    /// Returns the store's refusal, as [`Self::oauth2_flow`] names it, before
+    /// anything else, and an error if the authorization URL is invalid or the
+    /// pending state file cannot be written.
     pub fn remote_oauth2_step1(&self, pending_path: &std::path::Path) -> Result<String> {
         oauth2::run_remote_step1(self, pending_path)
     }

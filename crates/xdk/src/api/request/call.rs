@@ -75,7 +75,9 @@ impl Call<ApiResponse<User>> {
     /// out with: when this is `GET /2/users/me` under a user credential from
     /// the store, the account's id is stored beside that credential, and an
     /// `OAuth2` token stored without a username is stored under the one X
-    /// answered with.
+    /// answered with. Each write lands only while the store still holds the
+    /// access token the request carried, so a login stored in its place
+    /// meanwhile keeps its own account.
     ///
     /// Any other call is sent as [`Call::send`] sends it. A lookup of
     /// another user says nothing about the stored login, so it stores
@@ -116,9 +118,25 @@ impl Call<ApiResponse<User>> {
             None
         };
         let client = self.client.clone();
-        let response = self.send().await?;
-        if let Some(login) = login
-            && let Err(error) = client.store_identity(&login, &response.data).await
+        // An `OAuth1` pair is never refreshed, so the pair read here is the
+        // one the send signs with.
+        let oauth1_access_token = match &login {
+            Some(StoredLogin::OAuth1 { app }) => client.oauth1_access_token(app).await?,
+            _ => None,
+        };
+        let (response, authorization) = self.send_carrying().await?;
+        let sent_under = match &login {
+            Some(StoredLogin::OAuth2 { .. }) => authorization
+                .as_deref()
+                .and_then(|header| header.strip_prefix("Bearer "))
+                .map(str::to_string),
+            Some(StoredLogin::OAuth1 { .. }) => oauth1_access_token,
+            None => None,
+        };
+        if let (Some(login), Some(sent_under)) = (login, sent_under)
+            && let Err(error) = client
+                .store_identity(&login, &sent_under, &response.data)
+                .await
         {
             tracing::warn!(
                 target: "xdk::auth",
@@ -130,23 +148,49 @@ impl Call<ApiResponse<User>> {
 }
 
 impl Client {
-    /// Stores `user` as the account behind `login`.
-    async fn store_identity(&self, login: &StoredLogin, user: &User) -> Result<()> {
+    /// The access token of the `OAuth1` pair stored for `app`.
+    async fn oauth1_access_token(&self, app: &str) -> Result<Option<String>> {
+        Ok(self
+            .auth()
+            .await?
+            .token_store
+            .get_oauth1_tokens_for_app(app)
+            .and_then(|token| token.oauth1.as_ref())
+            .map(|token| token.access_token.clone()))
+    }
+
+    /// Stores `user` as the account behind `login`, whose request went out
+    /// under the access token `sent_under`. A slot that holds another token
+    /// by now belongs to a login stored there meanwhile, and keeps its own
+    /// account.
+    async fn store_identity(
+        &self,
+        login: &StoredLogin,
+        sent_under: &str,
+        user: &User,
+    ) -> Result<()> {
         let mut auth = self.auth().await?;
         let store = &mut auth.token_store;
         let account_username = Some(user.username.as_str()).filter(|name| !name.is_empty());
         let display_name = Some(user.name.as_str()).filter(|name| !name.is_empty());
         match login {
             StoredLogin::OAuth1 { app } => {
-                store.set_oauth1_account_for_app(app, &user.id, account_username, display_name)?;
+                store.record_oauth1_account(
+                    app,
+                    sent_under,
+                    &user.id,
+                    account_username,
+                    display_name,
+                )?;
             }
             StoredLogin::OAuth2 {
                 app,
                 stored_as: Some(name),
             } => {
-                store.set_oauth2_account_for_app(
+                store.record_oauth2_account(
                     app,
                     name,
+                    sent_under,
                     &user.id,
                     account_username,
                     display_name,
@@ -159,16 +203,17 @@ impl Client {
                 // A token already stored under the username is the newer
                 // one, written by a refresh that learned the name; the
                 // unnamed one is then not the login this answer is about.
-                if store.name_unnamed_oauth2_token_for_app(app, &user.username)? {
+                if store.name_unnamed_oauth2_token_holding(app, &user.username, sent_under)? {
                     tracing::info!(
                         target: STORE_TARGET,
                         kind = "login-named",
                         name = %user.username,
                         "stored the unnamed OAuth2 login under its username"
                     );
-                    store.set_oauth2_account_for_app(
+                    store.record_oauth2_account(
                         app,
                         &user.username,
+                        sent_under,
                         &user.id,
                         account_username,
                         display_name,
@@ -291,6 +336,27 @@ impl<T: DeserializeOwned> Call<T> {
     /// Everything [`Client::auth_preflight`] returns, plus the error of a
     /// request that could not be built.
     pub async fn auth_preflight(&self) -> Result<Option<AuthPreflight>> {
+        self.client.auth_preflight(&self.preflight_request()?).await
+    }
+
+    /// [`Client::stored_credential`] for the request as built so far.
+    ///
+    /// # Errors
+    ///
+    /// Everything [`Client::stored_credential`] returns, plus the error of a
+    /// request that could not be built.
+    // `xr whoami --cached` reads the stored account with it, in
+    // `crates/xurl-cli/src/cli/commands/reads.rs`.
+    #[doc(hidden)]
+    pub async fn stored_credential(&self) -> Result<Option<AuthPreflight>> {
+        self.client
+            .stored_credential(&self.preflight_request()?)
+            .await
+    }
+
+    /// The request a preflight reads: the one built so far, with the
+    /// credential choices the call's options make.
+    fn preflight_request(&self) -> Result<RequestOptions> {
         if let Some(error) = &self.failed {
             // `failed` holds only a body that did not serialize.
             return Err(Error::json(error.to_string()));
@@ -299,7 +365,7 @@ impl<T: DeserializeOwned> Call<T> {
         request.auth_type.clone_from(&self.options.auth_type);
         request.username.clone_from(&self.options.username);
         request.no_auth = self.options.no_auth;
-        self.client.auth_preflight(&request).await
+        Ok(request)
     }
 
     /// Performs the request and decodes the response.
@@ -312,6 +378,12 @@ impl<T: DeserializeOwned> Call<T> {
     /// by handle that finds no account, which is [`Error::AccountNotFound`]
     /// naming the first handle.
     pub async fn send(self) -> Result<T> {
+        self.send_carrying().await.map(|(answer, _)| answer)
+    }
+
+    /// [`Self::send`], with the `Authorization` header the client attached
+    /// to the attempt that answered.
+    async fn send_carrying(self) -> Result<(T, Option<String>)> {
         let Self {
             client,
             options,
@@ -335,12 +407,12 @@ impl<T: DeserializeOwned> Call<T> {
             query.push((param.to_string(), options.pagination_token));
         }
         let timeout = options.timeout.unwrap_or_else(|| client.request_timeout());
-        let answer = decode(client.send_request_with(&request, timeout).await?);
-        match (answer, handle) {
+        let (body, authorization) = client.send_request_carrying(&request, timeout).await?;
+        match (decode(body), handle) {
             (Err(error), Some(account)) if error.finds_nothing() => {
                 Err(Error::AccountNotFound { account })
             }
-            (answer, _) => answer,
+            (answer, _) => answer.map(|answer| (answer, authorization)),
         }
     }
 }

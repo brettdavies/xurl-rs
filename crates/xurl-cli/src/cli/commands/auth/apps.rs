@@ -9,14 +9,16 @@ use super::secret::{self, SecretArg, SecretError};
 use super::{
     AuthCtx, RedirectUriGetResponse, RedirectUriSetResponse, build_app_status_entries,
     destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
+    rehearsed,
 };
-use crate::cli::failure::{CommandResult, Failure};
+use crate::cli::failure::CommandResult;
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use crate::cli::{AppCommands, RedirectUriCommands};
 use xdk::auth::Auth;
 use xdk::config;
-use xdk::error::{Error, Result};
+use xdk::error::Error;
+use xdk::store::TokenStore;
 
 pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResult<()> {
     match cmd {
@@ -46,7 +48,6 @@ pub(super) fn run_app_command(cmd: AppCommands, ctx: AuthCtx<'_>) -> CommandResu
         AppCommands::Remove { name, force } => remove(ctx, &name, force),
         AppCommands::RedirectUri { command } => {
             run_redirect_uri_command(command, ctx.auth, ctx.flags.dry_run, ctx.out, ctx.stdout)
-                .map_err(Failure::from)
         }
         AppCommands::List => list(ctx),
     }
@@ -66,19 +67,22 @@ fn add(
         stdout,
         ..
     } = ctx;
+    let register = |store: &mut TokenStore| {
+        store.add_app(name, client_id, client_secret)?;
+        match redirect_uri {
+            Some(uri) => store.set_app_redirect_uri(name, uri),
+            None => Ok(()),
+        }
+    };
     if flags.dry_run {
         let ctx = json!({
             "command": "app-add",
             "name": name,
             "has_redirect_uri": redirect_uri.is_some(),
         });
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
+        return rehearsed(&auth.token_store, register, ctx, out, stdout);
     }
-    auth.token_store.add_app(name, client_id, client_secret)?;
-    if let Some(uri) = redirect_uri {
-        auth.token_store.set_app_redirect_uri(name, uri)?;
-    }
+    register(&mut auth.token_store)?;
     let is_default = auth.token_store.get_default_app() == name;
     let next = NextStep::sign_in((!is_default).then_some(name), out.format.is_structured());
     if out.format.is_structured() {
@@ -116,27 +120,30 @@ fn update(
     if client_id.is_none() && client_secret.is_none() && redirect_uri.is_none() {
         return Err(Error::validation("no-app-changes").into());
     }
+    let ctx = json!({
+        "command": "app-update",
+        "name": name,
+        "has_client_id": client_id.is_some(),
+        "has_client_secret": client_secret.is_some(),
+        "has_redirect_uri": redirect_uri.is_some(),
+    });
+    let change = |store: &mut TokenStore| {
+        if client_id.is_some() || client_secret.is_some() {
+            store.update_app(
+                name,
+                client_id.as_deref().unwrap_or_default(),
+                client_secret.as_deref().unwrap_or_default(),
+            )?;
+        }
+        match redirect_uri {
+            Some(uri) => store.set_app_redirect_uri(name, uri),
+            None => Ok(()),
+        }
+    };
     if flags.dry_run {
-        let ctx = json!({
-            "command": "app-update",
-            "name": name,
-            "has_client_id": client_id.is_some(),
-            "has_client_secret": client_secret.is_some(),
-            "has_redirect_uri": redirect_uri.is_some(),
-        });
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
+        return rehearsed(&auth.token_store, change, ctx, out, stdout);
     }
-    if client_id.is_some() || client_secret.is_some() {
-        auth.token_store.update_app(
-            name,
-            &client_id.unwrap_or_default(),
-            &client_secret.unwrap_or_default(),
-        )?;
-    }
-    if let Some(uri) = redirect_uri {
-        auth.token_store.set_app_redirect_uri(name, uri)?;
-    }
+    change(&mut auth.token_store)?;
     out.print_ok_message(stdout, &format!("\x1b[32mApp {name:?} updated.\x1b[0m"));
     Ok(())
 }
@@ -152,8 +159,13 @@ fn remove(ctx: AuthCtx<'_>, name: &str, force: bool) -> CommandResult<()> {
     let ctx = json!({"command": "app-remove", "name": name});
     if flags.dry_run {
         let ctx = destructive_dry_run_context(ctx, force);
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
+        return rehearsed(
+            &auth.token_store,
+            |store| store.remove_app(name),
+            ctx,
+            out,
+            stdout,
+        );
     }
     let prompt = format!("Remove app {name:?}?");
     if !gate_destructive(force, flags.no_interactive, flags.quiet, &prompt, &ctx)? {
@@ -238,7 +250,7 @@ fn run_redirect_uri_command(
     dry_run: bool,
     out: &OutputConfig,
     stdout: &mut dyn Write,
-) -> Result<()> {
+) -> CommandResult<()> {
     match cmd {
         RedirectUriCommands::Get { name } => {
             let target = match name.as_deref() {
@@ -246,7 +258,7 @@ fn run_redirect_uri_command(
                 None => {
                     let default = auth.token_store.get_default_app();
                     if default.is_empty() {
-                        return Err(Error::validation("no-default-app"));
+                        return Err(Error::validation("no-default-app").into());
                     }
                     default.to_string()
                 }
@@ -266,7 +278,7 @@ fn run_redirect_uri_command(
                     effective_source: resolved.source,
                     stored_redirect_uri: stored.clone(),
                 };
-                let value = serde_json::to_value(&response)?;
+                let value = serde_json::to_value(&response).map_err(Error::from)?;
                 out.print_success(stdout, &value);
             } else {
                 out.print_message(stdout, &format!("app: {target}"));
@@ -286,8 +298,13 @@ fn run_redirect_uri_command(
                     "app": name,
                     "redirect_uri": uri,
                 });
-                out.print_dry_run(stdout, true, 0, &ctx);
-                return Ok(());
+                return rehearsed(
+                    &auth.token_store,
+                    |store| store.set_app_redirect_uri(&name, &uri),
+                    ctx,
+                    out,
+                    stdout,
+                );
             }
             auth.token_store.set_app_redirect_uri(&name, &uri)?;
             if out.format.is_structured() {
@@ -296,7 +313,7 @@ fn run_redirect_uri_command(
                     app: name.clone(),
                     redirect_uri: uri.clone(),
                 };
-                let value = serde_json::to_value(&response)?;
+                let value = serde_json::to_value(&response).map_err(Error::from)?;
                 out.print_response(stdout, &value);
             } else {
                 out.print_ok_message(stdout, &format!("Set redirect URI for {name:?}"));

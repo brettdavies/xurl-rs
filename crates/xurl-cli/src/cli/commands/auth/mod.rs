@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use super::{GlobalFlags, Run, destructive_dry_run_context, gate_destructive};
 use crate::cli::AuthCommands;
-use crate::cli::failure::CommandResult;
+use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::REGISTER_APP_TEMPLATE;
 use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
@@ -265,6 +265,23 @@ fn store_command(cmd: AuthCommands, ctx: AuthCtx<'_>) -> CommandResult<()> {
             session::set_default(session::SetDefaultArgs { app_name, username }, ctx)
         }
     }
+}
+
+/// Answers the dry run of an `auth` command that writes the store: the
+/// refusal its real run would meet, from a rehearsal of `write` on the store,
+/// or `would_succeed: true` with `ctx`.
+fn rehearsed<R>(
+    store: &TokenStore,
+    write: impl FnOnce(&mut TokenStore) -> xdk::error::Result<R>,
+    ctx: serde_json::Value,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> CommandResult<()> {
+    if let Err(error) = store.rehearse(write) {
+        return Err(Failure::DryRunRefusal { ctx, error });
+    }
+    out.print_dry_run(stdout, true, 0, &ctx);
+    Ok(())
 }
 
 /// Truncates a string to a maximum length.

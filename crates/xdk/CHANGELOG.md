@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-11-11
+
+### Breaking changes
+
+- Change a `TokenStore` write whose directory cannot be created to return `Error::Io`, naming the directory, where it returned `Error::TokenStore`. Its `exit_code()` is 5 where it was 77, and `Error::docs_url()` names the page on an unwritable store for it. by @brettdavies in [#564](https://github.com/brettdavies/xurl-rs/pull/564)
+
+  ```rust
+  // Before: the store's directory cannot be created
+  let err = store.save_bearer_token_for_app("work", token).unwrap_err();
+  assert!(matches!(err, xdk::Error::TokenStore { .. }));
+
+  // After
+  let err = store.save_bearer_token_for_app("work", token).unwrap_err();
+  assert!(matches!(err, xdk::Error::Io { .. }));
+  assert_eq!(err.exit_code(), 5);
+  ```
+- Change `Client::auth_preflight` to return the store's refusal for an expired OAuth2 token from a token store that does not load (`Error::TokenStore`) or cannot be written (`Error::Io`), the check its refresh makes before the grant, where it returned the credential with `token_expired: true`. A caller that reads any error as "no credential" now meets the refusal there. by @brettdavies in [#566](https://github.com/brettdavies/xurl-rs/pull/566)
+
+  ```rust
+  // Before: an expired token in a store that cannot be written
+  let found = client.auth_preflight(&options).await?;
+  assert!(found.is_some_and(|f| f.token_expired));
+
+  // After: the refresh's own refusal, before any request
+  let err = client.auth_preflight(&options).await.unwrap_err();
+  assert!(matches!(err, xdk::Error::Io { .. }));
+  ```
+
+### Changed
+
+- Change the vendored X API spec to the 2026-11-10 content of upstream 2.174, which widens Space ids to 24 characters and the user search query to letters and digits in any language, and adds `user_id` to X Chat public keys. `API_SPEC_SHA256` and `API_SPEC_DATE` follow. by @brettdavies in [#552](https://github.com/brettdavies/xurl-rs/pull/552)
+- `Error::next_action()` returns `NextAction::FixInput` for the `Error::TokenStore` of an app name the store does not hold, as `xr` renders it. by @brettdavies in [#565](https://github.com/brettdavies/xurl-rs/pull/565)
+
+### Fixed
+
+- Fix `validate_space_id` and `validate_space_ids` refusing Space ids of 14 to 24 letters or digits, which the spec now allows. by @brettdavies in [#552](https://github.com/brettdavies/xurl-rs/pull/552)
+- Fix `validate_user_search_query` refusing queries the spec now allows: up to `USER_SEARCH_QUERY_MAX_CHARS` characters, each a letter, mark, or digit in any script, a space separator, or one of `_ ' ’ . @ & " -`.
+- Fix an `OAuth2` refresh that saved its new pair over a login another process stored or cleared in the same slot during the grant, and a `/2/users/me` answer recorded on a token that replaced the one its request went out with. Each write now lands only while the slot still holds the token it came from. by @brettdavies in [#555](https://github.com/brettdavies/xurl-rs/pull/555)
+- Fix `refresh_oauth2_token`, `oauth2_flow`, and `remote_oauth2_step2` sending their grant when the store file exists but cannot be loaded: each now returns `Error::TokenStore` before the refresh token or authorization code is sent, and `check_remote_oauth2_step2` names the same refusal. by @brettdavies in [#556](https://github.com/brettdavies/xurl-rs/pull/556)
+- Fix a `TokenStore` reload keeping the earlier view's apps when the file holds none, was deleted, or no longer parses, which let the next write put removed apps and their credentials back. A view now holds exactly the file's apps, except that a file with nothing but whitespace in it leaves the view as it was, so an app placed in a `TokenStore`'s `apps` without being written (a struct literal, or a direct insert) no longer survives the store's next write; add apps through `add_app`. by @brettdavies in [#558](https://github.com/brettdavies/xurl-rs/pull/558)
+- Fix `locate_store` answering with the empty `<dir>/auth.yml` while an interrupted move had left the store at `<dir>.migrating`, which let a write create a new store and the next `adopt_directory_layout` rename the real one to `.bak`. It now returns the stranded file until the move finishes, when the current user owns it and no one else may write it, and a `tracing` warning on `xdk::store` names a stranded store whenever one is renamed to `.bak`. by @brettdavies in [#559](https://github.com/brettdavies/xurl-rs/pull/559)
+- Fix `StreamLines` yielding the part of a line received before a broken connection as a line after it reports the error. The stream now ends at its error. by @brettdavies in [#560](https://github.com/brettdavies/xurl-rs/pull/560)
+- Fix `pending::load` failing with `Error::Io` on a saved flow that is not UTF-8. It now returns the `PendingStateInvalid` refusal a flow that does not parse gets, naming the file and the offset of the first byte that is not UTF-8. by @brettdavies in [#561](https://github.com/brettdavies/xurl-rs/pull/561)
+- Fix `Auth::oauth2_flow`, `Auth::remote_oauth2_step1`, and `run_oauth2_flow` asking for consent on a token store that cannot be loaded or written: they now return the store's refusal before the authorize URL is built, the listener binds, or the flow is saved. A store that cannot be written is `Error::Io`. by @brettdavies in [#564](https://github.com/brettdavies/xurl-rs/pull/564)
+- Fix `refresh_oauth2_token` sending the refresh grant when the token store cannot be written, which spent the refresh token on a pair it could not save. It now returns the store's refusal before the grant.
+- Fix `TokenStore::save_bearer_token_for_app`, `save_oauth2_token_for_app`, `save_oauth2_token_unnamed_for_app`, and `save_oauth1_tokens_for_app` writing to the default app when the named app is not in the store as re-read under its lock: they now return `Error::TokenStore`. An empty app name still writes to the default app. The store's refresh hook (`TokenStore::refresh_hook_for`) saves through the same check, so a refresh for an app removed meanwhile is refused rather than written to the default app. by @brettdavies in [#565](https://github.com/brettdavies/xurl-rs/pull/565)
+- Fix `Auth::oauth2_flow`, `Auth::remote_oauth2_step1`, and the code exchange running for an app name the store does not hold: they return `Error::TokenStore` before the authorize URL is built, and the exchange returns it before the code is sent.
+- Fix a `TokenStore` save that could not write its file returning an `Error::Io` whose message named neither the file nor its directory. by @brettdavies in [#566](https://github.com/brettdavies/xurl-rs/pull/566)
+
+**Full Changelog**: [xdk-rs-v0.5.2...xdk-rs-v0.6.0](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.5.2...xdk-rs-v0.6.0)
+
 ## [0.5.2] - 2026-11-09
 
 ### Changed

@@ -21,27 +21,10 @@ use xdk::store::{App, TokenStore, TokenType};
 /// Returns the store and the TempDir guard (drop cleans up).
 fn create_temp_token_store() -> (TokenStore, TempDir) {
     let tmp = TempDir::new().expect("Failed to create temp directory");
-    let file_path = tmp.path().join(".xurl");
-
-    let mut store = TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "default".to_string(),
-        file_path,
-        load_state: xdk::store::LoadState::Loaded,
-    };
-    store.apps.insert(
-        "default".to_string(),
-        App {
-            client_id: String::new(),
-            client_secret: String::new(),
-            default_user: String::new(),
-            redirect_uri: String::new(),
-            oauth2_tokens: BTreeMap::new(),
-            oauth1_token: None,
-            bearer_token: None,
-            unnamed_oauth2_token: None,
-        },
-    );
+    let mut store = TokenStore::new_with_path(&tmp.path().join(".xurl").to_string_lossy());
+    store
+        .add_app("default", "", "")
+        .expect("add the default app");
 
     (store, tmp)
 }
@@ -681,25 +664,8 @@ fn test_yaml_persistence() {
     let xurl_path = tmp.path().join(".xurl");
 
     // Create and save
-    let mut s1 = TokenStore {
-        apps: BTreeMap::new(),
-        default_app: "myapp".to_string(),
-        file_path: xurl_path.clone(),
-        load_state: xdk::store::LoadState::Loaded,
-    };
-    s1.apps.insert(
-        "myapp".to_string(),
-        App {
-            client_id: "cid".to_string(),
-            client_secret: "csec".to_string(),
-            default_user: String::new(),
-            redirect_uri: String::new(),
-            oauth2_tokens: BTreeMap::new(),
-            oauth1_token: None,
-            bearer_token: None,
-            unnamed_oauth2_token: None,
-        },
-    );
+    let mut s1 = TokenStore::new_with_path(&xurl_path.to_string_lossy());
+    s1.add_app("myapp", "cid", "csec").unwrap();
     s1.save_bearer_token("yaml-bearer").unwrap();
 
     // Reload
@@ -906,10 +872,15 @@ fn test_save_oauth2_token_to_nonexistent_app_fails() {
     let (mut store, _tmp) = create_temp_token_store();
 
     let result = store.save_oauth2_token_for_app("nonexistent", "user", "at", "rt", 1);
-    // The implementation resolves to default app when app not found,
-    // so this may succeed. Adjust expectation to match implementation.
-    // If it doesn't fail, that's the current behavior.
-    let _ = result;
+
+    assert!(
+        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        "a save for an app the store does not hold was not refused: {result:?}"
+    );
+    assert!(
+        store.get_oauth2_token_for_app("default", "user").is_none(),
+        "the token meant for another app landed on the default app"
+    );
 }
 
 #[test]
@@ -1197,22 +1168,20 @@ fn test_has_tokens_returns_true_for_unnamed_only_app() {
 }
 
 #[test]
-fn test_save_unnamed_to_missing_app_auto_creates() {
+fn test_save_unnamed_to_missing_app_refuses() {
     let (mut store, _tmp) = create_temp_token_store();
 
-    // No "ghost" app exists; resolve_app_mut falls back to the active app
-    // (or freshly creates "default"). The save must NOT return an error.
-    store
-        .save_oauth2_token_unnamed_for_app("ghost", "ghost-at", "ghost-rt", 9_999)
-        .expect("save into missing app must not error (auto-create / fallback)");
+    let result = store.save_oauth2_token_unnamed_for_app("ghost", "ghost-at", "ghost-rt", 9_999);
 
-    // The active app (default) now holds the token; "ghost" remains absent.
+    assert!(
+        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        "a save for an app the store does not hold was not refused: {result:?}"
+    );
     let active = store.get_default_app().to_string();
-    let tok = store
-        .get_oauth2_token_unnamed_for_app(&active)
-        .expect("token landed in the active app");
-    assert_eq!(tok.oauth2.as_ref().unwrap().access_token, "ghost-at");
-
+    assert!(
+        store.get_oauth2_token_unnamed_for_app(&active).is_none(),
+        "the token meant for a missing app landed in the active app"
+    );
     assert!(
         store.get_app("ghost").is_none(),
         "ghost app should not have been registered"
@@ -1606,6 +1575,146 @@ fn two_loaded_stores_writing_the_same_file_keep_both_apps() {
     );
 }
 
+/// One view removes the only app; another, loaded before the removal, then
+/// writes. The removed app and its credentials stay removed.
+#[test]
+fn a_removed_last_app_stays_removed_after_a_stale_view_writes() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut first = store_at(&path);
+    first.add_app("work", "CLIENT-ID", "SECRET").unwrap();
+    first.save_bearer_token_for_app("work", "BEARER").unwrap();
+    let mut second = store_at(&path);
+
+    first.remove_app("work").unwrap();
+    second.add_app("other", "OTHER-ID", "OTHER-SECRET").unwrap();
+
+    let on_disk = store_at(&path);
+    assert!(
+        on_disk.get_app("work").is_none(),
+        "the removed app came back with its bearer token: {:?}",
+        on_disk.list_apps()
+    );
+}
+
+/// The same race through a deleted store file: a view loaded before the
+/// deletion writes, and the deleted credentials stay deleted.
+#[test]
+fn a_deleted_store_file_stays_deleted_after_a_stale_view_writes() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut first = store_at(&path);
+    first.add_app("work", "CLIENT-ID", "SECRET").unwrap();
+    first.save_bearer_token_for_app("work", "BEARER").unwrap();
+    let mut second = store_at(&path);
+
+    fs::remove_file(&path).unwrap();
+    second.add_app("other", "OTHER-ID", "OTHER-SECRET").unwrap();
+
+    let on_disk = store_at(&path);
+    assert!(
+        on_disk.get_bearer_token_for_app("work").is_none(),
+        "the deleted bearer token came back: {:?}",
+        on_disk.list_apps()
+    );
+}
+
+/// A writer that truncates the file before writing it, rather than replacing
+/// it by rename, leaves it empty for a moment. A write from a loaded view in
+/// that moment keeps the apps the view held.
+#[test]
+fn a_store_file_caught_empty_mid_write_keeps_its_apps() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut view = store_at(&path);
+    view.add_app("work", "CLIENT-ID", "SECRET").unwrap();
+    view.save_bearer_token_for_app("work", "BEARER").unwrap();
+
+    fs::write(&path, b"").unwrap();
+    view.add_app("other", "OTHER-ID", "OTHER-SECRET").unwrap();
+
+    let on_disk = store_at(&path);
+    assert!(
+        on_disk.get_bearer_token_for_app("work").is_some(),
+        "the store lost its apps to a moment it was empty: {:?}",
+        on_disk.list_apps()
+    );
+}
+
+/// A token saved for an app another view removed is refused, so it lands on
+/// no other app.
+#[test]
+fn a_token_saved_for_an_app_another_view_removed_lands_nowhere() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut seed = store_at(&path);
+    seed.add_app("personal", "P-ID", "P-SECRET").unwrap();
+    seed.save_oauth1_tokens_for_app("personal", "AT", "TS", "CK", "CS")
+        .unwrap();
+    seed.add_app("work", "W-ID", "W-SECRET").unwrap();
+
+    let mut saver = store_at(&path);
+    store_at(&path).remove_app("work").unwrap();
+    let result = saver.save_oauth1_tokens_for_app("work", "AT2", "TS2", "CK2", "CS2");
+
+    assert!(
+        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        "a save for a removed app was not refused: {result:?}"
+    );
+    let on_disk = store_at(&path);
+    let personal = on_disk
+        .get_oauth1_tokens_for_app("personal")
+        .and_then(|token| token.oauth1.as_ref())
+        .map(|pair| pair.access_token.as_str());
+    assert_eq!(
+        personal,
+        Some("AT"),
+        "the pair meant for the removed app replaced another app's"
+    );
+    assert_eq!(on_disk.list_apps(), vec!["personal".to_string()]);
+}
+
+/// A rehearsal saves nothing, and one that ends on an error leaves the
+/// thread's next write saving as it always does.
+#[test]
+fn a_write_after_a_failed_rehearsal_is_saved() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let mut store = store_at(&path);
+    store.add_app("work", "W-ID", "W-SECRET").unwrap();
+
+    store
+        .rehearse(|copy| copy.add_app("rehearsed", "R-ID", "R-SECRET"))
+        .unwrap();
+    let refused = store.rehearse(|copy| copy.remove_app("ghost"));
+    assert!(
+        matches!(refused, Err(xdk::Error::TokenStore { .. })),
+        "{refused:?}"
+    );
+    store.add_app("saved", "S-ID", "S-SECRET").unwrap();
+
+    assert_eq!(
+        store_at(&path).list_apps(),
+        vec!["saved".to_string(), "work".to_string()],
+        "the rehearsed app was saved, or the write after the failed rehearsal was not"
+    );
+}
+
+/// A rehearsal checks the file as it stands, not the view it started from.
+#[test]
+fn a_rehearsal_reads_the_store_another_view_changed() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let stale = store_at(&path);
+    store_at(&path).add_app("work", "W-ID", "W-SECRET").unwrap();
+
+    let removed = stale.rehearse(|copy| copy.remove_app("work"));
+    assert!(
+        removed.is_ok(),
+        "the rehearsal missed an app another view added: {removed:?}"
+    );
+}
+
 /// A refresh rotating a token and a registration in another loaded view
 /// both land; the rotated refresh token is the one every later refresh needs.
 #[test]
@@ -1695,22 +1804,13 @@ fn readers_never_observe_a_partial_store() {
     let path = tmp.path().join(".xurl");
     let mut store = store_at(&path);
     for i in 0..300 {
-        store.apps.insert(
-            format!("app{i:03}"),
-            App {
-                client_id: "i".repeat(200),
-                client_secret: "s".repeat(200),
-                default_user: String::new(),
-                redirect_uri: String::new(),
-                oauth2_tokens: BTreeMap::new(),
-                oauth1_token: None,
-                bearer_token: None,
-                unnamed_oauth2_token: None,
-            },
-        );
+        store
+            .add_app(&format!("app{i:03}"), &"i".repeat(200), &"s".repeat(200))
+            .unwrap();
     }
     store.save_bearer_token_for_app("app000", "b0").unwrap();
     let total = store.list_apps().len();
+    assert_eq!(total, 300, "the file under test holds every seeded app");
 
     let stop = Arc::new(AtomicBool::new(false));
     let reader = {
@@ -1969,6 +2069,46 @@ fn a_single_file_store_moves_on_first_use_and_the_command_says_so() {
         .assert()
         .success()
         .stderr(predicates::str::is_empty());
+}
+
+/// A store an interrupted move stranded at `.xurl.migrating` is kept as a
+/// `.bak` file once another store has taken its place, whether that store is
+/// in the directory or a single file a release that reads only that layout
+/// wrote, and the command names the file it kept.
+#[test]
+fn a_stranded_store_kept_as_a_backup_is_named_in_a_warning() {
+    for in_place in ["in its directory", "a single file"] {
+        let tmp = TempDir::new().unwrap();
+        let (file, in_directory) = single_file_store(&tmp);
+        if in_place == "in its directory" {
+            assert_eq!(
+                xdk::store::adopt_directory_layout(&in_directory),
+                in_directory
+            );
+        }
+        let stranded = tmp.path().join(".xurl.migrating");
+        let mut old = TokenStore::new_with_path(&stranded.to_string_lossy());
+        old.add_app("old", "OLD-ID", "OLD-SECRET").expect("add app");
+        let backup = tmp.path().join(".xurl.migrating.bak");
+
+        let assert = common::xr_with_store(&in_directory)
+            .args(["auth", "status"])
+            .assert()
+            .success();
+        let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
+        assert!(
+            backup.is_file(),
+            "{in_place}: the stranded store is kept as {}",
+            backup.display()
+        );
+        assert!(
+            stderr.contains("warning")
+                && stderr.contains(&*backup.to_string_lossy())
+                && stderr.contains(&*stranded.to_string_lossy()),
+            "{in_place}: the warning names the stranded store and its backup: {stderr}"
+        );
+        assert!(file.is_dir() && in_directory.is_file(), "{in_place}");
+    }
 }
 
 /// Under a structured format stderr carries envelopes only, so the move is

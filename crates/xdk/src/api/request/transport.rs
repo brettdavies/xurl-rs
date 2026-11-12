@@ -46,6 +46,18 @@ impl Client {
         options: &RequestOptions,
         timeout: std::time::Duration,
     ) -> Result<serde_json::Value> {
+        self.send_request_carrying(options, timeout)
+            .await
+            .map(|(answer, _)| answer)
+    }
+
+    /// [`Self::send_request_with`], with the `Authorization` header the
+    /// client attached to the attempt that answered.
+    pub(crate) async fn send_request_carrying(
+        &self,
+        options: &RequestOptions,
+        timeout: std::time::Duration,
+    ) -> Result<(serde_json::Value, Option<String>)> {
         match self.send_request_once(options, timeout).await {
             Err(error) => match self.rate_limit_pause(&error) {
                 Some(pause) => {
@@ -58,12 +70,12 @@ impl Client {
         }
     }
 
-    /// One attempt at [`Self::send_request_with`].
+    /// One attempt at [`Self::send_request_carrying`].
     async fn send_request_once(
         &self,
         options: &RequestOptions,
         timeout: std::time::Duration,
-    ) -> Result<serde_json::Value> {
+    ) -> Result<(serde_json::Value, Option<String>)> {
         let method = options.method.to_uppercase();
         let method = if method.is_empty() { "GET" } else { &method };
         // Auth-matrix validation lives inside `get_auth_header`, reached
@@ -85,13 +97,13 @@ impl Client {
         if sends_body {
             builder = with_body(builder, options);
         }
-        let builder = self.with_headers(builder, options, sends_body).await?;
+        let (builder, authorization) = self.with_headers(builder, options, sends_body).await?;
         trace_request(method, &url);
 
         let resp = builder.send().await?;
         self.record_rate_limit(resp.headers());
         trace_response(resp.status(), resp.headers());
-        read_response(resp).await
+        Ok((read_response(resp).await?, authorization))
     }
 
     /// Sends a multipart request (used for media upload chunks).
@@ -154,7 +166,7 @@ impl Client {
             .multipart(form);
         // Multipart's Content-Type is owned by `reqwest`'s multipart builder
         // (it carries the boundary), so the client never sets one here.
-        let builder = self.with_headers(builder, &options.request, false).await?;
+        let (builder, _) = self.with_headers(builder, &options.request, false).await?;
         trace_request(method, &url);
 
         let resp = builder.send().await?;
@@ -189,7 +201,7 @@ impl Client {
         if sends_body {
             builder = with_body(builder, options);
         }
-        let builder = self.with_headers(builder, options, sends_body).await?;
+        let (builder, _) = self.with_headers(builder, options, sends_body).await?;
         trace_request(method, &url);
 
         let resp = builder.send().await?;
@@ -209,7 +221,8 @@ impl Client {
 
     /// Adds the headers every request path sends: the caller's own, then
     /// `Authorization`, `User-Agent`, and (when tracing) `X-B3-Flags`, each
-    /// left out when the caller already supplied it.
+    /// left out when the caller already supplied it. Returns the builder and
+    /// the `Authorization` header the client attached, if it attached one.
     ///
     /// An auth failure (a mismatch, or no token for the resolved app) is
     /// returned rather than sending the request unauthenticated, which would
@@ -221,17 +234,20 @@ impl Client {
         mut builder: reqwest::RequestBuilder,
         options: &RequestOptions,
         sets_content_type: bool,
-    ) -> Result<reqwest::RequestBuilder> {
+    ) -> Result<(reqwest::RequestBuilder, Option<String>)> {
         for header in &options.headers {
             if let Some((key, value)) = header.split_once(':') {
                 builder = builder.header(key.trim(), value.trim());
             }
         }
 
-        if attaches_credential(options) {
+        let authorization = if attaches_credential(options) {
             let auth_header = self.get_auth_header(options).await?;
-            builder = builder.header("Authorization", auth_header);
-        }
+            builder = builder.header("Authorization", auth_header.as_str());
+            Some(auth_header)
+        } else {
+            None
+        };
 
         if !user_supplied_header(&options.headers, "User-Agent") {
             builder = builder.header("User-Agent", self.inner.user_agent.as_str());
@@ -247,7 +263,7 @@ impl Client {
             !options.no_auth,
             options.trace,
         );
-        Ok(builder)
+        Ok((builder, authorization))
     }
 
     /// How long to sleep before sending a rate-limited request once more:
@@ -337,7 +353,9 @@ type ByteStream = Pin<Box<dyn Stream<Item = reqwest::Result<Bytes>> + Send>>;
 ///
 /// A [`Stream`] of lines; [`Self::next_line`] is the same thing without a
 /// stream combinator. Empty keep-alive lines are skipped. Dropping the
-/// stream closes the connection.
+/// stream closes the connection. When the connection fails, the stream
+/// yields the error and then ends: the part of a line received before the
+/// failure is dropped, never yielded as a line.
 pub struct StreamLines {
     body: ByteStream,
     buf: Vec<u8>,
@@ -345,7 +363,8 @@ pub struct StreamLines {
 }
 
 impl StreamLines {
-    /// The next line, or `None` once the server has ended the stream.
+    /// The next line, or `None` once the server has ended the stream or the
+    /// connection has failed.
     ///
     /// # Errors
     ///
@@ -398,6 +417,7 @@ impl Stream for StreamLines {
                 Poll::Ready(Some(Ok(chunk))) => self.buf.extend_from_slice(&chunk),
                 Poll::Ready(Some(Err(e))) => {
                     self.done = true;
+                    self.buf.clear();
                     return Poll::Ready(Some(Err(Error::io(e.to_string()).with_source(e))));
                 }
             }

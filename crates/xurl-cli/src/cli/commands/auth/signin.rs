@@ -6,7 +6,7 @@ use std::io::{IsTerminal, Write};
 use serde_json::json;
 
 use super::secret::{self, SecretArg};
-use super::{AuthCtx, AuthGlobalFlags};
+use super::{AuthCtx, AuthGlobalFlags, rehearsed};
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::{NextStep, quote_app_name, shell_word};
@@ -14,6 +14,7 @@ use crate::cli::output::OutputConfig;
 use xdk::auth::Auth;
 use xdk::config::Config;
 use xdk::error::{EXIT_USAGE_ERROR, Error};
+use xdk::store::TokenStore;
 
 /// The command a usage error of `xr auth oauth2` closes on the help of.
 const OAUTH2_COMMAND: &str = "xr auth oauth2";
@@ -103,11 +104,19 @@ pub(super) async fn oauth2(
     }
     let username_arg = username.as_deref().unwrap_or("");
     let client = crate::cli::commands::make_client(cfg, auth)?;
-    // Refuse before any URL is built or pending file written when the
-    // target app has no client id to sign in with.
+    // Refuse before any URL is built or pending file written when the store
+    // cannot be loaded or written, the target app has no client id to sign in
+    // with, or the store holds no app by the name `--app` gives. Step 2 checks
+    // the app after the saved flow, whose owner names the app to run it under.
     let refusal = {
         let auth = client.auth().await?;
-        client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false)
+        auth.token_store.refuse_unless_writable()?;
+        let refusal =
+            client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false);
+        if refusal.is_none() && !(effective_no_browser && step == Some(2)) {
+            auth.token_store.refuse_if_app_missing(auth.app_name())?;
+        }
+        refusal
     };
     if let Some(body) = refusal {
         out.emit_error_envelope(stderr, body);
@@ -272,8 +281,8 @@ struct DryRun<'a> {
 
 /// Answers a dry run of `xr auth oauth2` with the verdict the real run
 /// reaches, from the arguments, the environment, the store, and the saved
-/// flow, in the order the real run checks them. Nothing is sent and the checks
-/// write no file.
+/// flow, in the order the real run checks them. Nothing is sent, and the one
+/// file the checks create is the store probe's empty temp file, removed at once.
 ///
 /// On a terminal a person pastes the URL when the real run asks for it, so
 /// there is nothing to read yet and the checks of its contents are left out;
@@ -296,13 +305,20 @@ fn dry_run_answer(
         out.print_dry_run_invalid_args(stdout, &ctx, &message, " ", OAUTH2_COMMAND);
         return Ok(());
     }
+    if let Err(error) = auth.token_store.refuse_unless_writable() {
+        return Err(Failure::DryRunRefusal { ctx, error });
+    }
     if let Some(body) =
         client_credentials_missing(auth, app_explicit, out.format.is_structured(), true)
     {
         out.print_dry_run_error_body(stdout, &ctx, body);
         return Ok(());
     }
-    if headless && step == Some(2) {
+    let step2 = headless && step == Some(2);
+    if !step2 && let Err(error) = auth.token_store.refuse_if_app_missing(auth.app_name()) {
+        return Err(Failure::DryRunRefusal { ctx, error });
+    }
+    if step2 {
         let redirect_url = match auth_url {
             Some("-") if std::io::stdin().is_terminal() => None,
             Some("-") => match redirect_url_from_stdin() {
@@ -425,32 +441,34 @@ pub(super) fn oauth1(args: Oauth1Args, ctx: AuthCtx<'_>) -> CommandResult<()> {
         secret::resolve_from_process([consumer_secret, access_token, token_secret])
             .map_err(|e| e.report("xr auth oauth1", out, stderr))?
             .map(Option::unwrap_or_default);
-    if dry_run {
-        let ctx = json!({"command": "auth-oauth1"});
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
-    }
     // Multi-app save: route OAuth1 tokens to the active app
     // (set by `--app NAME` or default). The no-arg variant fell
     // back to the default app even with `--app NAME` set, so a
     // user running `xr auth oauth1 --app NAME …` would silently
     // overwrite default's OAuth1 instead of populating NAME.
     let candidate = auth.app_name().to_string();
-    auth.token_store.save_oauth1_tokens_for_app(
-        &candidate,
-        &access_token,
-        &token_secret,
-        &consumer_key,
-        &consumer_secret,
-    )?;
     // Auto-default the first signed-in app so the user does not
-    // need an explicit `xr auth default <name>` follow-up. Clone
-    // the app name first; `promote_...` takes `&mut self` on the
-    // store which would otherwise alias the immutable `&str`
-    // borrow from `auth.app_name()`.
-    let _ = auth
-        .token_store
-        .promote_to_default_if_first_credentialed(&candidate)?;
+    // need an explicit `xr auth default <name>` follow-up.
+    let save = |store: &mut TokenStore| {
+        store.save_oauth1_tokens_for_app(
+            &candidate,
+            &access_token,
+            &token_secret,
+            &consumer_key,
+            &consumer_secret,
+        )?;
+        store.promote_to_default_if_first_credentialed(&candidate)
+    };
+    if dry_run {
+        return rehearsed(
+            &auth.token_store,
+            save,
+            json!({"command": "auth-oauth1"}),
+            out,
+            stdout,
+        );
+    }
+    save(&mut auth.token_store)?;
     out.print_message(
         stdout,
         "\x1b[32mOAuth1 credentials saved successfully!\x1b[0m",
@@ -470,11 +488,6 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
     let [bearer_token] = secret::resolve_from_process([bearer_token])
         .map_err(|e| e.report("xr auth app", out, stderr))?
         .map(Option::unwrap_or_default);
-    if dry_run {
-        let ctx = json!({"command": "auth-app"});
-        out.print_dry_run(stdout, true, 0, &ctx);
-        return Ok(());
-    }
     // Multi-app save: route the bearer to the active app
     // (set by `--app NAME` or default). The no-arg variant
     // silently fell back to the default app even with `--app
@@ -482,11 +495,20 @@ pub(super) fn bearer(bearer_token: SecretArg, ctx: AuthCtx<'_>) -> CommandResult
     // would overwrite default's bearer instead of populating
     // NAME's entry.
     let candidate = auth.app_name().to_string();
-    auth.token_store
-        .save_bearer_token_for_app(&candidate, &bearer_token)?;
-    let _ = auth
-        .token_store
-        .promote_to_default_if_first_credentialed(&candidate)?;
+    let save = |store: &mut TokenStore| {
+        store.save_bearer_token_for_app(&candidate, &bearer_token)?;
+        store.promote_to_default_if_first_credentialed(&candidate)
+    };
+    if dry_run {
+        return rehearsed(
+            &auth.token_store,
+            save,
+            json!({"command": "auth-app"}),
+            out,
+            stdout,
+        );
+    }
+    save(&mut auth.token_store)?;
     out.print_ok_message(stdout, "\x1b[32mApp authentication successful!\x1b[0m");
     Ok(())
 }

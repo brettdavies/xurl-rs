@@ -2813,7 +2813,7 @@ dependencies = [
 
 [[package]]
 name = "xdk-rs"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "base64 0.23.1",
  "bytes",
@@ -2823,6 +2823,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
+ "icu_properties",
  "percent-encoding",
  "phf",
  "phf_codegen",
@@ -2851,7 +2852,7 @@ dependencies = [
 
 [[package]]
 name = "xurl-rs"
-version = "4.6.2"
+version = "4.6.3"
 dependencies = [
  "assert_cmd",
  "clap",

@@ -133,6 +133,48 @@ fn sync_parent(_target: &Path) -> io::Result<()> {
     Ok(())
 }
 
+/// How a temp file is created: new, never an existing file, and `0600`.
+fn temp_file_options() -> OpenOptions {
+    let mut opts = OpenOptions::new();
+    opts.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    opts
+}
+
+/// The error of a write that could not create its temp file beside
+/// `target`, naming the directory that refused it.
+pub(crate) fn no_temp_file(target: &Path, e: &io::Error) -> io::Error {
+    let dir = target
+        .parent()
+        .filter(|dir| !dir.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    io::Error::new(
+        e.kind(),
+        format!("cannot create a file in {}: {e}", dir.display()),
+    )
+}
+
+/// Creates a temp file beside `path`, named as a write to `path` names its
+/// own, and removes it again. A file already holding the name is not this
+/// probe's, so it is left alone.
+///
+/// # Errors
+///
+/// Returns the error creating it.
+pub(crate) fn probe_temp_file(path: &Path) -> io::Result<()> {
+    let path = temp_path_for(path);
+    temp_file_options().open(&path).map(drop)?;
+    drop(TempFile {
+        path,
+        published: false,
+    });
+    Ok(())
+}
+
 /// Replaces the contents of `path` with `bytes` atomically.
 ///
 /// # Errors
@@ -147,16 +189,10 @@ pub(crate) fn write_atomically(path: &Path, bytes: &[u8]) -> io::Result<()> {
         published: false,
     };
 
-    let mut opts = OpenOptions::new();
-    opts.write(true).create_new(true);
-    #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
-        opts.mode(0o600);
-    }
-
-    {
-        let mut file = opts.open(&tmp.path)?;
+        let mut file = temp_file_options()
+            .open(&tmp.path)
+            .map_err(|e| no_temp_file(&target, &e))?;
         file.write_all(bytes)?;
         file.flush()?;
         file.sync_all()?;

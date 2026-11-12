@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.6.3] - 2026-11-11
+
+### Changed
+
+- A token store whose directory cannot be created now fails with reason `io`, exit 5, and `next_step` `fix-input` with `docs` on the README's "Token Store Could Not Be Written", from every command that writes the store, `xr auth apps add` included. It was reason `token-store`, exit 77, with no step. The message names the directory and says to change its permissions or set `XURL_TOKEN_STORE` to a writable path. by @brettdavies in [#564](https://github.com/brettdavies/xurl-rs/pull/564)
+- The `token-store` refusal for an app name the store does not hold, from `xr auth apps remove`, `xr auth default`, `xr auth apps update`, and the commands above, carries `next_step` `fix-input` with `xr auth status`, and its message reads `the store holds no app named "<name>"`. by @brettdavies in [#565](https://github.com/brettdavies/xurl-rs/pull/565)
+
+### Fixed
+
+- Fix `xr spaces get` and `xr spaces posts` refusing Space ids of 14 to 24 letters or digits with `invalid-space-id`; X's spec now allows ids up to 24 characters. by @brettdavies in [#552](https://github.com/brettdavies/xurl-rs/pull/552)
+- Fix `xr search-users` refusing queries X now accepts with `invalid-user-query`: a query is 1 to 50 characters of letters and digits in any language, spaces, and `_ ' ’ . - @ & "`, so `@jack`, `rust-lang`, and `José` go out.
+- Fix a login signed in or cleared while another `xr` was refreshing a login or asking X who it belongs to: the other run no longer stores the old account's token under that label, and no longer records the old account's id and names on the new login. by @brettdavies in [#555](https://github.com/brettdavies/xurl-rs/pull/555)
+- Fix `xr auth oauth2` and the refresh of an expired login spending the authorization code or refresh token when the token store file exists but does not parse: `xr` now refuses before sending either, so a refresh works once the file is fixed, and `--dry-run` of `--step 2` reports the same refusal. by @brettdavies in [#556](https://github.com/brettdavies/xurl-rs/pull/556)
+- Fix an app removed with `xr auth apps remove`, or a token store deleted by hand, coming back with its credentials on the next write by an `xr` that was already running. by @brettdavies in [#558](https://github.com/brettdavies/xurl-rs/pull/558)
+- Fix a token store left at `~/.xurl.migrating` by an interrupted move into `~/.xurl/` being renamed to `~/.xurl.migrating.bak` with no message once another store took its place. `xr` now warns, naming both files. by @brettdavies in [#559](https://github.com/brettdavies/xurl-rs/pull/559)
+- Fix `xr auth oauth2 --step 2` exiting 5 with reason `io` when the saved sign-in flow is not UTF-8. It now refuses as it does for a flow that does not parse, exit 77 with reason `auth-required`, naming the file and the byte where it stops being UTF-8, and its `next_step` runs step 1 again. by @brettdavies in [#561](https://github.com/brettdavies/xurl-rs/pull/561)
+- Fix `xr auth oauth2` on a token store file that does not parse. With the client id in that file, the sign-in and its dry run answered `client-credentials-missing` with a `register-app` step. With `CLIENT_ID` in the environment, `--step 1` printed a URL and the interactive flow opened the browser for a sign-in the store then refused at the code exchange. Both now refuse with `token-store`, exit 77, and an `inspect-store` step before anything else. by @brettdavies in [#562](https://github.com/brettdavies/xurl-rs/pull/562)
+- Fix `xr auth oauth2` on a token store whose directory takes no new file asking for consent it could not keep. `--step 1` failed saving its flow after its dry run said it would succeed, and `--step 2` and the interactive sign-in sent the authorization code before failing to save the tokens. Each, and its dry run, now refuses first with reason `io`, exit 5, naming the store and its directory. by @brettdavies in [#564](https://github.com/brettdavies/xurl-rs/pull/564)
+- Fix a refresh of an expired OAuth2 login spending the refresh token when the token store cannot be written. The command now fails before the refresh is sent, and the stored login keeps working once the store can be written.
+- Fix `xr auth app`, `xr auth oauth1`, and `xr auth oauth2` given `--app` naming an app the store does not hold: they stored the credential on the default app, replacing its own. They now refuse with reason `token-store`, exit 77, and `next_step` `fix-input` with `xr auth status`. `xr auth oauth2` refuses before the browser opens or the flow is saved, and its dry run says the same. This includes `--app default` on a store that holds no app, which created `default`; without `--app`, a save still creates it. by @brettdavies in [#565](https://github.com/brettdavies/xurl-rs/pull/565)
+- Fix a sign-in whose app another process removed before the tokens were saved storing them on the default app: it now refuses before the authorization code is sent.
+- Fix `--dry-run` answering `would_succeed: true` for a command whose expired OAuth2 login the real run cannot refresh because the token store does not load or cannot be written. The dry run now answers with the real run's refusal, as `io` or `token-store` with its step. A refresh refused for a directory that takes no new file names the store, where it named the refresh's lock file. by @brettdavies in [#566](https://github.com/brettdavies/xurl-rs/pull/566)
+- Fix `--dry-run` of `xr auth app`, `xr auth oauth1`, `xr auth apps add`, `update`, `remove`, and `redirect-uri set`, `xr auth clear`, and `xr auth default <app>` answering `would_succeed: true` without reading the token store. Each now answers with the refusal its real run meets: a store that does not load, an app or user the store does not hold, an app name already taken, a store directory that takes no new file, or, for `xr auth clear`, nothing named to clear.
+- Fix the `io` error of a token store save that could not write the file naming neither the file nor its directory.
+
+### Documentation
+
+- Add to `xr block --help` that a block also removes any follow between you and the account, in both directions, and to `xr unblock --help` that unblocking does not restore it. by @brettdavies in [#552](https://github.com/brettdavies/xurl-rs/pull/552)
+
+**Full Changelog**: [v4.6.2...v4.6.3](https://github.com/brettdavies/xurl-rs/compare/v4.6.2...v4.6.3)
+
 ## [4.6.2] - 2026-11-09
 
 ### Fixed
