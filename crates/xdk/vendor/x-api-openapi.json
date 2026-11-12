@@ -149,6 +149,7 @@
               "image_url_small",
               "is_high_latency",
               "language",
+              "live_category_id",
               "media_key",
               "scheduled_end_ms",
               "scheduled_start_ms",
@@ -2969,6 +2970,10 @@
             "type": "boolean"
           },
           "language": {
+            "type": "string"
+          },
+          "live_category_id": {
+            "description": "Id of the live category the host picked for the broadcast, as listed by GET /2/broadcasts/categories. Omitted when the broadcast has none.",
             "type": "string"
           },
           "media_key": {
