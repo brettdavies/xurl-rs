@@ -53,6 +53,8 @@ struct PostBody {
     quote: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     media: Option<PostMedia>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    clip: Option<PostClip>,
 }
 
 #[derive(Serialize)]
@@ -375,6 +377,19 @@ pub struct ScheduledBroadcastChanges {
     pub manual_publish: Option<bool>,
 }
 
+/// A part of another post's video, shared as a post's clip: the spec's
+/// `CreatePostsClip`. X sets how long a clip may be and which posts can be
+/// clipped, and answers a clip it refuses.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct PostClip {
+    /// The post whose video is clipped, as an id or a post URL.
+    pub post_id: String,
+    /// Second of the video at which the clip starts.
+    pub start_seconds: u32,
+    /// Second of the video at which the clip ends.
+    pub end_seconds: u32,
+}
+
 /// A list's name, description, and privacy: what a new list carries, or
 /// what a change to one sets. A field left unset is not sent.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -568,6 +583,34 @@ pub fn validate_post_body(text: &str) -> std::result::Result<(), &'static str> {
 pub fn validate_media_attachments(ids: &[String]) -> std::result::Result<(), &'static str> {
     if ids.len() > POST_MEDIA_MAX {
         return Err("too-many-attachments");
+    }
+    Ok(())
+}
+
+/// Validates the id of the post a clip is cut from, a post URL resolved to
+/// its id first: one to nineteen ASCII digits, the spec's pattern.
+///
+/// # Errors
+/// Returns `invalid-clip-post-id` for anything else, the empty string
+/// included.
+pub fn validate_clip_post_id(input: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(&resolve_post_id(input)) {
+        return Err("invalid-clip-post-id");
+    }
+    Ok(())
+}
+
+/// Validates a post's clip: a source post id in the spec's form, and an end
+/// after the start. How long the clip may be, and whether the source post
+/// holds a video that long, are X's to judge.
+///
+/// # Errors
+/// Returns `invalid-clip-post-id`, or `invalid-clip-range` when the clip does
+/// not end after it starts.
+pub fn validate_post_clip(clip: &PostClip) -> std::result::Result<(), &'static str> {
+    validate_clip_post_id(&clip.post_id)?;
+    if clip.end_seconds <= clip.start_seconds {
+        return Err("invalid-clip-range");
     }
     Ok(())
 }
@@ -1799,12 +1842,52 @@ impl Client {
             reply: None,
             quote: None,
             media: None,
+            clip: None,
         };
         if !media_ids.is_empty() {
             body.media = Some(PostMedia {
                 media_ids: media_ids.to_vec(),
             });
         }
+        self.post_json(
+            template(endpoints::CREATE_POST.path, HashMap::new(), Vec::new()),
+            &body,
+        )
+    }
+
+    /// Creates a post that shares a clip of another post's video. A post URL
+    /// in `clip.post_id` resolves to its id. The post carries no media: X
+    /// refuses a clip beside media.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use xdk::api::Client;
+    /// use xdk::api::shortcuts::PostClip;
+    /// use xdk::auth::OAuth2Credential;
+    ///
+    /// # async fn run(credential: OAuth2Credential) -> xdk::Result<()> {
+    /// let client = Client::builder().oauth2(credential).build()?;
+    /// let clip = PostClip {
+    ///     post_id: "1585341984679469056".to_string(),
+    ///     start_seconds: 30,
+    ///     end_seconds: 60,
+    /// };
+    /// let resp = client.create_clip_post("worth watching", &clip).send().await?;
+    /// println!("created post id={}", resp.data.id);
+    /// # Ok(()) }
+    /// ```
+    pub fn create_clip_post(&self, text: &str, clip: &PostClip) -> Call<ApiResponse<Post>> {
+        let body = PostBody {
+            text: text.to_string(),
+            reply: None,
+            quote: None,
+            media: None,
+            clip: Some(PostClip {
+                post_id: resolve_post_id(&clip.post_id),
+                ..clip.clone()
+            }),
+        };
         self.post_json(
             template(endpoints::CREATE_POST.path, HashMap::new(), Vec::new()),
             &body,
@@ -1826,6 +1909,7 @@ impl Client {
             }),
             quote: None,
             media: None,
+            clip: None,
         };
         if !media_ids.is_empty() {
             body.media = Some(PostMedia {
@@ -1846,6 +1930,7 @@ impl Client {
             reply: None,
             quote: Some(post_id),
             media: None,
+            clip: None,
         };
         self.post_json(
             template(endpoints::CREATE_POST.path, HashMap::new(), Vec::new()),
