@@ -1,13 +1,12 @@
 args: ["--output", "json", "--dry-run", "articles", "publish", "draft-1"]
 store: empty
 exit_code: 0
-stdout_len: 414
+stdout_len: 381
 stderr_len: 0
 --- stdout ---
 {
   "article_id": "draft-1",
   "command": "articles-publish",
-  "confirmation_required": true,
   "exit_code": 1,
   "message": "An article id is 1 to 19 digits.",
   "next_step": {

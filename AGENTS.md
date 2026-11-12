@@ -199,6 +199,9 @@ for OAuth2 `username` and `token_expired`), read offline: an expired token is re
 passes the check the refresh makes before it asks X, and whether X still accepts the credential is not checked. The flag
 outranks `--force` and the confirmation prompt, so a destructive command's dry run answers either way;
 `confirmation_required: true` appears only when the real run would stop to ask, so under `--force` the key is absent.
+It is absent too when the real run refuses first: a destructive command checks its inputs and its credential before it
+asks, and a store command checks the write itself, so the `confirm` template is handed out only for an invocation that
+passes those checks.
 `response_schema` names the `xr schema` invocation for a command with a typed response, and raw mode carries none; the
 same command's `--help` ends with a `Response schema:` block, both read from the schema registry. Text output summarizes
 the same facts in lines (`crates/xurl-cli/src/cli/output/dry_run.rs`). The first command to open an old-format store

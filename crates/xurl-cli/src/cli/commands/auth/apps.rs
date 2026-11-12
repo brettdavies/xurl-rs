@@ -8,8 +8,7 @@ use serde_json::json;
 use super::secret::{self, SecretArg, SecretError};
 use super::{
     AuthCtx, RedirectUriGetResponse, RedirectUriSetResponse, build_app_status_entries,
-    destructive_dry_run_context, env_bearer_app, gate_destructive, print_no_apps_registered,
-    rehearsed,
+    env_bearer_app, gate_destructive, print_no_apps_registered, rehearsed, rehearsed_asking,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::hints::NextStep;
@@ -68,6 +67,7 @@ fn add(
         ..
     } = ctx;
     let register = |store: &mut TokenStore| {
+        validate_redirect_uri(redirect_uri)?;
         store.add_app(name, client_id, client_secret)?;
         match redirect_uri {
             Some(uri) => store.set_app_redirect_uri(name, uri),
@@ -103,6 +103,16 @@ fn add(
     Ok(())
 }
 
+/// Refuses a redirect URI the store would refuse, ahead of the first write of
+/// a command that registers or changes an app. An empty URI clears the stored
+/// one and takes no check.
+fn validate_redirect_uri(uri: Option<&str>) -> Result<(), Error> {
+    match uri.filter(|uri| !uri.is_empty()) {
+        Some(uri) => config::Config::validate_redirect_uri(uri).map(drop),
+        None => Ok(()),
+    }
+}
+
 fn update(
     ctx: AuthCtx<'_>,
     name: &str,
@@ -128,6 +138,7 @@ fn update(
         "has_redirect_uri": redirect_uri.is_some(),
     });
     let change = |store: &mut TokenStore| {
+        validate_redirect_uri(redirect_uri)?;
         if client_id.is_some() || client_secret.is_some() {
             store.update_app(
                 name,
@@ -158,16 +169,17 @@ fn remove(ctx: AuthCtx<'_>, name: &str, force: bool) -> CommandResult<()> {
     } = ctx;
     let ctx = json!({"command": "app-remove", "name": name});
     if flags.dry_run {
-        let ctx = destructive_dry_run_context(ctx, force);
-        return rehearsed(
+        return rehearsed_asking(
             &auth.token_store,
             |store| store.remove_app(name),
             ctx,
+            Some(force),
             out,
             stdout,
         );
     }
     let prompt = format!("Remove app {name:?}?");
+    auth.token_store.rehearse(|store| store.remove_app(name))?;
     if !gate_destructive(force, flags.no_interactive, flags.quiet, &prompt, &ctx)? {
         return Ok(());
     }
