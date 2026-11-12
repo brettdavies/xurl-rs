@@ -377,17 +377,31 @@ pub fn accepted_by_command(path: &str, with_of: bool) -> Option<Vec<WireScheme>>
     Some(accepted_by(endpoints))
 }
 
+/// The schemes the auth matrix lists for a raw request's `method` and
+/// `path`, in preference order; every scheme when the matrix does not list
+/// the pair, since X arbitrates a request the matrix does not know.
+pub fn accepted_by_request(method: &str, path: &str) -> Vec<WireScheme> {
+    WireScheme::ALL_BY_PREFERENCE
+        .into_iter()
+        .filter(|scheme| accepts(method, path, *scheme))
+        .collect()
+}
+
 /// The schemes every endpoint in `endpoints` accepts, in preference order.
 fn accepted_by(endpoints: &[Endpoint]) -> Vec<WireScheme> {
     WireScheme::ALL_BY_PREFERENCE
         .into_iter()
         .filter(|scheme| {
-            endpoints.iter().all(|endpoint| {
-                supported_auth(endpoint.method, endpoint.path)
-                    .is_none_or(|accepted| accepted.iter().any(|entry| entry.wire() == *scheme))
-            })
+            endpoints
+                .iter()
+                .all(|endpoint| accepts(endpoint.method, endpoint.path, *scheme))
         })
         .collect()
+}
+
+fn accepts(method: &str, path: &str, scheme: WireScheme) -> bool {
+    supported_auth(method, path)
+        .is_none_or(|accepted| accepted.iter().any(|entry| entry.wire() == scheme))
 }
 
 fn listed(schemes: &[WireScheme]) -> String {

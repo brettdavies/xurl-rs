@@ -12,7 +12,7 @@ use xdk::error::{
 };
 use xdk::store::snapshot::StoreSnapshot;
 
-use crate::cli::accepted_auth::accepted_by_command;
+use crate::cli::accepted_auth::{accepted_by_command, accepted_by_request};
 use crate::cli::classify::{invoked_credential, requested_login};
 
 use crate::cli::hints::{Hint, NextStep, choose_hint, quote_app_name, rerun_command};
@@ -64,8 +64,10 @@ pub(crate) fn missing_credential(error: &Error) -> Option<Missing> {
 /// The hint for a request that found no credential.
 ///
 /// A request whose command has a row takes the schemes that row accepts,
-/// since the error names no endpoint; a raw request, and a command with no
-/// row, accept every scheme.
+/// since the error names no endpoint. A raw request takes the schemes the
+/// auth matrix lists for its method and path, and accepts every scheme when
+/// the matrix does not list them or the invocation names no URL; a command
+/// with no row falls back to the sign-in chooser.
 #[must_use]
 pub(crate) fn no_credential_hint(
     missing: Missing,
@@ -77,7 +79,10 @@ pub(crate) fn no_credential_hint(
         return choose_hint(snapshot, invocation, headless);
     };
     let accepted = if invoked.command.is_empty() {
-        WireScheme::ALL_BY_PREFERENCE.to_vec()
+        match &invoked.request {
+            Some(request) => accepted_by_request(&request.method, &request.path),
+            None => WireScheme::ALL_BY_PREFERENCE.to_vec(),
+        }
     } else {
         match accepted_by_command(&invoked.command, invoked.of) {
             Some(accepted) => accepted,
@@ -197,24 +202,25 @@ pub(crate) fn credential_hint(
     let serves = |app: &str| -> Option<WireScheme> {
         snapshot.schemes_held(app).into_iter().find(|scheme| {
             need.accepted.contains(scheme)
-                && (*scheme != WireScheme::OAuth2
-                    || login.as_ref().is_none_or(|login| {
-                        snapshot
+                && login.as_ref().is_none_or(|login| {
+                    *scheme == WireScheme::OAuth2
+                        && snapshot
                             .apps_holding_login(login)
                             .iter()
                             .any(|holder| holder == app)
-                    }))
+                })
         })
     };
 
     if let Some(scheme) = serves(target) {
-        let command = rerun_command(invocation, None, Some(scheme));
+        let rerun = rerun_command(invocation, None, Some(scheme));
         return Hint {
             text_lines: vec![format!(
-                "App {target:?} holds {} credentials this endpoint accepts. Run: {command}",
-                scheme.pretty()
+                "App {target:?} holds {} credentials this endpoint accepts. Run: {}",
+                scheme.pretty(),
+                rerun.line
             )],
-            next_step: NextStep::fix_input_with(command),
+            next_step: rerun.fix_input(),
         };
     }
     let other = snapshot
@@ -223,11 +229,12 @@ pub(crate) fn credential_hint(
         .filter(|name| name.as_str() != target)
         .find_map(|name| serves(name).map(|scheme| (name, scheme)));
     if let Some((app, scheme)) = other {
-        let command = rerun_command(
+        let rerun = rerun_command(
             invocation,
             Some(app),
             Some(scheme).filter(|_| need.requested.is_some()),
         );
+        let command = &rerun.line;
         let line = match scheme {
             WireScheme::OAuth2 => format!("App {app:?} is already signed in. Run: {command}"),
             _ => format!(
@@ -237,7 +244,7 @@ pub(crate) fn credential_hint(
         };
         return Hint {
             text_lines: vec![line],
-            next_step: NextStep::select_app(command),
+            next_step: rerun.select_app(),
         };
     }
     let wanted = need
@@ -250,8 +257,8 @@ pub(crate) fn credential_hint(
     if wanted == WireScheme::OAuth2 {
         return choose_hint(snapshot, invocation, headless);
     }
-    let named = (target != snapshot.default_app).then_some(target);
-    if named.is_some_and(|name| !snapshot.apps.contains_key(name)) {
+    let registered = snapshot.apps.contains_key(target);
+    if !registered && target != snapshot.default_app {
         let next_step = NextStep::register_app();
         let template = next_step.template.clone().unwrap_or_default();
         return Hint {
@@ -261,7 +268,7 @@ pub(crate) fn credential_hint(
             next_step,
         };
     }
-    let template = setup_invocation(wanted, named);
+    let template = setup_invocation(wanted, registered.then_some(target));
     Hint {
         text_lines: vec![format!(
             "This endpoint accepts {}. Add the credential first. Run: {template}",
@@ -412,7 +419,7 @@ mod tests {
             (
                 NextAction::FixInput,
                 None,
-                Some("xr auth app --bearer-token-file <path>".into())
+                Some("xr auth app --app work --bearer-token-file <path>".into())
             )
         );
     }
@@ -431,7 +438,7 @@ mod tests {
                 true
             ))
             .2,
-            Some("xr auth app --bearer-token-file <path>".into())
+            Some("xr auth app --app work --bearer-token-file <path>".into())
         );
         let oauth1_only = mismatch(&["oauth1"], None, &["oauth2"], None);
         assert_eq!(
@@ -443,7 +450,7 @@ mod tests {
             ))
             .2,
             Some(
-                "xr auth oauth1 --consumer-key <consumer-key> --consumer-secret-file <path> \
+                "xr auth oauth1 --app work --consumer-key <consumer-key> --consumer-secret-file <path> \
                  --access-token-file <path> --token-secret-file <path>"
                     .into()
             )
@@ -493,7 +500,9 @@ mod tests {
 
         assert_eq!(
             hint.next_step,
-            NextStep::fix_input_template("xr auth app --bearer-token-file <path>".into())
+            NextStep::fix_input_template(
+                "xr auth app --app work --bearer-token-file <path>".into()
+            )
         );
     }
 
@@ -530,7 +539,93 @@ mod tests {
 
         assert_eq!(
             hint.next_step,
-            NextStep::fix_input_template(setup_invocation(WireScheme::OAuth1, None))
+            NextStep::fix_input_template(setup_invocation(WireScheme::OAuth1, Some("work")))
+        );
+    }
+
+    /// `-u` selects a login, which only `OAuth2` stores, so no other scheme
+    /// the app holds can stand in for it.
+    #[test]
+    fn a_login_the_caller_named_is_never_answered_with_another_scheme() {
+        for held in [WireScheme::OAuth1, WireScheme::App] {
+            let tmp = tempfile::TempDir::new().expect("tempdir");
+            let snapshot = snapshot(&tmp, &[("work", &[held])], "work");
+            let invocation = words(&["xr", "post", "hello", "--auth", "oauth2", "-u", "alice"]);
+
+            let hint = no_credential_hint(
+                Missing::Scheme(WireScheme::OAuth2),
+                &snapshot,
+                &invocation,
+                true,
+            );
+
+            let step = hint.next_step;
+            assert_eq!(step.action, NextAction::SignIn, "{held:?}: {step:?}");
+            let named = format!("{:?}{:?}", step.command, step.template);
+            assert!(!named.contains("--auth oauth1"), "{held:?}: {named}");
+            assert!(!named.contains("--auth app"), "{held:?}: {named}");
+        }
+    }
+
+    /// A raw request is held to what the matrix lists for its method and
+    /// path: `GET /2/users/me` takes no bearer token.
+    #[test]
+    fn a_raw_request_is_not_sent_to_a_scheme_its_endpoint_refuses() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let snapshot = snapshot(&tmp, &[("work", &[WireScheme::App])], "work");
+        let invocation = words(&["xr", "/2/users/me", "--auth", "oauth2"]);
+
+        let hint = no_credential_hint(
+            Missing::Scheme(WireScheme::OAuth2),
+            &snapshot,
+            &invocation,
+            true,
+        );
+
+        assert_eq!(hint.next_step.action, NextAction::SignIn, "{hint:?}");
+        let held_by_another_endpoint = words(&["xr", "-X", "GET", "/2/usage/tweets"]);
+        let hint = no_credential_hint(
+            Missing::Anything,
+            &snapshot,
+            &held_by_another_endpoint,
+            true,
+        );
+        assert_eq!(hint.next_step.action, NextAction::FixInput, "{hint:?}");
+        assert_eq!(
+            hint.next_step.command.as_deref(),
+            Some("xr -X GET /2/usage/tweets --auth app")
+        );
+    }
+
+    /// A header often carries a credential, so a step that reruns the
+    /// invocation names the header and leaves its value to the caller.
+    #[test]
+    fn a_step_that_reruns_the_invocation_leaves_header_values_out() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let snapshot = snapshot(&tmp, &[("work", &[WireScheme::App])], "work");
+        let invocation = words(&[
+            "xr",
+            "--auth",
+            "oauth1",
+            "-H",
+            "X-Api-Key: SEKRET",
+            "/2/usage/tweets",
+        ]);
+
+        let hint = no_credential_hint(
+            Missing::Scheme(WireScheme::OAuth1),
+            &snapshot,
+            &invocation,
+            true,
+        );
+
+        let shown = format!("{hint:?}");
+        assert!(!shown.contains("SEKRET"), "{shown}");
+        assert_eq!(hint.next_step.command, None, "{shown}");
+        assert_eq!(
+            hint.next_step.template.as_deref(),
+            Some("xr --auth app -H 'X-Api-Key: <value>' /2/usage/tweets"),
+            "{shown}"
         );
     }
 

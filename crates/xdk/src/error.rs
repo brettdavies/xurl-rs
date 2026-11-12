@@ -125,14 +125,14 @@ fn names_a_store_entry(message: &str) -> bool {
         || message.ends_with(USER_NOT_FOUND)
 }
 
-/// Whether an [`Error::Io`] message refuses a store write because the store's
-/// directory takes no new file: it cannot be created, or the save's temp file
-/// or a lock file in it cannot.
+/// Whether an [`Error::Io`] message refuses a store write: the store's
+/// directory cannot be created, a lock file in it cannot be opened, or the
+/// save could not write the store file.
 fn refuses_a_store_write(message: &str) -> bool {
     message.starts_with(STORE_DIR_UNCREATABLE)
         || message.starts_with(STORE_LOCK_UNOPENABLE)
         || message.starts_with(REFRESH_LOCK_UNOPENABLE)
-        || message.contains(STORE_FILE_UNCREATABLE)
+        || message.starts_with(STORE_WRITE_REFUSED)
 }
 
 /// `Display` of [`Error::Validation`]: the rule, with the value after a colon.
@@ -999,21 +999,19 @@ pub const STORE_DIR_UNCREATABLE: &str = "cannot create the token store's directo
 
 /// The words in the message of an [`Error::Io`] for a save that could not
 /// create its temp file beside the store. The directory and the cause follow.
-// An embedder classifies the error through `docs_url()`.
-#[doc(hidden)]
-pub const STORE_FILE_UNCREATABLE: &str = "cannot create a file in";
+pub(crate) const STORE_FILE_UNCREATABLE: &str = "cannot create a file in";
+
+/// The start of the message of an [`Error::Io`] for a save that could not
+/// write the store file. The file and the cause follow.
+pub(crate) const STORE_WRITE_REFUSED: &str = "cannot write ";
 
 /// The start of the message of an [`Error::Io`] for a store lock file that
 /// cannot be opened. The path and the cause follow.
-// An embedder classifies the error through `docs_url()`.
-#[doc(hidden)]
-pub const STORE_LOCK_UNOPENABLE: &str = "cannot open the store lock";
+pub(crate) const STORE_LOCK_UNOPENABLE: &str = "cannot open the store lock";
 
 /// The start of the message of an [`Error::Io`] for a refresh lock file that
 /// cannot be opened. The path and the cause follow.
-// An embedder classifies the error through `docs_url()`.
-#[doc(hidden)]
-pub const REFRESH_LOCK_UNOPENABLE: &str = "cannot open the refresh lock";
+pub(crate) const REFRESH_LOCK_UNOPENABLE: &str = "cannot open the refresh lock";
 
 /// The end of the message of an [`Error::TokenStore`] for registering an app
 /// under a name the store already holds. The quoted name comes before it.
@@ -1111,6 +1109,27 @@ mod tests {
         assert_eq!(refused.next_action(), Some(NextAction::EnrollApp));
         let forbidden = Error::api(403, "CLIENT-FORBIDDEN");
         assert_eq!(forbidden.next_action(), Some(NextAction::EnrollApp));
+    }
+
+    #[test]
+    fn only_a_store_write_refusal_names_the_store_write_page() {
+        let refused = [
+            format!("{STORE_DIR_UNCREATABLE} /x: denied"),
+            format!("{STORE_LOCK_UNOPENABLE} /x: denied"),
+            format!("{REFRESH_LOCK_UNOPENABLE} /x: denied"),
+            format!("{STORE_WRITE_REFUSED}/x/auth.yml: {STORE_FILE_UNCREATABLE} /x: denied"),
+        ];
+        for message in refused {
+            assert_eq!(
+                Error::io(message.clone()).docs_url(),
+                Some(STORE_WRITE_DOCS),
+                "{message}"
+            );
+        }
+        let unrelated = format!(
+            "could not write the checkpoint /x/cp.json: {STORE_FILE_UNCREATABLE} /x: denied"
+        );
+        assert_eq!(Error::io(unrelated).docs_url(), None);
     }
 
     #[test]

@@ -217,6 +217,18 @@ impl NextStep {
         }
     }
 
+    /// Rerun `template` against a different app, once the caller fills in
+    /// each `-H` value the step left out.
+    #[must_use]
+    pub fn select_app_template(template: String) -> Self {
+        Self {
+            action: NextAction::SelectApp,
+            command: None,
+            template: Some(template),
+            docs: None,
+        }
+    }
+
     /// This step's command with `--dry-run` after the program word, for a
     /// dry run's refusal whose step reruns an invocation. A command that does
     /// not start with the program word is left as it is.
@@ -396,13 +408,8 @@ impl NextStep {
                 None
             } else if arg.starts_with("--port=") || arg.starts_with("-p") {
                 None
-            } else if arg == "-H" || arg == "--header" {
-                Some(rest.next().map_or("", String::as_str))
-            } else if let Some(given) = arg
-                .strip_prefix("--header=")
-                .or_else(|| arg.strip_prefix("-H"))
-            {
-                Some(given.strip_prefix('=').unwrap_or(given))
+            } else if let Some(given) = header_given(arg, &mut rest) {
+                Some(given)
             } else {
                 words.push(shell_word(arg));
                 None
@@ -525,14 +532,15 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
         None => snapshot.apps_with_login(),
     };
     if let Some(app) = holders.iter().find(|name| *name != target) {
-        let command = rerun_with_app(invocation, app);
+        let rerun = rerun_with_app(invocation, app);
+        let command = &rerun.line;
         let line = match login {
             Some(login) => format!("App {app:?} holds the login {login:?}. Run: {command}"),
             None => format!("App {app:?} is already signed in. Run: {command}"),
         };
         return Hint {
             text_lines: vec![line],
-            next_step: NextStep::select_app(command),
+            next_step: rerun.select_app(),
         };
     }
     let mut text_lines: Vec<String> = login
@@ -1198,19 +1206,22 @@ fn detail_line(body: &str) -> Option<String> {
 /// hint gives the binary and the app name is quoted by the same rule
 /// registration enforces. Nothing after `--` is a flag, so it is kept as it
 /// was.
-fn rerun_with_app(invocation: &[String], app: &str) -> String {
+fn rerun_with_app(invocation: &[String], app: &str) -> Rerun {
     rerun_command(invocation, Some(app), None)
 }
 
 /// [`rerun_with_app`] generalized: `app`, when given, replaces the `--app` of
 /// the invocation, and `auth`, when given, replaces its `--auth` (or is
 /// added after its last word before `--`), so the rerun asks for the scheme
-/// the credential holds.
+/// the credential holds. Each `-H` header keeps its name and has its value
+/// replaced by `<value>`: a header often carries a credential, and a step
+/// never echoes one.
 pub(crate) fn rerun_command(
     invocation: &[String],
     app: Option<&str>,
     auth: Option<xdk::api::auth_matrix::WireScheme>,
-) -> String {
+) -> Rerun {
+    let mut hid_a_value = false;
     let mut parts = vec![ROOT_COMMAND.to_string()];
     if let Some(app) = app {
         parts.push("--app".to_string());
@@ -1233,6 +1244,10 @@ pub(crate) fn rerun_command(
             parts.push(set_auth.take().unwrap_or_default());
         } else if set_auth.is_some() && arg.starts_with("--auth=") {
             parts.push(format!("--auth={}", set_auth.take().unwrap_or_default()));
+        } else if let Some(header) = header_given(arg, &mut rest) {
+            parts.push("-H".to_string());
+            parts.push(shell_word(&hidden_header(header)));
+            hid_a_value = true;
         } else if !(app.is_some() && arg.starts_with("--app=")) {
             parts.push(shell_word(arg));
         }
@@ -1240,7 +1255,51 @@ pub(crate) fn rerun_command(
     if let Some(scheme) = set_auth {
         parts.push(format!("--auth {scheme}"));
     }
-    parts.join(" ")
+    Rerun {
+        line: parts.join(" "),
+        hid_a_value,
+    }
+}
+
+/// An invocation rebuilt to run again, as [`rerun_command`] builds it.
+pub(crate) struct Rerun {
+    /// The invocation as a shell reads it.
+    pub(crate) line: String,
+    /// Whether a `-H` value was replaced, so the caller supplies it.
+    pub(crate) hid_a_value: bool,
+}
+
+impl Rerun {
+    /// The step that reruns against another app: a `command` to run as it
+    /// stands, or a `template` when a header value was hidden.
+    pub(crate) fn select_app(&self) -> NextStep {
+        if self.hid_a_value {
+            NextStep::select_app_template(self.line.clone())
+        } else {
+            NextStep::select_app(self.line.clone())
+        }
+    }
+
+    /// The step that reruns under another scheme: a `command`, or a
+    /// `template` when a header value was hidden.
+    pub(crate) fn fix_input(&self) -> NextStep {
+        if self.hid_a_value {
+            NextStep::fix_input_template(self.line.clone())
+        } else {
+            NextStep::fix_input_with(self.line.clone())
+        }
+    }
+}
+
+/// The value of the `-H` header that `arg` carries or begins, taking the next
+/// word of `rest` when `arg` stands alone; `None` for any other word.
+fn header_given<'a>(arg: &'a str, rest: &mut impl Iterator<Item = &'a String>) -> Option<&'a str> {
+    if arg == "-H" || arg == "--header" {
+        return Some(rest.next().map_or("", String::as_str));
+    }
+    arg.strip_prefix("--header=")
+        .or_else(|| arg.strip_prefix("-H"))
+        .map(|given| given.strip_prefix('=').unwrap_or(given))
 }
 
 /// A `-H` header with its value replaced by `<value>`, keeping its name.
@@ -1952,6 +2011,60 @@ mod tests {
         assert_eq!(hint.next_step, NextStep::sign_in_as(None, None, true));
     }
 
+    /// A rerun never echoes a header value, whichever way the header is
+    /// spelled: its name stays, its value becomes `<value>`, and the step
+    /// is a template.
+    #[test]
+    fn a_rerun_hides_each_header_value() {
+        let invocation: Vec<String> = [
+            "xr",
+            "-H",
+            "X-Api-Key: SEKRET1",
+            "--header=X-Other: SEKRET2",
+            "-HX-Third: SEKRET3",
+            "--header",
+            "X-Fourth: SEKRET4",
+            "/2/users/me",
+        ]
+        .iter()
+        .map(|arg| (*arg).to_string())
+        .collect();
+
+        let rerun = rerun_command(&invocation, None, None);
+
+        assert!(rerun.hid_a_value);
+        assert!(!rerun.line.contains("SEKRET"), "{}", rerun.line);
+        assert_eq!(
+            rerun.line,
+            "xr -H 'X-Api-Key: <value>' -H 'X-Other: <value>' -H 'X-Third: <value>' \
+             -H 'X-Fourth: <value>' /2/users/me"
+        );
+        let step = rerun.select_app();
+        assert_eq!(step.command, None);
+        assert_eq!(step.template.as_deref(), Some(rerun.line.as_str()));
+        let step = rerun.fix_input();
+        assert_eq!(step.command, None);
+        assert_eq!(step.template.as_deref(), Some(rerun.line.as_str()));
+    }
+
+    /// A rerun with no header is a command to run as it stands.
+    #[test]
+    fn a_rerun_without_a_header_is_a_command() {
+        let invocation: Vec<String> = ["xr", "whoami"].iter().map(|a| (*a).to_string()).collect();
+
+        let rerun = rerun_command(&invocation, Some("work"), None);
+
+        assert!(!rerun.hid_a_value);
+        assert_eq!(
+            rerun.fix_input().command.as_deref(),
+            Some("xr --app work whoami")
+        );
+        assert_eq!(
+            rerun.select_app().command.as_deref(),
+            Some("xr --app work whoami")
+        );
+    }
+
     /// A rerun against another app names that app once, under the name
     /// every hint gives the binary: the `--app` the caller passed is
     /// dropped in either spelling, since clap refuses the flag twice.
@@ -1960,7 +2073,7 @@ mod tests {
         use clap::Parser as _;
         let rerun = |args: &[&str]| {
             let invocation: Vec<String> = args.iter().map(|arg| (*arg).to_string()).collect();
-            rerun_with_app(&invocation, "personal")
+            rerun_with_app(&invocation, "personal").line
         };
         assert!(
             crate::cli::Cli::try_parse_from(["xr", "--app", "a", "--app", "b", "whoami"]).is_err(),
