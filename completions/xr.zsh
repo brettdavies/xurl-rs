@@ -75,6 +75,9 @@ never\:"Never emit ANSI color escapes"))' \
             (post)
 _arguments "${_arguments_options[@]}" : \
 '*--media-id=[Media ID(s) to attach (repeatable)]:MEDIA_IDS:_default' \
+'(--media-id)--clip=[Share a clip of another post'\''s video\: its id or URL. Needs --clip-start and --clip-end; cannot be combined with --media-id]:POST:_default' \
+'--clip-start=[Second of the video at which the clip starts]:SECONDS:_default' \
+'--clip-end=[Second of the video at which the clip ends. X takes a clip of 5 to 60 seconds, at most 30% of the video]:SECONDS:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \

@@ -13,8 +13,8 @@ use xdk::api::shortcuts::{
     CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX,
     DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
-    USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS, validate_broadcast_id, validate_space_id,
-    validate_user_search_query,
+    USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS, validate_broadcast_id,
+    validate_clip_post_id, validate_space_id, validate_user_search_query,
 };
 
 /// Integer constants in `shortcuts.rs` that mirror no spec bound, each with
@@ -222,6 +222,11 @@ const PATTERNS: &[Pattern] = &[
         ],
     },
     Pattern {
+        validator: "validate_clip_post_id",
+        check: validate_clip_post_id,
+        sites: &[Site::Property("CreatePostsClip", "post_id")],
+    },
+    Pattern {
         validator: "validate_user_search_query",
         check: validate_user_search_query,
         sites: &[Site::Query("GET /2/users/search", "query")],
@@ -234,6 +239,8 @@ const PATTERNS: &[Pattern] = &[
 fn samples() -> Vec<String> {
     let mut samples: Vec<String> = [
         "",
+        "1",
+        "1585341984679469056",
         "1DXxyRYNejbKM",
         "1DXxyRYNejbKMxxxxxxxxxxx",
         "1DXxyRYNejbKMxxxxxxxxxxxx",
@@ -263,6 +270,7 @@ fn samples() -> Vec<String> {
     .map(ToString::to_string)
     .collect();
     samples.extend([49, 50, 51].map(|n| "a".repeat(n)));
+    samples.extend([19, 20].map(|n| "9".repeat(n)));
     samples
 }
 

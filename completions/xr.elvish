@@ -127,6 +127,9 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;post'= {
             cand --media-id 'Media ID(s) to attach (repeatable)'
+            cand --clip 'Share a clip of another post''s video: its id or URL. Needs --clip-start and --clip-end; cannot be combined with --media-id'
+            cand --clip-start 'Second of the video at which the clip starts'
+            cand --clip-end 'Second of the video at which the clip ends. X takes a clip of 5 to 60 seconds, at most 30% of the video'
             cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
             cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
             cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
