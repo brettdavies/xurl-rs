@@ -1292,10 +1292,20 @@ pub enum Commands {
         )]
         clip: Option<String>,
         /// Second of the video at which the clip starts
-        #[arg(long = "clip-start", value_name = "SECONDS", requires = "clip")]
+        #[arg(
+            long = "clip-start",
+            value_name = "SECONDS",
+            requires = "clip",
+            allow_negative_numbers = true
+        )]
         clip_start: Option<u32>,
         /// Second of the video at which the clip ends. X takes a clip of 5 to 60 seconds, at most 30% of the video
-        #[arg(long = "clip-end", value_name = "SECONDS", requires = "clip")]
+        #[arg(
+            long = "clip-end",
+            value_name = "SECONDS",
+            requires = "clip",
+            allow_negative_numbers = true
+        )]
         clip_end: Option<u32>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]

@@ -173,7 +173,7 @@ async fn a_dry_run_reports_the_rule_a_bad_clip_breaks() {
             "0",
             "10",
             "invalid-clip-post-id",
-            "A clip's post id is 1 to 19 digits, or a post URL.",
+            "A clip's post id is 1 to 19 digits, given alone or as the id in a post URL.",
         ),
         (
             SOURCE_ID,
@@ -268,6 +268,22 @@ async fn the_clip_flags_come_together_and_exclude_media() {
             "5",
         ][..],
         &["--clip", SOURCE_ID, "--clip-start=-1", "--clip-end", "10"][..],
+        &[
+            "--clip",
+            SOURCE_ID,
+            "--clip-start",
+            "-1",
+            "--clip-end",
+            "10",
+        ][..],
+        &[
+            "--clip",
+            SOURCE_ID,
+            "--clip-start",
+            "0",
+            "--clip-end",
+            "-10",
+        ][..],
         &[
             "--clip",
             SOURCE_ID,
