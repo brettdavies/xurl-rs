@@ -1,13 +1,13 @@
 args: ["--output", "json", "--dry-run", "like", "@jack"]
 store: empty
 exit_code: 0
-stdout_len: 361
+stdout_len: 403
 stderr_len: 0
 --- stdout ---
 {
   "command": "like",
   "exit_code": 1,
-  "message": "@jack is not a post id or a post URL",
+  "message": "@jack is not a post id: give 1 to 19 digits, alone or as the id in a post URL.",
   "next_step": {
     "action": "show-help",
     "command": "xr like --help"

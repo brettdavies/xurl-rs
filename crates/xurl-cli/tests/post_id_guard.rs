@@ -97,6 +97,33 @@ fn a_post_id_that_is_not_one_is_refused_before_any_request() {
     );
 }
 
+/// A list that is too long and holds a bad id is refused for the id: the
+/// post id is the first input a command checks.
+#[test]
+fn a_bad_id_is_refused_before_the_length_of_the_list() {
+    let ids: Vec<String> = std::iter::once(NOT_A_POST.to_string())
+        .chain((1..=100).map(|n| n.to_string()))
+        .collect();
+    let window = [
+        "--start",
+        "2026-10-01T00:00:00Z",
+        "--end",
+        "2026-10-02T00:00:00Z",
+    ];
+    for (command, extra) in [("posts", &window[..0]), ("analytics", &window[..])] {
+        let output = common::xr()
+            .args(["--output", "json", "--dry-run", command])
+            .args(&ids)
+            .args(extra)
+            .output()
+            .expect("xr runs");
+        let document: serde_json::Value =
+            serde_json::from_slice(&output.stdout).expect("a document");
+        assert_eq!(document["rule"], "invalid-post-id", "{command}: {document}");
+        assert_eq!(document["value"], NOT_A_POST, "{command}: {document}");
+    }
+}
+
 #[test]
 fn a_post_url_or_a_numeric_id_is_a_post_id() {
     for good in [

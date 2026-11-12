@@ -35,8 +35,8 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         Commands::Posts { post_ids, common } => {
             let ctx = json!({"command": "posts", "post_ids": post_ids});
             let validator = || -> Result<(), Invalid> {
-                shortcuts::validate_lookup_ids(&post_ids)?;
-                post_ids.iter().try_for_each(|id| valid_post_id(id))
+                post_ids.iter().try_for_each(|id| valid_post_id(id))?;
+                Ok(shortcuts::validate_lookup_ids(&post_ids)?)
             };
             send_validated(run, ctx, validator, &common, |client: &Client| {
                 client.read_posts(&post_ids)
@@ -155,8 +155,8 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 "granularity": granularity,
             });
             let validator = || -> Result<(), Invalid> {
-                shortcuts::validate_lookup_ids(&post_ids)?;
                 post_ids.iter().try_for_each(|id| valid_post_id(id))?;
+                shortcuts::validate_lookup_ids(&post_ids)?;
                 shortcuts::validate_time_window(Some(&start), Some(&end))?;
                 Ok(())
             };
