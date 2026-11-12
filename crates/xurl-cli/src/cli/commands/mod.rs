@@ -146,21 +146,28 @@ pub(super) fn gate_destructive(
     Ok(confirm_destructive(prompt)?)
 }
 
-/// The context a destructive command goes on with: under `--dry-run`, `ctx`
-/// marked with whether the real run would ask; otherwise `ctx` once
-/// [`gate_destructive`] lets the run go ahead, or `None` when the person
-/// declined.
-fn confirmed_context(
-    flags: &GlobalFlags,
-    ctx: serde_json::Value,
+/// What a destructive request asks before it goes out. It asks once the
+/// request's inputs and credentials are known to serve, so the `--force`
+/// invocation a refusal hands out is one that then runs.
+#[derive(Clone, Copy)]
+struct Confirm<'a> {
     force: bool,
-    prompt: &str,
-) -> CommandResult<Option<serde_json::Value>> {
-    if flags.dry_run {
-        return Ok(Some(destructive_dry_run_context(ctx, force)));
+    prompt: &'a str,
+}
+
+impl Confirm<'_> {
+    /// Whether the real run goes ahead: `false` when the person declined,
+    /// and the `confirmation-required` refusal, carrying `ctx`, when nobody
+    /// can be asked.
+    fn gate(self, flags: &GlobalFlags, ctx: &serde_json::Value) -> CommandResult<bool> {
+        gate_destructive(
+            self.force,
+            flags.no_interactive,
+            flags.quiet,
+            self.prompt,
+            ctx,
+        )
     }
-    let proceed = gate_destructive(force, flags.no_interactive, flags.quiet, prompt, &ctx)?;
-    Ok(proceed.then_some(ctx))
 }
 
 /// The id a dry run puts where the real run would have looked one up.
@@ -171,17 +178,30 @@ const UNRESOLVED_ID: &str = "0";
 /// One request's credential, read without sending the request.
 type Credential = Result<Option<AuthPreflight>>;
 
-/// A dry run under way: the context its envelope carries, and the reason
-/// its inputs were refused, when they were.
+/// A dry run under way: the context its envelope carries, the reason its
+/// inputs were refused, when they were, and for a destructive command whether
+/// `--force` was given.
 struct DryRun {
     ctx: serde_json::Value,
     invalid: Option<&'static str>,
+    forced: Option<bool>,
 }
 
 impl DryRun {
     /// The dry run of a command with no inputs to check offline.
     fn new(ctx: serde_json::Value) -> Self {
-        Self { ctx, invalid: None }
+        Self {
+            ctx,
+            invalid: None,
+            forced: None,
+        }
+    }
+
+    /// The dry run of a command that asks `confirm` first. Its answer says
+    /// the real run would ask only when the real run gets as far as asking.
+    fn confirming(mut self, confirm: Option<Confirm<'_>>) -> Self {
+        self.forced = confirm.map(|confirm| confirm.force);
+        self
     }
 
     /// Prints the answer. `would_succeed` is whether the inputs were valid
@@ -201,7 +221,11 @@ impl DryRun {
         stdout: &mut dyn Write,
         credentials: impl IntoIterator<Item = Credential>,
     ) -> CommandResult<()> {
-        let Self { mut ctx, invalid } = self;
+        let Self {
+            mut ctx,
+            invalid,
+            forced,
+        } = self;
         if let Some(reason) = invalid {
             return Err(Failure::DryRunInvalid {
                 ctx,
@@ -217,6 +241,9 @@ impl DryRun {
         }
         if let Some(found) = reported {
             ctx["auth"] = credential_value(&found);
+        }
+        if let Some(force) = forced {
+            ctx = destructive_dry_run_context(ctx, force);
         }
         out.print_dry_run(stdout, true, 0, &ctx);
         Ok(())
@@ -244,7 +271,11 @@ fn dry_run_or_validate(
 ) -> CommandResult<Option<DryRun>> {
     let invalid = validator().err();
     if dry_run {
-        return Ok(Some(DryRun { ctx, invalid }));
+        return Ok(Some(DryRun {
+            ctx,
+            invalid,
+            forced: None,
+        }));
     }
     match invalid {
         Some(reason) => Err(Failure::refused(Error::validation(reason))),
@@ -297,9 +328,10 @@ where
     Ok(())
 }
 
-/// [`send_validated`] for a request that destroys something: it asks
-/// `prompt` first unless `force`, and refuses under `--no-interactive`
-/// without it. A dry run says whether the real run would ask.
+/// [`send_validated`] for a request that destroys something: once the inputs
+/// and the credential check out, it asks `prompt` unless `force`, and refuses
+/// under `--no-interactive` without it. A dry run says whether the real run
+/// would ask, when the real run would get as far as asking.
 async fn send_confirmed<T>(
     run: Run<'_>,
     ctx: serde_json::Value,
@@ -312,10 +344,26 @@ async fn send_confirmed<T>(
 where
     T: Serialize + DeserializeOwned,
 {
-    let Some(ctx) = confirmed_context(&run.flags, ctx, force, prompt)? else {
-        return Ok(());
-    };
-    send_validated(run, ctx, validator, common, build).await
+    let confirm = Confirm { force, prompt };
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx.clone(), validator)?
+        .map(|dry_run| dry_run.confirming(Some(confirm)));
+    let client = make_client(cfg, auth)?;
+    let call = with_flags(build(&client), common, None);
+    if dry_run.is_none() {
+        call.auth_preflight().await?;
+        if !confirm.gate(&flags, &ctx)? {
+            return Ok(());
+        }
+    }
+    send_or_report(out, stdout, dry_run, call).await
 }
 
 /// Converts a typed response to Value and prints it.
@@ -1088,6 +1136,49 @@ where
     let response = with_flags(build(&client, &ids), common, None)
         .send()
         .await?;
+    print_typed(out, stdout, &response)?;
+    Ok(())
+}
+
+/// [`send_to_account`] for a request that destroys something: once the
+/// inputs and the credentials of the lookup and the request check out, and
+/// before the lookup goes out, it asks as [`send_confirmed`] does.
+async fn send_confirmed_to_account<T>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    confirm: Confirm<'_>,
+    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    account: &str,
+    common: &CommonFlags,
+    build: impl Fn(&Client, &str) -> Call<T>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let accounts = [account.to_string()];
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx.clone(), validator)?
+        .map(|dry_run| dry_run.confirming(Some(confirm)));
+    let client = make_client(cfg, auth)?;
+    // One account, so the lookup answers with one id.
+    let request = build(&client, &stand_in_ids(&accounts).concat());
+    let credentials = account_credentials(&client, &accounts, common, request).await;
+    if let Some(dry_run) = dry_run {
+        return dry_run.answer(out, stdout, credentials);
+    }
+    credentials.into_iter().collect::<Result<Vec<_>>>()?;
+    if !confirm.gate(&flags, &ctx)? {
+        return Ok(());
+    }
+    let id = resolve_account_id(&client, account, common).await?;
+    let response = with_flags(build(&client, &id), common, None).send().await?;
     print_typed(out, stdout, &response)?;
     Ok(())
 }

@@ -700,10 +700,13 @@ fn reason_cases(scratch: &Scratch) -> Vec<Case> {
                 "--force",
             ],
         ),
-        reason_case(
-            "confirmation-required",
-            &["--output", "json", "--no-interactive", "delete", "123"],
-        ),
+        Case {
+            store: Store::OAuth2,
+            ..reason_case(
+                "confirmation-required",
+                &["--output", "json", "--no-interactive", "delete", "123"],
+            )
+        },
         reason_case("no-tty", &["--output", "json", "auth", "default"]),
         reason_case(
             "unsupported-pagination",

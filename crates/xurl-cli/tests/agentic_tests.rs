@@ -866,10 +866,9 @@ const CONFIRMED_COMMANDS: &[&str] = &[
 
 /// Each command that confirms a destructive op is on the list above, so a new
 /// one cannot escape the example check below. A command confirms by calling
-/// `gate_destructive` or `confirmed_context` itself, or by handing its
-/// request to `send_confirmed`. The helpers' own calls are not commands:
-/// `confirmed_context` calls the gate, and `send_confirmed` calls
-/// `confirmed_context`.
+/// `gate_destructive` itself, or by handing its request to `send_confirmed` or
+/// `send_confirmed_to_account`. The file that defines `gate_destructive` holds
+/// the helpers, whose own call of the gate is not a command.
 #[test]
 fn every_confirmed_command_is_listed() {
     let call_sites: usize = common::workspace_sources()
@@ -877,11 +876,12 @@ fn every_confirmed_command_is_listed() {
         .map(|file| {
             let source = std::fs::read_to_string(file).unwrap();
             let count = |pattern: &str| source.matches(pattern).count();
-            let helpers = count("fn confirmed_context(") + count("fn send_confirmed");
-            count("gate_destructive(") - count("fn gate_destructive(") + count("confirmed_context(")
-                - count("fn confirmed_context(")
-                + count("send_confirmed(")
-                - helpers
+            let gate_calls = if count("fn gate_destructive(") > 0 {
+                0
+            } else {
+                count("gate_destructive(")
+            };
+            gate_calls + count("send_confirmed(") + count("send_confirmed_to_account(")
         })
         .sum();
     assert_eq!(
