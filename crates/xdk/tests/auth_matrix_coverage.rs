@@ -13,7 +13,9 @@
 //! Failure messages name the offending `(method, path)` so the implementer
 //! sees the mismatch without grepping the spec.
 
-use xdk::api::auth_matrix::{SHORTCUT_TEMPLATES, supported_auth};
+use xdk::api::auth_matrix::{
+    AUTH_MATRIX, SHORTCUT_TEMPLATES, WireScheme, supported_auth, supported_auth_for_request,
+};
 
 #[test]
 fn every_shortcut_template_resolves_in_the_matrix() {
@@ -98,4 +100,114 @@ fn paths_start_with_slash() {
             "SHORTCUT_TEMPLATES path {path:?} must start with `/` to match the matrix key shape"
         );
     }
+}
+
+/// A request to a path that carries ids is held to its template's schemes.
+#[test]
+fn a_concrete_path_resolves_to_the_template_it_fits() {
+    let key = |method: &str, path: &str| {
+        let listed = supported_auth(method, path).expect("the template is in the matrix");
+        WireScheme::ALL_BY_PREFERENCE
+            .into_iter()
+            .filter(|scheme| listed.iter().any(|entry| entry.wire() == *scheme))
+            .collect::<Vec<_>>()
+    };
+    let mut templated = 0;
+    for (entry, _) in AUTH_MATRIX.entries() {
+        let (method, template) = entry.split_once('\0').expect("a packed key");
+        if !template.contains('{') {
+            continue;
+        }
+        templated += 1;
+        let concrete: String = template
+            .split('/')
+            .map(|segment| {
+                if segment.starts_with('{') {
+                    "123"
+                } else {
+                    segment
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("/");
+        assert_eq!(
+            supported_auth_for_request(method, &concrete),
+            Some(key(method, template)),
+            "{method} {concrete} should take the schemes of {template}"
+        );
+    }
+    assert!(
+        templated > 50,
+        "the matrix holds {templated} templated entries"
+    );
+}
+
+/// A literal path that also fits a template keeps its own entry, so
+/// `/2/users/me/following` is not read as `/2/users/{id}/following`.
+#[test]
+fn a_literal_path_keeps_its_own_entry_over_a_template() {
+    let wire = |listed: &[xdk::api::auth_matrix::AuthScheme]| {
+        WireScheme::ALL_BY_PREFERENCE
+            .into_iter()
+            .filter(|scheme| listed.iter().any(|entry| entry.wire() == *scheme))
+            .collect::<Vec<_>>()
+    };
+    let mut differing = 0;
+    for (entry, listed) in AUTH_MATRIX.entries() {
+        let (method, path) = entry.split_once('\0').expect("a packed key");
+        if path.contains('{') {
+            continue;
+        }
+        assert_eq!(
+            supported_auth_for_request(method, path),
+            Some(wire(listed)),
+            "{method} {path} should keep its own entry"
+        );
+        let shadowed = AUTH_MATRIX.entries().any(|(other, other_listed)| {
+            let (other_method, template) = other.split_once('\0').expect("a packed key");
+            let (a, b): (Vec<_>, Vec<_>) =
+                (template.split('/').collect(), path.split('/').collect());
+            other_method == method
+                && template.contains('{')
+                && a.len() == b.len()
+                && a.iter()
+                    .zip(&b)
+                    .all(|(t, p)| (t.starts_with('{') && !p.is_empty()) || t == p)
+                && wire(other_listed) != wire(listed)
+        });
+        differing += usize::from(shadowed);
+    }
+    assert!(
+        differing > 0,
+        "no literal path shadows a template with other schemes, so this proves nothing"
+    );
+}
+
+#[test]
+fn a_request_path_is_matched_without_its_case_or_trailing_slash_in_the_method_or_path() {
+    let plain = supported_auth_for_request("DELETE", "/2/tweets/123");
+    assert!(plain.is_some());
+    assert_eq!(supported_auth_for_request("delete", "/2/tweets/123"), plain);
+    assert_eq!(
+        supported_auth_for_request("DELETE", "/2/tweets/123/"),
+        plain
+    );
+    assert_eq!(
+        supported_auth_for_request("GET", "/2/users/me/"),
+        supported_auth_for_request("GET", "/2/users/me")
+    );
+}
+
+#[test]
+fn a_request_path_no_entry_fits_is_unlisted() {
+    assert_eq!(supported_auth_for_request("GET", "/2/never/heard/of"), None);
+    assert_eq!(
+        supported_auth_for_request("GET", "/2/tweets/search/all"),
+        None
+    );
+    assert_eq!(
+        supported_auth_for_request("GET", "/2/users//following"),
+        None
+    );
+    assert_eq!(supported_auth_for_request("TRACE", "/2/tweets/123"), None);
 }

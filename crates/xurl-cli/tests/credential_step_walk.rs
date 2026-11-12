@@ -21,7 +21,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use regex::Regex;
 use serde_json::Value;
-use xdk::api::auth_matrix::{AUTH_MATRIX, WireScheme, supported_auth};
+use xdk::api::auth_matrix::{AUTH_MATRIX, WireScheme};
 use xdk::store::TokenStore;
 use xdk::testing::MockX;
 
@@ -317,43 +317,54 @@ fn walked(shapes: &[Shape], targets: Vec<Target>) -> Vec<String> {
 const UNLISTED: &str = "/2/never/heard/of";
 
 /// One concrete endpoint for every distinct set of schemes the matrix
-/// declares, and one path it does not list.
+/// declares, spelled once as a literal path and once as a template filled
+/// with an id, and one path it does not list. A filled template is held to
+/// the schemes of the matrix entry it came from, whatever the path says.
 fn raw_targets() -> Vec<Target> {
-    let mut by_set: BTreeMap<Vec<&'static str>, (String, String)> = BTreeMap::new();
+    type Endpoint = (String, String, Vec<WireScheme>);
+    let mut by_set: BTreeMap<(Vec<&'static str>, bool), Endpoint> = BTreeMap::new();
     for (key, schemes) in AUTH_MATRIX.entries() {
-        let Some((method, path)) = key.split_once('\0') else {
+        let Some((method, template)) = key.split_once('\0') else {
             continue;
         };
-        if path.contains('{') {
-            continue;
-        }
         let mut set: Vec<&'static str> = schemes
             .iter()
             .map(|scheme| scheme.wire().as_wire())
             .collect();
         set.sort_unstable();
+        let accepted: Vec<WireScheme> = WireScheme::ALL_BY_PREFERENCE
+            .into_iter()
+            .filter(|scheme| schemes.iter().any(|entry| entry.wire() == *scheme))
+            .collect();
+        let templated = template.contains('{');
+        let path = template
+            .split('/')
+            .map(|segment| {
+                if segment.starts_with('{') {
+                    SAMPLE
+                } else {
+                    segment
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("/");
         by_set
-            .entry(set)
-            .or_insert_with(|| (method.to_string(), path.to_string()));
+            .entry((set, templated))
+            .or_insert_with(|| (method.to_string(), path, accepted));
     }
-    let mut endpoints: Vec<(String, String)> = by_set.into_values().collect();
-    endpoints.push(("GET".to_string(), UNLISTED.to_string()));
+    let mut endpoints: Vec<Endpoint> = by_set.into_values().collect();
+    endpoints.push((
+        "GET".to_string(),
+        UNLISTED.to_string(),
+        WireScheme::ALL_BY_PREFERENCE.to_vec(),
+    ));
     endpoints
         .into_iter()
-        .map(|(method, path)| {
-            let accepted = WireScheme::ALL_BY_PREFERENCE
-                .into_iter()
-                .filter(|scheme| {
-                    supported_auth(&method, &path)
-                        .is_none_or(|listed| listed.iter().any(|entry| entry.wire() == *scheme))
-                })
-                .collect();
-            Target {
-                name: format!("raw {method} {path}"),
-                args: vec!["-X".to_string(), method, path],
-                accepted,
-                takes_login: true,
-            }
+        .map(|(method, path, accepted)| Target {
+            name: format!("raw {method} {path}"),
+            args: vec!["-X".to_string(), method, path],
+            accepted,
+            takes_login: true,
         })
         .collect()
 }

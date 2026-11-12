@@ -567,6 +567,34 @@ mod tests {
         }
     }
 
+    /// A raw request to a path that carries an id is held to the schemes of
+    /// the template it fits.
+    #[test]
+    fn a_raw_request_with_an_id_is_held_to_its_templates_schemes() {
+        let tmp = tempfile::TempDir::new().expect("tempdir");
+        let snapshot = snapshot(&tmp, &[("work", &[WireScheme::App])], "work");
+
+        for invocation in [
+            words(&["xr", "-X", "DELETE", "/2/tweets/123", "--auth", "oauth2"]),
+            words(&["xr", "-X", "POST", "/2/users/123/likes", "--auth", "oauth1"]),
+        ] {
+            let hint = no_credential_hint(
+                Missing::Scheme(WireScheme::OAuth2),
+                &snapshot,
+                &invocation,
+                true,
+            );
+            let step = hint.next_step;
+            let named = format!("{:?}{:?}", step.command, step.template);
+            assert!(!named.contains("--auth app"), "{invocation:?}: {step:?}");
+            assert_ne!(
+                step.action,
+                NextAction::FixInput,
+                "{invocation:?}: {step:?}"
+            );
+        }
+    }
+
     /// A raw request is held to what the matrix lists for its method and
     /// path: `GET /2/users/me` takes no bearer token.
     #[test]

@@ -2,7 +2,9 @@
 //! matrix for the endpoints the command's requests reach.
 
 use clap::Command;
-use xdk::api::auth_matrix::{Endpoint, WireScheme, endpoints as ep, supported_auth};
+use xdk::api::auth_matrix::{
+    Endpoint, WireScheme, endpoints as ep, supported_auth, supported_auth_for_request,
+};
 
 /// A command and the endpoints its requests reach: by default, and when
 /// `--of` names another user, for the commands that take it.
@@ -381,10 +383,8 @@ pub fn accepted_by_command(path: &str, with_of: bool) -> Option<Vec<WireScheme>>
 /// `path`, in preference order; every scheme when the matrix does not list
 /// the pair, since X arbitrates a request the matrix does not know.
 pub fn accepted_by_request(method: &str, path: &str) -> Vec<WireScheme> {
-    WireScheme::ALL_BY_PREFERENCE
-        .into_iter()
-        .filter(|scheme| accepts(method, path, *scheme))
-        .collect()
+    supported_auth_for_request(method, path)
+        .unwrap_or_else(|| WireScheme::ALL_BY_PREFERENCE.to_vec())
 }
 
 /// The schemes every endpoint in `endpoints` accepts, in preference order.
