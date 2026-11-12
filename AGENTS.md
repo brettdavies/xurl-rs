@@ -275,7 +275,9 @@ never the tests.
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes
   `--auth` with no row, for a row naming no such command, and for a row whose schemes differ from the ones the
-  command's dry run accepts.
+  command's dry run accepts. `crates/xurl-cli/tests/credential_step_walk.rs` runs each of those commands over every
+  shape a store can have and with each scheme the caller can name, and fails for a credential refusal that carries no
+  step, names a scheme the row refuses, or sends the caller to a step that is refused again.
 - **Schema registry.** A `SCHEMA_ENTRIES` row, or a `SCHEMA_LESS_COMMANDS` name for a command with no typed response, in
   `crates/xurl-cli/src/cli/commands/schema/mod.rs`, named by the command's words as `xr help` takes them, then
   `scripts/generate-response-schemas.sh`, which writes the words joined with `-` as the file name.

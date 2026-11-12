@@ -7,7 +7,9 @@
 //! without the flags it needs.
 
 use xdk::api::auth_matrix::WireScheme;
-use xdk::error::{Error, MismatchShape, NO_AUTH_METHOD, NO_OAUTH2_TOKEN};
+use xdk::error::{
+    Error, MismatchShape, NO_AUTH_METHOD, NO_BEARER_TOKEN, NO_OAUTH1_TOKEN, NO_OAUTH2_TOKEN,
+};
 use xdk::store::snapshot::StoreSnapshot;
 
 use crate::cli::accepted_auth::accepted_by_command;
@@ -53,6 +55,8 @@ pub(crate) fn missing_credential(error: &Error) -> Option<Missing> {
     match message.as_str() {
         NO_AUTH_METHOD => Some(Missing::Anything),
         NO_OAUTH2_TOKEN => Some(Missing::Scheme(WireScheme::OAuth2)),
+        NO_OAUTH1_TOKEN => Some(Missing::Scheme(WireScheme::OAuth1)),
+        NO_BEARER_TOKEN => Some(Missing::Scheme(WireScheme::App)),
         _ => None,
     }
 }
@@ -558,6 +562,14 @@ mod tests {
         let missing = |message: &str| missing_credential(&Error::auth(message));
 
         assert_eq!(missing(NO_AUTH_METHOD), Some(Missing::Anything));
+        assert_eq!(
+            missing(NO_OAUTH1_TOKEN),
+            Some(Missing::Scheme(WireScheme::OAuth1))
+        );
+        assert_eq!(
+            missing(NO_BEARER_TOKEN),
+            Some(Missing::Scheme(WireScheme::App))
+        );
         assert_eq!(
             missing(NO_OAUTH2_TOKEN),
             Some(Missing::Scheme(WireScheme::OAuth2))

@@ -871,6 +871,12 @@ pub const NO_AUTH_METHOD: &str = "NoAuthMethod: no authentication method availab
 /// The message every missing-`OAuth2`-token failure carries.
 pub const NO_OAUTH2_TOKEN: &str = "TokenNotFound: oauth2 token not found";
 
+/// The message every missing-`OAuth1`-token failure carries.
+pub const NO_OAUTH1_TOKEN: &str = "TokenNotFound: OAuth1 token not found";
+
+/// The message every missing-bearer-token failure carries.
+pub const NO_BEARER_TOKEN: &str = "TokenNotFound: bearer token not found";
+
 /// The message of an interactive sign-in whose callback carried a `state`
 /// other than the one its authorize URL sent: a stale browser tab, a second
 /// sign-in, or a forged request.
