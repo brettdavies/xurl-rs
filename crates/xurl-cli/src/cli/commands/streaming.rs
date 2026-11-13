@@ -1,6 +1,7 @@
 //! Streaming request handler: SSE / chunked transfer support.
 use std::io::Write;
 
+use crate::cli::envelope::Envelope;
 use crate::cli::output::OutputConfig;
 use crate::cli::shutdown::shutdown_signal;
 use xdk::api::{Client, RequestOptions};
@@ -34,11 +35,14 @@ pub(super) async fn stream_request_with_output(
             () = &mut shutdown => {
                 let _ = stdout.flush();
                 if out.format.is_structured() {
-                    let envelope = serde_json::json!({
-                        "status": "cancelled",
-                        "reason": "sigterm",
-                    });
-                    out.print_response(stdout, &envelope);
+                    let envelope = Envelope::Cancelled {
+                        exit_code: None,
+                        message: None,
+                        reason: Some("sigterm".into()),
+                        context: serde_json::Map::new(),
+                        warnings: None,
+                    };
+                    out.print_response(stdout, &envelope.into_value());
                 }
                 out.status(stderr, "--- Stream cancelled by signal ---");
                 return Ok(());
