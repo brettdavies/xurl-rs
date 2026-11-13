@@ -7,6 +7,9 @@
 
 use std::path::Path;
 
+#[path = "support/production_source.rs"]
+mod production_source;
+
 /// The module that emits the event, relative to the crate root.
 const EMITTER: &str = "src/api/response/vocabulary.rs";
 
@@ -27,7 +30,7 @@ const BINDINGS: &[&str] = &[
 fn the_vocabulary_event_records_only_the_five_schema_fields() {
     let source = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(EMITTER))
         .unwrap_or_else(|e| panic!("{EMITTER} must be readable: {e}"));
-    let production = squeeze(source.split("#[cfg(test)]").next().unwrap_or_default());
+    let production = squeeze(production_source::up_to_inline_tests(&source));
 
     let sites: Vec<&str> = production
         .match_indices("tracing::")
