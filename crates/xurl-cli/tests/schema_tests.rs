@@ -551,9 +551,10 @@ fn envelope_schema_is_draft_2020_12_with_oneof() {
         .as_array()
         .expect("envelope schema has oneOf array");
     assert!(
-        variants
-            .iter()
-            .all(|variant| variant["properties"]["status"]["const"].is_string()),
+        !variants.is_empty()
+            && variants
+                .iter()
+                .all(|variant| variant["properties"]["status"]["const"].is_string()),
         "every envelope variant is tagged by a `status` const"
     );
 }

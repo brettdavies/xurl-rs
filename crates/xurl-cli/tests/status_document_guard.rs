@@ -44,8 +44,9 @@ const RECORD_STREAMS: &[(&str, &str)] = &[
 ];
 
 /// Statuses that only an entry inside a document's array carries, never the
-/// document's own `status`.
-const NESTED_STATUSES: &[(&str, &str)] = &[(
+/// document's own `status`: the file that sets it, the status, and why.
+const NESTED_STATUSES: &[(&str, &str, &str)] = &[(
+    "crates/xurl-cli/src/cli/skill_install/mod.rs",
     "skipped",
     "an entry of `installations` on `skill update --all`, for a host with nothing installed; \
      the status of that run's own document is `ok`, `error`, or `dry_run`",
@@ -78,19 +79,26 @@ fn statuses(schema: &Value) -> BTreeSet<String> {
         .collect()
 }
 
-/// The source of `file` up to its test module, with each line kept at its
-/// number. Comment lines are blanked.
+/// The source of `file` up to its inline test module, with each line kept at
+/// its number. Comment lines are blanked. A `#[cfg(test)]` on anything but an
+/// inline `mod name {` leaves the rest of the file in view.
 fn production_lines(source: &str) -> Vec<String> {
+    let inline_module = Regex::new(r"^\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*\{").unwrap();
+    let all: Vec<&str> = source.lines().collect();
     let mut lines = Vec::new();
-    for line in source.lines() {
-        if line.trim_start().starts_with("#[cfg(test)]") {
+    for (index, line) in all.iter().enumerate() {
+        let opens_tests = line.trim_start().starts_with("#[cfg(test)]")
+            && all
+                .get(index + 1)
+                .is_some_and(|next| inline_module.is_match(next));
+        if opens_tests {
             break;
         }
         let comment = line.trim_start().starts_with("//");
         lines.push(if comment {
             String::new()
         } else {
-            line.to_string()
+            (*line).to_string()
         });
     }
     lines
@@ -144,10 +152,9 @@ fn sites() -> Vec<Site> {
 
 fn is_excused(site: &Site) -> bool {
     RECORD_STREAMS.iter().any(|(path, _)| *path == site.file)
-        || site
-            .value
-            .as_deref()
-            .is_some_and(|value| NESTED_STATUSES.iter().any(|(nested, _)| *nested == value))
+        || NESTED_STATUSES
+            .iter()
+            .any(|(path, status, _)| *path == site.file && site.value.as_deref() == Some(*status))
 }
 
 #[test]
@@ -183,10 +190,6 @@ fn no_document_is_built_with_a_status_the_schema_omits() {
 fn every_exception_still_excuses_a_status() {
     let sites = sites();
     let files: BTreeSet<&str> = sites.iter().map(|site| site.file.as_str()).collect();
-    let values: BTreeSet<&str> = sites
-        .iter()
-        .filter_map(|site| site.value.as_deref())
-        .collect();
     let stale: Vec<&str> = RECORD_STREAMS
         .iter()
         .map(|(path, _)| *path)
@@ -194,8 +197,12 @@ fn every_exception_still_excuses_a_status() {
         .chain(
             NESTED_STATUSES
                 .iter()
-                .map(|(status, _)| *status)
-                .filter(|status| !values.contains(status)),
+                .filter(|(path, status, _)| {
+                    !sites
+                        .iter()
+                        .any(|site| site.file == *path && site.value.as_deref() == Some(*status))
+                })
+                .map(|(_, status, _)| *status),
         )
         .collect();
     assert!(
