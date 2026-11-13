@@ -44,7 +44,7 @@ use serde_json::json;
 
 use crate::cli::envelope::{DryRunAuth, Reason};
 use crate::cli::failure::{CommandResult, Failure};
-use crate::cli::output::OutputConfig;
+use crate::cli::output::{OutputConfig, without_rendered_url};
 use crate::cli::{Cli, Commands, CommonFlags};
 use xdk::api::auth_matrix::WireScheme;
 use xdk::api::shortcuts;
@@ -97,8 +97,12 @@ fn confirm_destructive(prompt: &str) -> Result<bool> {
 
     let stdin = std::io::stdin();
     let mut line = String::new();
-    if stdin.lock().read_line(&mut line).is_err() {
-        return Ok(false);
+    match stdin.lock().read_line(&mut line) {
+        Err(_) => return Ok(false),
+        Ok(0) => {
+            let _ = writeln!(std::io::stderr());
+        }
+        Ok(_) => {}
     }
     let answer = line.trim().to_ascii_lowercase();
     Ok(matches!(answer.as_str(), "y" | "yes"))
@@ -120,47 +124,57 @@ pub(super) fn destructive_dry_run_context(
     ctx
 }
 
-/// Gates a destructive op on `--force` / TTY confirmation: `true` to go
-/// ahead, `false` when the person declined, and the `confirmation-required`
-/// refusal, carrying `ctx`, when nobody can be asked.
+/// Gates a destructive op on `--force` / TTY confirmation: `Ok` to go ahead,
+/// the `confirmation-required` refusal, carrying `ctx`, when nobody can be
+/// asked, and the declined stop, carrying `ctx`, when the person answered no.
 ///
 /// Callers answer `--dry-run` before they reach this gate.
 ///
 /// Rules:
 /// - `--force` → proceed.
 /// - `--no-interactive` without `--force` → confirmation required.
-/// - Interactive terminal without `--force` → dialoguer confirm.
+/// - Interactive terminal without `--force` → ask on stdin.
 pub(super) fn gate_destructive(
     force: bool,
     no_interactive: bool,
     quiet: bool,
     prompt: &str,
     ctx: &serde_json::Value,
-) -> CommandResult<bool> {
+) -> CommandResult<()> {
     if force {
-        return Ok(true);
+        return Ok(());
     }
     if no_interactive || !is_interactive(no_interactive, quiet) {
         return Err(Failure::Unconfirmed(ctx.clone()));
     }
-    Ok(confirm_destructive(prompt)?)
+    if confirm_destructive(prompt)? {
+        Ok(())
+    } else {
+        Err(Failure::Declined(ctx.clone()))
+    }
 }
 
-/// The context a destructive command goes on with: under `--dry-run`, `ctx`
-/// marked with whether the real run would ask; otherwise `ctx` once
-/// [`gate_destructive`] lets the run go ahead, or `None` when the person
-/// declined.
-fn confirmed_context(
-    flags: &GlobalFlags,
-    ctx: serde_json::Value,
+/// What a destructive request asks before it goes out. It asks once the
+/// request's inputs and credentials are known to serve, so the `--force`
+/// invocation a refusal hands out is one that then runs.
+#[derive(Clone, Copy)]
+struct Confirm<'a> {
     force: bool,
-    prompt: &str,
-) -> CommandResult<Option<serde_json::Value>> {
-    if flags.dry_run {
-        return Ok(Some(destructive_dry_run_context(ctx, force)));
+    prompt: &'a str,
+}
+
+impl Confirm<'_> {
+    /// `Ok` when the real run goes ahead; otherwise the stop
+    /// [`gate_destructive`] names.
+    fn gate(self, flags: &GlobalFlags, ctx: &serde_json::Value) -> CommandResult<()> {
+        gate_destructive(
+            self.force,
+            flags.no_interactive,
+            flags.quiet,
+            self.prompt,
+            ctx,
+        )
     }
-    let proceed = gate_destructive(force, flags.no_interactive, flags.quiet, prompt, &ctx)?;
-    Ok(proceed.then_some(ctx))
 }
 
 /// The id a dry run puts where the real run would have looked one up.
@@ -171,17 +185,79 @@ const UNRESOLVED_ID: &str = "0";
 /// One request's credential, read without sending the request.
 type Credential = Result<Option<AuthPreflight>>;
 
-/// A dry run under way: the context its envelope carries, and the reason
-/// its inputs were refused, when they were.
+/// A dry run under way: the context its envelope carries, the reason its
+/// inputs were refused, when they were, and for a destructive command whether
+/// `--force` was given.
 struct DryRun {
     ctx: serde_json::Value,
-    invalid: Option<&'static str>,
+    invalid: Option<Invalid>,
+    forced: Option<bool>,
+}
+
+/// An input a validator refused: the rule's kebab-case code and, when the
+/// rule's sentence names the input, the input as it was given.
+#[derive(Debug)]
+struct Invalid {
+    rule: &'static str,
+    value: Option<String>,
+}
+
+impl Invalid {
+    fn naming(rule: &'static str, value: &str) -> Self {
+        Self {
+            rule,
+            value: Some(value.to_string()),
+        }
+    }
+}
+
+impl From<&'static str> for Invalid {
+    fn from(rule: &'static str) -> Self {
+        Self { rule, value: None }
+    }
+}
+
+impl From<Invalid> for Error {
+    fn from(invalid: Invalid) -> Self {
+        match invalid.value {
+            Some(value) => Error::validation_of(invalid.rule, value),
+            None => Error::validation(invalid.rule),
+        }
+    }
+}
+
+/// The validator of a request whose inputs need no offline check.
+fn no_checks() -> std::result::Result<(), &'static str> {
+    Ok(())
+}
+
+/// Checks a post id or a post URL. A refused input is named, unless it is
+/// empty, which has nothing to name.
+fn valid_post_id(input: &str) -> std::result::Result<(), Invalid> {
+    shortcuts::validate_post_id(input).map_err(|rule| {
+        if input.trim().is_empty() {
+            Invalid::from(rule)
+        } else {
+            Invalid::naming(rule, input)
+        }
+    })
 }
 
 impl DryRun {
     /// The dry run of a command with no inputs to check offline.
     fn new(ctx: serde_json::Value) -> Self {
-        Self { ctx, invalid: None }
+        Self {
+            ctx,
+            invalid: None,
+            forced: None,
+        }
+    }
+
+    /// The dry run of a command that asks `confirm` first. Its answer says
+    /// the real run would ask only when the real run gets as far as asking.
+    fn confirming(mut self, confirm: Option<Confirm<'_>>) -> Self {
+        self.forced = confirm.map(|confirm| confirm.force);
+        self
     }
 
     /// Prints the answer. `would_succeed` is whether the inputs were valid
@@ -201,11 +277,15 @@ impl DryRun {
         stdout: &mut dyn Write,
         credentials: impl IntoIterator<Item = Credential>,
     ) -> CommandResult<()> {
-        let Self { mut ctx, invalid } = self;
-        if let Some(reason) = invalid {
+        let Self {
+            mut ctx,
+            invalid,
+            forced,
+        } = self;
+        if let Some(invalid) = invalid {
             return Err(Failure::DryRunInvalid {
                 ctx,
-                error: Error::validation(reason),
+                error: invalid.into(),
             });
         }
         let mut reported = None;
@@ -217,6 +297,9 @@ impl DryRun {
         }
         if let Some(found) = reported {
             ctx["auth"] = credential_value(&found);
+        }
+        if let Some(force) = forced {
+            ctx = destructive_dry_run_context(ctx, force);
         }
         out.print_dry_run(stdout, true, 0, &ctx);
         Ok(())
@@ -237,17 +320,21 @@ fn credential_value(found: &AuthPreflight) -> serde_json::Value {
 /// A real run with invalid inputs is refused here and one with valid inputs
 /// gets `None`. A dry run gets its [`DryRun`] either way, and carries a
 /// refusal to its answer as `would_succeed: false` with the reason.
-fn dry_run_or_validate(
+fn dry_run_or_validate<V: Into<Invalid>>(
     dry_run: bool,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
 ) -> CommandResult<Option<DryRun>> {
-    let invalid = validator().err();
+    let invalid = validator().err().map(Into::into);
     if dry_run {
-        return Ok(Some(DryRun { ctx, invalid }));
+        return Ok(Some(DryRun {
+            ctx,
+            invalid,
+            forced: None,
+        }));
     }
     match invalid {
-        Some(reason) => Err(Failure::refused(Error::validation(reason))),
+        Some(invalid) => Err(Failure::refused(invalid.into())),
         None => Ok(None),
     }
 }
@@ -272,10 +359,10 @@ where
 /// Sends the one request `build` makes once `validator` passes its inputs,
 /// and prints the typed response; under `--dry-run` it answers with `ctx`
 /// and sends nothing.
-async fn send_validated<T>(
+async fn send_validated<T, V: Into<Invalid>>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
     common: &CommonFlags,
     build: impl FnOnce(&Client) -> Call<T>,
 ) -> CommandResult<()>
@@ -297,25 +384,40 @@ where
     Ok(())
 }
 
-/// [`send_validated`] for a request that destroys something: it asks
-/// `prompt` first unless `force`, and refuses under `--no-interactive`
-/// without it. A dry run says whether the real run would ask.
-async fn send_confirmed<T>(
+/// [`send_validated`] for a request that destroys something: once the inputs
+/// and the credential check out, it asks `prompt` unless `force`, and refuses
+/// under `--no-interactive` without it. A dry run says whether the real run
+/// would ask, when the real run would get as far as asking.
+async fn send_confirmed<T, V: Into<Invalid>>(
     run: Run<'_>,
     ctx: serde_json::Value,
     prompt: &str,
     force: bool,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
     common: &CommonFlags,
     build: impl FnOnce(&Client) -> Call<T>,
 ) -> CommandResult<()>
 where
     T: Serialize + DeserializeOwned,
 {
-    let Some(ctx) = confirmed_context(&run.flags, ctx, force, prompt)? else {
-        return Ok(());
-    };
-    send_validated(run, ctx, validator, common, build).await
+    let confirm = Confirm { force, prompt };
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx.clone(), validator)?
+        .map(|dry_run| dry_run.confirming(Some(confirm)));
+    let client = make_client(cfg, auth)?;
+    let call = with_flags(build(&client), common, None);
+    if dry_run.is_none() {
+        call.auth_preflight().await?;
+        confirm.gate(&flags, &ctx)?;
+    }
+    send_or_report(out, stdout, dry_run, call).await
 }
 
 /// Converts a typed response to Value and prints it.
@@ -685,7 +787,7 @@ where
     T: Serialize + DeserializeOwned + Default,
 {
     let ctx = json!({"command": command});
-    list_owned_by(run, ctx, || Ok(()), max_results, of, common, shortcut).await
+    list_owned_by(run, ctx, no_checks, max_results, of, common, shortcut).await
 }
 
 /// A paged read of the caller's own list from a path that names no user,
@@ -702,7 +804,7 @@ where
     T: Serialize + DeserializeOwned + Default,
 {
     let ctx = json!({"command": command});
-    list_paged(run, ctx, || Ok(()), max_results, common, shortcut).await
+    list_paged(run, ctx, no_checks, max_results, common, shortcut).await
 }
 
 /// A paged read of the list a post owns, such as the users who liked it:
@@ -719,7 +821,7 @@ where
     T: Serialize + DeserializeOwned + Default,
 {
     let ctx = json!({"command": command, "post_id": post_id});
-    let validator = || shortcuts::validate_post_id(post_id);
+    let validator = || valid_post_id(post_id);
     list_paged(run, ctx, validator, max_results, common, |client, n| {
         shortcut(client, post_id, n)
     })
@@ -729,10 +831,10 @@ where
 /// A paged list one request reads, with no user id to resolve first: check
 /// the inputs with `validator`, call one shortcut with the page size, and
 /// print the typed response. `ctx` names the inputs in a dry run's answer.
-async fn list_paged<T>(
+async fn list_paged<T, V: Into<Invalid>>(
     run: Run<'_>,
     mut ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
     max_results: Option<i32>,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, i32) -> Call<api::ApiResponse<T>>,
@@ -761,10 +863,10 @@ where
 /// [`list_for_user`] for a list the command's own inputs pick out, such as
 /// one folder: `ctx` names them in a dry run's answer, and `validator`
 /// checks them before any request.
-async fn list_owned_by<T>(
+async fn list_owned_by<T, V: Into<Invalid>>(
     run: Run<'_>,
     mut ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
     max_results: Option<i32>,
     of: Option<&str>,
     common: &CommonFlags,
@@ -787,10 +889,14 @@ where
     if let Some(target) = of {
         ctx["of"] = json!(target);
     }
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        of.map_or(Ok(()), validate_account)?;
-        validator()
-    })?;
+    let dry_run = dry_run_or_validate(
+        flags.dry_run,
+        ctx,
+        || -> std::result::Result<(), Invalid> {
+            of.map_or(Ok(()), validate_account)?;
+            validator().map_err(Into::into)
+        },
+    )?;
     let n = effective_limit(max_results, flags.global_limit);
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {
@@ -877,16 +983,16 @@ where
     T: Serialize + DeserializeOwned + Default,
 {
     let ctx = json!({"command": command});
-    act_on_user_with(run, ctx, || Ok(()), target_username, common, shortcut).await
+    act_on_user_with(run, ctx, no_checks, target_username, common, shortcut).await
 }
 
 /// [`act_on_user`] for a verb whose other inputs ride along, such as the
 /// list a member joins: `ctx` names them in a dry run's answer, and
 /// `validator` checks them, after the account, before any request.
-async fn act_on_user_with<T>(
+async fn act_on_user_with<T, V: Into<Invalid>>(
     run: Run<'_>,
     mut ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
     target_username: &str,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
@@ -895,9 +1001,9 @@ where
     T: Serialize + DeserializeOwned + Default,
 {
     ctx["target_username"] = json!(target_username);
-    let validate = || {
+    let validate = || -> std::result::Result<(), Invalid> {
         validate_account(target_username)?;
-        validator()
+        validator().map_err(Into::into)
     };
     send_to_account(run, ctx, validate, target_username, common, shortcut).await
 }
@@ -916,7 +1022,7 @@ where
     T: Serialize + DeserializeOwned + Default,
 {
     let ctx = json!({"command": command, "post_id": post_id});
-    let validator = || shortcuts::validate_post_id(post_id);
+    let validator = || valid_post_id(post_id);
     act_from_me(run, ctx, validator, common, |client, my_id| {
         shortcut(client, my_id, post_id)
     })
@@ -926,10 +1032,10 @@ where
 /// A verb that acts from the caller's account: check its inputs with
 /// `validator`, resolve the caller's id, call one shortcut with it, and
 /// print the typed response. `ctx` names the inputs in a dry run's answer.
-async fn act_from_me<T>(
+async fn act_from_me<T, V: Into<Invalid>>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
 ) -> CommandResult<()>
@@ -1058,10 +1164,10 @@ where
 /// resolved first, all in one lookup, and an id goes out as it is. Under
 /// `--dry-run` nothing is sent, and the answer names the credentials the
 /// lookup and the request would go out with.
-async fn send_to_accounts<T>(
+async fn send_to_accounts<T, V: Into<Invalid>>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
     accounts: &[String],
     common: &CommonFlags,
     build: impl FnOnce(&Client, &[String]) -> Call<T>,
@@ -1092,11 +1198,59 @@ where
     Ok(())
 }
 
-/// [`send_to_accounts`] for a request that names one account.
-async fn send_to_account<T>(
+/// [`send_to_account`] for a request that destroys something: once the
+/// inputs and the credentials of the lookup and the request check out, and
+/// before the lookup goes out, it asks as [`send_confirmed`] does.
+async fn send_confirmed_to_account<T, V: Into<Invalid>>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), &'static str>,
+    confirm: Confirm<'_>,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
+    account: &str,
+    common: &CommonFlags,
+    build: impl Fn(&Client, &str) -> Call<T>,
+) -> CommandResult<()>
+where
+    T: Serialize + DeserializeOwned,
+{
+    let Run {
+        cfg,
+        auth,
+        flags,
+        out,
+        stdout,
+        ..
+    } = run;
+    let accounts = [account.to_string()];
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx.clone(), validator)?
+        .map(|dry_run| dry_run.confirming(Some(confirm)));
+    let client = make_client(cfg, auth)?;
+    // One account, so the lookup answers with one id.
+    let request = build(&client, &stand_in_ids(&accounts).concat());
+    let credentials = account_credentials(&client, &accounts, common, request).await;
+    if let Some(dry_run) = dry_run {
+        return dry_run.answer(out, stdout, credentials);
+    }
+    let stands_in = !shortcuts::is_user_id_form(account);
+    credentials
+        .into_iter()
+        .collect::<Result<Vec<_>>>()
+        .map_err(|error| match stands_in {
+            true => without_rendered_url(&error).unwrap_or(error),
+            false => error,
+        })?;
+    confirm.gate(&flags, &ctx)?;
+    let id = resolve_account_id(&client, account, common).await?;
+    let response = with_flags(build(&client, &id), common, None).send().await?;
+    print_typed(out, stdout, &response)?;
+    Ok(())
+}
+
+/// [`send_to_accounts`] for a request that names one account.
+async fn send_to_account<T, V: Into<Invalid>>(
+    run: Run<'_>,
+    ctx: serde_json::Value,
+    validator: impl FnOnce() -> std::result::Result<(), V>,
     account: &str,
     common: &CommonFlags,
     build: impl FnOnce(&Client, &str) -> Call<T>,

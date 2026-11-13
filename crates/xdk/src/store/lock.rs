@@ -70,7 +70,8 @@ impl StoreLock {
         }
         let file = opts.open(&path).map_err(|e| {
             Error::io(format!(
-                "cannot open the store lock {}: {e}",
+                "{} {}: {e}",
+                crate::error::STORE_LOCK_UNOPENABLE,
                 path.display()
             ))
             .with_source(e)
@@ -144,7 +145,8 @@ impl RefreshLock {
         }
         let file = opts.open(&path).map_err(|e| {
             Error::io(format!(
-                "cannot open the refresh lock {}: {e}",
+                "{} {}: {e}",
+                crate::error::REFRESH_LOCK_UNOPENABLE,
                 path.display()
             ))
             .with_source(e)
@@ -221,6 +223,43 @@ mod tests {
             lock_path_for(Path::new("/h/.xurl")),
             PathBuf::from("/h/.xurl.lock")
         );
+    }
+
+    #[cfg(unix)]
+    fn in_a_read_only_dir<R>(f: impl FnOnce(&Path) -> R) -> R {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::TempDir::new().unwrap();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o500)).unwrap();
+        let out = f(&dir.path().join(".xurl"));
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o700)).unwrap();
+        out
+    }
+
+    #[cfg(unix)]
+    fn assert_names_the_page_on_writing_the_store(acquire: fn(&Path) -> Result<()>) {
+        // A process that may write a read-only directory (root) is not refused.
+        let Err(error) = in_a_read_only_dir(acquire) else {
+            return;
+        };
+        assert!(matches!(error, Error::Io { .. }), "{error:?}");
+        assert!(
+            error
+                .docs_url()
+                .is_some_and(|url| url.ends_with("#token-store-could-not-be-written")),
+            "{error}"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_store_lock_the_directory_refuses_names_the_page_on_writing_the_store() {
+        assert_names_the_page_on_writing_the_store(|store| StoreLock::acquire(store).map(drop));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_refresh_lock_the_directory_refuses_names_the_page_on_writing_the_store() {
+        assert_names_the_page_on_writing_the_store(|store| RefreshLock::acquire(store).map(drop));
     }
 
     #[test]

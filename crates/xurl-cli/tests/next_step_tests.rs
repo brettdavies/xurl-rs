@@ -265,6 +265,9 @@ enum Held {
     /// A store holding `work`, in a directory that takes no new file.
     #[cfg(unix)]
     ReadOnly,
+    /// As `ReadOnly`, with no lock file beside the store yet.
+    #[cfg(unix)]
+    ReadOnlyNoLock,
 }
 
 /// Seeds `tmp` with a store as `held` describes and a secret file.
@@ -280,6 +283,10 @@ fn seed_store_write(held: Held, tmp: &TempDir) {
             let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
             ts.add_app("work", "abcdefgh", "shh").expect("add app");
         }
+    }
+    #[cfg(unix)]
+    if matches!(held, Held::ReadOnlyNoLock) {
+        std::fs::remove_file(tmp.path().join("home").join(".xurl.lock")).expect("remove the lock");
     }
     std::fs::write(tmp.path().join("secret"), "shh\n").expect("write the secret");
 }
@@ -309,7 +316,7 @@ async fn store_write(
     #[cfg(unix)]
     let home_mode = |mode| {
         use std::os::unix::fs::PermissionsExt;
-        if matches!(held, Held::ReadOnly) {
+        if matches!(held, Held::ReadOnly | Held::ReadOnlyNoLock) {
             std::fs::set_permissions(
                 tmp.path().join("home"),
                 std::fs::Permissions::from_mode(mode),
@@ -345,12 +352,23 @@ async fn store_write(
 #[case::app_for_a_missing_app(Held::Work, &["--app", "ghost", "auth", "app", "--bearer-token-file", "SECRET"])]
 #[case::oauth1_for_a_missing_app(Held::Work, &["--app", "ghost", "auth", "oauth1", "--consumer-key", "ck", "--consumer-secret-file", "SECRET", "--access-token-file", "SECRET", "--token-secret-file", "SECRET"])]
 #[case::apps_add_taken(Held::Work, &["auth", "apps", "add", "work", "--client-id", "abcdefgh", "--client-secret-file", "SECRET"])]
+#[case::apps_add_bad_redirect_uri(Held::Work, &["auth", "apps", "add", "new", "--client-id", "abcdefgh", "--client-secret-file", "SECRET", "--redirect-uri", "not a url"])]
 #[case::apps_update_missing(Held::Work, &["auth", "apps", "update", "ghost", "--client-id", "abcdefgh"])]
 #[case::apps_remove_missing(Held::Work, &["auth", "apps", "remove", "ghost", "--force"])]
 #[case::redirect_uri_missing(Held::Work, &["auth", "apps", "redirect-uri", "set", "ghost", "http://localhost:8080/callback"])]
 #[case::default_missing(Held::Work, &["auth", "default", "ghost"])]
 #[case::default_user_missing(Held::Work, &["auth", "default", "work", "alice"])]
 #[case::clear_nothing(Held::Work, &["auth", "clear"])]
+#[case::clear_for_a_missing_app(Held::Work, &["--app", "ghost", "auth", "clear", "--all", "--force"])]
+#[case::clear_for_a_missing_app_on_a_new_store(Held::Empty, &["--app", "ghost", "auth", "clear", "--all", "--force"])]
+#[case::clear_for_a_missing_app_unforced(Held::Work, &["--no-interactive", "--app", "ghost", "auth", "clear", "--all"])]
+#[case::clear_an_unknown_login(Held::Work, &["auth", "clear", "--oauth2-username", "alice", "--force"])]
+#[case::clear_an_unknown_login_in_a_named_app(Held::Work, &["--app", "work", "auth", "clear", "--oauth2-username", "alice", "--force"])]
+#[case::apps_remove_missing_unforced(Held::Work, &["--no-interactive", "auth", "apps", "remove", "ghost"])]
+#[case::clear_unloadable_unforced(Held::Unloadable, &["--no-interactive", "auth", "clear", "--all"])]
+#[case::apps_update_bad_redirect_uri(Held::Work, &["auth", "apps", "update", "work", "--client-id", "newclient", "--redirect-uri", "not a url"])]
+#[case::redirect_uri_set_bad_uri(Held::Work, &["auth", "apps", "redirect-uri", "set", "work", "not a url"])]
+#[cfg_attr(unix, case::clear_read_only_unforced(Held::ReadOnly, &["--no-interactive", "auth", "clear", "--all"]))]
 #[cfg_attr(unix, case::app_read_only(Held::ReadOnly, &["auth", "app", "--bearer-token-file", "SECRET"]))]
 #[cfg_attr(unix, case::app_for_a_missing_app_read_only(Held::ReadOnly, &["--app", "ghost", "auth", "app", "--bearer-token-file", "SECRET"]))]
 #[cfg_attr(unix, case::oauth1_for_a_missing_app_read_only(Held::ReadOnly, &["--app", "ghost", "auth", "oauth1", "--consumer-key", "ck", "--consumer-secret-file", "SECRET", "--access-token-file", "SECRET", "--token-secret-file", "SECRET"]))]
@@ -394,6 +412,205 @@ async fn a_store_write_s_dry_run_refuses_as_its_real_run_does(
     );
 }
 
+/// A refusal that names an app or a login the store holds, or does not, sends
+/// the reader to the command that lists them. The dry run carries the same
+/// step as its real run.
+#[rstest::rstest]
+#[case::app_name_taken(Held::Work, &["auth", "apps", "add", "work", "--client-id", "abcdefgh", "--client-secret-file", "SECRET"])]
+#[case::unknown_login(Held::Work, &["auth", "default", "work", "alice"])]
+#[case::unknown_app(Held::Work, &["auth", "default", "ghost"])]
+#[case::clear_unknown_app(Held::Work, &["--app", "ghost", "auth", "clear", "--all", "--force"])]
+#[case::clear_unknown_login(Held::Work, &["auth", "clear", "--oauth2-username", "alice", "--force"])]
+#[tokio::test]
+async fn a_refusal_naming_a_store_entry_carries_the_status_command(
+    #[case] held: Held,
+    #[case] args: &[&str],
+) {
+    let step = serde_json::json!({"action": "fix-input", "command": "xr auth status"});
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(held, &tmp);
+    let (code, real, _) = store_write(held, &tmp, args, false).await;
+    assert_eq!(
+        (code, &real["reason"]),
+        (77, &serde_json::json!("token-store")),
+        "{real}"
+    );
+    assert_eq!(real["next_step"], step, "{args:?}: {real}");
+    let (_, dry, _) = store_write(held, &tmp, args, true).await;
+    assert_eq!(dry["next_step"], step, "{args:?}: {dry}");
+}
+
+/// A store write refused because its directory takes no new file carries the
+/// page on writing the store, whether the refusal is the lock file's or the
+/// save's temp file's.
+#[cfg(unix)]
+#[rstest::rstest]
+#[case::temp_file(Held::ReadOnly, "cannot create a file in")]
+#[case::lock_file(Held::ReadOnlyNoLock, "cannot open the store lock")]
+#[tokio::test]
+async fn a_store_write_the_directory_refuses_names_the_page(
+    #[case] held: Held,
+    #[case] cause: &str,
+) {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(held, &tmp);
+    let args = [
+        "auth",
+        "apps",
+        "add",
+        "new",
+        "--client-id",
+        "abcdefgh",
+        "--client-secret-file",
+        "SECRET",
+    ];
+    let (code, real, _) = store_write(held, &tmp, &args, false).await;
+    if code == 0 {
+        // A process that may write a read-only directory (root) cannot be
+        // refused this way.
+        return;
+    }
+    assert_eq!(
+        (code, &real["reason"]),
+        (5, &serde_json::json!("io")),
+        "{real}"
+    );
+    assert!(
+        real["message"].as_str().unwrap_or_default().contains(cause),
+        "the refusal is not the one under test: {real}"
+    );
+    assert_eq!(
+        real["next_step"],
+        serde_json::json!({"action": "fix-input", "docs": STORE_WRITE_DOCS}),
+        "{real}"
+    );
+}
+
+/// A redirect URI the store refuses leaves the store as it was, so the same
+/// command with a URI it accepts then registers the app.
+#[tokio::test]
+async fn apps_add_with_a_refused_redirect_uri_registers_nothing() {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(Held::Empty, &tmp);
+    let add = [
+        "auth",
+        "apps",
+        "add",
+        "new",
+        "--client-id",
+        "abcdefgh",
+        "--client-secret-file",
+        "SECRET",
+        "--redirect-uri",
+    ];
+    let with = |uri| [&add[..], &[uri]].concat();
+
+    let (code, refused, unchanged) =
+        store_write(Held::Empty, &tmp, &with("not a url"), false).await;
+    assert_eq!(code, 1, "{refused}");
+    assert_eq!(refused["reason"], "validation", "{refused}");
+    assert_eq!(refused["rule"], "invalid-redirect-uri", "{refused}");
+    assert!(unchanged, "the refused add changed the store: {refused}");
+
+    let store = tmp.path().join("home").join(".xurl");
+    let secret = tmp.path().join("secret");
+    let mut argv = vec!["xr", "--output", "json"];
+    argv.extend(with("https://example.com/cb").into_iter().map(|arg| {
+        if arg == "SECRET" {
+            secret.to_str().expect("utf-8 path")
+        } else {
+            arg
+        }
+    }));
+    let (code, _stdout, stderr) = run_at(&store, &argv).await;
+    assert_eq!(code, 0, "the same command with a good URI failed: {stderr}");
+    let held = TokenStore::load_from_path(store.to_str().expect("utf-8 path"));
+    assert_eq!(
+        held.get_app_redirect_uri("new"),
+        Some("https://example.com/cb")
+    );
+}
+
+/// A redirect URI the store refuses leaves the app as it was: `apps update`
+/// checks it before it saves the client id.
+#[tokio::test]
+async fn apps_update_with_a_refused_redirect_uri_changes_nothing() {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(Held::Work, &tmp);
+    let (code, refused, unchanged) = store_write(
+        Held::Work,
+        &tmp,
+        &[
+            "auth",
+            "apps",
+            "update",
+            "work",
+            "--client-id",
+            "newclient",
+            "--redirect-uri",
+            "not a url",
+        ],
+        false,
+    )
+    .await;
+    assert_eq!(code, 1, "{refused}");
+    assert_eq!(refused["reason"], "validation", "{refused}");
+    assert_eq!(refused["rule"], "invalid-redirect-uri", "{refused}");
+    assert!(unchanged, "the refused update changed the store: {refused}");
+}
+
+/// A redirect URI the command refuses is an argument `xr` refused, so the step
+/// is the help of the command that took it, in the real run and the dry run.
+#[rstest::rstest]
+#[case::add(&["auth", "apps", "add", "new", "--client-id", "abcdefgh", "--client-secret-file", "SECRET", "--redirect-uri", "not a url"], "xr auth apps add --help")]
+#[case::update(&["auth", "apps", "update", "work", "--client-id", "newclient", "--redirect-uri", "not a url"], "xr auth apps update --help")]
+#[case::redirect_uri_set(&["auth", "apps", "redirect-uri", "set", "work", "not a url"], "xr auth apps redirect-uri set --help")]
+#[tokio::test]
+async fn a_refused_redirect_uri_takes_the_help_of_its_command(
+    #[case] args: &[&str],
+    #[case] help: &str,
+) {
+    let expected = serde_json::json!({"action": "show-help", "command": help});
+    for dry_run in [false, true] {
+        let tmp = TempDir::new().expect("tempdir");
+        seed_store_write(Held::Work, &tmp);
+        let (_, document, unchanged) = store_write(Held::Work, &tmp, args, dry_run).await;
+        assert_eq!(document["rule"], "invalid-redirect-uri", "{document}");
+        assert_eq!(
+            document["next_step"], expected,
+            "dry_run={dry_run}: {document}"
+        );
+        assert!(
+            unchanged,
+            "dry_run={dry_run}: the refusal changed the store"
+        );
+    }
+}
+
+/// A store command whose write the store accepts still asks, and its dry run
+/// says so.
+#[rstest::rstest]
+#[case::apps_remove(&["auth", "apps", "remove", "work"])]
+#[case::clear(&["auth", "clear", "--all"])]
+#[case::clear_a_named_app(&["--app", "work", "auth", "clear", "--all"])]
+#[tokio::test]
+async fn a_store_command_that_would_run_still_asks(#[case] args: &[&str]) {
+    let tmp = TempDir::new().expect("tempdir");
+    seed_store_write(Held::Work, &tmp);
+    let args = [&["--no-interactive"][..], args].concat();
+    let (code, real, unchanged) = store_write(Held::Work, &tmp, &args, false).await;
+    assert_eq!(
+        (code, real["reason"].as_str()),
+        (1, Some("confirmation-required")),
+        "{args:?}: {real}"
+    );
+    assert!(unchanged, "{args:?}: the unconfirmed run changed the store");
+    let (dry_code, dry, _) = store_write(Held::Work, &tmp, &args, true).await;
+    assert_eq!(dry_code, 0, "{args:?}: {dry}");
+    assert_eq!(dry["would_succeed"], true, "{args:?}: {dry}");
+    assert_eq!(dry["confirmation_required"], true, "{args:?}: {dry}");
+}
+
 /// A dry run of a store write its real run makes answers `would_succeed:
 /// true` and writes nothing, and the real run then succeeds.
 #[rstest::rstest]
@@ -404,6 +621,8 @@ async fn a_store_write_s_dry_run_refuses_as_its_real_run_does(
 #[case::apps_remove(Held::Work, &["auth", "apps", "remove", "work", "--force"])]
 #[case::redirect_uri(Held::Work, &["auth", "apps", "redirect-uri", "set", "work", "http://localhost:8080/callback"])]
 #[case::clear(Held::Work, &["auth", "clear", "--all", "--force"])]
+#[case::clear_a_named_app(Held::Work, &["--app", "work", "auth", "clear", "--all", "--force"])]
+#[case::clear_a_new_store(Held::Empty, &["auth", "clear", "--all", "--force"])]
 #[case::default(Held::Work, &["auth", "default", "work"])]
 #[case::app_on_a_new_store(Held::Empty, &["auth", "app", "--bearer-token-file", "SECRET"])]
 #[case::oauth1_on_a_new_store(Held::Empty, &["auth", "oauth1", "--consumer-key", "ck", "--consumer-secret-file", "SECRET", "--access-token-file", "SECRET", "--token-secret-file", "SECRET"])]

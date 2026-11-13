@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, send_validated};
+use super::{Run, no_checks, send_validated};
 use crate::cli::TrendsCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::Client;
@@ -20,13 +20,9 @@ pub(super) async fn run(action: TrendsCommands, run: Run<'_>) -> CommandResult<(
                 u32::try_from(limit.clamp(1, 50)).ok()
             });
             let ctx = json!({"command": "trends-place", "woeid": woeid, "max_results": max});
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client: &Client| client.get_trends(woeid, max),
-            )
+            send_validated(run, ctx, no_checks, &common, |client: &Client| {
+                client.get_trends(woeid, max)
+            })
             .await
         }
         TrendsCommands::Personal { common } => {
@@ -34,7 +30,7 @@ pub(super) async fn run(action: TrendsCommands, run: Run<'_>) -> CommandResult<(
             send_validated(
                 run,
                 ctx,
-                || Ok(()),
+                no_checks,
                 &common,
                 Client::get_personalized_trends,
             )

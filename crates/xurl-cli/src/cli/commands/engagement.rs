@@ -2,11 +2,11 @@
 //! of what the caller engaged with: `like`, `unlike`, `hide`, `unhide`,
 //! `repost`, `unrepost`, `bookmark`, `unbookmark`, `bookmarks`, and `likes`.
 
-use super::{Run, act_from_me_on_post, list_for_user, send_validated};
+use super::{Run, act_from_me_on_post, list_for_user, send_validated, valid_post_id};
 use crate::cli::failure::CommandResult;
 use crate::cli::{Commands, CommonFlags};
 use serde_json::json;
-use xdk::api::{Client, shortcuts};
+use xdk::api::Client;
 
 pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
     match cmd {
@@ -63,7 +63,7 @@ async fn hide(
     common: &CommonFlags,
 ) -> CommandResult<()> {
     let ctx = json!({"command": command, "post_id": post_id});
-    let validator = || shortcuts::validate_post_id(post_id);
+    let validator = || valid_post_id(post_id);
     send_validated(run, ctx, validator, common, |client: &Client| {
         client.hide_reply(post_id, hidden)
     })

@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, list_paged, send_confirmed, send_validated};
+use super::{Run, list_paged, no_checks, send_confirmed, send_validated};
 use crate::cli::failure::CommandResult;
 use crate::cli::{StreamCommands, StreamRulesCommands};
 use xdk::api::{Client, shortcuts};
@@ -16,14 +16,9 @@ pub(super) async fn run(action: StreamCommands, run: Run<'_>) -> CommandResult<(
             common,
         } => {
             let ctx = json!({"command": "stream-rules-list"});
-            list_paged(
-                run,
-                ctx,
-                || Ok(()),
-                max_results,
-                &common,
-                |client, n| client.get_stream_rules(n),
-            )
+            list_paged(run, ctx, no_checks, max_results, &common, |client, n| {
+                client.get_stream_rules(n)
+            })
             .await
         }
         StreamRulesCommands::Add {
@@ -38,13 +33,9 @@ pub(super) async fn run(action: StreamCommands, run: Run<'_>) -> CommandResult<(
                 "tag": tag,
                 "validate_only": validate_only,
             });
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client: &Client| client.add_stream_rule(&value, tag.as_deref(), validate_only),
-            )
+            send_validated(run, ctx, no_checks, &common, |client: &Client| {
+                client.add_stream_rule(&value, tag.as_deref(), validate_only)
+            })
             .await
         }
         StreamRulesCommands::Remove {
@@ -71,13 +62,9 @@ pub(super) async fn run(action: StreamCommands, run: Run<'_>) -> CommandResult<(
         }
         StreamRulesCommands::Count { common } => {
             let ctx = json!({"command": "stream-rules-count"});
-            send_validated(
-                run,
-                ctx,
-                || Ok(()),
-                &common,
-                |client: &Client| client.get_stream_rule_counts(),
-            )
+            send_validated(run, ctx, no_checks, &common, |client: &Client| {
+                client.get_stream_rule_counts()
+            })
             .await
         }
     }

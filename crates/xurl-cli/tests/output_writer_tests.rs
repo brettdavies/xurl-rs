@@ -810,7 +810,8 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
         "oauth2_username": serde_json::Value::Null,
         "bearer": false,
     });
-    let confirm = xurl::cli::hints::NextStep::confirm(&["xr".to_string(), "delete".to_string()]);
+    let confirm =
+        xurl::cli::hints::NextStep::confirm(&["xr".to_string(), "delete".to_string()], None);
     json_config().print_confirmation_required(&mut buf, &ctx, 1, confirm);
     assert_round_trips(&String::from_utf8_lossy(&buf), "confirmation-required");
 
@@ -834,7 +835,8 @@ fn every_emitted_error_envelope_round_trips_with_unknown_fields_denied() {
     // 6. The destructive-post context shape.
     let mut buf: Vec<u8> = Vec::new();
     let ctx = serde_json::json!({"command": "delete", "post_id": "12345"});
-    let confirm = xurl::cli::hints::NextStep::confirm(&["xr".to_string(), "delete".to_string()]);
+    let confirm =
+        xurl::cli::hints::NextStep::confirm(&["xr".to_string(), "delete".to_string()], None);
     json_config().print_confirmation_required(&mut buf, &ctx, 1, confirm);
     assert_round_trips(&String::from_utf8_lossy(&buf), "confirmation-required");
 }

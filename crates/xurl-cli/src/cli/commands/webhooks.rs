@@ -6,8 +6,8 @@ use serde_json::json;
 
 use super::webhooks_listen::{Listener, listen};
 use super::{
-    DryRun, Run, confirmed_context, dry_run_or_validate, make_client, send_confirmed,
-    send_or_report, send_to_account, validate_account, with_flags,
+    Confirm, DryRun, Run, dry_run_or_validate, make_client, send_confirmed,
+    send_confirmed_to_account, send_or_report, validate_account, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{
@@ -196,10 +196,11 @@ async fn unsubscribe(
         validate_account(account)
     };
     let prompt = format!("End user {account}'s subscription to webhook {webhook_id}?");
-    let Some(ctx) = confirmed_context(&run.flags, ctx, force, &prompt)? else {
-        return Ok(());
+    let confirm = Confirm {
+        force,
+        prompt: &prompt,
     };
-    send_to_account(run, ctx, valid, account, common, |client, id| {
+    send_confirmed_to_account(run, ctx, confirm, valid, account, common, |client, id| {
         client.delete_account_activity_subscription(webhook_id, id)
     })
     .await

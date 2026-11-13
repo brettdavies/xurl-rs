@@ -139,7 +139,7 @@ impl DirectCredentials {
         let credential = self
             .oauth1
             .as_ref()
-            .ok_or_else(|| Error::auth("TokenNotFound: OAuth1 token not found"))?;
+            .ok_or_else(|| Error::auth(crate::error::NO_OAUTH1_TOKEN))?;
         let token = OAuth1Token {
             access_token: credential.access_token.clone(),
             token_secret: credential.token_secret.clone(),
@@ -156,7 +156,7 @@ impl DirectCredentials {
         self.bearer
             .as_ref()
             .map(|token| format!("Bearer {token}"))
-            .ok_or_else(|| Error::auth("TokenNotFound: bearer token not found"))
+            .ok_or_else(|| Error::auth(crate::error::NO_BEARER_TOKEN))
     }
 
     pub(crate) fn has_oauth2(&self) -> bool {

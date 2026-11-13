@@ -277,9 +277,27 @@ fn rehearsed<R>(
     out: &OutputConfig,
     stdout: &mut dyn Write,
 ) -> CommandResult<()> {
+    rehearsed_asking(store, write, ctx, None, out, stdout)
+}
+
+/// [`rehearsed`] for a command that asks before it destroys: `ask` is
+/// `Some(force)` for one that does. The answer says the real run would ask
+/// only when the rehearsal passes, since the real run refuses before it asks.
+fn rehearsed_asking<R>(
+    store: &TokenStore,
+    write: impl FnOnce(&mut TokenStore) -> xdk::error::Result<R>,
+    ctx: serde_json::Value,
+    ask: Option<bool>,
+    out: &OutputConfig,
+    stdout: &mut dyn Write,
+) -> CommandResult<()> {
     if let Err(error) = store.rehearse(write) {
         return Err(Failure::DryRunRefusal { ctx, error });
     }
+    let ctx = match ask {
+        Some(force) => destructive_dry_run_context(ctx, force),
+        None => ctx,
+    };
     out.print_dry_run(stdout, true, 0, &ctx);
     Ok(())
 }

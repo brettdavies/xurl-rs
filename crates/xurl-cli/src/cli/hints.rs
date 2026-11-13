@@ -9,12 +9,13 @@ use serde::{Deserialize, Serialize};
 
 pub use xdk::error::NextAction;
 use xdk::error::{
-    APP_NOT_FOUND, BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE,
-    CALLBACK_PROVIDER_REFUSED, CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED,
-    PENDING_INVALID, PENDING_NOT_FOUND, PENDING_PERMISSIONS, PENDING_SCOPE_MISMATCH,
-    REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
-    REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, TOKEN_EXCHANGE_CLIENT_REFUSED,
-    TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
+    APP_NAME_TAKEN, APP_NOT_FOUND, BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE,
+    CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED, CALLBACK_TIMED_OUT, Error,
+    PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_INVALID, PENDING_NOT_FOUND, PENDING_PERMISSIONS,
+    PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
+    REDIRECT_STATE_MISMATCH, REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED,
+    TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
+    USER_NOT_FOUND,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -216,6 +217,18 @@ impl NextStep {
         }
     }
 
+    /// Rerun `template` against a different app, once the caller fills in
+    /// each `-H` value the step left out.
+    #[must_use]
+    pub fn select_app_template(template: String) -> Self {
+        Self {
+            action: NextAction::SelectApp,
+            command: None,
+            template: Some(template),
+            docs: None,
+        }
+    }
+
     /// This step's command with `--dry-run` after the program word, for a
     /// dry run's refusal whose step reruns an invocation. A command that does
     /// not start with the program word is left as it is.
@@ -355,20 +368,17 @@ impl NextStep {
         }
     }
 
-    /// Run `invocation` again with `--force`. It is a template and not a
-    /// command: running it destroys what the command names, so the caller
-    /// decides.
+    /// Run `invocation` again with `--force`, on `app` when the refusal named
+    /// one, so an app that came from `XURL_APP` or the store's default is the
+    /// one the rerun acts on. It is a template and not a command: running it
+    /// destroys what the command names, so the caller decides.
     #[must_use]
-    pub fn confirm(invocation: &[String]) -> Self {
-        let mut words: Vec<String> = invocation.iter().map(|arg| shell_word(arg)).collect();
-        if let Some(program) = words.first_mut() {
-            *program = ROOT_COMMAND.to_string();
-        }
-        words.push("--force".to_string());
+    pub fn confirm(invocation: &[String], app: Option<&str>) -> Self {
+        let rerun = rerun_command(invocation, app, None);
         Self {
             action: NextAction::Confirm,
             command: None,
-            template: Some(words.join(" ")),
+            template: Some(format!("{} --force", rerun.line)),
             docs: None,
         }
     }
@@ -395,13 +405,8 @@ impl NextStep {
                 None
             } else if arg.starts_with("--port=") || arg.starts_with("-p") {
                 None
-            } else if arg == "-H" || arg == "--header" {
-                Some(rest.next().map_or("", String::as_str))
-            } else if let Some(given) = arg
-                .strip_prefix("--header=")
-                .or_else(|| arg.strip_prefix("-H"))
-            {
-                Some(given.strip_prefix('=').unwrap_or(given))
+            } else if let Some(given) = header_given(arg, &mut rest) {
+                Some(given)
             } else {
                 words.push(shell_word(arg));
                 None
@@ -521,17 +526,18 @@ pub fn choose_hint(snapshot: &StoreSnapshot, invocation: &[String], headless: bo
     let login = login.as_deref();
     let holders = match login {
         Some(login) => snapshot.apps_holding_login(login),
-        None => snapshot.apps_with_tokens(),
+        None => snapshot.apps_with_login(),
     };
     if let Some(app) = holders.iter().find(|name| *name != target) {
-        let command = rerun_with_app(invocation, app);
+        let rerun = rerun_with_app(invocation, app);
+        let command = &rerun.line;
         let line = match login {
             Some(login) => format!("App {app:?} holds the login {login:?}. Run: {command}"),
             None => format!("App {app:?} is already signed in. Run: {command}"),
         };
         return Hint {
             text_lines: vec![line],
-            next_step: NextStep::select_app(command),
+            next_step: rerun.select_app(),
         };
     }
     let mut text_lines: Vec<String> = login
@@ -611,20 +617,26 @@ pub fn unloadable_store_hint(snapshot: &StoreSnapshot, error: &Error) -> Option<
     })
 }
 
-/// Builds the hint for a store operation that named an app the store does not
-/// hold: `xr auth status` lists the apps it does.
+/// Builds the hint for a store operation that named an app or a login the
+/// store does not take: `xr auth status` lists the apps it holds and the
+/// logins each one holds.
 #[must_use]
-pub fn app_not_found_hint(error: &Error) -> Option<Hint> {
+pub fn store_name_hint(error: &Error) -> Option<Hint> {
     let Error::TokenStore { message, .. } = error else {
         return None;
     };
-    if !message.starts_with(APP_NOT_FOUND) {
+    let text = if message.starts_with(APP_NOT_FOUND) {
+        "List the apps the store holds. Run: xr auth status"
+    } else if message.ends_with(APP_NAME_TAKEN) {
+        "List the apps the store holds, and pick a name none of them has. Run: xr auth status"
+    } else if message.ends_with(USER_NOT_FOUND) {
+        "List the logins the app holds. Run: xr auth status"
+    } else {
         return None;
-    }
-    let next_step = NextStep::fix_input_with("xr auth status".to_string());
+    };
     Some(Hint {
-        text_lines: vec!["List the apps the store holds. Run: xr auth status".to_string()],
-        next_step,
+        text_lines: vec![text.to_string()],
+        next_step: NextStep::fix_input_with("xr auth status".to_string()),
     })
 }
 
@@ -1118,42 +1130,6 @@ pub fn wait_and_retry_hint(error: &Error) -> Option<Hint> {
     })
 }
 
-/// Builds the hint for a scheme mismatch the store can answer.
-///
-/// ```text
-/// the active app stores nothing, another does  -> select-app, rerunning this invocation
-/// the endpoint takes OAuth2, the app has none  -> the step that gets a login: see choose_hint
-/// the caller named the scheme, or neither fits -> none; the message lists what is accepted
-/// ```
-#[must_use]
-pub fn mismatch_hint(
-    snapshot: &StoreSnapshot,
-    error: &Error,
-    invocation: &[String],
-    headless: bool,
-) -> Option<Hint> {
-    let Error::AuthMethodMismatch(mismatch) = error else {
-        return None;
-    };
-    match mismatch.shape() {
-        xdk::error::MismatchShape::WrongApp { others } => {
-            let app = others.first()?;
-            let command = rerun_with_app(invocation, app);
-            Some(Hint {
-                text_lines: vec![format!("App {app:?} is already signed in. Run: {command}")],
-                next_step: NextStep::select_app(command),
-            })
-        }
-        xdk::error::MismatchShape::EmptyIntersection { available }
-            if mismatch.supported.iter().any(|scheme| scheme == "oauth2")
-                && !available.iter().any(|scheme| scheme == "oauth2") =>
-        {
-            Some(choose_hint(snapshot, invocation, headless))
-        }
-        _ => None,
-    }
-}
-
 /// Builds the hint for an argument the command refused: the help of the
 /// command the invocation names.
 #[must_use]
@@ -1227,24 +1203,100 @@ fn detail_line(body: &str) -> Option<String> {
 /// hint gives the binary and the app name is quoted by the same rule
 /// registration enforces. Nothing after `--` is a flag, so it is kept as it
 /// was.
-fn rerun_with_app(invocation: &[String], app: &str) -> String {
-    let mut parts = vec![
-        ROOT_COMMAND.to_string(),
-        "--app".to_string(),
-        quote_app_name(app),
-    ];
+fn rerun_with_app(invocation: &[String], app: &str) -> Rerun {
+    rerun_command(invocation, Some(app), None)
+}
+
+/// [`rerun_with_app`] generalized: `app`, when given, replaces the `--app` of
+/// the invocation, and `auth`, when given, replaces its `--auth` (or is
+/// added after its last word before `--`), so the rerun asks for the scheme
+/// the credential holds. Each `-H` header keeps its name and has its value
+/// replaced by `<value>`: a header often carries a credential, and a step
+/// never echoes one.
+pub(crate) fn rerun_command(
+    invocation: &[String],
+    app: Option<&str>,
+    auth: Option<xdk::api::auth_matrix::WireScheme>,
+) -> Rerun {
+    let mut hid_a_value = false;
+    let mut parts = vec![ROOT_COMMAND.to_string()];
+    if let Some(app) = app {
+        parts.push("--app".to_string());
+        parts.push(quote_app_name(app));
+    }
+    let mut set_auth = auth.map(|scheme| scheme.as_wire().to_string());
     let mut rest = invocation.iter().skip(1);
     while let Some(arg) = rest.next() {
         if arg == "--" {
+            if let Some(scheme) = set_auth.take() {
+                parts.push(format!("--auth {scheme}"));
+            }
             parts.push(shell_word(arg));
             parts.extend(rest.by_ref().map(|arg| shell_word(arg)));
-        } else if arg == "--app" {
+        } else if app.is_some() && arg == "--app" {
             rest.next();
-        } else if !arg.starts_with("--app=") {
+        } else if set_auth.is_some() && arg == "--auth" {
+            rest.next();
+            parts.push("--auth".to_string());
+            parts.push(set_auth.take().unwrap_or_default());
+        } else if set_auth.is_some() && arg.starts_with("--auth=") {
+            parts.push(format!("--auth={}", set_auth.take().unwrap_or_default()));
+        } else if let Some(header) = header_given(arg, &mut rest) {
+            parts.push("-H".to_string());
+            parts.push(shell_word(&hidden_header(header)));
+            hid_a_value = true;
+        } else if !(app.is_some() && arg.starts_with("--app=")) {
             parts.push(shell_word(arg));
         }
     }
-    parts.join(" ")
+    if let Some(scheme) = set_auth {
+        parts.push(format!("--auth {scheme}"));
+    }
+    Rerun {
+        line: parts.join(" "),
+        hid_a_value,
+    }
+}
+
+/// An invocation rebuilt to run again, as [`rerun_command`] builds it.
+pub(crate) struct Rerun {
+    /// The invocation as a shell reads it.
+    pub(crate) line: String,
+    /// Whether a `-H` value was replaced, so the caller supplies it.
+    pub(crate) hid_a_value: bool,
+}
+
+impl Rerun {
+    /// The step that reruns against another app: a `command` to run as it
+    /// stands, or a `template` when a header value was hidden.
+    pub(crate) fn select_app(&self) -> NextStep {
+        if self.hid_a_value {
+            NextStep::select_app_template(self.line.clone())
+        } else {
+            NextStep::select_app(self.line.clone())
+        }
+    }
+
+    /// The step that reruns under another scheme: a `command`, or a
+    /// `template` when a header value was hidden.
+    pub(crate) fn fix_input(&self) -> NextStep {
+        if self.hid_a_value {
+            NextStep::fix_input_template(self.line.clone())
+        } else {
+            NextStep::fix_input_with(self.line.clone())
+        }
+    }
+}
+
+/// The value of the `-H` header that `arg` carries or begins, taking the next
+/// word of `rest` when `arg` stands alone; `None` for any other word.
+fn header_given<'a>(arg: &'a str, rest: &mut impl Iterator<Item = &'a String>) -> Option<&'a str> {
+    if arg == "-H" || arg == "--header" {
+        return Some(rest.next().map_or("", String::as_str));
+    }
+    arg.strip_prefix("--header=")
+        .or_else(|| arg.strip_prefix("-H"))
+        .map(|given| given.strip_prefix('=').unwrap_or(given))
 }
 
 /// A `-H` header with its value replaced by `<value>`, keeping its name.
@@ -1851,7 +1903,7 @@ mod tests {
             .iter()
             .map(|arg| (*arg).to_string())
             .collect();
-        let step = NextStep::confirm(&invocation);
+        let step = NextStep::confirm(&invocation, None);
         assert_eq!(step.action, NextAction::Confirm);
         assert!(
             step.command.is_none(),
@@ -1863,50 +1915,36 @@ mod tests {
         );
     }
 
-    fn mismatch(
-        supported: &[&str],
-        requested: Option<&str>,
-        available: &[&str],
-        others: Option<&[&str]>,
-    ) -> Error {
-        let strings = |items: &[&str]| items.iter().map(ToString::to_string).collect::<Vec<_>>();
-        Error::from(xdk::error::AuthMismatch {
-            endpoint: "/2/users/me".into(),
-            rendered_url: None,
-            method: "GET".into(),
-            requested: requested.map(str::to_string),
-            supported: strings(supported),
-            available_in_app: Some(strings(available)),
-            app: Some("work".into()),
-            other_apps_with_creds: others.map(strings),
-        })
+    /// A refusal that names the app its command acts on pins it into the
+    /// template, once, whether or not the invocation named it.
+    #[test]
+    fn confirm_names_the_app_the_refusal_acts_on() {
+        let words =
+            |args: &[&str]| -> Vec<String> { args.iter().map(|a| (*a).to_string()).collect() };
+
+        let from_the_environment =
+            NextStep::confirm(&words(&["xr", "auth", "clear", "--all"]), Some("second"));
+        assert_eq!(
+            from_the_environment.template.as_deref(),
+            Some("xr --app second auth clear --all --force")
+        );
+        let named = NextStep::confirm(
+            &words(&["xr", "--app=second", "auth", "clear", "--all"]),
+            Some("second"),
+        );
+        assert_eq!(
+            named.template.as_deref(),
+            Some("xr --app second auth clear --all --force")
+        );
+        let unnamed = NextStep::confirm(&words(&["xr", "auth", "clear", "--all"]), None);
+        assert_eq!(
+            unnamed.template.as_deref(),
+            Some("xr auth clear --all --force")
+        );
     }
 
     fn snapshot_of(store: &xdk::store::TokenStore) -> StoreSnapshot {
         StoreSnapshot::new(store, "work", false)
-    }
-
-    #[test]
-    fn a_mismatch_the_store_can_answer_names_the_app_or_the_sign_in() {
-        let tmp = tempfile::TempDir::new().expect("tempdir");
-        let mut store =
-            xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
-        store
-            .add_app("work", "CLIENT-ID", "SECRET")
-            .expect("add app");
-        let snapshot = snapshot_of(&store);
-        let invocation: Vec<String> = ["xr", "whoami"].iter().map(|a| (*a).to_string()).collect();
-
-        let elsewhere = mismatch(&["oauth2"], None, &[], Some(&["personal"]));
-        let step = mismatch_hint(&snapshot, &elsewhere, &invocation, true).expect("a step");
-        assert_eq!(
-            step.next_step,
-            NextStep::select_app("xr --app personal whoami".to_string())
-        );
-
-        let no_login = mismatch(&["oauth2", "oauth1"], None, &["app"], None);
-        let step = mismatch_hint(&snapshot, &no_login, &invocation, true).expect("a step");
-        assert_eq!(step.next_step, NextStep::sign_in(None, true));
     }
 
     /// Two signed-in apps, `personal` (the default, holding `alice`) and
@@ -1975,19 +2013,81 @@ mod tests {
         );
     }
 
+    /// An app that holds only a bearer token or OAuth1 keys is not signed
+    /// in: a rerun there finds no login either.
     #[test]
-    fn a_mismatch_only_the_caller_can_answer_carries_no_step() {
+    fn an_app_holding_no_login_is_not_offered_as_signed_in() {
         let tmp = tempfile::TempDir::new().expect("tempdir");
-        let store =
+        let mut store =
             xdk::store::TokenStore::new_with_path(&tmp.path().join("auth.yml").to_string_lossy());
-        let snapshot = snapshot_of(&store);
-        let invocation: Vec<String> = ["xr", "usage"].iter().map(|a| (*a).to_string()).collect();
+        for app in ["work", "other"] {
+            store.add_app(app, "CLIENT-ID", "SECRET").expect("add app");
+        }
+        store.set_default_app("work").expect("default");
+        store
+            .save_bearer_token_for_app("other", "BEARER")
+            .expect("save bearer");
+        store
+            .save_oauth1_tokens_for_app("other", "AT", "TS", "CK", "CS")
+            .expect("save oauth1");
 
-        let named = mismatch(&["oauth2"], Some("app"), &["app"], None);
-        assert!(mismatch_hint(&snapshot, &named, &invocation, true).is_none());
-        let bearer_only = mismatch(&["app"], None, &["oauth2"], None);
-        assert!(mismatch_hint(&snapshot, &bearer_only, &invocation, true).is_none());
-        assert!(mismatch_hint(&snapshot, &Error::auth("x"), &invocation, true).is_none());
+        let hint = choose_hint(&snapshot_of(&store), &words(&["xr", "whoami"]), true);
+
+        assert_eq!(hint.next_step, NextStep::sign_in_as(None, None, true));
+    }
+
+    /// A rerun never echoes a header value, whichever way the header is
+    /// spelled: its name stays, its value becomes `<value>`, and the step
+    /// is a template.
+    #[test]
+    fn a_rerun_hides_each_header_value() {
+        let invocation: Vec<String> = [
+            "xr",
+            "-H",
+            "X-Api-Key: SEKRET1",
+            "--header=X-Other: SEKRET2",
+            "-HX-Third: SEKRET3",
+            "--header",
+            "X-Fourth: SEKRET4",
+            "/2/users/me",
+        ]
+        .iter()
+        .map(|arg| (*arg).to_string())
+        .collect();
+
+        let rerun = rerun_command(&invocation, None, None);
+
+        assert!(rerun.hid_a_value);
+        assert!(!rerun.line.contains("SEKRET"), "{}", rerun.line);
+        assert_eq!(
+            rerun.line,
+            "xr -H 'X-Api-Key: <value>' -H 'X-Other: <value>' -H 'X-Third: <value>' \
+             -H 'X-Fourth: <value>' /2/users/me"
+        );
+        let step = rerun.select_app();
+        assert_eq!(step.command, None);
+        assert_eq!(step.template.as_deref(), Some(rerun.line.as_str()));
+        let step = rerun.fix_input();
+        assert_eq!(step.command, None);
+        assert_eq!(step.template.as_deref(), Some(rerun.line.as_str()));
+    }
+
+    /// A rerun with no header is a command to run as it stands.
+    #[test]
+    fn a_rerun_without_a_header_is_a_command() {
+        let invocation: Vec<String> = ["xr", "whoami"].iter().map(|a| (*a).to_string()).collect();
+
+        let rerun = rerun_command(&invocation, Some("work"), None);
+
+        assert!(!rerun.hid_a_value);
+        assert_eq!(
+            rerun.fix_input().command.as_deref(),
+            Some("xr --app work whoami")
+        );
+        assert_eq!(
+            rerun.select_app().command.as_deref(),
+            Some("xr --app work whoami")
+        );
     }
 
     /// A rerun against another app names that app once, under the name
@@ -1998,7 +2098,7 @@ mod tests {
         use clap::Parser as _;
         let rerun = |args: &[&str]| {
             let invocation: Vec<String> = args.iter().map(|arg| (*arg).to_string()).collect();
-            rerun_with_app(&invocation, "personal")
+            rerun_with_app(&invocation, "personal").line
         };
         assert!(
             crate::cli::Cli::try_parse_from(["xr", "--app", "a", "--app", "b", "whoami"]).is_err(),

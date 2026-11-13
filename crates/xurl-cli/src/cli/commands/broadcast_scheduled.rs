@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, list_paged, send_confirmed, send_validated};
+use super::{Run, list_paged, no_checks, send_confirmed, send_validated};
 use crate::cli::ScheduledBroadcastsCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::Client;
@@ -17,7 +17,7 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
         } => {
             let ctx = json!({"command": "broadcasts-scheduled-list"});
             let shortcut = Client::list_scheduled_broadcasts;
-            list_paged(run, ctx, || Ok(()), max_results, &common, shortcut).await
+            list_paged(run, ctx, no_checks, max_results, &common, shortcut).await
         }
         ScheduledBroadcastsCommands::Get {
             scheduled_id,

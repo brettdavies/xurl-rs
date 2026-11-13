@@ -2489,7 +2489,7 @@ async fn test_delete_no_interactive_without_force_emits_confirmation_required_en
     let ts = CliMockServer::new().await;
     let tmp = TempDir::new().expect("tempdir");
     let store = tmp.path().join(".xurl");
-    populate_bearer_store(&store);
+    populate_oauth1_store(&store);
 
     // Mount the delete endpoint with expect(0) — verifies no HTTP fires.
     ts.mount(
@@ -2511,7 +2511,7 @@ async fn test_delete_no_interactive_without_force_emits_confirmation_required_en
             "delete",
             "12345",
             "--auth",
-            "app",
+            "oauth1",
         ],
     )
     .await;

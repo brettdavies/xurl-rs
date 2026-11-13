@@ -4,7 +4,7 @@
 
 use serde_json::json;
 
-use super::{Run, list_paged, send_confirmed, send_validated};
+use super::{Invalid, Run, list_paged, no_checks, send_confirmed, send_validated, valid_post_id};
 use crate::cli::NotesCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::Client;
@@ -56,14 +56,9 @@ pub(super) async fn run(action: NotesCommands, run: Run<'_>) -> CommandResult<()
             common,
         } => {
             let ctx = json!({"command": "notes-eligible", "test_mode": test});
-            list_paged(
-                run,
-                ctx,
-                || Ok(()),
-                max_results,
-                &common,
-                |client, n| client.get_posts_eligible_for_notes(test, n),
-            )
+            list_paged(run, ctx, no_checks, max_results, &common, |client, n| {
+                client.get_posts_eligible_for_notes(test, n)
+            })
             .await
         }
         NotesCommands::Written {
@@ -72,14 +67,9 @@ pub(super) async fn run(action: NotesCommands, run: Run<'_>) -> CommandResult<()
             common,
         } => {
             let ctx = json!({"command": "notes-written", "test_mode": test});
-            list_paged(
-                run,
-                ctx,
-                || Ok(()),
-                max_results,
-                &common,
-                |client, n| client.get_notes_written(test, n),
-            )
+            list_paged(run, ctx, no_checks, max_results, &common, |client, n| {
+                client.get_notes_written(test, n)
+            })
             .await
         }
         NotesCommands::Remove {
@@ -101,7 +91,8 @@ pub(super) async fn run(action: NotesCommands, run: Run<'_>) -> CommandResult<()
 /// Checks a note's post and text, for writing it or scoring the draft: X
 /// writes no note without a source URL, so a draft without one is not worth
 /// a request to score.
-fn validate_draft(post: &str, text: &str) -> Result<(), &'static str> {
-    shortcuts::validate_post_id(post)?;
-    shortcuts::validate_note_text(text)
+fn validate_draft(post: &str, text: &str) -> Result<(), Invalid> {
+    valid_post_id(post)?;
+    shortcuts::validate_note_text(text)?;
+    Ok(())
 }
