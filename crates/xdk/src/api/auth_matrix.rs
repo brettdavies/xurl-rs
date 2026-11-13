@@ -7,10 +7,12 @@
 //! list. The build panics when an allowlisted pair is missing from the
 //! spec, which surfaces drift between the allowlist and the spec.
 //!
-//! Lookup is a direct hash on the packed key `"METHOD\0/path/template"`;
-//! no path-template precedence resolution. Unknown `(method, path)` pairs
-//! return `None`, which the validator treats as permissive (the request
-//! goes out and X arbitrates).
+//! [`supported_auth`] is a direct hash on the packed key
+//! `"METHOD\0/path/template"`, with no path-template resolution; the
+//! validator reads it for the shortcuts, which spell the template.
+//! `supported_auth_for_request` resolves a concrete path to its template.
+//! Unknown `(method, path)` pairs return `None`, which the validator treats
+//! as permissive (the request goes out and X arbitrates).
 
 use std::fmt::Write as _;
 
@@ -166,6 +168,81 @@ pub fn supported_auth(method: &str, path: &str) -> Option<&'static [AuthScheme]>
     let mut key = String::with_capacity(upper.len() + 1 + path.len());
     write!(&mut key, "{upper}\0{path}").expect("write to String never fails");
     AUTH_MATRIX.get(key.as_str()).copied()
+}
+
+/// The schemes a request to the concrete `path` accepts, in preference
+/// order: those of the matrix entry for `path` itself, else for the path
+/// template it fits, `{id}` standing for any one non-empty segment. The
+/// template with the most literal segments wins, so `/2/users/me` keeps its
+/// own entry over `/2/users/{id}`; templates that tie share only the schemes
+/// both accept. One trailing `/` is ignored. `None` when no entry fits, which
+/// the validator treats as permissive.
+// `xr` holds a raw request to these schemes when it builds the recovery step
+// for a credential refusal (`crates/xurl-cli/src/cli/accepted_auth.rs`).
+#[doc(hidden)]
+#[must_use]
+pub fn supported_auth_for_request(method: &str, path: &str) -> Option<Vec<WireScheme>> {
+    let path = path
+        .strip_suffix('/')
+        .filter(|p| !p.is_empty())
+        .unwrap_or(path);
+    let wire_schemes = |listed: &[AuthScheme]| -> Vec<WireScheme> {
+        WireScheme::ALL_BY_PREFERENCE
+            .into_iter()
+            .filter(|scheme| listed.iter().any(|entry| entry.wire() == *scheme))
+            .collect()
+    };
+    if let Some(listed) = supported_auth(method, path) {
+        return Some(wire_schemes(listed));
+    }
+    let method = method.to_ascii_uppercase();
+    let given: Vec<&str> = path.split('/').collect();
+    let mut best: Option<(usize, Vec<WireScheme>)> = None;
+    for (key, listed) in AUTH_MATRIX.entries() {
+        let Some((entry_method, template)) = key.split_once('\0') else {
+            continue;
+        };
+        if entry_method != method {
+            continue;
+        }
+        let Some(literals) = literal_segments_fitting(template, &given) else {
+            continue;
+        };
+        let schemes = wire_schemes(listed);
+        best = match best {
+            Some((held, _)) if held > literals => best,
+            Some((held, shared)) if held == literals => Some((
+                held,
+                shared
+                    .into_iter()
+                    .filter(|scheme| schemes.contains(scheme))
+                    .collect(),
+            )),
+            _ => Some((literals, schemes)),
+        };
+    }
+    best.map(|(_, schemes)| schemes)
+}
+
+/// How many segments of `template` are literal, when the path `given` by its
+/// segments fits it: the same number of segments, each equal to the
+/// template's literal or standing where it has a `{parameter}`.
+fn literal_segments_fitting(template: &str, given: &[&str]) -> Option<usize> {
+    let mut segments = template.split('/');
+    let mut literals = 0;
+    for given in given {
+        let segment = segments.next()?;
+        if segment.starts_with('{') && segment.ends_with('}') {
+            if given.is_empty() {
+                return None;
+            }
+        } else if segment == *given {
+            literals += 1;
+        } else {
+            return None;
+        }
+    }
+    segments.next().is_none().then_some(literals)
 }
 
 /// Maps an [`AuthScheme`] to its wire-format `--auth` flag value.

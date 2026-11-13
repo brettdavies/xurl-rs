@@ -2,7 +2,7 @@ args: ["--output", "json", "whoami"]
 store: bearer-env
 exit_code: 2
 stdout_len: 0
-stderr_len: 614
+stderr_len: 607
 --- stdout ---
 
 --- stderr ---
@@ -13,7 +13,7 @@ stderr_len: 614
   ],
   "endpoint": "/2/users/me",
   "exit_code": 2,
-  "message": "No stored auth method on app '' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1. Add credentials with: xr auth oauth2 --app .",
+  "message": "No stored auth method on app '' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1. Add credentials with: xr auth oauth2.",
   "method": "GET",
   "next_step": {
     "action": "register-app",

@@ -145,16 +145,46 @@ fn temp_file_options() -> OpenOptions {
     opts
 }
 
+/// The cause of a write that could not create its temp file, with the error
+/// that refused it kept as the source: wrapping an [`io::Error`] by its kind
+/// and message alone would drop the OS error code, which `raw_os_error()`
+/// reads off the original.
+#[derive(Debug)]
+struct NoTempFile {
+    message: String,
+    cause: io::Error,
+}
+
+impl std::fmt::Display for NoTempFile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for NoTempFile {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.cause)
+    }
+}
+
 /// The error of a write that could not create its temp file beside
-/// `target`, naming the directory that refused it.
-pub(crate) fn no_temp_file(target: &Path, e: &io::Error) -> io::Error {
+/// `target`, naming the directory that refused it. Walking `source()` from
+/// the error reaches `e`, the [`io::Error`] that carries the OS error code.
+pub(crate) fn no_temp_file(target: &Path, e: io::Error) -> io::Error {
     let dir = target
         .parent()
         .filter(|dir| !dir.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
     io::Error::new(
         e.kind(),
-        format!("cannot create a file in {}: {e}", dir.display()),
+        NoTempFile {
+            message: format!(
+                "{} {}: {e}",
+                crate::error::STORE_FILE_UNCREATABLE,
+                dir.display()
+            ),
+            cause: e,
+        },
     )
 }
 
@@ -192,7 +222,7 @@ pub(crate) fn write_atomically(path: &Path, bytes: &[u8]) -> io::Result<()> {
     {
         let mut file = temp_file_options()
             .open(&tmp.path)
-            .map_err(|e| no_temp_file(&target, &e))?;
+            .map_err(|e| no_temp_file(&target, e))?;
         file.write_all(bytes)?;
         file.flush()?;
         file.sync_all()?;
@@ -290,5 +320,34 @@ mod tests {
         );
         assert_eq!(fs::read(&real).unwrap(), b"new");
         assert!(temp_files_in(dir.path()).is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_refused_temp_file_keeps_the_os_error_reachable_from_the_store_error() {
+        use crate::store::TokenStore;
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::TempDir::new().unwrap();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o500)).unwrap();
+        // A process that may write a read-only directory (root) cannot be
+        // refused this way.
+        let refused = temp_file_options().open(dir.path().join("probe"));
+        let store = TokenStore::new_with_path(&dir.path().join("auth.yml").to_string_lossy());
+        let outcome = store.refuse_unless_writable();
+        fs::set_permissions(dir.path(), fs::Permissions::from_mode(0o700)).unwrap();
+        let Err(expected) = refused else {
+            return;
+        };
+
+        let error = outcome.expect_err("a read-only directory refuses the probe");
+        let mut cause = std::error::Error::source(&error);
+        let mut code = None;
+        while let Some(layer) = cause {
+            code = code.or_else(|| layer.downcast_ref::<io::Error>()?.raw_os_error());
+            cause = layer.source();
+        }
+        assert!(expected.raw_os_error().is_some());
+        assert_eq!(code, expected.raw_os_error(), "{error}");
     }
 }

@@ -149,6 +149,7 @@
               "image_url_small",
               "is_high_latency",
               "language",
+              "live_category_id",
               "media_key",
               "scheduled_end_ms",
               "scheduled_start_ms",
@@ -1142,6 +1143,7 @@
               "is_identity_verified",
               "location",
               "name",
+              "org_only",
               "parody",
               "profile_banner_url",
               "profile_image_url",
@@ -2970,6 +2972,10 @@
           "language": {
             "type": "string"
           },
+          "live_category_id": {
+            "description": "Id of the live category the host picked for the broadcast, as listed by GET /2/broadcasts/categories. Omitted when the broadcast has none.",
+            "type": "string"
+          },
           "media_key": {
             "type": "string"
           },
@@ -4070,7 +4076,7 @@
             "type": "string"
           },
           "org_only": {
-            "description": "Whether only members of the bot's developer account can add it to group chats. An org-only bot has no public profile and doesn't appear in public search. Everyone in its developer account should be able to message it, so leave its Direct Messages open to everyone rather than premium senders only. Defaults to false. Applies only when the request creates the bot: a handle that already names one of the project's bots keeps that bot's setting.",
+            "description": "Whether only members of the bot's developer account can add it to group chats. An org-only bot has no public profile and doesn't appear in public search. Everyone in its developer account should be able to message it, so leave its Direct Messages open to everyone rather than premium senders only. Defaults to false. Applies only when the request creates the bot: a handle that already names one of the project's bots keeps that bot's setting, which the response's org_only reports.",
             "type": "boolean"
           },
           "scopes": {
@@ -4111,6 +4117,10 @@
             "description": "The bot's display name.",
             "type": "string"
           },
+          "org_only": {
+            "description": "Whether the bot is org only. For a handle that already names one of the project's bots, this is that bot's current setting. Absent when X couldn't read the setting back.",
+            "type": "boolean"
+          },
           "scopes": {
             "description": "Scopes granted to the bot's bearer token.",
             "items": {
@@ -4145,6 +4155,11 @@
             "maximum": 6,
             "minimum": 0,
             "type": "integer"
+          },
+          "live_category_id": {
+            "description": "The live category the host picked, e.g. `gaming`. Ids come from GET /2/broadcasts/categories; an unknown id is a 400. Ignored when the source already has a live broadcast.",
+            "maxLength": 64,
+            "type": "string"
           },
           "locale": {
             "description": "Broadcast language, e.g. `en`.",
@@ -4198,6 +4213,10 @@
           },
           "language": {
             "description": "Broadcast language.",
+            "type": "string"
+          },
+          "live_category_id": {
+            "description": "The broadcast's live category. Missing when it has none.",
             "type": "string"
           },
           "media_key": {
@@ -5508,6 +5527,32 @@
         },
         "type": "object"
       },
+      "CreatePostsClip": {
+        "additionalProperties": false,
+        "properties": {
+          "end_seconds": {
+            "description": "Second of the video at which the clip ends. A clip is 5 to 60 seconds long and at most 30% of the video.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "post_id": {
+            "description": "The ID of the Post whose video is clipped. The Post must have exactly one video, longer than 2 minutes.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "start_seconds": {
+            "description": "Second of the video at which the clip starts.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "post_id",
+          "start_seconds",
+          "end_seconds"
+        ],
+        "type": "object"
+      },
       "CreatePostsEditOptions": {
         "additionalProperties": false,
         "properties": {
@@ -5714,6 +5759,10 @@
           "card_uri": {
             "description": "Card URI parameter.",
             "type": "string"
+          },
+          "clip": {
+            "$ref": "#/components/schemas/CreatePostsClip",
+            "description": "Clip of another Post's video to share. Cannot be combined with media, a poll, a card, a quoted Post or a direct message deep link."
           },
           "community_id": {
             "description": "Community to post the tweet to.",
@@ -13659,6 +13708,50 @@
         "example": "1146654567674912769",
         "pattern": "^[0-9]{1,19}$",
         "type": "string"
+      },
+      "ListLiveCategoriesResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ListLiveCategoriesResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "ListLiveCategoriesResponseData": {
+        "properties": {
+          "id": {
+            "description": "Category id, e.g. `gaming`. Permanent. Pass it as `live_category_id` on POST /2/broadcasts.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name, e.g. `Gaming`. Can change.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
       },
       "ListMemberCount": {
         "description": "The number of members in this List.",
@@ -22113,6 +22206,10 @@
             "description": "The friendly name of this User, as shown on their profile.",
             "type": "string"
           },
+          "org_only": {
+            "description": "Indicates if this User is an org-only bot, which only members of its developer account can add to group chats. Omitted when it can't be determined for you, so it is never reported as false in that case. A bot can read its own value with its own token.",
+            "type": "boolean"
+          },
           "parody": {
             "description": "Indicates if this User is a parody account.",
             "type": "boolean"
@@ -24125,7 +24222,7 @@
     },
     "/2/bots/{id}": {
       "delete": {
-        "description": "Deletes a bot account from the calling app's project.",
+        "description": "Deletes a bot account from the calling app's project. With an OAuth 2.0 user token, the user must be an admin of the project's developer account. On API Connect, where the request bills the user's own account, the bot is deleted from the user's project instead.",
         "operationId": "deleteBot",
         "parameters": [
           {
@@ -24169,6 +24266,9 @@
         "security": [
           {
             "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
           }
         ],
         "summary": "Delete Bot",
@@ -24500,6 +24600,53 @@
           }
         ],
         "summary": "Go Live on a Source",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/broadcasts/categories": {
+      "get": {
+        "description": "Returns the live categories a host can pick when going live, in display order. Pass a category's `id` as `live_category_id` on POST /2/broadcasts. Ids are permanent; names can change, so store the id and show the current name. The whole list is returned in one response, without paging.",
+        "operationId": "listLiveCategories",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListLiveCategoriesResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "List Live Categories",
         "tags": [
           "Broadcasts"
         ]
@@ -35200,7 +35347,7 @@
         ]
       },
       "post": {
-        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each image with Upload Media, or a video with Initialize Media Upload. Supports paid partnership disclosure via the paid_partnership field.",
+        "description": "Creates a new Post for the authenticated user, or edits an existing Post when edit_options are provided. Media in media.media_ids is attached in the order given; get the ids by uploading each image with Upload Media, or a video with Initialize Media Upload. Supports paid partnership disclosure via the paid_partnership field. To share a clip of another Post's video, set clip to that Post's id and a range of 5 to 60 seconds.",
         "operationId": "createPosts",
         "requestBody": {
           "content": {

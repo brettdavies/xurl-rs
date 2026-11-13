@@ -32,8 +32,18 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
     let text = match rule {
         "empty-body" => "The text is empty; give at least one character.".to_string(),
         "too-many-attachments" => format!("A post takes at most {POST_MEDIA_MAX} media ids."),
+        "invalid-clip-post-id" => {
+            "A clip's post id is 1 to 19 digits, given alone or as the id in a post URL."
+                .to_string()
+        }
+        "invalid-clip-range" => {
+            "A clip ends after it starts: --clip-end is greater than --clip-start.".to_string()
+        }
         "empty-username" => "The username is empty.".to_string(),
         "empty-post-id" => "The post id is empty; give an id or a post URL.".to_string(),
+        "invalid-post-id" => format!(
+            "{given} is not a post id: give 1 to 19 digits, alone or as the id in a post URL."
+        ),
         "mixed-ids-and-handles" => {
             "Give every account as a handle or every one as an id; X looks up each form \
              separately."

@@ -1366,6 +1366,55 @@ fn a_clear_on_an_unparseable_store_is_refused() {
     assert_eq!(std::fs::read(&path).unwrap(), garbage);
 }
 
+/// A mutator that names an app checks that the file loaded before it looks
+/// the name up: an unloadable store holds no apps because it was not read, and
+/// saying so tells a person their app is gone.
+#[test]
+fn a_mutator_naming_an_app_on_an_unparseable_store_names_the_file() {
+    let tmp = TempDir::new().unwrap();
+    let path = tmp.path().join(".xurl");
+    let garbage = b"\x00\x01 neither yaml nor json \x02";
+    std::fs::write(&path, garbage).unwrap();
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+
+    type Mutate = fn(&mut TokenStore) -> xdk::Result<()>;
+    let mutators: [(&str, Mutate); 6] = [
+        ("update_app", |store| {
+            store.update_app("work", "id", "secret")
+        }),
+        ("remove_app", |store| store.remove_app("work")),
+        ("set_default_app", |store| store.set_default_app("work")),
+        ("set_default_app_and_user", |store| {
+            store.set_default_app_and_user("work", "alice")
+        }),
+        ("set_default_user", |store| {
+            store.set_default_user("work", "alice")
+        }),
+        ("set_app_redirect_uri", |store| {
+            store.set_app_redirect_uri("work", "https://example.com/cb")
+        }),
+    ];
+    let shown = path.to_string_lossy().to_string();
+    let mut wrong = Vec::new();
+    for (name, mutate) in mutators {
+        let err = mutate(&mut store).expect_err(name);
+        let message = err.to_string();
+        if err.kind() != "token-store"
+            || !message.contains(&shown)
+            || message.contains(xdk::error::APP_NOT_FOUND)
+            || message.contains(xdk::error::USER_NOT_FOUND)
+        {
+            wrong.push(format!("{name}: {message}"));
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "each refusal is token-store, names the file, and does not call the app or login absent:\n{}",
+        wrong.join("\n")
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), garbage);
+}
+
 #[test]
 fn empty_store_file_is_fresh_and_saveable() {
     let tmp = TempDir::new().unwrap();

@@ -93,8 +93,12 @@ async fn main() -> xdk::Result<()> {
 
 `Call::auth_preflight()` reports the credential a call would be sent with, without sending it: the scheme, the stored
 OAuth2 user, and whether that user's token has expired. It refreshes nothing, and returns the error a send would stop on
-when no credential fits the endpoint. `Client::auth_preflight(&RequestOptions)` answers the same for a request built by
-hand.
+before its first request: `Error::AuthMethodMismatch` when the endpoint accepts no scheme the credentials can serve,
+`Error::Auth` when no credential serves the scheme selected, and, for an expired OAuth2 token in a token store, what its
+refresh meets before the grant: `Error::TokenStore` when the store cannot be loaded and `Error::Io` when it cannot be
+written. It returns `None` for a request the client attaches no credential to: one marked `no_auth`, or one carrying an
+`Authorization` header of the caller's own. `Client::auth_preflight(&RequestOptions)` answers the same for a request
+built by hand.
 
 ## Errors and rate limits
 

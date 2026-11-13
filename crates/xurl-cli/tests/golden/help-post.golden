@@ -1,7 +1,7 @@
 args: ["post", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7292
+stdout_len: 7863
 stderr_len: 0
 --- stdout ---
 Post to X
@@ -15,6 +15,15 @@ Arguments:
 Options:
       --media-id <MEDIA_IDS>
           Media ID(s) to attach (repeatable)
+
+      --clip <POST>
+          Share a clip of another post's video: its id or URL. Needs --clip-start and --clip-end; cannot be combined with --media-id
+
+      --clip-start <SECONDS>
+          Second of the video at which the clip starts
+
+      --clip-end <SECONDS>
+          Second of the video at which the clip ends. X takes a clip of 5 to 60 seconds, at most 30% of the video
 
       --auth <AUTH_TYPE>
           Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for
@@ -168,6 +177,8 @@ Examples:
     xr post "Hello world" --output json
   Post with media (run `xr media upload` first to get an ID):
     xr post "Look at this" --media-id 1234567890 --output json
+  Post a clip of another post's video (the post needs exactly one video, over 2 minutes):
+    xr post "Worth watching" --clip 1585341984679469056 --clip-start 30 --clip-end 60 --output json
   Post quietly (suppress human-readable banners):
     xr post "Ship it" --quiet --output json
 
