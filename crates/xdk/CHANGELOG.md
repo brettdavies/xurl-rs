@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-11-13
+
+### Added
+
+- Add `PostClip`, `Client::create_clip_post`, and `validate_post_clip`, which send and check a post that shares a clip of another post's video, with `validate_clip_post_id` for the source post's id. by @brettdavies in [#563](https://github.com/brettdavies/xurl-rs/pull/563)
+- `NO_OAUTH1_TOKEN` and `NO_BEARER_TOKEN`, the messages of a missing OAuth1 and a missing bearer token, beside `NO_OAUTH2_TOKEN`. by @brettdavies in [#570](https://github.com/brettdavies/xurl-rs/pull/570)
+
+### Changed
+
+- Change `API_SPEC_SHA256` and `API_SPEC_DATE` to follow the refreshed vendored spec, which adds the clip object on post creation. by @brettdavies in [#563](https://github.com/brettdavies/xurl-rs/pull/563)
+- `Error::next_action()` returns `NextAction::FixInput` for an `Error::TokenStore` that names an app name the store already holds or a login the app does not hold, and `Error::docs_url()` returns the page on writing the store for an `Error::Io` from a lock file or a store save that the directory or the file system refuses; both returned `None` for these. by @brettdavies in [#570](https://github.com/brettdavies/xurl-rs/pull/570)
+- Change `shortcuts::validate_post_id` to return `Err("invalid-post-id")` for a value that is neither digits nor a post URL, where it returned `Ok(())` for any non-empty string. by @brettdavies in [#572](https://github.com/brettdavies/xurl-rs/pull/572)
+
+### Fixed
+
+- Fix `TokenStore::rehearse` leaving `save_locked`, `save_to_file`, and `update_at` free to write: each returns `Error::Internal` while a rehearsal runs. by @brettdavies in [#572](https://github.com/brettdavies/xurl-rs/pull/572)
+- Fix the store mutators that name an app or a login answering "the store holds no app named" for a store that could not be loaded: they refuse it first, naming the file.
+- Fix the `Error::Io` for a store write whose temp file cannot be created dropping the OS error code: `raw_os_error()` is reachable by walking `source()`.
+
+### Documentation
+
+- Describe in the `Call::auth_preflight` section of the README what the call returns, as the rustdoc on `Client::auth_preflight` does: the mismatch, `Error::Auth`, and the refresh errors an expired token meets, and `None` for a request with no credential attached. by @brettdavies in [#570](https://github.com/brettdavies/xurl-rs/pull/570)
+
+**Full Changelog**: [xdk-rs-v0.6.0...xdk-rs-v0.7.0](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.6.0...xdk-rs-v0.7.0)
+
 ## [0.6.0] - 2026-11-11
 
 ### Breaking changes

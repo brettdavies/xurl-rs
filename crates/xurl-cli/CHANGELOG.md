@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.7.0] - 2026-11-13
+
+### Added
+
+- Add `xr post --clip <POST> --clip-start <SECONDS> --clip-end <SECONDS>`, which shares a clip of another post's video. The three flags come together and exclude `--media-id`. Two new validation rules, `invalid-clip-post-id` and `invalid-clip-range`, refuse a bad clip before any request, and `--dry-run` reports them. by @brettdavies in [#563](https://github.com/brettdavies/xurl-rs/pull/563)
+- Add the keys of the command's input that a destructive command's dry run carries to its `confirmation-required` refusal: `article_id`, `broadcast_id`, `scheduled_id`, `source_id`, `scheduled_call_id`, `scope`, `occurrence_start_time`, `notify_invitees`, `event_id`, `list_id`, `note_id`, `rule_ids`, `validate_only`, `webhook_id`, and `user_id`, each declared in `schema/output.schema.json`. by @brettdavies in [#570](https://github.com/brettdavies/xurl-rs/pull/570)
+- Add `app` to the dry run and the `confirmation-required` refusal of `xr auth clear`: the app the clear acts on, or `null` when the store holds none. The refusal's `confirm` template carries `--app` with it. by @brettdavies in [#572](https://github.com/brettdavies/xurl-rs/pull/572)
+- Add the `cancelled` document that a destructive command prints on stderr under a structured format when its prompt is answered no: `status`, `exit_code`, `message`, and the command's context keys.
+
+### Changed
+
+- Change the `message` of a `confirmation-required` refusal to leave out the command's name, which its `command` key carries; the text form names the command: `confirmation required for lists-remove — pass --force or run interactively`. by @brettdavies in [#570](https://github.com/brettdavies/xurl-rs/pull/570)
+- Change a destructive command whose prompt is answered no to print `Cancelled: nothing was changed.` on stderr and exit 1, where it exited 0 with no output. by @brettdavies in [#572](https://github.com/brettdavies/xurl-rs/pull/572)
+
+### Fixed
+
+- Fix `xr auth apps add --redirect-uri <bad>` and `xr auth apps update --client-id <id> --redirect-uri <bad>` saving before they refused the URI: a refused URI now leaves the store unchanged, and the same `add` with a fixed URI registers the app. by @brettdavies in [#569](https://github.com/brettdavies/xurl-rs/pull/569)
+- Fix a destructive command asking for confirmation before it checked its input and its credential: it now refuses an invalid input or a credential that does not serve first, so the `confirm` template is handed out only for an invocation that passes those checks, and the dry run of a refused invocation no longer reports `confirmation_required`.
+- Fix `xr auth apps remove` and `xr auth clear` asking before the store had checked the write: a store that does not load, an unknown app, or a directory that takes no new file is now refused before the question, and the dry run reports `confirmation_required` only once that check passes.
+- Fix `xr auth apps add`, `update`, and `redirect-uri set` refusing a bad redirect URI with a bare `fix-input` step: they now carry `show-help` with the help of the command that took the URI. by @brettdavies in [#570](https://github.com/brettdavies/xurl-rs/pull/570)
+- Fix `xr auth apps add` on a taken app name and `xr auth default <app> <user>` for an unknown login ending with no `next_step`: both now carry `fix-input` with `xr auth status`, which lists the apps and logins the store holds.
+- Fix the `io` refusal of a token store write whose directory takes no new file carrying no `docs`: it now names the "Token Store Could Not Be Written" section of the README when the save's temp file, the store lock file, or the refresh lock file cannot be created, or the save fails after its temp file.
+- Fix an `auth-method-mismatch` on an endpoint that takes only the app's bearer token or only OAuth1 keys ending with no step or the OAuth2 sign-in chooser: it now carries `fix-input` with the command that stores the credential the endpoint accepts.
+- Fix a credential refusal's `select-app` or `fix-input` step naming an app or a scheme the command refuses: the step now comes from the schemes the command accepts, the schemes each app stores, and the scheme `--auth` named. A raw request is held to the schemes the auth matrix lists for its method and path, a path that carries an id taking its template's, and a login named with `-u` is served by OAuth2 held by an app that stores it or by a bearer token on an endpoint that accepts no OAuth2.
+- Fix a credential refusal's step that reruns the invocation echoing the value of each `-H` header: the value is now `<value>` and the step is a `template`.
+- Fix `--auth oauth1` or `--auth app` with no such credential stored exiting 77 with no `next_step`: it now carries the same steps a mismatch does.
+- Fix the `Add credentials with:` line of an `auth-method-mismatch` naming `--app .` when the app name is empty.
+- Fix `xr auth clear` ignoring `--app`: it now clears the app `--app` or `XURL_APP` names, and refuses an app the store does not hold or an `--oauth2-username` the app does not hold, as `xr auth default` does, instead of clearing the default app or reporting a login cleared that the app does not hold. by @brettdavies in [#572](https://github.com/brettdavies/xurl-rs/pull/572)
+- Fix a command given a post id that is neither digits nor a post URL, such as `xr like not-a-post`, sending a request: it now refuses with the `invalid-post-id` rule, before any request and under `--dry-run`.
+
+**Full Changelog**: [v4.6.3...v4.7.0](https://github.com/brettdavies/xurl-rs/compare/v4.6.3...v4.7.0)
+
 ## [4.6.3] - 2026-11-11
 
 ### Changed
