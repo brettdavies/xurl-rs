@@ -149,6 +149,7 @@
               "image_url_small",
               "is_high_latency",
               "language",
+              "live_category_id",
               "media_key",
               "scheduled_end_ms",
               "scheduled_start_ms",
@@ -2971,6 +2972,10 @@
           "language": {
             "type": "string"
           },
+          "live_category_id": {
+            "description": "Id of the live category the host picked for the broadcast, as listed by GET /2/broadcasts/categories. Omitted when the broadcast has none.",
+            "type": "string"
+          },
           "media_key": {
             "type": "string"
           },
@@ -4152,7 +4157,7 @@
             "type": "integer"
           },
           "live_category_id": {
-            "description": "The live category the host picked, e.g. `gaming`. Ids come from the live category list in the docs; an unknown id is a 400. Ignored when the source already has a live broadcast.",
+            "description": "The live category the host picked, e.g. `gaming`. Ids come from GET /2/broadcasts/categories; an unknown id is a 400. Ignored when the source already has a live broadcast.",
             "maxLength": 64,
             "type": "string"
           },
@@ -13703,6 +13708,50 @@
         "example": "1146654567674912769",
         "pattern": "^[0-9]{1,19}$",
         "type": "string"
+      },
+      "ListLiveCategoriesResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ListLiveCategoriesResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "ListLiveCategoriesResponseData": {
+        "properties": {
+          "id": {
+            "description": "Category id, e.g. `gaming`. Permanent. Pass it as `live_category_id` on POST /2/broadcasts.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name, e.g. `Gaming`. Can change.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
       },
       "ListMemberCount": {
         "description": "The number of members in this List.",
@@ -24551,6 +24600,53 @@
           }
         ],
         "summary": "Go Live on a Source",
+        "tags": [
+          "Broadcasts"
+        ]
+      }
+    },
+    "/2/broadcasts/categories": {
+      "get": {
+        "description": "Returns the live categories a host can pick when going live, in display order. Pass a category's `id` as `live_category_id` on POST /2/broadcasts. Ids are permanent; names can change, so store the id and show the current name. The whole list is returned in one response, without paging.",
+        "operationId": "listLiveCategories",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListLiveCategoriesResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "List Live Categories",
         "tags": [
           "Broadcasts"
         ]
