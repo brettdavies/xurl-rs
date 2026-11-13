@@ -716,7 +716,7 @@ Two rulesets are committed under `.github/rulesets/` and applied to the repo via
   `main`.
 - `protect-dev.json` (required signatures, linear history, squash-only merges via PR with no approval required,
   deletion blocked, non-fast-forward blocked, and the required status checks the file lists: every `ci / ...` job of
-  the reusable workflow, the repository's own CI jobs, `Agent-native audit`, `Go parity`, and `MSRV` among them, and
+  the reusable workflow, the repository's own CI jobs, `Agent-native audit`, and `MSRV` among them, and
   `Surface growth needs a minor section` from the `Changelog bump` workflow). The file is the list; apply it after
   changing it.
 

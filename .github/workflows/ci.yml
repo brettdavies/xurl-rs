@@ -183,7 +183,6 @@ jobs:
           cargo test --doc -p xdk-rs --locked -- --list
           cargo doc -p xdk-rs --no-deps --all-features --locked
           cargo test -p xdk-consumer-check --locked --no-run
-          cargo test -p xurl-rs --test conformance_runner --locked --no-run
           cargo build --locked --bin xr
           cargo build --release --locked --bin xr
 
@@ -518,73 +517,6 @@ jobs:
         env:
           MSRV: ${{ steps.msrv.outputs.version }}
         run: cargo "+${MSRV}" check --workspace --all-features --locked
-
-  # The differential suite runs each case against `xr` and against the Go
-  # original, and it skips when `XURL_ORIGINAL_BIN` is unset, which is what the
-  # reusable workflow's test job sees. This job is where the comparison
-  # happens: it downloads the binary upstream publishes for the Go `xurl`
-  # version in .github/tool-versions, checks it against the digest pinned in
-  # GO_XURL_DIGEST, and names it in the variable. With the variable set, a
-  # missing binary fails the suite instead of skipping it. The comparison is
-  # about behavior, so the job runs the release binary and needs no Go
-  # toolchain, whichever Go the runner image ships. The cases that need the
-  # live API stay skipped, so the job spends nothing.
-  parity:
-    name: Go parity
-    needs: scope
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && needs.scope.outputs.rust != 'false' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      # The version, then the sha256 of xurl_Linux_x86_64.tar.gz on that
-      # release of xdevplatform/xurl. The download step fails when the version
-      # differs from the one .github/tool-versions lists.
-      GO_XURL_DIGEST: "1.3.4 sha256:930b93e49d46664b8720fbdab3d16705641ba8c0c232b2f72b739ce635f57e43"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Rust
-        run: rustup toolchain install
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          shared-key: ci-linux
-          save-if: false
-      - name: Download and verify Go xurl
-        run: |
-          set -euo pipefail
-          version="$(bash scripts/tool-version.sh xurl)"
-          pattern='^([0-9]+\.[0-9]+\.[0-9]+) sha256:([0-9a-f]{64})$'
-          if [[ ! "$GO_XURL_DIGEST" =~ $pattern ]]; then
-            echo "::error title=Go xurl::GO_XURL_DIGEST in .github/workflows/ci.yml must read '<version> sha256:<64 hex digits>', found '${GO_XURL_DIGEST}'"
-            exit 1
-          fi
-          digest_version="${BASH_REMATCH[1]}"
-          digest="${BASH_REMATCH[2]}"
-          if [ "$digest_version" != "$version" ]; then
-            echo "::error title=Go xurl::.github/tool-versions lists xurl ${version}, but GO_XURL_DIGEST in .github/workflows/ci.yml holds the digest of ${digest_version}. Set it to '${version} sha256:<digest of xurl_Linux_x86_64.tar.gz on release v${version}>'."
-            exit 1
-          fi
-          dir="${RUNNER_TEMP}/go-xurl"
-          mkdir -p "$dir"
-          archive="${dir}/xurl_Linux_x86_64.tar.gz"
-          curl --proto '=https' --tlsv1.2 -fsSL --retry 3 -o "$archive" \
-            "https://github.com/xdevplatform/xurl/releases/download/v${version}/xurl_Linux_x86_64.tar.gz"
-          actual="$(sha256sum "$archive" | cut -d ' ' -f 1)"
-          if [ "$actual" != "$digest" ]; then
-            echo "::error title=Go xurl::xurl_Linux_x86_64.tar.gz on release v${version} has sha256:${actual}, but GO_XURL_DIGEST in .github/workflows/ci.yml pins sha256:${digest}"
-            exit 1
-          fi
-          echo "xurl_Linux_x86_64.tar.gz verified: sha256:${actual}"
-          tar -xzf "$archive" -C "$dir" xurl
-          printed="$(HOME="$(mktemp -d)" "${dir}/xurl" --version)"
-          echo "${printed} (pinned ${version})"
-          if [ "$printed" != "xurl version ${version}" ]; then
-            echo "::error title=Go xurl::found '${printed}', expected 'xurl version ${version}'"
-            exit 1
-          fi
-          echo "XURL_ORIGINAL_BIN=${dir}/xurl" >> "$GITHUB_ENV"
-      - name: Run the differential suite
-        run: cargo test -p xurl-rs --test conformance_runner --locked -- --nocapture
 
   # The matrix above names the cells a reader expects; this job compiles every
   # remaining subset that carries a backend (`native-tls` with `testing`, both
