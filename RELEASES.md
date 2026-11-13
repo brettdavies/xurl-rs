@@ -209,16 +209,16 @@ with its before/after snippet (the policy in `crates/xdk/README.md`).
 
 The `Changelog bump` workflow backs the review for `xr`. It calls the shared `rust-changelog-bump.yml` reusable, which
 runs `scripts/check-surface-bump.sh` to compare the commands, flags, and flag values in `completions/xr.bash` and every
-schema under `schema/` against the PR's base. It fails the PR when its `## Changelog (xurl-rs)` block has:
+schema under `schema/` against the PR's base. It fails the PR when:
 
-- a `###` heading outside the six in § The six headings, a deeper or indented heading included, whether or not the
-  surface changed;
-- growth in the commands, flags, or flag values without a bullet under `### Added`, `### Deprecated`, or
+- its `## Changelog (xurl-rs)` block has a `###` heading outside the six in § The six headings, a deeper or indented
+  heading included, whether or not the surface changed;
+- the commands, flags, or flag values grow and the block has no bullet under `### Added`, `### Deprecated`, or
   `### Breaking changes`;
-- growth in the schemas alone without a bullet under one of those three or under `### Fixed`, a patch for a schema that
-  catches up to output `xr` already prints and its docs already describe;
-- a removal without a `### Breaking changes` bullet that starts with "Remove". A rename or a retype reads as a removal
-  plus an addition.
+- the schemas alone grow and the block has no bullet under one of those three or under `### Fixed`, a patch for a schema
+  that catches up to output `xr` already prints and its docs already describe;
+- the surface shrinks and the block has no `### Breaking changes` bullet that starts with "Remove". A rename or a retype
+  reads as a removal plus an addition.
 
 The schema comparison skips `description`, `title`, `$id`, and `examples`, and counts every key declared under
 `properties`, `patternProperties`, `$defs`, or `definitions` even when it holds nothing else. The check reads the block
