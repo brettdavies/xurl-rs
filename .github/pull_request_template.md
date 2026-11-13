@@ -46,8 +46,10 @@
      and removing one is a Breaking changes bullet that starts with "Remove".
      An MSRV bump sets a minor wherever it is filed. The Changelog bump
      check fails a PR whose xr commands, flags, or schemas grow while this
-     block has no bullet under Added, Deprecated, or Breaking changes, or
-     shrink while it has none under Breaking changes or Fixed.
+     block has no bullet under Added, Deprecated, or Breaking changes (growth
+     in the schemas alone may go under Fixed instead), whose surface shrinks
+     while this block has no Breaking changes bullet that starts with
+     "Remove", or whose block has a heading outside the six.
 
      RULES:
 - 1-5 bullets per crate. Fewer is better. One-line fixes get one bullet.
