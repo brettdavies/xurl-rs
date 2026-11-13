@@ -186,7 +186,12 @@ library's API, and the preflight's command-surface and `xr schema` diffs against
 filed under a patch section is the mistake review misses most easily, because nothing in the diff reads as wrong. So the
 `Changelog bump` check compares each PR's generated surface against its base and fails the PR while the section is still
 cheap to fix, instead of leaving the question to whoever cuts the release: an addition with no minor-or-higher section,
-or a removal with neither a `Breaking changes` nor a `Fixed` bullet. `generate-changelog.py --bump` reads the same
+a removal without a `Breaking changes` bullet that starts with "Remove", or a heading outside the six. A schema that
+only catches up to output the binary already prints and its docs already describe is the one addition that may go under
+`Fixed`; a new command, flag, or flag value still needs a minor section, since the completions grow only when the binary
+does. A `Fixed` removal would ship as a patch, and the "Remove" prefix keeps an unrelated `Breaking changes` bullet from
+covering one. The generator files an unknown `###` heading as a patch and does not read a deeper or indented one as a
+heading, so a removal under any of them would ship without its major. `generate-changelog.py --bump` reads the same
 sections the release notes are built from, so the version and the notes cannot disagree. A `!:` commit stays a
 cross-check: a PR can break the contract with no marker, and a marker can sit on a change outside the contract.
 

@@ -209,10 +209,20 @@ with its before/after snippet (the policy in `crates/xdk/README.md`).
 
 The `Changelog bump` workflow backs the review for `xr`. It calls the shared `rust-changelog-bump.yml` reusable, which
 runs `scripts/check-surface-bump.sh` to compare the commands, flags, and flag values in `completions/xr.bash` and every
-schema under `schema/` against the PR's base. It fails when that surface grows while the `## Changelog (xurl-rs)` block
-has no bullet under `### Added`, `### Deprecated`, or `### Breaking changes`, and when the surface shrinks while the
-block has none under `### Breaking changes` or `### Fixed`. It reads the block with the changelog generator's own
-parser, re-runs when the PR body is edited, and is a required check on `dev`
+schema under `schema/` against the PR's base. It fails the PR when its `## Changelog (xurl-rs)` block has:
+
+- a `###` heading outside the six in § The six headings, a deeper or indented heading included, whether or not the
+  surface changed;
+- growth in the commands, flags, or flag values without a bullet under `### Added`, `### Deprecated`, or
+  `### Breaking changes`;
+- growth in the schemas alone without a bullet under one of those three or under `### Fixed`, a patch for a schema that
+  catches up to output `xr` already prints and its docs already describe;
+- a removal without a `### Breaking changes` bullet that starts with "Remove". A rename or a retype reads as a removal
+  plus an addition.
+
+The schema comparison skips `description`, `title`, `$id`, and `examples`, and counts every key declared under
+`properties`, `patternProperties`, `$defs`, or `definitions` even when it holds nothing else. The check reads the block
+with the changelog generator's own parser, re-runs when the PR body is edited, and is a required check on `dev`
 (`changelog-bump / Surface growth needs a minor section`). Env vars, exit codes, and the store format have no generated
 artifact to compare, so review alone covers them. The `xdk-rs` block is not read: the library's surface is its Rust
 API, which `cargo semver-checks` compares in CI's public-API semver job and in preflight's api-contract gate.
