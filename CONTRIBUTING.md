@@ -49,18 +49,16 @@ call, and CI's `Change scope` job applies the same filter to a pull request, ski
 while lint still runs. The scoping fails open: an unrecognized path runs everything, and running the hook by hand
 sweeps the whole repo. Every step that is skipped says so on its own line, so a skip never reads as a pass.
 
-Six CI gates have no hook counterpart, because each needs a clean checkout, a released baseline, a release build, a
-second binary, or a Windows machine: completions freshness (`./scripts/generate-completions.sh --check`), the package
-check (`cargo publish --dry-run --workspace`), the public-API semver gate (`cargo semver-checks` against the last
-`xdk-rs-v*` tag), the agent-native audit (`anc audit` on a dev build of `xr`, or on a release PR on `target/release/xr`
-under the release binary's size ceiling), `Go parity` (`cargo test -p xurl-rs --test conformance_runner` with
-`XURL_ORIGINAL_BIN` naming Go `xurl` at the commit CI pins; without the variable the suite skips), and
-`Windows program target` (`cargo test -p xurl-rs --test webhooks_program_tests` on a Windows runner). The feature
-matrix's `--all-features` and `--features testing` test runs and its `rustls`-alone cell are CI-only too. Run those
-yourself when a change touches the CLI surface, the library API, the feature set, or the release profile. The live-API
-checks stay manual by design: `cargo nextest run --workspace --run-ignored only` runs the TLS handshake probe and, with
-`XURL_LIVE_SMOKE=1`, the wire-vocabulary smoke; and `benches/benchmark.sh` times `xr` against the Go `xurl` with
-hyperfine.
+Five CI gates have no hook counterpart, because each needs a clean checkout, a released baseline, a release build, or a
+Windows machine: completions freshness (`./scripts/generate-completions.sh --check`), the package check (`cargo publish
+--dry-run --workspace`), the public-API semver gate (`cargo semver-checks` against the last `xdk-rs-v*` tag), the
+agent-native audit (`anc audit` on a dev build of `xr`, or on a release PR on `target/release/xr` under the release
+binary's size ceiling), and `Windows program target` (`cargo test -p xurl-rs --test webhooks_program_tests` on a Windows
+runner). The feature matrix's `--all-features` and `--features testing` test runs and its `rustls`-alone cell are
+CI-only too. Run those yourself when a change touches the CLI surface, the library API, the feature set, or the release
+profile. The live-API checks stay manual by design: `cargo nextest run --workspace --run-ignored only` runs the TLS
+handshake probe and, with `XURL_LIVE_SMOKE=1`, the wire-vocabulary smoke; and `benches/benchmark.sh` times `xr` against
+the Go `xurl` with hyperfine.
 
 ## Branch and PR flow
 

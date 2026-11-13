@@ -65,11 +65,6 @@ const ALLOWLIST: &[Allowed] = &[
         reason: "the edge proof that the process path and the injected path agree",
     },
     Allowed {
-        file: "crates/xurl-cli/tests/conformance_runner.rs",
-        test: "run_differential_conformance_suite",
-        reason: "sole test in its binary; the variable points a comparison harness at the Go binary, not the CLI under test",
-    },
-    Allowed {
         file: "crates/xdk/src/config/mod.rs",
         test: "resolve_redirect_uri_env_wins",
         reason: "proves the resolve_redirect_uri wrapper reads REDIRECT_URI from the process",
