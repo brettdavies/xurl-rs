@@ -160,7 +160,7 @@
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "The three envelope variants — one per `status` discriminator value.",
+  "description": "The envelope variants, one per `status` value a top-level document carries.",
   "oneOf": [
     {
       "additionalProperties": true,
@@ -773,6 +773,75 @@
         "status",
         "reason",
         "exit_code"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "Sign-in envelope: `xr auth oauth2 --no-browser` has printed the\nauthorization URL and waits for the redirect URL to come back through\nstep 2. The flow is not finished, so the status is not `ok`.",
+      "properties": {
+        "instructions": {
+          "description": "What to do with the URL, naming the step-2 command to run next.",
+          "type": "string"
+        },
+        "status": {
+          "const": "awaiting_callback",
+          "type": "string"
+        },
+        "url": {
+          "description": "The authorization URL to open in a browser.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "url",
+        "instructions"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": true,
+      "description": "A run that ended before it finished, in one of two shapes. A\ndestructive command whose prompt was answered no writes it on stderr\nwith `exit_code`, `message`, the command's context keys, and\n`warnings` when any fired. A stream that a signal ended writes it on\nstdout with `reason` `sigterm` and nothing else.",
+      "properties": {
+        "exit_code": {
+          "description": "Exit code of the run, on the declined prompt.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "What stopped the run, in words, on the declined prompt.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "description": "What ended the stream, on a stream a signal cancelled: `sigterm`.\nA plain string, not one of the error `reason` codes: this is no\nerror.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "const": "cancelled",
+          "type": "string"
+        },
+        "warnings": {
+          "description": "What the library warned about before the run stopped, each\ndistinct warning once. Omitted when none fired.",
+          "items": {
+            "$ref": "#/$defs/Warning"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "status"
       ],
       "type": "object"
     }

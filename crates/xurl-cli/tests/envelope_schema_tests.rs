@@ -12,7 +12,7 @@ use std::path::Path;
 
 use serde_json::Value;
 use tempfile::TempDir;
-use xurl::cli::envelope::envelope_schema;
+use xurl::cli::envelope::{Envelope, Warning, envelope_schema};
 use xurl::cli::hints::NextStep;
 use xurl::cli::skill_install::InstallEnvelope;
 
@@ -245,4 +245,71 @@ fn every_key_a_skill_verb_can_carry_is_declared_on_the_error_variant() {
     let document = serde_json::to_value(&envelope).expect("an envelope");
 
     assert_eq!(violation(&document, error, &schema), None, "{document}");
+}
+
+/// Each case is a document an emitter writes, spelled key by key beside the
+/// envelope that builds it. The document has to equal what the envelope
+/// serializes to and has to match the variant the schema declares for it.
+#[test]
+fn cancelled_and_awaiting_callback_documents_match_their_variants() {
+    let schema = envelope_schema();
+    let cases = [
+        (
+            "cancelled",
+            Envelope::Cancelled {
+                exit_code: Some(1),
+                message: Some("cancelled at the prompt".to_string()),
+                reason: None,
+                context: serde_json::json!({"command": "auth-clear", "app": "work", "all": true})
+                    .as_object()
+                    .cloned()
+                    .expect("an object"),
+                warnings: Some(vec![Warning {
+                    message: "a value was rejected".to_string(),
+                    target: "xdk::config".to_string(),
+                }]),
+            },
+            serde_json::json!({
+                "status": "cancelled",
+                "exit_code": 1,
+                "message": "cancelled at the prompt",
+                "command": "auth-clear",
+                "app": "work",
+                "all": true,
+                "warnings": [{"message": "a value was rejected", "target": "xdk::config"}],
+            }),
+        ),
+        (
+            "cancelled",
+            Envelope::Cancelled {
+                exit_code: None,
+                message: None,
+                reason: Some("sigterm".to_string()),
+                context: serde_json::Map::new(),
+                warnings: None,
+            },
+            serde_json::json!({"status": "cancelled", "reason": "sigterm"}),
+        ),
+        (
+            "awaiting_callback",
+            Envelope::AwaitingCallback {
+                url: "https://x.com/i/oauth2/authorize?state=s".to_string(),
+                instructions: "Open the URL in a browser, authorize, then run 'xr auth oauth2 --step 2 <redirect-url>'".to_string(),
+            },
+            serde_json::json!({
+                "status": "awaiting_callback",
+                "url": "https://x.com/i/oauth2/authorize?state=s",
+                "instructions": "Open the URL in a browser, authorize, then run 'xr auth oauth2 --step 2 <redirect-url>'",
+            }),
+        ),
+    ];
+    for (status, envelope, written) in cases {
+        let document = envelope.into_value();
+        assert_eq!(document, written);
+        assert_eq!(
+            violation(&document, variant(&schema, status), &schema),
+            None,
+            "{document}"
+        );
+    }
 }
