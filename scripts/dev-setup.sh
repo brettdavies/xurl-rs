@@ -3,8 +3,7 @@
 # Installs every tool CI and the git hooks use, at the versions .github/tool-versions
 # names, so a fresh clone passes pre-push after this one command. Rust tools go
 # through cargo binstall and the rest through Homebrew, into the user's own
-# prefixes: nothing here runs sudo or writes to a system path. A tool only CI runs is
-# reported and left alone.
+# prefixes: nothing here runs sudo or writes to a system path.
 #
 # A tool at or above its listed version is left alone and reported as current, so a
 # rerun changes nothing. A newer local tool stays, with both versions in its line:
@@ -31,8 +30,7 @@ Options:
   --dry-run    Report what would be installed and change nothing.
   -h, --help   Print this help.
 
-Each tool prints one line: current, installed, or would install. A tool only CI
-runs prints why it is not installed.
+Each tool prints one line: current, installed, or would install.
 
 Exit codes: 0 = done, 1 = dev-setup/<tool> and the manual command, 2 = usage.
 EOF
@@ -105,14 +103,11 @@ quietly() {
 
 # Sets how a listed tool installs and how to ask for its version, the way the hooks
 # reach it. markdownlint-cli2 has no version flag: it reads `--version` as a glob and
-# goes looking for files, and its help carries the same version line. Go xurl moves a
-# single-file ~/.xurl the first time it runs, so it is only CI's: it is neither
-# installed nor run here.
+# goes looking for files, and its help carries the same version line.
 recipe() {
   case "$1" in
     agentnative | cargo-deny | cargo-hack | cargo-nextest) installer=cargo ;;
     actionlint | bash | bats-core | markdownlint-cli2 | ripgrep | shellcheck) installer=brew ;;
-    xurl) installer=ci ;;
     *) return 1 ;;
   esac
   case "$1" in
@@ -180,11 +175,6 @@ ensure_tool() {
   if ! recipe "$tool"; then
     stop "$tool" "the list names it, but scripts/dev-setup.sh has no recipe for it" \
       "add a '$tool' case to recipe() in scripts/dev-setup.sh"
-    return 0
-  fi
-
-  if [ "$installer" = ci ]; then
-    report "$tool" "CI only, not installed; Go parity: set XURL_ORIGINAL_BIN to the v$version release (CONTRIBUTING.md)"
     return 0
   fi
 

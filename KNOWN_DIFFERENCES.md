@@ -1,7 +1,6 @@
 # Known Differences from Go xurl
 
-Each difference below holds against Go `xurl` 1.3.4, the release the `Go parity` CI job runs the differential suite
-against.
+Each difference below holds against Go `xurl` 1.3.4.
 
 ## Command names that differ, and commands only one tool has (intentional difference)
 
