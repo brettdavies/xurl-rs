@@ -184,7 +184,7 @@ ensure_tool() {
   fi
 
   if [ "$installer" = ci ]; then
-    report "$tool" "CI only, not installed (it moves a single-file ~/.xurl); for Go parity locally, set XURL_ORIGINAL_BIN to the v$version binary from https://github.com/xdevplatform/xurl/releases"
+    report "$tool" "CI only, not installed; Go parity: set XURL_ORIGINAL_BIN to the v$version release (CONTRIBUTING.md)"
     return 0
   fi
 

@@ -23,8 +23,13 @@ install steps read too. It installs each missing or older tool, Rust tools throu
 Homebrew, and prints one line per tool. It never uses `sudo`, and a rerun changes nothing. When an install fails, it
 exits 1 naming `dev-setup/<tool>` and the command to run by hand. `--dry-run` reports what it would install, and
 `--root DIR` puts the Rust tools under `DIR/bin`. To change a version, edit the list:
-`crates/xurl-cli/tests/dev_setup_tests.rs` fails for a `ci.yml` step that installs a tool any other way. Go `xurl`,
-which only CI's `Go parity` job runs, is the one listed tool it does not install: its line says why.
+`crates/xurl-cli/tests/dev_setup_tests.rs` fails for a `ci.yml` step that installs a tool any other way. Raising
+`xurl` also takes the new archive's digest in `ci.yml`'s `GO_XURL_DIGEST` and the version `KNOWN_DIFFERENCES.md` states.
+
+The script installs nothing for Go `xurl`, the one listed tool that only CI's `Go parity` job runs. To run that suite
+locally, download the archive for your platform from the `v<version>` tag at
+`https://github.com/xdevplatform/xurl/releases` and name the `xurl` binary in `XURL_ORIGINAL_BIN`. The suite runs it
+under a scratch home; run by hand, it moves a single-file `~/.xurl`.
 
 The `git config` line activates both hooks. `pre-commit` is fast and runs a check only when a file it reads is staged:
 `cargo fmt -- --check` over every crate when a `.rs` file is staged, `actionlint` on a staged workflow,

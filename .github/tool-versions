@@ -24,5 +24,6 @@ shellcheck=0.11.0
 
 # Go `xurl`, the reference binary the Go parity job downloads from its release.
 # CI alone uses it, and scripts/dev-setup.sh installs nothing for it. Raising it
-# also takes the new archive's digest in ci.yml's GO_XURL_DIGEST, in the same change.
+# also takes the new archive's digest in ci.yml's GO_XURL_DIGEST and the version
+# KNOWN_DIFFERENCES.md states, in the same change.
 xurl=1.3.4
