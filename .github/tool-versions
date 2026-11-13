@@ -21,3 +21,8 @@ bats-core=1.14.0
 markdownlint-cli2=0.24.0
 ripgrep=15.2.0
 shellcheck=0.11.0
+
+# Go `xurl`, the reference binary the Go parity job downloads from its release.
+# CI alone uses it, and scripts/dev-setup.sh installs nothing for it. Raising it
+# also takes the new archive's digest in ci.yml's GO_XURL_DIGEST, in the same change.
+xurl=1.3.4

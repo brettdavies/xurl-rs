@@ -3,7 +3,7 @@
 //! `XURL_ORIGINAL_BIN` names that binary. Unset, the suite skips, which is
 //! what every run without Go `xurl` installed does; set, it must name an
 //! executable, and the suite fails when it does not. CI's `Go parity` job
-//! installs the original at a pinned commit and sets the variable.
+//! downloads upstream's release binary, checks its digest, and sets the variable.
 //!
 //! The original runs against a scratch home directory, because it relocates
 //! the token store it finds under the real one.

@@ -374,7 +374,8 @@ fn the_scope_job_outputs_the_nextest_version_on_every_event() {
 
 /// Stands in for cargo, Homebrew, and every listed tool. `$SANDBOX/installed/<tool>`
 /// holds a tool's version, `available/<tool>` what Homebrew would give, a file at
-/// `refuse/<tool>` fails its install, and `calls` records each install.
+/// `refuse/<tool>` fails its install, and `calls` records each install. `xurl-ran`
+/// records each run of Go `xurl`, which the script must never make.
 const STUB: &str = r#"#!/bin/sh
 name=$(basename "$0")
 say_version() {
@@ -408,6 +409,7 @@ case "$name" in
     put_in_place "$2" "$(cat "$SANDBOX/available/$2")"
     ;;
   anc) say_version agentnative "anc " "" ;;
+  xurl) echo "xurl $*" >>"$SANDBOX/xurl-ran" ;;
   rg) say_version ripgrep "ripgrep " " (rev 0123456789)" ;;
   bash) say_version bash "GNU bash, version " "(1)-release" ;;
   bats) say_version bats-core "Bats " "" ;;
@@ -430,6 +432,7 @@ const STUBBED_COMMANDS: &[&str] = &[
     "shellcheck",
     "markdownlint-cli2",
     "actionlint",
+    "xurl",
 ];
 
 /// What the script and the stub run besides the stubbed commands. PATH holds these
@@ -508,6 +511,10 @@ impl Machine {
         std::fs::read_to_string(self.state("installed", tool)).ok()
     }
 
+    fn ran_xurl(&self) -> bool {
+        self.dir.path().join("xurl-ran").exists()
+    }
+
     fn calls(&self) -> Vec<String> {
         std::fs::read_to_string(self.dir.path().join("calls"))
             .unwrap_or_default()
@@ -557,6 +564,17 @@ fn listed() -> BTreeMap<String, String> {
     parse_list(&read(LIST))
 }
 
+/// Listed tools only CI runs: the script reports each and installs nothing.
+const CI_ONLY: &[&str] = &["xurl"];
+
+/// The listed tools the script installs.
+fn installable() -> BTreeMap<String, String> {
+    listed()
+        .into_iter()
+        .filter(|(tool, _)| !CI_ONLY.contains(&tool.as_str()))
+        .collect()
+}
+
 #[test]
 #[serial_test::serial]
 fn a_bare_machine_ends_with_every_listed_tool_and_a_rerun_changes_nothing() {
@@ -566,7 +584,7 @@ fn a_bare_machine_ends_with_every_listed_tool_and_a_rerun_changes_nothing() {
     let first = machine.setup(&[]);
     assert_eq!(first.code, Some(0), "stderr: {}", first.stderr);
     assert_eq!(first.stdout.lines().count(), list.len(), "{}", first.stdout);
-    for (tool, version) in &list {
+    for (tool, version) in &installable() {
         assert_eq!(machine.installed(tool).as_deref(), Some(version.as_str()));
         assert!(
             first
@@ -595,7 +613,7 @@ fn a_bare_machine_ends_with_every_listed_tool_and_a_rerun_changes_nothing() {
         "{}",
         second.stdout
     );
-    for (tool, version) in &list {
+    for (tool, version) in &installable() {
         assert!(
             second.line(tool).contains(&format!("current {version}")),
             "{}",
@@ -785,7 +803,7 @@ fn a_dry_run_reports_and_changes_nothing() {
 
     let run = machine.setup(&["--dry-run"]);
     assert_eq!(run.code, Some(0), "stderr: {}", run.stderr);
-    for (tool, version) in listed() {
+    for (tool, version) in installable() {
         assert!(
             run.line(&tool)
                 .contains(&format!("would install {version} (now missing)")),
@@ -830,6 +848,45 @@ fn a_root_takes_the_rust_tools_and_homebrew_stays_untouched() {
         run.line("actionlint").contains("no install root"),
         "{}",
         run.line("actionlint")
+    );
+}
+
+#[rstest]
+#[case::install(&[])]
+#[case::dry_run(&["--dry-run"])]
+#[case::root(&["--root", "scratch"])]
+#[serial_test::serial]
+fn a_tool_only_ci_runs_is_reported_and_neither_installed_nor_run(#[case] args: &[&str]) {
+    let machine = Machine::bare();
+    let list = listed();
+
+    let run = machine.setup(args);
+    assert_eq!(run.code, Some(0), "stderr: {}", run.stderr);
+    for tool in CI_ONLY {
+        let version = list
+            .get(*tool)
+            .unwrap_or_else(|| panic!("CI_ONLY names {tool}, which {LIST} does not list"));
+        let line = run.line(tool);
+        assert!(
+            line.contains("CI only")
+                && line.contains("XURL_ORIGINAL_BIN")
+                && line.contains(version),
+            "{line}"
+        );
+        assert_eq!(
+            machine.installed(tool),
+            None,
+            "{tool} must not be installed"
+        );
+        assert!(
+            !machine.calls().iter().any(|call| call.contains(tool)),
+            "{:#?}",
+            machine.calls()
+        );
+    }
+    assert!(
+        !machine.ran_xurl(),
+        "Go xurl was run, and it moves a single-file ~/.xurl when it does"
     );
 }
 
