@@ -23,7 +23,13 @@ install steps read too. It installs each missing or older tool, Rust tools throu
 Homebrew, and prints one line per tool. It never uses `sudo`, and a rerun changes nothing. When an install fails, it
 exits 1 naming `dev-setup/<tool>` and the command to run by hand. `--dry-run` reports what it would install, and
 `--root DIR` puts the Rust tools under `DIR/bin`. To change a version, edit the list:
-`crates/xurl-cli/tests/dev_setup_tests.rs` fails for a `ci.yml` step that installs a tool any other way.
+`crates/xurl-cli/tests/dev_setup_tests.rs` fails for a `ci.yml` step that installs a tool any other way. Raising
+`xurl` also takes the new archive's digest in `ci.yml`'s `GO_XURL_DIGEST` and the version `KNOWN_DIFFERENCES.md` states.
+
+The script installs nothing for Go `xurl`, the one listed tool that only CI's `Go parity` job runs. To run that suite
+locally, download the archive for your platform from the `v<version>` tag at
+`https://github.com/xdevplatform/xurl/releases` and name the `xurl` binary in `XURL_ORIGINAL_BIN`. The suite runs it
+under a scratch home; run by hand, it moves a single-file `~/.xurl`.
 
 The `git config` line activates both hooks. `pre-commit` is fast and runs a check only when a file it reads is staged:
 `cargo fmt -- --check` over every crate when a `.rs` file is staged, `actionlint` on a staged workflow,
@@ -54,7 +60,8 @@ second binary, or a Windows machine: completions freshness (`./scripts/generate-
 check (`cargo publish --dry-run --workspace`), the public-API semver gate (`cargo semver-checks` against the last
 `xdk-rs-v*` tag), the agent-native audit (`anc audit` on a dev build of `xr`, or on a release PR on `target/release/xr`
 under the release binary's size ceiling), `Go parity` (`cargo test -p xurl-rs --test conformance_runner` with
-`XURL_ORIGINAL_BIN` naming Go `xurl` at the commit CI pins; without the variable the suite skips), and
+`XURL_ORIGINAL_BIN` naming upstream's release binary of the Go `xurl` version `.github/tool-versions` lists, which CI
+downloads and checks against a pinned digest; without the variable the suite skips), and
 `Windows program target` (`cargo test -p xurl-rs --test webhooks_program_tests` on a Windows runner). The feature
 matrix's `--all-features` and `--features testing` test runs and its `rustls`-alone cell are CI-only too. Run those
 yourself when a change touches the CLI surface, the library API, the feature set, or the release profile. The live-API

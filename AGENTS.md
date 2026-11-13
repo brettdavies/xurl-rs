@@ -485,10 +485,10 @@ path scopes each step to what the push changes.
 
 Six CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
 semver gate, the agent-native audit (with the release binary's size ceiling on a release PR), `Go parity`, the
-differential suite against Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that
-binary, and `Windows program target`, the `webhooks listen` program-target tests on a Windows runner. Run the first five
-yourself when a change touches the CLI surface, the library API, or the release profile; the sixth needs a Windows
-machine.
+differential suite against upstream's Go `xurl` release binary, the version `.github/tool-versions` lists and CI checks
+against a pinned digest, which skips locally unless `XURL_ORIGINAL_BIN` names that binary, and `Windows program target`,
+the `webhooks listen` program-target tests on a Windows runner. Run the first five yourself when a change touches the
+CLI surface, the library API, or the release profile; the sixth needs a Windows machine.
 
 ### `pre-push/missing-tool`
 

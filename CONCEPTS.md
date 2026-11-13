@@ -134,9 +134,10 @@ because each run spends paid reads, and is the named exception the store isolati
 ### Go parity gate
 
 The CI check that runs the differential conformance suite: each case runs against `xr` and against the Go original,
-built at a pinned commit, and their results are compared. Without the original named, the suite skips rather than
-passing, so this gate is the only run that compares the two; cases that need the live API stay skipped there as well.
-The pinned commit is also the version every known difference is stated against.
+the release binary upstream publishes for the version `.github/tool-versions` lists, which CI checks against the digest
+`ci.yml` pins, and their results are compared. Without the original named, the suite skips rather than passing, so this
+gate is the only run that compares the two; cases that need the live API stay skipped there as well. That version is
+also the one every known difference is stated against.
 
 ## Sign-in
 
