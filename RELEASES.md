@@ -460,12 +460,16 @@ usually because its sign-in expired. Run `gh auth status`, then the script again
 
 The listed runs, each with its repository, workflow, status, URL, and creation time, are in progress, queued for less
 than 24 hours, or queued for 24 hours or more with at least one job, in a repository the account owns. A release started
-beside them waits for runners. Run the script again once they finish, or pass `--force` to push now.
+beside them waits for runners. A queued run with no job stops holding the cut once it is 24 hours old. Run the script
+again once they finish, or pass `--force` to push now.
 
 A line reading `skipped run in <repository>` names a queued run 24 hours old or more that has no job. It holds nothing,
 since a run with no job never holds a runner, and it stays in the output so it remains visible. GitHub can leave a run
 created during an incident queued with zero jobs, and no API cancels or deletes it. The line gives the run's repository,
 workflow, creation time, and URL.
+
+The rule reads a run's age and its jobs, not GitHub's status. A dispatch outage that lasts longer than 24 hours leaves
+the runs it queues skipped as well, so check that Actions is dispatching before a cut made during an outage.
 
 #### `push-failed`
 

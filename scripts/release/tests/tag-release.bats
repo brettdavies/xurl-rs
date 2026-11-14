@@ -203,6 +203,7 @@ local_tags() { "$REAL_GIT" -C "$W" tag --list | tr '\n' ' '; }
   line=$(grep "skipped run in" <<<"$output")
   [ "$(wc -l <<<"$line")" -eq 1 ]
   [[ "$line" == *"o/app"*"CI"*"$created"*"https://github.com/o/app/actions/runs/7"* ]]
+  [[ "$output" == *"0 skipped"* ]]
   [ "$(remote_tags)" = "corelib-v0.3.0 v1.2.0 " ]
 }
 
@@ -236,12 +237,33 @@ local_tags() { "$REAL_GIT" -C "$W" tag --list | tr '\n' ' '; }
   [ -z "$(local_tags)" ]
 }
 
+@test "an in-progress run a day old holds the cut whatever its jobs" {
+  run_record o/app in_progress push 25
+  jobs_record o/app 0
+  tag_release
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"error[runners-busy]: 1 workflow run(s) hold the account's runners"* ]]
+  [[ "$output" == *"o/app"*"https://github.com/o/app/actions/runs/7"* ]]
+  [[ "$output" != *"skipped run in"* ]]
+}
+
+@test "a skipped line keeps its fields when the run's workflow has no name" {
+  run_record o/app queued push 25
+  "$JQ" '.workflow_runs[0].name = null' "$T/gh/runs/o_app-queued.json" >"$T/gh/runs/unnamed.json"
+  cp "$T/gh/runs/unnamed.json" "$T/gh/runs/o_app-queued.json"
+  jobs_record o/app 0
+  tag_release
+  [ "$status" -eq 0 ]
+  created=$(run_created o/app queued)
+  [[ "$(grep "skipped run in" <<<"$output")" == *"o/app: -, queued since ${created} with no job, https://github.com/o/app/actions/runs/7"* ]]
+}
+
 @test "a failed jobs read refuses runner-check-failed, and the next run after it clears succeeds" {
   run_record o/app queued push 25
   jobs_record o/app 0
   STUB_JOBS_FAIL=1 tag_release
   [ "$status" -eq 2 ]
-  [[ "$output" == *"error[runner-check-failed]"*"jobs read refused by the test"* ]]
+  [[ "$output" == *"error[runner-check-failed]"*"jobs read refused by the test"*"(reading the jobs of run 7 in o/app)"* ]]
   [ -z "$(local_tags)" ]
 
   tag_release

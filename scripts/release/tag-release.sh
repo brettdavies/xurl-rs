@@ -185,13 +185,13 @@ list_active_runs() {
   local status runs id age rest verdict jobs
   for status in queued in_progress; do
     runs=$(gh api "repos/$1/actions/runs?status=${status}&per_page=100" \
-      --jq '.workflow_runs[] | [.id, (if .status == "queued" and now - (.created_at | fromdateiso8601) >= 86400 then "old" else "new" end), .repository.full_name, .name, .status, .html_url, .created_at] | @tsv') || return 1
+      --jq '.workflow_runs[] | [.id, (if .status == "queued" and now - (.created_at | fromdateiso8601) >= 86400 then "old" else "new" end), .repository.full_name, (.name | if . == null or . == "" then "-" else . end), .status, .html_url, .created_at] | @tsv') || return 1
     while IFS=$'\t' read -r id age rest; do
       [[ -n "$id" ]] || continue
       verdict=hold
       if [[ "$age" == old ]]; then
         jobs=$(gh api "repos/$1/actions/runs/${id}/jobs?per_page=1" --jq .total_count) \
-          || { echo "could not read the jobs of run ${id} in $1" >&2; return 1; }
+          || { echo "(reading the jobs of run ${id} in $1)" >&2; return 1; }
         if [[ "$jobs" == 0 ]]; then
           verdict=skip
         fi
@@ -214,14 +214,15 @@ else
   fi
   # shellcheck disable=SC2016  # $1 expands in the child bash, not here
   if ! active=$(printf '%s\n' "$repos" | xargs -r -P 8 -n 1 bash -c 'list_active_runs "$1"' _ 2>"$check_err"); then
-    refuse runner-check-failed 2 "could not read the runs of every repository: $(tr '\n' ' ' <"$check_err")" \
+    refuse runner-check-failed 2 "could not read the runs and jobs of every repository: $(tr '\n' ' ' <"$check_err")" \
       "gh auth status, then run this again; or pass --force to push without the check"
   fi
   held=$(awk -F'\t' '$1 == "hold" { print substr($0, 6) }' <<<"$active")
   skipped=$(awk -F'\t' '$1 == "skip" { print substr($0, 6) }' <<<"$active")
   while IFS=$'\t' read -r run_repo run_name _ run_url run_created; do
     [[ -n "$run_repo" ]] || continue
-    gate_skip "skipped run in ${run_repo}" "${run_name}, queued since ${run_created} with no job, ${run_url}"
+    printf '  %s⊝%s skipped run in %s: %s, queued since %s with no job, %s\n' \
+      "$C_YLW" "$C_RST" "$run_repo" "$run_name" "$run_created" "$run_url"
   done <<<"$skipped"
   if [[ -n "$held" ]]; then
     count=$(grep -c . <<<"$held")
