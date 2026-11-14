@@ -160,6 +160,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
+        timeout-minutes: 2 # slowest healthy run: 9 s
         run: rustup toolchain install
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -213,6 +214,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install ripgrep
+        timeout-minutes: 5 # slowest healthy run: 29 s
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Run scripts/lint-stdio.sh
         run: bash scripts/lint-stdio.sh
@@ -231,6 +233,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install bats-core
+        timeout-minutes: 2 # slowest healthy run: 1 s
         run: |
           set -euo pipefail
           version="$(bash scripts/tool-version.sh bats-core)"
@@ -254,6 +257,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
+        timeout-minutes: 2 # slowest healthy run: 11 s
         run: rustup toolchain install
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -328,6 +332,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
+        timeout-minutes: 2 # slowest healthy run: 10 s
         run: rustup toolchain install
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -351,6 +356,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
+        timeout-minutes: 3 # slowest healthy run: 13 s, Windows
         run: rustup toolchain install
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -374,6 +380,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
+        timeout-minutes: 2 # slowest healthy run: 11 s
         run: rustup toolchain install
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -430,6 +437,7 @@ jobs:
         if: needs.scope.outputs.rust != 'false'
       - name: Install Rust
         if: needs.scope.outputs.rust != 'false'
+        timeout-minutes: 2 # slowest healthy run: 10 s
         run: rustup toolchain install
       - name: Cache dependencies
         if: needs.scope.outputs.rust != 'false'
@@ -496,9 +504,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
+        timeout-minutes: 2 # slowest healthy run: 9 s
         run: rustup toolchain install
       - name: Install the declared rust-version
         id: msrv
+        timeout-minutes: 2 # slowest healthy run: 1 s
         run: |
           set -euo pipefail
           msrv="$(awk -F\" '/^rust-version *= *"/ {print $2; exit}' Cargo.toml)"
@@ -532,6 +542,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
+        timeout-minutes: 2 # slowest healthy run: 10 s
         run: rustup toolchain install
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -539,22 +550,45 @@ jobs:
           shared-key: ci-linux
           save-if: false
       - name: Install cargo-binstall
+        timeout-minutes: 1 # slowest healthy run: 1 s
         uses: cargo-bins/cargo-binstall@851112458b5f28a29e5bc14a690c3f283d9dcc6f # v1.26.2
+      # This step and Install anc install a prebuilt binary only. A stalled
+      # release-asset check costs binstall 15 s per target and strategy (four to
+      # six of them) before its fallback, a source build that takes minutes.
+      # The 45 s deadline ends a stall early enough for the error to print
+      # inside the step timer. binstall retries a failed request itself, and a
+      # stall lasts minutes on the runner it hits, so there is one attempt.
+      # Each step names its crate and reads its version in its own text, which
+      # crates/xurl-cli/tests/dev_setup_tests.rs checks step by step, so the
+      # two blocks cannot share a YAML anchor.
       - name: Install cargo-hack
-        # A second binstall attempt covers a transient release-asset fetch
-        # failure; a source build is the fallback after that.
+        timeout-minutes: 1 # slowest healthy run: 4 s
         run: |
           set -euo pipefail
           version="$(bash scripts/tool-version.sh cargo-hack)"
-          cargo binstall "cargo-hack@${version}" --force --no-confirm \
-            || cargo binstall "cargo-hack@${version}" --force --no-confirm \
-            || cargo install "cargo-hack@${version}" --locked
+          status=0
+          timeout -k 5 45 cargo binstall "cargo-hack@${version}" --force --no-confirm --disable-strategies compile || status=$?
+          case "$status" in
+            0) ;;
+            124 | 137)
+              echo "::error title=Install cargo-hack::the cargo-hack ${version} prebuilt did not download within 45 s; rerun the job"
+              exit 1
+              ;;
+            *)
+              echo "::error title=Install cargo-hack::cargo binstall exited ${status} without a prebuilt cargo-hack ${version} for this runner, and this step does not build one from source; its log above names the cause"
+              exit 1
+              ;;
+          esac
           installed="$(cargo hack --version)"
+          installed="${installed%%$'\n'*}"
           echo "${installed} (pinned ${version})"
-          if [ "$installed" != "cargo-hack ${version}" ]; then
-            echo "::error title=Install cargo-hack::found '${installed}', expected cargo-hack ${version}"
-            exit 1
-          fi
+          case "$installed" in
+            "cargo-hack ${version}" | "cargo-hack ${version} "*) ;;
+            *)
+              echo "::error title=Install cargo-hack::found '${installed}', expected cargo-hack ${version}"
+              exit 1
+              ;;
+          esac
       - name: cargo hack check
         run: cargo hack check -p xdk-rs --feature-powerset --at-least-one-of rustls,native-tls --exclude-no-default-features --locked
 
@@ -608,6 +642,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust
+        timeout-minutes: 2 # slowest healthy run: 9 s
         run: rustup toolchain install
       - name: Cache dependencies
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -615,22 +650,37 @@ jobs:
           shared-key: ci-linux
           save-if: false
       - name: Install cargo-binstall
+        timeout-minutes: 1 # slowest healthy run: 2 s
         uses: cargo-bins/cargo-binstall@851112458b5f28a29e5bc14a690c3f283d9dcc6f # v1.26.2
+      # Same deadline and single attempt as Install cargo-hack.
       - name: Install anc
-        # A second binstall attempt covers a transient release-asset fetch
-        # failure; a source build is the fallback after that.
+        timeout-minutes: 1 # slowest healthy run: 2 s
         run: |
           set -euo pipefail
           version="$(bash scripts/tool-version.sh agentnative)"
-          cargo binstall "agentnative@${version}" --force --no-confirm \
-            || cargo binstall "agentnative@${version}" --force --no-confirm \
-            || cargo install "agentnative@${version}" --locked
+          status=0
+          timeout -k 5 45 cargo binstall "agentnative@${version}" --force --no-confirm --disable-strategies compile || status=$?
+          case "$status" in
+            0) ;;
+            124 | 137)
+              echo "::error title=Install anc::the anc ${version} prebuilt did not download within 45 s; rerun the job"
+              exit 1
+              ;;
+            *)
+              echo "::error title=Install anc::cargo binstall exited ${status} without a prebuilt anc ${version} for this runner, and this step does not build one from source; its log above names the cause"
+              exit 1
+              ;;
+          esac
           installed="$(anc --version)"
+          installed="${installed%%$'\n'*}"
           echo "${installed} (pinned ${version})"
-          if [ "$installed" != "anc ${version}" ]; then
-            echo "::error title=Install anc::found '${installed}' on PATH, expected anc ${version}"
-            exit 1
-          fi
+          case "$installed" in
+            "anc ${version}" | "anc ${version} "*) ;;
+            *)
+              echo "::error title=Install anc::found '${installed}' on PATH, expected anc ${version}"
+              exit 1
+              ;;
+          esac
       - name: Build xr
         run: |
           set -euo pipefail
