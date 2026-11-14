@@ -14,12 +14,14 @@
 #
 # Before it creates a tag it lists the queued and in-progress workflow runs in
 # every repository the signed-in account owns and has not archived, because
-# those runs share the account's concurrent-job limit with the release. A run
-# listed there holds the cut, unless --force.
+# those runs share the account's concurrent-job limit with the release. An
+# in-progress run, a queued run under 24 hours old, and a queued run of any age
+# that has a job hold the cut, unless --force. A queued run 24 hours old or more
+# with no job holds nothing: the script prints it as skipped.
 #
 # Options:
 #   --dry-run       Run every check and print the tags; create and push nothing.
-#   --force         Push while the account's runs are listed, or when they
+#   --force         Push while runs hold the account's runners, or when they
 #                   could not be read.
 #   --remote NAME   The remote to push to (default: origin).
 #   -h, --help      This text.
@@ -175,12 +177,27 @@ done
 
 header "Runners"
 
-# One repository's queued and in-progress runs, as repo, workflow, status, URL.
+# One repository's queued and in-progress runs, each as hold or skip, then repo,
+# workflow, status, URL, created_at. A queued run 24 hours old or more with no job
+# is skip: GitHub can leave a run created during an incident queued with zero
+# jobs, and no API cancels or deletes it.
 list_active_runs() {
-  local status
+  local status runs id age rest verdict jobs
   for status in queued in_progress; do
-    gh api "repos/$1/actions/runs?status=${status}&per_page=100" \
-      --jq '.workflow_runs[] | [.repository.full_name, .name, .status, .html_url] | @tsv' || return 1
+    runs=$(gh api "repos/$1/actions/runs?status=${status}&per_page=100" \
+      --jq '.workflow_runs[] | [.id, (if .status == "queued" and now - (.created_at | fromdateiso8601) >= 86400 then "old" else "new" end), .repository.full_name, .name, .status, .html_url, .created_at] | @tsv') || return 1
+    while IFS=$'\t' read -r id age rest; do
+      [[ -n "$id" ]] || continue
+      verdict=hold
+      if [[ "$age" == old ]]; then
+        jobs=$(gh api "repos/$1/actions/runs/${id}/jobs?per_page=1" --jq .total_count) \
+          || { echo "could not read the jobs of run ${id} in $1" >&2; return 1; }
+        if [[ "$jobs" == 0 ]]; then
+          verdict=skip
+        fi
+      fi
+      printf '%s\t%s\n' "$verdict" "$rest"
+    done <<<"$runs"
   done
 }
 export -f list_active_runs
@@ -200,13 +217,19 @@ else
     refuse runner-check-failed 2 "could not read the runs of every repository: $(tr '\n' ' ' <"$check_err")" \
       "gh auth status, then run this again; or pass --force to push without the check"
   fi
-  if [[ -n "$active" ]]; then
-    count=$(grep -c . <<<"$active")
+  held=$(awk -F'\t' '$1 == "hold" { print substr($0, 6) }' <<<"$active")
+  skipped=$(awk -F'\t' '$1 == "skip" { print substr($0, 6) }' <<<"$active")
+  while IFS=$'\t' read -r run_repo run_name _ run_url run_created; do
+    [[ -n "$run_repo" ]] || continue
+    gate_skip "skipped run in ${run_repo}" "${run_name}, queued since ${run_created} with no job, ${run_url}"
+  done <<<"$skipped"
+  if [[ -n "$held" ]]; then
+    count=$(grep -c . <<<"$held")
     refuse runners-busy 1 "${count} workflow run(s) hold the account's runners:
-$(indent <<<"$active")" \
+$(indent <<<"$held")" \
       "run this again once they finish, or pass --force to push now"
   fi
-  gate_pass "no queued or in-progress run in the $(grep -c . <<<"$repos") repositories the account owns"
+  gate_pass "no queued or in-progress run holds the account's runners in the $(grep -c . <<<"$repos") repositories the account owns"
 fi
 
 # Push ----------------------------------------------------------------------

@@ -405,8 +405,10 @@ The script tags `main`'s head with `v<version>`, the version in `crates/xurl-cli
 `xdk-rs-v<version>` when the library's version has no tag yet, then pushes them in one atomic push: the remote receives
 every tag or none. The tags are annotated, which a machine with `tag.gpgsign` set requires. Before it creates a tag, it
 lists the queued and in-progress workflow runs in every repository the account owns and has not archived. Those runs
-share the account's concurrent-job limit with the release's builds, so a listed run holds the cut until it finishes, or
-until `--force`. On success it prints a `Next:` block naming the runs to watch and the postflight command for each tag.
+share the account's concurrent-job limit with the release's builds, so an in-progress run, a queued run under 24 hours
+old, and a queued run of any age that has a job hold the cut until they finish, or until `--force`. A queued run 24 hours
+old or more with no job holds nothing, and the script prints it as skipped. On success it prints a `Next:` block naming
+the runs to watch and the postflight command for each tag.
 
 | Exit | Meaning                                                                                                                                                                              | Next                                                    |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
@@ -451,14 +453,19 @@ remote is no refusal: the library did not move, and only `v<version>` is pushed.
 
 #### `runner-check-failed`
 
-`gh` could not list the account's repositories, or one repository's runs, usually because its sign-in expired. Run
-`gh auth status`, then the script again; `--force` pushes without the check.
+`gh` could not list the account's repositories, one repository's runs, or the jobs of a queued run 24 hours old or more,
+usually because its sign-in expired. Run `gh auth status`, then the script again; `--force` pushes without the check.
 
 #### `runners-busy`
 
-The listed runs, each with its repository, workflow, status, and URL, are queued or in progress in a repository the
-account owns. A release started beside them waits for runners. Run the script again once they finish, or pass `--force`
-to push now.
+The listed runs, each with its repository, workflow, status, URL, and creation time, are in progress, queued for less
+than 24 hours, or queued for 24 hours or more with at least one job, in a repository the account owns. A release started
+beside them waits for runners. Run the script again once they finish, or pass `--force` to push now.
+
+A line reading `skipped run in <repository>` names a queued run 24 hours old or more that has no job. It holds nothing,
+since a run with no job never holds a runner, and it stays in the output so it remains visible. GitHub can leave a run
+created during an incident queued with zero jobs, and no API cancels or deletes it. The line gives the run's repository,
+workflow, creation time, and URL.
 
 #### `push-failed`
 
