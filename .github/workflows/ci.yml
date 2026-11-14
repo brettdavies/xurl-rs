@@ -555,11 +555,10 @@ jobs:
       # This step and Install anc install a prebuilt binary only. A stalled
       # release-asset check costs binstall 15 s per target and strategy (four to
       # six of them) before its fallback, a source build that takes minutes.
-      # The 45 s deadline (the slowest healthy install takes 4 s) ends a stall
-      # early enough for the error to print inside the step timer. binstall
-      # retries a failed request itself, and a stall lasts minutes on the
-      # runner it hits, so there is one attempt. Each step names its crate and
-      # reads its version in its own text, which
+      # The 45 s deadline ends a stall early enough for the error to print
+      # inside the step timer. binstall retries a failed request itself, and a
+      # stall lasts minutes on the runner it hits, so there is one attempt.
+      # Each step names its crate and reads its version in its own text, which
       # crates/xurl-cli/tests/dev_setup_tests.rs checks step by step, so the
       # two blocks cannot share a YAML anchor.
       - name: Install cargo-hack
@@ -653,8 +652,7 @@ jobs:
       - name: Install cargo-binstall
         timeout-minutes: 1 # slowest healthy run: 2 s
         uses: cargo-bins/cargo-binstall@851112458b5f28a29e5bc14a690c3f283d9dcc6f # v1.26.2
-      # Same deadline and single attempt as Install cargo-hack; the slowest
-      # healthy install takes 2 s.
+      # Same deadline and single attempt as Install cargo-hack.
       - name: Install anc
         timeout-minutes: 1 # slowest healthy run: 2 s
         run: |
