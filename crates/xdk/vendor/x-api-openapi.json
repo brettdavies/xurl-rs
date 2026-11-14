@@ -4150,6 +4150,15 @@
       "CreateBroadcastRequest": {
         "additionalProperties": false,
         "properties": {
+          "additional_source_ids": {
+            "description": "Ids of further sources to go live on together with `source_id`, one per video format, at most 2, each a source's `id` from GET /2/sources. `source_id` comes first; duplicates are ignored.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "type": "array"
+          },
           "chat_option": {
             "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
             "maximum": 6,
@@ -23186,7 +23195,7 @@
   "paths": {
     "/2/account": {
       "get": {
-        "description": "Returns the authenticated user's X Developer Platform account. A user without an account gets a resource-not-found error entry.",
+        "description": "Returns the X Developer Platform account that is billed for the authenticated user's API access. A user with no such account gets a resource-not-found error entry.",
         "operationId": "getDeveloperAccount",
         "responses": {
           "200": {
@@ -24549,7 +24558,7 @@
         ]
       },
       "post": {
-        "description": "Takes one of the authenticated user's sources live and returns 201 with the new broadcast. The broadcast goes live immediately (state `RUNNING`), even before the encoder sends video, and is ended (`TIMED_OUT`) if no video arrives within 5 minutes. It is announced in a Post unless `should_not_tweet` is true. When the source already has a live broadcast, returns 200 with that broadcast unchanged and ignores the request's `title`, `locale`, `chat_option` and `should_not_tweet`. A missing `tweet_id` means the Post hasn't been created yet, was suppressed with `should_not_tweet`, or could not be created; read it later with GET /2/broadcasts/:id. A 409 `conflict` means the source can't go live right now: either it can't take video before the encoder connects (external HLS sources, or regions where this isn't available), so retry once video is flowing, or another broadcast is live on it, so END that broadcast first. The `detail` says which, and names the live broadcast when known.",
+        "description": "Takes one or more of the authenticated user's sources live and returns 201 with the new broadcast. Several sources (`source_id` plus `additional_source_ids`, one per video format) go live together as one broadcast; they must all be RTMP sources in one region, and when one of them is already live its broadcast is returned only if it holds every listed source. The broadcast goes live immediately (state `RUNNING`), even before the encoder sends video, and is ended (`TIMED_OUT`) if no video arrives within 5 minutes. It is announced in a Post unless `should_not_tweet` is true. When the source already has a live broadcast, returns 200 with that broadcast unchanged and ignores the request's `title`, `locale`, `chat_option` and `should_not_tweet`. A missing `tweet_id` means the Post hasn't been created yet, was suppressed with `should_not_tweet`, or could not be created; read it later with GET /2/broadcasts/:id. A 409 `conflict` means the source can't go live right now: either it can't take video before the encoder connects (external HLS sources, or regions where this isn't available), so retry once video is flowing, or another broadcast is live on it, so END that broadcast first. The `detail` says which, and names the live broadcast when known.",
         "operationId": "createBroadcast",
         "requestBody": {
           "content": {
