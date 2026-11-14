@@ -22,6 +22,10 @@ const CI: &str = ".github/workflows/ci.yml";
 /// `::error` message or an `echo` is not read as an install.
 const COMMAND_START: &str = r"(?m)(?:^|\|\||&&|;|\bthen\b|\bdo\b|\()\s*";
 
+/// A `timeout [OPTION]... DURATION` in front of an install, which ends a hung
+/// download and leaves the install a command of its own.
+const DEADLINE: &str = r"(?:timeout\b[^|&;\n]*?\s)?";
+
 #[derive(Deserialize)]
 struct Workflow {
     jobs: BTreeMap<String, Job>,
@@ -79,6 +83,8 @@ fn requested(arguments: &str) -> Vec<(String, Option<String>)> {
             flag_pin = tokens.next().map(str::to_string);
         } else if let Some(pin) = token.strip_prefix("--version=") {
             flag_pin = Some(pin.to_string());
+        } else if token == "--disable-strategies" {
+            tokens.next();
         } else if !token.starts_with('-') {
             specs.push(token);
         }
@@ -97,7 +103,7 @@ fn requested(arguments: &str) -> Vec<(String, Option<String>)> {
 fn violations(workflow: &str, list: &BTreeMap<String, String>) -> Vec<String> {
     let parsed: Workflow = serde_saphyr::from_str(workflow).expect("the workflow is YAML");
     let install = Regex::new(&format!(
-        r"{COMMAND_START}cargo\s+(?:binstall|install)\b([^|&;\n]*)"
+        r"{COMMAND_START}{DEADLINE}cargo\s+(?:binstall|install)\b([^|&;\n]*)"
     ))
     .expect("valid pattern");
     let download = Regex::new(&format!(
@@ -262,6 +268,15 @@ fn ci_installs_only_what_the_list_names() {
      cargo binstall \"cargo-hack@${version}\"",
     "tool-versions/unread-version"
 )]
+#[case::literal_under_a_deadline(
+    "timeout -k 5 45 cargo binstall cargo-hack@1.2.3 --force --disable-strategies compile \
+     || status=$?",
+    "tool-versions/literal-version"
+)]
+#[case::variable_never_read_under_a_deadline(
+    "timeout 45 cargo binstall \"cargo-hack@${version}\"",
+    "tool-versions/unread-version"
+)]
 #[case::download(
     "curl -sSL https://example.com/tool.tar.gz | tar xz",
     "tool-versions/unpinned-download"
@@ -299,6 +314,12 @@ fn an_install_action_fails_since_the_list_cannot_pin_it() {
     "version=\"$(bash scripts/tool-version.sh cargo-hack)\"\n\
      cargo binstall \"cargo-hack@${version}\" --force --no-confirm \\\n  \
      || cargo install \"cargo-hack@${version}\" --locked"
+)]
+#[case::prebuilt_only_under_a_deadline(
+    "version=\"$(bash scripts/tool-version.sh cargo-hack)\"\n\
+     status=0\n\
+     timeout -k 5 45 cargo binstall \"cargo-hack@${version}\" --force --no-confirm \
+     --disable-strategies compile || status=$?"
 )]
 #[case::lines_after_the_install_are_not_its_arguments(
     "version=\"$(bash scripts/tool-version.sh cargo-hack)\"\n\
