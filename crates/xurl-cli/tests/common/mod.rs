@@ -9,6 +9,8 @@ use clap::CommandFactory;
 
 pub mod invoke;
 pub mod listen;
+#[path = "../../../xdk/tests/support/production_source.rs"]
+pub mod production_source;
 pub mod token_endpoint;
 
 /// An address no test answers. Port 1 sits below every port a test binds: a

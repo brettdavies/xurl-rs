@@ -80,28 +80,18 @@ fn statuses(schema: &Value) -> BTreeSet<String> {
 }
 
 /// The source of `file` up to its inline test module, with each line kept at
-/// its number. Comment lines are blanked. A `#[cfg(test)]` on anything but an
-/// inline `mod name {` leaves the rest of the file in view.
+/// its number. Comment lines are blanked.
 fn production_lines(source: &str) -> Vec<String> {
-    let inline_module = Regex::new(r"^\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+\w+\s*\{").unwrap();
-    let all: Vec<&str> = source.lines().collect();
-    let mut lines = Vec::new();
-    for (index, line) in all.iter().enumerate() {
-        let opens_tests = line.trim_start().starts_with("#[cfg(test)]")
-            && all
-                .get(index + 1)
-                .is_some_and(|next| inline_module.is_match(next));
-        if opens_tests {
-            break;
-        }
-        let comment = line.trim_start().starts_with("//");
-        lines.push(if comment {
-            String::new()
-        } else {
-            (*line).to_string()
-        });
-    }
-    lines
+    common::production_source::up_to_inline_tests(source)
+        .lines()
+        .map(|line| {
+            if line.trim_start().starts_with("//") {
+                String::new()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect()
 }
 
 /// One place that sets a `status`.
