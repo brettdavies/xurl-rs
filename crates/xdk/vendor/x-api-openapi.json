@@ -29620,7 +29620,7 @@
     },
     "/2/chat/media/{id}/{media_hash_key}": {
       "get": {
-        "description": "Downloads encrypted media bytes from an XChat conversation. The response body contains raw binary bytes.",
+        "description": "Downloads encrypted media bytes from an XChat conversation. The response body contains raw binary bytes. A media item too large to return in one response fails with a 413 problem of type `https://api.x.com/2/problems/response-too-large`, and a retry fails the same way.",
         "operationId": "chatMediaDownload",
         "parameters": [
           {
