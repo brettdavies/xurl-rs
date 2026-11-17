@@ -656,6 +656,7 @@
               "preview_image_url",
               "promoted_metrics",
               "public_metrics",
+              "revenue",
               "type",
               "url",
               "variants",
@@ -1874,6 +1875,172 @@
         },
         "required": [
           "is_member"
+        ],
+        "type": "object"
+      },
+      "AddMediaToLibraryMonetization": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_countries": {
+            "description": "ISO 3166-1 alpha-2 codes of the only countries the video is monetized in. Omit to monetize everywhere.",
+            "items": {
+              "pattern": "^[A-Za-z]{2}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocked_advertiser_category_ids": {
+            "description": "Advertiser categories (from the categories endpoint) whose ads may not run against the video.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "blocked_advertiser_ids": {
+            "description": "Advertiser account ids whose ads may not run against the video.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "description": "Whether ads may run against the video. Requires the account to be enrolled in video monetization.",
+            "type": "boolean"
+          },
+          "program_id": {
+            "description": "Amplify program to monetize the video through, instead of `video_category_ids`.",
+            "type": "string"
+          },
+          "video_category_ids": {
+            "description": "Video category ids (from the categories endpoint) describing the content; at most one when creating. Required when enabled, unless `program_id` is set.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddMediaToLibraryRequest": {
+        "properties": {
+          "description": {
+            "description": "Description shown with the video in the player card.",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "label": {
+            "description": "Label of the item in the library.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "The media key of the uploaded image, GIF or video to add.",
+            "pattern": "^[0-9]+_[0-9]+$",
+            "type": "string"
+          },
+          "monetization": {
+            "$ref": "#/components/schemas/AddMediaToLibraryMonetization",
+            "description": "Monetization settings. Videos only."
+          },
+          "name": {
+            "description": "Name of the item in the library.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Title shown with the video in the player card.",
+            "maxLength": 70,
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_key"
+        ],
+        "type": "object"
+      },
+      "AddMediaToLibraryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AddMediaToLibraryResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddMediaToLibraryResponseData": {
+        "properties": {
+          "media_key": {
+            "description": "The media key of the library item.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_key"
+        ],
+        "type": "object"
+      },
+      "AddPostToAmplifyProgramsRequest": {
+        "properties": {
+          "blocked_advertiser_ids": {
+            "description": "Advertiser account ids whose pre-rolls may not run on this post.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "post_id": {
+            "description": "The post to publish. It must belong to the user.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "program_ids": {
+            "description": "The programs to publish the post into.",
+            "items": {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "promotion_ends_at": {
+            "description": "When promotion of the post ends (ISO 8601).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "post_id",
+          "program_ids"
+        ],
+        "type": "object"
+      },
+      "AddPostToAmplifyProgramsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AddPostToAmplifyProgramsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddPostToAmplifyProgramsResponseData": {
+        "properties": {
+          "added": {
+            "description": "Whether the post was published into the programs.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "added"
         ],
         "type": "object"
       },
@@ -10065,6 +10232,161 @@
         },
         "type": "object"
       },
+      "GetAmplifyProgramPostsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GetAmplifyProgramPostsResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetAmplifyProgramPostsResponseData": {
+        "properties": {
+          "added_at": {
+            "description": "When the post was published into the program (ISO 8601).",
+            "type": "string"
+          },
+          "post_id": {
+            "description": "Identifier of the post.",
+            "type": "string"
+          },
+          "promotion_ends_at": {
+            "description": "When promotion of the post ends (ISO 8601), when one was set.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "post_id",
+          "added_at"
+        ],
+        "type": "object"
+      },
+      "GetAmplifyProgramResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetAmplifyProgramResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetAmplifyProgramResponseData": {
+        "properties": {
+          "advertiser_ids": {
+            "description": "Advertiser account ids sponsoring the program.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Identifier of the program.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the program.",
+            "type": "string"
+          },
+          "publisher_ids": {
+            "description": "User ids of the publishers enrolled in the program.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "state": {
+            "description": "Lifecycle state of the program. Only `active` programs accept posts.",
+            "enum": [
+              "active",
+              "inactive",
+              "deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "state",
+          "advertiser_ids",
+          "publisher_ids"
+        ],
+        "type": "object"
+      },
+      "GetAmplifyProgramsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GetAmplifyProgramsResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetAmplifyProgramsResponseData": {
+        "properties": {
+          "advertiser_ids": {
+            "description": "Advertiser account ids sponsoring the program.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Identifier of the program.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the program.",
+            "type": "string"
+          },
+          "publisher_ids": {
+            "description": "User ids of the publishers enrolled in the program.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "state": {
+            "description": "Lifecycle state of the program. Only `active` programs accept posts.",
+            "enum": [
+              "active",
+              "inactive",
+              "deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "state",
+          "advertiser_ids",
+          "publisher_ids"
+        ],
+        "type": "object"
+      },
       "GetBotsResponse": {
         "properties": {
           "data": {
@@ -10898,6 +11220,79 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "GetMediaLibraryCategoriesResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetMediaLibraryCategoriesResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetMediaLibraryCategoriesResponseData": {
+        "properties": {
+          "advertiser_categories": {
+            "description": "Advertiser categories that can be blocked.",
+            "items": {
+              "$ref": "#/components/schemas/GetMediaLibraryCategoriesResponseDataAdvertiserCategories"
+            },
+            "type": "array"
+          },
+          "video_categories": {
+            "description": "Video categories a library item can be assigned.",
+            "items": {
+              "$ref": "#/components/schemas/GetMediaLibraryCategoriesResponseDataVideoCategories"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "video_categories",
+          "advertiser_categories"
+        ],
+        "type": "object"
+      },
+      "GetMediaLibraryCategoriesResponseDataAdvertiserCategories": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "Human readable name, localized to `lang` when a translation exists.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Identifier used in `monetization.video_category_ids` / `monetization.blocked_advertiser_category_ids`.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ],
+        "type": "object"
+      },
+      "GetMediaLibraryCategoriesResponseDataVideoCategories": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "Human readable name, localized to `lang` when a translation exists.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Identifier used in `monetization.video_category_ids` / `monetization.blocked_advertiser_category_ids`.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ],
         "type": "object"
       },
       "GetMediaUploadStatusResponse": {
@@ -14392,6 +14787,9 @@
           "public_metrics": {
             "$ref": "#/components/schemas/MediaPublicMetrics"
           },
+          "revenue": {
+            "$ref": "#/components/schemas/MediaRevenue"
+          },
           "type": {
             "type": "string"
           },
@@ -14756,6 +15154,25 @@
         },
         "required": [
           "view_count"
+        ],
+        "type": "object"
+      },
+      "MediaRevenue": {
+        "description": "Lifetime revenue earned by the media. Only available to the user who\nuploaded the video, and only to apps holding the `media.library.read` scope.",
+        "properties": {
+          "amount_micros": {
+            "description": "Revenue earned by this video, in micro-units (1/1,000,000) of `currency_code`.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency_code": {
+            "description": "ISO 4217 code of the currency `amount_micros` is denominated in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount_micros",
+          "currency_code"
         ],
         "type": "object"
       },
@@ -18022,6 +18439,36 @@
         ],
         "type": "object"
       },
+      "RemoveMediaFromLibraryRequest": {
+        "properties": {},
+        "type": "object"
+      },
+      "RemoveMediaFromLibraryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RemoveMediaFromLibraryResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveMediaFromLibraryResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the library item was removed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
       "RepostPostRequest": {
         "additionalProperties": false,
         "properties": {
@@ -21275,6 +21722,103 @@
         ],
         "type": "object"
       },
+      "UpdateMediaInLibraryMonetization": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_countries": {
+            "description": "ISO 3166-1 alpha-2 codes of the only countries the video is monetized in. Omit to monetize everywhere.",
+            "items": {
+              "pattern": "^[A-Za-z]{2}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocked_advertiser_category_ids": {
+            "description": "Advertiser categories (from the categories endpoint) whose ads may not run against the video.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "blocked_advertiser_ids": {
+            "description": "Advertiser account ids whose ads may not run against the video.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "description": "Whether ads may run against the video. Requires the account to be enrolled in video monetization.",
+            "type": "boolean"
+          },
+          "program_id": {
+            "description": "Amplify program to monetize the video through, instead of `video_category_ids`.",
+            "type": "string"
+          },
+          "video_category_ids": {
+            "description": "Video category ids (from the categories endpoint) describing the content; at most one when creating. Required when enabled, unless `program_id` is set.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateMediaInLibraryRequest": {
+        "properties": {
+          "description": {
+            "description": "Description shown with the video in the player card.",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "label": {
+            "description": "Label of the item in the library.",
+            "type": "string"
+          },
+          "monetization": {
+            "$ref": "#/components/schemas/UpdateMediaInLibraryMonetization",
+            "description": "Monetization settings. Videos only."
+          },
+          "name": {
+            "description": "Name of the item in the library.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Title shown with the video in the player card.",
+            "maxLength": 70,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateMediaInLibraryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateMediaInLibraryResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateMediaInLibraryResponseData": {
+        "properties": {
+          "updated": {
+            "description": "Whether the library item was updated.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "type": "object"
+      },
       "UpdateRulesAdd": {
         "additionalProperties": false,
         "properties": {
@@ -23189,7 +23733,7 @@
     },
     "termsOfService": "https://developer.x.com/en/developer-terms/agreement-and-policy.html",
     "title": "X API v2",
-    "version": "2.174"
+    "version": "2.175"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -33035,6 +33579,230 @@
         ]
       }
     },
+    "/2/media/amplify/posts": {
+      "post": {
+        "description": "Publishes one of the authenticated user's video posts into one or more active Amplify pre-roll programs the user is enrolled in as a publisher.",
+        "operationId": "addPostToAmplifyPrograms",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPostToAmplifyProgramsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddPostToAmplifyProgramsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Add Post to Amplify Programs",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/amplify/programs": {
+      "get": {
+        "description": "Returns the Amplify pre-roll programs the authenticated user is enrolled in as a publisher.",
+        "operationId": "getAmplifyPrograms",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAmplifyProgramsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Amplify Programs",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/amplify/programs/{program_id}": {
+      "get": {
+        "description": "Returns one Amplify pre-roll program the authenticated user is enrolled in as a publisher. A program the user is not enrolled in is reported as not found.",
+        "operationId": "getAmplifyProgram",
+        "parameters": [
+          {
+            "description": "Identifier of the program.",
+            "in": "path",
+            "name": "program_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAmplifyProgramResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Amplify Program",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/amplify/programs/{program_id}/posts": {
+      "get": {
+        "description": "Returns the posts published into an Amplify pre-roll program the authenticated user is enrolled in as a publisher.",
+        "operationId": "getAmplifyProgramPosts",
+        "parameters": [
+          {
+            "description": "Identifier of the program.",
+            "in": "path",
+            "name": "program_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAmplifyProgramPostsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Amplify Program Posts",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
     "/2/media/analytics": {
       "get": {
         "description": "Retrieves analytics data for media.",
@@ -33133,6 +33901,261 @@
           }
         ],
         "summary": "Get Media Analytics",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/library": {
+      "post": {
+        "description": "Adds previously uploaded media to the authenticated user's Media Library with its library metadata. The user must own the media. Geo restrictions, content expiry, the preview image and the audience policy are set with the Media metadata endpoint.",
+        "operationId": "addMediaToLibrary",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMediaToLibraryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddMediaToLibraryResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Add Media to Library",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/library/categories": {
+      "get": {
+        "description": "Returns the video categories a publisher can assign to a media library item and the advertiser categories whose ads can be blocked from running against it.",
+        "operationId": "getMediaLibraryCategories",
+        "parameters": [
+          {
+            "description": "Language tag for category descriptions, e.g. `en` or `pt-BR`.",
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMediaLibraryCategoriesResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Media Library Categories",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/library/{media_key}": {
+      "delete": {
+        "description": "Removes an item from the authenticated user's Media Library. Posts scheduled through the API that have not yet been published and still use the media are cancelled. Published posts and the underlying media are not affected.",
+        "operationId": "removeMediaFromLibrary",
+        "parameters": [
+          {
+            "description": "The media key of the library item to remove.",
+            "in": "path",
+            "name": "media_key",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]+_[0-9]+$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveMediaFromLibraryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveMediaFromLibraryResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Remove Media Library Item",
+        "tags": [
+          "Media"
+        ]
+      },
+      "put": {
+        "description": "Updates the library metadata of an item in the authenticated user's Media Library. Only the fields sent are changed; the others keep their values. Geo restrictions, content expiry, the preview image and the audience policy are set with the Media metadata endpoint.",
+        "operationId": "updateMediaInLibrary",
+        "parameters": [
+          {
+            "description": "The media key of the library item to update.",
+            "in": "path",
+            "name": "media_key",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]+_[0-9]+$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMediaInLibraryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateMediaInLibraryResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update Media Library Item",
         "tags": [
           "Media"
         ]
@@ -40627,6 +41650,9 @@
           }
         },
         "security": [
+          {
+            "BearerToken": []
+          },
           {
             "OAuth2UserToken": [
               "tweet.read",
