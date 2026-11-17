@@ -366,8 +366,9 @@ recently read.
 
 Every repository the account owns draws on one concurrent-job limit, and a release's build rows that queue behind
 another repository's jobs finish late by however long those take. `scripts/release/tag-release.sh` lists the queued and
-in-progress runs in every repository the account owns and has not archived, and holds the cut while any is listed;
-`--force` pushes anyway.
+in-progress runs in every repository the account owns and has not archived. An in-progress run holds the cut, as does a
+queued run under 24 hours old or one that has a job; a queued run 24 hours old or more with no job never holds a runner,
+so the script prints it as skipped and goes on. `--force` pushes anyway.
 
 CI runs on a push to `dev`, not on a push to `main`, so the release PR's merge starts no CI run beside the release's
 own. `main`'s CI caches still need filling, since every pull request falls back to the default branch's caches.
