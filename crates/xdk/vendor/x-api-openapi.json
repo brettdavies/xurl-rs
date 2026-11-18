@@ -12197,6 +12197,14 @@
               "$ref": "#/components/schemas/Problem"
             },
             "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "location": {
+                "type": "object"
+              }
+            },
+            "type": "object"
           }
         },
         "type": "object"
@@ -19305,6 +19313,11 @@
       "SendBroadcastChatRequest": {
         "additionalProperties": false,
         "properties": {
+          "relay_source": {
+            "description": "The platform this message was relayed from, shown as that platform's icon next to the message: `youtube`, `twitch`, `kick`, `facebook`, `rumble`, `tiktok` or `instagram`. Only apps approved for chat relay may set it.",
+            "maxLength": 32,
+            "type": "string"
+          },
           "reply_to": {
             "description": "Message id to reply to, returned as timestamp when sent.",
             "pattern": "^[0-9]{1,19}$",
@@ -36222,7 +36235,7 @@
     },
     "/2/trends/by/woeid/{woeid}": {
       "get": {
-        "description": "Retrieves trending topics for a specific location identified by its WOEID.",
+        "description": "Retrieves trending topics for a specific location identified by its WOEID. `meta.location` describes that location: its `woeid` and `name`, and when they are known its `country`, `country_code`, `place_type` (`town`, `country` or `supername`) and `parent_id`, the WOEID of the place that contains it.",
         "operationId": "getTrendsByWoeid",
         "parameters": [
           {
