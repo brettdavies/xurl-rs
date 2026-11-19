@@ -77,6 +77,7 @@
               "broadcast_id",
               "created_at_ms",
               "id",
+              "relay_source",
               "reply_to",
               "text"
             ],
@@ -1069,6 +1070,31 @@
             "enum": [
               "trend_name",
               "tweet_count"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "TrendLocationFieldsParameter": {
+        "description": "A comma separated list of TrendLocation fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "trend_location.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a TrendLocation object.",
+          "items": {
+            "enum": [
+              "country",
+              "country_code",
+              "name",
+              "parent_id",
+              "place_type",
+              "woeid"
             ],
             "type": "string"
           },
@@ -3207,6 +3233,9 @@
             "type": "string"
           },
           "id": {
+            "type": "string"
+          },
+          "relay_source": {
             "type": "string"
           },
           "reply_to": {
@@ -12209,6 +12238,23 @@
         },
         "type": "object"
       },
+      "GetTrendsLocationsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TrendLocation"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "GetTrendsPersonalizedTrendsResponse": {
         "properties": {
           "data": {
@@ -19976,6 +20022,35 @@
         },
         "type": "object"
       },
+      "TrendLocation": {
+        "properties": {
+          "country": {
+            "description": "The country the location is in. Omitted for a location that is not in one country, such as Worldwide.",
+            "type": "string"
+          },
+          "country_code": {
+            "description": "The two-letter code of the location's country, such as `US`. Omitted when `country` is.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The location's name.",
+            "type": "string"
+          },
+          "parent_id": {
+            "description": "The WOEID of the location that contains this one, such as a town's country. Omitted for a location with no parent.",
+            "type": "integer"
+          },
+          "place_type": {
+            "description": "The kind of place: `town`, `country`, or `supername` (Worldwide). Omitted for a location whose kind is not known.",
+            "type": "string"
+          },
+          "woeid": {
+            "description": "The location's WOEID. Pass it to `GET /2/trends/by/woeid/{woeid}`.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "UnarchiveChatConversationActionSignatures": {
         "properties": {
           "encoded_message_event_detail": {
@@ -20663,6 +20738,97 @@
         },
         "required": [
           "updated"
+        ],
+        "type": "object"
+      },
+      "UpdateBroadcastRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "live_category_id": {
+            "description": "New live category, e.g. `gaming`. Ids come from GET /2/broadcasts/categories; an unknown id is a 400. An empty string removes the broadcast's category.",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "title": {
+            "description": "New broadcast title.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateBroadcastResponseData": {
+        "properties": {
+          "broadcast_id": {
+            "description": "Broadcast id; the same as `id`.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "live_category_id": {
+            "description": "The broadcast's live category. Missing when it has none.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast.",
+            "type": "string"
+          },
+          "share_url": {
+            "description": "The broadcast's watch page.",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "Broadcast state, `RUNNING` once live.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast. Missing when the Post hasn't been created yet, was suppressed with `should_not_tweet`, or could not be created.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "broadcast_id",
+          "state",
+          "share_url"
         ],
         "type": "object"
       },
@@ -26117,6 +26283,74 @@
           }
         ],
         "summary": "Get a Broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "put": {
+        "description": "Changes the title, chat option or live category of one of the authenticated user's broadcasts and returns the broadcast. Send at least one of `title`, `chat_option` and `live_category_id`; fields left out keep their values. A broadcast can be updated before it starts, while it is live and after it has ended. A 409 `conflict` means the broadcast can't be edited, for example because it was deleted or moderated.",
+        "operationId": "updateBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBroadcastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update a Broadcast",
         "tags": [
           "Broadcasts"
         ]
@@ -36301,6 +36535,56 @@
           }
         ],
         "summary": "Get Trends by WOEID",
+        "tags": [
+          "Trends"
+        ]
+      }
+    },
+    "/2/trends/locations": {
+      "get": {
+        "description": "Retrieves every location that has trends. Each location has a WOEID to pass to `GET /2/trends/by/woeid/{woeid}`. The list is short and is returned whole, so the route takes no paging parameters.",
+        "operationId": "getTrendsLocations",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TrendLocationFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTrendsLocationsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
+          }
+        ],
+        "summary": "Get Trend Locations",
         "tags": [
           "Trends"
         ]
