@@ -490,6 +490,75 @@ async fn sources_update_needs_the_name_flag() {
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
 
+/// A source id is the digits `broadcasts sources list` prints. Anything else
+/// is refused before a request goes out, and a `remove` refuses it ahead of
+/// the confirmation it asks.
+#[tokio::test]
+async fn a_source_id_that_is_not_one_is_refused_before_any_request() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for id in ["", "not-an-id!", "abc", "90123456789012345678"] {
+        for verb in [
+            vec!["get", id],
+            vec!["stream-key", id],
+            vec!["update", id, "--name", "Studio B"],
+            vec!["remove", id],
+        ] {
+            let mut argv = vec![
+                "--no-interactive",
+                "--output",
+                "json",
+                "broadcasts",
+                "sources",
+            ];
+            argv.extend(&verb);
+            let (code, _stdout, stderr) = run(&store, &server.uri(), &argv).await;
+
+            assert_eq!(code, 1, "{verb:?}: {stderr}");
+            let envelope: serde_json::Value =
+                serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
+            assert_eq!(envelope["reason"], "validation", "{verb:?}");
+            assert_eq!(envelope["rule"], "invalid-source-id", "{verb:?}");
+            assert_eq!(
+                envelope["message"], "A source id is 1 to 19 digits.",
+                "{verb:?}"
+            );
+        }
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn a_dry_run_reports_the_rule_a_bad_source_id_breaks() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "broadcasts",
+            "sources",
+            "stream-key",
+            "",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body = json_out(&stdout);
+    assert_eq!(body["would_succeed"], false, "{body}");
+    assert_eq!(body["reason"], "validation", "{body}");
+    assert_eq!(body["rule"], "invalid-source-id", "{body}");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
 #[tokio::test]
 async fn sources_remove_without_force_asks_first_and_deletes_nothing() {
     let server = MockServer::start().await;
