@@ -4273,16 +4273,20 @@ pub struct LibraryItemArgs {
     pub title: Option<String>,
     #[arg(long, value_name = "TEXT", help = format!("The description shown with the video in the player card ({LIBRARY_DESCRIPTION_MAX_CHARS} characters at most)"))]
     pub description: Option<String>,
-    /// Let ads run against the video; X requires the account to be enrolled in video monetization
+    /// Let ads run against the video; the account must be enrolled in video monetization, and `add` needs `--video-category` or `--program` with it
     #[arg(long, conflicts_with = "no_monetize")]
     pub monetize: bool,
     /// Stop ads running against the video
     #[arg(long = "no-monetize")]
     pub no_monetize: bool,
-    #[arg(long = "video-category", value_name = "ID", help = format!("A category describing the video, an id from `xr media library categories` ({LIBRARY_VIDEO_CATEGORIES_MAX} at most); repeat for each"))]
+    #[arg(long = "video-category", value_name = "ID", help = format!("A category describing the video, an id from `xr media library categories`; `add` takes one and `update` up to {LIBRARY_VIDEO_CATEGORIES_MAX}; repeat for each"))]
     pub video_category: Vec<u64>,
     /// The Amplify program to monetize the video through, in place of `--video-category`
-    #[arg(long = "program", value_name = "PROGRAM_ID")]
+    #[arg(
+        long = "program",
+        value_name = "PROGRAM_ID",
+        conflicts_with = "video_category"
+    )]
     pub program: Option<String>,
     /// A country to monetize the video in, and only there, as a two-letter code; repeat for each
     #[arg(long = "country", value_name = "CODE")]

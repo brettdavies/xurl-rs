@@ -6,7 +6,9 @@ use serde_json::json;
 use wiremock::matchers::{body_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 use xdk::api::Client;
-use xdk::api::shortcuts::{AmplifyPromotion, validate_amplify_promotion, validate_program_id};
+use xdk::api::shortcuts::{
+    AmplifyPromotion, validate_advertiser_id, validate_amplify_promotion, validate_program_id,
+};
 use xdk::auth::OAuth2Credential;
 
 const PROGRAM: &str = "prog_2026-launch";
@@ -149,4 +151,18 @@ fn a_promotion_is_held_to_the_specs_patterns() {
         promotion(&["a"], None, Some("2026-12-01")),
         Err("invalid-promotion-end")
     );
+}
+
+#[test]
+fn an_advertiser_id_is_one_to_nineteen_digits() {
+    for id in ["1", "1234567890123456789"] {
+        assert_eq!(validate_advertiser_id(id), Ok(()), "{id:?}");
+    }
+    for id in ["", "x1", "12345678901234567890", "1 2"] {
+        assert_eq!(
+            validate_advertiser_id(id),
+            Err("invalid-advertiser-id"),
+            "{id:?}"
+        );
+    }
 }

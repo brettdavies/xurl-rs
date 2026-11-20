@@ -183,3 +183,50 @@ async fn update_does_not_take_a_state_or_a_chat_message() {
     }
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
+
+#[tokio::test]
+async fn a_refusal_names_the_input_and_a_dry_run_leaves_out_the_flags_not_given() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for (args, rule, value) in [
+        (
+            vec![BROADCAST_ID, "--chat-option", "7"],
+            "invalid-chat-option",
+            "7",
+        ),
+        (
+            vec!["not a broadcast id", "--title", "x"],
+            "invalid-broadcast-id",
+            "not a broadcast id",
+        ),
+    ] {
+        let mut argv = vec!["--dry-run", "--output", "json", "broadcasts", "update"];
+        argv.extend(&args);
+        let (code, stdout, stderr) = run(&store, &server.uri(), &argv).await;
+
+        assert_eq!(code, 0, "{args:?}: {stderr}");
+        let body = json_out(&stdout);
+        assert_eq!(body["rule"], rule, "{args:?}");
+        assert_eq!(body["value"], value, "{args:?}");
+    }
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "broadcasts",
+            "update",
+            BROADCAST_ID,
+            "--title",
+            "Second take",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(json_out(&stdout).get("chat_option").is_none(), "{stdout}");
+}

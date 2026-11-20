@@ -1,14 +1,14 @@
 args: ["--output", "json", "--dry-run", "media", "library", "add", "7_1146654567674912770", "--country", "USA"]
 store: empty
 exit_code: 0
-stdout_len: 486
+stdout_len: 518
 stderr_len: 0
 --- stdout ---
 {
   "command": "media-library-add",
   "exit_code": 1,
   "media_key": "7_1146654567674912770",
-  "message": "A country is a two-letter code, such as US or CA.",
+  "message": "USA is not a country: give a two-letter code, such as US or CA.",
   "monetization": {
     "allowed_countries": [
       "USA"
@@ -22,6 +22,7 @@ stderr_len: 0
   "response_schema": "xr schema media library add",
   "rule": "invalid-country-code",
   "status": "dry_run",
+  "value": "USA",
   "would_succeed": false
 }
 

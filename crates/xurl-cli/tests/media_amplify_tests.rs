@@ -237,3 +237,83 @@ async fn add_under_dry_run_names_the_inputs_and_the_credential() {
     assert_eq!(body["program_ids"][0], PROGRAM);
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
+
+#[tokio::test]
+async fn a_refusal_names_the_entry_that_broke_the_rule() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for (args, rule, value) in [
+        (
+            vec!["add", POST_ID, "--program", PROGRAM, "--program", "bad/id"],
+            "invalid-program-id",
+            "bad/id",
+        ),
+        (
+            vec![
+                "add",
+                POST_ID,
+                "--program",
+                PROGRAM,
+                "--block-advertiser",
+                "1",
+                "--block-advertiser",
+                "x1",
+            ],
+            "invalid-advertiser-id",
+            "x1",
+        ),
+        (
+            vec![
+                "add",
+                POST_ID,
+                "--program",
+                PROGRAM,
+                "--ends-at",
+                "next week",
+            ],
+            "invalid-promotion-end",
+            "next week",
+        ),
+        (vec!["get", "has space"], "invalid-program-id", "has space"),
+    ] {
+        let mut argv = vec!["--dry-run", "--output", "json", "media", "amplify"];
+        argv.extend(&args);
+        let (code, stdout, stderr) = run(&store, &server.uri(), &argv).await;
+
+        assert_eq!(code, 0, "{args:?}: {stderr}");
+        let body = json_out(&stdout);
+        assert_eq!(body["rule"], rule, "{args:?}");
+        assert_eq!(body["value"], value, "{args:?}");
+    }
+}
+
+#[tokio::test]
+async fn a_dry_run_leaves_out_what_no_flag_set() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "media",
+            "amplify",
+            "add",
+            POST_ID,
+            "--program",
+            PROGRAM,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let body = json_out(&stdout);
+    assert!(body.get("blocked_advertiser_ids").is_none(), "{stdout}");
+    assert!(body.get("promotion_ends_at").is_none(), "{stdout}");
+}

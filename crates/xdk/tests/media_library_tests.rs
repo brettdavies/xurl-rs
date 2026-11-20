@@ -8,8 +8,8 @@ use wiremock::{Mock, MockServer, ResponseTemplate};
 use xdk::api::Client;
 use xdk::api::shortcuts::{
     LIBRARY_DESCRIPTION_MAX_CHARS, LIBRARY_TITLE_MAX_CHARS, LIBRARY_VIDEO_CATEGORIES_MAX,
-    LibraryItemDetails, LibraryMonetization, validate_language_tag, validate_library_changes,
-    validate_library_details,
+    LibraryItemDetails, LibraryMonetization, validate_country_code, validate_language_tag,
+    validate_library_addition, validate_library_changes, validate_library_details,
 };
 use xdk::auth::OAuth2Credential;
 
@@ -237,6 +237,75 @@ fn a_language_tag_is_the_specs_pattern() {
             validate_language_tag(tag),
             Err("invalid-language-tag"),
             "{tag:?}"
+        );
+    }
+}
+
+#[test]
+fn an_addition_takes_one_category_and_needs_a_category_or_a_program_for_ads() {
+    let monetized = |monetization: LibraryMonetization| LibraryItemDetails {
+        monetization: Some(monetization),
+        ..LibraryItemDetails::default()
+    };
+
+    assert_eq!(
+        validate_library_addition(&monetized(LibraryMonetization {
+            video_category_ids: Some(vec![1, 2]),
+            ..LibraryMonetization::default()
+        })),
+        Err("too-many-video-categories")
+    );
+    assert_eq!(
+        validate_library_details(&monetized(LibraryMonetization {
+            video_category_ids: Some(vec![1, 2]),
+            ..LibraryMonetization::default()
+        })),
+        Ok(()),
+        "a change keeps the structured bound of two"
+    );
+    assert_eq!(
+        validate_library_addition(&monetized(LibraryMonetization {
+            enabled: Some(true),
+            ..LibraryMonetization::default()
+        })),
+        Err("monetization-needs-category")
+    );
+    for monetization in [
+        LibraryMonetization {
+            enabled: Some(true),
+            video_category_ids: Some(vec![4]),
+            ..LibraryMonetization::default()
+        },
+        LibraryMonetization {
+            enabled: Some(true),
+            program_id: Some("prog".into()),
+            ..LibraryMonetization::default()
+        },
+        LibraryMonetization {
+            enabled: Some(false),
+            ..LibraryMonetization::default()
+        },
+    ] {
+        assert_eq!(
+            validate_library_addition(&monetized(monetization.clone())),
+            Ok(()),
+            "{monetization:?}"
+        );
+    }
+    assert_eq!(
+        validate_library_addition(&LibraryItemDetails::default()),
+        Ok(())
+    );
+}
+
+#[test]
+fn a_country_code_is_two_letters() {
+    assert_eq!(validate_country_code("us"), Ok(()));
+    for code in ["", "U", "USA", "U1", "\u{e9}e"] {
+        assert_eq!(
+            validate_country_code(code),
+            Err("invalid-country-code"),
+            "{code:?}"
         );
     }
 }

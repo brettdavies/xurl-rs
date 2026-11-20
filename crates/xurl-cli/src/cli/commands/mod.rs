@@ -228,6 +228,15 @@ impl From<Invalid> for Error {
     }
 }
 
+/// A dry-run context without the keys the command left unset, so an unset
+/// flag is absent rather than `null`.
+fn without_unset(mut ctx: serde_json::Value) -> serde_json::Value {
+    if let Some(keys) = ctx.as_object_mut() {
+        keys.retain(|_, value| !value.is_null());
+    }
+    ctx
+}
+
 /// The validator of a request whose inputs need no offline check.
 fn no_checks() -> std::result::Result<(), &'static str> {
     Ok(())

@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "update", "1YqKDqWqdPLGV", "--chat-option", "7"]
 store: empty
 exit_code: 0
-stdout_len: 422
+stdout_len: 421
 stderr_len: 0
 --- stdout ---
 {
@@ -18,7 +18,7 @@ stderr_len: 0
   "response_schema": "xr schema broadcasts update",
   "rule": "invalid-chat-option",
   "status": "dry_run",
-  "title": null,
+  "value": "7",
   "would_succeed": false
 }
 

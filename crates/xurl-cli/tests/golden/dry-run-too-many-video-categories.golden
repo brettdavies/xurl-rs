@@ -1,14 +1,14 @@
 args: ["--output", "json", "--dry-run", "media", "library", "add", "7_1146654567674912770", "--video-category", "1", "--video-category", "2", "--video-category", "3"]
 store: empty
 exit_code: 0
-stdout_len: 498
+stdout_len: 529
 stderr_len: 0
 --- stdout ---
 {
   "command": "media-library-add",
   "exit_code": 1,
   "media_key": "7_1146654567674912770",
-  "message": "A video takes at most 2 video categories.",
+  "message": "A video takes at most 2 video categories, and an item you add takes one.",
   "monetization": {
     "video_category_ids": [
       1,

@@ -1,7 +1,7 @@
 args: ["media", "library", "update", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 8529
+stdout_len: 8605
 stderr_len: 0
 --- stdout ---
 Change the name, label, player card, or monetization of a library item
@@ -28,13 +28,13 @@ Options:
           The description shown with the video in the player card (200 characters at most)
 
       --monetize
-          Let ads run against the video; X requires the account to be enrolled in video monetization
+          Let ads run against the video; the account must be enrolled in video monetization, and `add` needs `--video-category` or `--program` with it
 
       --no-monetize
           Stop ads running against the video
 
       --video-category <ID>
-          A category describing the video, an id from `xr media library categories` (2 at most); repeat for each
+          A category describing the video, an id from `xr media library categories`; `add` takes one and `update` up to 2; repeat for each
 
       --program <PROGRAM_ID>
           The Amplify program to monetize the video through, in place of `--video-category`

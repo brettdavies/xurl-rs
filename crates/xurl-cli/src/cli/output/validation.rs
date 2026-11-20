@@ -149,31 +149,39 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
         ),
         "empty-alt-text" => "The alt text is empty.".to_string(),
         "alt-text-too-long" => format!("Alt text is at most {ALT_TEXT_MAX_CHARS} characters."),
-        "invalid-program-id" => {
-            "A program id is 1 to 64 letters, digits, hyphens, or underscores.".to_string()
+        "invalid-program-id" => format!(
+            "{given} is not a program id: give 1 to 64 letters, digits, hyphens, or underscores."
+        ),
+        "invalid-advertiser-id" => {
+            format!("{given} is not an advertiser id: give 1 to 19 digits.")
         }
-        "invalid-advertiser-id" => "An advertiser id is 1 to 19 digits.".to_string(),
-        "invalid-promotion-end" => "A promotion end is a time with seconds and a zone, such as \
+        "invalid-promotion-end" => format!(
+            "{given} is not a promotion end: give a time with seconds and a zone, such as \
              2026-12-01T00:00:00Z."
-            .to_string(),
+        ),
         "library-title-too-long" => {
             format!("A library title is at most {LIBRARY_TITLE_MAX_CHARS} characters.")
         }
         "library-description-too-long" => {
             format!("A library description is at most {LIBRARY_DESCRIPTION_MAX_CHARS} characters.")
         }
-        "too-many-video-categories" => {
-            format!("A video takes at most {LIBRARY_VIDEO_CATEGORIES_MAX} video categories.")
+        "too-many-video-categories" => format!(
+            "A video takes at most {LIBRARY_VIDEO_CATEGORIES_MAX} video categories, and an item \
+             you add takes one."
+        ),
+        "monetization-needs-category" => "Ads on a new library item need a category or a \
+             program: give --video-category or --program."
+            .to_string(),
+        "invalid-country-code" => {
+            format!("{given} is not a country: give a two-letter code, such as US or CA.")
         }
-        "invalid-country-code" => "A country is a two-letter code, such as US or CA.".to_string(),
         "no-library-changes" => "Nothing would change; give --name, --label, --title, \
              --description, or a monetization flag."
             .to_string(),
-        "invalid-language-tag" => {
-            "A language tag is two or three letters, then optional subtags of 2 to 8 letters \
-             or digits joined by hyphens, such as en or pt-BR."
-                .to_string()
-        }
+        "invalid-language-tag" => format!(
+            "{given} is not a language tag: give two or three letters, then optional subtags of \
+             2 to 8 letters or digits joined by hyphens, such as en or pt-BR."
+        ),
         "invalid-language-code" => "A language code is two letters, such as en.".to_string(),
         "forward-url-invalid" => "The --forward URL is not an absolute URL.".to_string(),
         "forward-url-not-http" => "--forward takes an http or https URL.".to_string(),

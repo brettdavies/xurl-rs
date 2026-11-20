@@ -9502,8 +9502,8 @@ _arguments "${_arguments_options[@]}" : \
 '--label=[The item'\''s label in the library]:LABEL:_default' \
 '--title=[The title shown with the video in the player card (70 characters at most)]:TITLE:_default' \
 '--description=[The description shown with the video in the player card (200 characters at most)]:TEXT:_default' \
-'*--video-category=[A category describing the video, an id from \`xr media library categories\` (2 at most); repeat for each]:ID:_default' \
-'--program=[The Amplify program to monetize the video through, in place of \`--video-category\`]:PROGRAM_ID:_default' \
+'*--video-category=[A category describing the video, an id from \`xr media library categories\`; \`add\` takes one and \`update\` up to 2; repeat for each]:ID:_default' \
+'(--video-category)--program=[The Amplify program to monetize the video through, in place of \`--video-category\`]:PROGRAM_ID:_default' \
 '*--country=[A country to monetize the video in, and only there, as a two-letter code; repeat for each]:CODE:_default' \
 '*--block-advertiser=[An advertiser account whose ads may not run against the video, by id; repeat for each]:ID:_default' \
 '*--block-advertiser-category=[An advertiser category whose ads may not run against the video, an id from \`xr media library categories\`; repeat for each]:ID:_default' \
@@ -9535,7 +9535,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--no-monetize)--monetize[Let ads run against the video; X requires the account to be enrolled in video monetization]' \
+'(--no-monetize)--monetize[Let ads run against the video; the account must be enrolled in video monetization, and \`add\` needs \`--video-category\` or \`--program\` with it]' \
 '--no-monetize[Stop ads running against the video]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \
@@ -9553,8 +9553,8 @@ _arguments "${_arguments_options[@]}" : \
 '--label=[The item'\''s label in the library]:LABEL:_default' \
 '--title=[The title shown with the video in the player card (70 characters at most)]:TITLE:_default' \
 '--description=[The description shown with the video in the player card (200 characters at most)]:TEXT:_default' \
-'*--video-category=[A category describing the video, an id from \`xr media library categories\` (2 at most); repeat for each]:ID:_default' \
-'--program=[The Amplify program to monetize the video through, in place of \`--video-category\`]:PROGRAM_ID:_default' \
+'*--video-category=[A category describing the video, an id from \`xr media library categories\`; \`add\` takes one and \`update\` up to 2; repeat for each]:ID:_default' \
+'(--video-category)--program=[The Amplify program to monetize the video through, in place of \`--video-category\`]:PROGRAM_ID:_default' \
 '*--country=[A country to monetize the video in, and only there, as a two-letter code; repeat for each]:CODE:_default' \
 '*--block-advertiser=[An advertiser account whose ads may not run against the video, by id; repeat for each]:ID:_default' \
 '*--block-advertiser-category=[An advertiser category whose ads may not run against the video, an id from \`xr media library categories\`; repeat for each]:ID:_default' \
@@ -9586,7 +9586,7 @@ never\:"Never emit ANSI color escapes"))' \
 '--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
 '(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
 '(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
-'(--no-monetize)--monetize[Let ads run against the video; X requires the account to be enrolled in video monetization]' \
+'(--no-monetize)--monetize[Let ads run against the video; the account must be enrolled in video monetization, and \`add\` needs \`--video-category\` or \`--program\` with it]' \
 '--no-monetize[Stop ads running against the video]' \
 '-t[Add X-B3-Flags trace header]' \
 '--trace[Add X-B3-Flags trace header]' \

@@ -408,12 +408,13 @@ xr media library remove 7_1146654567674912770       # Remove from the library (a
 `add` puts an upload you already made into your library, named by the `media_key` an upload or `xr media get` prints.
 `--name` and `--label` name the item, `--title` (70 characters at most) and `--description` (200 at most) are what the
 player card shows, and the monetization flags set how ads run against the video: `--monetize` or `--no-monetize`,
-`--video-category` for up to two categories or `--program` for an Amplify program in their place, `--country` to
-monetize in those countries only, and `--block-advertiser` and `--block-advertiser-category` to keep ads out. A repeated
-flag takes one value each time. `update` sends only the flags it is given and refuses one with none as
-`no-library-changes`; `remove` takes the item out of the library and cancels the posts scheduled through the API that
-still use it, and leaves published posts and the upload alone. Geo restrictions, content expiry, the preview image, and
-the audience policy are set with the media metadata endpoint, which raw mode reaches.
+`--video-category` for a category (one on `add`, up to two on `update`) or `--program` for an Amplify program in its
+place, either of which `add` needs with `--monetize`, `--country` to monetize in those countries only, and
+`--block-advertiser` and `--block-advertiser-category` to keep ads out. A repeated flag takes one value each time.
+`update` sends only the flags it is given and refuses one with none as `no-library-changes`; `remove` takes the item out
+of the library and cancels the posts scheduled through the API that still use it, and leaves published posts and the
+upload alone. Geo restrictions, content expiry, the preview image, and the audience policy are set with the media
+metadata endpoint, which raw mode reaches.
 
 The library endpoints take a user login with the `media.library.read` and `media.library.write` scopes, which every
 `xr auth oauth2` sign-in requests. A login made before `xr` requested them lacks them, and X refuses the request until

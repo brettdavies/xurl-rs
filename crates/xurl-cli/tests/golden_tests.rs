@@ -1532,6 +1532,19 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-monetization-needs-category",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "media",
+                "library",
+                "add",
+                "7_1146654567674912770",
+                "--monetize",
+            ],
+        ),
+        case(
             "dry-run-no-library-changes",
             &[
                 "--output",

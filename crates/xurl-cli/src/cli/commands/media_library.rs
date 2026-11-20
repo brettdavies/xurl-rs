@@ -3,13 +3,13 @@
 
 use serde_json::{Value, json};
 
-use super::{Run, send_confirmed, send_validated};
+use super::{Invalid, Run, send_confirmed, send_validated, without_unset};
 use crate::cli::failure::CommandResult;
 use crate::cli::{LibraryCommands, LibraryItemArgs};
 use xdk::api::Client;
 use xdk::api::shortcuts::{
-    LibraryItemDetails, LibraryMonetization, validate_language_tag, validate_library_changes,
-    validate_library_details, validate_media_key,
+    LibraryItemDetails, LibraryMonetization, validate_country_code, validate_language_tag,
+    validate_library_addition, validate_library_changes, validate_media_key,
 };
 
 /// `Some(items)` when there is at least one, so an unset repeated flag is not
@@ -52,6 +52,29 @@ fn item_context(command: &str, media_key: &str, details: &LibraryItemDetails) ->
     ctx
 }
 
+/// The refusal of `details` under `rule`, naming the country when one broke
+/// it: a repeated flag leaves the caller guessing which entry failed.
+fn refused(rule: &'static str, details: &LibraryItemDetails) -> Invalid {
+    let country = details
+        .monetization
+        .as_ref()
+        .and_then(|monetization| monetization.allowed_countries.as_ref())
+        .and_then(|codes| {
+            codes
+                .iter()
+                .find(|code| validate_country_code(code).is_err())
+        });
+    match (rule, country) {
+        ("invalid-country-code", Some(code)) => Invalid::naming(rule, code),
+        _ => Invalid::from(rule),
+    }
+}
+
+/// The refusal of `media_key` under `rule`, naming the key.
+fn refused_key(rule: &'static str, media_key: &str) -> Invalid {
+    Invalid::naming(rule, media_key)
+}
+
 pub(super) async fn run(action: LibraryCommands, run: Run<'_>) -> CommandResult<()> {
     match action {
         LibraryCommands::Add {
@@ -62,8 +85,8 @@ pub(super) async fn run(action: LibraryCommands, run: Run<'_>) -> CommandResult<
             let details = item.details();
             let ctx = item_context("media-library-add", &media_key, &details);
             let validate = || {
-                validate_media_key(&media_key)?;
-                validate_library_details(&details)
+                validate_media_key(&media_key).map_err(|rule| refused_key(rule, &media_key))?;
+                validate_library_addition(&details).map_err(|rule| refused(rule, &details))
             };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.add_media_to_library(&media_key, &details)
@@ -78,8 +101,8 @@ pub(super) async fn run(action: LibraryCommands, run: Run<'_>) -> CommandResult<
             let details = item.details();
             let ctx = item_context("media-library-update", &media_key, &details);
             let validate = || {
-                validate_media_key(&media_key)?;
-                validate_library_changes(&details)
+                validate_media_key(&media_key).map_err(|rule| refused_key(rule, &media_key))?;
+                validate_library_changes(&details).map_err(|rule| refused(rule, &details))
             };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.update_media_in_library(&media_key, &details)
@@ -93,15 +116,20 @@ pub(super) async fn run(action: LibraryCommands, run: Run<'_>) -> CommandResult<
         } => {
             let ctx = json!({"command": "media-library-remove", "media_key": media_key});
             let prompt = format!("Remove {media_key} from your media library?");
-            let validate = || validate_media_key(&media_key);
+            let validate =
+                || validate_media_key(&media_key).map_err(|rule| refused_key(rule, &media_key));
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.remove_media_from_library(&media_key)
             })
             .await
         }
         LibraryCommands::Categories { lang, common } => {
-            let ctx = json!({"command": "media-library-categories", "lang": lang});
-            let validate = || lang.as_deref().map_or(Ok(()), validate_language_tag);
+            let ctx = without_unset(json!({"command": "media-library-categories", "lang": lang}));
+            let validate = || {
+                lang.as_deref().map_or(Ok(()), |tag| {
+                    validate_language_tag(tag).map_err(|rule| Invalid::naming(rule, tag))
+                })
+            };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_media_library_categories(lang.as_deref())
             })

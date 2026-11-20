@@ -1,12 +1,11 @@
 args: ["--output", "json", "--dry-run", "broadcasts", "update", "1YqKDqWqdPLGV", "--title", " "]
 store: empty
 exit_code: 0
-stdout_len: 431
+stdout_len: 408
 stderr_len: 0
 --- stdout ---
 {
   "broadcast_id": "1YqKDqWqdPLGV",
-  "chat_option": null,
   "command": "broadcasts-update",
   "exit_code": 1,
   "message": "The broadcast title is empty.",

@@ -26,7 +26,7 @@ async fn add_posts_the_key_the_details_and_the_monetization() {
             "title": "Launch day",
             "monetization": {
                 "enabled": true,
-                "video_category_ids": [4, 7],
+                "video_category_ids": [4],
                 "allowed_countries": ["US", "CA"],
                 "blocked_advertiser_ids": ["123"],
                 "blocked_advertiser_category_ids": [10]
@@ -55,8 +55,6 @@ async fn add_posts_the_key_the_details_and_the_monetization() {
             "--monetize",
             "--video-category",
             "4",
-            "--video-category",
-            "7",
             "--country",
             "US",
             "--country",
@@ -334,6 +332,8 @@ async fn add_under_dry_run_names_the_details_and_the_credential() {
             "--title",
             "Launch day",
             "--monetize",
+            "--video-category",
+            "4",
         ],
     )
     .await;
@@ -346,4 +346,149 @@ async fn add_under_dry_run_names_the_details_and_the_credential() {
     assert_eq!(body["media_key"], MEDIA_KEY);
     assert_eq!(body["monetization"]["enabled"], true);
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn an_addition_takes_one_category_and_needs_one_for_ads_while_a_change_does_not() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for (args, rule) in [
+        (
+            vec!["add", MEDIA_KEY, "--monetize"],
+            Some("monetization-needs-category"),
+        ),
+        (
+            vec![
+                "add",
+                MEDIA_KEY,
+                "--video-category",
+                "1",
+                "--video-category",
+                "2",
+            ],
+            Some("too-many-video-categories"),
+        ),
+        (
+            vec!["add", MEDIA_KEY, "--monetize", "--video-category", "1"],
+            None,
+        ),
+        (
+            vec!["add", MEDIA_KEY, "--monetize", "--program", "prog"],
+            None,
+        ),
+        (vec!["update", MEDIA_KEY, "--monetize"], None),
+        (
+            vec![
+                "update",
+                MEDIA_KEY,
+                "--video-category",
+                "1",
+                "--video-category",
+                "2",
+            ],
+            None,
+        ),
+    ] {
+        let mut argv = vec!["--dry-run", "--output", "json", "media", "library"];
+        argv.extend(&args);
+        let (code, stdout, stderr) = run(&store, &server.uri(), &argv).await;
+
+        assert_eq!(code, 0, "{args:?}: {stderr}");
+        let body = json_out(&stdout);
+        assert_eq!(body["would_succeed"], rule.is_none(), "{args:?}");
+        if let Some(rule) = rule {
+            assert_eq!(body["rule"], rule, "{args:?}");
+        }
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn a_program_and_a_video_category_exclude_each_other() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for verb in ["add", "update"] {
+        let (code, _stdout, stderr) = run(
+            &store,
+            &server.uri(),
+            &[
+                "--output",
+                "json",
+                "media",
+                "library",
+                verb,
+                MEDIA_KEY,
+                "--program",
+                "prog",
+                "--video-category",
+                "1",
+            ],
+        )
+        .await;
+
+        assert_eq!(code, 2, "{verb}: {stderr}");
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
+async fn a_refusal_names_the_entry_that_broke_the_rule() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    for (args, rule, value) in [
+        (
+            vec!["add", MEDIA_KEY, "--country", "US", "--country", "USA"],
+            "invalid-country-code",
+            "USA",
+        ),
+        (
+            vec!["remove", "not-a-key"],
+            "invalid-media-key",
+            "not-a-key",
+        ),
+        (
+            vec!["categories", "--lang", "english-us"],
+            "invalid-language-tag",
+            "english-us",
+        ),
+    ] {
+        let mut argv = vec!["--dry-run", "--output", "json", "media", "library"];
+        argv.extend(&args);
+        let (code, stdout, stderr) = run(&store, &server.uri(), &argv).await;
+
+        assert_eq!(code, 0, "{args:?}: {stderr}");
+        let body = json_out(&stdout);
+        assert_eq!(body["rule"], rule, "{args:?}");
+        assert_eq!(body["value"], value, "{args:?}");
+    }
+}
+
+#[tokio::test]
+async fn a_dry_run_leaves_out_what_no_flag_set() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "json",
+            "media",
+            "library",
+            "categories",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(json_out(&stdout).get("lang").is_none(), "{stdout}");
 }

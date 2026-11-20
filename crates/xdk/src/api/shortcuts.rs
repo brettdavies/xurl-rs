@@ -407,7 +407,8 @@ pub struct LibraryMonetization {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enabled: Option<bool>,
     /// Ids of the categories describing the video, from the categories
-    /// endpoint: at most [`LIBRARY_VIDEO_CATEGORIES_MAX`].
+    /// endpoint: at most [`LIBRARY_VIDEO_CATEGORIES_MAX`], and one when the
+    /// item is added.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub video_category_ids: Option<Vec<u64>>,
     /// The Amplify program to monetize the video through, in place of
@@ -1141,13 +1142,51 @@ pub fn validate_library_details(
     {
         return Err("too-many-video-categories");
     }
-    let country = |code: &String| code.len() == 2 && code.bytes().all(|b| b.is_ascii_alphabetic());
-    if monetization
+    monetization
         .allowed_countries
-        .as_ref()
-        .is_some_and(|codes| !codes.iter().all(country))
-    {
-        return Err("invalid-country-code");
+        .iter()
+        .flatten()
+        .try_for_each(|code| validate_country_code(code))
+}
+
+/// Validates a country code against the spec's pattern: two ASCII letters.
+///
+/// # Errors
+/// Returns `invalid-country-code` for anything else.
+pub fn validate_country_code(code: &str) -> std::result::Result<(), &'static str> {
+    if code.len() == 2 && code.bytes().all(|b| b.is_ascii_alphabetic()) {
+        Ok(())
+    } else {
+        Err("invalid-country-code")
+    }
+}
+
+/// Most video categories a new library item's monetization names: the
+/// spec's prose, "at most one when creating".
+const LIBRARY_NEW_VIDEO_CATEGORIES_MAX: usize = 1;
+
+/// Validates the details of an item being added to the media library: the
+/// bounds of [`validate_library_details`], at most one video category, and a
+/// video category or a program when ads are enabled, which the spec says a
+/// creation needs.
+///
+/// # Errors
+/// Returns `too-many-video-categories` for a second category,
+/// `monetization-needs-category` for enabled ads with neither a category nor a
+/// program, and any reason [`validate_library_details`] gives.
+pub fn validate_library_addition(
+    details: &LibraryItemDetails,
+) -> std::result::Result<(), &'static str> {
+    validate_library_details(details)?;
+    let Some(monetization) = &details.monetization else {
+        return Ok(());
+    };
+    let categories = monetization.video_category_ids.as_ref().map_or(0, Vec::len);
+    if categories > LIBRARY_NEW_VIDEO_CATEGORIES_MAX {
+        return Err("too-many-video-categories");
+    }
+    if monetization.enabled == Some(true) && categories == 0 && monetization.program_id.is_none() {
+        return Err("monetization-needs-category");
     }
     Ok(())
 }
@@ -1205,6 +1244,19 @@ pub fn validate_program_id(id: &str) -> std::result::Result<(), &'static str> {
     Ok(())
 }
 
+/// Validates an advertiser account id against the spec's pattern: 1 to 19
+/// digits.
+///
+/// # Errors
+/// Returns `invalid-advertiser-id` for anything else.
+pub fn validate_advertiser_id(id: &str) -> std::result::Result<(), &'static str> {
+    if is_numeric_id(id) {
+        Ok(())
+    } else {
+        Err("invalid-advertiser-id")
+    }
+}
+
 /// Validates what publishing a post into Amplify programs sends: every
 /// program id in the spec's pattern, every blocked advertiser id 1 to 19
 /// digits, and a promotion end in RFC 3339 with seconds and a zone.
@@ -1219,14 +1271,11 @@ pub fn validate_amplify_promotion(
         .program_ids
         .iter()
         .try_for_each(|id| validate_program_id(id))?;
-    if promotion
+    promotion
         .blocked_advertiser_ids
         .iter()
         .flatten()
-        .any(|id| !is_numeric_id(id))
-    {
-        return Err("invalid-advertiser-id");
-    }
+        .try_for_each(|id| validate_advertiser_id(id))?;
     if promotion
         .promotion_ends_at
         .as_deref()

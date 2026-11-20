@@ -1,14 +1,13 @@
 args: ["--output", "json", "--dry-run", "media", "amplify", "add", "1346889436626259968", "--program", "prog_2026-launch", "--ends-at", "next week"]
 store: empty
 exit_code: 0
-stdout_len: 561
+stdout_len: 571
 stderr_len: 0
 --- stdout ---
 {
-  "blocked_advertiser_ids": null,
   "command": "media-amplify-add",
   "exit_code": 1,
-  "message": "A promotion end is a time with seconds and a zone, such as 2026-12-01T00:00:00Z.",
+  "message": "next week is not a promotion end: give a time with seconds and a zone, such as 2026-12-01T00:00:00Z.",
   "next_step": {
     "action": "show-help",
     "command": "xr media amplify add --help"
@@ -22,6 +21,7 @@ stderr_len: 0
   "response_schema": "xr schema media amplify add",
   "rule": "invalid-promotion-end",
   "status": "dry_run",
+  "value": "next week",
   "would_succeed": false
 }
 
