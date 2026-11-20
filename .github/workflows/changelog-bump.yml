@@ -1,10 +1,9 @@
-# Canonical version: 2026.11.01 (rust)
+# Canonical version: 2026.11.04 (rust)
 #
-# Fails a pull request whose `xr` surface grows while its `## Changelog
-# (xurl-rs)` block names no minor-or-higher section, or shrinks while it
-# names neither `### Breaking changes` nor `### Fixed`;
-# scripts/check-surface-bump.sh names what it compares and what it leaves to
-# review.
+# Fails a pull request whose `## Changelog (xurl-rs)` block uses a heading
+# outside the six, or whose `xr` surface grows or shrinks without what that
+# change needs; scripts/check-surface-bump.sh names what it compares and what
+# it leaves to review.
 #
 # `edited` is a trigger because the verdict depends on the PR body: fixing the
 # section re-runs the check without a push. PRs to main are release PRs, whose

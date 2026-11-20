@@ -30,7 +30,7 @@ use clap::ValueEnum;
 use serde_json::Value;
 
 use crate::cli::ColorChoice;
-use crate::cli::envelope::{ErrorBody, Reason};
+use crate::cli::envelope::{Envelope, ErrorBody, Reason};
 use delimited::write_flattened;
 use xdk::error::Error;
 
@@ -748,19 +748,14 @@ impl OutputConfig {
             let _ = writeln!(err, "{DECLINED_LINE}");
             return;
         }
-        let mut obj = serde_json::Map::new();
-        obj.insert("status".into(), Value::String("cancelled".into()));
-        obj.insert("exit_code".into(), Value::from(exit_code));
-        obj.insert("message".into(), Value::String(DECLINED_MESSAGE.into()));
-        if let Some(map) = ctx.as_object() {
-            for (k, v) in map {
-                obj.insert(k.clone(), v.clone());
-            }
-        }
-        if let Some(warnings) = self.warnings.take() {
-            obj.insert("warnings".into(), serde_json::json!(warnings));
-        }
-        self.write_structured(err, &Value::Object(obj));
+        let document = Envelope::Cancelled {
+            exit_code: Some(exit_code),
+            message: Some(DECLINED_MESSAGE.into()),
+            reason: None,
+            context: ctx.as_object().cloned().unwrap_or_default(),
+            warnings: self.warnings.take(),
+        };
+        self.write_structured(err, &document.into_value());
     }
 
     /// Emits a verbose diagnostic line to `err` when verbose is on, quiet is
@@ -1119,6 +1114,31 @@ mod tests {
         assert_eq!(v["reason"], "no-tty");
         assert_eq!(v["exit_code"], 1);
         assert_eq!(v["message"], "stdin is not a terminal");
+    }
+
+    #[test]
+    fn test_print_declined_json_is_the_cancelled_document() {
+        let cfg = OutputConfig::new(OutputFormat::Json, false, false, ColorChoice::Never);
+        assert!(cfg.keeps_warning("a value was rejected", "xdk::config"));
+        let ctx = serde_json::json!({"command": "auth-clear", "app": "work", "all": true});
+        let mut buf: Vec<u8> = Vec::new();
+        cfg.print_declined(&mut buf, &ctx, 1);
+        let expected = serde_json::json!({
+            "status": "cancelled",
+            "exit_code": 1,
+            "message": "cancelled at the prompt",
+            "command": "auth-clear",
+            "app": "work",
+            "all": true,
+            "warnings": [{"message": "a value was rejected", "target": "xdk::config"}],
+        });
+        assert_eq!(
+            String::from_utf8(buf).expect("utf8"),
+            format!(
+                "{}\n",
+                serde_json::to_string_pretty(&expected).expect("json")
+            )
+        );
     }
 
     #[test]

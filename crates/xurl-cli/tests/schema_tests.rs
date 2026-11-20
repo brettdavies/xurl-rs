@@ -536,7 +536,7 @@ fn schema_no_args_shows_usage() {
 #[test]
 fn envelope_schema_is_draft_2020_12_with_oneof() {
     // `xr schema --envelope` emits the canonical envelope JSON Schema; agents
-    // pin against `$schema` + the three-variant `oneOf`.
+    // pin against `$schema` + the `oneOf` of `status` variants.
     let output = common::xr()
         .args(["schema", "--envelope"])
         .output()
@@ -550,10 +550,12 @@ fn envelope_schema_is_draft_2020_12_with_oneof() {
     let variants = parsed["oneOf"]
         .as_array()
         .expect("envelope schema has oneOf array");
-    assert_eq!(
-        variants.len(),
-        3,
-        "envelope has three variants: ok, dry_run, error"
+    assert!(
+        !variants.is_empty()
+            && variants
+                .iter()
+                .all(|variant| variant["properties"]["status"]["const"].is_string()),
+        "every envelope variant is tagged by a `status` const"
     );
 }
 

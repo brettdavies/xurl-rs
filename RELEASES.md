@@ -209,10 +209,20 @@ with its before/after snippet (the policy in `crates/xdk/README.md`).
 
 The `Changelog bump` workflow backs the review for `xr`. It calls the shared `rust-changelog-bump.yml` reusable, which
 runs `scripts/check-surface-bump.sh` to compare the commands, flags, and flag values in `completions/xr.bash` and every
-schema under `schema/` against the PR's base. It fails when that surface grows while the `## Changelog (xurl-rs)` block
-has no bullet under `### Added`, `### Deprecated`, or `### Breaking changes`, and when the surface shrinks while the
-block has none under `### Breaking changes` or `### Fixed`. It reads the block with the changelog generator's own
-parser, re-runs when the PR body is edited, and is a required check on `dev`
+schema under `schema/` against the PR's base. It fails the PR when:
+
+- its `## Changelog (xurl-rs)` block has a `###` heading outside the six in § The six headings, a deeper or indented
+  heading included, whether or not the surface changed;
+- the commands, flags, or flag values grow and the block has no bullet under `### Added`, `### Deprecated`, or
+  `### Breaking changes`;
+- the schemas alone grow and the block has no bullet under one of those three or under `### Fixed`, a patch for a schema
+  that catches up to output `xr` already prints and its docs already describe;
+- the surface shrinks and the block has no `### Breaking changes` bullet that starts with "Remove". A rename or a retype
+  reads as a removal plus an addition.
+
+The schema comparison skips `description`, `title`, `$id`, and `examples`, and counts every key declared under
+`properties`, `patternProperties`, `$defs`, or `definitions` even when it holds nothing else. The check reads the block
+with the changelog generator's own parser, re-runs when the PR body is edited, and is a required check on `dev`
 (`changelog-bump / Surface growth needs a minor section`). Env vars, exit codes, and the store format have no generated
 artifact to compare, so review alone covers them. The `xdk-rs` block is not read: the library's surface is its Rust
 API, which `cargo semver-checks` compares in CI's public-API semver job and in preflight's api-contract gate.
@@ -395,8 +405,10 @@ The script tags `main`'s head with `v<version>`, the version in `crates/xurl-cli
 `xdk-rs-v<version>` when the library's version has no tag yet, then pushes them in one atomic push: the remote receives
 every tag or none. The tags are annotated, which a machine with `tag.gpgsign` set requires. Before it creates a tag, it
 lists the queued and in-progress workflow runs in every repository the account owns and has not archived. Those runs
-share the account's concurrent-job limit with the release's builds, so a listed run holds the cut until it finishes, or
-until `--force`. On success it prints a `Next:` block naming the runs to watch and the postflight command for each tag.
+share the account's concurrent-job limit with the release's builds, so an in-progress run, a queued run under 24 hours
+old, and a queued run of any age that has a job hold the cut until they finish, or until `--force`. A queued run 24 hours
+old or more with no job holds nothing, and the script prints it as skipped. On success it prints a `Next:` block naming
+the runs to watch and the postflight command for each tag.
 
 | Exit | Meaning                                                                                                                                                                              | Next                                                    |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
@@ -441,14 +453,23 @@ remote is no refusal: the library did not move, and only `v<version>` is pushed.
 
 #### `runner-check-failed`
 
-`gh` could not list the account's repositories, or one repository's runs, usually because its sign-in expired. Run
-`gh auth status`, then the script again; `--force` pushes without the check.
+`gh` could not list the account's repositories, one repository's runs, or the jobs of a queued run 24 hours old or more,
+usually because its sign-in expired. Run `gh auth status`, then the script again; `--force` pushes without the check.
 
 #### `runners-busy`
 
-The listed runs, each with its repository, workflow, status, and URL, are queued or in progress in a repository the
-account owns. A release started beside them waits for runners. Run the script again once they finish, or pass `--force`
-to push now.
+The listed runs, each with its repository, workflow, status, URL, and creation time, are in progress, queued for less
+than 24 hours, or queued for 24 hours or more with at least one job, in a repository the account owns. A release started
+beside them waits for runners. A queued run with no job stops holding the cut once it is 24 hours old. Run the script
+again once they finish, or pass `--force` to push now.
+
+A line reading `skipped run in <repository>` names a queued run 24 hours old or more that has no job. It holds nothing,
+since a run with no job never holds a runner, and it stays in the output so it remains visible. GitHub can leave a run
+created during an incident queued with zero jobs, and no API cancels or deletes it. The line gives the run's repository,
+workflow, creation time, and URL.
+
+The rule reads a run's age and its jobs, not GitHub's status. A dispatch outage that lasts longer than 24 hours leaves
+the runs it queues skipped as well, so check that Actions is dispatching before a cut made during an outage.
 
 #### `push-failed`
 
@@ -706,7 +727,7 @@ Two rulesets are committed under `.github/rulesets/` and applied to the repo via
   `main`.
 - `protect-dev.json` (required signatures, linear history, squash-only merges via PR with no approval required,
   deletion blocked, non-fast-forward blocked, and the required status checks the file lists: every `ci / ...` job of
-  the reusable workflow, the repository's own CI jobs, `Agent-native audit`, `Go parity`, and `MSRV` among them, and
+  the reusable workflow, the repository's own CI jobs, `Agent-native audit`, and `MSRV` among them, and
   `Surface growth needs a minor section` from the `Changelog bump` workflow). The file is the list; apply it after
   changing it.
 

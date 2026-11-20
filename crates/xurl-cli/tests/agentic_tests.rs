@@ -414,7 +414,7 @@ fn test_help_advertises_every_env_var_the_source_reads() {
     let mut names = std::collections::BTreeSet::new();
     for path in common::shipped_sources() {
         let source = std::fs::read_to_string(&path).expect("source must be readable");
-        let production = source.split("#[cfg(test)]").next().unwrap_or("");
+        let production = common::production_source::up_to_inline_tests(&source);
         for cap in pattern.captures_iter(production) {
             let name = cap
                 .get(1)
