@@ -50,8 +50,9 @@ its title, which names the formula and version and marks a rehearsal `(dry run)`
 formula's bump counts.
 
 The `release` gate reads the run that releases the tag. The tag push's own run, titled `Dispatch vX.Y.Z`, builds
-nothing; the gate waits while only that run exists, and fails when it failed with no run titled `Release vX.Y.Z` to
-read, pointing at [`RELEASES.md` § When the dispatch job fails](./RELEASES.md#when-the-dispatch-job-fails).
+nothing; the gate skips while only that run exists, so run it again once the `Release vX.Y.Z` run has started. It fails
+when the dispatch run failed with no run titled `Release vX.Y.Z` to read, pointing at
+[`RELEASES.md` § When the dispatch job fails](./RELEASES.md#when-the-dispatch-job-fails).
 
 Flags:
 
@@ -63,7 +64,8 @@ Flags:
   a library release, whose tag is `xdk-rs-vX.Y.Z`
 - `--crate NAME`: override the package the `crates` gate looks up (default: `xurl-rs` for a `v` tag, the package
   `RELEASE_MANIFEST` names; `xdk-rs` for an `xdk-rs-v*` tag, the member whose declared `tag_prefix` it carries)
-- `--staging-url URL` / `--prod-url URL`: surface-smoke URLs; unused here
+- `--staging-url URL` / `--prod-url URL`: surface-smoke URLs. Leave them out: naming one tells `all` the repo has a
+  surface, and with no `surface-smoke.sh` vendored the run fails
 
 **The tag shape selects the release line.** `vX.Y.Z` is the CLI's and drives `release.yml`; `xdk-rs-vX.Y.Z` is the
 library's and drives `release-lib.yml`. Every gate reads the tag and adjusts: `release` queries the right workflow,
