@@ -269,21 +269,23 @@ never the tests.
   caller's own list from a path that names no user (`followers` without `--of`, `dms`) through `list_mine`, a list a
   post owns (`likers`) through `list_for_post`, and any other list one request reads through `list_paged`. A verb that
   sends one request hands its call to `send_or_report`, through `send_validated` when its inputs are checked first, or
-  `send_confirmed` when it destroys something, and `confirmed_context` puts the same confirmation in front of any other
-  helper. One whose request names accounts goes through `send_to_accounts`, or `send_to_account` for one, which every
-  helper above that takes an account shares: an all-digit account is a numeric id and goes out as it is, and every
-  handle is looked up in one request. Each of those answers `--dry-run` with the credential its requests would go out
-  under. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
+  `send_confirmed` when it destroys something, and `send_confirmed_to_account` puts the same confirmation in front of a
+  request that names one account. Both stop through `Confirm::gate`, which names in the refusal the app the request's
+  credential belongs to. One whose request names accounts goes through `send_to_accounts`, or `send_to_account` for one,
+  which every helper above that takes an account shares: an all-digit account is a numeric id and goes out as it is, and
+  every handle is looked up in one request. Each of those answers `--dry-run` with the credential its requests would go
+  out under. `crates/xurl-cli/tests/dispatch_guard.rs` fails when a group's arms and its routing line disagree,
   `crates/xurl-cli/tests/dry_run_guard.rs` fails for a command that sends a request or changes stored state under
   `--dry-run`, or whose dry run and real run disagree on the credential, and the dry-run golden fixtures pin the
   envelope. `crates/xurl-cli/tests/confirmation_context_guard.rs` fails for a destructive command whose
-  `confirmation-required` refusal leaves out a key its dry run carries. `crates/xurl-cli/tests/help_claims_guard.rs`
-  fails for a command with `--max-results` that ignores the global `--limit`, for one whose endpoint declares a page
-  token in the vendored spec but whose request drops `--cursor`, and for one whose `-n` help states a larger page size
-  than its request sends; a paged list through the list helpers passes all three. A command with a post id argument
-  checks it with `valid_post_id` before any other input, so a value that is neither digits nor a post URL is refused
-  as `invalid-post-id` before a request goes out (`post --clip` has its own rule, `invalid-clip-post-id`);
-  `crates/xurl-cli/tests/post_id_guard.rs` fails for a command that accepts one or sends first.
+  `confirmation-required` refusal leaves out a key its dry run carries, or leaves the app of the dry run's `auth` out of
+  its `app` key or its `confirm` template. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command with
+  `--max-results` that ignores the global `--limit`, for one whose endpoint declares a page token in the vendored spec
+  but whose request drops `--cursor`, and for one whose `-n` help states a larger page size than its request sends; a
+  paged list through the list helpers passes all three. A command with a post id argument checks it with `valid_post_id`
+  before any other input, so a value that is neither digits nor a post URL is refused as `invalid-post-id` before a
+  request goes out (`post --clip` has its own rule, `invalid-clip-post-id`); `crates/xurl-cli/tests/post_id_guard.rs`
+  fails for a command that accepts one or sends first.
 - **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes

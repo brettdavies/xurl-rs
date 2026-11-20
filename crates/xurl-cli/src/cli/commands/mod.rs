@@ -165,14 +165,26 @@ struct Confirm<'a> {
 
 impl Confirm<'_> {
     /// `Ok` when the real run goes ahead; otherwise the stop
-    /// [`gate_destructive`] names.
-    fn gate(self, flags: &GlobalFlags, ctx: &serde_json::Value) -> CommandResult<()> {
+    /// [`gate_destructive`] names. The stop carries `ctx` and the app whose
+    /// stored credential the request would go out under, so the `--force`
+    /// invocation a refusal hands out acts on that app wherever it runs,
+    /// whether `--app`, `XURL_APP`, or the store's default chose it.
+    fn gate(
+        self,
+        flags: &GlobalFlags,
+        ctx: &serde_json::Value,
+        credential: Option<&AuthPreflight>,
+    ) -> CommandResult<()> {
+        let mut ctx = ctx.clone();
+        if let Some(app) = credential.and_then(|found| found.app.as_deref()) {
+            ctx["app"] = json!(app);
+        }
         gate_destructive(
             self.force,
             flags.no_interactive,
             flags.quiet,
             self.prompt,
-            ctx,
+            &ctx,
         )
     }
 }
@@ -414,8 +426,8 @@ where
     let client = make_client(cfg, auth)?;
     let call = with_flags(build(&client), common, None);
     if dry_run.is_none() {
-        call.auth_preflight().await?;
-        confirm.gate(&flags, &ctx)?;
+        let credential = call.auth_preflight().await?;
+        confirm.gate(&flags, &ctx, credential.as_ref())?;
     }
     send_or_report(out, stdout, dry_run, call).await
 }
@@ -1232,14 +1244,14 @@ where
         return dry_run.answer(out, stdout, credentials);
     }
     let stands_in = !shortcuts::is_user_id_form(account);
-    credentials
+    let found = credentials
         .into_iter()
         .collect::<Result<Vec<_>>>()
         .map_err(|error| match stands_in {
             true => without_rendered_url(&error).unwrap_or(error),
             false => error,
         })?;
-    confirm.gate(&flags, &ctx)?;
+    confirm.gate(&flags, &ctx, found.last().and_then(Option::as_ref))?;
     let id = resolve_account_id(&client, account, common).await?;
     let response = with_flags(build(&client, &id), common, None).send().await?;
     print_typed(out, stdout, &response)?;
