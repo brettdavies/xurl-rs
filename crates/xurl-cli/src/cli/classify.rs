@@ -273,24 +273,54 @@ pub(crate) fn rejected_word(error: &clap::Error) -> Option<String> {
 /// keeps no scores, so the list's first entry is the farthest. The nearest is
 /// found by scoring the list again with the function clap scores by.
 fn clap_suggestion(error: &clap::Error) -> Option<String> {
-    match error.get(ContextKind::SuggestedSubcommand)? {
-        ContextValue::String(value) => Some(value.clone()),
-        ContextValue::Strings(values) => {
-            let word = context_string(error, ContextKind::InvalidSubcommand)?;
-            highest_scoring(&word, values)
-        }
-        _ => None,
-    }
+    let candidates = match error.get(ContextKind::SuggestedSubcommand)? {
+        ContextValue::String(value) => std::slice::from_ref(value),
+        ContextValue::Strings(values) => values.as_slice(),
+        _ => return None,
+    };
+    let word = context_string(error, ContextKind::InvalidSubcommand)?;
+    highest_scoring(&word, candidates)
 }
 
-/// The candidate with the highest Jaro score against `word`. Of candidates
-/// that score exactly alike, the first one in `candidates` is named: a tie
-/// carries no sign of which the caller meant, and clap lists tied verbs in
-/// declaration order, so `get` is never traded for the write verb `set`.
+/// Most single-letter edits (a letter changed, left out, added, or swapped
+/// with its neighbor) between a mistyped word and the verb it is named for
+/// when clap's score is all there is to go on.
+const MAX_SLIPS: usize = 2;
+
+/// Whether a candidate that scored `score` against `word` is worth naming.
+///
+/// clap offers every verb above 0.7, where root words need
+/// [`SUGGESTION_THRESHOLD`], and between the two Jaro cannot tell a typo from
+/// a resemblance: `bdd` scores 0.778 of `add`, and so does `edit` of
+/// `redirect-uri`. In that band a verb is named only for [`MAX_SLIPS`] edits
+/// or for an abbreviation, so `clear`, which wipes stored tokens, is no
+/// longer named for `bearer`, nor `redirect-uri` for `edit`.
+fn worth_naming(word: &str, candidate: &str, score: f64) -> bool {
+    score > SUGGESTION_THRESHOLD
+        || strsim::osa_distance(word, candidate) <= MAX_SLIPS
+        || abbreviates(word, candidate)
+}
+
+/// Whether `word` is `candidate` with letters left out after its first, the
+/// shorthand `rm` is for `remove`.
+fn abbreviates(word: &str, candidate: &str) -> bool {
+    let mut remaining = candidate.chars();
+    word.chars().next() == candidate.chars().next()
+        && word.chars().all(|letter| remaining.any(|c| c == letter))
+}
+
+/// The candidate with the highest Jaro score against `word`, among those
+/// [`worth_naming`]. Of candidates that score exactly alike, the first one in
+/// `candidates` is named: a tie carries no sign of which the caller meant, and
+/// clap lists tied verbs in declaration order, so `get` is never traded for
+/// the write verb `set`.
 fn highest_scoring(word: &str, candidates: &[String]) -> Option<String> {
     let mut best: Option<(f64, &String)> = None;
     for candidate in candidates {
         let score = strsim::jaro(word, candidate);
+        if !worth_naming(word, candidate, score) {
+            continue;
+        }
         if best.is_none_or(|(top, _)| score > top) {
             best = Some((score, candidate));
         }
