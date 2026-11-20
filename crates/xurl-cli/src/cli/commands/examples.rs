@@ -286,6 +286,10 @@ MEDIA UPLOAD:
     xr media upload ./captions.srt --media-type text/srt --category subtitles
     xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English --output json
 
+  Publish one of your posts into an Amplify program:
+    xr media amplify list --output json
+    xr media amplify add 1346889436626259968 --program prog_2026-launch --ends-at 2026-12-01T00:00:00Z --output json
+
   Add an upload to your media library, and let ads run against it:
     xr media library categories --output json
     xr media library add 7_1146654567674912770 --title \"Launch day\" --monetize --video-category 4 --output json

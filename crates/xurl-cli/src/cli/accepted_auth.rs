@@ -199,6 +199,10 @@ pub const ROWS: &[Row] = &[
     row("lists update", &[ep::UPDATE_LIST]),
     row("media alt-text", &[ep::CREATE_MEDIA_METADATA]),
     row("media analytics", &[ep::GET_MEDIA_ANALYTICS]),
+    row("media amplify add", &[ep::ADD_POST_TO_AMPLIFY_PROGRAMS]),
+    row("media amplify get", &[ep::GET_AMPLIFY_PROGRAM]),
+    row("media amplify list", &[ep::GET_AMPLIFY_PROGRAMS]),
+    row("media amplify posts", &[ep::GET_AMPLIFY_PROGRAM_POSTS]),
     row("media get", &[ep::GET_MEDIA]),
     row("media library add", &[ep::ADD_MEDIA_TO_LIBRARY]),
     row(

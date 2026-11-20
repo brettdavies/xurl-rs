@@ -149,6 +149,13 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
         ),
         "empty-alt-text" => "The alt text is empty.".to_string(),
         "alt-text-too-long" => format!("Alt text is at most {ALT_TEXT_MAX_CHARS} characters."),
+        "invalid-program-id" => {
+            "A program id is 1 to 64 letters, digits, hyphens, or underscores.".to_string()
+        }
+        "invalid-advertiser-id" => "An advertiser id is 1 to 19 digits.".to_string(),
+        "invalid-promotion-end" => "A promotion end is a time with seconds and a zone, such as \
+             2026-12-01T00:00:00Z."
+            .to_string(),
         "library-title-too-long" => {
             format!("A library title is at most {LIBRARY_TITLE_MAX_CHARS} characters.")
         }

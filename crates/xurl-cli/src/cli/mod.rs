@@ -633,6 +633,8 @@ Examples:
     xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English
   Add an upload to your media library:
     xr media library add 7_1146654567674912770 --title \"Launch day\"
+  Publish one of your posts into an Amplify program:
+    xr media amplify add 1346889436626259968 --program prog_2026-launch
 ";
 
 /// `xr schema` examples — paired text + JSON, list, all.
@@ -1945,7 +1947,7 @@ pub enum Commands {
     },
 
     // ── Media ────────────────────────────────────────────────────────
-    /// Media upload, lookup by key, video metrics, alt text, subtitles, and your media library
+    /// Media upload, lookup by key, video metrics, alt text, subtitles, your media library, and Amplify
     #[command(after_help = MEDIA_HELP)]
     Media {
         /// `media` subcommand to dispatch.
@@ -4117,6 +4119,17 @@ pub enum MediaCommands {
         #[command(subcommand)]
         action: SubtitlesCommands,
     },
+    /// List Amplify programs and the posts in them, and publish a post into programs
+    ///
+    /// The endpoints take the `media.library.read` and `media.library.write` scopes, which every
+    /// `xr auth oauth2` sign-in requests. A login made before `xr` requested them lacks them until
+    /// you sign in again; an OAuth1 login is not affected.
+    #[command(after_help = family_help::media_amplify::page())]
+    Amplify {
+        /// `amplify` verb to dispatch.
+        #[command(subcommand)]
+        action: AmplifyCommands,
+    },
     /// Add uploaded videos to your media library, and change, remove, and categorize them
     ///
     /// The endpoints take the `media.library.read` and `media.library.write` scopes, which every
@@ -4127,6 +4140,59 @@ pub enum MediaCommands {
         /// `library` verb to dispatch.
         #[command(subcommand)]
         action: LibraryCommands,
+    },
+}
+
+/// `xr media amplify` verbs.
+#[derive(Subcommand, Debug)]
+pub enum AmplifyCommands {
+    /// List the Amplify programs you can publish posts into
+    #[command(after_help = family_help::media_amplify::FAMILY.verb_page(&family_help::media_amplify::LIST))]
+    List {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Read one Amplify program
+    #[command(after_help = family_help::media_amplify::FAMILY.verb_page(&family_help::media_amplify::GET))]
+    Get {
+        /// Id of the program, as `xr media amplify list` prints it
+        #[arg(value_name = "PROGRAM_ID")]
+        program_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the posts published into an Amplify program
+    #[command(after_help = family_help::media_amplify::FAMILY.verb_page(&family_help::media_amplify::POSTS))]
+    Posts {
+        /// Id of the program, as `xr media amplify list` prints it
+        #[arg(value_name = "PROGRAM_ID")]
+        program_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Publish one of your posts into Amplify programs
+    ///
+    /// Only an `active` program accepts posts; `xr media amplify get` prints its state.
+    #[command(after_help = family_help::media_amplify::FAMILY.verb_page(&family_help::media_amplify::ADD))]
+    Add {
+        /// The post to publish, by id or URL; it must be yours
+        #[arg(value_name = "POST_ID")]
+        post_id: String,
+        /// A program to publish the post into; repeat for each
+        #[arg(long = "program", value_name = "PROGRAM_ID", required = true)]
+        program: Vec<String>,
+        /// An advertiser account whose pre-rolls may not run on the post, by id; repeat for each
+        #[arg(long = "block-advertiser", value_name = "ID")]
+        block_advertiser: Vec<String>,
+        /// When promotion of the post ends, such as 2026-12-01T00:00:00Z
+        #[arg(long = "ends-at", value_name = "TIME")]
+        ends_at: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
     },
 }
 

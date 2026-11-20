@@ -16,19 +16,19 @@ use crate::cli::envelope::{Envelope, ErrorBody, Reason};
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
-    ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, BroadcastUpdated, ChatModeratorsResult, ChatMute,
-    ChatMutedResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
-    FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded, MediaLibraryCategories,
-    MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
-    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, AmplifyPostAdded,
+    AmplifyProgram, AmplifyProgramPost, ApiResponse, ArticleDraft, ArticlePublished,
+    BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast,
+    BroadcastChatMessage, BroadcastUpdated, ChatModeratorsResult, ChatMute, ChatMutedResult,
+    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
+    IngestRegion, LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
+    MediaLibraryAdded, MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult,
+    MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -156,6 +156,10 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<ChatModeratorsResult>("moderators"),
     typed_alias::<MediaMetadataResult>("alt-text"),
     typed_alias::<MediaSubtitlesResult>("subtitles"),
+    typed_alias::<Vec<AmplifyProgram>>("amplify-programs"),
+    typed_alias::<AmplifyProgram>("amplify-program"),
+    typed_alias::<Vec<AmplifyProgramPost>>("amplify-program-posts"),
+    typed_alias::<AmplifyPostAdded>("amplify-post-added"),
     typed_alias::<MediaLibraryAdded>("library-added"),
     typed_alias::<MediaLibraryUpdated>("library-updated"),
     typed_alias::<MediaLibraryCategories>("library-categories"),

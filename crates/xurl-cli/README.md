@@ -419,6 +419,22 @@ The library endpoints take a user login with the `media.library.read` and `media
 `xr auth oauth2` sign-in requests. A login made before `xr` requested them lacks them, and X refuses the request until
 you sign in again with `xr auth oauth2`; an OAuth1 login is not affected.
 
+### Media Amplify
+
+```bash
+xr media amplify list                              # The programs you can publish posts into
+xr media amplify get prog_2026-launch              # One program, with its state
+xr media amplify posts prog_2026-launch            # The posts published into it
+xr media amplify add 1346889436626259968 --program prog_2026-launch --ends-at 2026-12-01T00:00:00Z
+```
+
+`add` publishes one of your own posts, by id or URL, into every program named by a repeated `--program`; only a program
+whose `state` is `active` accepts posts. `--ends-at` takes a time with seconds and a zone, and `--block-advertiser`
+keeps an advertiser account's pre-rolls off the post, one id each time. The programs and the posts in them are read in
+one response each, with no `--cursor` to page them. The Amplify endpoints take the same `media.library.read` and
+`media.library.write` scopes as `xr media library`, so a login made before `xr` requested them needs `xr auth oauth2`
+again; an OAuth1 login is not affected.
+
 ### Broadcasts
 
 ```bash

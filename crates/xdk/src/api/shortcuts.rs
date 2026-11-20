@@ -16,10 +16,11 @@ use serde::de::DeserializeOwned;
 use super::auth_matrix::endpoints;
 use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
-    ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatModeratorsResult,
-    ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, AmplifyPostAdded,
+    AmplifyProgram, AmplifyProgramPost, ApiResponse, ArticleDraft, ArticlePublished,
+    BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast,
+    BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
     DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
     ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded, MediaLibraryCategories,
     MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
@@ -460,6 +461,29 @@ struct AddToLibraryBody<'a> {
 /// The empty JSON object the spec requires as the body of a library removal.
 #[derive(Serialize)]
 struct RemoveFromLibraryBody {}
+
+/// Where and until when a post is published in Amplify programs. A field
+/// left `None` is not sent.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct AmplifyPromotion {
+    /// Ids of the programs to publish the post into, at least one.
+    pub program_ids: Vec<String>,
+    /// Ids of the advertiser accounts whose pre-rolls may not run on the
+    /// post.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_advertiser_ids: Option<Vec<String>>,
+    /// When promotion of the post ends, RFC 3339 with seconds and a zone.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub promotion_ends_at: Option<String>,
+}
+
+/// The body that publishes `post_id` into the programs `promotion` names.
+#[derive(Serialize)]
+struct AmplifyPostBody<'a> {
+    post_id: &'a str,
+    #[serde(flatten)]
+    promotion: &'a AmplifyPromotion,
+}
 
 /// A part of another post's video, shared as a post's clip: the spec's
 /// `CreatePostsClip`. X sets how long a clip may be and which posts can be
@@ -1164,6 +1188,55 @@ pub fn validate_language_tag(tag: &str) -> std::result::Result<(), &'static str>
     }
 }
 
+/// Validates an Amplify program id against the spec's pattern: 1 to 64
+/// letters, digits, hyphens, or underscores.
+///
+/// # Errors
+/// Returns `invalid-program-id` for anything else.
+pub fn validate_program_id(id: &str) -> std::result::Result<(), &'static str> {
+    if id.is_empty()
+        || id.len() > 64
+        || !id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return Err("invalid-program-id");
+    }
+    Ok(())
+}
+
+/// Validates what publishing a post into Amplify programs sends: every
+/// program id in the spec's pattern, every blocked advertiser id 1 to 19
+/// digits, and a promotion end in RFC 3339 with seconds and a zone.
+///
+/// # Errors
+/// Returns `invalid-program-id`, `invalid-advertiser-id`, or
+/// `invalid-promotion-end`.
+pub fn validate_amplify_promotion(
+    promotion: &AmplifyPromotion,
+) -> std::result::Result<(), &'static str> {
+    promotion
+        .program_ids
+        .iter()
+        .try_for_each(|id| validate_program_id(id))?;
+    if promotion
+        .blocked_advertiser_ids
+        .iter()
+        .flatten()
+        .any(|id| !is_numeric_id(id))
+    {
+        return Err("invalid-advertiser-id");
+    }
+    if promotion
+        .promotion_ends_at
+        .as_deref()
+        .is_some_and(|end| rfc3339_instant(end.as_bytes()).is_none())
+    {
+        return Err("invalid-promotion-end");
+    }
+    Ok(())
+}
+
 /// Validates a scheduled broadcast id against the spec's pattern for
 /// `scheduled_broadcast_id`: 1 to 19 digits.
 ///
@@ -1822,6 +1895,10 @@ fn id_param(user_id: &str) -> HashMap<String, String> {
 
 fn media_key_param(media_key: &str) -> HashMap<String, String> {
     HashMap::from([("media_key".to_string(), media_key.to_string())])
+}
+
+fn program_id_param(program_id: &str) -> HashMap<String, String> {
+    HashMap::from([("program_id".to_string(), program_id.to_string())])
 }
 
 fn id_and(user_id: &str, key: &str, value: String) -> HashMap<String, String> {
@@ -4043,6 +4120,67 @@ impl Client {
                 HashMap::new(),
                 query,
             ),
+        )
+    }
+
+    /// Lists the Amplify programs the caller can publish posts into.
+    pub fn get_amplify_programs(&self) -> Call<ApiResponse<Vec<AmplifyProgram>>> {
+        self.call(
+            endpoints::GET_AMPLIFY_PROGRAMS.method,
+            template(
+                endpoints::GET_AMPLIFY_PROGRAMS.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Reads one Amplify program.
+    pub fn get_amplify_program(&self, program_id: &str) -> Call<ApiResponse<AmplifyProgram>> {
+        self.call(
+            endpoints::GET_AMPLIFY_PROGRAM.method,
+            template(
+                endpoints::GET_AMPLIFY_PROGRAM.path,
+                program_id_param(program_id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Lists the posts published into one Amplify program.
+    pub fn get_amplify_program_posts(
+        &self,
+        program_id: &str,
+    ) -> Call<ApiResponse<Vec<AmplifyProgramPost>>> {
+        self.call(
+            endpoints::GET_AMPLIFY_PROGRAM_POSTS.method,
+            template(
+                endpoints::GET_AMPLIFY_PROGRAM_POSTS.path,
+                program_id_param(program_id),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Publishes the caller's post `post_id`, an id or a post URL, into the
+    /// Amplify programs `promotion` names. Only an `active` program accepts
+    /// posts.
+    pub fn add_post_to_amplify_programs(
+        &self,
+        post_id: &str,
+        promotion: &AmplifyPromotion,
+    ) -> Call<ApiResponse<AmplifyPostAdded>> {
+        self.json_call(
+            endpoints::ADD_POST_TO_AMPLIFY_PROGRAMS.method,
+            template(
+                endpoints::ADD_POST_TO_AMPLIFY_PROGRAMS.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &AmplifyPostBody {
+                post_id: &resolve_post_id(post_id),
+                promotion,
+            },
         )
     }
 

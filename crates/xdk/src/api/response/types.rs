@@ -912,6 +912,54 @@ pub struct MediaLibraryCategories {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// An Amplify program, which sponsors pre-roll ads on the posts publishers add
+/// to it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct AmplifyProgram {
+    /// The program's identifier.
+    pub id: String,
+    /// The program's display name.
+    pub name: String,
+    /// `active`, `inactive`, or `deleted`; only an `active` program accepts
+    /// posts.
+    pub state: String,
+    /// Ids of the advertiser accounts sponsoring the program.
+    pub advertiser_ids: Vec<String>,
+    /// Ids of the users enrolled in the program as publishers.
+    pub publisher_ids: Vec<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A post published into an Amplify program.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct AmplifyProgramPost {
+    /// The post's id. Either this name or the legacy `tweet_id` fills the
+    /// field.
+    #[serde(alias = "tweet_id")]
+    #[doc(alias = "tweet_id")]
+    pub post_id: String,
+    /// When the post was published into the program, ISO 8601.
+    pub added_at: String,
+    /// When promotion of the post ends, ISO 8601, when one was set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub promotion_ends_at: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// What X answers when a post is published into Amplify programs.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct AmplifyPostAdded {
+    /// Whether the post was published into the programs.
+    pub added: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// Video metrics for one uploaded media over a time window.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MediaAnalytics {

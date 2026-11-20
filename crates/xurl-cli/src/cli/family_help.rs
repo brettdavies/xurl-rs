@@ -1504,6 +1504,69 @@ pub mod media_subtitles {
     }
 }
 
+/// The `xr media amplify` family.
+pub mod media_amplify {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "media amplify",
+    };
+
+    /// `xr media amplify list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "",
+        text_caption: "The programs you can publish posts into (text)",
+        json_caption: "List (JSON envelope)",
+    };
+
+    /// `xr media amplify get`.
+    pub const GET: Verb = Verb {
+        name: "get",
+        example_args: "prog_2026-launch",
+        text_caption: "One program, with its state (text)",
+        json_caption: "Get (JSON envelope)",
+    };
+
+    /// `xr media amplify posts`.
+    pub const POSTS: Verb = Verb {
+        name: "posts",
+        example_args: "prog_2026-launch",
+        text_caption: "The posts published into a program (text)",
+        json_caption: "Posts (JSON envelope)",
+    };
+
+    /// `xr media amplify add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "1346889436626259968 --program prog_2026-launch --ends-at 2026-12-01T00:00:00Z",
+        text_caption: "Publish a post into a program until a date (text)",
+        json_caption: "Add (JSON envelope)",
+    };
+
+    /// The page under `xr media amplify --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "The programs you can publish posts into (text)",
+                &[Example::text(&LIST)],
+            ),
+            ("One program, JSON envelope", &[Example::json(&GET)]),
+            (
+                "The posts published into a program (text)",
+                &[Example::text(&POSTS)],
+            ),
+            (
+                "Publish a post into a program until a date (text)",
+                &[Example::text(&ADD)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr media library` family.
 pub mod media_library {
     use super::{Example, Family, Section, Verb};

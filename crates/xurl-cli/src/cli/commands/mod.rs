@@ -15,6 +15,7 @@ pub mod examples;
 mod graph;
 mod lists;
 mod media;
+mod media_amplify;
 mod media_library;
 mod media_lookup;
 mod news;

@@ -1,0 +1,31 @@
+args: ["--output", "json", "--dry-run", "media", "amplify", "add", "1346889436626259968", "--program", "prog_2026-launch", "--block-advertiser", "acme"]
+store: empty
+exit_code: 0
+stdout_len: 521
+stderr_len: 0
+--- stdout ---
+{
+  "blocked_advertiser_ids": [
+    "acme"
+  ],
+  "command": "media-amplify-add",
+  "exit_code": 1,
+  "message": "An advertiser id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr media amplify add --help"
+  },
+  "post_id": "1346889436626259968",
+  "program_ids": [
+    "prog_2026-launch"
+  ],
+  "promotion_ends_at": null,
+  "reason": "validation",
+  "response_schema": "xr schema media amplify add",
+  "rule": "invalid-advertiser-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

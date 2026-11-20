@@ -1,0 +1,24 @@
+args: ["--output", "json", "--dry-run", "media", "amplify", "get", "not a program"]
+store: empty
+exit_code: 0
+stdout_len: 423
+stderr_len: 0
+--- stdout ---
+{
+  "command": "media-amplify-get",
+  "exit_code": 1,
+  "message": "A program id is 1 to 64 letters, digits, hyphens, or underscores.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr media amplify get --help"
+  },
+  "program_id": "not a program",
+  "reason": "validation",
+  "response_schema": "xr schema media amplify get",
+  "rule": "invalid-program-id",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

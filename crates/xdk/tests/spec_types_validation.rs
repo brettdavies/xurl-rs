@@ -26,18 +26,18 @@ use std::collections::{BTreeMap, BTreeSet};
 use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ArticleDraft, ArticlePublished,
-    BookmarkFolder, Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatMute,
-    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
-    HiddenResult, IngestRegion, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
-    MediaLibraryAdded, MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult,
-    MediaSubtitlesResult, NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    TrendLocation, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, AmplifyPostAdded,
+    AmplifyProgram, AmplifyProgramPost, ArticleDraft, ArticlePublished, BookmarkFolder, Broadcast,
+    BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatMute, ChatMutedResult,
+    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, HiddenResult, IngestRegion,
+    List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded,
+    MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult,
+    NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post,
+    PostAnalytics, PostCount, ProvisionedResult, ScheduledBroadcast, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule,
+    StreamRuleAppCount, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
+    StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -233,6 +233,22 @@ fn typed_responses_match_vendored_spec() {
         (
             "UpdateBroadcastStateResponseData",
             serde_json::to_value(schemars::schema_for!(BroadcastEnded)).unwrap(),
+        ),
+        (
+            "GetAmplifyProgramsResponseData",
+            serde_json::to_value(schemars::schema_for!(AmplifyProgram)).unwrap(),
+        ),
+        (
+            "GetAmplifyProgramResponseData",
+            serde_json::to_value(schemars::schema_for!(AmplifyProgram)).unwrap(),
+        ),
+        (
+            "GetAmplifyProgramPostsResponseData",
+            serde_json::to_value(schemars::schema_for!(AmplifyProgramPost)).unwrap(),
+        ),
+        (
+            "AddPostToAmplifyProgramsResponseData",
+            serde_json::to_value(schemars::schema_for!(AmplifyPostAdded)).unwrap(),
         ),
         (
             "AddMediaToLibraryResponseData",
