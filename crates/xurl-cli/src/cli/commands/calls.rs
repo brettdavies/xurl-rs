@@ -41,7 +41,6 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
                 "command": "calls-scheduled-list",
                 "start_time": start,
                 "end_time": end,
-                "max_results": max_results,
             });
             let validate = || {
                 [&start, &end]
