@@ -1,4 +1,4 @@
-<!-- Canonical version: 2026.11.03 (generic) -->
+<!-- Canonical version: 2026.11.07 (generic) -->
 # Post-release verification: `xurl-rs`
 
 Operational post-flight checklist. Runs **after** the `release/v<version> → main` PR merges and
@@ -24,8 +24,8 @@ not driven from the script: running them on the local dev machine pollutes its t
 the fresh-machine semantics. Drive those on a throwaway container or a sibling machine.
 
 `--env staging|prod` is optional and defaults to `prod`. xurl-rs is a single-env CLI, so every gate behaves identically
-and the flag can be ignored; the `surface-smoke` gate auto-SKIPs because no `scripts/release/surface-smoke.sh` is
-vendored (there is no deployed surface to smoke).
+and the flag can be ignored. No `scripts/release/surface-smoke.sh` is vendored (there is no deployed surface to smoke),
+so under `all` the `surface-smoke` gate records a skip naming that, and run by name it fails for want of a script.
 
 Sub-commands let you re-run one verification in isolation:
 
@@ -38,7 +38,7 @@ Sub-commands let you re-run one verification in isolation:
 | `crates`        | `crates.io` shows the tag's crate at its version: `xurl-rs` for `vX.Y.Z`, `xdk-rs` for `xdk-rs-vX.Y.Z`                                                                                                                                 | `crates.io` index API                                   |
 | `tags`          | `xdk-rs-vX.Y.Z` is on `vX.Y.Z`'s commit whenever the release moved `xdk-rs`'s version                                                                                                                                                  | `git rev-parse`, `cargo metadata`                       |
 | `backport`      | the backport's own subject (`chore(release): sync dev after <tag>`) on `dev`'s first-parent history or a merged PR's title; for `xdk-rs-vX.Y.Z`, which the binary's backport carries, `dev` holding `main`'s `crates/xdk/CHANGELOG.md` | `gh pr list --base dev --state merged`, `git rev-parse` |
-| `surface-smoke` | auto-SKIPs: xurl-rs vendors no `surface-smoke.sh`                                                                                                                                                                                      | n/a                                                     |
+| `surface-smoke` | skips under `all` and fails by name: xurl-rs vendors no `surface-smoke.sh`                                                                                                                                                             | n/a                                                     |
 | `all`           | every above                                                                                                                                                                                                                            | all of the above                                        |
 
 The `tap` and `finalize` gates accept only downstream runs created at or after this tag's `release.yml` run, and SKIP
@@ -48,6 +48,10 @@ while this one is still queued. The `tap` gate also SKIPs when no workflow under
 pass on another CLI's formula bump. `release.yml` here calls the reusable, so the gate runs. It matches the tap's run by
 its title, which names the formula and version and marks a rehearsal `(dry run)`, so neither a rehearsal nor another
 formula's bump counts.
+
+The `release` gate reads the run that releases the tag. The tag push's own run, titled `Dispatch vX.Y.Z`, builds
+nothing; the gate waits while only that run exists, and fails when it failed with no run titled `Release vX.Y.Z` to
+read, pointing at [`RELEASES.md` § When the dispatch job fails](./RELEASES.md#when-the-dispatch-job-fails).
 
 Flags:
 
@@ -152,8 +156,8 @@ Run once the tags are pushed.
 
 - [ ] **(Library release) Verify the `xdk-rs` tag separately, before the CLI's.** Run `scripts/release/postflight.sh
   --tag xdk-rs-v<X.Y.Z> all`. Expect `release-lib.yml` green, `tap` and `finalize` SKIPped, `releases/latest` still
-  pointing at the CLI's tag, and the index showing `xdk-rs <X.Y.Z>`. Only then push the CLI tag; its `check-version`
-  reads the library's published version from crates.io. Then confirm the downstream surface: the documented `xdk` API
+  pointing at the CLI's tag, and the index showing `xdk-rs <X.Y.Z>`. Only then push the CLI tag; its `publish-crate`
+  waits for the library's published version on crates.io. Then confirm the downstream surface: the documented `xdk` API
   compiles in a throwaway crate depending on `xdk-rs = "<X.Y.Z>"`, a human-driven check on a throwaway target. A release
   that does not move `xdk-rs` skips this row.
 

@@ -1,4 +1,4 @@
-<!-- Canonical version: 2026.11.03 (generic) -->
+<!-- Canonical version: 2026.11.07 (generic) -->
 # Releases rationale
 
 Companion to [`RELEASES.md`](./RELEASES.md). RELEASES.md is the runbook (commands, paths, decision tables). This file

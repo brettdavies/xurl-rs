@@ -1,4 +1,4 @@
-<!-- Canonical version: 2026.11.03 (generic) -->
+<!-- Canonical version: 2026.11.07 (generic) -->
 # Pre-release verification: `xurl-rs`
 
 Operational pre-flight checklist. Walk it before step 1 of
@@ -64,6 +64,13 @@ Flags:
   in for the CLI's)
 
 `PREVIOUS_BIN_PATH` names the `xr` that `oauth2-interactive` compares the release binary with (default: Homebrew's).
+
+**A delegated gate that never finished fails.** `drift` runs `drift.sh` through the skeleton's
+`delegate_to_subscript`: a script that is not executable, one killed mid-run, one that exits without writing its
+`<pass> <fail> <skip>` result, and one whose result holds no pass and no failure each fail the gate, and each failure
+ends on a `fix:` line. `drift.sh` is required wherever `origin/dev` exists; a single-branch repo skips the drift gate.
+No `surface-smoke.sh` is vendored, so `all` records a `surface-smoke` skip naming that, and `surface-smoke` by name
+fails.
 
 The script seeds an isolated `$SMOKE_HOME` from 1Password (`secrets-dev` vault) and **`shred -u`s** every tempdir that
 held credentials on exit (overwrites bytes with three passes before unlinking; falls back to `dd if=/dev/urandom + rm`

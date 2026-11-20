@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.03 (generic)
+# Canonical version: 2026.11.04 (generic)
 #
 # Run release preflight gates against the current checkout.
 #
@@ -38,6 +38,9 @@
 # Environment:
 #   CHANGELOG_PR_BASE   Branch whose merged PRs changelog-sections reads (default: dev, or main
 #                       when origin/dev does not exist)
+#   CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET
+#                       Access service token for a gated staging host. Set both for the one command;
+#                       only the surface smoke receives them
 #   PREVIOUS_BIN_PATH   The xr oauth2-interactive compares the release binary with (default:
 #                       Homebrew's)
 #
@@ -59,6 +62,13 @@
 
 set -euo pipefail
 
+# The Access service token is for the surface smoke alone, so it leaves the
+# environment before the first child (the dirname below). A copy into another
+# variable would print under `bash -x` and be re-exported by allexport;
+# un-exporting in place does neither. delegate_to_subscript --with-access-token
+# re-exports it for that one child.
+export -n CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
+
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 readonly REPO_ROOT
 
@@ -66,6 +76,14 @@ readonly REPO_ROOT
 # SMOKE_HOME cleanup. Same _lib.sh as postflight.sh.
 # shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
+
+# A hand-merged skeleton can outpace a vendored library: delegate_to_subscript in
+# an older one reads a flag as the script's path and reports nothing, which passes.
+declare -F surface_reachable >/dev/null || {
+  echo "scripts/release/_lib.sh is older than this script" >&2
+  echo "fix: refresh it from github-repo-setup's templates/scripts/release/_lib.sh" >&2
+  exit 2
+}
 
 BIN_PATH="${BIN_PATH:-$REPO_ROOT/target/release/xr}"
 
@@ -650,9 +668,11 @@ gate_oauth2_interactive() {
 gate_drift() {
   local drift_script
   drift_script="$(dirname "$0")/drift.sh"
-  [[ -x "$drift_script" ]] || return 0
   header "Branch drift (delegated to drift.sh)"
   if ! git rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
+    if [[ -e "$drift_script" || -L "$drift_script" ]]; then
+      subscript_runnable "$drift_script" || return 0
+    fi
     gate_skip "drift" "no origin/dev branch (single-branch repo)"
     return
   fi
@@ -665,14 +685,17 @@ gate_drift() {
 # smoke suite (transport + tools + auth), put it in scripts/release/surface-
 # smoke.sh and the `all` runner picks it up automatically. The sub-script
 # must accept --result-file PATH per the contract in _lib.sh's
-# delegate_to_subscript helper. xr ships no such surface, so the gate is a
-# no-op until that script exists.
+# delegate_to_subscript helper. xr ships no such surface, so `all` records a skip
+# until that script exists, and the gate asked for by name fails.
 
 gate_surface_smoke() {
-  local surface_script
+  local surface_script url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
   surface_script="$(dirname "$0")/surface-smoke.sh"
-  [[ -x "$surface_script" ]] || return 0
+  if ! repo_declares_surface && skip_unvendored "$surface_script"; then
+    return
+  fi
   header "Surface smoke (delegated to surface-smoke.sh)"
+  subscript_runnable "$surface_script" || return 0
   # Project picks the local URL the surface runs against; common defaults:
   #   bunx wrangler dev   → http://localhost:8787
   #   uvicorn / fastapi   → http://localhost:8000
@@ -680,16 +703,12 @@ gate_surface_smoke() {
   # A deployed staging URL (--staging-url, else STAGING_URL_DEFAULT from
   # release.env, the same default postflight reads) is smoked as given: an
   # unreachable deployment is a failure, not a skip. Without one, the local
-  # server is the target, and a local server that is not running skips.
-  local url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
+  # server is the target, and surface_reachable decides when it is not running.
   if [[ -z "$url" ]]; then
     url="${LOCAL_URL:-http://localhost:8787}"
-    if ! curl -fsS --max-time 2 "$url/" >/dev/null 2>&1; then
-      gate_skip "surface-smoke" "local server not running at $url (start it and re-run)"
-      return
-    fi
+    surface_reachable "$url" || return 0
   fi
-  delegate_to_subscript "$surface_script" "$url"
+  delegate_to_subscript --with-access-token "$surface_script" "$url"
 }
 
 # Gate: changelog-sections ---------------------------------------------------
@@ -1017,6 +1036,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "unknown arg: $1" >&2
+      echo "fix: see this script's --help for the flags and subcommands it takes" >&2
       usage
       ;;
   esac
