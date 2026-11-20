@@ -286,6 +286,10 @@ MEDIA UPLOAD:
     xr media upload ./captions.srt --media-type text/srt --category subtitles
     xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English --output json
 
+  Add an upload to your media library, and let ads run against it:
+    xr media library categories --output json
+    xr media library add 7_1146654567674912770 --title \"Launch day\" --monetize --video-category 4 --output json
+
 RAW MODE (curl-style):
   Generic GET:
     xr /2/users/me --output json

@@ -30,8 +30,9 @@ use xdk::api::response::types::{
     BookmarkFolder, Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatMute,
     ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
     HiddenResult, IngestRegion, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
-    MediaMetadataResult, MediaSubtitlesResult, NewsStory, Note, NoteCreated, NoteEvaluation,
-    NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    MediaLibraryAdded, MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult,
+    MediaSubtitlesResult, NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount, StreamRuleCounts, StreamSource,
     StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
@@ -232,6 +233,22 @@ fn typed_responses_match_vendored_spec() {
         (
             "UpdateBroadcastStateResponseData",
             serde_json::to_value(schemars::schema_for!(BroadcastEnded)).unwrap(),
+        ),
+        (
+            "AddMediaToLibraryResponseData",
+            serde_json::to_value(schemars::schema_for!(MediaLibraryAdded)).unwrap(),
+        ),
+        (
+            "UpdateMediaInLibraryResponseData",
+            serde_json::to_value(schemars::schema_for!(MediaLibraryUpdated)).unwrap(),
+        ),
+        (
+            "RemoveMediaFromLibraryResponseData",
+            serde_json::to_value(schemars::schema_for!(DeletedResult)).unwrap(),
+        ),
+        (
+            "GetMediaLibraryCategoriesResponseData",
+            serde_json::to_value(schemars::schema_for!(MediaLibraryCategories)).unwrap(),
         ),
         (
             "TrendLocation",

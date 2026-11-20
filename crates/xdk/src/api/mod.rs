@@ -40,6 +40,7 @@ pub use response::types::{
     ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
     DmSentResult, FollowingResult, HiddenResult, Includes, IngestRegion, LikedResult, List,
     ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaAnalyticsBucket,
+    MediaLibraryAdded, MediaLibraryCategories, MediaLibraryCategory, MediaLibraryUpdated,
     MediaMetadataResult, MediaProcessingInfo, MediaSubtitlesResult, MediaUploadResponse,
     MutingResult, NewsClusterPost, NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo,
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, PostPublicMetrics,

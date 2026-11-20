@@ -9,7 +9,8 @@ use xdk::api::shortcuts::{
     ALT_TEXT_MAX_CHARS, BOOKMARK_FOLDER_NAME_MAX_CHARS, BROADCAST_CHAT_MAX_CHARS,
     CALL_DESCRIPTION_MAX_CHARS, CALL_DURATION_MAX_MINUTES, CALL_RECURRENCE_MAX_CHARS,
     CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX, CHAT_OPTION_MAX,
-    DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
+    DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIBRARY_DESCRIPTION_MAX_CHARS,
+    LIBRARY_TITLE_MAX_CHARS, LIBRARY_VIDEO_CATEGORIES_MAX, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
     USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
 };
@@ -148,6 +149,24 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
         ),
         "empty-alt-text" => "The alt text is empty.".to_string(),
         "alt-text-too-long" => format!("Alt text is at most {ALT_TEXT_MAX_CHARS} characters."),
+        "library-title-too-long" => {
+            format!("A library title is at most {LIBRARY_TITLE_MAX_CHARS} characters.")
+        }
+        "library-description-too-long" => {
+            format!("A library description is at most {LIBRARY_DESCRIPTION_MAX_CHARS} characters.")
+        }
+        "too-many-video-categories" => {
+            format!("A video takes at most {LIBRARY_VIDEO_CATEGORIES_MAX} video categories.")
+        }
+        "invalid-country-code" => "A country is a two-letter code, such as US or CA.".to_string(),
+        "no-library-changes" => "Nothing would change; give --name, --label, --title, \
+             --description, or a monetization flag."
+            .to_string(),
+        "invalid-language-tag" => {
+            "A language tag is two or three letters, then optional subtags of 2 to 8 letters \
+             or digits joined by hyphens, such as en or pt-BR."
+                .to_string()
+        }
         "invalid-language-code" => "A language code is two letters, such as en.".to_string(),
         "forward-url-invalid" => "The --forward URL is not an absolute URL.".to_string(),
         "forward-url-not-http" => "--forward takes an http or https URL.".to_string(),

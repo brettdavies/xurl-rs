@@ -1214,9 +1214,10 @@ fn test_a_sign_in_requests_every_scope_by_default() {
     assert_eq!(
         authorize_scope(&auth, &tmp),
         "tweet.read users.read bookmark.read follows.read list.read block.read mute.read \
-         like.read users.email dm.read broadcast.read calls.read tweet.write \
+         like.read users.email dm.read broadcast.read calls.read media.library.read tweet.write \
          tweet.moderate.write follows.write bookmark.write block.write mute.write like.write \
-         list.write media.write dm.write broadcast.write calls.write offline.access space.read"
+         list.write media.write dm.write broadcast.write calls.write media.library.write \
+         offline.access space.read"
     );
 }
 

@@ -35,7 +35,10 @@ pub use output::OutputFormat;
 use skill_install::KNOWN_HOSTS;
 pub use skill_install::SkillHost;
 use xdk::api::VideoCategory;
-use xdk::api::shortcuts::WEBHOOK_URL_MAX_CHARS;
+use xdk::api::shortcuts::{
+    LIBRARY_DESCRIPTION_MAX_CHARS, LIBRARY_TITLE_MAX_CHARS, LIBRARY_VIDEO_CATEGORIES_MAX,
+    WEBHOOK_URL_MAX_CHARS,
+};
 use xdk::webhooks::CHECKPOINT_SHAPE;
 
 /// Color output choice. Honored by `OutputConfig` together with `NO_COLOR`
@@ -628,6 +631,8 @@ Examples:
     xr media alt-text 1585341984679469056 \"A dog asleep on a beach towel\"
   Add an English subtitle track to an uploaded video:
     xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English
+  Add an upload to your media library:
+    xr media library add 7_1146654567674912770 --title \"Launch day\"
 ";
 
 /// `xr schema` examples — paired text + JSON, list, all.
@@ -1940,7 +1945,7 @@ pub enum Commands {
     },
 
     // ── Media ────────────────────────────────────────────────────────
-    /// Media upload, lookup by key, video metrics, alt text, and subtitles
+    /// Media upload, lookup by key, video metrics, alt text, subtitles, and your media library
     #[command(after_help = MEDIA_HELP)]
     Media {
         /// `media` subcommand to dispatch.
@@ -4112,6 +4117,117 @@ pub enum MediaCommands {
         #[command(subcommand)]
         action: SubtitlesCommands,
     },
+    /// Add uploaded videos to your media library, and change, remove, and categorize them
+    ///
+    /// The endpoints take the `media.library.read` and `media.library.write` scopes, which every
+    /// `xr auth oauth2` sign-in requests. A login made before `xr` requested them lacks them until
+    /// you sign in again; an OAuth1 login is not affected.
+    #[command(after_help = family_help::media_library::page())]
+    Library {
+        /// `library` verb to dispatch.
+        #[command(subcommand)]
+        action: LibraryCommands,
+    },
+}
+
+/// `xr media library` verbs.
+#[derive(Subcommand, Debug)]
+pub enum LibraryCommands {
+    /// Add an upload to your media library
+    ///
+    /// The upload is yours already: `<MEDIA_KEY>` is the `media_key` an upload or `xr media get`
+    /// prints. Geo restrictions, content expiry, the preview image, and the audience policy are set
+    /// with the media metadata endpoint, which raw mode reaches.
+    #[command(after_help = family_help::media_library::FAMILY.verb_page(&family_help::media_library::ADD))]
+    Add {
+        /// Media key of the upload, such as 7_1146654567674912770
+        #[arg(value_name = "MEDIA_KEY")]
+        media_key: String,
+        /// What the item is called, and how it is monetized
+        #[command(flatten)]
+        item: LibraryItemArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Change the name, label, player card, or monetization of a library item
+    ///
+    /// Only what the flags name changes.
+    #[command(after_help = family_help::media_library::FAMILY.verb_page(&family_help::media_library::UPDATE))]
+    Update {
+        /// Media key of the library item
+        #[arg(value_name = "MEDIA_KEY")]
+        media_key: String,
+        /// What the item is called, and how it is monetized
+        #[command(flatten)]
+        item: LibraryItemArgs,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Remove an item from your media library
+    ///
+    /// X cancels the posts scheduled through the API that have not published and still use the
+    /// media. Published posts and the upload itself are not affected.
+    #[command(after_help = family_help::media_library::FAMILY.verb_page(&family_help::media_library::REMOVE))]
+    Remove {
+        /// Media key of the library item
+        #[arg(value_name = "MEDIA_KEY")]
+        media_key: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// List the video and advertiser categories a library item's monetization names
+    #[command(after_help = family_help::media_library::FAMILY.verb_page(&family_help::media_library::CATEGORIES))]
+    Categories {
+        /// Language of the category names, such as en or pt-BR
+        #[arg(long, value_name = "TAG")]
+        lang: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
+/// What a media library item is called and how it is monetized, as adding
+/// one and changing one both take them.
+#[derive(clap::Args, Debug)]
+pub struct LibraryItemArgs {
+    /// The item's name in the library
+    #[arg(long, value_name = "NAME")]
+    pub name: Option<String>,
+    /// The item's label in the library
+    #[arg(long, value_name = "LABEL")]
+    pub label: Option<String>,
+    #[arg(long, value_name = "TITLE", help = format!("The title shown with the video in the player card ({LIBRARY_TITLE_MAX_CHARS} characters at most)"))]
+    pub title: Option<String>,
+    #[arg(long, value_name = "TEXT", help = format!("The description shown with the video in the player card ({LIBRARY_DESCRIPTION_MAX_CHARS} characters at most)"))]
+    pub description: Option<String>,
+    /// Let ads run against the video; X requires the account to be enrolled in video monetization
+    #[arg(long, conflicts_with = "no_monetize")]
+    pub monetize: bool,
+    /// Stop ads running against the video
+    #[arg(long = "no-monetize")]
+    pub no_monetize: bool,
+    #[arg(long = "video-category", value_name = "ID", help = format!("A category describing the video, an id from `xr media library categories` ({LIBRARY_VIDEO_CATEGORIES_MAX} at most); repeat for each"))]
+    pub video_category: Vec<u64>,
+    /// The Amplify program to monetize the video through, in place of `--video-category`
+    #[arg(long = "program", value_name = "PROGRAM_ID")]
+    pub program: Option<String>,
+    /// A country to monetize the video in, and only there, as a two-letter code; repeat for each
+    #[arg(long = "country", value_name = "CODE")]
+    pub country: Vec<String>,
+    /// An advertiser account whose ads may not run against the video, by id; repeat for each
+    #[arg(long = "block-advertiser", value_name = "ID")]
+    pub block_advertiser: Vec<String>,
+    /// An advertiser category whose ads may not run against the video, an id from `xr media
+    /// library categories`; repeat for each
+    #[arg(long = "block-advertiser-category", value_name = "ID")]
+    pub block_advertiser_category: Vec<u64>,
 }
 
 /// `xr media subtitles` verbs.

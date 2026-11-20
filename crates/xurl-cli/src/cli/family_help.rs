@@ -1503,3 +1503,66 @@ pub mod media_subtitles {
         FAMILY.page(SECTIONS)
     }
 }
+
+/// The `xr media library` family.
+pub mod media_library {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family {
+        path: "media library",
+    };
+
+    /// `xr media library add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "7_1146654567674912770 --title \"Launch day\" --monetize --video-category 4",
+        text_caption: "Add an upload to your library and let ads run against it (text)",
+        json_caption: "Add (JSON envelope)",
+    };
+
+    /// `xr media library update`.
+    pub const UPDATE: Verb = Verb {
+        name: "update",
+        example_args: "7_1146654567674912770 --name \"Launch day, cut 2\" --country US --country CA",
+        text_caption: "Rename an item and monetize it in two countries only (text)",
+        json_caption: "Update (JSON envelope)",
+    };
+
+    /// `xr media library remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "7_1146654567674912770 --force --no-interactive",
+        text_caption: "Remove an item from your library (text)",
+        json_caption: "Remove (JSON envelope)",
+    };
+
+    /// `xr media library categories`.
+    pub const CATEGORIES: Verb = Verb {
+        name: "categories",
+        example_args: "--lang pt-BR",
+        text_caption: "The categories a library item names, in Portuguese (text)",
+        json_caption: "Categories (JSON envelope)",
+    };
+
+    /// The page under `xr media library --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            (
+                "Add an upload to your library and let ads run against it (text)",
+                &[Example::text(&ADD)],
+            ),
+            (
+                "Rename an item and monetize it in two countries only (text)",
+                &[Example::text(&UPDATE)],
+            ),
+            ("Remove an item, JSON envelope", &[Example::json(&REMOVE)]),
+            (
+                "List the categories a monetization names (text)",
+                &[Example::text(&CATEGORIES)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}

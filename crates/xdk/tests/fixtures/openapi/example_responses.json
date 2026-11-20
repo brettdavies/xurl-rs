@@ -141,6 +141,41 @@
       }
     ]
   },
+  "media_library_added": {
+    "data": {
+      "media_key": "7_1146654567674912770"
+    }
+  },
+  "media_library_updated": {
+    "data": {
+      "updated": true
+    }
+  },
+  "media_library_removed": {
+    "data": {
+      "deleted": true
+    }
+  },
+  "media_library_categories": {
+    "data": {
+      "video_categories": [
+        {
+          "id": 1,
+          "description": "News"
+        },
+        {
+          "id": 2,
+          "description": "Sports"
+        }
+      ],
+      "advertiser_categories": [
+        {
+          "id": 10,
+          "description": "Automotive"
+        }
+      ]
+    }
+  },
   "trend_locations": {
     "data": [
       {

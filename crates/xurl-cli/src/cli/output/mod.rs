@@ -710,6 +710,7 @@ impl OutputConfig {
             broadcast_id: get_str("broadcast_id"),
             scheduled_id: get_str("scheduled_id"),
             source_id: get_str("source_id"),
+            media_key: get_str("media_key"),
             scheduled_call_id: get_str("scheduled_call_id"),
             scope: get_str("scope"),
             occurrence_start_time: get_str("occurrence_start_time"),

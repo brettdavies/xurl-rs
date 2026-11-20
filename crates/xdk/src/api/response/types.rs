@@ -866,6 +866,52 @@ pub struct Media {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// What X answers when media is added to the caller's media library.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct MediaLibraryAdded {
+    /// The media key of the library item.
+    pub media_key: String,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// What X answers when a media library item changes.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct MediaLibraryUpdated {
+    /// Whether the item was updated.
+    pub updated: bool,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// A category a library video is filed under, or whose advertisers can be
+/// blocked from it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct MediaLibraryCategory {
+    /// The id a library item's monetization settings name the category by.
+    pub id: u64,
+    /// The category's name, in the language asked for when X has a
+    /// translation.
+    pub description: String,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
+/// The categories a media library item's monetization settings name.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct MediaLibraryCategories {
+    /// The categories a publisher can file a video under.
+    pub video_categories: Vec<MediaLibraryCategory>,
+    /// The advertiser categories whose ads can be blocked from a video.
+    pub advertiser_categories: Vec<MediaLibraryCategory>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// Video metrics for one uploaded media over a time window.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct MediaAnalytics {

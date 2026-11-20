@@ -241,6 +241,26 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::ADD_MEDIA_TO_LIBRARY,
+        fixture: "media_library_added",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::GET_MEDIA_LIBRARY_CATEGORIES,
+        fixture: "media_library_categories",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_MEDIA_IN_LIBRARY,
+        fixture: "media_library_updated",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::REMOVE_MEDIA_FROM_LIBRARY,
+        fixture: "media_library_removed",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_TREND_LOCATIONS,
         fixture: "trend_locations",
         status: 200,

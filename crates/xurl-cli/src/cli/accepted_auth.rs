@@ -200,6 +200,13 @@ pub const ROWS: &[Row] = &[
     row("media alt-text", &[ep::CREATE_MEDIA_METADATA]),
     row("media analytics", &[ep::GET_MEDIA_ANALYTICS]),
     row("media get", &[ep::GET_MEDIA]),
+    row("media library add", &[ep::ADD_MEDIA_TO_LIBRARY]),
+    row(
+        "media library categories",
+        &[ep::GET_MEDIA_LIBRARY_CATEGORIES],
+    ),
+    row("media library remove", &[ep::REMOVE_MEDIA_FROM_LIBRARY]),
+    row("media library update", &[ep::UPDATE_MEDIA_IN_LIBRARY]),
     row("media status", &[ep::MEDIA_UPLOAD_STATUS]),
     row("media subtitles add", &[ep::CREATE_MEDIA_SUBTITLES]),
     row("media subtitles remove", &[ep::DELETE_MEDIA_SUBTITLES]),

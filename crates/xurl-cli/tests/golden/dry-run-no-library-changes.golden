@@ -1,0 +1,24 @@
+args: ["--output", "json", "--dry-run", "media", "library", "update", "7_1146654567674912770"]
+store: empty
+exit_code: 0
+stdout_len: 465
+stderr_len: 0
+--- stdout ---
+{
+  "command": "media-library-update",
+  "exit_code": 1,
+  "media_key": "7_1146654567674912770",
+  "message": "Nothing would change; give --name, --label, --title, --description, or a monetization flag.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr media library update --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema media library update",
+  "rule": "no-library-changes",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

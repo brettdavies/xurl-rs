@@ -26,14 +26,14 @@ use xdk::api::response::types::{
     BookmarkedResult, Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated,
     ChatModeratorsResult, ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult,
     DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult,
-    List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult,
-    MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated,
-    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded,
+    MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult,
+    MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -408,6 +408,39 @@ fn spec_trends() {
     let resp: ApiResponse<Vec<Trend>> = serde_json::from_value(examples["trends"].clone()).unwrap();
     assert_eq!(resp.data[0].tweet_count, Some(18400));
     assert_eq!(resp.data[1].tweet_count, None);
+}
+
+#[test]
+fn spec_media_library_added() {
+    let examples = load_examples();
+    let resp: ApiResponse<MediaLibraryAdded> =
+        serde_json::from_value(examples["media_library_added"].clone()).unwrap();
+    assert_eq!(resp.data.media_key, "7_1146654567674912770");
+}
+
+#[test]
+fn spec_media_library_updated() {
+    let examples = load_examples();
+    let resp: ApiResponse<MediaLibraryUpdated> =
+        serde_json::from_value(examples["media_library_updated"].clone()).unwrap();
+    assert!(resp.data.updated);
+}
+
+#[test]
+fn spec_media_library_removed() {
+    let examples = load_examples();
+    let resp: ApiResponse<DeletedResult> =
+        serde_json::from_value(examples["media_library_removed"].clone()).unwrap();
+    assert!(resp.data.deleted);
+}
+
+#[test]
+fn spec_media_library_categories() {
+    let examples = load_examples();
+    let resp: ApiResponse<MediaLibraryCategories> =
+        serde_json::from_value(examples["media_library_categories"].clone()).unwrap();
+    assert_eq!(resp.data.video_categories[1].description, "Sports");
+    assert_eq!(resp.data.advertiser_categories[0].id, 10);
 }
 
 #[test]
@@ -958,6 +991,26 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "trend_locations",
         endpoints::GET_TREND_LOCATIONS,
+        ReplyKind::Success,
+    ),
+    (
+        "media_library_added",
+        endpoints::ADD_MEDIA_TO_LIBRARY,
+        ReplyKind::Success,
+    ),
+    (
+        "media_library_updated",
+        endpoints::UPDATE_MEDIA_IN_LIBRARY,
+        ReplyKind::Success,
+    ),
+    (
+        "media_library_removed",
+        endpoints::REMOVE_MEDIA_FROM_LIBRARY,
+        ReplyKind::Success,
+    ),
+    (
+        "media_library_categories",
+        endpoints::GET_MEDIA_LIBRARY_CATEGORIES,
         ReplyKind::Success,
     ),
     ("news_list", endpoints::SEARCH_NEWS, ReplyKind::Success),

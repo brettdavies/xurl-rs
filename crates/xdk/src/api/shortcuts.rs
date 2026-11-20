@@ -21,13 +21,14 @@ use super::response::types::{
     Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatModeratorsResult,
     ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
     DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
-    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
-    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
-    StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
-    StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded, MediaLibraryCategories,
+    MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
+    NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
+    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
+    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -395,6 +396,70 @@ pub struct BroadcastChanges {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub live_category_id: Option<String>,
 }
+
+/// The ads settings of a media library video. A field left `None` is not
+/// sent, so an update keeps its value.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct LibraryMonetization {
+    /// Whether ads may run against the video. X requires the account to be
+    /// enrolled in video monetization.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    /// Ids of the categories describing the video, from the categories
+    /// endpoint: at most [`LIBRARY_VIDEO_CATEGORIES_MAX`].
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_category_ids: Option<Vec<u64>>,
+    /// The Amplify program to monetize the video through, in place of
+    /// `video_category_ids`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub program_id: Option<String>,
+    /// ISO 3166-1 alpha-2 codes of the only countries the video is monetized
+    /// in; absent, it is monetized everywhere.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_countries: Option<Vec<String>>,
+    /// Ids of the advertiser accounts whose ads may not run against the video.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_advertiser_ids: Option<Vec<String>>,
+    /// Ids of the advertiser categories, from the categories endpoint, whose
+    /// ads may not run against the video.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_advertiser_category_ids: Option<Vec<u64>>,
+}
+
+/// What a media library item is called and how it is monetized. A field left
+/// `None` is not sent, so an update keeps its value.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct LibraryItemDetails {
+    /// The item's name in the library.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The item's label in the library.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    /// The title shown with the video in the player card, at most
+    /// [`LIBRARY_TITLE_MAX_CHARS`] characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The description shown with the video in the player card, at most
+    /// [`LIBRARY_DESCRIPTION_MAX_CHARS`] characters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// The video's monetization settings.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub monetization: Option<LibraryMonetization>,
+}
+
+/// The body that adds `media_key` to the library with `details`.
+#[derive(Serialize)]
+struct AddToLibraryBody<'a> {
+    media_key: &'a str,
+    #[serde(flatten)]
+    details: &'a LibraryItemDetails,
+}
+
+/// The empty JSON object the spec requires as the body of a library removal.
+#[derive(Serialize)]
+struct RemoveFromLibraryBody {}
 
 /// A part of another post's video, shared as a post's clip: the spec's
 /// `CreatePostsClip`. X sets how long a clip may be and which posts can be
@@ -1007,6 +1072,96 @@ pub fn validate_broadcast_changes(
         return Err("invalid-chat-option");
     }
     Ok(())
+}
+
+/// Longest title a media library item takes, the spec's `maxLength`.
+pub const LIBRARY_TITLE_MAX_CHARS: usize = 70;
+
+/// Longest description a media library item takes, the spec's `maxLength`.
+pub const LIBRARY_DESCRIPTION_MAX_CHARS: usize = 200;
+
+/// Most video categories a library item's monetization names, the spec's
+/// `maxItems`.
+pub const LIBRARY_VIDEO_CATEGORIES_MAX: usize = 2;
+
+/// Validates the details of a media library item against the spec's bounds.
+///
+/// # Errors
+/// Returns the kebab-case reason: `library-title-too-long`,
+/// `library-description-too-long`, `too-many-video-categories`, or
+/// `invalid-country-code`.
+pub fn validate_library_details(
+    details: &LibraryItemDetails,
+) -> std::result::Result<(), &'static str> {
+    if details
+        .title
+        .as_deref()
+        .is_some_and(|title| title.chars().count() > LIBRARY_TITLE_MAX_CHARS)
+    {
+        return Err("library-title-too-long");
+    }
+    if details
+        .description
+        .as_deref()
+        .is_some_and(|text| text.chars().count() > LIBRARY_DESCRIPTION_MAX_CHARS)
+    {
+        return Err("library-description-too-long");
+    }
+    let Some(monetization) = &details.monetization else {
+        return Ok(());
+    };
+    if monetization
+        .video_category_ids
+        .as_ref()
+        .is_some_and(|ids| ids.len() > LIBRARY_VIDEO_CATEGORIES_MAX)
+    {
+        return Err("too-many-video-categories");
+    }
+    let country = |code: &String| code.len() == 2 && code.bytes().all(|b| b.is_ascii_alphabetic());
+    if monetization
+        .allowed_countries
+        .as_ref()
+        .is_some_and(|codes| !codes.iter().all(country))
+    {
+        return Err("invalid-country-code");
+    }
+    Ok(())
+}
+
+/// Validates a change to a media library item: the bounds of
+/// [`validate_library_details`], and that something would change.
+///
+/// # Errors
+/// Returns `no-library-changes` when nothing would change, and any reason
+/// [`validate_library_details`] gives.
+pub fn validate_library_changes(
+    details: &LibraryItemDetails,
+) -> std::result::Result<(), &'static str> {
+    if *details == LibraryItemDetails::default() {
+        return Err("no-library-changes");
+    }
+    validate_library_details(details)
+}
+
+/// Validates the language tag that localizes category names against the
+/// spec's pattern: a two or three letter language, then subtags of two to
+/// eight letters or digits, each after a hyphen, such as `en` or `pt-BR`.
+///
+/// # Errors
+/// Returns `invalid-language-tag` for anything else.
+pub fn validate_language_tag(tag: &str) -> std::result::Result<(), &'static str> {
+    let mut parts = tag.split('-');
+    let language = parts.next().unwrap_or_default();
+    let language_ok =
+        (2..=3).contains(&language.len()) && language.bytes().all(|b| b.is_ascii_alphabetic());
+    let subtags_ok = parts.all(|part| {
+        (2..=8).contains(&part.len()) && part.bytes().all(|b| b.is_ascii_alphanumeric())
+    });
+    if language_ok && subtags_ok {
+        Ok(())
+    } else {
+        Err("invalid-language-tag")
+    }
 }
 
 /// Validates a scheduled broadcast id against the spec's pattern for
@@ -1663,6 +1818,10 @@ fn scheduled_call_query() -> Vec<(String, String)> {
 
 fn id_param(user_id: &str) -> HashMap<String, String> {
     HashMap::from([("id".to_string(), user_id.to_string())])
+}
+
+fn media_key_param(media_key: &str) -> HashMap<String, String> {
+    HashMap::from([("media_key".to_string(), media_key.to_string())])
 }
 
 fn id_and(user_id: &str, key: &str, value: String) -> HashMap<String, String> {
@@ -3811,6 +3970,79 @@ impl Client {
                 media_category: category.wire_name(),
                 language_code: language_code.trim().to_ascii_uppercase(),
             },
+        )
+    }
+
+    /// Adds media already uploaded by the caller to the caller's media
+    /// library, under `media_key`, with `details`. Geo restrictions, content
+    /// expiry, the preview image, and the audience policy are set through the
+    /// media metadata endpoint.
+    pub fn add_media_to_library(
+        &self,
+        media_key: &str,
+        details: &LibraryItemDetails,
+    ) -> Call<ApiResponse<MediaLibraryAdded>> {
+        self.json_call(
+            endpoints::ADD_MEDIA_TO_LIBRARY.method,
+            template(
+                endpoints::ADD_MEDIA_TO_LIBRARY.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &AddToLibraryBody { media_key, details },
+        )
+    }
+
+    /// Changes the library details of the item `media_key`. Only the fields
+    /// `details` sets change.
+    pub fn update_media_in_library(
+        &self,
+        media_key: &str,
+        details: &LibraryItemDetails,
+    ) -> Call<ApiResponse<MediaLibraryUpdated>> {
+        self.json_call(
+            endpoints::UPDATE_MEDIA_IN_LIBRARY.method,
+            template(
+                endpoints::UPDATE_MEDIA_IN_LIBRARY.path,
+                media_key_param(media_key),
+                Vec::new(),
+            ),
+            details,
+        )
+    }
+
+    /// Removes the item `media_key` from the caller's media library. X
+    /// cancels the API-scheduled posts that have not published and still use
+    /// the media; published posts and the underlying media stay.
+    pub fn remove_media_from_library(&self, media_key: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.json_call(
+            endpoints::REMOVE_MEDIA_FROM_LIBRARY.method,
+            template(
+                endpoints::REMOVE_MEDIA_FROM_LIBRARY.path,
+                media_key_param(media_key),
+                Vec::new(),
+            ),
+            &RemoveFromLibraryBody {},
+        )
+    }
+
+    /// Lists the video categories a library item can be filed under and the
+    /// advertiser categories whose ads can be blocked from it, with names in
+    /// `lang` (`en`, `pt-BR`) when X has them.
+    pub fn get_media_library_categories(
+        &self,
+        lang: Option<&str>,
+    ) -> Call<ApiResponse<MediaLibraryCategories>> {
+        let query = lang
+            .map(|lang| vec![("lang".to_string(), lang.to_string())])
+            .unwrap_or_default();
+        self.call(
+            endpoints::GET_MEDIA_LIBRARY_CATEGORIES.method,
+            template(
+                endpoints::GET_MEDIA_LIBRARY_CATEGORIES.path,
+                HashMap::new(),
+                query,
+            ),
         )
     }
 

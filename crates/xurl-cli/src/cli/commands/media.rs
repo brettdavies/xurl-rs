@@ -3,7 +3,8 @@
 use serde_json::json;
 
 use super::{
-    DryRun, Run, dry_run_or_validate, make_client, media_lookup, send_or_report, with_flags,
+    DryRun, Run, dry_run_or_validate, make_client, media_library, media_lookup, send_or_report,
+    with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{CommonFlags, MediaCommands, ProcessingWait, SubtitlesCommands};
@@ -48,6 +49,7 @@ pub(super) async fn run(cmd: MediaCommands, run: Run<'_>) -> CommandResult<()> {
             common,
         } => alt_text(run, &media_id, &text, &common).await?,
         MediaCommands::Subtitles { action } => subtitles(action, run).await?,
+        MediaCommands::Library { action } => media_library::run(action, run).await?,
         MediaCommands::Get { media_keys, common } => {
             media_lookup::get(run, &media_keys, &common).await?;
         }

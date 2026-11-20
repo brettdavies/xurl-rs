@@ -1,10 +1,10 @@
 args: ["media", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7508
+stdout_len: 7731
 stderr_len: 0
 --- stdout ---
-Media upload, lookup by key, video metrics, alt text, and subtitles
+Media upload, lookup by key, video metrics, alt text, subtitles, and your media library
 
 Usage: xr media [OPTIONS] <COMMAND>
 
@@ -15,6 +15,7 @@ Commands:
   analytics  Report video metrics for your uploads over a time window
   alt-text   Set the alt text shown for an uploaded image or video
   subtitles  Add or remove the subtitle tracks of an uploaded video
+  library    Add uploaded videos to your media library, and change, remove, and categorize them
   help       Print this message or the help of the given subcommand(s)
 
 Options:
@@ -167,6 +168,8 @@ Examples:
     xr media alt-text 1585341984679469056 "A dog asleep on a beach towel"
   Add an English subtitle track to an uploaded video:
     xr media subtitles add 1585341984679469056 1585341984679469057 --language en --name English
+  Add an upload to your media library:
+    xr media library add 7_1146654567674912770 --title "Launch day"
 
 --- stderr ---
 
