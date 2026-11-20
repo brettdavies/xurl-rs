@@ -64,9 +64,10 @@ Four auth modes, selected by what's available in the token store and the environ
 | OAuth2 headless    | `xr auth oauth2 --no-browser`: copy-paste the URL flow on a graphical-display-less host                      | Same as OAuth2 PKCE                                     |
 | Bearer (app-only)  | `XURL_BEARER_TOKEN=…` in env, or stored via `xr auth app --bearer-token`                                     | v2 read-only endpoints + search                         |
 
-The CLI picks per request: if a Bearer is set and the endpoint accepts app-auth, it's used; otherwise the stored
-user-scoped tokens for the active app drive the call. Multi-app is supported in the token store; `xr auth status`
-enumerates them.
+With no `--auth`, the CLI picks per request the first scheme the active app's credentials (and `XURL_BEARER_TOKEN`) can
+serve and the endpoint accepts, trying OAuth2, then OAuth1, then the Bearer. A stored login therefore wins over a Bearer
+on an endpoint that accepts both, and the Bearer drives the call only when no login serves the endpoint or `--auth app`
+names it. Multi-app is supported in the token store; `xr auth status` enumerates them.
 
 On exit 77 the error names what to do next. Read it from the envelope rather than guessing:
 
