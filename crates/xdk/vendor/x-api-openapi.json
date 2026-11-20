@@ -5732,6 +5732,347 @@
         },
         "type": "object"
       },
+      "CreatePostDraftClip": {
+        "additionalProperties": false,
+        "properties": {
+          "end_seconds": {
+            "description": "Second of the video at which the clip ends. A clip is 5 to 60 seconds long and at most 30% of the video.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "post_id": {
+            "description": "The ID of the Post whose video is clipped. The Post must have exactly one video, longer than 2 minutes.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "start_seconds": {
+            "description": "Second of the video at which the clip starts.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "post_id",
+          "start_seconds",
+          "end_seconds"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftEditOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "previous_post_id": {
+            "description": "The ID of the Post being edited.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "previous_post_id"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftGeo": {
+        "additionalProperties": false,
+        "properties": {
+          "place_id": {
+            "description": "Place ID for geo tagging.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "place_id"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftMedia": {
+        "additionalProperties": false,
+        "properties": {
+          "call_to_actions": {
+            "$ref": "#/components/schemas/CreatePostDraftMediaCallToActions",
+            "description": "Call-to-action button rendered on the media entity."
+          },
+          "description": {
+            "description": "Description for the media, rendered on the Post card for video and Amplify content.",
+            "type": "string"
+          },
+          "embeddable": {
+            "description": "When true, the media's asset URLs do not expire and external syndicated playback is allowed.",
+            "type": "boolean"
+          },
+          "media_ids": {
+            "description": "Media IDs to attach to the Post, in the order given.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "type": "array"
+          },
+          "preview_media_id": {
+            "description": "Media id whose asset is used as the preview image.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "tagged_user_ids": {
+            "description": "User IDs tagged in the media.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "title": {
+            "description": "Title for the media, rendered on the Post card for video and Amplify content.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_ids"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftMediaCallToActions": {
+        "additionalProperties": false,
+        "properties": {
+          "app_install": {
+            "$ref": "#/components/schemas/CreatePostDraftMediaCallToActionsAppInstall",
+            "description": "App Install CTA. At least one store id should be provided."
+          },
+          "visit_site": {
+            "$ref": "#/components/schemas/CreatePostDraftMediaCallToActionsVisitSite",
+            "description": "Visit Site CTA."
+          },
+          "watch_now": {
+            "$ref": "#/components/schemas/CreatePostDraftMediaCallToActionsWatchNow",
+            "description": "Watch Now CTA."
+          }
+        },
+        "type": "object"
+      },
+      "CreatePostDraftMediaCallToActionsAppInstall": {
+        "additionalProperties": false,
+        "properties": {
+          "app_store_id": {
+            "description": "Apple App Store iPhone app id.",
+            "type": "string"
+          },
+          "ipad_app_store_id": {
+            "description": "Apple App Store iPad app id.",
+            "type": "string"
+          },
+          "play_store_id": {
+            "description": "Google Play Store app id.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreatePostDraftMediaCallToActionsVisitSite": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "HTTPS URL the CTA links to.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftMediaCallToActionsWatchNow": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "HTTPS URL the CTA links to.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftPoll": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_minutes": {
+            "description": "Duration of the poll in minutes.",
+            "maximum": 10080,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "options": {
+            "description": "Poll options (2-4 choices, 1-25 characters each).",
+            "items": {
+              "maxLength": 25,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 2,
+            "type": "array"
+          },
+          "reply_settings": {
+            "description": "Who can reply to the poll Tweet. Accepted for compatibility; it carries no backend argument and is dropped before the mutation is issued (see `translate_body`).",
+            "enum": [
+              "following",
+              "mentionedUsers",
+              "subscribers",
+              "verified"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "options",
+          "duration_minutes"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftReply": {
+        "additionalProperties": false,
+        "properties": {
+          "auto_populate_reply_metadata": {
+            "description": "If true, reply metadata is automatically populated. Accepted for compatibility; it carries no backend argument and is dropped before the mutation is issued (see `translate_body`).",
+            "type": "boolean"
+          },
+          "exclude_reply_user_ids": {
+            "description": "User IDs to exclude from the reply thread.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "in_reply_to_tweet_id": {
+            "description": "The ID of the tweet being replied to.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "in_reply_to_tweet_id"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "card_uri": {
+            "description": "Card URI parameter.",
+            "type": "string"
+          },
+          "clip": {
+            "$ref": "#/components/schemas/CreatePostDraftClip",
+            "description": "Clip of another Post's video to share. Cannot be combined with media, a poll, a card, a quoted Post or a direct message deep link."
+          },
+          "community_id": {
+            "description": "Community to post the tweet to.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "direct_message_deep_link": {
+            "description": "Direct message deep link.",
+            "type": "string"
+          },
+          "edit_options": {
+            "$ref": "#/components/schemas/CreatePostDraftEditOptions",
+            "description": "Edit an existing tweet rather than creating a new one."
+          },
+          "for_super_followers_only": {
+            "description": "Restrict tweet to super followers.",
+            "type": "boolean"
+          },
+          "geo": {
+            "$ref": "#/components/schemas/CreatePostDraftGeo",
+            "description": "Geo location for the tweet."
+          },
+          "made_with_ai": {
+            "description": "Disclose that the tweet contains AI-generated media.",
+            "type": "boolean"
+          },
+          "media": {
+            "$ref": "#/components/schemas/CreatePostDraftMedia",
+            "description": "Media attachments."
+          },
+          "nullcast": {
+            "description": "If true, the tweet is not shown in the public timeline.",
+            "type": "boolean"
+          },
+          "paid_partnership": {
+            "description": "Disclose that the tweet is a paid partnership.",
+            "type": "boolean"
+          },
+          "poll": {
+            "$ref": "#/components/schemas/CreatePostDraftPoll",
+            "description": "Poll configuration."
+          },
+          "quote_tweet_id": {
+            "description": "Tweet ID to quote.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "reply": {
+            "$ref": "#/components/schemas/CreatePostDraftReply",
+            "description": "Tweet reply configuration."
+          },
+          "reply_settings": {
+            "description": "Who can reply to this tweet.",
+            "enum": [
+              "following",
+              "mentionedUsers",
+              "subscribers",
+              "verified"
+            ],
+            "type": "string"
+          },
+          "share_with_followers": {
+            "description": "Share an exclusive (super-follower) tweet with all followers.",
+            "type": "boolean"
+          },
+          "text": {
+            "default": "",
+            "description": "Text of the Post. Required unless media is provided. At most 280 characters unless the account has X Premium.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreatePostDraftResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreatePostDraftResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreatePostDraftResponseData": {
+        "properties": {
+          "id": {
+            "description": "Unique identifier of the saved draft.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "text": {
+            "description": "The text of the saved draft.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "type": "object"
+      },
       "CreatePostsClip": {
         "additionalProperties": false,
         "properties": {
@@ -7822,6 +8163,32 @@
         "properties": {
           "deleted": {
             "description": "Indicates whether the subtitles were deleted.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeletePostDraftResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeletePostDraftResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeletePostDraftResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the draft is gone from the user's drafts.",
             "type": "boolean"
           }
         },
@@ -11429,6 +11796,192 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "GetPostDraftsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GetPostDraftsResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetPostDraftsResponseData": {
+        "properties": {
+          "created_at": {
+            "description": "When the draft was saved (RFC 3339).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the draft.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "made_with_ai": {
+            "description": "Whether the draft discloses AI-generated media.",
+            "type": "boolean"
+          },
+          "media": {
+            "$ref": "#/components/schemas/GetPostDraftsResponseDataMedia",
+            "description": "Media attached to the Post."
+          },
+          "paid_partnership": {
+            "description": "Whether the draft discloses a paid partnership.",
+            "type": "boolean"
+          },
+          "quote_tweet_id": {
+            "description": "The ID of the Post this Post quotes.",
+            "type": "string"
+          },
+          "reply": {
+            "$ref": "#/components/schemas/GetPostDraftsResponseDataReply",
+            "description": "Present when the draft is a reply."
+          },
+          "text": {
+            "description": "The text of the draft. Empty for a draft that only has media.",
+            "type": "string"
+          },
+          "thread": {
+            "description": "For a draft that is a thread, the Posts after the first one, in order. Each replies to the Post before it.",
+            "items": {
+              "$ref": "#/components/schemas/GetPostDraftsResponseDataThread"
+            },
+            "type": "array"
+          },
+          "unsupported_content": {
+            "description": "Parts of the draft that the other fields do not carry. Present only when the draft holds more than is listed.",
+            "items": {
+              "enum": [
+                "text_formatting",
+                "inline_media",
+                "media_tags",
+                "possibly_sensitive",
+                "attachment",
+                "cashtag_attachment"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "updated_at": {
+            "description": "When the draft last changed (RFC 3339).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "type": "object"
+      },
+      "GetPostDraftsResponseDataMedia": {
+        "additionalProperties": false,
+        "properties": {
+          "media_ids": {
+            "description": "Media IDs attached to the Post, in order.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tagged_user_ids": {
+            "description": "IDs of the users tagged in any of the media.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "media_ids"
+        ],
+        "type": "object"
+      },
+      "GetPostDraftsResponseDataReply": {
+        "additionalProperties": false,
+        "properties": {
+          "exclude_reply_user_ids": {
+            "description": "IDs of the users the reply does not mention.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "in_reply_to_tweet_id": {
+            "description": "The ID of the Post the draft replies to.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "in_reply_to_tweet_id"
+        ],
+        "type": "object"
+      },
+      "GetPostDraftsResponseDataThread": {
+        "additionalProperties": false,
+        "properties": {
+          "media": {
+            "$ref": "#/components/schemas/GetPostDraftsResponseDataThreadMedia",
+            "description": "Media attached to the Post."
+          },
+          "quote_tweet_id": {
+            "description": "The ID of the Post this Post quotes.",
+            "type": "string"
+          },
+          "text": {
+            "description": "The text of the Post. Empty when it only has media.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "GetPostDraftsResponseDataThreadMedia": {
+        "additionalProperties": false,
+        "properties": {
+          "media_ids": {
+            "description": "Media IDs attached to the Post, in order.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tagged_user_ids": {
+            "description": "IDs of the users tagged in any of the media.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "media_ids"
+        ],
         "type": "object"
       },
       "GetPostsAnalyticsResponse": {
@@ -35534,6 +36087,201 @@
         "summary": "Get OpenAPI Spec",
         "tags": [
           "General"
+        ]
+      }
+    },
+    "/2/posts/drafts": {
+      "get": {
+        "description": "Returns the authenticated user's Post drafts, newest first, in the fields of the Create or Edit Post body. thread holds the Posts after the first. A draft with unsupported_content is not listed in full: do not publish it from this list or delete it unless the user asks. Needs the tweet.write scope.",
+        "operationId": "getPostDrafts",
+        "parameters": [
+          {
+            "description": "The maximum number of drafts to return.",
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          },
+          {
+            "description": "The meta.next_token of the previous page.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetPostDraftsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "tweet.read",
+              "tweet.write",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Post Drafts",
+        "tags": [
+          "Posts"
+        ]
+      },
+      "post": {
+        "description": "Saves a Post draft to the authenticated user's X account without publishing it. Takes the body of Create or Edit Post, of which a draft stores text, media with tagged users, a reply and the AI and paid partnership disclosures. Any other field that is set is a 400 that names it.",
+        "operationId": "createPostDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePostDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePostDraftResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "tweet.read",
+              "tweet.write",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Create Post Draft",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
+    "/2/posts/drafts/{id}": {
+      "delete": {
+        "description": "Deletes one of the authenticated user's Post drafts by its ID. The whole draft is deleted, including any part Get Post Drafts does not list, and cannot be restored. An ID that is not one of the user's drafts also returns deleted: true.",
+        "operationId": "deletePostDraft",
+        "parameters": [
+          {
+            "description": "The ID of the draft to delete.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePostDraftResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "tweet.read",
+              "tweet.write",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete Post Draft",
+        "tags": [
+          "Posts"
         ]
       }
     },
