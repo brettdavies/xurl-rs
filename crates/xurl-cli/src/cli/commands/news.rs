@@ -18,7 +18,6 @@ pub(super) async fn run(action: NewsCommands, run: Run<'_>) -> CommandResult<()>
             let ctx = json!({
                 "command": "news-search",
                 "query": query,
-                "max_results": max_results,
                 "max_age_hours": max_age_hours,
             });
             let n = effective_limit(max_results, run.flags.global_limit);

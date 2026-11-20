@@ -89,11 +89,12 @@ active app storing an accepted scheme gives `fix-input` with the invocation unde
 gives `select-app`; when the scheme to get is OAuth2, the step is the sign-in; and otherwise `fix-input` carries a
 `template` that stores that scheme, such as `xr auth app --bearer-token-file <path>`. The scheme to get is the one
 `--auth` named when the command accepts it, else the first the command accepts. The message's `Add credentials with:`
-tail takes its command from the same `setup_invocation`. A request that names a login with `-u` is served only by OAuth2
-held by an app that stores that login, or by a bearer token on an endpoint that accepts no OAuth2; a caller who named
-OAuth1 or the bearer token with `--auth` has not asked for a login. A raw request is held to the schemes the auth matrix
-lists for its method and path, a path that carries an id taking those of the template it fits, and to every scheme when
-the matrix lists none.
+tail names the step's `command` or `template` when the step adds a credential (a sign-in, `register-app`, or a
+`fix-input` template), and is left off otherwise. A request that names a login with `-u` is served only by OAuth2 held
+by an app that stores that login, or by a bearer token on an endpoint that accepts no OAuth2; a caller who named OAuth1
+or the bearer token with `--auth` has not asked for a login. A raw request is held to the schemes the auth matrix lists
+for its method and path, a path that carries an id taking those of the template it fits, and to every scheme when the
+matrix lists none.
 
 Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
 `invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
@@ -282,11 +283,12 @@ never the tests.
   `confirmation-required` refusal leaves out a key its dry run carries, or leaves the app of the dry run's `auth` out of
   its `app` key or its `confirm` template. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command with
   `--max-results` that ignores the global `--limit`, for one whose endpoint declares a page token in the vendored spec
-  but whose request drops `--cursor`, and for one whose `-n` help states a larger page size than its request sends; a
-  paged list through the list helpers passes all three. A command with a post id argument checks it with `valid_post_id`
-  before any other input, so a value that is neither digits nor a post URL is refused as `invalid-post-id` before a
-  request goes out (`post --clip` has its own rule, `invalid-clip-post-id`); `crates/xurl-cli/tests/post_id_guard.rs`
-  fails for a command that accepts one or sends first.
+  but whose request drops `--cursor`, for one whose `-n` help states a larger page size than its request sends, and for
+  one whose dry run reports a page size its request does not send; a paged list through the list helpers passes all
+  four. A command with a post id argument checks it with `valid_post_id` before any other input, so a value that is
+  neither digits nor a post URL is refused as `invalid-post-id` before a request goes out (`post --clip` has its own
+  rule, `invalid-clip-post-id`); `crates/xurl-cli/tests/post_id_guard.rs` fails for a command that accepts one or sends
+  first.
 - **Accepted auth.** A row in `crates/xurl-cli/src/cli/accepted_auth.rs` naming the endpoints the command's requests
   reach, and for a command that takes `--of`, the endpoints `--of` reaches. Each command's `--auth` help lists the
   schemes every one of them accepts. `crates/xurl-cli/tests/help_claims_guard.rs` fails for a command that takes

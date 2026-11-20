@@ -5,8 +5,9 @@
 //! (nothing, one scheme, another app holding one) and with each scheme the
 //! caller can name. When a run is refused for its credential, the refusal
 //! carries a step, every scheme its step names and every setup command its
-//! message names is one the command's row accepts, and running the step's
-//! command gets past the refusal. The command list and each command's arguments are read from
+//! message names is one the command's row accepts, a command the message
+//! names is the step's own, and running the step's command gets past the
+//! refusal. The command list and each command's arguments are read from
 //! clap, so a command added later is checked without an edit here.
 //!
 //! Raw requests have no row. Each is held to what the auth matrix lists for
@@ -37,7 +38,7 @@ static SETUP: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"xr (?:--app \S+ )?auth (oauth2|oauth1|app)\b").expect("a pattern")
 });
 static TAIL: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"Add credentials with: (xr auth .+)\.$").expect("a pattern"));
+    LazyLock::new(|| Regex::new(r"Add credentials with: (.+)\.$").expect("a pattern"));
 static AUTH_FLAG: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"--auth (oauth2|oauth1|app)\b").expect("a pattern"));
 static APP_FLAG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"--app (\S+)").expect("a pattern"));
@@ -204,17 +205,17 @@ async fn faults(mock: &MockX, shapes: &[Shape], case: &Case) -> Vec<String> {
         }
     }
 
-    if let (Some(tail), Some(template)) = (
-        TAIL.captures(message),
-        step["template"].as_str().filter(|t| SETUP.is_match(t)),
-    ) && &tail[1] != template
+    let runnable = step["command"].as_str().or(step["template"].as_str());
+    if let Some(tail) = TAIL.captures(message)
+        && runnable != Some(&tail[1])
     {
         found.push(format!(
-            "{what}: the message says to run `{}` and the step says `{template}`\n  \
-             Cause: the message tail and the step choose the scheme or the app separately.\n  \
-             Fix: build both with setup_invocation in \
-             crates/xurl-cli/src/cli/credential_step.rs.",
-            &tail[1]
+            "{what}: the message says to run `{}` and the step says `{}`\n  \
+             Cause: the message tail is chosen apart from the step.\n  \
+             Fix: build the tail from the step, in render_with_step in \
+             crates/xurl-cli/src/cli/output/message.rs.",
+            &tail[1],
+            runnable.unwrap_or("nothing")
         ));
     }
     let binds = case.login && matches!(case.named, None | Some("oauth2"));
