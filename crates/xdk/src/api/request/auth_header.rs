@@ -208,7 +208,9 @@ impl Client {
     /// OAuth1 → Bearer preference order, and falls back to that fixed
     /// order for [`RequestTarget::RawUrl`] and matrix-miss
     /// [`RequestTarget::Template`] targets (the permissive surface for
-    /// unknown endpoints).
+    /// unknown endpoints). A request that names a login in
+    /// `options.username` takes only `OAuth2`, or the bearer token on an
+    /// endpoint that accepts no `OAuth2`.
     fn select_scheme(
         &self,
         credentials: &CredentialSource,
@@ -291,7 +293,10 @@ impl Client {
     /// `OAuth2` neither stands in for the login, and a request they alone
     /// could serve is refused for the login's missing `OAuth2` token. A raw
     /// URL reaches the endpoint whose template its path fits, and one that
-    /// fits none may accept `OAuth2`.
+    /// fits none may accept `OAuth2`. A raw URL still offers every stored
+    /// scheme, so where the app stores any `OAuth2` login, `OAuth2` is picked
+    /// first, and a login the app does not store is refused even on an
+    /// endpoint that accepts no `OAuth2`.
     fn detect_scheme(
         &self,
         credentials: &CredentialSource,
