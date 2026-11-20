@@ -23,7 +23,9 @@ fi
 exec "$REAL_GIT" "\$@"
 EOF
 
-  # Answers `gh api <path> --jq <filter>` from \$T/gh, and `gh repo view`.
+  # Answers `gh api <path> --jq <filter>` from \$T/gh, and `gh repo view`. A runs
+  # read serves page one alone, and with --paginate every page file in turn
+  # (<repo>-<status>.json, then .2.json, .3.json, ...), the filter applied to each.
   cat >"$T/bin/gh" <<EOF
 #!/usr/bin/env bash
 if [ -n "\${STUB_GH_FAIL:-}" ]; then
@@ -36,11 +38,11 @@ if [ "\$1 \$2" = "repo view" ]; then
 fi
 [ "\$1" = api ] || { echo "gh stub: unhandled \$*" >&2; exit 1; }
 shift
-path="" filter="."
+path="" filter="." paginate=""
 while [ \$# -gt 0 ]; do
   case "\$1" in
     --jq) filter="\$2"; shift 2 ;;
-    --paginate) shift ;;
+    --paginate) paginate=1; shift ;;
     *) path="\$1"; shift ;;
   esac
 done
@@ -62,10 +64,20 @@ case "\$path" in
     status="\${path#*status=}"; status="\${status%%&*}"
     file="$T/gh/runs/\${repo/\//_}-\${status}.json"
     [ -f "\$file" ] || file="$T/gh/runs/none.json"
+    pages="\$file"
+    if [ -n "\$paginate" ]; then
+      page=2
+      while [ -f "\${file%.json}.\$page.json" ]; do
+        pages="\$pages \${file%.json}.\$page.json"
+        page=\$((page + 1))
+      done
+    fi
     ;;
   *) echo "gh stub: unhandled path \$path" >&2; exit 1 ;;
 esac
-exec "$JQ" -r "\$filter" "\$file"
+for page_file in \${pages:-\$file}; do
+  "$JQ" -r "\$filter" "\$page_file" || exit 1
+done
 EOF
 
   if ! command -v jaq >/dev/null; then
@@ -120,6 +132,14 @@ run_record() {
   created=$("$JQ" -n -r --argjson hours "${4:-0}" 'now - ($hours * 3600) | floor | todate')
   printf '{"workflow_runs": [{"id": 7, "repository": {"full_name": "%s"}, "name": "CI", "status": "%s", "event": "%s", "html_url": "https://github.com/%s/actions/runs/7", "created_at": "%s"}]}\n' \
     "$1" "$2" "$3" "$1" "$created" >"$T/gh/runs/${1/\//_}-$2.json"
+}
+
+run_page() {
+  # a run on a page after the first: run_page <owner/repo> <status> <page> <run-id> [age-hours]
+  local created
+  created=$("$JQ" -n -r --argjson hours "${5:-0}" 'now - ($hours * 3600) | floor | todate')
+  printf '{"workflow_runs": [{"id": %s, "repository": {"full_name": "%s"}, "name": "CI", "status": "%s", "event": "push", "html_url": "https://github.com/%s/actions/runs/%s", "created_at": "%s"}]}\n' \
+    "$4" "$1" "$2" "$1" "$4" "$created" >"$T/gh/runs/${1/\//_}-$2.$3.json"
 }
 
 run_created() { "$JQ" -r '.workflow_runs[0].created_at' "$T/gh/runs/${1/\//_}-$2.json"; }
@@ -192,6 +212,28 @@ local_tags() { "$REAL_GIT" -C "$W" tag --list | tr '\n' ' '; }
   [ "$status" -eq 0 ]
   [[ "$output" != *"x/foreign"* ]]
   [[ "$output" != *"o/old"* ]]
+}
+
+@test "a queued run on the second page of a repository's runs holds the cut, beside a skipped one on the first" {
+  run_record o/app queued push 25
+  jobs_record o/app 0
+  run_page o/app queued 2 8
+  tag_release
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"error[runners-busy]: 1 workflow run(s) hold the account's runners"* ]]
+  [[ "$output" == *"o/app"*"https://github.com/o/app/actions/runs/8"* ]]
+  [[ "$output" == *"skipped run in o/app"*"https://github.com/o/app/actions/runs/7"* ]]
+  [ -z "$(local_tags)" ]
+}
+
+@test "an in-progress run on the third page holds the cut when the first two hold nothing" {
+  echo '{"workflow_runs": []}' >"$T/gh/runs/o_app-in_progress.json"
+  echo '{"workflow_runs": []}' >"$T/gh/runs/o_app-in_progress.2.json"
+  run_page o/app in_progress 3 9
+  tag_release
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"o/app"*"https://github.com/o/app/actions/runs/9"* ]]
+  [ -z "$(local_tags)" ]
 }
 
 @test "a queued run a day old with no job passes the gate and is named as skipped" {
