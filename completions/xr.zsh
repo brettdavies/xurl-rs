@@ -370,7 +370,7 @@ never\:"Never emit ANSI color escapes"))' \
 _arguments "${_arguments_options[@]}" : \
 '-n+[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
 '--max-results=[Number of results (1-100). Overrides global \`--limit\` when set]:MAX_RESULTS:_default' \
-'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
@@ -4958,6 +4958,45 @@ never\:"Never emit ANSI color escapes"))' \
 '--help[Print help (see more with '\''--help'\'')]' \
 && ret=0
 ;;
+(locations)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, app). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__trends__subcmd__help_commands" \
@@ -4975,6 +5014,10 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (personal)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(locations)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -5075,6 +5118,48 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (get)
 _arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':broadcast_id -- Broadcast ID, as `xr broadcasts list` prints it:_default' \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+'--title=[New title]:TITLE:_default' \
+'--chat-option=[Who can chat, 0 to 6\: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts you follow, 5 your subscribers, 6 accounts followed by an account you follow]:N:_default' \
 '--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
 '-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
 '--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
@@ -6356,6 +6441,10 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -9121,6 +9210,515 @@ esac
     ;;
 esac
 ;;
+(amplify)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__media__subcmd__amplify_commands" \
+"*::: :->amplify" \
+&& ret=0
+
+    case $state in
+    (amplify)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-amplify-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':program_id -- Id of the program, as `xr media amplify list` prints it:_default' \
+&& ret=0
+;;
+(posts)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':program_id -- Id of the program, as `xr media amplify list` prints it:_default' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'*--program=[A program to publish the post into; repeat for each]:PROGRAM_ID:_default' \
+'*--block-advertiser=[An advertiser account whose pre-rolls may not run on the post, by id; repeat for each]:ID:_default' \
+'--ends-at=[When promotion of the post ends, such as 2026-12-01T00\:00\:00Z]:TIME:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':post_id -- The post to publish, by id or URL; it must be yours:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__media__subcmd__amplify__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-amplify-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(posts)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(library)
+_arguments "${_arguments_options[@]}" : \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_xr__subcmd__media__subcmd__library_commands" \
+"*::: :->library" \
+&& ret=0
+
+    case $state in
+    (library)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-library-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+'--name=[The item'\''s name in the library]:NAME:_default' \
+'--label=[The item'\''s label in the library]:LABEL:_default' \
+'--title=[The title shown with the video in the player card (70 characters at most)]:TITLE:_default' \
+'--description=[The description shown with the video in the player card (200 characters at most)]:TEXT:_default' \
+'*--video-category=[A category describing the video, an id from \`xr media library categories\` (2 at most); repeat for each]:ID:_default' \
+'--program=[The Amplify program to monetize the video through, in place of \`--video-category\`]:PROGRAM_ID:_default' \
+'*--country=[A country to monetize the video in, and only there, as a two-letter code; repeat for each]:CODE:_default' \
+'*--block-advertiser=[An advertiser account whose ads may not run against the video, by id; repeat for each]:ID:_default' \
+'*--block-advertiser-category=[An advertiser category whose ads may not run against the video, an id from \`xr media library categories\`; repeat for each]:ID:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--no-monetize)--monetize[Let ads run against the video; X requires the account to be enrolled in video monetization]' \
+'--no-monetize[Stop ads running against the video]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':media_key -- Media key of the upload, such as 7_1146654567674912770:_default' \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+'--name=[The item'\''s name in the library]:NAME:_default' \
+'--label=[The item'\''s label in the library]:LABEL:_default' \
+'--title=[The title shown with the video in the player card (70 characters at most)]:TITLE:_default' \
+'--description=[The description shown with the video in the player card (200 characters at most)]:TEXT:_default' \
+'*--video-category=[A category describing the video, an id from \`xr media library categories\` (2 at most); repeat for each]:ID:_default' \
+'--program=[The Amplify program to monetize the video through, in place of \`--video-category\`]:PROGRAM_ID:_default' \
+'*--country=[A country to monetize the video in, and only there, as a two-letter code; repeat for each]:CODE:_default' \
+'*--block-advertiser=[An advertiser account whose ads may not run against the video, by id; repeat for each]:ID:_default' \
+'*--block-advertiser-category=[An advertiser category whose ads may not run against the video, an id from \`xr media library categories\`; repeat for each]:ID:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'(--no-monetize)--monetize[Let ads run against the video; X requires the account to be enrolled in video monetization]' \
+'--no-monetize[Stop ads running against the video]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':media_key -- Media key of the library item:_default' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'--force[Skip the confirmation prompt; required under \`--no-interactive\`]' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':media_key -- Media key of the library item:_default' \
+&& ret=0
+;;
+(categories)
+_arguments "${_arguments_options[@]}" : \
+'--lang=[Language of the category names, such as en or pt-BR]:TAG:_default' \
+'--auth=[Authentication type (this command accepts\: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for]:AUTH_TYPE:_default' \
+'-u+[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'--username=[\`OAuth2\` login to act as, by the name it is stored under\: its username, or the name given to \`xr auth oauth2\`]:USERNAME:_default' \
+'-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
+'--app=[Use a specific registered app (overrides default)]:APP:_default' \
+'--output=[Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias \`yml\`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is \`invalid-args\`]:OUTPUT:((text\:"Default\: colored, human-readable"
+json\:"Machine-readable JSON, no color"
+jsonl\:"JSON Lines (useful for streaming)"
+ndjson\:"Newline-delimited JSON; alias of \`jsonl\`. Same wire shape, different name"
+yaml\:"YAML document (best-effort serialization of the JSON shape)"
+csv\:"Comma-separated values (best-effort flattening of the top-level shape)"
+tsv\:"Tab-separated values (best-effort flattening of the top-level shape)"))' \
+'--raw=[Emit unstyled, compact output. Strips ANSI in text mode; prints \`json\` output on one line, as \`jsonl\` and \`ndjson\` always are]::RAW:(true false)' \
+'-q+[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--quiet=[Suppress all non-essential output (errors still go to stderr)]::QUIET:(true false)' \
+'--no-interactive=[Disable interactive prompts; fail with error instead]::NO_INTERACTIVE:(true false)' \
+'--timeout=[Request timeout in seconds]:TIMEOUT:_default' \
+'--wait-on-rate-limit=[Wait out a rate limit and retry once, instead of failing with \`rate-limited\`]::WAIT_ON_RATE_LIMIT:(true false)' \
+'--rate-limit-max-wait=[Longest \`--wait-on-rate-limit\` waits before its retry, in seconds]:SECS:_default' \
+'--color=[Colorize output\: auto (TTY-aware), always, or never]:COLOR:((auto\:"Enable color when stderr is a TTY and \`NO_COLOR\` is unset"
+always\:"Always emit ANSI color escapes (still suppressed by \`NO_COLOR\`)"
+never\:"Never emit ANSI color escapes"))' \
+'--dry-run=[Check inputs and credentials offline, and send nothing]::DRY_RUN:(true false)' \
+'--limit=[Page size for every command that takes \`-n/--max-results\`, when \`-n\` is not given; other commands and raw requests ignore it]:LIMIT:_default' \
+'--cursor=[The \`meta.next_token\` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it]:TOKEN:_default' \
+'(--cursor)--page=[Documented alias for \`--cursor\`]:N:_default' \
+'(--cursor --page)--after=[Documented alias for \`--cursor\` (\`--after <token>\`)]:TOKEN:_default' \
+'-t[Add X-B3-Flags trace header]' \
+'--trace[Add X-B3-Flags trace header]' \
+'(--output --jsonl)--json[Shorthand for \`--output json\` (P2 alias)]' \
+'(--output --json)--jsonl[Shorthand for \`--output jsonl\` (P2 alias)]' \
+'--no-pager[Documented no-op. \`xr\` writes directly to stdout and never invokes \`\$PAGER\`; this flag is advertised so agents can pass \`--no-pager\` unconditionally without xr rejecting it]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__media__subcmd__library__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-library-help-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(categories)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
 (help)
 _arguments "${_arguments_options[@]}" : \
 ":: :_xr__subcmd__media__subcmd__help_commands" \
@@ -9170,6 +9768,70 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(amplify)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__media__subcmd__help__subcmd__amplify_commands" \
+"*::: :->amplify" \
+&& ret=0
+
+    case $state in
+    (amplify)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-help-amplify-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(posts)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(library)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__media__subcmd__help__subcmd__library_commands" \
+"*::: :->library" \
+&& ret=0
+
+    case $state in
+    (library)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-media-help-library-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(categories)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -9481,7 +10143,7 @@ never\:"Never emit ANSI color escapes"))' \
 ;;
 (validate)
 _arguments "${_arguments_options[@]}" : \
-'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-created\`, \`stream-source-deleted\`, \`stream-source-key\`, \`ingest-region\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
+'--schema=[Schema name to validate against (\`post\`, \`posts\`, \`user\`, \`users\`, \`dm\`, \`dms\`, \`dm-event\`, \`dm-block\`, \`usage\`, \`credits\`, \`envelope\`, \`like\`, \`hide\`, \`post-counts\`, \`analytics\`, \`media\`, \`media-analytics\`, \`spaces\`, \`stream-rules\`, \`stream-rules-update\`, \`stream-rule-counts\`, \`article-draft\`, \`article-published\`, \`note-created\`, \`note-evaluation\`, \`notes\`, \`broadcast\`, \`broadcasts\`, \`broadcast-updated\`, \`scheduled-broadcast\`, \`scheduled-broadcasts\`, \`chat-messages\`, \`chat-muted\`, \`chat-mutes\`, \`list\`, \`lists\`, \`list-updated\`, \`list-member\`, \`pinned\`, \`communities\`, \`community\`, \`news\`, \`news-story\`, \`trends\`, \`trend-locations\`, \`personalized-trends\`, \`follow\`, \`delete\`, \`repost\`, \`bookmark\`, \`bookmark-folders\`, \`bookmark-folder\`, \`bookmark-folder-posts\`, \`mute\`, \`block\`, \`moderators\`, \`alt-text\`, \`subtitles\`, \`amplify-programs\`, \`amplify-program\`, \`amplify-program-posts\`, \`amplify-post-added\`, \`library-added\`, \`library-updated\`, \`library-categories\`, \`webhook\`, \`webhooks\`, \`webhook-validation\`, \`webhook-replay\`, \`subscription-count\`, \`subscriptions\`, \`subscribed\`, \`stream-links\`, \`stream-link\`, \`stream-sources\`, \`stream-source\`, \`stream-source-created\`, \`stream-source-deleted\`, \`stream-source-key\`, \`ingest-region\`, \`call\`, \`scheduled-calls\`, \`scheduled-call\`, \`scheduled-call-updated\`, \`scheduled-call-cancelled\`, \`rsvp\`). Omit for auto-detection]:NAME:_default' \
 '-v+[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--verbose=[Print request and response lines, and a note for each key X sent in its legacy post vocabulary]::VERBOSE:(true false)' \
 '--app=[Use a specific registered app (overrides default)]:APP:_default' \
@@ -10111,6 +10773,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(locations)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
         esac
     ;;
 esac
@@ -10132,6 +10798,10 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -10615,6 +11285,70 @@ _arguments "${_arguments_options[@]}" : \
     ;;
 esac
 ;;
+(amplify)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__media__subcmd__amplify_commands" \
+"*::: :->amplify" \
+&& ret=0
+
+    case $state in
+    (amplify)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-media-amplify-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(posts)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(library)
+_arguments "${_arguments_options[@]}" : \
+":: :_xr__subcmd__help__subcmd__media__subcmd__library_commands" \
+"*::: :->library" \
+&& ret=0
+
+    case $state in
+    (library)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:xr-help-media-library-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(update)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(categories)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
         esac
     ;;
 esac
@@ -10738,7 +11472,7 @@ _xr_commands() {
 'calls:X calls, and the calls on your calendar (preview)' \
 'webhooks:Webhook registration, subscriptions, stream links, a local listener, and replay' \
 'auth:Authentication management' \
-'media:Media upload, lookup by key, video metrics, alt text, and subtitles' \
+'media:Media upload, lookup by key, video metrics, alt text, subtitles, your media library, and Amplify' \
 'skill:Install or manage the xurl-rs skill bundle' \
 'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
@@ -11149,6 +11883,7 @@ _xr__subcmd__broadcasts_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'update:Change the title of one of your broadcasts, or who can chat' \
 'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read a broadcast'\''s chat' \
@@ -11200,6 +11935,7 @@ _xr__subcmd__broadcasts__subcmd__help_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'update:Change the title of one of your broadcasts, or who can chat' \
 'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read a broadcast'\''s chat' \
@@ -11373,6 +12109,11 @@ _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__stream-key_comma
 _xr__subcmd__broadcasts__subcmd__help__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts help sources update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__help__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts help update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__broadcasts__subcmd__list_commands] )) ||
 _xr__subcmd__broadcasts__subcmd__list_commands() {
@@ -11675,6 +12416,11 @@ _xr__subcmd__broadcasts__subcmd__sources__subcmd__stream-key_commands() {
 _xr__subcmd__broadcasts__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr broadcasts sources update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__broadcasts__subcmd__update_commands] )) ||
+_xr__subcmd__broadcasts__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr broadcasts update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__calls_commands] )) ||
 _xr__subcmd__calls_commands() {
@@ -12107,7 +12853,7 @@ _xr__subcmd__help_commands() {
 'calls:X calls, and the calls on your calendar (preview)' \
 'webhooks:Webhook registration, subscriptions, stream links, a local listener, and replay' \
 'auth:Authentication management' \
-'media:Media upload, lookup by key, video metrics, alt text, and subtitles' \
+'media:Media upload, lookup by key, video metrics, alt text, subtitles, your media library, and Amplify' \
 'skill:Install or manage the xurl-rs skill bundle' \
 'schema:Show JSON Schema for a command'\''s response type' \
 'completions:Generate shell completion script' \
@@ -12282,6 +13028,7 @@ _xr__subcmd__help__subcmd__broadcasts_commands() {
     local commands; commands=(
 'list:List your broadcasts' \
 'get:Read one broadcast, by id' \
+'update:Change the title of one of your broadcasts, or who can chat' \
 'remove:Delete one of your broadcasts and its replay' \
 'scheduled:Schedule broadcasts and change or cancel them' \
 'chat:Read a broadcast'\''s chat' \
@@ -12449,6 +13196,11 @@ _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__stream-key_comma
 _xr__subcmd__help__subcmd__broadcasts__subcmd__sources__subcmd__update_commands() {
     local commands; commands=()
     _describe -t commands 'xr help broadcasts sources update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__broadcasts__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__broadcasts__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help broadcasts update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__calls_commands] )) ||
 _xr__subcmd__help__subcmd__calls_commands() {
@@ -12770,6 +13522,8 @@ _xr__subcmd__help__subcmd__media_commands() {
 'analytics:Report video metrics for your uploads over a time window' \
 'alt-text:Set the alt text shown for an uploaded image or video' \
 'subtitles:Add or remove the subtitle tracks of an uploaded video' \
+'amplify:List Amplify programs and the posts in them, and publish a post into programs' \
+'library:Add uploaded videos to your media library, and change, remove, and categorize them' \
     )
     _describe -t commands 'xr help media commands' commands "$@"
 }
@@ -12777,6 +13531,36 @@ _xr__subcmd__help__subcmd__media_commands() {
 _xr__subcmd__help__subcmd__media__subcmd__alt-text_commands() {
     local commands; commands=()
     _describe -t commands 'xr help media alt-text commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__amplify_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__amplify_commands() {
+    local commands; commands=(
+'list:List the Amplify programs you can publish posts into' \
+'get:Read one Amplify program' \
+'posts:List the posts published into an Amplify program' \
+'add:Publish one of your posts into Amplify programs' \
+    )
+    _describe -t commands 'xr help media amplify commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__amplify__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__amplify__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media amplify add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__amplify__subcmd__get_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__amplify__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media amplify get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__amplify__subcmd__list_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__amplify__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media amplify list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__amplify__subcmd__posts_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__amplify__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media amplify posts commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__media__subcmd__analytics_commands] )) ||
 _xr__subcmd__help__subcmd__media__subcmd__analytics_commands() {
@@ -12787,6 +13571,36 @@ _xr__subcmd__help__subcmd__media__subcmd__analytics_commands() {
 _xr__subcmd__help__subcmd__media__subcmd__get_commands() {
     local commands; commands=()
     _describe -t commands 'xr help media get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__library_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__library_commands() {
+    local commands; commands=(
+'add:Add an upload to your media library' \
+'update:Change the name, label, player card, or monetization of a library item' \
+'remove:Remove an item from your media library' \
+'categories:List the video and advertiser categories a library item'\''s monetization names' \
+    )
+    _describe -t commands 'xr help media library commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__library__subcmd__add_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__library__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media library add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__library__subcmd__categories_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__library__subcmd__categories_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media library categories commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__library__subcmd__remove_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__library__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media library remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__media__subcmd__library__subcmd__update_commands] )) ||
+_xr__subcmd__help__subcmd__media__subcmd__library__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help media library update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__media__subcmd__status_commands] )) ||
 _xr__subcmd__help__subcmd__media__subcmd__status_commands() {
@@ -13040,8 +13854,14 @@ _xr__subcmd__help__subcmd__trends_commands() {
     local commands; commands=(
 'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
 'personal:List the trends X picks for you' \
+'locations:List every place X reports trends for, each with the WOEID \`place\` takes' \
     )
     _describe -t commands 'xr help trends commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__help__subcmd__trends__subcmd__locations_commands] )) ||
+_xr__subcmd__help__subcmd__trends__subcmd__locations_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr help trends locations commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__help__subcmd__trends__subcmd__personal_commands] )) ||
 _xr__subcmd__help__subcmd__trends__subcmd__personal_commands() {
@@ -13531,6 +14351,8 @@ _xr__subcmd__media_commands() {
 'analytics:Report video metrics for your uploads over a time window' \
 'alt-text:Set the alt text shown for an uploaded image or video' \
 'subtitles:Add or remove the subtitle tracks of an uploaded video' \
+'amplify:List Amplify programs and the posts in them, and publish a post into programs' \
+'library:Add uploaded videos to your media library, and change, remove, and categorize them' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr media commands' commands "$@"
@@ -13539,6 +14361,73 @@ _xr__subcmd__media_commands() {
 _xr__subcmd__media__subcmd__alt-text_commands() {
     local commands; commands=()
     _describe -t commands 'xr media alt-text commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify_commands] )) ||
+_xr__subcmd__media__subcmd__amplify_commands() {
+    local commands; commands=(
+'list:List the Amplify programs you can publish posts into' \
+'get:Read one Amplify program' \
+'posts:List the posts published into an Amplify program' \
+'add:Publish one of your posts into Amplify programs' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr media amplify commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__get_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__help_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__help_commands() {
+    local commands; commands=(
+'list:List the Amplify programs you can publish posts into' \
+'get:Read one Amplify program' \
+'posts:List the posts published into an Amplify program' \
+'add:Publish one of your posts into Amplify programs' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr media amplify help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__get_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify help get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__list_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify help list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__posts_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__help__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify help posts commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__list_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__amplify__subcmd__posts_commands] )) ||
+_xr__subcmd__media__subcmd__amplify__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media amplify posts commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__media__subcmd__analytics_commands] )) ||
 _xr__subcmd__media__subcmd__analytics_commands() {
@@ -13559,6 +14448,8 @@ _xr__subcmd__media__subcmd__help_commands() {
 'analytics:Report video metrics for your uploads over a time window' \
 'alt-text:Set the alt text shown for an uploaded image or video' \
 'subtitles:Add or remove the subtitle tracks of an uploaded video' \
+'amplify:List Amplify programs and the posts in them, and publish a post into programs' \
+'library:Add uploaded videos to your media library, and change, remove, and categorize them' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr media help commands' commands "$@"
@@ -13567,6 +14458,36 @@ _xr__subcmd__media__subcmd__help_commands() {
 _xr__subcmd__media__subcmd__help__subcmd__alt-text_commands() {
     local commands; commands=()
     _describe -t commands 'xr media help alt-text commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__amplify_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__amplify_commands() {
+    local commands; commands=(
+'list:List the Amplify programs you can publish posts into' \
+'get:Read one Amplify program' \
+'posts:List the posts published into an Amplify program' \
+'add:Publish one of your posts into Amplify programs' \
+    )
+    _describe -t commands 'xr media help amplify commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__amplify__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__amplify__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help amplify add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__amplify__subcmd__get_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__amplify__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help amplify get commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__amplify__subcmd__list_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__amplify__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help amplify list commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__amplify__subcmd__posts_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__amplify__subcmd__posts_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help amplify posts commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__media__subcmd__help__subcmd__analytics_commands] )) ||
 _xr__subcmd__media__subcmd__help__subcmd__analytics_commands() {
@@ -13582,6 +14503,36 @@ _xr__subcmd__media__subcmd__help__subcmd__get_commands() {
 _xr__subcmd__media__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr media help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__library_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__library_commands() {
+    local commands; commands=(
+'add:Add an upload to your media library' \
+'update:Change the name, label, player card, or monetization of a library item' \
+'remove:Remove an item from your media library' \
+'categories:List the video and advertiser categories a library item'\''s monetization names' \
+    )
+    _describe -t commands 'xr media help library commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__library__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__library__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help library add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__library__subcmd__categories_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__library__subcmd__categories_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help library categories commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__library__subcmd__remove_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__library__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help library remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__help__subcmd__library__subcmd__update_commands] )) ||
+_xr__subcmd__media__subcmd__help__subcmd__library__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media help library update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__media__subcmd__help__subcmd__status_commands] )) ||
 _xr__subcmd__media__subcmd__help__subcmd__status_commands() {
@@ -13610,6 +14561,73 @@ _xr__subcmd__media__subcmd__help__subcmd__subtitles__subcmd__remove_commands() {
 _xr__subcmd__media__subcmd__help__subcmd__upload_commands() {
     local commands; commands=()
     _describe -t commands 'xr media help upload commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library_commands] )) ||
+_xr__subcmd__media__subcmd__library_commands() {
+    local commands; commands=(
+'add:Add an upload to your media library' \
+'update:Change the name, label, player card, or monetization of a library item' \
+'remove:Remove an item from your media library' \
+'categories:List the video and advertiser categories a library item'\''s monetization names' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr media library commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__categories_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__categories_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library categories commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__help_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__help_commands() {
+    local commands; commands=(
+'add:Add an upload to your media library' \
+'update:Change the name, label, player card, or monetization of a library item' \
+'remove:Remove an item from your media library' \
+'categories:List the video and advertiser categories a library item'\''s monetization names' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'xr media library help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__add_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library help add commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__categories_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__categories_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library help categories commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__help_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__remove_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library help remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__update_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__help__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library help update commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__remove_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library remove commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__media__subcmd__library__subcmd__update_commands] )) ||
+_xr__subcmd__media__subcmd__library__subcmd__update_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr media library update commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__media__subcmd__status_commands] )) ||
 _xr__subcmd__media__subcmd__status_commands() {
@@ -14099,6 +15117,7 @@ _xr__subcmd__trends_commands() {
     local commands; commands=(
 'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
 'personal:List the trends X picks for you' \
+'locations:List every place X reports trends for, each with the WOEID \`place\` takes' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr trends commands' commands "$@"
@@ -14108,6 +15127,7 @@ _xr__subcmd__trends__subcmd__help_commands() {
     local commands; commands=(
 'place:List the trends for a place, by its Yahoo WOEID (1 is worldwide)' \
 'personal:List the trends X picks for you' \
+'locations:List every place X reports trends for, each with the WOEID \`place\` takes' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'xr trends help commands' commands "$@"
@@ -14116,6 +15136,11 @@ _xr__subcmd__trends__subcmd__help_commands() {
 _xr__subcmd__trends__subcmd__help__subcmd__help_commands() {
     local commands; commands=()
     _describe -t commands 'xr trends help help commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__trends__subcmd__help__subcmd__locations_commands] )) ||
+_xr__subcmd__trends__subcmd__help__subcmd__locations_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr trends help locations commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__trends__subcmd__help__subcmd__personal_commands] )) ||
 _xr__subcmd__trends__subcmd__help__subcmd__personal_commands() {
@@ -14126,6 +15151,11 @@ _xr__subcmd__trends__subcmd__help__subcmd__personal_commands() {
 _xr__subcmd__trends__subcmd__help__subcmd__place_commands() {
     local commands; commands=()
     _describe -t commands 'xr trends help place commands' commands "$@"
+}
+(( $+functions[_xr__subcmd__trends__subcmd__locations_commands] )) ||
+_xr__subcmd__trends__subcmd__locations_commands() {
+    local commands; commands=()
+    _describe -t commands 'xr trends locations commands' commands "$@"
 }
 (( $+functions[_xr__subcmd__trends__subcmd__personal_commands] )) ||
 _xr__subcmd__trends__subcmd__personal_commands() {
