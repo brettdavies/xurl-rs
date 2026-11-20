@@ -208,6 +208,7 @@ fn the_confirm_template_acts_on_the_app_the_environment_selected() {
     let tmp = TempDir::new().expect("tempdir");
     let store = two_app_store(tmp.path());
     let output = common::xr_with_store(&store)
+        .env("API_BASE_URL", common::CLOSED)
         .env("XURL_APP", "second")
         .args(["--output", "json", "--no-interactive", "delete", SAMPLE])
         .output()
@@ -221,6 +222,7 @@ fn the_confirm_template_acts_on_the_app_the_environment_selected() {
     let words: Vec<&str> = template.split_whitespace().collect();
 
     let rehearsed = common::xr_with_store(&store)
+        .env("API_BASE_URL", common::CLOSED)
         .arg("--dry-run")
         .args(&words[1..])
         .output()
