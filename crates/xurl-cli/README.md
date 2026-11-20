@@ -120,7 +120,8 @@ xr drafts remove 1850000000000000011           # Delete (asks first; --force ski
 and `--reply-to` takes a post id or URL. `list` prints each draft with its id, which `remove` takes. A draft that lists
 `unsupported_content` holds more than the listing shows, so leave it alone unless its owner asks. `remove` deletes the
 whole draft, any part `list` does not show included, and it cannot be restored; X answers `deleted: true` for an id that
-is not one of your drafts. The tagged users, disclosures, and other fields X takes in a draft are set through raw mode.
+is not one of your drafts. The users tagged in the media and the AI and paid-partnership disclosures a draft also keeps
+are set through raw mode.
 
 ### Reading
 
