@@ -46,6 +46,17 @@ struct Step {
     run: Option<String>,
     #[serde(rename = "if")]
     condition: Option<String>,
+    #[serde(default)]
+    env: BTreeMap<String, EnvValue>,
+}
+
+/// A value under `env:`. YAML reads an unquoted `1` or `true` as a number or a
+/// boolean, and a workflow's other variables must not stop the file parsing.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum EnvValue {
+    Text(String),
+    Other(serde::de::IgnoredAny),
 }
 
 fn read(relative: &str) -> String {
@@ -98,6 +109,16 @@ fn requested(arguments: &str) -> Vec<(String, Option<String>)> {
         .collect()
 }
 
+/// A step's `run:` as the shell reads it: continued lines joined and comment
+/// lines gone.
+fn script_of(run: &str) -> String {
+    run.replace("\\\n", " ")
+        .lines()
+        .filter(|line| !line.trim_start().starts_with('#'))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// What each step of `workflow` installs that the list does not own, one
 /// message per finding.
 fn violations(workflow: &str, list: &BTreeMap<String, String>) -> Vec<String> {
@@ -131,12 +152,7 @@ fn violations(workflow: &str, list: &BTreeMap<String, String>) -> Vec<String> {
                 ));
             }
             let Some(run) = &step.run else { continue };
-            let script = run
-                .replace("\\\n", " ")
-                .lines()
-                .filter(|line| !line.trim_start().starts_with('#'))
-                .collect::<Vec<_>>()
-                .join("\n");
+            let script = script_of(run);
             let read_for: BTreeMap<&str, &str> = reads
                 .captures_iter(&script)
                 .map(|read| {
@@ -336,6 +352,140 @@ fn an_install_action_fails_since_the_list_cannot_pin_it() {
 )]
 fn a_step_the_list_owns_passes(#[case] script: &str) {
     let found = violations(&seed_workflow(script), &seed_list());
+    assert!(found.is_empty(), "{script:?} must pass, got {found:#?}");
+}
+
+/// The variable `cargo binstall` reads its GitHub token from.
+const TOKEN: &str = "GITHUB_TOKEN";
+
+/// Each step of `workflow` that runs `cargo binstall` with no non-empty
+/// `GITHUB_TOKEN` in its own `env:`, one message per step. binstall looks a
+/// release up on `api.github.com`, and without a token that call counts
+/// against the runner's shared per-IP rate limit. A 403 from it makes binstall
+/// wait 120 s before it retries, which is past the 45 s deadline the install
+/// steps run under.
+fn binstalls_without_a_token(file: &str, workflow: &str) -> Vec<String> {
+    let parsed: Workflow =
+        serde_saphyr::from_str(workflow).unwrap_or_else(|e| panic!("{file} is YAML: {e}"));
+    let binstall = Regex::new(&format!(r"{COMMAND_START}{DEADLINE}cargo\s+binstall\b"))
+        .expect("valid pattern");
+
+    let mut found = Vec::new();
+    for (job_id, job) in &parsed.jobs {
+        for step in &job.steps {
+            let Some(run) = &step.run else { continue };
+            if !binstall.is_match(&script_of(run)) {
+                continue;
+            }
+            let has_token = matches!(
+                step.env.get(TOKEN),
+                Some(EnvValue::Text(value)) if !value.trim().is_empty()
+            );
+            if !has_token {
+                let name = step.name.as_deref().unwrap_or("?");
+                found.push(format!(
+                    "binstall-token/missing: step `{name}` of job `{job_id}` in {file} runs \
+                     `cargo binstall` with no {TOKEN} in its `env:`. Add `{TOKEN}: ${{{{ \
+                     github.token }}}}` to that step's `env:`, so binstall's lookup on \
+                     api.github.com is authenticated and a rate limit's 403 cannot hold the \
+                     step past its deadline."
+                ));
+            }
+        }
+    }
+    found
+}
+
+/// Every workflow under `.github/workflows/`, as its path from the workspace
+/// root and its text.
+fn workflows() -> Vec<(String, String)> {
+    let dir = common::workspace_root().join(".github/workflows");
+    let mut files: Vec<_> = std::fs::read_dir(&dir)
+        .unwrap_or_else(|e| panic!("read {}: {e}", dir.display()))
+        .map(|entry| entry.expect("dir entry").path())
+        .filter(|path| {
+            path.extension()
+                .is_some_and(|ext| ext == "yml" || ext == "yaml")
+        })
+        .collect();
+    files.sort();
+    files
+        .iter()
+        .map(|path| {
+            let text = std::fs::read_to_string(path)
+                .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+            (common::workspace_name(path), text)
+        })
+        .collect()
+}
+
+/// A workflow holding one step that runs `script`, under `env` entries when
+/// given.
+fn seed_workflow_with_env(env: Option<&str>, script: &str) -> String {
+    let body: String = script
+        .lines()
+        .map(|line| format!("          {line}\n"))
+        .collect();
+    let env = env.map_or_else(String::new, |entries| {
+        let entries: String = entries
+            .lines()
+            .map(|line| format!("          {line}\n"))
+            .collect();
+        format!("        env:\n{entries}")
+    });
+    format!("jobs:\n  seeded:\n    steps:\n      - name: Seeded step\n{env}        run: |\n{body}")
+}
+
+#[test]
+fn every_binstall_step_in_every_workflow_carries_a_github_token() {
+    let workflows = workflows();
+    assert!(
+        workflows.iter().any(|(file, _)| file == CI),
+        "the walk of .github/workflows/ must reach {CI}"
+    );
+    let found: Vec<String> = workflows
+        .iter()
+        .flat_map(|(file, text)| binstalls_without_a_token(file, text))
+        .collect();
+    assert!(found.is_empty(), "{}", found.join("\n"));
+}
+
+#[rstest]
+#[case::no_env(None)]
+#[case::another_variable_only(Some("RUST_LOG: info"))]
+#[case::empty_token(Some("GITHUB_TOKEN: \"\""))]
+fn a_binstall_step_with_no_token_fails_naming_the_step_and_the_file(#[case] env: Option<&str>) {
+    let script = "timeout -k 5 45 cargo binstall cargo-hack@1.2.3 --force --no-confirm";
+    let found = binstalls_without_a_token("seeded.yml", &seed_workflow_with_env(env, script));
+    let [message] = found.as_slice() else {
+        panic!("expected one finding for {env:?}, got {found:#?}");
+    };
+    assert!(
+        message.starts_with("binstall-token/missing")
+            && message.contains("step `Seeded step` of job `seeded` in seeded.yml")
+            && message.contains("GITHUB_TOKEN: ${{ github.token }}"),
+        "the message must name the step, the file, and the line to add: {message}"
+    );
+}
+
+#[rstest]
+#[case::job_token(
+    Some("GITHUB_TOKEN: ${{ github.token }}"),
+    "cargo binstall cargo-hack@1.2.3"
+)]
+#[case::secrets_token(
+    Some("GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}"),
+    "cargo binstall cargo-hack@1.2.3"
+)]
+#[case::beside_unquoted_numbers_and_booleans(
+    Some("RETRIES: 3\nVERBOSE: true\nGITHUB_TOKEN: ${{ github.token }}"),
+    "cargo binstall cargo-hack@1.2.3"
+)]
+#[case::cargo_install_needs_none(None, "cargo install cargo-hack --locked")]
+#[case::named_in_a_message(None, "echo \"::error::run cargo binstall cargo-hack to reproduce\"")]
+#[case::commented_out(None, "# cargo binstall cargo-hack")]
+fn a_step_with_a_token_or_no_binstall_passes(#[case] env: Option<&str>, #[case] script: &str) {
+    let found = binstalls_without_a_token("seeded.yml", &seed_workflow_with_env(env, script));
     assert!(found.is_empty(), "{script:?} must pass, got {found:#?}");
 }
 
