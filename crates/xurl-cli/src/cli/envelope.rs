@@ -1,9 +1,10 @@
 //! Canonical agent-native JSON envelope shape.
 //!
-//! Every `--output json|jsonl` response — success, dry-run, or error — is
-//! shaped as one of these three variants. Agents dispatch on the `status`
-//! field; the typed `reason` discriminator carries the closed kebab-case
-//! kind on errors.
+//! Every top-level `--output json|jsonl` document `xr` writes is shaped as one
+//! of the variants of [`Envelope`]: a success, a dry run, an error, a sign-in
+//! waiting on its redirect, or a run that was cancelled. Agents dispatch on
+//! the `status` field; the typed `reason` discriminator carries the closed
+//! kebab-case kind on errors. A stream's per-record lines are not envelopes.
 //!
 //! The `#[derive(JsonSchema)]` here is the source of truth for the
 //! `schema/output.schema.json` committed at the repo root. The drift guard
@@ -23,7 +24,7 @@ use serde_json::Value;
 
 use crate::cli::hints::NextStep;
 
-/// The three envelope variants — one per `status` discriminator value.
+/// The envelope variants, one per `status` value a top-level document carries.
 #[derive(Debug, Serialize, JsonSchema)]
 #[serde(tag = "status", rename_all = "snake_case")]
 #[non_exhaustive]
@@ -49,6 +50,66 @@ pub enum Envelope {
     /// [`ErrorBody`], so an undeclared key cannot reach a caller. Boxed
     /// because that body is much larger than the success variant.
     Error(Box<ErrorBody>),
+    /// Sign-in envelope: `xr auth oauth2 --no-browser` has printed the
+    /// authorization URL and waits for the redirect URL to come back through
+    /// step 2. The flow is not finished, so the status is not `ok`.
+    AwaitingCallback {
+        /// The authorization URL to open in a browser.
+        url: String,
+        /// What to do with the URL, naming the step-2 command to run next.
+        instructions: String,
+    },
+    /// A run that ended before it finished, in one of two shapes. A
+    /// destructive command whose prompt was answered no writes it on stderr
+    /// with `exit_code`, `message`, the command's context keys, and
+    /// `warnings` when any fired. A stream that a signal ended writes it on
+    /// stdout with `reason` `sigterm` and nothing else.
+    Cancelled {
+        /// Exit code of the run, on the declined prompt.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        exit_code: Option<i32>,
+        /// What stopped the run, in words, on the declined prompt.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        message: Option<String>,
+        /// What ended the stream, on a stream a signal cancelled: `sigterm`.
+        /// A plain string, not one of the error `reason` codes: this is no
+        /// error.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        reason: Option<String>,
+        /// The command's context keys, flattened at the top level.
+        #[serde(flatten)]
+        context: serde_json::Map<String, Value>,
+        /// What the library warned about before the run stopped, each
+        /// distinct warning once. Omitted when none fired.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        warnings: Option<Vec<Warning>>,
+    },
+}
+
+impl Envelope {
+    /// Serializes this envelope into the document `xr` writes.
+    ///
+    /// The one conversion every emitter uses, so the `status` tag and the
+    /// declared field set cannot drift between them. Only an `Ok` whose
+    /// payload is not an object can fail to serialize; the fallback keeps the
+    /// document an error rather than writing nothing.
+    #[must_use]
+    pub fn into_value(self) -> Value {
+        serde_json::to_value(self).unwrap_or_else(|_| serde_json::json!({"status": "error"}))
+    }
+
+    /// The `status` values a document can carry, in the order the variants are
+    /// declared.
+    #[must_use]
+    pub fn statuses() -> Vec<String> {
+        envelope_schema()["oneOf"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|variant| variant["properties"]["status"]["const"].as_str())
+            .map(str::to_string)
+            .collect()
+    }
 }
 
 /// Every key a dry run's answer carries of its own, beside the `status` tag.
@@ -573,8 +634,7 @@ impl ErrorBody {
     /// declared field set cannot drift between them.
     #[must_use]
     pub fn into_value(self) -> Value {
-        serde_json::to_value(Envelope::Error(Box::new(self)))
-            .unwrap_or_else(|_| serde_json::json!({"status": "error"}))
+        Envelope::Error(Box::new(self)).into_value()
     }
 }
 

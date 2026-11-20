@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.7.1] - 2026-11-20
+
+### Fixed
+
+- Fix `schema/output.schema.json` to describe the `cancelled` and `awaiting_callback` documents `xr` already writes, so output from a declined prompt, a stream ended by a signal, and `xr auth oauth2 --no-browser` validates against it. by @brettdavies in [#576](https://github.com/brettdavies/xurl-rs/pull/576)
+
+**Full Changelog**: [v4.7.0...v4.7.1](https://github.com/brettdavies/xurl-rs/compare/v4.7.0...v4.7.1)
+
 ## [4.7.0] - 2026-11-13
 
 ### Added

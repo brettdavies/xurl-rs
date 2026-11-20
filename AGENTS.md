@@ -415,7 +415,7 @@ is library, and opening the browser and printing the paste-the-URL advice is bin
 - Clippy clean, edition 2024 (`cargo clippy -- -D warnings`)
 - Formatted with rustfmt (`cargo fmt --check`); style edition pinned in `rustfmt.toml`
 - No `unwrap()` in production code
-- Comprehensive tests (`cargo nextest run`, plus `cargo test --doc`): unit, integration, and differential conformance
+- Comprehensive tests (`cargo nextest run`, plus `cargo test --doc`): unit and integration
 - Zero broken tests policy: a failing test on `dev` blocks new work until it's fixed or reverted, not until "later"
 - `cargo deny check` passes (advisories, licenses, bans, sources)
 - Cross-platform: Linux, macOS, Windows (MSVC). Pre-push and CI both run a Windows compatibility check.
@@ -483,12 +483,10 @@ over every crate, the others read only the staged files), and `pre-push` runs th
 `scripts/hooks/pre-push` by hand when `core.hooksPath` is unset; invoked that way it sweeps everything, where the hook
 path scopes each step to what the push changes.
 
-Six CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
-semver gate, the agent-native audit (with the release binary's size ceiling on a release PR), `Go parity`, the
-differential suite against Go `xurl` at a pinned commit, which skips locally unless `XURL_ORIGINAL_BIN` names that
-binary, and `Windows program target`, the `webhooks listen` program-target tests on a Windows runner. Run the first five
-yourself when a change touches the CLI surface, the library API, or the release profile; the sixth needs a Windows
-machine.
+Five CI gates have no hook counterpart and fail only on the PR: completions freshness, the package check, the public-API
+semver gate, the agent-native audit (with the release binary's size ceiling on a release PR), and
+`Windows program target`, the `webhooks listen` program-target tests on a Windows runner. Run the first four yourself
+when a change touches the CLI surface, the library API, or the release profile; the fifth needs a Windows machine.
 
 ### `pre-push/missing-tool`
 

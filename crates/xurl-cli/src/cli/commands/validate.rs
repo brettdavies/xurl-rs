@@ -12,7 +12,7 @@ use std::path::Path;
 
 use serde::de::DeserializeOwned;
 
-use crate::cli::envelope::{ErrorBody, Reason};
+use crate::cli::envelope::{Envelope, ErrorBody, Reason};
 use crate::cli::hints::NextStep;
 use crate::cli::output::OutputConfig;
 use xdk::api::{
@@ -392,24 +392,24 @@ fn validate_envelope(value: &serde_json::Value) -> Result<(), String> {
         .get("status")
         .and_then(|v| v.as_str())
         .ok_or_else(|| "envelope missing required string field `status`".to_string())?;
-    match status {
-        "ok" | "dry_run" => Ok(()),
-        "error" => {
-            for field in ["reason", "exit_code", "message"] {
-                if !map.contains_key(field) {
-                    return Err(format!("error envelope missing required field {field:?}"));
-                }
-            }
-            if !map["exit_code"].is_i64() {
-                return Err("error envelope `exit_code` must be an integer".into());
-            }
-            Ok(())
-        }
-        "awaiting_callback" | "cancelled" => Ok(()),
-        other => Err(format!(
-            "envelope `status` must be one of ok / dry_run / error / awaiting_callback / cancelled; got {other:?}"
-        )),
+    let declared = Envelope::statuses();
+    if !declared.iter().any(|known| known == status) {
+        return Err(format!(
+            "envelope `status` must be one of {}; got {status:?}",
+            declared.join(" / ")
+        ));
     }
+    if status == "error" {
+        for field in ["reason", "exit_code", "message"] {
+            if !map.contains_key(field) {
+                return Err(format!("error envelope missing required field {field:?}"));
+            }
+        }
+        if !map["exit_code"].is_i64() {
+            return Err("error envelope `exit_code` must be an integer".into());
+        }
+    }
+    Ok(())
 }
 
 /// Wrapper around `serde_json::from_value` returning the failure message.

@@ -7,7 +7,7 @@ use serde_json::json;
 
 use super::secret::{self, SecretArg};
 use super::{AuthCtx, AuthGlobalFlags, rehearsed};
-use crate::cli::envelope::{ErrorBody, Reason};
+use crate::cli::envelope::{Envelope, ErrorBody, Reason};
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::{NextStep, quote_app_name, shell_word};
 use crate::cli::output::OutputConfig;
@@ -188,17 +188,14 @@ pub(super) async fn oauth2(
                         // The awaiting-callback envelope carries its
                         // own status: the flow is not finished, so
                         // reporting `ok` would be wrong.
-                        out.print_response(
-                            stdout,
-                            &serde_json::json!({
-                                "status": "awaiting_callback",
-                                "url": url,
-                                "instructions": format!(
-                                    "Open the URL in a browser, authorize, then run '{}'",
-                                    step_two(username_arg, &app, "<redirect-url>")
-                                ),
-                            }),
-                        );
+                        let document = Envelope::AwaitingCallback {
+                            url,
+                            instructions: format!(
+                                "Open the URL in a browser, authorize, then run '{}'",
+                                step_two(username_arg, &app, "<redirect-url>")
+                            ),
+                        };
+                        out.print_response(stdout, &document.into_value());
                     } else {
                         out.print_success(
                             stdout,

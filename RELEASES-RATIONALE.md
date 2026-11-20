@@ -186,7 +186,12 @@ library's API, and the preflight's command-surface and `xr schema` diffs against
 filed under a patch section is the mistake review misses most easily, because nothing in the diff reads as wrong. So the
 `Changelog bump` check compares each PR's generated surface against its base and fails the PR while the section is still
 cheap to fix, instead of leaving the question to whoever cuts the release: an addition with no minor-or-higher section,
-or a removal with neither a `Breaking changes` nor a `Fixed` bullet. `generate-changelog.py --bump` reads the same
+a removal without a `Breaking changes` bullet that starts with "Remove", or a heading outside the six. A schema that
+only catches up to output the binary already prints and its docs already describe is the one addition that may go under
+`Fixed`; a new command, flag, or flag value still needs a minor section, since the completions grow only when the binary
+does. A `Fixed` removal would ship as a patch, and the "Remove" prefix keeps an unrelated `Breaking changes` bullet from
+covering one. The generator files an unknown `###` heading as a patch and does not read a deeper or indented one as a
+heading, so a removal under any of them would ship without its major. `generate-changelog.py --bump` reads the same
 sections the release notes are built from, so the version and the notes cannot disagree. A `!:` commit stays a
 cross-check: a PR can break the contract with no marker, and a marker can sit on a change outside the contract.
 
@@ -361,8 +366,9 @@ recently read.
 
 Every repository the account owns draws on one concurrent-job limit, and a release's build rows that queue behind
 another repository's jobs finish late by however long those take. `scripts/release/tag-release.sh` lists the queued and
-in-progress runs in every repository the account owns and has not archived, and holds the cut while any is listed;
-`--force` pushes anyway.
+in-progress runs in every repository the account owns and has not archived. An in-progress run holds the cut, as does a
+queued run under 24 hours old or one that has a job; a queued run 24 hours old or more with no job never holds a runner,
+so the script prints it as skipped and goes on. `--force` pushes anyway.
 
 CI runs on a push to `dev`, not on a push to `main`, so the release PR's merge starts no CI run beside the release's
 own. `main`'s CI caches still need filling, since every pull request falls back to the default branch's caches.
