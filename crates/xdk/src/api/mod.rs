@@ -44,6 +44,7 @@ pub use response::types::{
     MediaLibraryUpdated, MediaMetadataResult, MediaProcessingInfo, MediaSubtitlesResult,
     MediaUploadResponse, MutingResult, NewsClusterPost, NewsStory, Note, NoteCreated,
     NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    PostDraft, PostDraftCreated, PostDraftMedia, PostDraftReply, PostDraftThreadPost,
     PostPublicMetrics, ProvisionedResult, ReferencedPost, RepostedResult, ResponseMeta,
     ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,

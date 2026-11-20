@@ -33,11 +33,11 @@ use xdk::api::response::types::{
     List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded,
     MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult,
     NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo, PersonalizedTrend, PinnedResult, Post,
-    PostAnalytics, PostCount, ProvisionedResult, ScheduledBroadcast, ScheduledCall,
-    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule,
-    StreamRuleAppCount, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
-    StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    PostAnalytics, PostCount, PostDraft, PostDraftCreated, ProvisionedResult, ScheduledBroadcast,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
+    StreamRule, StreamRuleAppCount, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -249,6 +249,18 @@ fn typed_responses_match_vendored_spec() {
         (
             "AddPostToAmplifyProgramsResponseData",
             serde_json::to_value(schemars::schema_for!(AmplifyPostAdded)).unwrap(),
+        ),
+        (
+            "GetPostDraftsResponseData",
+            serde_json::to_value(schemars::schema_for!(PostDraft)).unwrap(),
+        ),
+        (
+            "CreatePostDraftResponseData",
+            serde_json::to_value(schemars::schema_for!(PostDraftCreated)).unwrap(),
+        ),
+        (
+            "DeletePostDraftResponseData",
+            serde_json::to_value(schemars::schema_for!(DeletedResult)).unwrap(),
         ),
         (
             "AddMediaToLibraryResponseData",

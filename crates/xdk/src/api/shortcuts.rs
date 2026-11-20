@@ -25,11 +25,11 @@ use super::response::types::{
     ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded, MediaLibraryCategories,
     MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note,
     NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    PostDraft, PostDraftCreated, ProvisionedResult, RepostedResult, ScheduledBroadcast,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
+    StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
+    StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -1033,6 +1033,17 @@ pub fn user_ids_for_accounts<S: AsRef<str>>(
 pub fn validate_note_id(id: &str) -> std::result::Result<(), &'static str> {
     if !is_numeric_id(id) {
         return Err("invalid-note-id");
+    }
+    Ok(())
+}
+
+/// Validates a post draft id against the spec's pattern: 1 to 19 digits.
+///
+/// # Errors
+/// Returns `invalid-draft-id` for anything else.
+pub fn validate_draft_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-draft-id");
     }
     Ok(())
 }
@@ -2286,6 +2297,67 @@ impl Client {
             template(
                 endpoints::DELETE_POST.path,
                 HashMap::from([("id".to_string(), post_id)]),
+                Vec::new(),
+            ),
+        )
+    }
+
+    /// Saves a post draft to the caller's account without publishing it. A
+    /// post URL in `reply_to` resolves to its id. X keeps a draft's text,
+    /// media, reply, and the AI and paid-partnership disclosures, and refuses
+    /// any other field.
+    pub fn create_post_draft(
+        &self,
+        text: &str,
+        media_ids: &[String],
+        reply_to: Option<&str>,
+    ) -> Call<ApiResponse<PostDraftCreated>> {
+        let body = PostBody {
+            text: text.to_string(),
+            reply: reply_to.map(|post_id| PostReply {
+                in_reply_to_post_id: resolve_post_id(post_id),
+            }),
+            quote: None,
+            media: (!media_ids.is_empty()).then(|| PostMedia {
+                media_ids: media_ids.to_vec(),
+            }),
+            clip: None,
+        };
+        self.json_call(
+            endpoints::CREATE_POST_DRAFT.method,
+            template(
+                endpoints::CREATE_POST_DRAFT.path,
+                HashMap::new(),
+                Vec::new(),
+            ),
+            &body,
+        )
+    }
+
+    /// Reads the caller's post drafts, newest first. A draft that carries
+    /// `unsupported_content` is not listed in full.
+    pub fn get_post_drafts(&self, max_results: i32) -> Call<ApiResponse<Vec<PostDraft>>> {
+        self.call(
+            endpoints::GET_POST_DRAFTS.method,
+            template(
+                endpoints::GET_POST_DRAFTS.path,
+                HashMap::new(),
+                vec![("max_results".to_string(), max_results.to_string())],
+            ),
+        )
+        .paginated()
+    }
+
+    /// Deletes one of the caller's post drafts. The whole draft goes, any
+    /// part the list does not show included, and it cannot be restored. X
+    /// answers `deleted: true` for an id that is not one of the caller's
+    /// drafts.
+    pub fn delete_post_draft(&self, draft_id: &str) -> Call<ApiResponse<DeletedResult>> {
+        self.call(
+            endpoints::DELETE_POST_DRAFT.method,
+            template(
+                endpoints::DELETE_POST_DRAFT.path,
+                id_param(draft_id),
                 Vec::new(),
             ),
         )

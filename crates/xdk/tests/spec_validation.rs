@@ -30,11 +30,11 @@ use xdk::api::response::types::{
     ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded, MediaLibraryCategories,
     MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse,
     MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
-    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
-    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
-    StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
-    StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData, UsageData, User,
-    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated, ProvisionedResult, RepostedResult,
+    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -297,6 +297,34 @@ fn spec_notes() {
         serde_json::from_value(examples["notes_written"].clone()).unwrap();
     let info = written.data[0].info.as_ref().expect("the note's info");
     assert_eq!(info.post_id.as_deref(), Some("1585341984679469056"));
+}
+
+#[test]
+fn spec_post_drafts() {
+    let examples = load_examples();
+    let listed: ApiResponse<Vec<PostDraft>> =
+        serde_json::from_value(examples["post_drafts"].clone()).unwrap();
+    let first = &listed.data[0];
+    assert_eq!(first.media.as_ref().unwrap().media_ids.len(), 1);
+    assert_eq!(
+        first.reply.as_ref().unwrap().in_reply_to_tweet_id,
+        "1585341984679469056"
+    );
+    assert_eq!(first.thread.as_ref().unwrap()[0].text, "Second post");
+    assert_eq!(
+        listed.data[1].unsupported_content.as_deref(),
+        Some(["text_formatting".to_string()].as_slice())
+    );
+    assert_eq!(
+        listed.meta.unwrap().next_token.as_deref(),
+        Some("1850000000000000012")
+    );
+    let created: ApiResponse<PostDraftCreated> =
+        serde_json::from_value(examples["post_draft_created"].clone()).unwrap();
+    assert_eq!(created.data.text, "Remember to post this");
+    let deleted: ApiResponse<DeletedResult> =
+        serde_json::from_value(examples["post_draft_deleted"].clone()).unwrap();
+    assert!(deleted.data.deleted);
 }
 
 #[test]
@@ -1121,6 +1149,21 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "notes_written",
         endpoints::GET_NOTES_WRITTEN,
+        ReplyKind::Success,
+    ),
+    (
+        "post_drafts",
+        endpoints::GET_POST_DRAFTS,
+        ReplyKind::Success,
+    ),
+    (
+        "post_draft_created",
+        endpoints::CREATE_POST_DRAFT,
+        ReplyKind::Success,
+    ),
+    (
+        "post_draft_deleted",
+        endpoints::DELETE_POST_DRAFT,
         ReplyKind::Success,
     ),
     ("broadcast", endpoints::GET_BROADCAST, ReplyKind::Success),

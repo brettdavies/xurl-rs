@@ -54,7 +54,10 @@ const BOUNDS: &[Bound] = &[
         constant: "POST_MEDIA_MAX",
         value: n(POST_MEDIA_MAX),
         keyword: "maxItems",
-        sites: &[Site::Property("CreatePostsMedia", "media_ids")],
+        sites: &[
+            Site::Property("CreatePostsMedia", "media_ids"),
+            Site::Property("CreatePostDraftMedia", "media_ids"),
+        ],
     },
     Bound {
         constant: "DM_GROUP_PARTICIPANTS_MIN",
