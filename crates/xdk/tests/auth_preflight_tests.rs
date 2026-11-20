@@ -397,3 +397,84 @@ fn outcome(ok: bool) -> &'static str {
         "finds none"
     }
 }
+
+/// A request that names a login goes out under that login's `OAuth2` token,
+/// or under a bearer token on an endpoint that takes no `OAuth2`. A bearer
+/// token or `OAuth1` keys act as another account or none, so where the
+/// endpoint takes `OAuth2` they do not serve the login, and the login's
+/// token is what is missing. A raw URL reaches the endpoint whose template
+/// its path fits. A send picks the same scheme.
+#[rstest::rstest]
+#[case::a_bearer_where_oauth2_is_taken(bearer as Fill, None, "/2/tweets/search/recent", false, None)]
+#[case::oauth1_where_oauth2_is_taken(oauth1 as Fill, None, "/2/users/me", false, None)]
+#[case::an_environment_bearer_where_oauth2_is_taken(
+    (|_: &mut TokenStore| {}) as Fill,
+    Some("ENV-BEARER"),
+    "/2/tweets/search/recent",
+    false,
+    None
+)]
+#[case::the_login_beside_a_bearer(
+    (|store: &mut TokenStore| { bearer(store); oauth2(store, USER, false) }) as Fill,
+    None,
+    "/2/tweets/search/recent",
+    false,
+    Some(WireScheme::OAuth2)
+)]
+#[case::a_bearer_where_oauth2_is_not_taken(
+    bearer as Fill,
+    None,
+    "/2/tweets/search/stream/rules",
+    false,
+    Some(WireScheme::App)
+)]
+#[case::a_raw_bearer_where_oauth2_is_taken(bearer as Fill, None, "/2/tweets/search/recent", true, None)]
+#[case::a_raw_bearer_where_oauth2_is_not_taken(
+    bearer as Fill,
+    None,
+    "/2/usage/tweets",
+    true,
+    Some(WireScheme::App)
+)]
+#[case::a_raw_bearer_on_a_path_the_matrix_lacks(bearer as Fill, None, "/2/no/such/path", true, None)]
+#[tokio::test]
+async fn a_named_login_is_served_by_its_oauth2_token_or_a_bearer_where_oauth2_is_not_taken(
+    #[case] fill: Fill,
+    #[case] env_bearer: Option<&str>,
+    #[case] path: &str,
+    #[case] raw: bool,
+    #[case] served_by: Option<WireScheme>,
+) {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join("auth.yml");
+    seed(&store, fill);
+    let client = client_with_env_bearer(&store, &server, env_bearer);
+    let mut named = RequestOptions {
+        username: USER.to_string(),
+        ..request("GET", path)
+    };
+    if raw {
+        named.target = RequestTarget::RawUrl(format!("{}{path}", server.uri()));
+    }
+
+    let found = client.auth_preflight(&named).await;
+    let header = client.get_auth_header_public(&named).await;
+
+    match served_by {
+        Some(scheme) => {
+            let found = found.expect("the login is served").expect("a credential");
+            assert_eq!(found.scheme, scheme, "{path}");
+            assert!(header.is_ok(), "{path}: {header:?}");
+        }
+        None => {
+            let error = found.expect_err("nothing the store holds serves the login");
+            assert_eq!(error.kind(), "auth-required", "{path}: {error:?}");
+            assert_eq!(
+                error.to_string(),
+                header.expect_err("a send refuses it too").to_string()
+            );
+        }
+    }
+    assert_eq!(requests(&server).await, 0);
+}

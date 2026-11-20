@@ -13,6 +13,10 @@
 //! set; each request it sends is matched to the spec's path template for its
 //! endpoint. The command list and each command's arguments are read from
 //! clap, so a command added later is checked without an edit here.
+//!
+//! A dry run's `max_results` is the page size its request sends. Each
+//! command with `-n/--max-results` runs for real and as a dry run with sizes
+//! its bounds move, and the two must agree.
 
 mod common;
 
@@ -323,6 +327,66 @@ fn each_page_size_help_states_the_largest_size_the_command_sends() {
     assert!(
         found.is_empty(),
         "the -n/--max-results help states a range the command does not send:\n{}",
+        found.join("\n")
+    );
+}
+
+/// The page sizes a dry run is asked to report: below every `-n` range,
+/// above every one, from `--limit` alone, and the default.
+const ASKED_SIZES: &[&[&str]] = &[&["-n", "0"], &["-n", "101"], &["--limit", "500"], &[]];
+
+/// Where the dry run of the command at `path` reports a `max_results` other
+/// than the one its real run sends.
+async fn reported_size_faults(mock: &MockX, seed: &Seed, path: &str) -> Vec<String> {
+    let origin = mock.base_url();
+    let mut found = Vec::new();
+    for asked in ASKED_SIZES {
+        let mut args = arguments_for(path);
+        args.extend(asked.iter().map(ToString::to_string));
+        let seen = mock.requests().await.len();
+        run_xr(&origin, seed, path, &args, false).await;
+        let sent = mock.requests().await.split_off(seen);
+        let Some(size) = sent
+            .iter()
+            .rev()
+            .find_map(|request| query_value(request, "max_results"))
+        else {
+            continue;
+        };
+        let dry = run_xr(&origin, seed, path, &args, true).await;
+        let reported = &Ran::document(&dry.stdout)["max_results"];
+        if reported.as_i64().map(|reported| reported.to_string()) != Some(size.clone()) {
+            found.push(format!(
+                "{path} {}: its dry run reports max_results {reported}, and its request sends \
+                 {size}\n  \
+                 Cause: the dry run reports the size it was asked for, not the one the request \
+                 carries.\n  \
+                 Fix: answer the dry run through DryRun::sending in \
+                 crates/xurl-cli/src/cli/commands/mod.rs, as send_or_report does.",
+                asked.join(" ")
+            ));
+        }
+    }
+    found
+}
+
+#[test]
+fn each_dry_run_reports_the_page_size_its_request_sends() {
+    let seed = Seed::of(every_kind);
+    let paths: Vec<String> = runnable_paths()
+        .into_iter()
+        .filter(|path| takes_a_credential(path) && takes_a_page_size(path))
+        .collect();
+    let found: Vec<String> = walk(&paths, answering_mock, async |mock, path: &String| {
+        reported_size_faults(mock, &seed, path).await
+    })
+    .into_iter()
+    .flatten()
+    .collect();
+
+    assert!(
+        found.is_empty(),
+        "these dry runs report a page size their request does not send:\n{}",
         found.join("\n")
     );
 }

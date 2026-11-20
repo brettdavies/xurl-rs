@@ -208,7 +208,9 @@ impl Client {
     /// OAuth1 → Bearer preference order, and falls back to that fixed
     /// order for [`RequestTarget::RawUrl`] and matrix-miss
     /// [`RequestTarget::Template`] targets (the permissive surface for
-    /// unknown endpoints).
+    /// unknown endpoints). A request that names a login in
+    /// `options.username` takes only `OAuth2`, or the bearer token on an
+    /// endpoint that accepts no `OAuth2`.
     fn select_scheme(
         &self,
         credentials: &CredentialSource,
@@ -283,6 +285,18 @@ impl Client {
     /// The first scheme in preference order the credentials can serve and
     /// the endpoint accepts. An endpoint the matrix does not know accepts
     /// every scheme.
+    ///
+    /// A request that names a login (`options.username`) is served only by
+    /// `OAuth2`, which then sends that login's token, or by a bearer token on
+    /// an endpoint that accepts no `OAuth2`. `OAuth1` keys and a bearer token
+    /// act as some other account or as none, so where the endpoint accepts
+    /// `OAuth2` neither stands in for the login, and a request they alone
+    /// could serve is refused for the login's missing `OAuth2` token. A raw
+    /// URL reaches the endpoint whose template its path fits, and one that
+    /// fits none may accept `OAuth2`. A raw URL still offers every stored
+    /// scheme, so where the app stores any `OAuth2` login, `OAuth2` is picked
+    /// first, and a login the app does not store is refused even on an
+    /// endpoint that accepts no `OAuth2`.
     fn detect_scheme(
         &self,
         credentials: &CredentialSource,
@@ -291,15 +305,36 @@ impl Client {
         endpoint: Option<&Endpoint<'_>>,
     ) -> Result<Selection> {
         let facts = credentials.scheme_facts();
-        let selected = WireScheme::ALL_BY_PREFERENCE.into_iter().find(|scheme| {
-            facts.available.contains(scheme)
-                && endpoint.is_none_or(|endpoint| endpoint.accepts(scheme.as_wire()))
-        });
-        match selected {
-            None => Err(no_scheme(credentials, facts, endpoint)),
+        let accepted: Vec<WireScheme> = WireScheme::ALL_BY_PREFERENCE
+            .into_iter()
+            .filter(|scheme| {
+                facts.available.contains(scheme)
+                    && endpoint.is_none_or(|endpoint| endpoint.accepts(scheme.as_wire()))
+            })
+            .collect();
+        let takes_no_oauth2 = || match &options.target {
+            RequestTarget::Template { .. } => {
+                endpoint.is_some_and(|endpoint| !endpoint.accepts(WireScheme::OAuth2.as_wire()))
+            }
+            RequestTarget::RawUrl(raw) => url::Url::parse(raw.trim_start())
+                .ok()
+                .and_then(|url| {
+                    crate::api::auth_matrix::supported_auth_for_request(method, url.path())
+                })
+                .is_some_and(|schemes| !schemes.contains(&WireScheme::OAuth2)),
+        };
+        let serves_the_login = |scheme: &WireScheme| match scheme {
+            _ if options.username.is_empty() => true,
+            WireScheme::OAuth2 => true,
+            WireScheme::App => takes_no_oauth2(),
+            WireScheme::OAuth1 => false,
+        };
+        match accepted.iter().copied().find(serves_the_login) {
             Some(scheme) => self.selection(credentials, options, method, scheme, || {
                 self.build_url(&options.target)
             }),
+            None if accepted.is_empty() => Err(no_scheme(credentials, facts, endpoint)),
+            None => Err(Error::auth(crate::error::NO_OAUTH2_TOKEN)),
         }
     }
 }

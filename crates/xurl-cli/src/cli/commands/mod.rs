@@ -265,6 +265,19 @@ impl DryRun {
         }
     }
 
+    /// The dry run of `call`, whose page size it reports as `max_results`:
+    /// the size the request sends, after the command's bounds and the
+    /// endpoint's have moved the one asked for.
+    fn sending<T>(mut self, call: &Call<T>) -> Self {
+        if let Some(size) = call
+            .query_value("max_results")
+            .and_then(|size| size.parse::<i64>().ok())
+        {
+            self.ctx["max_results"] = json!(size);
+        }
+        self
+    }
+
     /// The dry run of a command that asks `confirm` first. Its answer says
     /// the real run would ask only when the real run gets as far as asking.
     fn confirming(mut self, confirm: Option<Confirm<'_>>) -> Self {
@@ -363,7 +376,8 @@ where
     T: Serialize + DeserializeOwned,
 {
     if let Some(dry_run) = dry_run {
-        return dry_run.answer(out, stdout, [call.auth_preflight().await]);
+        let credential = call.auth_preflight().await;
+        return dry_run.sending(&call).answer(out, stdout, [credential]);
     }
     Ok(print_typed(out, stdout, &call.send().await?)?)
 }
@@ -845,7 +859,7 @@ where
 /// print the typed response. `ctx` names the inputs in a dry run's answer.
 async fn list_paged<T, V: Into<Invalid>>(
     run: Run<'_>,
-    mut ctx: serde_json::Value,
+    ctx: serde_json::Value,
     validator: impl FnOnce() -> std::result::Result<(), V>,
     max_results: Option<i32>,
     common: &CommonFlags,
@@ -862,9 +876,6 @@ where
         stdout,
         ..
     } = run;
-    if let Some(n) = max_results {
-        ctx["max_results"] = json!(n);
-    }
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, validator)?;
     let n = effective_limit(max_results, flags.global_limit);
     let client = make_client(cfg, auth)?;
@@ -895,9 +906,6 @@ where
         stdout,
         ..
     } = run;
-    if let Some(n) = max_results {
-        ctx["max_results"] = json!(n);
-    }
     if let Some(target) = of {
         ctx["of"] = json!(target);
     }
@@ -927,7 +935,7 @@ where
             flags.cursor.as_deref(),
         );
         credentials.push(list.auth_preflight().await);
-        return dry_run.answer(out, stdout, credentials);
+        return dry_run.sending(&list).answer(out, stdout, credentials);
     }
     let user_id = match of {
         Some(target) => resolve_account_id(&client, target, common).await?,
