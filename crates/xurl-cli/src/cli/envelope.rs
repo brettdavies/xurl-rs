@@ -176,7 +176,9 @@ pub struct DryRunBody {
     /// Auth schemes available for the active app, on the same refusal.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub available_in_app: Option<Vec<String>>,
-    /// The active app name, on the same refusal.
+    /// The app the refusal concerns: the active app on the same refusal,
+    /// and on `confirmation-required` the app the command would act on,
+    /// which the `confirm` template names with `--app`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app: Option<String>,
     /// Other apps holding credentials, when the active one holds none.

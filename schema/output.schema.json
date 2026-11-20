@@ -191,7 +191,7 @@
       "description": "Dry-run envelope. Its body declares the keys that are the envelope's\nown; any other key is one of the command's inputs. Boxed like the\nerror body, for its size.",
       "properties": {
         "app": {
-          "description": "The active app name, on the same refusal.",
+          "description": "The app the refusal concerns: the active app on the same refusal,\nand on `confirmation-required` the app the command would act on,\nwhich the `confirm` template names with `--app`.",
           "type": [
             "string",
             "null"
