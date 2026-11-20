@@ -6,11 +6,32 @@
 
 use tokio_util::sync::CancellationToken;
 
-/// Resolves when the process receives SIGINT (Ctrl+C) or, on Unix, SIGTERM.
+/// The signal that stopped the process.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ShutdownSignal {
+    /// SIGINT, which Ctrl+C sends.
+    Interrupt,
+    /// SIGTERM. Windows has none, so no signal there is this one.
+    #[cfg_attr(not(unix), allow(dead_code))]
+    Terminate,
+}
+
+impl ShutdownSignal {
+    /// The `reason` a stream's `cancelled` document names it by.
+    pub(crate) fn reason(self) -> &'static str {
+        match self {
+            Self::Interrupt => "sigint",
+            Self::Terminate => "sigterm",
+        }
+    }
+}
+
+/// Resolves when the process receives SIGINT (Ctrl+C) or, on Unix, SIGTERM,
+/// and names which.
 ///
 /// On Windows only `ctrl_c()` is available; the `cfg(unix)` arm folds
 /// SIGTERM into the same future.
-pub(crate) async fn shutdown_signal() {
+pub(crate) async fn shutdown_signal() -> ShutdownSignal {
     #[cfg(unix)]
     {
         use tokio::signal::unix::{SignalKind, signal};
@@ -20,17 +41,18 @@ pub(crate) async fn shutdown_signal() {
                 // SignalKind::terminate is documented to always succeed on
                 // Unix; if it does fail, fall back to ctrl_c only.
                 let _ = tokio::signal::ctrl_c().await;
-                return;
+                return ShutdownSignal::Interrupt;
             }
         };
         tokio::select! {
-            _ = tokio::signal::ctrl_c() => {}
-            _ = term.recv() => {}
+            _ = tokio::signal::ctrl_c() => ShutdownSignal::Interrupt,
+            _ = term.recv() => ShutdownSignal::Terminate,
         }
     }
     #[cfg(not(unix))]
     {
         let _ = tokio::signal::ctrl_c().await;
+        ShutdownSignal::Interrupt
     }
 }
 

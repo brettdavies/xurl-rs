@@ -32,13 +32,13 @@ pub(super) async fn stream_request_with_output(
     tokio::pin!(shutdown);
     loop {
         tokio::select! {
-            () = &mut shutdown => {
+            signal = &mut shutdown => {
                 let _ = stdout.flush();
                 if out.format.is_structured() {
                     let envelope = Envelope::Cancelled {
                         exit_code: None,
                         message: None,
-                        reason: Some("sigterm".into()),
+                        reason: Some(signal.reason().into()),
                         context: serde_json::Map::new(),
                         warnings: None,
                     };
