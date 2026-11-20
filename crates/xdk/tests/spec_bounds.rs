@@ -10,7 +10,7 @@ use serde_json::Value;
 use xdk::api::shortcuts::{
     ALT_TEXT_MAX_CHARS, BOOKMARK_FOLDER_NAME_MAX_CHARS, BROADCAST_CHAT_MAX_CHARS,
     CALL_DESCRIPTION_MAX_CHARS, CALL_DURATION_MAX_MINUTES, CALL_RECURRENCE_MAX_CHARS,
-    CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX,
+    CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX, CHAT_OPTION_MAX,
     DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
     USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS, validate_broadcast_id,
@@ -171,6 +171,12 @@ const BOUNDS: &[Bound] = &[
             Site::Property("ScheduleCallRequest", "duration_minutes"),
             Site::Property("UpdateScheduledCallRequest", "duration_minutes"),
         ],
+    },
+    Bound {
+        constant: "CHAT_OPTION_MAX",
+        value: CHAT_OPTION_MAX as u64,
+        keyword: "maximum",
+        sites: &[Site::Property("UpdateBroadcastRequest", "chat_option")],
     },
     Bound {
         constant: "NEW_CALL_INVITEES_MAX",

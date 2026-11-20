@@ -23,16 +23,17 @@ use xdk::api::auth_matrix::{Endpoint, endpoints};
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
     ArticleDraft, ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost,
-    BookmarkedResult, Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult,
-    ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
-    DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
-    MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
-    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    BookmarkedResult, Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated,
+    ChatModeratorsResult, ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult,
+    DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult,
+    List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult,
+    MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
+    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
+    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -735,6 +736,15 @@ fn spec_ingest_region() {
 }
 
 #[test]
+fn spec_broadcast_updated() {
+    let examples = load_examples();
+    let resp: ApiResponse<BroadcastUpdated> =
+        serde_json::from_value(examples["broadcast_updated"].clone()).unwrap();
+    assert_eq!(resp.data.chat_option, Some(3));
+    assert_eq!(resp.data.live_category_id.as_deref(), Some("gaming"));
+}
+
+#[test]
 fn spec_broadcast_ended() {
     let examples = load_examples();
     let resp: ApiResponse<BroadcastEnded> =
@@ -1003,6 +1013,11 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         ReplyKind::Success,
     ),
     ("broadcast", endpoints::GET_BROADCAST, ReplyKind::Success),
+    (
+        "broadcast_updated",
+        endpoints::UPDATE_BROADCAST,
+        ReplyKind::Success,
+    ),
     (
         "scheduled_broadcasts",
         endpoints::LIST_SCHEDULED_BROADCASTS,

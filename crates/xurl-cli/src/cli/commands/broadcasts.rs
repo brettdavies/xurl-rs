@@ -12,7 +12,7 @@ use super::{
 use crate::cli::failure::CommandResult;
 use crate::cli::{BroadcastsCommands, ModeratorsCommands, MutesCommands, SourcesCommands};
 use xdk::api::Client;
-use xdk::api::shortcuts;
+use xdk::api::shortcuts::{self, BroadcastChanges};
 
 pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResult<()> {
     match target {
@@ -85,6 +85,32 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
             let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_broadcast(&broadcast_id)
+            })
+            .await?;
+        }
+        BroadcastsCommands::Update {
+            broadcast_id,
+            title,
+            chat_option,
+            common,
+        } => {
+            let ctx = json!({
+                "command": "broadcasts-update",
+                "broadcast_id": broadcast_id,
+                "title": title,
+                "chat_option": chat_option,
+            });
+            let changes = BroadcastChanges {
+                title,
+                chat_option,
+                live_category_id: None,
+            };
+            let validate = || {
+                shortcuts::validate_broadcast_id(&broadcast_id)?;
+                shortcuts::validate_broadcast_changes(&changes)
+            };
+            send_validated(run, ctx, validate, &common, |client: &Client| {
+                client.update_broadcast(&broadcast_id, &changes)
             })
             .await?;
         }

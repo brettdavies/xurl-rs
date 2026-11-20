@@ -8,7 +8,7 @@
 use xdk::api::shortcuts::{
     ALT_TEXT_MAX_CHARS, BOOKMARK_FOLDER_NAME_MAX_CHARS, BROADCAST_CHAT_MAX_CHARS,
     CALL_DESCRIPTION_MAX_CHARS, CALL_DURATION_MAX_MINUTES, CALL_RECURRENCE_MAX_CHARS,
-    CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX,
+    CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX, CHAT_OPTION_MAX,
     DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
     USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS,
@@ -75,6 +75,11 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
             "A Community Note's text carries a source URL, http:// or https://.".to_string()
         }
         "invalid-broadcast-id" => "A broadcast id is 1 to 24 letters and digits.".to_string(),
+        "no-broadcast-changes" => {
+            "Nothing would change; give --title or --chat-option.".to_string()
+        }
+        "empty-broadcast-title" => "The broadcast title is empty.".to_string(),
+        "invalid-chat-option" => format!("A chat option is 0 to {CHAT_OPTION_MAX}."),
         "invalid-scheduled-broadcast-id" => {
             "A scheduled broadcast id is 1 to 19 digits.".to_string()
         }

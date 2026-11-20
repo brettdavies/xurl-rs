@@ -1488,6 +1488,43 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-no-broadcast-changes",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+            ],
+        ),
+        case(
+            "dry-run-empty-broadcast-title",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+                "--title",
+                " ",
+            ],
+        ),
+        case(
+            "dry-run-invalid-chat-option",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "update",
+                "1YqKDqWqdPLGV",
+                "--chat-option",
+                "7",
+            ],
+        ),
+        case(
             "dry-run-empty-source-name",
             &[
                 "--output",

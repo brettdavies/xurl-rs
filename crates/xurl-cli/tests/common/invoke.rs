@@ -97,6 +97,7 @@ pub const OVERRIDES: &[(&str, &[&str])] = &[
         ],
     ),
     ("calls scheduled update", &[SAMPLE, "--title", "Retro"]),
+    ("broadcasts update", &[SAMPLE, "--title", "Retro"]),
 ];
 
 /// The command tree, built once and read by every thread of a walk: building

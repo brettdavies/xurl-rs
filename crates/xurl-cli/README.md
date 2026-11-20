@@ -400,6 +400,7 @@ media id for 24 hours, so the envelope carries the id and the command that resum
 ```bash
 xr broadcasts list                                 # Your broadcasts
 xr broadcasts get 1YqKDqWqdPLGV                    # One broadcast, by id
+xr broadcasts update 1YqKDqWqdPLGV --title "Second take" --chat-option 3
 xr broadcasts remove 1YqKDqWqdPLGV                 # Delete a broadcast and its replay (asks first)
 xr broadcasts scheduled list                       # Your scheduled broadcasts
 xr broadcasts scheduled add --source 9012345678901234567 --start 2026-11-02T16:00:00Z
@@ -434,6 +435,11 @@ stream key can stream to the source; keep it out of logs you share, and pipe `--
 `jaq -r .data.stream_key` to hand it to a program without printing it. `--region` takes an ingest region, and
 `xr broadcasts sources add --help` lists them; `xr broadcasts sources region` names the one nearest the X server that
 answers. The API lists the regions in prose, so `xr` passes the value through rather than refusing one it does not know.
+
+`xr broadcasts update` changes a broadcast's title or its chat option, and sends only the flags you give. A chat option
+is 0 to 6: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts you follow, 5 your subscribers, 6 accounts
+followed by an account you follow. X takes the change before a broadcast starts, while it is live, and after it ends, and
+refuses it for a broadcast that was deleted or moderated.
 
 `xr broadcasts remove` deletes a scheduled or ended broadcast with its replay, and X refuses a running one. It asks
 first, and `--force` skips the prompt.

@@ -1,0 +1,26 @@
+args: ["--output", "json", "--dry-run", "broadcasts", "update", "1YqKDqWqdPLGV", "--title", " "]
+store: empty
+exit_code: 0
+stdout_len: 431
+stderr_len: 0
+--- stdout ---
+{
+  "broadcast_id": "1YqKDqWqdPLGV",
+  "chat_option": null,
+  "command": "broadcasts-update",
+  "exit_code": 1,
+  "message": "The broadcast title is empty.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts update --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema broadcasts update",
+  "rule": "empty-broadcast-title",
+  "status": "dry_run",
+  "title": " ",
+  "would_succeed": false
+}
+
+--- stderr ---
+

@@ -22,16 +22,16 @@ use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, Redirec
 use xdk::api::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, ChatModeratorsResult, ChatMute, ChatMutedResult, Community,
-    DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    IngestRegion, LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
-    MediaMetadataResult, MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated,
-    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    Broadcast, BroadcastChatMessage, BroadcastUpdated, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
+    FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
+    Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
+    ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
+    StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
+    StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Command-to-response-type mapping entry.
@@ -139,6 +139,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["broadcasts get"],
         type_name: "ApiResponse<Broadcast>",
         schema: generate::<ApiResponse<Broadcast>>,
+    },
+    SchemaEntry {
+        commands: &["broadcasts update"],
+        type_name: "ApiResponse<BroadcastUpdated>",
+        schema: generate::<ApiResponse<BroadcastUpdated>>,
     },
     SchemaEntry {
         commands: &["broadcasts scheduled list"],

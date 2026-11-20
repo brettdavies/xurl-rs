@@ -294,6 +294,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // broadcast stream sources
     ("LIST_BROADCASTS", "GET", "/2/broadcasts"),
     ("GET_BROADCAST", "GET", "/2/broadcasts/{id}"),
+    ("UPDATE_BROADCAST", "PUT", "/2/broadcasts/{id}"),
     ("DELETE_BROADCAST", "DELETE", "/2/broadcasts/{id}"),
     ("END_BROADCAST", "PUT", "/2/broadcasts/{id}/state"),
     (

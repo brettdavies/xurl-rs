@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8343
+stdout_len: 8404
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -40,6 +40,7 @@ broadcasts sources region      IngestRegion
 broadcasts sources remove      ApiResponse<StreamSourceDeleted>
 broadcasts sources stream-key  ApiResponse<StreamSourceKey>
 broadcasts sources update      ApiResponse<StreamSource>
+broadcasts update              ApiResponse<BroadcastUpdated>
 calls get                      ApiResponse<XCall>
 calls scheduled add            ApiResponse<ScheduledCall>
 calls scheduled cancel         ApiResponse<ScheduledCallCancelled>

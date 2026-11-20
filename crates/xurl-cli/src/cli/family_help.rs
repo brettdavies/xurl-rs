@@ -811,6 +811,14 @@ pub mod broadcasts_own {
         json_caption: "As a JSON envelope",
     };
 
+    /// `xr broadcasts update`.
+    pub const UPDATE: Verb = Verb {
+        name: "update",
+        example_args: "1YqKDqWqdPLGV --title \"Second take\" --chat-option 3",
+        text_caption: "Rename a broadcast and limit its chat to verified accounts (text)",
+        json_caption: "Update (JSON envelope)",
+    };
+
     /// `xr broadcasts remove`.
     pub const REMOVE: Verb = Verb {
         name: "remove",

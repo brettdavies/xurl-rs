@@ -18,8 +18,8 @@ use super::request::{Call, Client, RequestOptions, RequestTarget};
 use super::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
     ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
-    Broadcast, BroadcastChatMessage, BroadcastEnded, ChatModeratorsResult, ChatMute,
-    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatModeratorsResult,
+    ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
     DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
     ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
     MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
@@ -375,6 +375,25 @@ pub struct ScheduledBroadcastChanges {
     /// Whether the broadcast waits for `go live` rather than starting on
     /// time.
     pub manual_publish: Option<bool>,
+}
+
+/// What to change on a broadcast, before it starts, while it is live, or
+/// after it ends. A field left `None` keeps its value.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+pub struct BroadcastChanges {
+    /// The new title.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Who can chat, 0 to [`CHAT_OPTION_MAX`]: 0 default, 1 chat off, 2
+    /// everyone, 3 verified accounts, 4 accounts the host follows, 5 the
+    /// host's subscribers, 6 accounts followed by an account the host
+    /// follows.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chat_option: Option<u8>,
+    /// The new live category, an id from `GET /2/broadcasts/categories`; an
+    /// empty string removes the category.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub live_category_id: Option<String>,
 }
 
 /// A part of another post's video, shared as a post's clip: the spec's
@@ -956,6 +975,36 @@ pub fn validate_note_text(text: &str) -> std::result::Result<(), &'static str> {
 pub fn validate_broadcast_id(id: &str) -> std::result::Result<(), &'static str> {
     if id.is_empty() || id.len() > 24 || !id.bytes().all(|b| b.is_ascii_alphanumeric()) {
         return Err("invalid-broadcast-id");
+    }
+    Ok(())
+}
+
+/// Highest chat option X takes, the spec's `maximum`.
+pub const CHAT_OPTION_MAX: u8 = 6;
+
+/// Validates a change to a broadcast against the spec's bounds.
+///
+/// # Errors
+/// Returns the kebab-case reason: `no-broadcast-changes` when nothing would
+/// change, `empty-broadcast-title`, or `invalid-chat-option`.
+pub fn validate_broadcast_changes(
+    changes: &BroadcastChanges,
+) -> std::result::Result<(), &'static str> {
+    if *changes == BroadcastChanges::default() {
+        return Err("no-broadcast-changes");
+    }
+    if changes
+        .title
+        .as_deref()
+        .is_some_and(|title| title.trim().is_empty())
+    {
+        return Err("empty-broadcast-title");
+    }
+    if changes
+        .chat_option
+        .is_some_and(|option| option > CHAT_OPTION_MAX)
+    {
+        return Err("invalid-chat-option");
     }
     Ok(())
 }
@@ -2423,6 +2472,22 @@ impl Client {
         self.call(
             endpoints::DELETE_BROADCAST.method,
             template(endpoints::DELETE_BROADCAST.path, id_param(id), Vec::new()),
+        )
+    }
+
+    /// Changes the title, chat option, or live category of one of the
+    /// caller's broadcasts, and answers the broadcast. X takes the change
+    /// before the broadcast starts, while it is live, and after it ends, and
+    /// refuses one for a broadcast that was deleted or moderated.
+    pub fn update_broadcast(
+        &self,
+        id: &str,
+        changes: &BroadcastChanges,
+    ) -> Call<ApiResponse<BroadcastUpdated>> {
+        self.json_call(
+            endpoints::UPDATE_BROADCAST.method,
+            template(endpoints::UPDATE_BROADCAST.path, id_param(id), Vec::new()),
+            changes,
         )
     }
 

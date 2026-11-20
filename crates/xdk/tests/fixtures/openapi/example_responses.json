@@ -839,6 +839,18 @@
   "ingest_region": {
     "region": "us-east-1"
   },
+  "broadcast_updated": {
+    "data": {
+      "id": "1YqKDqWqdPLGV",
+      "broadcast_id": "1YqKDqWqdPLGV",
+      "state": "RUNNING",
+      "share_url": "https://x.com/i/broadcasts/1YqKDqWqdPLGV",
+      "title": "Studio A, second take",
+      "chat_option": 3,
+      "live_category_id": "gaming",
+      "language": "en"
+    }
+  },
   "broadcast_ended": {
     "data": {
       "id": "1YqKDqWqdPLGV",

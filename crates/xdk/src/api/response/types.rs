@@ -650,6 +650,45 @@ pub struct Broadcast {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// What X answers a changed broadcast with.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct BroadcastUpdated {
+    /// Broadcast ID.
+    pub id: String,
+    /// Broadcast ID, the same as `id`.
+    pub broadcast_id: String,
+    /// Where the broadcast is, such as `RUNNING` or `ENDED`.
+    pub state: String,
+    /// The link to watch the broadcast.
+    pub share_url: String,
+    /// The broadcast's title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts,
+    /// 4 accounts the host follows, 5 the host's subscribers, 6 accounts
+    /// followed by an account the host follows.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chat_option: Option<i64>,
+    /// The broadcast's live category, absent when it has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub live_category_id: Option<String>,
+    /// The broadcast's language.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+    /// The broadcast's media key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub media_key: Option<String>,
+    /// When the broadcast started, in milliseconds since the Unix epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_ms: Option<String>,
+    /// The post that carries the broadcast.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tweet_id: Option<String>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// What X answers an ended broadcast with.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
 pub struct BroadcastEnded {

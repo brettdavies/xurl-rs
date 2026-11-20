@@ -626,6 +626,11 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::UPDATE_BROADCAST,
+        fixture: "broadcast_updated",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::DELETE_BROADCAST,
         fixture: "action_deleted",
         status: 200,

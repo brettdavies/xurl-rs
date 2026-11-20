@@ -1,7 +1,7 @@
 args: ["broadcasts", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7964
+stdout_len: 8038
 stderr_len: 0
 --- stdout ---
 Your broadcasts, scheduled broadcasts, chat, moderators, and stream sources
@@ -11,6 +11,7 @@ Usage: xr broadcasts [OPTIONS] <COMMAND>
 Commands:
   list        List your broadcasts
   get         Read one broadcast, by id
+  update      Change the title of one of your broadcasts, or who can chat
   remove      Delete one of your broadcasts and its replay
   scheduled   Schedule broadcasts and change or cancel them
   chat        Read a broadcast's chat

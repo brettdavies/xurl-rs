@@ -27,11 +27,11 @@ use common::{load_spec, resolve};
 use serde_json::Value;
 use xdk::api::response::types::{
     AccountActivitySubscriptionCount, AccountActivitySubscriptions, ArticleDraft, ArticlePublished,
-    BookmarkFolder, Broadcast, BroadcastChatMessage, BroadcastEnded, ChatMute, ChatMutedResult,
-    ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent, HiddenResult, IngestRegion,
-    List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult,
-    MediaSubtitlesResult, NewsStory, Note, NoteCreated, NoteEvaluation, NoteInfo,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
+    BookmarkFolder, Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatMute,
+    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
+    HiddenResult, IngestRegion, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
+    MediaMetadataResult, MediaSubtitlesResult, NewsStory, Note, NoteCreated, NoteEvaluation,
+    NoteInfo, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount, StreamRuleCounts, StreamSource,
     StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
@@ -224,6 +224,10 @@ fn typed_responses_match_vendored_spec() {
         (
             "DeleteBroadcastResponseData",
             serde_json::to_value(schemars::schema_for!(DeletedResult)).unwrap(),
+        ),
+        (
+            "UpdateBroadcastResponseData",
+            serde_json::to_value(schemars::schema_for!(BroadcastUpdated)).unwrap(),
         ),
         (
             "UpdateBroadcastStateResponseData",

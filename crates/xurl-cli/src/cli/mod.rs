@@ -2769,6 +2769,27 @@ pub enum BroadcastsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// Change the title of one of your broadcasts, or who can chat
+    ///
+    /// X takes the change before the broadcast starts, while it is live, and after it ends, and
+    /// refuses it for a broadcast that was deleted or moderated. A field you leave out keeps its
+    /// value.
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::UPDATE))]
+    Update {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// New title
+        #[arg(long)]
+        title: Option<String>,
+        /// Who can chat, 0 to 6: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts
+        /// you follow, 5 your subscribers, 6 accounts followed by an account you follow
+        #[arg(long = "chat-option", value_name = "N")]
+        chat_option: Option<u8>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
     /// Delete one of your broadcasts and its replay
     ///
     /// X deletes a scheduled or ended broadcast, and refuses a running one.

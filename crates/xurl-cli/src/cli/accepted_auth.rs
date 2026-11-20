@@ -81,6 +81,7 @@ pub const ROWS: &[Row] = &[
         &[ep::LOOKUP_USERS_BY_USERNAME, ep::REMOVE_CHAT_MUTE],
     ),
     row("broadcasts remove", &[ep::DELETE_BROADCAST]),
+    row("broadcasts update", &[ep::UPDATE_BROADCAST]),
     row(
         "broadcasts scheduled add",
         &[ep::CREATE_SCHEDULED_BROADCAST],
