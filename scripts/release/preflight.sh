@@ -8,6 +8,8 @@
 #
 # Subcommands:
 #   drift         Branch drift: what main carries that dev never received (delegated to drift.sh)
+#   canon-drift   Vendored copies against agent-skills' templates (its check-canonical-drift.sh, run from
+#                 a tarball of agent-skills main fetched under gh's own login)
 #   surface       Establish surface: commits + diff vs last tag, breaking markers
 #   api-contract  xr help command surface diff, public API semver check vs last tag, stale semver overrides
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
@@ -21,7 +23,7 @@
 #                 of a ## Changelog section (generate-changelog.py --audit-sections)
 #   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check,
 #                 unguarded docs added to main, diff-B vs origin/dev)
-#   all           Run drift, surface, api-contract, smoke, multi-app, oauth2-interactive,
+#   all           Run drift, canon-drift, surface, api-contract, smoke, multi-app, oauth2-interactive,
 #                 changelog-sections, mechanics (and surface-smoke if present)
 #
 # Post-tag verification (release.yml + homebrew dispatch + finalize-release) lives in
@@ -51,14 +53,15 @@
 #
 # Dependencies:
 #   - `xr` (built via cargo build --release --bin xr)
-#   - `yq`, `jaq`, `gh`, `cargo`, `git` on PATH
+#   - `yq`, `jaq`, `gh`, `cargo`, `git`, `tar` on PATH
+#   - `gh` logged in with read access to brettdavies/agent-skills (canon-drift)
 #   - 1Password CLI service-account env (for smoke + multi-app)
 #   - Linux, `script` from util-linux, and `python3` for oauth2-interactive, which skips without them
 #   - ~/.claude/skills/1password/scripts/ for vault reads (via _lib.sh's read_1p)
 #
 # The shared scaffolding (gate helpers, 1Password reads, shred cleanup, dispatch, drift,
-# surface, changelog-sections, mechanics) is the github-repo-setup skill's skeleton; the api-contract, smoke,
-# multi-app, and oauth2-interactive gates and the seed recipe are this project's.
+# surface, changelog-sections, mechanics) is the github-repo-setup skill's skeleton; the canon-drift,
+# api-contract, smoke, multi-app, and oauth2-interactive gates and the seed recipe are this project's.
 
 set -euo pipefail
 
@@ -94,9 +97,9 @@ require_built_binary() {
   }
 }
 
-# SMOKE_HOME EXIT trap (uses cleanup_smoke from _lib.sh) ---------------------
+# EXIT trap: the smoke home (cleanup_smoke, from _lib.sh) and the canon-drift tree ---
 
-trap cleanup_smoke EXIT
+trap 'cleanup_smoke; cleanup_canon' EXIT
 
 # The token store inside a home: the directory layout `xr` keeps at
 # ~/.xurl/auth.yml. Every gate addresses a store through this one function.
@@ -679,6 +682,112 @@ gate_drift() {
   delegate_to_subscript "$drift_script"
 }
 
+# Gate: canon-drift ----------------------------------------------------------
+#
+# `drift` compares main with dev, so a vendored copy both branches hold at the same
+# stale version passes it. This gate compares the copies with agent-skills' own
+# templates, through that repository's check-canonical-drift.sh and the file map
+# it reads. The check runs from a tarball of agent-skills main's current commit,
+# fetched under gh's own login because the repository is private, and extracted
+# into a temporary directory that the exit trap removes. The script runs with a
+# minimal environment: it needs PATH and HOME, which its home-relative sources
+# resolve against, and no credential.
+#
+# Every copy must be in sync, absent, a skeleton, or declared repo-owned; any
+# other verdict fails the gate, a source the check could not read included,
+# since canon's own exit code counts only the drift verdicts. A canon the gate
+# could not fetch, or a check that could not run, fails too: a release cannot be
+# checked against canon it never saw.
+
+readonly CANON_REPO="brettdavies/agent-skills"
+readonly CANON_CHECK="github-repo-setup/scripts/check-canonical-drift.sh"
+CANON_TMP=""
+
+cleanup_canon() {
+  [[ -n "$CANON_TMP" && -d "$CANON_TMP" ]] || return 0
+  rm -rf -- "$CANON_TMP"
+  CANON_TMP=""
+}
+
+# canon_failure DETAIL [FIX]: the gate's one failure, then the tree is gone.
+canon_failure() {
+  gate_fail "canon-drift" "$1" "${2:-}"
+  cleanup_canon
+}
+
+gate_canon_drift() {
+  header "Canon drift (vendored copies against $CANON_REPO)"
+  require_bin gh
+  require_bin jaq
+  require_bin tar
+
+  local rerun="scripts/release/preflight.sh canon-drift"
+  local auth_fix="check gh auth status: the gate reads $CANON_REPO, a private repository, with gh's own login; then rerun $rerun"
+  local sha tree status=0 records summary in_sync owned drifted
+
+  CANON_TMP=$(mktemp -d "${TMPDIR:-/tmp}/xr-canon-XXXXXX")
+  tree="$CANON_TMP/tree"
+  mkdir "$tree"
+
+  if ! sha=$(gh api "repos/$CANON_REPO/commits/main" --jq .sha 2>"$CANON_TMP/err") || [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+    canon_failure "could not read the current commit of $CANON_REPO main: $(tr '\n' ' ' <"$CANON_TMP/err" | head -c 300)" "$auth_fix"
+    return
+  fi
+  printf "  canon: %s main at %s\n" "$CANON_REPO" "$sha"
+
+  if ! gh api "repos/$CANON_REPO/tarball/$sha" 2>"$CANON_TMP/err" | tar -xzf - -C "$tree" --strip-components=1 2>>"$CANON_TMP/err"; then
+    canon_failure "could not fetch and extract the tarball of $CANON_REPO at $sha: $(tr '\n' ' ' <"$CANON_TMP/err" | head -c 300)" "$auth_fix"
+    return
+  fi
+  if [[ ! -f "$tree/$CANON_CHECK" ]]; then
+    canon_failure "$CANON_REPO at $sha has no $CANON_CHECK" \
+      "read github-repo-setup/references/canonical-source-pointers.md in that tree for where the check moved, set CANON_CHECK in scripts/release/preflight.sh to it, then rerun $rerun"
+    return
+  fi
+
+  records=$(env -i HOME="$HOME" PATH="$PATH" TMPDIR="${TMPDIR:-/tmp}" bash "$tree/$CANON_CHECK" --json "$REPO_ROOT" 2>"$CANON_TMP/err") || status=$?
+  if [[ "$status" -gt 1 ]]; then
+    canon_failure "the check exited $status before it compared the copies: $(tr '\n' ' ' <"$CANON_TMP/err" | head -c 300)" \
+      "run $CANON_CHECK from a checkout of $CANON_REPO at $sha against this repository to see why, then rerun $rerun"
+    return
+  fi
+
+  # A message is cut where it repeats the stamps, which the line above it already
+  # names, and where it names the cp command that refreshes a copy, which points
+  # into the tree this gate removes.
+  # shellcheck disable=SC2016  # jaq program, not a shell expansion
+  if ! summary=$(printf '%s\n' "$records" | jaq -rs '
+    def stamp(d; v): if d == null then "none" else d + (if v == null then "" else " (" + v + ")" end) end;
+    def failing: .reason != "in-sync" and .reason != "absent" and .reason != "skeleton" and .reason != "repo-owned";
+    "\([.[] | select(.reason == "in-sync")] | length)",
+    "\([.[] | select(.reason == "repo-owned") | .dest] | join(", "))",
+    ([.[] | select(failing)
+      | "\(.dest): \(.reason), copy stamp \(stamp(.copy_stamp; .copy_variant)), canon stamp \(stamp(.source_stamp; .source_variant))\n      \(.message | split(" (copy stamp ")[0] | split("; refresh: cp ")[0])"]
+      | join("\n    "))' 2>"$CANON_TMP/err"); then
+    canon_failure "the check's output is not JSON records: $(tr '\n' ' ' <"$CANON_TMP/err" | head -c 300)"
+    return
+  fi
+  { IFS= read -r in_sync; IFS= read -r owned; IFS= read -r -d '' drifted; } <<<"$summary" || true
+  drifted=${drifted%$'\n'}
+  if [[ -n "$drifted" ]]; then
+    canon_failure "$drifted" \
+      "refresh each file from its source in $CANON_REPO at ${sha:0:12} (references/canonical-source-pointers.md there says how), or mark a difference the repository keeps: canonical:repo-begin and canonical:repo-end around the lines that differ, or canonical: repo-owned in the first 10 lines of a file that is wholly this repository's own; then rerun $rerun"
+    return
+  fi
+  if [[ "$status" -ne 0 ]]; then
+    canon_failure "the check exited $status and named no drifted copy" \
+      "run $CANON_CHECK from a checkout of $CANON_REPO at $sha against this repository, then rerun $rerun"
+    return
+  fi
+  if [[ "${in_sync:-0}" -eq 0 ]]; then
+    canon_failure "the check reported no copy in sync, so it compared nothing" \
+      "run $CANON_CHECK from a checkout of $CANON_REPO at $sha against this repository, then rerun $rerun"
+    return
+  fi
+  gate_pass "$in_sync copies match $CANON_REPO at ${sha:0:12}${owned:+; declared repo-owned, so not compared: $owned}"
+  cleanup_canon
+}
+
 # Gate: surface-smoke (optional delegation) ----------------------------------
 #
 # If the project ships an HTTP / MCP / gRPC surface that needs a callable
@@ -1026,7 +1135,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h | --help) usage 0 ;;
-    drift | surface | api-contract | smoke | multi-app | oauth2-interactive | changelog-sections | mechanics | surface-smoke | all)
+    drift | canon-drift | surface | api-contract | smoke | multi-app | oauth2-interactive | changelog-sections | mechanics | surface-smoke | all)
       SUBCMD="$1"
       shift
       ;;
@@ -1046,6 +1155,7 @@ done
 
 case "$SUBCMD" in
   drift) gate_drift ;;
+  canon-drift) gate_canon_drift ;;
   surface) gate_surface ;;
   api-contract) gate_api_contract ;;
   smoke) gate_smoke ;;
@@ -1056,6 +1166,7 @@ case "$SUBCMD" in
   surface-smoke) gate_surface_smoke ;;
   all)
     gate_drift
+    gate_canon_drift
     gate_surface
     gate_api_contract
     gate_smoke

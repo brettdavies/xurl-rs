@@ -5,6 +5,11 @@
 # call with the store's state at that moment and writes a store the way xr's
 # registration commands do, `cargo` and the 1Password reader are stubs, and HOME
 # and TMPDIR sit under the test's own directory.
+#
+# The canon-drift gate runs against a stubbed `gh` that serves a tarball of a
+# fixture tree, whose check-canonical-drift.sh prints canned records: the tests
+# hold how the gate fetches, runs, and reads that check, never canon's own
+# verdicts.
 
 setup() {
   REPO_ROOT="$(cd "$BATS_TEST_DIRNAME/../../.." && pwd)"
@@ -198,4 +203,120 @@ named_store() {
     [ -f "$PF_HOME/.xurl/auth.yml" ]
     [ "$(cat "$PF_HOME/notes.txt")" = keep ]
   done
+}
+
+IN_SYNC='{"reason":"in-sync","dest":".editorconfig","message":"matches","copy_stamp":null,"source_stamp":null,"copy_variant":null,"source_variant":null}
+{"reason":"in-sync","dest":"rustfmt.toml","message":"matches","copy_stamp":null,"source_stamp":null,"copy_variant":null,"source_variant":null}
+{"reason":"repo-owned","dest":"scripts/generate-completions.sh","message":"declared repo-owned in the copy","copy_stamp":"2026.06.22","source_stamp":null,"copy_variant":"rust","source_variant":null}
+{"reason":"skeleton","dest":"scripts/hooks/pre-push","message":"present","copy_stamp":null,"source_stamp":null,"copy_variant":null,"source_variant":null}
+{"reason":"absent","dest":"cliff.toml","message":"not vendored in this repo","copy_stamp":null,"source_stamp":null,"copy_variant":null,"source_variant":null}'
+DRIFTED='{"reason":"drift","dest":"scripts/cargo-inputs.sh","message":"differs from skills:rust-tool-release/scripts/cargo-inputs.sh (copy stamp 2026.11.03 (rust), source stamp 2026.11.05 (rust)); refresh: cp /gone/cargo-inputs.sh /repo/scripts/cargo-inputs.sh","copy_stamp":"2026.11.03","source_stamp":"2026.11.05","copy_variant":"rust","source_variant":"rust"}'
+SHA=0123456789abcdef0123456789abcdef01234567
+
+# canon_fixture RECORDS EXIT: `gh` answers the commit lookup with $SHA and the
+# tarball request with a tree, under a top directory as GitHub names it, whose
+# check prints RECORDS and exits EXIT. The check logs its arguments and the
+# credential and home it was given.
+canon_fixture() {
+  local top="brettdavies-agent-skills-0123456" check
+  CANON="$T/canon/$top"
+  check="$CANON/github-repo-setup/scripts/check-canonical-drift.sh"
+  mkdir -p "$(dirname "$check")"
+  printf '%s\n' "$1" >"$CANON/records.jsonl"
+  printf '%s\n' "$2" >"$CANON/exit"
+  cat >"$check" <<EOF
+#!/usr/bin/env bash
+printf 'args=%s\n' "\$*" >>"$T/check.log"
+printf 'gh_token=%s\n' "\${GH_TOKEN-unset}" >>"$T/check.log"
+printf 'home=%s\n' "\$HOME" >>"$T/check.log"
+cat "\$(dirname "\$0")/../../records.jsonl"
+exit "\$(cat "\$(dirname "\$0")/../../exit")"
+EOF
+  cat >"$T/bin/gh" <<EOF
+#!/usr/bin/env bash
+echo "gh \$*" >>"$T/gh.log"
+[ -z "\${STUB_GH_FAIL:-}" ] || { echo "gh: HTTP 404: Not Found" >&2; exit 1; }
+case "\$*" in
+  "api repos/brettdavies/agent-skills/commits/main --jq .sha") echo $SHA ;;
+  "api repos/brettdavies/agent-skills/tarball/$SHA") tar -czf - -C "$T/canon" "$top" ;;
+  *) echo "stub gh: \$*" >&2; exit 1 ;;
+esac
+EOF
+  chmod +x "$check" "$T/bin/gh"
+}
+
+canon_tree_left() {
+  find "$T/home/tmp" -maxdepth 1 -name 'xr-canon-*'
+}
+
+@test "canon-drift passes when every copy is in sync, names the canon commit, and hands the check no credential" {
+  canon_fixture "$IN_SYNC" 0
+  GH_TOKEN=leak-canary preflight canon-drift
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"canon: brettdavies/agent-skills main at $SHA"* ]]
+  [[ "$output" == *"2 copies match brettdavies/agent-skills at ${SHA:0:12}; declared repo-owned, so not compared: scripts/generate-completions.sh"* ]]
+  grep -qx "args=--json $REPO_ROOT" "$T/check.log"
+  grep -qx "gh_token=unset" "$T/check.log"
+  grep -qx "home=$T/home" "$T/check.log"
+  [ -z "$(canon_tree_left)" ]
+}
+
+@test "canon-drift fails a drifted copy, naming the file, both stamps, and the source, and removes the tree" {
+  canon_fixture "$IN_SYNC
+$DRIFTED" 1
+  preflight canon-drift
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"main at $SHA"* ]]
+  [[ "$output" == *"scripts/cargo-inputs.sh: drift, copy stamp 2026.11.03 (rust), canon stamp 2026.11.05 (rust)"* ]]
+  [[ "$output" == *"differs from skills:rust-tool-release/scripts/cargo-inputs.sh"* ]]
+  [[ "$output" != *"refresh: cp"* ]]
+  [[ "$output" == *"fix: refresh each file from its source in brettdavies/agent-skills at ${SHA:0:12}"* ]]
+  [ -z "$(canon_tree_left)" ]
+}
+
+@test "canon-drift fails a copy whose canonical source the check could not read, though the check exits 0" {
+  canon_fixture "$IN_SYNC
+"'{"reason":"source-missing","dest":".editorconfig","message":"canonical source not found: ~/dotfiles/stow/claude/dot-editorconfig","copy_stamp":null,"source_stamp":null,"copy_variant":null,"source_variant":null}' 0
+  preflight canon-drift
+  [ "$status" -eq 1 ]
+  [[ "$output" == *".editorconfig: source-missing, copy stamp none, canon stamp none"* ]]
+}
+
+@test "canon-drift fails when canon cannot be fetched, runs no check, and says how to log in" {
+  canon_fixture "$IN_SYNC" 0
+  STUB_GH_FAIL=1 preflight canon-drift
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"could not read the current commit of brettdavies/agent-skills main"* ]]
+  [[ "$output" == *"HTTP 404"* ]]
+  [[ "$output" == *"fix: check gh auth status"* ]]
+  [ ! -e "$T/check.log" ]
+  [ -z "$(canon_tree_left)" ]
+}
+
+@test "canon-drift fails when the tarball is not a tree with the check in it" {
+  canon_fixture "$IN_SYNC" 0
+  rm -f "$CANON/github-repo-setup/scripts/check-canonical-drift.sh"
+  preflight canon-drift
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"has no github-repo-setup/scripts/check-canonical-drift.sh"* ]]
+  [ -z "$(canon_tree_left)" ]
+}
+
+@test "canon-drift fails when the check cannot run, and when it compares nothing" {
+  canon_fixture "$IN_SYNC" 2
+  preflight canon-drift
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the check exited 2 before it compared the copies"* ]]
+  canon_fixture '{"reason":"absent","dest":"cliff.toml","message":"not vendored in this repo","copy_stamp":null,"source_stamp":null,"copy_variant":null,"source_variant":null}' 0
+  preflight canon-drift
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"the check reported no copy in sync, so it compared nothing"* ]]
+  [ -z "$(canon_tree_left)" ]
+}
+
+@test "canon-drift is a subcommand, is listed in --help, and is run by all" {
+  preflight --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"canon-drift"* ]]
+  sed -n '/^  all)/,/^    ;;/p' "$REPO_ROOT/scripts/release/preflight.sh" | grep -qx '    gate_canon_drift'
 }

@@ -26,7 +26,7 @@ Most of this checklist runs from one script. Build `xr` first, then:
 
 ```bash
 cargo build --release --bin xr
-scripts/release/preflight.sh all          # drift + surface + api-contract + smoke + multi-app + oauth2-interactive + changelog-sections + mechanics
+scripts/release/preflight.sh all          # drift + canon-drift + surface + api-contract + smoke + multi-app + oauth2-interactive + changelog-sections + mechanics
 ```
 
 After `scripts/release/tag-release.sh` pushes the tags, run
@@ -34,15 +34,16 @@ After `scripts/release/tag-release.sh` pushes the tags, run
 
 The script (`scripts/release/preflight.sh`) is **project-authored** on the github-repo-setup skill's skeleton: the
 shared scaffolding (gate helpers, 1Password reads, `shred -u` tempdir cleanup, subcommand dispatch, and the drift,
-surface, changelog-sections, and mechanics gates) is the skeleton's; the api-contract, smoke, multi-app, and
-oauth2-interactive gates and the seed recipe are this repo's. `all` runs the drift gate first, since nothing else
-matters while `main` holds changes `dev` never received. It exits non-zero if any gate fails; the checks a script does
-not run (a real browser sign-in against X, OAuth2 headless against X, 429 rate-limit) are skipped with a `⊝` and a
-pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
+surface, changelog-sections, and mechanics gates) is the skeleton's; the canon-drift, api-contract, smoke, multi-app,
+and oauth2-interactive gates and the seed recipe are this repo's. `all` runs the drift gate first, since nothing else
+matters while `main` holds changes `dev` never received, and canon-drift second. It exits non-zero if any gate fails;
+the checks a script does not run (a real browser sign-in against X, OAuth2 headless against X, 429 rate-limit) are
+skipped with a `⊝` and a pointer to the recipe below. Sub-commands let you re-run one gate group in isolation:
 
 | Sub-command          | What it runs                                                                                                                                                                                                              | Live API?                     |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
 | `drift`              | Commits on `main` since the last release whose changes `dev` lacks, `.github/` parity, `Cargo.lock` packages `main` resolves newer (delegated to `scripts/release/drift.sh`)                                              | no                            |
+| `canon-drift`        | Every vendored copy against agent-skills' template for it, through agent-skills' `check-canonical-drift.sh` run from a tarball of its `main`; fails on any drifted copy or any canon it could not read                    | no (reads via `gh`)           |
 | `surface`            | LAST_TAG resolution, commit/file/breaking-marker counts                                                                                                                                                                   | no                            |
 | `api-contract`       | `xr help` command surface diff vs LAST_TAG, `cargo semver-checks` on `xdk-rs` vs its last `xdk-rs-v*` tag, and any `required-update` override that tag has made stale                                                     | no (builds prev tag once)     |
 | `smoke`              | OAuth1 whoami, Bearer (env + stored), typed wire vocabulary (one post + one user read), media upload, all three error envelopes                                                                                           | yes                           |
@@ -163,6 +164,36 @@ Dependabot raises the same fix again.
 - [ ] `dev`-newer packages are the routine updates this release ships; the gate counts them and does not list them.
 
 <!-- canonical:end drift-gate -->
+
+### Vendored copies against canon
+
+Driven by `scripts/release/preflight.sh canon-drift`.
+
+`drift` compares `main` with `dev`, so a vendored copy that both branches hold at the same old version passes it. This
+gate compares each copy with the template agent-skills keeps for it. It reads the current commit of agent-skills `main`
+under `gh`'s own login (the repository is private), extracts that commit's tarball into a temporary directory that the
+script removes on exit, and runs that tree's `github-repo-setup/scripts/check-canonical-drift.sh --json` on this
+repository. The check runs with only `PATH`, `HOME`, and `TMPDIR`. The gate prints the canon commit it compared with.
+
+- [ ] Every present copy is in sync, a skeleton, absent, or declared `canonical: repo-owned`.
+
+  A copy that differs from its source fails the gate, which names the file, the stamp the copy carries, and the stamp
+  canon carries. Refresh it from its source, or mark the lines the repository keeps: `canonical:repo-begin` and
+  `canonical:repo-end` around lines that differ in a `normalized` or `section` entry. A `verbatim` entry compares bytes
+  and reads no region, so a file in one that keeps a difference declares `canonical: repo-owned` in its first 10 lines,
+  with the reason on the same line. `repo-owned` stops the check from comparing that file at all.
+
+  `.markdownlint-cli2.yaml` and `scripts/generate-completions.sh` declare it: the workspace's markdownlint config
+  replaces two canonical ignores, which a copy-side region cannot remove, and the completions script names the
+  `xurl-rs` package's bin target and watches `crates/`.
+
+- [ ] The check read every source it needs.
+
+  Four of canon's sources are files in the maintainer's home (the markdownlint config, the editorconfig, the
+  gitattributes block, and the PR template), which the check reads from the machine it runs on, not from the tarball.
+  A source it cannot find reports `source-missing`, which fails this gate although the check's own exit code does not.
+  A canon the gate could not fetch (not logged in to `gh`, no read access, no network), a tarball without the check, and
+  a check that cannot run each fail the gate with a `fix:` line.
 
 ### Dependabot preflight
 
