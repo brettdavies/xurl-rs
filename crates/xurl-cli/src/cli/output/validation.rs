@@ -75,6 +75,7 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
             "A Community Note's text carries a source URL, http:// or https://.".to_string()
         }
         "invalid-broadcast-id" => "A broadcast id is 1 to 24 letters and digits.".to_string(),
+        "invalid-source-id" => "A source id is 1 to 19 digits.".to_string(),
         "invalid-scheduled-broadcast-id" => {
             "A scheduled broadcast id is 1 to 19 digits.".to_string()
         }

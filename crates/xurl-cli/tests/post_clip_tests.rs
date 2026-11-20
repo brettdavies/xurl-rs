@@ -145,6 +145,51 @@ async fn a_dry_run_names_the_clip_and_sends_nothing() {
 }
 
 #[tokio::test]
+async fn a_text_dry_run_prints_the_clip_as_lines() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth2_store(tmp.path());
+
+    let (code, stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--dry-run",
+            "--output",
+            "text",
+            "post",
+            "Worth watching",
+            "--clip",
+            SOURCE_ID,
+            "--clip-start",
+            "30",
+            "--clip-end",
+            "60",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    for expected in [
+        "  body: Worth watching",
+        "  clip.end_seconds: 60",
+        "  clip.post_id: 1585341984679469056",
+        "  clip.start_seconds: 30",
+    ] {
+        assert!(
+            lines.contains(&expected),
+            "`{expected}` is missing: {stdout}"
+        );
+    }
+    assert!(
+        !stdout.contains('{'),
+        "no input prints as raw JSON: {stdout}"
+    );
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
 async fn a_dry_run_of_a_post_without_a_clip_carries_no_clip_key() {
     let server = MockServer::start().await;
     let tmp = TempDir::new().expect("tempdir");

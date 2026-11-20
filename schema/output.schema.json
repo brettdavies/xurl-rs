@@ -801,7 +801,7 @@
     },
     {
       "additionalProperties": true,
-      "description": "A run that ended before it finished, in one of two shapes. A\ndestructive command whose prompt was answered no writes it on stderr\nwith `exit_code`, `message`, the command's context keys, and\n`warnings` when any fired. A stream that a signal ended writes it on\nstdout with `reason` `sigterm` and nothing else.",
+      "description": "A run that ended before it finished, in one of two shapes. A\ndestructive command whose prompt was answered no writes it on stderr\nwith `exit_code`, `message`, the command's context keys, and\n`warnings` when any fired. A stream that a signal ended writes it on\nstdout with `reason` `sigint` or `sigterm` and nothing else.",
       "properties": {
         "exit_code": {
           "description": "Exit code of the run, on the declined prompt.",
@@ -819,7 +819,7 @@
           ]
         },
         "reason": {
-          "description": "What ended the stream, on a stream a signal cancelled: `sigterm`.\nA plain string, not one of the error `reason` codes: this is no\nerror.",
+          "description": "What ended the stream, on a stream a signal cancelled: `sigint` for\nCtrl+C, `sigterm` for a terminate.\nA plain string, not one of the error `reason` codes: this is no\nerror.",
           "type": [
             "string",
             "null"

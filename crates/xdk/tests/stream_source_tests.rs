@@ -1,11 +1,11 @@
 //! The broadcast stream-source shortcuts send the requests the spec gives
 //! their endpoints and decode their responses; the offline validators hold
-//! the spec's bounds on a source's name and region.
+//! the spec's bounds on a source's id, name, and region.
 
 use serde_json::json;
 use wiremock::matchers::{body_json, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
-use xdk::api::shortcuts::{validate_source_name, validate_source_region};
+use xdk::api::shortcuts::{validate_source_id, validate_source_name, validate_source_region};
 use xdk::api::{Client, StreamSourceCreated, StreamSourceKey};
 use xdk::auth::OAuth2Credential;
 
@@ -249,4 +249,17 @@ fn a_source_name_and_region_must_not_be_empty() {
     assert_eq!(validate_source_name("   "), Err("empty-source-name"));
     assert_eq!(validate_source_region("eu-west-1"), Ok(()));
     assert_eq!(validate_source_region(""), Err("empty-source-region"));
+}
+
+#[test]
+fn a_source_id_is_one_to_nineteen_digits() {
+    assert_eq!(validate_source_id(SOURCE_ID), Ok(()));
+    assert_eq!(validate_source_id("1"), Ok(()));
+    for refused in ["", " ", "abc", "not-an-id!", "-1", "90123456789012345678"] {
+        assert_eq!(
+            validate_source_id(refused),
+            Err("invalid-source-id"),
+            "{refused:?}"
+        );
+    }
 }

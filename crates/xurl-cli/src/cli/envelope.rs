@@ -63,7 +63,7 @@ pub enum Envelope {
     /// destructive command whose prompt was answered no writes it on stderr
     /// with `exit_code`, `message`, the command's context keys, and
     /// `warnings` when any fired. A stream that a signal ended writes it on
-    /// stdout with `reason` `sigterm` and nothing else.
+    /// stdout with `reason` `sigint` or `sigterm` and nothing else.
     Cancelled {
         /// Exit code of the run, on the declined prompt.
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -71,7 +71,8 @@ pub enum Envelope {
         /// What stopped the run, in words, on the declined prompt.
         #[serde(skip_serializing_if = "Option::is_none")]
         message: Option<String>,
-        /// What ended the stream, on a stream a signal cancelled: `sigterm`.
+        /// What ended the stream, on a stream a signal cancelled: `sigint` for
+        /// Ctrl+C, `sigterm` for a terminate.
         /// A plain string, not one of the error `reason` codes: this is no
         /// error.
         #[serde(skip_serializing_if = "Option::is_none")]
