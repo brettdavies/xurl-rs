@@ -531,6 +531,36 @@ async fn a_source_id_that_is_not_one_is_refused_before_any_request() {
 }
 
 #[tokio::test]
+async fn update_checks_the_id_before_the_name() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+
+    let (code, _stdout, stderr) = run(
+        &store,
+        &server.uri(),
+        &[
+            "--no-interactive",
+            "--output",
+            "json",
+            "broadcasts",
+            "sources",
+            "update",
+            "",
+            "--name",
+            "",
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 1, "{stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
+    assert_eq!(envelope["rule"], "invalid-source-id");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
 async fn a_dry_run_reports_the_rule_a_bad_source_id_breaks() {
     let server = MockServer::start().await;
     let tmp = TempDir::new().expect("tempdir");
