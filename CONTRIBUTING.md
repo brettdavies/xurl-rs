@@ -88,10 +88,12 @@ Text output is written for humans and the structured formats for agents, and the
 carries prose and a help pointer, structured output carries stable fields to branch on. Every structured error carries a
 kebab-case `reason` from a closed set, an `exit_code`, a human `message`, and the offending value when there is one. A
 reason with a step the caller can take also carries a `next_step` object `{action, command | template, docs}`, where
-`command` is runnable verbatim by a non-TTY caller and `template` carries angle-bracket placeholders only the caller can
-fill. The CLI README's "Which Errors Carry a Step" names the reasons that carry one and the ones that do not; a new
-error picks an existing action where one fits before it ships without a step. Prefer additive envelope changes: add keys
-rather than renaming or retyping existing ones, and regenerate `schema/output.schema.json` when the envelope changes.
+`command` is runnable verbatim by a non-TTY caller and `template` is one the caller finishes or decides on first:
+angle-bracket placeholders to fill, the invocation a `confirm` step destroys with once it runs, or the resumed wait
+after a 401 or a 429 with no reset on the status read after `xr media upload`. The CLI README's "Which Errors Carry a
+Step" names the reasons that carry one and the ones that do not; a new error picks an existing action where one fits
+before it ships without a step. Prefer additive envelope changes: add keys rather than renaming or retyping existing
+ones, and regenerate `schema/output.schema.json` when the envelope changes.
 
 ## Filing issues
 
