@@ -86,7 +86,7 @@ refute_in() {
 }
 
 teardown() {
-  [[ -z "${OUTSIDE_TMP:-}" || ! -e "$OUTSIDE_TMP" ]] || trash "$OUTSIDE_TMP"
+  [[ -z "${OUTSIDE_TMP:-}" ]] || rm -rf -- "$OUTSIDE_TMP"
 }
 
 preflight() {
