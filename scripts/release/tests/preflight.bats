@@ -85,8 +85,12 @@ refute_in() {
   ! grep -q -e "$1" "$2"
 }
 
+teardown() {
+  [[ -z "${OUTSIDE_TMP:-}" || ! -e "$OUTSIDE_TMP" ]] || trash "$OUTSIDE_TMP"
+}
+
 preflight() {
-  cd "$REPO_ROOT" && HOME="$T/home" TMPDIR="$T/home/tmp" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" \
+  cd "$REPO_ROOT" && HOME="${PF_HOME:-$T/home}" TMPDIR="${PF_HOME:-$T/home}/tmp" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" \
     PATH="$T/bin:$PATH" STUB_XR_LOG="$T/xr.log" STUB_OP_LOG="$T/op.log" \
     run bash scripts/release/preflight.sh "$@"
 }
@@ -177,4 +181,21 @@ named_store() {
   preflight smoke
   [ "$status" -eq 0 ]
   [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')" ]
+}
+
+# The exit trap shreds only under /tmp and $HOME, and matches `"$HOME"/*`, which
+# a trailing slash or a `..` brings the home itself under. The home sits outside
+# /tmp so that only the $HOME arm of the guard can let it through.
+@test "a --smoke-home that names \$HOME by another spelling is not shredded" {
+  OUTSIDE_TMP=$(mktemp -d /var/tmp/xr-preflight-bats-XXXXXX)
+  PF_HOME="$OUTSIDE_TMP"
+  mkdir -p "$PF_HOME/tmp" "$PF_HOME/sub"
+  for spelling in "$PF_HOME/" "$PF_HOME/sub/.." "$PF_HOME//./"; do
+    named_store "$PF_HOME"
+    echo keep >"$PF_HOME/notes.txt"
+    preflight --smoke-home "$spelling" smoke
+    [[ "$output" == *"refusing to shred outside /tmp or \$HOME: $PF_HOME"* ]]
+    [ -f "$PF_HOME/.xurl/auth.yml" ]
+    [ "$(cat "$PF_HOME/notes.txt")" = keep ]
+  done
 }

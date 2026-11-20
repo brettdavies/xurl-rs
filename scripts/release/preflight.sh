@@ -134,6 +134,17 @@ seed_smoke_store() {
     ' "$store"
 }
 
+# The exit trap's guard compares the path as written, and `"$HOME"/*` matches
+# `$HOME/`, so the home goes to the trap without a trailing slash, `.`, or `..`.
+plain_dir() {
+  local dir
+  if [[ -n "$1" ]] && dir=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -L); then
+    printf '%s' "$dir"
+  else
+    printf '%s' "$1"
+  fi
+}
+
 # A home the caller names is read as it is. One that holds no store refuses
 # rather than seeding another, and keeps the exit trap from shredding a
 # directory this run did not create.
@@ -980,7 +991,7 @@ while [[ $# -gt 0 ]]; do
   # shellcheck disable=SC2034
   case "$1" in
     --smoke-home)
-      SMOKE_HOME="$2"
+      SMOKE_HOME=$(plain_dir "$2")
       shift 2
       ;;
     --no-cleanup)

@@ -76,8 +76,10 @@ then points `default_app` at an app the store lacks, and `multi-app` strips the 
 Each window copies the store to `auth.yml.bak` beside it, makes one `xr` call, and moves the copy back, so the store
 keeps its logins and its `default_app`, or none. A run killed inside a window leaves that copy behind, holding secrets:
 move it back over `auth.yml`. What `xr` writes in a call outside a window stays, such as a refreshed OAuth2 token.
-The shred on exit refuses `$HOME` itself and takes a home below it, so a run on `--smoke-home "$HOME"` prints that
-refusal without `--no-cleanup`.
+Another `xr` command that writes the store during a window loses its write to the move, so run none while the gates
+run. The shred on exit refuses `$HOME` itself, spelled with a trailing slash or `..` or not, and takes a home below it.
+A run on `--smoke-home "$HOME"` without `--no-cleanup` finishes its gates, prints that refusal, and exits 1, the code of
+a failed gate, with the store kept.
 
 ## Establish the surface
 
