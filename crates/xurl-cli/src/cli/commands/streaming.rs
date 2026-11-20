@@ -32,6 +32,9 @@ pub(super) async fn stream_request_with_output(
     tokio::pin!(shutdown);
     loop {
         tokio::select! {
+            // `shutdown` registers its handlers on its first poll, so it goes first: a record never prints before
+            // Ctrl+C and SIGTERM are caught.
+            biased;
             signal = &mut shutdown => {
                 let _ = stdout.flush();
                 if out.format.is_structured() {
