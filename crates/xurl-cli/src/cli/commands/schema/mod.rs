@@ -30,7 +30,7 @@ use xdk::api::{
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
     StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
     WebhookValidation, XCall,
 };
 
@@ -243,6 +243,11 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         commands: &["trends place"],
         type_name: "ApiResponse<Vec<Trend>>",
         schema: generate::<ApiResponse<Vec<Trend>>>,
+    },
+    SchemaEntry {
+        commands: &["trends locations"],
+        type_name: "ApiResponse<Vec<TrendLocation>>",
+        schema: generate::<ApiResponse<Vec<TrendLocation>>>,
     },
     SchemaEntry {
         commands: &["trends personal"],

@@ -247,6 +247,7 @@ pub const ROWS: &[Row] = &[
     row("stream rules list", &[ep::GET_STREAM_RULES]),
     row("stream rules remove", &[ep::UPDATE_STREAM_RULES]),
     row("timeline", &[ep::GET_ME, ep::GET_TIMELINE]),
+    row("trends locations", &[ep::GET_TREND_LOCATIONS]),
     row("trends personal", &[ep::GET_PERSONALIZED_TRENDS]),
     row("trends place", &[ep::GET_TRENDS]),
     row(

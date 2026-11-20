@@ -2737,6 +2737,13 @@ pub enum TrendsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// List every place X reports trends for, each with the WOEID `place` takes
+    #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::LOCATIONS))]
+    Locations {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
 }
 
 /// `xr broadcasts` family subcommands.

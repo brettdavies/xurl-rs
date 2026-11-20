@@ -26,7 +26,7 @@ use xdk::api::{
     ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
     StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
     WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
@@ -140,6 +140,7 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<Vec<NewsStory>>("news"),
     typed_alias::<NewsStory>("news-story"),
     typed_alias::<Vec<Trend>>("trends"),
+    typed_alias::<Vec<TrendLocation>>("trend-locations"),
     typed_alias::<Vec<PersonalizedTrend>>("personalized-trends"),
     typed_alias::<FollowingResult>("follow"),
     typed_alias::<DeletedResult>("delete"),

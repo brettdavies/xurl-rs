@@ -34,8 +34,9 @@ use xdk::api::response::types::{
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, UsageData,
-    User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
+    TrendLocation, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// Documented divergences from the vendored spec, keyed by
@@ -227,6 +228,10 @@ fn typed_responses_match_vendored_spec() {
         (
             "UpdateBroadcastStateResponseData",
             serde_json::to_value(schemars::schema_for!(BroadcastEnded)).unwrap(),
+        ),
+        (
+            "TrendLocation",
+            serde_json::to_value(schemars::schema_for!(TrendLocation)).unwrap(),
         ),
         (
             "Call",

@@ -759,6 +759,14 @@ pub mod trends {
         json_caption: "As a JSON envelope",
     };
 
+    /// `xr trends locations`.
+    pub const LOCATIONS: Verb = Verb {
+        name: "locations",
+        example_args: "",
+        text_caption: "Every place X reports trends for, with its WOEID (text)",
+        json_caption: "As a JSON envelope",
+    };
+
     /// The page under `xr trends --help`.
     #[must_use]
     pub fn page() -> String {
@@ -770,6 +778,10 @@ pub mod trends {
             (
                 "Your personalized trends, JSON envelope",
                 &[Example::json(&PERSONAL)],
+            ),
+            (
+                "The places that have trends, to find a WOEID (text)",
+                &[Example::text(&LOCATIONS)],
             ),
         ];
         FAMILY.page(SECTIONS)

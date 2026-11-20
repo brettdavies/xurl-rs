@@ -424,6 +424,32 @@ pub struct Trend {
     pub extra: BTreeMap<String, Value>,
 }
 
+/// A place X reports trends for, as `/2/trends/locations` describes it.
+#[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]
+pub struct TrendLocation {
+    /// The place's WOEID, which `get_trends` takes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub woeid: Option<u64>,
+    /// The place's name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The kind of place: `town`, `country`, or `supername` for Worldwide.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub place_type: Option<String>,
+    /// The country the place is in, absent for a place that is not in one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country: Option<String>,
+    /// The two-letter code of the place's country.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub country_code: Option<String>,
+    /// The WOEID of the place that contains this one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_id: Option<u64>,
+    /// Forward-compatibility bucket — captures unknown response fields.
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, Value>,
+}
+
 /// A trend picked for the caller, as `/2/users/personalized_trends`
 /// describes it.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, JsonSchema)]

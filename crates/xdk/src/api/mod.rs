@@ -46,8 +46,8 @@ pub use response::types::{
     ResponseMeta, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallInvitee,
     ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleAppCount,
     StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted, StreamSourceKey,
-    SubscribedResult, Trend, UsageCreditsData, UsageData, User, UserPublicMetrics, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
+    SubscribedResult, Trend, TrendLocation, UsageCreditsData, UsageData, User, UserPublicMetrics,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall, deserialize_response,
 };
 pub use response::vocabulary::VOCABULARY_TARGET;
 #[allow(unused_imports)]

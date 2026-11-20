@@ -224,9 +224,12 @@ note is not publicly visible. A note's text carries a source URL, and `write` re
 ```bash
 xr trends place 1 -n 10                        # Top ten trends worldwide (WOEID 1)
 xr trends personal                             # The trends X picks for you
+xr trends locations                            # Every place that has trends, with its WOEID
 ```
 
-A place is named by its Yahoo Where On Earth ID: 1 is worldwide, 23424977 the United States, 44418 London.
+A place is named by its Yahoo Where On Earth ID: 1 is worldwide, 23424977 the United States, 44418 London. `xr trends
+locations` lists every place X reports trends for. Like `xr trends place`, it takes an OAuth2 login or an app-only
+bearer token.
 
 ### Engagement
 

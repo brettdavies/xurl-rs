@@ -90,9 +90,10 @@ POST AND READ:
     xr stream rules add \"from:XDevelopers has:media\" --tag devs --output json
     xr stream rules count --output json
 
-  Trends worldwide, and the trends X picks for you:
+  Trends worldwide, the trends X picks for you, and the places that have trends:
     xr trends place 1 -n 10 --output json | jaq -r '.data[]?.trend_name'
     xr trends personal --output json
+    xr trends locations --output json | jaq -r '.data[]? | select(.place_type == \"country\") | .name'
 
   Search recent posts:
     xr search \"rustlang\" -n 25

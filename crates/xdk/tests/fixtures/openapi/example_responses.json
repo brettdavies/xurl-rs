@@ -141,6 +141,23 @@
       }
     ]
   },
+  "trend_locations": {
+    "data": [
+      {
+        "woeid": 1,
+        "name": "Worldwide",
+        "place_type": "supername"
+      },
+      {
+        "woeid": 23424977,
+        "name": "United States",
+        "place_type": "country",
+        "country": "United States",
+        "country_code": "US",
+        "parent_id": 1
+      }
+    ]
+  },
   "personalized_trends": {
     "data": [
       {

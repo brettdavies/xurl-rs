@@ -31,8 +31,8 @@ use xdk::api::response::types::{
     PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
     RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
     ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
-    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, UsageCreditsData, UsageData,
-    User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -407,6 +407,16 @@ fn spec_trends() {
     let resp: ApiResponse<Vec<Trend>> = serde_json::from_value(examples["trends"].clone()).unwrap();
     assert_eq!(resp.data[0].tweet_count, Some(18400));
     assert_eq!(resp.data[1].tweet_count, None);
+}
+
+#[test]
+fn spec_trend_locations() {
+    let examples = load_examples();
+    let resp: ApiResponse<Vec<TrendLocation>> =
+        serde_json::from_value(examples["trend_locations"].clone()).unwrap();
+    assert_eq!(resp.data[0].woeid, Some(1));
+    assert_eq!(resp.data[1].country_code.as_deref(), Some("US"));
+    assert_eq!(resp.data[1].parent_id, Some(1));
 }
 
 #[test]
@@ -935,6 +945,11 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
         ReplyKind::Success,
     ),
     ("trends", endpoints::GET_TRENDS, ReplyKind::Success),
+    (
+        "trend_locations",
+        endpoints::GET_TREND_LOCATIONS,
+        ReplyKind::Success,
+    ),
     ("news_list", endpoints::SEARCH_NEWS, ReplyKind::Success),
     (
         "community_list",

@@ -26,8 +26,8 @@ use super::response::types::{
     Post, PostAnalytics, PostCount, ProvisionedResult, RepostedResult, ScheduledBroadcast,
     ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space,
     StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted,
-    StreamSourceKey, SubscribedResult, Trend, UsageCreditsData, UsageData, User, Webhook,
-    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData, UsageData, User,
+    Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 // ── Request body types ───────────────────────────────────────────────
@@ -2120,6 +2120,22 @@ impl Client {
                 endpoints::GET_TRENDS.path,
                 HashMap::from([("woeid".to_string(), woeid.to_string())]),
                 query,
+            ),
+        )
+    }
+
+    /// Lists every place X reports trends for, each with the WOEID
+    /// [`Client::get_trends`] takes. X answers the whole list in one page.
+    pub fn get_trend_locations(&self) -> Call<ApiResponse<Vec<TrendLocation>>> {
+        self.call(
+            endpoints::GET_TREND_LOCATIONS.method,
+            template(
+                endpoints::GET_TREND_LOCATIONS.path,
+                HashMap::new(),
+                vec![(
+                    "trend_location.fields".to_string(),
+                    "country,country_code,name,parent_id,place_type,woeid".to_string(),
+                )],
             ),
         )
     }

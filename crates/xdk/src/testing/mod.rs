@@ -241,6 +241,11 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_TREND_LOCATIONS,
+        fixture: "trend_locations",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_PERSONALIZED_TRENDS,
         fixture: "personalized_trends",
         status: 200,

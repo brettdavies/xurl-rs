@@ -68,6 +68,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_QUOTE_POSTS", "GET", "/2/tweets/{id}/quote_tweets"),
     // trends
     ("GET_TRENDS", "GET", "/2/trends/by/woeid/{woeid}"),
+    ("GET_TREND_LOCATIONS", "GET", "/2/trends/locations"),
     (
         "GET_PERSONALIZED_TRENDS",
         "GET",

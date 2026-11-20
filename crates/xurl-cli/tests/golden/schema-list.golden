@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8280
+stdout_len: 8343
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -119,6 +119,7 @@ stream rules count             ApiResponse<StreamRuleCounts>
 stream rules list              ApiResponse<Vec<StreamRule>>
 stream rules remove            ApiResponse<Option<Vec<StreamRule>>>
 timeline                       ApiResponse<Vec<Post>>
+trends locations               ApiResponse<Vec<TrendLocation>>
 trends personal                ApiResponse<Vec<PersonalizedTrend>>
 trends place                   ApiResponse<Vec<Trend>>
 unblock                        ApiResponse<BlockingResult>
