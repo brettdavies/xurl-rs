@@ -5,13 +5,18 @@
 //! holding every kind of credential. The refusal has to carry each key
 //! of the command's context that the dry run carries, with the same value,
 //! so a caller that reads the refusal learns which post, list, or app the
-//! command would have destroyed. The command list and each command's
-//! arguments are read from clap, so a command added later is checked
-//! without an edit here.
+//! command would have destroyed. It also has to name, as `app` and in its
+//! `confirm` template, the app the dry run's credential belongs to, so the
+//! template acts on that app wherever it runs. The command list and each
+//! command's arguments are read from clap, so a command added later is
+//! checked without an edit here.
 
 mod common;
 
+use std::path::{Path, PathBuf};
+
 use serde_json::Value;
+use tempfile::TempDir;
 use xdk::store::TokenStore;
 use xdk::testing::MockX;
 
@@ -98,25 +103,54 @@ async fn missing_from_refusal(
         )];
     }
 
+    let mut found = unpinned_app(path, &planned, &refusal);
     let Value::Object(planned) = planned else {
-        return Vec::new();
+        return found;
     };
-    planned
-        .iter()
-        .filter(|(key, _)| !DRY_RUN_ENVELOPE.contains(&key.as_str()))
-        .filter(|(key, value)| &refusal[key.as_str()] != *value)
-        .map(|(key, value)| {
-            format!(
-                "{path}: its dry run carries {key}: {value}, its refusal carries {}\n  \
+    found.extend(
+        planned
+            .iter()
+            .filter(|(key, _)| !DRY_RUN_ENVELOPE.contains(&key.as_str()))
+            .filter(|(key, value)| &refusal[key.as_str()] != *value)
+            .map(|(key, value)| {
+                format!(
+                    "{path}: its dry run carries {key}: {value}, its refusal carries {}\n  \
                  Cause: the confirmation-required body copies a fixed set of the command's \
                  context keys.\n  \
                  Fix: declare `{key}` on ErrorBody in crates/xurl-cli/src/cli/envelope.rs, copy it \
                  in print_confirmation_required in crates/xurl-cli/src/cli/output/mod.rs, and \
                  regenerate schema/output.schema.json.",
-                refusal[key.as_str()]
-            )
-        })
-        .collect()
+                    refusal[key.as_str()]
+                )
+            }),
+    );
+    found
+}
+
+/// What `refusal` leaves out of the app the dry run `planned` goes out
+/// under: the `app` key, or `--app` with that name in the `confirm`
+/// template.
+fn unpinned_app(path: &str, planned: &Value, refusal: &Value) -> Vec<String> {
+    let Some(app) = planned["auth"]["app"].as_str() else {
+        return Vec::new();
+    };
+    let template = refusal["next_step"]["template"]
+        .as_str()
+        .unwrap_or_default();
+    let words: Vec<&str> = template.split_whitespace().collect();
+    let pinned = words.windows(2).any(|pair| pair == ["--app", app]);
+    if refusal["app"] == app && pinned {
+        return Vec::new();
+    }
+    vec![format!(
+        "{path}: its dry run goes out under app {app}, its refusal carries app {} and the \
+         template `{template}`\n  \
+         Cause: the stop leaves out the app the credential belongs to, so the template acts on \
+         whichever app the next run selects.\n  \
+         Fix: confirm through `Confirm::gate` in crates/xurl-cli/src/cli/commands/mod.rs, which \
+         adds the credential's app to the stop.",
+        refusal["app"]
+    )]
 }
 
 #[test]
@@ -148,4 +182,50 @@ fn a_confirmation_refusal_names_what_its_dry_run_names() {
         "these confirmation refusals leave out what their dry run names:\n{}",
         found.join("\n")
     );
+}
+
+/// A store with two apps, `first` the default, each holding an `OAuth2`
+/// login.
+fn two_app_store(dir: &Path) -> PathBuf {
+    let store = dir.join(".xurl");
+    let mut ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
+    for app in ["first", "second"] {
+        ts.add_app(app, "CLIENT-ID", "CLIENT-SECRET")
+            .expect("add app");
+        ts.save_oauth2_token_for_app(app, "alice", "ACCESS", "REFRESH", 9_999_999_999)
+            .expect("save oauth2");
+    }
+    ts.set_default_app("first").expect("set the default app");
+    let _ = ts.remove_app("default");
+    store
+}
+
+/// `XURL_APP` selects the app, and argv does not show it. The refusal names
+/// the app, and its `confirm` template, run where the variable is not set,
+/// goes out under the same app.
+#[test]
+fn the_confirm_template_acts_on_the_app_the_environment_selected() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = two_app_store(tmp.path());
+    let output = common::xr_with_store(&store)
+        .env("XURL_APP", "second")
+        .args(["--output", "json", "--no-interactive", "delete", SAMPLE])
+        .output()
+        .expect("xr runs");
+    let refused: Value = serde_json::from_slice(&output.stderr).expect("a document");
+    assert_eq!(refused["reason"], "confirmation-required", "{refused}");
+    assert_eq!(refused["app"], "second", "{refused}");
+    let template = refused["next_step"]["template"]
+        .as_str()
+        .unwrap_or_else(|| panic!("no template: {refused}"));
+    let words: Vec<&str> = template.split_whitespace().collect();
+
+    let rehearsed = common::xr_with_store(&store)
+        .arg("--dry-run")
+        .args(&words[1..])
+        .output()
+        .expect("xr runs");
+    let planned: Value = serde_json::from_slice(&rehearsed.stdout).expect("a document");
+
+    assert_eq!(planned["auth"]["app"], "second", "{template}: {planned}");
 }
