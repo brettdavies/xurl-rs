@@ -184,7 +184,7 @@ header "Runners"
 list_active_runs() {
   local status runs id age rest verdict jobs
   for status in queued in_progress; do
-    runs=$(gh api "repos/$1/actions/runs?status=${status}&per_page=100" \
+    runs=$(gh api --paginate "repos/$1/actions/runs?status=${status}&per_page=100" \
       --jq '.workflow_runs[] | [.id, (if .status == "queued" and now - (.created_at | fromdateiso8601) >= 86400 then "old" else "new" end), .repository.full_name, (.name | if . == null or . == "" then "-" else . end), .status, .html_url, .created_at] | @tsv') || return 1
     while IFS=$'\t' read -r id age rest; do
       [[ -n "$id" ]] || continue
