@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.03 (generic)
+# Canonical version: 2026.11.07 (generic)
 #
 # Verify the vX.Y.Z tag's downstream pipeline landed cleanly. Also reusable
 # for verifying a deployed env (staging or prod) when the project ships
@@ -49,6 +49,11 @@
 #   --staging-url URL       Override the staging URL for surface-smoke
 #   --prod-url URL          Override the prod URL for surface-smoke
 #
+# Environment:
+#   CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET
+#                           Access service token for a gated staging host. Set both for the one
+#                           command; only the surface smoke receives them
+#
 # Exit codes:
 #   0 = all gates passed (or skipped with reason)
 #   1 = one or more gates failed
@@ -61,6 +66,13 @@
 
 set -euo pipefail
 
+# The Access service token is for the surface smoke alone, so it leaves the
+# environment before the first child (the dirname below). A copy into another
+# variable would print under `bash -x` and be re-exported by allexport;
+# un-exporting in place does neither. delegate_to_subscript --with-access-token
+# re-exports it for that one child.
+export -n CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
+
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 readonly REPO_ROOT
 readonly DEFAULT_TAP_REPO="brettdavies/homebrew-tap"
@@ -69,6 +81,14 @@ readonly DEFAULT_TAP_REPO="brettdavies/homebrew-tap"
 # Same _lib.sh as preflight.sh and surface-smoke.sh.
 # shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
+
+# A hand-merged skeleton can outpace a vendored library: delegate_to_subscript in
+# an older one reads a flag as the script's path and reports nothing, which passes.
+declare -F surface_reachable >/dev/null || {
+  echo "scripts/release/_lib.sh is older than this script" >&2
+  echo "fix: refresh it from github-repo-setup's templates/scripts/release/_lib.sh" >&2
+  exit 2
+}
 
 # Argument parsing -----------------------------------------------------------
 
@@ -125,6 +145,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "unknown arg: $1" >&2
+      echo "fix: see this script's --help for the flags and subcommands it takes" >&2
       usage
       ;;
   esac
@@ -788,21 +809,20 @@ gate_tags() {
 # uses against the local dev server; only the URL differs.
 
 gate_surface_smoke() {
-  local surface_script
+  local surface_script url
   surface_script="$(dirname "$0")/surface-smoke.sh"
-  [[ -x "$surface_script" ]] || return 0
-  header "Surface smoke (delegated to surface-smoke.sh against $ENV)"
-  local url
   url=$(resolve_env_url)
+  if ! repo_declares_surface && skip_unvendored "$surface_script"; then
+    return
+  fi
+  header "Surface smoke (delegated to surface-smoke.sh against $ENV)"
+  subscript_runnable "$surface_script" || return 0
   if [[ -z "$url" ]]; then
-    gate_skip "surface-smoke" "no URL configured for env=$ENV (pass --staging-url / --prod-url)"
+    skip_or_fail "surface-smoke" "no URL configured for env=$ENV" "pass the URL for this env (--env staging with --staging-url, or --prod-url), or set STAGING_URL_DEFAULT or PROD_URL_DEFAULT in scripts/release/release.env"
     return
   fi
-  if ! curl -fsS --max-time 5 "$url/" >/dev/null 2>&1; then
-    gate_skip "surface-smoke" "URL $url not reachable (deploy still in flight?)"
-    return
-  fi
-  delegate_to_subscript "$surface_script" "$url"
+  surface_reachable "$url" || return 0
+  delegate_to_subscript --with-access-token "$surface_script" "$url"
 }
 
 # Main dispatcher ------------------------------------------------------------
