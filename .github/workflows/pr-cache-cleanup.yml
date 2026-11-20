@@ -1,8 +1,23 @@
+# Canonical version: 2026.11.10 (generic)
+#
+# Source-repo caller wrapper for the reusable pr-cache-cleanup workflow.
+# Copy to .github/workflows/pr-cache-cleanup.yml in any repo.
+#
+# Deletes a closed pull request's Actions caches under refs/pull/<n>/merge.
+# Only that pull request's runs can read them, yet they count against the
+# repository's 10 GB cache limit until eviction. A fork's pull request is
+# skipped, and its entries leave by eviction.
+#
+# Required caller permissions: actions: write
+#
 name: PR cache cleanup
+
 on:
   pull_request:
     types: [closed]
+
 permissions: {}
+
 jobs:
   cleanup:
     permissions:
