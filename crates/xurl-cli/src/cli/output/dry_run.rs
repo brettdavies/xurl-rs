@@ -63,9 +63,7 @@ pub(super) fn summary(
             if WORDED.contains(&key.as_str()) {
                 continue;
             }
-            if let Some(text) = input_text(value) {
-                lines.push(format!("  {key}: {text}"));
-            }
+            lines.extend(input_lines(key, value));
         }
     }
     if let Some(auth) = ctx.get("auth") {
@@ -82,9 +80,25 @@ pub(super) fn summary(
     lines
 }
 
+/// The lines one input prints: `  key: value`, and for an object one such
+/// line per member, named `key.member`, so a nested input reads like any
+/// other.
+fn input_lines(key: &str, value: &Value) -> Vec<String> {
+    match value {
+        Value::Object(members) => members
+            .iter()
+            .flat_map(|(member, value)| input_lines(&format!("{key}.{member}"), value))
+            .collect(),
+        other => input_text(other)
+            .map(|text| format!("  {key}: {text}"))
+            .into_iter()
+            .collect(),
+    }
+}
+
 /// One input's value as a line shows it: a scalar as it is, an empty string
-/// quoted so it shows, a list joined with commas, and any other object as
-/// compact JSON. An empty list or a null has no line.
+/// quoted so it shows, and a list joined with commas. An empty list or a null
+/// has no line.
 fn input_text(value: &Value) -> Option<String> {
     match value {
         Value::Null => None,
@@ -217,6 +231,29 @@ mod tests {
                 "  invitees: 783214, 2244994945",
                 "  method: POST",
                 "  url: /2/tweets",
+            ]
+        );
+    }
+
+    #[test]
+    fn an_object_input_prints_a_line_for_each_member() {
+        let ctx = json!({
+            "command": "post",
+            "body": "Worth watching",
+            "clip": {"post_id": "1585341984679469056", "start_seconds": 30, "end_seconds": 60},
+            "forward": {"url": "http://localhost:9/hook", "headers": ["X-Key"], "extra": {}},
+        });
+        assert_eq!(
+            summary(true, 0, &ctx, None),
+            [
+                "Dry run of `post`: nothing was sent.",
+                "The real run would succeed, as far as an offline check can tell.",
+                "  body: Worth watching",
+                "  clip.end_seconds: 60",
+                "  clip.post_id: 1585341984679469056",
+                "  clip.start_seconds: 30",
+                "  forward.headers: X-Key",
+                "  forward.url: http://localhost:9/hook",
             ]
         );
     }
