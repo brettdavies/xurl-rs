@@ -173,7 +173,9 @@ Driven by `scripts/release/preflight.sh canon-drift`.
 gate compares each copy with the template agent-skills keeps for it. It reads the current commit of agent-skills `main`
 under `gh`'s own login (the repository is private), extracts that commit's tarball into a temporary directory that the
 script removes on exit, and runs that tree's `github-repo-setup/scripts/check-canonical-drift.sh --json` on this
-repository. The check runs with only `PATH`, `HOME`, and `TMPDIR`. The gate prints the canon commit it compared with.
+repository. The check runs with only `PATH`, `HOME`, and `TMPDIR`, so no token variable reaches it, but it runs as the
+caller with the caller's home: it can read what that home holds, `gh`'s stored login included, so the gate trusts
+agent-skills `main` as it trusts a checkout of it. The gate prints the canon commit it compared with.
 
 - [ ] Every present copy is in sync, a skeleton, absent, or declared `canonical: repo-owned`.
 

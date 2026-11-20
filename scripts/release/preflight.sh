@@ -97,9 +97,10 @@ require_built_binary() {
   }
 }
 
-# EXIT trap: the smoke home (cleanup_smoke, from _lib.sh) and the canon-drift tree ---
+# EXIT trap. cleanup_canon runs first: under set -e a failing cleanup_smoke (from
+# _lib.sh) would end the trap before it. ---------------------------------------
 
-trap 'cleanup_smoke; cleanup_canon' EXIT
+trap 'cleanup_canon; cleanup_smoke' EXIT
 
 # The token store inside a home: the directory layout `xr` keeps at
 # ~/.xurl/auth.yml. Every gate addresses a store through this one function.
@@ -689,9 +690,11 @@ gate_drift() {
 # templates, through that repository's check-canonical-drift.sh and the file map
 # it reads. The check runs from a tarball of agent-skills main's current commit,
 # fetched under gh's own login because the repository is private, and extracted
-# into a temporary directory that the exit trap removes. The script runs with a
-# minimal environment: it needs PATH and HOME, which its home-relative sources
-# resolve against, and no credential.
+# into a temporary directory that the exit trap removes. The script runs with
+# PATH, HOME, and TMPDIR only, which keeps every token variable out of its
+# environment. It still runs as the caller: HOME stays because its home-relative
+# sources resolve against it, so it can read what that home holds, gh's stored
+# login included. The gate trusts agent-skills main as it trusts a checkout of it.
 #
 # Every copy must be in sync, absent, a skeleton, or declared repo-owned; any
 # other verdict fails the gate, a source the check could not read included,
@@ -771,7 +774,7 @@ gate_canon_drift() {
   drifted=${drifted%$'\n'}
   if [[ -n "$drifted" ]]; then
     canon_failure "$drifted" \
-      "refresh each file from its source in $CANON_REPO at ${sha:0:12} (references/canonical-source-pointers.md there says how), or mark a difference the repository keeps: canonical:repo-begin and canonical:repo-end around the lines that differ, or canonical: repo-owned in the first 10 lines of a file that is wholly this repository's own; then rerun $rerun"
+      "refresh each file from its source in $CANON_REPO at ${sha:0:12} (references/canonical-source-pointers.md there says how), or keep a difference: canonical:repo-begin and canonical:repo-end around the lines that differ in a normalized or section entry, or canonical: repo-owned in the first 10 lines of a file in a verbatim entry, which stops the check from comparing that file; then rerun $rerun"
     return
   fi
   if [[ "$status" -ne 0 ]]; then

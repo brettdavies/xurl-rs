@@ -249,7 +249,7 @@ canon_tree_left() {
   find "$T/home/tmp" -maxdepth 1 -name 'xr-canon-*'
 }
 
-@test "canon-drift passes when every copy is in sync, names the canon commit, and hands the check no credential" {
+@test "canon-drift passes when every copy is in sync, names the canon commit, and hands the check no token variable" {
   canon_fixture "$IN_SYNC" 0
   GH_TOKEN=leak-canary preflight canon-drift
   [ "$status" -eq 0 ]
