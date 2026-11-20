@@ -24,11 +24,12 @@ use xdk::api::{
     IngestRegion, LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
     MediaLibraryAdded, MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult,
     MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
-    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
+    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
+    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 use xdk::error::{EXIT_GENERAL_ERROR, EXIT_SUCCESS};
 
@@ -124,6 +125,8 @@ const SCHEMA_ALIASES: &[SchemaAlias] = &[
     typed_alias::<NoteCreated>("note-created"),
     typed_alias::<NoteEvaluation>("note-evaluation"),
     typed_alias::<Vec<Note>>("notes"),
+    typed_alias::<Vec<PostDraft>>("drafts"),
+    typed_alias::<PostDraftCreated>("draft-created"),
     typed_alias::<Broadcast>("broadcast"),
     typed_alias::<Vec<Broadcast>>("broadcasts"),
     typed_alias::<BroadcastUpdated>("broadcast-updated"),

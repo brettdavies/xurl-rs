@@ -72,6 +72,7 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
         "empty-article-body" => "The article body holds no text.".to_string(),
         "invalid-article-id" => "An article id is 1 to 19 digits.".to_string(),
         "invalid-note-id" => "A Community Note id is 1 to 19 digits.".to_string(),
+        "invalid-draft-id" => "A draft id is 1 to 19 digits.".to_string(),
         "note-needs-source-url" => {
             "A Community Note's text carries a source URL, http:// or https://.".to_string()
         }

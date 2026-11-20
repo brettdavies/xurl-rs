@@ -1165,6 +1165,17 @@ fn dry_run_cases() -> Vec<Case> {
             &["--output", "json", "--dry-run", "notes", "remove", "note-1"],
         ),
         case(
+            "dry-run-invalid-draft-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "drafts",
+                "remove",
+                "draft-1",
+            ],
+        ),
+        case(
             "dry-run-note-needs-source-url",
             &[
                 "--output",

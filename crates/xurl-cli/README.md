@@ -108,6 +108,20 @@ xr quote 1585341984679469056 "My take"         # Quote
 xr delete 1585341984679469056                  # Delete
 ```
 
+### Post Drafts
+
+```bash
+xr drafts list -n 10                           # Your drafts, newest first
+xr drafts add "Launch day photos" --media-id 1850000000000000020 --reply-to 1585341984679469056
+xr drafts remove 1850000000000000011           # Delete (asks first; --force skips)
+```
+
+`add` saves a draft to your account without publishing it. X keeps a draft's text, media, and the post it replies to,
+and `--reply-to` takes a post id or URL. `list` prints each draft with its id, which `remove` takes. A draft that lists
+`unsupported_content` holds more than the listing shows, so leave it alone unless its owner asks. `remove` deletes the
+whole draft, any part `list` does not show included, and it cannot be restored; X answers `deleted: true` for an id that
+is not one of your drafts. The tagged users, disclosures, and other fields X takes in a draft are set through raw mode.
+
 ### Reading
 
 ```bash

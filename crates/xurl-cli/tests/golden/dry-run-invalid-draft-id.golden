@@ -1,0 +1,25 @@
+args: ["--output", "json", "--dry-run", "drafts", "remove", "draft-1"]
+store: empty
+exit_code: 0
+stdout_len: 387
+stderr_len: 0
+--- stdout ---
+{
+  "command": "drafts-remove",
+  "draft_id": "draft-1",
+  "exit_code": 1,
+  "message": "A draft id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr drafts remove --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema drafts remove",
+  "rule": "invalid-draft-id",
+  "status": "dry_run",
+  "value": "draft-1",
+  "would_succeed": false
+}
+
+--- stderr ---
+

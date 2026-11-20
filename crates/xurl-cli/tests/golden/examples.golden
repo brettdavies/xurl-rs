@@ -1,7 +1,7 @@
 args: ["examples"]
 store: empty
 exit_code: 0
-stdout_len: 13287
+stdout_len: 13536
 stderr_len: 0
 --- stdout ---
 xr examples — common invocations for the X API CLI
@@ -39,6 +39,11 @@ POST AND READ:
 
   Delete a post by ID without a prompt (--force confirms it):
     xr delete 1585341984679469056 --force --no-interactive --output json
+
+  Save a post as a draft without publishing it, list your drafts, and delete one:
+    xr drafts add "Ship the changelog" --output json
+    xr drafts list --output json
+    xr drafts remove 1850000000000000011 --force --no-interactive --output json
 
   Read a single post and pipe to jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'

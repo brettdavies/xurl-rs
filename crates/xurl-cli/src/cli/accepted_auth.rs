@@ -144,6 +144,9 @@ pub const ROWS: &[Row] = &[
         &[ep::LOOKUP_USERS_BY_USERNAME, ep::UNBLOCK_DMS],
     ),
     row("dms", &[ep::GET_DM_EVENTS]),
+    row("drafts add", &[ep::CREATE_POST_DRAFT]),
+    row("drafts list", &[ep::GET_POST_DRAFTS]),
+    row("drafts remove", &[ep::DELETE_POST_DRAFT]),
     row(
         "follow",
         &[ep::GET_ME, ep::LOOKUP_USERS_BY_USERNAME, ep::FOLLOW_USER],

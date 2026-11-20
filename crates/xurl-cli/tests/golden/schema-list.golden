@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 8907
+stdout_len: 9085
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -61,6 +61,9 @@ dm-events get                  ApiResponse<DmEvent>
 dm-events remove               ApiResponse<DeletedResult>
 dm-unblock                     ApiResponse<DmBlockResult>
 dms                            ApiResponse<Vec<DmEvent>>
+drafts add                     ApiResponse<PostDraftCreated>
+drafts list                    ApiResponse<Vec<PostDraft>>
+drafts remove                  ApiResponse<DeletedResult>
 follow                         ApiResponse<FollowingResult>
 followers                      ApiResponse<Vec<User>>
 following                      ApiResponse<Vec<User>>

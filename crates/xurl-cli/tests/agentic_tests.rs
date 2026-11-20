@@ -856,6 +856,7 @@ const CONFIRMED_COMMANDS: &[&str] = &[
     "broadcasts sources remove",
     "broadcasts remove",
     "media library remove",
+    "drafts remove",
     "calls scheduled cancel",
     "dm-events remove",
     "lists remove",

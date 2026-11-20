@@ -10,6 +10,7 @@ mod calls;
 mod communities;
 mod conversations;
 mod dms;
+mod drafts;
 mod engagement;
 pub mod examples;
 mod graph;
@@ -699,6 +700,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         | Commands::Dms { .. }
         | Commands::DmBlock { .. }
         | Commands::DmUnblock { .. } => dms::run(cmd, run).await,
+        Commands::Drafts { action } => drafts::run(action, run).await,
         Commands::Conversations { action } => conversations::run(action, run).await,
         Commands::DmEvents { action } => conversations::dm_events(action, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,

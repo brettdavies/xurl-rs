@@ -551,6 +551,9 @@ pub struct ErrorBody {
     /// Community Note `notes remove` targeted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note_id: Option<String>,
+    /// Post draft `drafts remove` targeted.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub draft_id: Option<String>,
     /// Filtered-stream rules `stream rules remove` targeted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rule_ids: Option<Vec<String>>,

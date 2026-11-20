@@ -28,11 +28,12 @@ use xdk::api::{
     IngestRegion, LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
     MediaLibraryAdded, MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult,
     MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, ProvisionedResult,
-    RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
-    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated,
+    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
+    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
+    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
+    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
+    WebhookValidation, XCall,
 };
 
 /// Command-to-response-type mapping entry.
@@ -226,6 +227,16 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<Vec<Note>>>,
     },
     SchemaEntry {
+        commands: &["drafts list"],
+        type_name: "ApiResponse<Vec<PostDraft>>",
+        schema: generate::<ApiResponse<Vec<PostDraft>>>,
+    },
+    SchemaEntry {
+        commands: &["drafts add"],
+        type_name: "ApiResponse<PostDraftCreated>",
+        schema: generate::<ApiResponse<PostDraftCreated>>,
+    },
+    SchemaEntry {
         commands: &["communities search"],
         type_name: "ApiResponse<Vec<Community>>",
         schema: generate::<ApiResponse<Vec<Community>>>,
@@ -288,6 +299,7 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "broadcasts remove",
             "broadcasts scheduled cancel",
             "notes remove",
+            "drafts remove",
             "media subtitles remove",
             "media library remove",
             "webhooks remove",
@@ -575,6 +587,7 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "communities",
     "conversations",
     "dm-events",
+    "drafts",
     "completions",
     "examples",
     "lists",

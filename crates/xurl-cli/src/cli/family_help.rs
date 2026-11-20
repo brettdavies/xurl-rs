@@ -628,6 +628,55 @@ pub mod stream_rules {
     }
 }
 
+/// The `xr drafts` family.
+pub mod drafts {
+    use super::{Example, Family, Section, Verb};
+
+    /// The family every page below belongs to.
+    pub const FAMILY: Family = Family { path: "drafts" };
+
+    /// `xr drafts list`.
+    pub const LIST: Verb = Verb {
+        name: "list",
+        example_args: "-n 10",
+        text_caption: "Your ten newest drafts (text)",
+        json_caption: "List (JSON envelope)",
+    };
+
+    /// `xr drafts add`.
+    pub const ADD: Verb = Verb {
+        name: "add",
+        example_args: "\"Launch day photos\" --media-id 1850000000000000020 --reply-to 1585341984679469056",
+        text_caption: "Save a reply with a photo as a draft (text)",
+        json_caption: "Add (JSON envelope)",
+    };
+
+    /// `xr drafts remove`.
+    pub const REMOVE: Verb = Verb {
+        name: "remove",
+        example_args: "1850000000000000011 --force --no-interactive",
+        text_caption: "Delete a draft without a prompt (text)",
+        json_caption: "Remove (JSON envelope)",
+    };
+
+    /// The page under `xr drafts --help`.
+    #[must_use]
+    pub fn page() -> String {
+        const SECTIONS: &[Section<'static>] = &[
+            ("Your drafts (text)", &[Example::text(&LIST)]),
+            (
+                "Save a reply with a photo as a draft (text)",
+                &[Example::text(&ADD)],
+            ),
+            (
+                "Delete one without a prompt, JSON envelope",
+                &[Example::json(&REMOVE)],
+            ),
+        ];
+        FAMILY.page(SECTIONS)
+    }
+}
+
 /// The `xr articles` family.
 pub mod articles {
     use super::{Example, Family, Section, Verb};
