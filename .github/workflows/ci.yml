@@ -552,17 +552,23 @@ jobs:
       - name: Install cargo-binstall
         timeout-minutes: 1 # slowest healthy run: 1 s
         uses: cargo-bins/cargo-binstall@851112458b5f28a29e5bc14a690c3f283d9dcc6f # v1.26.2
-      # This step and Install anc install a prebuilt binary only. A stalled
-      # release-asset check costs binstall 15 s per target and strategy (four to
-      # six of them) before its fallback, a source build that takes minutes.
-      # The 45 s deadline ends a stall early enough for the error to print
-      # inside the step timer. binstall retries a failed request itself, and a
-      # stall lasts minutes on the runner it hits, so there is one attempt.
+      # This step and Install anc install a prebuilt binary only, and pass the
+      # job token. binstall looks the release up on api.github.com. Without a
+      # token that lookup shares the runner's per-IP rate limit, and its 403
+      # makes binstall wait 120 s before it retries, longer than the 45 s
+      # deadline; the 15 s resolution timeouts print behind that wait. The
+      # token removes the 403. Disabling the compile strategy keeps a failed
+      # lookup from falling back to a source build that takes minutes, and the
+      # 45 s deadline ends the step early enough for the error to print inside
+      # the step timer. binstall retries a failed request itself, and a rate
+      # limit lasts minutes on the runner it hits, so there is one attempt.
       # Each step names its crate and reads its version in its own text, which
       # crates/xurl-cli/tests/dev_setup_tests.rs checks step by step, so the
       # two blocks cannot share a YAML anchor.
       - name: Install cargo-hack
         timeout-minutes: 1 # slowest healthy run: 4 s
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           version="$(bash scripts/tool-version.sh cargo-hack)"
@@ -652,9 +658,11 @@ jobs:
       - name: Install cargo-binstall
         timeout-minutes: 1 # slowest healthy run: 2 s
         uses: cargo-bins/cargo-binstall@851112458b5f28a29e5bc14a690c3f283d9dcc6f # v1.26.2
-      # Same deadline and single attempt as Install cargo-hack.
+      # Same deadline, single attempt, and token as Install cargo-hack.
       - name: Install anc
         timeout-minutes: 1 # slowest healthy run: 2 s
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           version="$(bash scripts/tool-version.sh agentnative)"
