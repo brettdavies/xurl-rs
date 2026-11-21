@@ -708,6 +708,7 @@ impl OutputConfig {
             event_id: get_str("event_id"),
             list_id: get_str("list_id"),
             note_id: get_str("note_id"),
+            draft_id: get_str("draft_id"),
             rule_ids: map
                 .get("rule_ids")
                 .and_then(|ids| serde_json::from_value::<Vec<String>>(ids.clone()).ok()),

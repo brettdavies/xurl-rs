@@ -427,6 +427,13 @@
             "null"
           ]
         },
+        "draft_id": {
+          "description": "Post draft `drafts remove` targeted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "endpoint": {
           "description": "Endpoint template the request targeted.",
           "type": [

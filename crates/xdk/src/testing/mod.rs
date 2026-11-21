@@ -241,6 +241,11 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_TREND_LOCATIONS,
+        fixture: "trend_locations",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_PERSONALIZED_TRENDS,
         fixture: "personalized_trends",
         status: 200,
@@ -606,6 +611,21 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
+        endpoint: endpoints::GET_POST_DRAFTS,
+        fixture: "post_drafts",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::CREATE_POST_DRAFT,
+        fixture: "post_draft_created",
+        status: 201,
+    },
+    Route {
+        endpoint: endpoints::DELETE_POST_DRAFT,
+        fixture: "post_draft_deleted",
+        status: 200,
+    },
+    Route {
         endpoint: endpoints::GET_POSTS_ELIGIBLE_FOR_NOTES,
         fixture: "post_list",
         status: 200,
@@ -618,6 +638,11 @@ const ROUTES: &[Route] = &[
     Route {
         endpoint: endpoints::GET_BROADCAST,
         fixture: "broadcast",
+        status: 200,
+    },
+    Route {
+        endpoint: endpoints::UPDATE_BROADCAST,
+        fixture: "broadcast_updated",
         status: 200,
     },
     Route {

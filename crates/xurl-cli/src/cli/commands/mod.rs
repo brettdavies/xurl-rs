@@ -10,6 +10,7 @@ mod calls;
 mod communities;
 mod conversations;
 mod dms;
+mod drafts;
 mod engagement;
 pub mod examples;
 mod graph;
@@ -236,6 +237,15 @@ impl From<Invalid> for Error {
             None => Error::validation(invalid.rule),
         }
     }
+}
+
+/// A dry-run context without the keys the command left unset, so an unset
+/// flag is absent rather than `null`.
+fn without_unset(mut ctx: serde_json::Value) -> serde_json::Value {
+    if let Some(keys) = ctx.as_object_mut() {
+        keys.retain(|_, value| !value.is_null());
+    }
+    ctx
 }
 
 /// The validator of a request whose inputs need no offline check.
@@ -714,6 +724,7 @@ async fn run_subcommand(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         | Commands::Dms { .. }
         | Commands::DmBlock { .. }
         | Commands::DmUnblock { .. } => dms::run(cmd, run).await,
+        Commands::Drafts { action } => drafts::run(action, run).await,
         Commands::Conversations { action } => conversations::run(action, run).await,
         Commands::DmEvents { action } => conversations::dm_events(action, run).await,
         Commands::Usage { target, common } => usage::run(target, &common, run).await,

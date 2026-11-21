@@ -77,6 +77,7 @@
               "broadcast_id",
               "created_at_ms",
               "id",
+              "relay_source",
               "reply_to",
               "text"
             ],
@@ -656,6 +657,7 @@
               "preview_image_url",
               "promoted_metrics",
               "public_metrics",
+              "revenue",
               "type",
               "url",
               "variants",
@@ -1068,6 +1070,31 @@
             "enum": [
               "trend_name",
               "tweet_count"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "style": "form"
+      },
+      "TrendLocationFieldsParameter": {
+        "description": "A comma separated list of TrendLocation fields to display.",
+        "explode": false,
+        "in": "query",
+        "name": "trend_location.fields",
+        "required": false,
+        "schema": {
+          "description": "The fields available for a TrendLocation object.",
+          "items": {
+            "enum": [
+              "country",
+              "country_code",
+              "name",
+              "parent_id",
+              "place_type",
+              "woeid"
             ],
             "type": "string"
           },
@@ -1874,6 +1901,172 @@
         },
         "required": [
           "is_member"
+        ],
+        "type": "object"
+      },
+      "AddMediaToLibraryMonetization": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_countries": {
+            "description": "ISO 3166-1 alpha-2 codes of the only countries the video is monetized in. Omit to monetize everywhere.",
+            "items": {
+              "pattern": "^[A-Za-z]{2}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocked_advertiser_category_ids": {
+            "description": "Advertiser categories (from the categories endpoint) whose ads may not run against the video.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "blocked_advertiser_ids": {
+            "description": "Advertiser account ids whose ads may not run against the video.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "description": "Whether ads may run against the video. Requires the account to be enrolled in video monetization.",
+            "type": "boolean"
+          },
+          "program_id": {
+            "description": "Amplify program to monetize the video through, instead of `video_category_ids`.",
+            "type": "string"
+          },
+          "video_category_ids": {
+            "description": "Video category ids (from the categories endpoint) describing the content; at most one when creating. Required when enabled, unless `program_id` is set.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddMediaToLibraryRequest": {
+        "properties": {
+          "description": {
+            "description": "Description shown with the video in the player card.",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "label": {
+            "description": "Label of the item in the library.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "The media key of the uploaded image, GIF or video to add.",
+            "pattern": "^[0-9]+_[0-9]+$",
+            "type": "string"
+          },
+          "monetization": {
+            "$ref": "#/components/schemas/AddMediaToLibraryMonetization",
+            "description": "Monetization settings. Videos only."
+          },
+          "name": {
+            "description": "Name of the item in the library.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Title shown with the video in the player card.",
+            "maxLength": 70,
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_key"
+        ],
+        "type": "object"
+      },
+      "AddMediaToLibraryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AddMediaToLibraryResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddMediaToLibraryResponseData": {
+        "properties": {
+          "media_key": {
+            "description": "The media key of the library item.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_key"
+        ],
+        "type": "object"
+      },
+      "AddPostToAmplifyProgramsRequest": {
+        "properties": {
+          "blocked_advertiser_ids": {
+            "description": "Advertiser account ids whose pre-rolls may not run on this post.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "post_id": {
+            "description": "The post to publish. It must belong to the user.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "program_ids": {
+            "description": "The programs to publish the post into.",
+            "items": {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "promotion_ends_at": {
+            "description": "When promotion of the post ends (ISO 8601).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "post_id",
+          "program_ids"
+        ],
+        "type": "object"
+      },
+      "AddPostToAmplifyProgramsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/AddPostToAmplifyProgramsResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "AddPostToAmplifyProgramsResponseData": {
+        "properties": {
+          "added": {
+            "description": "Whether the post was published into the programs.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "added"
         ],
         "type": "object"
       },
@@ -3042,6 +3235,9 @@
           "id": {
             "type": "string"
           },
+          "relay_source": {
+            "type": "string"
+          },
           "reply_to": {
             "type": "string"
           },
@@ -4150,6 +4346,15 @@
       "CreateBroadcastRequest": {
         "additionalProperties": false,
         "properties": {
+          "additional_source_ids": {
+            "description": "Ids of further sources to go live on together with `source_id`, one per video format, at most 2, each a source's `id` from GET /2/sources. `source_id` comes first; duplicates are ignored.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "type": "array"
+          },
           "chat_option": {
             "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
             "maximum": 6,
@@ -5525,6 +5730,347 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "CreatePostDraftClip": {
+        "additionalProperties": false,
+        "properties": {
+          "end_seconds": {
+            "description": "Second of the video at which the clip ends. A clip is 5 to 60 seconds long and at most 30% of the video.",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "post_id": {
+            "description": "The ID of the Post whose video is clipped. The Post must have exactly one video, longer than 2 minutes.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "start_seconds": {
+            "description": "Second of the video at which the clip starts.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "post_id",
+          "start_seconds",
+          "end_seconds"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftEditOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "previous_post_id": {
+            "description": "The ID of the Post being edited.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "previous_post_id"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftGeo": {
+        "additionalProperties": false,
+        "properties": {
+          "place_id": {
+            "description": "Place ID for geo tagging.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "place_id"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftMedia": {
+        "additionalProperties": false,
+        "properties": {
+          "call_to_actions": {
+            "$ref": "#/components/schemas/CreatePostDraftMediaCallToActions",
+            "description": "Call-to-action button rendered on the media entity."
+          },
+          "description": {
+            "description": "Description for the media, rendered on the Post card for video and Amplify content.",
+            "type": "string"
+          },
+          "embeddable": {
+            "description": "When true, the media's asset URLs do not expire and external syndicated playback is allowed.",
+            "type": "boolean"
+          },
+          "media_ids": {
+            "description": "Media IDs to attach to the Post, in the order given.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "type": "array"
+          },
+          "preview_media_id": {
+            "description": "Media id whose asset is used as the preview image.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "tagged_user_ids": {
+            "description": "User IDs tagged in the media.",
+            "items": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "title": {
+            "description": "Title for the media, rendered on the Post card for video and Amplify content.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "media_ids"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftMediaCallToActions": {
+        "additionalProperties": false,
+        "properties": {
+          "app_install": {
+            "$ref": "#/components/schemas/CreatePostDraftMediaCallToActionsAppInstall",
+            "description": "App Install CTA. At least one store id should be provided."
+          },
+          "visit_site": {
+            "$ref": "#/components/schemas/CreatePostDraftMediaCallToActionsVisitSite",
+            "description": "Visit Site CTA."
+          },
+          "watch_now": {
+            "$ref": "#/components/schemas/CreatePostDraftMediaCallToActionsWatchNow",
+            "description": "Watch Now CTA."
+          }
+        },
+        "type": "object"
+      },
+      "CreatePostDraftMediaCallToActionsAppInstall": {
+        "additionalProperties": false,
+        "properties": {
+          "app_store_id": {
+            "description": "Apple App Store iPhone app id.",
+            "type": "string"
+          },
+          "ipad_app_store_id": {
+            "description": "Apple App Store iPad app id.",
+            "type": "string"
+          },
+          "play_store_id": {
+            "description": "Google Play Store app id.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreatePostDraftMediaCallToActionsVisitSite": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "HTTPS URL the CTA links to.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftMediaCallToActionsWatchNow": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "HTTPS URL the CTA links to.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftPoll": {
+        "additionalProperties": false,
+        "properties": {
+          "duration_minutes": {
+            "description": "Duration of the poll in minutes.",
+            "maximum": 10080,
+            "minimum": 5,
+            "type": "integer"
+          },
+          "options": {
+            "description": "Poll options (2-4 choices, 1-25 characters each).",
+            "items": {
+              "maxLength": 25,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 2,
+            "type": "array"
+          },
+          "reply_settings": {
+            "description": "Who can reply to the poll Tweet. Accepted for compatibility; it carries no backend argument and is dropped before the mutation is issued (see `translate_body`).",
+            "enum": [
+              "following",
+              "mentionedUsers",
+              "subscribers",
+              "verified"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "options",
+          "duration_minutes"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftReply": {
+        "additionalProperties": false,
+        "properties": {
+          "auto_populate_reply_metadata": {
+            "description": "If true, reply metadata is automatically populated. Accepted for compatibility; it carries no backend argument and is dropped before the mutation is issued (see `translate_body`).",
+            "type": "boolean"
+          },
+          "exclude_reply_user_ids": {
+            "description": "User IDs to exclude from the reply thread.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "in_reply_to_tweet_id": {
+            "description": "The ID of the tweet being replied to.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "in_reply_to_tweet_id"
+        ],
+        "type": "object"
+      },
+      "CreatePostDraftRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "card_uri": {
+            "description": "Card URI parameter.",
+            "type": "string"
+          },
+          "clip": {
+            "$ref": "#/components/schemas/CreatePostDraftClip",
+            "description": "Clip of another Post's video to share. Cannot be combined with media, a poll, a card, a quoted Post or a direct message deep link."
+          },
+          "community_id": {
+            "description": "Community to post the tweet to.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "direct_message_deep_link": {
+            "description": "Direct message deep link.",
+            "type": "string"
+          },
+          "edit_options": {
+            "$ref": "#/components/schemas/CreatePostDraftEditOptions",
+            "description": "Edit an existing tweet rather than creating a new one."
+          },
+          "for_super_followers_only": {
+            "description": "Restrict tweet to super followers.",
+            "type": "boolean"
+          },
+          "geo": {
+            "$ref": "#/components/schemas/CreatePostDraftGeo",
+            "description": "Geo location for the tweet."
+          },
+          "made_with_ai": {
+            "description": "Disclose that the tweet contains AI-generated media.",
+            "type": "boolean"
+          },
+          "media": {
+            "$ref": "#/components/schemas/CreatePostDraftMedia",
+            "description": "Media attachments."
+          },
+          "nullcast": {
+            "description": "If true, the tweet is not shown in the public timeline.",
+            "type": "boolean"
+          },
+          "paid_partnership": {
+            "description": "Disclose that the tweet is a paid partnership.",
+            "type": "boolean"
+          },
+          "poll": {
+            "$ref": "#/components/schemas/CreatePostDraftPoll",
+            "description": "Poll configuration."
+          },
+          "quote_tweet_id": {
+            "description": "Tweet ID to quote.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "reply": {
+            "$ref": "#/components/schemas/CreatePostDraftReply",
+            "description": "Tweet reply configuration."
+          },
+          "reply_settings": {
+            "description": "Who can reply to this tweet.",
+            "enum": [
+              "following",
+              "mentionedUsers",
+              "subscribers",
+              "verified"
+            ],
+            "type": "string"
+          },
+          "share_with_followers": {
+            "description": "Share an exclusive (super-follower) tweet with all followers.",
+            "type": "boolean"
+          },
+          "text": {
+            "default": "",
+            "description": "Text of the Post. Required unless media is provided. At most 280 characters unless the account has X Premium.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreatePostDraftResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CreatePostDraftResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "CreatePostDraftResponseData": {
+        "properties": {
+          "id": {
+            "description": "Unique identifier of the saved draft.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "text": {
+            "description": "The text of the saved draft.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
         "type": "object"
       },
       "CreatePostsClip": {
@@ -7617,6 +8163,32 @@
         "properties": {
           "deleted": {
             "description": "Indicates whether the subtitles were deleted.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
+      "DeletePostDraftResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DeletePostDraftResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DeletePostDraftResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the draft is gone from the user's drafts.",
             "type": "boolean"
           }
         },
@@ -10056,6 +10628,161 @@
         },
         "type": "object"
       },
+      "GetAmplifyProgramPostsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GetAmplifyProgramPostsResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetAmplifyProgramPostsResponseData": {
+        "properties": {
+          "added_at": {
+            "description": "When the post was published into the program (ISO 8601).",
+            "type": "string"
+          },
+          "post_id": {
+            "description": "Identifier of the post.",
+            "type": "string"
+          },
+          "promotion_ends_at": {
+            "description": "When promotion of the post ends (ISO 8601), when one was set.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "post_id",
+          "added_at"
+        ],
+        "type": "object"
+      },
+      "GetAmplifyProgramResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetAmplifyProgramResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetAmplifyProgramResponseData": {
+        "properties": {
+          "advertiser_ids": {
+            "description": "Advertiser account ids sponsoring the program.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Identifier of the program.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the program.",
+            "type": "string"
+          },
+          "publisher_ids": {
+            "description": "User ids of the publishers enrolled in the program.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "state": {
+            "description": "Lifecycle state of the program. Only `active` programs accept posts.",
+            "enum": [
+              "active",
+              "inactive",
+              "deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "state",
+          "advertiser_ids",
+          "publisher_ids"
+        ],
+        "type": "object"
+      },
+      "GetAmplifyProgramsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GetAmplifyProgramsResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetAmplifyProgramsResponseData": {
+        "properties": {
+          "advertiser_ids": {
+            "description": "Advertiser account ids sponsoring the program.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "Identifier of the program.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the program.",
+            "type": "string"
+          },
+          "publisher_ids": {
+            "description": "User ids of the publishers enrolled in the program.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "state": {
+            "description": "Lifecycle state of the program. Only `active` programs accept posts.",
+            "enum": [
+              "active",
+              "inactive",
+              "deleted"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "state",
+          "advertiser_ids",
+          "publisher_ids"
+        ],
+        "type": "object"
+      },
       "GetBotsResponse": {
         "properties": {
           "data": {
@@ -10891,6 +11618,79 @@
         },
         "type": "object"
       },
+      "GetMediaLibraryCategoriesResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GetMediaLibraryCategoriesResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "GetMediaLibraryCategoriesResponseData": {
+        "properties": {
+          "advertiser_categories": {
+            "description": "Advertiser categories that can be blocked.",
+            "items": {
+              "$ref": "#/components/schemas/GetMediaLibraryCategoriesResponseDataAdvertiserCategories"
+            },
+            "type": "array"
+          },
+          "video_categories": {
+            "description": "Video categories a library item can be assigned.",
+            "items": {
+              "$ref": "#/components/schemas/GetMediaLibraryCategoriesResponseDataVideoCategories"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "video_categories",
+          "advertiser_categories"
+        ],
+        "type": "object"
+      },
+      "GetMediaLibraryCategoriesResponseDataAdvertiserCategories": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "Human readable name, localized to `lang` when a translation exists.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Identifier used in `monetization.video_category_ids` / `monetization.blocked_advertiser_category_ids`.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ],
+        "type": "object"
+      },
+      "GetMediaLibraryCategoriesResponseDataVideoCategories": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "Human readable name, localized to `lang` when a translation exists.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Identifier used in `monetization.video_category_ids` / `monetization.blocked_advertiser_category_ids`.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "description"
+        ],
+        "type": "object"
+      },
       "GetMediaUploadStatusResponse": {
         "properties": {
           "data": {
@@ -10996,6 +11796,192 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "GetPostDraftsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/GetPostDraftsResponseData"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "next_token": {
+                "description": "Pagination token for the next page of results.",
+                "type": "string"
+              },
+              "result_count": {
+                "description": "Number of items in the data array.",
+                "format": "int32",
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetPostDraftsResponseData": {
+        "properties": {
+          "created_at": {
+            "description": "When the draft was saved (RFC 3339).",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier of the draft.",
+            "pattern": "^[0-9]{1,19}$",
+            "type": "string"
+          },
+          "made_with_ai": {
+            "description": "Whether the draft discloses AI-generated media.",
+            "type": "boolean"
+          },
+          "media": {
+            "$ref": "#/components/schemas/GetPostDraftsResponseDataMedia",
+            "description": "Media attached to the Post."
+          },
+          "paid_partnership": {
+            "description": "Whether the draft discloses a paid partnership.",
+            "type": "boolean"
+          },
+          "quote_tweet_id": {
+            "description": "The ID of the Post this Post quotes.",
+            "type": "string"
+          },
+          "reply": {
+            "$ref": "#/components/schemas/GetPostDraftsResponseDataReply",
+            "description": "Present when the draft is a reply."
+          },
+          "text": {
+            "description": "The text of the draft. Empty for a draft that only has media.",
+            "type": "string"
+          },
+          "thread": {
+            "description": "For a draft that is a thread, the Posts after the first one, in order. Each replies to the Post before it.",
+            "items": {
+              "$ref": "#/components/schemas/GetPostDraftsResponseDataThread"
+            },
+            "type": "array"
+          },
+          "unsupported_content": {
+            "description": "Parts of the draft that the other fields do not carry. Present only when the draft holds more than is listed.",
+            "items": {
+              "enum": [
+                "text_formatting",
+                "inline_media",
+                "media_tags",
+                "possibly_sensitive",
+                "attachment",
+                "cashtag_attachment"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "updated_at": {
+            "description": "When the draft last changed (RFC 3339).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "type": "object"
+      },
+      "GetPostDraftsResponseDataMedia": {
+        "additionalProperties": false,
+        "properties": {
+          "media_ids": {
+            "description": "Media IDs attached to the Post, in order.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tagged_user_ids": {
+            "description": "IDs of the users tagged in any of the media.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "media_ids"
+        ],
+        "type": "object"
+      },
+      "GetPostDraftsResponseDataReply": {
+        "additionalProperties": false,
+        "properties": {
+          "exclude_reply_user_ids": {
+            "description": "IDs of the users the reply does not mention.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "in_reply_to_tweet_id": {
+            "description": "The ID of the Post the draft replies to.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "in_reply_to_tweet_id"
+        ],
+        "type": "object"
+      },
+      "GetPostDraftsResponseDataThread": {
+        "additionalProperties": false,
+        "properties": {
+          "media": {
+            "$ref": "#/components/schemas/GetPostDraftsResponseDataThreadMedia",
+            "description": "Media attached to the Post."
+          },
+          "quote_tweet_id": {
+            "description": "The ID of the Post this Post quotes.",
+            "type": "string"
+          },
+          "text": {
+            "description": "The text of the Post. Empty when it only has media.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "GetPostDraftsResponseDataThreadMedia": {
+        "additionalProperties": false,
+        "properties": {
+          "media_ids": {
+            "description": "Media IDs attached to the Post, in order.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "tagged_user_ids": {
+            "description": "IDs of the users tagged in any of the media.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "media_ids"
+        ],
         "type": "object"
       },
       "GetPostsAnalyticsResponse": {
@@ -11785,6 +12771,31 @@
           "data": {
             "items": {
               "$ref": "#/components/schemas/Trend"
+            },
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          },
+          "meta": {
+            "properties": {
+              "location": {
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "GetTrendsLocationsResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/TrendLocation"
             },
             "type": "array"
           },
@@ -14383,6 +15394,9 @@
           "public_metrics": {
             "$ref": "#/components/schemas/MediaPublicMetrics"
           },
+          "revenue": {
+            "$ref": "#/components/schemas/MediaRevenue"
+          },
           "type": {
             "type": "string"
           },
@@ -14747,6 +15761,25 @@
         },
         "required": [
           "view_count"
+        ],
+        "type": "object"
+      },
+      "MediaRevenue": {
+        "description": "Lifetime revenue earned by the media. Only available to the user who\nuploaded the video, and only to apps holding the `media.library.read` scope.",
+        "properties": {
+          "amount_micros": {
+            "description": "Revenue earned by this video, in micro-units (1/1,000,000) of `currency_code`.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency_code": {
+            "description": "ISO 4217 code of the currency `amount_micros` is denominated in.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount_micros",
+          "currency_code"
         ],
         "type": "object"
       },
@@ -18013,6 +19046,36 @@
         ],
         "type": "object"
       },
+      "RemoveMediaFromLibraryRequest": {
+        "properties": {},
+        "type": "object"
+      },
+      "RemoveMediaFromLibraryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RemoveMediaFromLibraryResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RemoveMediaFromLibraryResponseData": {
+        "properties": {
+          "deleted": {
+            "description": "Whether the library item was removed.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "type": "object"
+      },
       "RepostPostRequest": {
         "additionalProperties": false,
         "properties": {
@@ -18849,6 +19912,11 @@
       "SendBroadcastChatRequest": {
         "additionalProperties": false,
         "properties": {
+          "relay_source": {
+            "description": "The platform this message was relayed from, shown as that platform's icon next to the message: `youtube`, `twitch`, `kick`, `facebook`, `rumble`, `tiktok` or `instagram`. Only apps approved for chat relay may set it.",
+            "maxLength": 32,
+            "type": "string"
+          },
           "reply_to": {
             "description": "Message id to reply to, returned as timestamp when sent.",
             "pattern": "^[0-9]{1,19}$",
@@ -19502,6 +20570,35 @@
             "type": "string"
           },
           "tweet_count": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TrendLocation": {
+        "properties": {
+          "country": {
+            "description": "The country the location is in. Omitted for a location that is not in one country, such as Worldwide.",
+            "type": "string"
+          },
+          "country_code": {
+            "description": "The two-letter code of the location's country, such as `US`. Omitted when `country` is.",
+            "type": "string"
+          },
+          "name": {
+            "description": "The location's name.",
+            "type": "string"
+          },
+          "parent_id": {
+            "description": "The WOEID of the location that contains this one, such as a town's country. Omitted for a location with no parent.",
+            "type": "integer"
+          },
+          "place_type": {
+            "description": "The kind of place: `town`, `country`, or `supername` (Worldwide). Omitted for a location whose kind is not known.",
+            "type": "string"
+          },
+          "woeid": {
+            "description": "The location's WOEID. Pass it to `GET /2/trends/by/woeid/{woeid}`.",
             "type": "integer"
           }
         },
@@ -20194,6 +21291,97 @@
         },
         "required": [
           "updated"
+        ],
+        "type": "object"
+      },
+      "UpdateBroadcastRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "maximum": 6,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "live_category_id": {
+            "description": "New live category, e.g. `gaming`. Ids come from GET /2/broadcasts/categories; an unknown id is a 400. An empty string removes the broadcast's category.",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "title": {
+            "description": "New broadcast title.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateBroadcastResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateBroadcastResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateBroadcastResponseData": {
+        "properties": {
+          "broadcast_id": {
+            "description": "Broadcast id; the same as `id`.",
+            "type": "string"
+          },
+          "chat_option": {
+            "description": "Who can chat: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts the host follows, 5 the host's subscribers, 6 accounts followed by an account the host follows.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Broadcast id.",
+            "type": "string"
+          },
+          "language": {
+            "description": "Broadcast language.",
+            "type": "string"
+          },
+          "live_category_id": {
+            "description": "The broadcast's live category. Missing when it has none.",
+            "type": "string"
+          },
+          "media_key": {
+            "description": "Media key of the broadcast.",
+            "type": "string"
+          },
+          "share_url": {
+            "description": "The broadcast's watch page.",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Start time, milliseconds since Unix epoch (decimal string).",
+            "type": "string"
+          },
+          "state": {
+            "description": "Broadcast state, `RUNNING` once live.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Broadcast title.",
+            "type": "string"
+          },
+          "tweet_id": {
+            "description": "Id of the Post announcing the broadcast. Missing when the Post hasn't been created yet, was suppressed with `should_not_tweet`, or could not be created.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "broadcast_id",
+          "state",
+          "share_url"
         ],
         "type": "object"
       },
@@ -21258,6 +22446,103 @@
         "properties": {
           "updated": {
             "description": "Indicates whether the List was updated.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "updated"
+        ],
+        "type": "object"
+      },
+      "UpdateMediaInLibraryMonetization": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed_countries": {
+            "description": "ISO 3166-1 alpha-2 codes of the only countries the video is monetized in. Omit to monetize everywhere.",
+            "items": {
+              "pattern": "^[A-Za-z]{2}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocked_advertiser_category_ids": {
+            "description": "Advertiser categories (from the categories endpoint) whose ads may not run against the video.",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "blocked_advertiser_ids": {
+            "description": "Advertiser account ids whose ads may not run against the video.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enabled": {
+            "description": "Whether ads may run against the video. Requires the account to be enrolled in video monetization.",
+            "type": "boolean"
+          },
+          "program_id": {
+            "description": "Amplify program to monetize the video through, instead of `video_category_ids`.",
+            "type": "string"
+          },
+          "video_category_ids": {
+            "description": "Video category ids (from the categories endpoint) describing the content; at most one when creating. Required when enabled, unless `program_id` is set.",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 2,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateMediaInLibraryRequest": {
+        "properties": {
+          "description": {
+            "description": "Description shown with the video in the player card.",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "label": {
+            "description": "Label of the item in the library.",
+            "type": "string"
+          },
+          "monetization": {
+            "$ref": "#/components/schemas/UpdateMediaInLibraryMonetization",
+            "description": "Monetization settings. Videos only."
+          },
+          "name": {
+            "description": "Name of the item in the library.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Title shown with the video in the player card.",
+            "maxLength": 70,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateMediaInLibraryResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/UpdateMediaInLibraryResponseData"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateMediaInLibraryResponseData": {
+        "properties": {
+          "updated": {
+            "description": "Whether the library item was updated.",
             "type": "boolean"
           }
         },
@@ -23180,13 +24465,13 @@
     },
     "termsOfService": "https://developer.x.com/en/developer-terms/agreement-and-policy.html",
     "title": "X API v2",
-    "version": "2.174"
+    "version": "2.175"
   },
   "openapi": "3.0.0",
   "paths": {
     "/2/account": {
       "get": {
-        "description": "Returns the authenticated user's X Developer Platform account. A user without an account gets a resource-not-found error entry.",
+        "description": "Returns the X Developer Platform account that is billed for the authenticated user's API access. A user with no such account gets a resource-not-found error entry.",
         "operationId": "getDeveloperAccount",
         "responses": {
           "200": {
@@ -24549,7 +25834,7 @@
         ]
       },
       "post": {
-        "description": "Takes one of the authenticated user's sources live and returns 201 with the new broadcast. The broadcast goes live immediately (state `RUNNING`), even before the encoder sends video, and is ended (`TIMED_OUT`) if no video arrives within 5 minutes. It is announced in a Post unless `should_not_tweet` is true. When the source already has a live broadcast, returns 200 with that broadcast unchanged and ignores the request's `title`, `locale`, `chat_option` and `should_not_tweet`. A missing `tweet_id` means the Post hasn't been created yet, was suppressed with `should_not_tweet`, or could not be created; read it later with GET /2/broadcasts/:id. A 409 `conflict` means the source can't go live right now: either it can't take video before the encoder connects (external HLS sources, or regions where this isn't available), so retry once video is flowing, or another broadcast is live on it, so END that broadcast first. The `detail` says which, and names the live broadcast when known.",
+        "description": "Takes one or more of the authenticated user's sources live and returns 201 with the new broadcast. Several sources (`source_id` plus `additional_source_ids`, one per video format) go live together as one broadcast; they must all be RTMP sources in one region, and when one of them is already live its broadcast is returned only if it holds every listed source. The broadcast goes live immediately (state `RUNNING`), even before the encoder sends video, and is ended (`TIMED_OUT`) if no video arrives within 5 minutes. It is announced in a Post unless `should_not_tweet` is true. When the source already has a live broadcast, returns 200 with that broadcast unchanged and ignores the request's `title`, `locale`, `chat_option` and `should_not_tweet`. A missing `tweet_id` means the Post hasn't been created yet, was suppressed with `should_not_tweet`, or could not be created; read it later with GET /2/broadcasts/:id. A 409 `conflict` means the source can't go live right now: either it can't take video before the encoder connects (external HLS sources, or regions where this isn't available), so retry once video is flowing, or another broadcast is live on it, so END that broadcast first. The `detail` says which, and names the live broadcast when known.",
         "operationId": "createBroadcast",
         "requestBody": {
           "content": {
@@ -25551,6 +26836,74 @@
           }
         ],
         "summary": "Get a Broadcast",
+        "tags": [
+          "Broadcasts"
+        ]
+      },
+      "put": {
+        "description": "Changes the title, chat option or live category of one of the authenticated user's broadcasts and returns the broadcast. Send at least one of `title`, `chat_option` and `live_category_id`; fields left out keep their values. A broadcast can be updated before it starts, while it is live and after it has ended. A 409 `conflict` means the broadcast can't be edited, for example because it was deleted or moderated.",
+        "operationId": "updateBroadcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-zA-Z0-9]{1,24}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBroadcastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateBroadcastResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "broadcast.read",
+              "broadcast.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update a Broadcast",
         "tags": [
           "Broadcasts"
         ]
@@ -29611,7 +30964,7 @@
     },
     "/2/chat/media/{id}/{media_hash_key}": {
       "get": {
-        "description": "Downloads encrypted media bytes from an XChat conversation. The response body contains raw binary bytes.",
+        "description": "Downloads encrypted media bytes from an XChat conversation. The response body contains raw binary bytes. A media item too large to return in one response fails with a 413 problem of type `https://api.x.com/2/problems/response-too-large`, and a retry fails the same way.",
         "operationId": "chatMediaDownload",
         "parameters": [
           {
@@ -33026,6 +34379,230 @@
         ]
       }
     },
+    "/2/media/amplify/posts": {
+      "post": {
+        "description": "Publishes one of the authenticated user's video posts into one or more active Amplify pre-roll programs the user is enrolled in as a publisher.",
+        "operationId": "addPostToAmplifyPrograms",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddPostToAmplifyProgramsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddPostToAmplifyProgramsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Add Post to Amplify Programs",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/amplify/programs": {
+      "get": {
+        "description": "Returns the Amplify pre-roll programs the authenticated user is enrolled in as a publisher.",
+        "operationId": "getAmplifyPrograms",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAmplifyProgramsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Amplify Programs",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/amplify/programs/{program_id}": {
+      "get": {
+        "description": "Returns one Amplify pre-roll program the authenticated user is enrolled in as a publisher. A program the user is not enrolled in is reported as not found.",
+        "operationId": "getAmplifyProgram",
+        "parameters": [
+          {
+            "description": "Identifier of the program.",
+            "in": "path",
+            "name": "program_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAmplifyProgramResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Amplify Program",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/amplify/programs/{program_id}/posts": {
+      "get": {
+        "description": "Returns the posts published into an Amplify pre-roll program the authenticated user is enrolled in as a publisher.",
+        "operationId": "getAmplifyProgramPosts",
+        "parameters": [
+          {
+            "description": "Identifier of the program.",
+            "in": "path",
+            "name": "program_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAmplifyProgramPostsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Amplify Program Posts",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
     "/2/media/analytics": {
       "get": {
         "description": "Retrieves analytics data for media.",
@@ -33124,6 +34701,261 @@
           }
         ],
         "summary": "Get Media Analytics",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/library": {
+      "post": {
+        "description": "Adds previously uploaded media to the authenticated user's Media Library with its library metadata. The user must own the media. Geo restrictions, content expiry, the preview image and the audience policy are set with the Media metadata endpoint.",
+        "operationId": "addMediaToLibrary",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMediaToLibraryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddMediaToLibraryResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Add Media to Library",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/library/categories": {
+      "get": {
+        "description": "Returns the video categories a publisher can assign to a media library item and the advertiser categories whose ads can be blocked from running against it.",
+        "operationId": "getMediaLibraryCategories",
+        "parameters": [
+          {
+            "description": "Language tag for category descriptions, e.g. `en` or `pt-BR`.",
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMediaLibraryCategoriesResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Media Library Categories",
+        "tags": [
+          "Media"
+        ]
+      }
+    },
+    "/2/media/library/{media_key}": {
+      "delete": {
+        "description": "Removes an item from the authenticated user's Media Library. Posts scheduled through the API that have not yet been published and still use the media are cancelled. Published posts and the underlying media are not affected.",
+        "operationId": "removeMediaFromLibrary",
+        "parameters": [
+          {
+            "description": "The media key of the library item to remove.",
+            "in": "path",
+            "name": "media_key",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]+_[0-9]+$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveMediaFromLibraryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoveMediaFromLibraryResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Remove Media Library Item",
+        "tags": [
+          "Media"
+        ]
+      },
+      "put": {
+        "description": "Updates the library metadata of an item in the authenticated user's Media Library. Only the fields sent are changed; the others keep their values. Geo restrictions, content expiry, the preview image and the audience policy are set with the Media metadata endpoint.",
+        "operationId": "updateMediaInLibrary",
+        "parameters": [
+          {
+            "description": "The media key of the library item to update.",
+            "in": "path",
+            "name": "media_key",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]+_[0-9]+$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMediaInLibraryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateMediaInLibraryResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "media.library.write"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Update Media Library Item",
         "tags": [
           "Media"
         ]
@@ -34258,6 +36090,201 @@
         ]
       }
     },
+    "/2/posts/drafts": {
+      "get": {
+        "description": "Returns the authenticated user's Post drafts, newest first, in the fields of the Create or Edit Post body. thread holds the Posts after the first. A draft with unsupported_content is not listed in full: do not publish it from this list or delete it unless the user asks. Needs the tweet.write scope.",
+        "operationId": "getPostDrafts",
+        "parameters": [
+          {
+            "description": "The maximum number of drafts to return.",
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "format": "int32",
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "style": "form"
+          },
+          {
+            "description": "The meta.next_token of the previous page.",
+            "in": "query",
+            "name": "pagination_token",
+            "required": false,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "form"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetPostDraftsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "tweet.read",
+              "tweet.write",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Get Post Drafts",
+        "tags": [
+          "Posts"
+        ]
+      },
+      "post": {
+        "description": "Saves a Post draft to the authenticated user's X account without publishing it. Takes the body of Create or Edit Post, of which a draft stores text, media with tagged users, a reply and the AI and paid partnership disclosures. Any other field that is set is a 400 that names it.",
+        "operationId": "createPostDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePostDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePostDraftResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "tweet.read",
+              "tweet.write",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Create Post Draft",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
+    "/2/posts/drafts/{id}": {
+      "delete": {
+        "description": "Deletes one of the authenticated user's Post drafts by its ID. The whole draft is deleted, including any part Get Post Drafts does not list, and cannot be restored. An ID that is not one of the user's drafts also returns deleted: true.",
+        "operationId": "deletePostDraft",
+        "parameters": [
+          {
+            "description": "The ID of the draft to delete.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{1,19}$",
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePostDraftResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "OAuth2UserToken": [
+              "tweet.read",
+              "tweet.write",
+              "users.read"
+            ]
+          },
+          {
+            "UserToken": []
+          }
+        ],
+        "summary": "Delete Post Draft",
+        "tags": [
+          "Posts"
+        ]
+      }
+    },
     "/2/region": {
       "get": {
         "description": "Returns the ingest region nearest the server handling the request. Pass it as `region` when creating a stream source to ingest there.",
@@ -35190,7 +37217,7 @@
     },
     "/2/trends/by/woeid/{woeid}": {
       "get": {
-        "description": "Retrieves trending topics for a specific location identified by its WOEID.",
+        "description": "Retrieves trending topics for a specific location identified by its WOEID. `meta.location` describes that location: its `woeid` and `name`, and when they are known its `country`, `country_code`, `place_type` (`town`, `country` or `supername`) and `parent_id`, the WOEID of the place that contains it.",
         "operationId": "getTrendsByWoeid",
         "parameters": [
           {
@@ -35256,6 +37283,56 @@
           }
         ],
         "summary": "Get Trends by WOEID",
+        "tags": [
+          "Trends"
+        ]
+      }
+    },
+    "/2/trends/locations": {
+      "get": {
+        "description": "Retrieves every location that has trends. Each location has a WOEID to pass to `GET /2/trends/by/woeid/{woeid}`. The list is short and is returned whole, so the route takes no paging parameters.",
+        "operationId": "getTrendsLocations",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TrendLocationFieldsParameter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTrendsLocationsResponse"
+                }
+              }
+            },
+            "description": "The request has succeeded."
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "The request has failed."
+          }
+        },
+        "security": [
+          {
+            "BearerToken": []
+          },
+          {
+            "OAuth2UserToken": []
+          }
+        ],
+        "summary": "Get Trend Locations",
         "tags": [
           "Trends"
         ]
@@ -40618,6 +42695,9 @@
           }
         },
         "security": [
+          {
+            "BearerToken": []
+          },
           {
             "OAuth2UserToken": [
               "tweet.read",

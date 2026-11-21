@@ -55,6 +55,11 @@ POST AND READ:
   Delete a post by ID without a prompt (--force confirms it):
     xr delete 1585341984679469056 --force --no-interactive --output json
 
+  Save a post as a draft without publishing it, list your drafts, and delete one:
+    xr drafts add \"Ship the changelog\" --output json
+    xr drafts list --output json
+    xr drafts remove 1850000000000000011 --force --no-interactive --output json
+
   Read a single post and pipe to jaq:
     xr read 1585341984679469056 --output json | jaq '.data.text'
 
@@ -90,9 +95,10 @@ POST AND READ:
     xr stream rules add \"from:XDevelopers has:media\" --tag devs --output json
     xr stream rules count --output json
 
-  Trends worldwide, and the trends X picks for you:
+  Trends worldwide, the trends X picks for you, and the places that have trends:
     xr trends place 1 -n 10 --output json | jaq -r '.data[]?.trend_name'
     xr trends personal --output json
+    xr trends locations --output json | jaq -r '.data[]? | select(.place_type == \"country\") | .name'
 
   Search recent posts:
     xr search \"rustlang\" -n 25

@@ -6,13 +6,14 @@
 use serde_json::json;
 
 use super::{
-    DryRun, Run, act_on_user, act_on_user_with, broadcast_chat, broadcast_scheduled, list_paged,
-    make_client, no_checks, send_confirmed, send_or_report, send_validated, with_flags,
+    DryRun, Invalid, Run, act_on_user, act_on_user_with, broadcast_chat, broadcast_scheduled,
+    list_paged, make_client, no_checks, send_confirmed, send_or_report, send_validated, with_flags,
+    without_unset,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::{BroadcastsCommands, ModeratorsCommands, MutesCommands, SourcesCommands};
 use xdk::api::Client;
-use xdk::api::shortcuts;
+use xdk::api::shortcuts::{self, BroadcastChanges};
 
 pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResult<()> {
     match target {
@@ -85,6 +86,40 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
             let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_broadcast(&broadcast_id)
+            })
+            .await?;
+        }
+        BroadcastsCommands::Update {
+            broadcast_id,
+            title,
+            chat_option,
+            common,
+        } => {
+            let ctx = without_unset(json!({
+                "command": "broadcasts-update",
+                "broadcast_id": broadcast_id,
+                "title": title,
+                "chat_option": chat_option,
+            }));
+            let changes = BroadcastChanges {
+                title,
+                chat_option,
+                live_category_id: None,
+            };
+            let validate = || {
+                shortcuts::validate_broadcast_id(&broadcast_id)
+                    .map_err(|rule| Invalid::naming(rule, &broadcast_id))?;
+                shortcuts::validate_broadcast_changes(&changes).map_err(|rule| {
+                    match (rule, changes.chat_option) {
+                        ("invalid-chat-option", Some(option)) => {
+                            Invalid::naming(rule, &option.to_string())
+                        }
+                        _ => Invalid::from(rule),
+                    }
+                })
+            };
+            send_validated(run, ctx, validate, &common, |client: &Client| {
+                client.update_broadcast(&broadcast_id, &changes)
             })
             .await?;
         }

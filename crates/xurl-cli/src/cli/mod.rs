@@ -1350,6 +1350,15 @@ pub enum Commands {
         common: CommonFlags,
     },
 
+    // ── Post drafts ──────────────────────────────────────────────────
+    /// Your post drafts: list them, save one, and remove one
+    #[command(after_help = family_help::drafts::page())]
+    Drafts {
+        /// `drafts` verb to dispatch.
+        #[command(subcommand)]
+        action: DraftsCommands,
+    },
+
     // ── Reading ──────────────────────────────────────────────────────
     /// Read a post
     #[command(after_help = READ_HELP)]
@@ -2581,6 +2590,57 @@ pub enum NewsCommands {
     },
 }
 
+/// `xr drafts` verbs.
+#[derive(Subcommand, Debug)]
+pub enum DraftsCommands {
+    /// List your post drafts, newest first
+    ///
+    /// A draft that lists `unsupported_content` holds more than this listing shows.
+    /// Leave it alone unless its owner asks.
+    #[command(after_help = family_help::drafts::FAMILY.verb_page(&family_help::drafts::LIST))]
+    List {
+        /// Number of results (1-100). Overrides global `--limit` when set.
+        #[arg(short = 'n', long = "max-results")]
+        max_results: Option<i32>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Save a post draft without publishing it
+    ///
+    /// X keeps a draft's text, media, and the post it replies to.
+    #[command(after_help = family_help::drafts::FAMILY.verb_page(&family_help::drafts::ADD))]
+    Add {
+        /// The text of the draft
+        text: String,
+        /// Media ID(s) to attach (repeatable)
+        #[arg(long = "media-id")]
+        media_ids: Vec<String>,
+        /// The post the draft replies to: its id or URL
+        #[arg(long = "reply-to", value_name = "POST")]
+        reply_to: Option<String>,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Delete a post draft
+    ///
+    /// The whole draft goes, any part `xr drafts list` does not show included, and it cannot be
+    /// restored. X answers `deleted: true` for an id that is not one of your drafts.
+    #[command(after_help = family_help::drafts::FAMILY.verb_page(&family_help::drafts::REMOVE))]
+    Remove {
+        /// Draft ID, as `xr drafts list` prints it
+        #[arg(value_name = "DRAFT_ID")]
+        draft_id: String,
+        /// Skip the confirmation prompt; required under `--no-interactive`
+        #[arg(long)]
+        force: bool,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+}
+
 /// `xr articles` verbs.
 #[derive(Subcommand, Debug)]
 pub enum ArticlesCommands {
@@ -2737,6 +2797,13 @@ pub enum TrendsCommands {
         #[command(flatten)]
         common: CommonFlags,
     },
+    /// List every place X reports trends for, each with the WOEID `place` takes
+    #[command(after_help = family_help::trends::FAMILY.verb_page(&family_help::trends::LOCATIONS))]
+    Locations {
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
 }
 
 /// `xr broadcasts` family subcommands.
@@ -2758,6 +2825,27 @@ pub enum BroadcastsCommands {
         /// Broadcast ID, as `xr broadcasts list` prints it
         #[arg(value_name = "BROADCAST_ID")]
         broadcast_id: String,
+        /// Shortcut flags shared with every other shortcut command.
+        #[command(flatten)]
+        common: CommonFlags,
+    },
+    /// Change the title of one of your broadcasts, or who can chat
+    ///
+    /// X takes the change before the broadcast starts, while it is live, and after it ends, and
+    /// refuses it for a broadcast that was deleted or moderated. A field you leave out keeps its
+    /// value.
+    #[command(after_help = family_help::broadcasts_own::FAMILY.verb_page(&family_help::broadcasts_own::UPDATE))]
+    Update {
+        /// Broadcast ID, as `xr broadcasts list` prints it
+        #[arg(value_name = "BROADCAST_ID")]
+        broadcast_id: String,
+        /// New title
+        #[arg(long)]
+        title: Option<String>,
+        /// Who can chat, 0 to 6: 0 default, 1 chat off, 2 everyone, 3 verified accounts, 4 accounts
+        /// you follow, 5 your subscribers, 6 accounts followed by an account you follow
+        #[arg(long = "chat-option", value_name = "N")]
+        chat_option: Option<u8>,
         /// Shortcut flags shared with every other shortcut command.
         #[command(flatten)]
         common: CommonFlags,

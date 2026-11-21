@@ -66,8 +66,13 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     ("GET_LIKING_USERS", "GET", "/2/tweets/{id}/liking_users"),
     ("GET_REPOSTED_BY", "GET", "/2/tweets/{id}/retweeted_by"),
     ("GET_QUOTE_POSTS", "GET", "/2/tweets/{id}/quote_tweets"),
+    // post drafts
+    ("GET_POST_DRAFTS", "GET", "/2/posts/drafts"),
+    ("CREATE_POST_DRAFT", "POST", "/2/posts/drafts"),
+    ("DELETE_POST_DRAFT", "DELETE", "/2/posts/drafts/{id}"),
     // trends
     ("GET_TRENDS", "GET", "/2/trends/by/woeid/{woeid}"),
+    ("GET_TREND_LOCATIONS", "GET", "/2/trends/locations"),
     (
         "GET_PERSONALIZED_TRENDS",
         "GET",
@@ -293,6 +298,7 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
     // broadcast stream sources
     ("LIST_BROADCASTS", "GET", "/2/broadcasts"),
     ("GET_BROADCAST", "GET", "/2/broadcasts/{id}"),
+    ("UPDATE_BROADCAST", "PUT", "/2/broadcasts/{id}"),
     ("DELETE_BROADCAST", "DELETE", "/2/broadcasts/{id}"),
     ("END_BROADCAST", "PUT", "/2/broadcasts/{id}/state"),
     (
