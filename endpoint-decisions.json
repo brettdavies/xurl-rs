@@ -36,6 +36,23 @@
       }
     },
     {
+      "id": "media-library",
+      "operations": [
+        "POST /2/media/library",
+        "PUT /2/media/library/{media_key}",
+        "DELETE /2/media/library/{media_key}",
+        "GET /2/media/library/categories",
+        "GET /2/media/amplify/programs",
+        "GET /2/media/amplify/programs/{program_id}",
+        "GET /2/media/amplify/programs/{program_id}/posts",
+        "POST /2/media/amplify/posts"
+      ],
+      "status": "planned",
+      "reason": "xr media library and xr media amplify, once X's sign-in grants the media.library.read and media.library.write scopes these endpoints require. On 2026-11-20 X refused both for xr's app: invalid_scope with the full scope set, and an error page for each scope requested alone. Raw mode reaches the endpoints with a credential that carries the scopes.",
+      "decided": "2026-11-20",
+      "by": "Brett, on #583"
+    },
+    {
       "id": "activity",
       "operations": [
         "* /2/activity/**"
