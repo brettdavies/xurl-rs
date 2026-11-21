@@ -70,6 +70,15 @@ impl CredentialSource {
         }
     }
 
+    /// The refusal of a request whose app the store does not hold. A client
+    /// built from credentials names no app.
+    pub(crate) fn refuse_unheld_app(&self) -> Result<()> {
+        match self {
+            Self::Store(auth) => auth.refuse_if_app_missing(),
+            Self::Direct(_) => Ok(()),
+        }
+    }
+
     pub(crate) fn scheme_facts(&self) -> SchemeFacts {
         match self {
             Self::Direct(direct) => {

@@ -46,6 +46,7 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Json { message, .. } => format!("JSON Error: {message}"),
         Error::Auth { message, .. } => format!("Auth Error: {message}"),
         Error::TokenStore { message, .. } => format!("Token Store Error: {message}"),
+        Error::AppNotFound { .. } => format!("Token Store Error: {error}"),
         Error::AuthMethodMismatch(mismatch) => auth_method_mismatch_message(mismatch, None),
         // `Error` is `#[non_exhaustive]`; a variant this build has not seen
         // prints its own fragment rather than failing to compile downstream.
@@ -182,7 +183,10 @@ mod tests {
                 "Auth Error: NoAuthMethod: no authentication method available",
             ),
             (
-                Error::token_store(format!("{} \"nosuchapp\"", xdk::error::APP_NOT_FOUND)),
+                Error::AppNotFound {
+                    name: "nosuchapp".into(),
+                    held: Vec::new(),
+                },
                 "Token Store Error: the store holds no app named \"nosuchapp\"",
             ),
             (

@@ -987,7 +987,7 @@ async fn an_interactive_sign_in_for_an_app_removed_during_consent_sends_no_code(
     let sent = server.received_requests().await.unwrap_or_default().len();
     assert_eq!(sent, 0, "the code was sent: {returned:?}");
     assert!(
-        matches!(&returned, Err(xdk::Error::TokenStore { message, .. }) if message.contains("work")),
+        matches!(&returned, Err(xdk::Error::AppNotFound { name, .. }) if name == "work"),
         "{returned:?}"
     );
     let on_disk = xdk::store::TokenStore::new_with_path(store.to_str().unwrap());
