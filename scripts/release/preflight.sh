@@ -168,8 +168,9 @@ seed_smoke_store() {
     ' "$store"
 }
 
-# The shred guard compares a path as written, and `"$HOME"/*` matches `$HOME/`,
-# so a home the caller names is held without a trailing slash, `.`, or `..`.
+# A home the caller names is held as a plain path, with no trailing slash, `.`, or
+# `..`, so the store path a gate prints is the one it read and the shred guard,
+# which compares a path as written, refuses `$HOME` in any spelling if one reaches it.
 plain_dir() {
   local dir
   if [[ -n "$1" ]] && dir=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -L); then
