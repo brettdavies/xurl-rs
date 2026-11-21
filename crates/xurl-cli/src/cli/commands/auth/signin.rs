@@ -105,18 +105,18 @@ pub(super) async fn oauth2(
     let username_arg = username.as_deref().unwrap_or("");
     let client = crate::cli::commands::make_client(cfg, auth)?;
     // Refuse before any URL is built or pending file written when the store
-    // cannot be loaded or written, the target app has no client id to sign in
-    // with, or the store holds no app by the name `--app` gives. Step 2 checks
-    // the app after the saved flow, whose owner names the app to run it under.
+    // cannot be loaded or written, the store holds no app by the name `--app`
+    // gives, or the target app has no client id to sign in with. An app the
+    // store does not hold has no client id, so it is named first. Step 2
+    // checks the app after the saved flow, whose owner names the app to run
+    // it under.
     let refusal = {
         let auth = client.auth().await?;
         auth.token_store.refuse_unless_writable()?;
-        let refusal =
-            client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false);
-        if refusal.is_none() && !(effective_no_browser && step == Some(2)) {
+        if !(effective_no_browser && step == Some(2)) {
             auth.token_store.refuse_if_app_missing(auth.app_name())?;
         }
-        refusal
+        client_credentials_missing(&auth, app_explicit, out.format.is_structured(), false)
     };
     if let Some(body) = refusal {
         out.emit_error_envelope(stderr, body);
@@ -305,15 +305,15 @@ fn dry_run_answer(
     if let Err(error) = auth.token_store.refuse_unless_writable() {
         return Err(Failure::DryRunRefusal { ctx, error });
     }
+    let step2 = headless && step == Some(2);
+    if !step2 && let Err(error) = auth.token_store.refuse_if_app_missing(auth.app_name()) {
+        return Err(Failure::DryRunRefusal { ctx, error });
+    }
     if let Some(body) =
         client_credentials_missing(auth, app_explicit, out.format.is_structured(), true)
     {
         out.print_dry_run_error_body(stdout, &ctx, body);
         return Ok(());
-    }
-    let step2 = headless && step == Some(2);
-    if !step2 && let Err(error) = auth.token_store.refuse_if_app_missing(auth.app_name()) {
-        return Err(Failure::DryRunRefusal { ctx, error });
     }
     if step2 {
         let redirect_url = match auth_url {
