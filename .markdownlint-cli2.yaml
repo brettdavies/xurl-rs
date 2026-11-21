@@ -1,5 +1,6 @@
 # Global markdownlint-cli2 configuration
 # Canonical version: 2026.09.24 (generic)
+# canonical: repo-owned (a workspace: crates/xdk/vendor/** and crates/*/CHANGELOG.md replace two canonical ignores, and the root CHANGELOG.md stays linted)
 # Symlinked to ~/.markdownlint-cli2.yaml via stow
 #
 # Per-repo copies should preserve the `Canonical version` line above and bump it on resync;

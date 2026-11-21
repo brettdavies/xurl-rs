@@ -13,18 +13,34 @@
 //! that returns a value, or in a block expression, that is before the caller
 //! uses the address. A test function's own listener lives until the test
 //! ends, so it holds its port, as does one moved, returned, or stored.
-//! Every `.rs` under each workspace member's `tests/` is scanned,
-//! subdirectories included, so the helpers in `tests/common/` and
-//! `tests/support/` are held to it too.
+//! A third drops the held listener of a helper that returns one with its port:
+//! `let (_, port) = held_port();` binds nothing to the listener, so it goes at
+//! the end of that statement, and the port is free again.
+//!
+//! Every `.rs` under each workspace member's `tests/` and `examples/` is
+//! scanned, subdirectories included, so the helpers in `tests/common/` and
+//! `tests/support/` are held to it too. So are the unit tests under `src/`:
+//! an inline `#[cfg(test)] mod name { ... }` from its marker to the end of the
+//! file, and a file a `#[cfg(test)] mod name;` declares, whole.
 
 mod common;
 
-use common::{member_dirs, rust_files, workspace_name};
+use std::path::{Path, PathBuf};
+
+use common::production_source::up_to_inline_tests;
+use common::{member_dirs, rust_files, workspace_name, workspace_sources};
 use regex::Regex;
 
 /// A bind on port 0: a `"host:0"` literal, or a `(host, 0)` tuple.
 fn port_zero_bind() -> Regex {
     Regex::new(r#"bind\(\s*(?:"[^"]*:0"|\(\s*[^,()]+\s*,\s*0(?:u16)?\s*\))\s*\)"#)
+        .expect("the pattern compiles")
+}
+
+/// A `let` whose tuple pattern puts `_` where `held_port` returns its
+/// listener.
+fn discarded_hold() -> Regex {
+    Regex::new(r"let\s*\(\s*_\s*,[^)]*\)\s*=\s*(?:\w+::)*held_port\s*\(")
         .expect("the pattern compiles")
 }
 
@@ -104,6 +120,14 @@ fn violations_in(file: &str, source: &str) -> Vec<String> {
         .expect("the pattern compiles");
     let mut found = Vec::new();
 
+    for m in discarded_hold().find_iter(source) {
+        found.push(format!(
+            "{file}:{}: binds `_` where `held_port` returns its listener, which is dropped at \
+             the end of the statement, so the port is free again",
+            line_of(source, m.start())
+        ));
+    }
+
     for m in bind.find_iter(source) {
         let line = line_of(source, m.start());
         let calls = chain.find(&source[m.end()..]).map_or("", |c| c.as_str());
@@ -144,18 +168,90 @@ fn violations_in(file: &str, source: &str) -> Vec<String> {
     found
 }
 
+/// The file `#[cfg(test)] mod name;` in `declaring` names: beside it for a
+/// `mod.rs`, `lib.rs`, or `main.rs`, and in a directory named for the file
+/// otherwise.
+fn declared_module(declaring: &Path, name: &str) -> PathBuf {
+    let dir = declaring.parent().expect("a file has a directory");
+    let stem = declaring.file_stem().and_then(|s| s.to_str());
+    let base = match stem {
+        Some("mod" | "lib" | "main") => dir.to_path_buf(),
+        _ => dir.join(stem.expect("a file name")),
+    };
+    [
+        base.join(format!("{name}.rs")),
+        base.join(name).join("mod.rs"),
+    ]
+    .into_iter()
+    .find(|candidate| candidate.is_file())
+    .unwrap_or_else(|| {
+        panic!(
+            "{}: `#[cfg(test)] mod {name};` names no file under {}",
+            declaring.display(),
+            base.display()
+        )
+    })
+}
+
+/// The unit tests of one file under `src/`, as each file's path and the text
+/// to scan. An inline test module comes with the lines above it blanked, so a
+/// line number in the text is the file's own. A declared test module is the
+/// file it names, whole.
+fn unit_tests_in(path: &Path, source: &str) -> Vec<(PathBuf, String)> {
+    let mut found = Vec::new();
+    let shipped = up_to_inline_tests(source);
+    if shipped.len() < source.len() {
+        let blanked = "\n".repeat(shipped.matches('\n').count());
+        found.push((
+            path.to_path_buf(),
+            format!("{blanked}{}", &source[shipped.len()..]),
+        ));
+    }
+    let declaration = Regex::new(r"#\[cfg\(test\)\]\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+(\w+)\s*;")
+        .expect("the pattern compiles");
+    for module in declaration.captures_iter(source) {
+        let file = declared_module(path, &module[1]);
+        let text = std::fs::read_to_string(&file)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", file.display()));
+        found.push((file, text));
+    }
+    found
+}
+
+/// Every file or part of a file the guard reads: all of each member's
+/// `tests/` and `examples/`, and the unit tests under `src/`.
+fn scanned() -> Vec<(PathBuf, String)> {
+    let read = |path: &Path| {
+        std::fs::read_to_string(path)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
+    };
+    let mut scanned = Vec::new();
+    for member in member_dirs() {
+        for dir in ["tests", "examples"] {
+            let dir = member.join(dir);
+            if !dir.is_dir() {
+                continue;
+            }
+            for path in rust_files(&dir) {
+                if path.file_name().is_some_and(|n| n == "port_race_guard.rs") {
+                    continue;
+                }
+                let text = read(&path);
+                scanned.push((path, text));
+            }
+        }
+    }
+    for path in workspace_sources() {
+        scanned.extend(unit_tests_in(&path, &read(&path)));
+    }
+    scanned
+}
+
 #[test]
 fn no_test_releases_a_port_it_bound_before_using_it() {
     let mut violations = Vec::new();
-    for member in member_dirs() {
-        for path in rust_files(&member.join("tests")) {
-            if path.file_name().is_some_and(|n| n == "port_race_guard.rs") {
-                continue;
-            }
-            let source = std::fs::read_to_string(&path)
-                .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-            violations.extend(violations_in(&workspace_name(&path), &source));
-        }
+    for (path, text) in scanned() {
+        violations.extend(violations_in(&workspace_name(&path), &text));
     }
 
     assert!(
@@ -229,6 +325,25 @@ fn closed_url() -> String {
 "#,
         ),
         (
+            "a held port whose listener is discarded",
+            r#"
+#[test]
+fn a_test() {
+    let (_, port) = held_port();
+    let url = format!("http://127.0.0.1:{port}");
+}
+"#,
+        ),
+        (
+            "a held port reached through its module, listener discarded",
+            r#"
+#[tokio::test]
+async fn a_test() {
+    let (_, port) = common::held_port();
+}
+"#,
+        ),
+        (
             "a named listener in a block expression",
             r#"
 #[tokio::test]
@@ -298,6 +413,26 @@ fn a_bind_on_a_held_port_fails() {
 "#,
         ),
         (
+            "a held port whose listener is named",
+            r#"
+#[test]
+fn a_test() {
+    let (_held, port) = held_port();
+    let url = format!("http://127.0.0.1:{port}");
+}
+"#,
+        ),
+        (
+            "a held port whose listener is kept under its own name",
+            r#"
+#[test]
+fn a_test() {
+    let (held, port) = held_port();
+    drop(held);
+}
+"#,
+        ),
+        (
             "a port picked without a bind",
             r"
 pub fn band_port() -> u16 {
@@ -313,4 +448,60 @@ pub fn band_port() -> u16 {
             "{shape}"
         );
     }
+}
+
+/// The unit tests under `src/` are scanned from the inline test module on, or
+/// whole for a module a `#[cfg(test)] mod name;` declares, and what the guard
+/// reports is the line in the file it names.
+#[test]
+fn the_guard_reads_the_unit_tests_under_src() {
+    let tmp = tempfile::TempDir::new().expect("a scratch directory");
+    let src = tmp.path().join("src");
+    std::fs::create_dir_all(src.join("parse")).expect("the module directory");
+    let write = |path: &Path, text: &str| std::fs::write(path, text).expect("a source file");
+
+    let inline = "fn production() {\n    let (_, port) = held_port();\n}\n\n\
+                  #[cfg(test)]\nmod tests {\n    fn a_test() {\n        let (_, port) = held_port();\n    }\n}\n";
+    let found = unit_tests_in(&src.join("inline.rs"), inline);
+    assert_eq!(found.len(), 1, "only the inline test module is read");
+    let reported = violations_in("inline.rs", &found[0].1);
+    assert_eq!(reported.len(), 1, "{reported:?}");
+    assert!(reported[0].starts_with("inline.rs:8:"), "{reported:?}");
+
+    write(
+        &src.join("parse.rs"),
+        "fn production() {}\n\n#[cfg(test)]\nmod cases;\n",
+    );
+    write(
+        &src.join("parse").join("cases.rs"),
+        "#[test]\nfn a_test() {\n    let (_, port) = held_port();\n}\n",
+    );
+    let declaring = src.join("parse.rs");
+    let found = unit_tests_in(
+        &declaring,
+        &std::fs::read_to_string(&declaring).expect("read"),
+    );
+    assert_eq!(found.len(), 1, "the declared module is the one file read");
+    assert_eq!(found[0].0, src.join("parse").join("cases.rs"));
+    let reported = violations_in("cases.rs", &found[0].1);
+    assert!(reported[0].starts_with("cases.rs:3:"), "{reported:?}");
+
+    write(&src.join("lib.rs"), "#[cfg(test)]\nmod beside;\n");
+    write(&src.join("beside.rs"), "fn a_test() {}\n");
+    let declaring = src.join("lib.rs");
+    let found = unit_tests_in(
+        &declaring,
+        &std::fs::read_to_string(&declaring).expect("read"),
+    );
+    assert_eq!(
+        found[0].0,
+        src.join("beside.rs"),
+        "a lib.rs names a sibling file"
+    );
+
+    let shipped = "fn production() {\n    let (_, port) = held_port();\n}\n";
+    assert!(
+        unit_tests_in(&src.join("shipped.rs"), shipped).is_empty(),
+        "code above no test module is not read"
+    );
 }

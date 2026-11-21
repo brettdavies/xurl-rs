@@ -1202,6 +1202,18 @@ fn dry_run_cases() -> Vec<Case> {
             ],
         ),
         case(
+            "dry-run-invalid-source-id",
+            &[
+                "--output",
+                "json",
+                "--dry-run",
+                "broadcasts",
+                "sources",
+                "stream-key",
+                "not-an-id!",
+            ],
+        ),
+        case(
             "dry-run-invalid-scheduled-broadcast-id",
             &[
                 "--output",

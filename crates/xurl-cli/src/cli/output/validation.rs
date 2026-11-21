@@ -82,6 +82,7 @@ pub(crate) fn sentence(rule: &str, value: Option<&str>) -> Option<String> {
         }
         "empty-broadcast-title" => "The broadcast title is empty.".to_string(),
         "invalid-chat-option" => format!("A chat option is 0 to {CHAT_OPTION_MAX}."),
+        "invalid-source-id" => "A source id is 1 to 19 digits.".to_string(),
         "invalid-scheduled-broadcast-id" => {
             "A scheduled broadcast id is 1 to 19 digits.".to_string()
         }

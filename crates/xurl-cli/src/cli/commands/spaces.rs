@@ -20,7 +20,6 @@ pub(super) async fn run(action: SpacesCommands, run: Run<'_>) -> CommandResult<(
                 "command": "spaces-search",
                 "query": query,
                 "state": state,
-                "max_results": max_results,
             });
             let n = effective_limit(max_results, run.flags.global_limit);
             send_validated(run, ctx, no_checks, &common, |client: &Client| {

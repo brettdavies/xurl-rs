@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.03 (generic)
+# Canonical version: 2026.11.04 (generic)
 #
 # Shared bash utilities for the release-(pre|post)flight orchestrators and any
 # project-authored surface-smoke suite that wants to participate in the
@@ -17,7 +17,9 @@
 #   - Dependency checks (require_bin, have_bin).
 #   - 1Password helper (read_1p) routing through the brettdavies 1password skill.
 #   - Final summary printer (print_summary).
-#   - Sub-script delegation (delegate_to_subscript) for surface-smoke aggregation.
+#   - Sub-script delegation (delegate_to_subscript) for surface-smoke aggregation,
+#     failing a gate that never ran (skip_unvendored spares an optional one), and
+#     the surface-smoke gate's reachability probe (surface_reachable).
 #
 # Idempotent: safe to source multiple times. Re-sourcing is a no-op so the
 # `readonly` declarations on color constants don't fail.
@@ -60,8 +62,11 @@ gate_pass() {
   printf "  %s✓%s %s\n" "$C_GRN" "$C_RST" "$1"
   PASS_COUNT=$((PASS_COUNT + 1))
 }
+# gate_fail <name> <detail> [fix]: the fix prints on its own `fix:` line, the one
+# a headless caller acts on.
 gate_fail() {
   printf "  %s✗%s %s\n    %s\n" "$C_RED" "$C_RST" "$1" "${2:-}"
+  [[ -z "${3:-}" ]] || printf "    fix: %s\n" "$3"
   FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 gate_skip() {
@@ -352,26 +357,116 @@ print_summary() {
 #       print_summary
 #   fi
 #
-# Exit codes from the sub-script are not propagated; the parent decides
-# pass/fail based on its own aggregated counters after every gate runs.
+# A gate that never ran must not read as a pass, and neither must one that died
+# partway or examined nothing. Each of these adds one failure: a script that is
+# missing or not executable, a result that is not three integers or that records
+# no pass and no failure, and a non-zero exit whose result records no failure
+# (killed, usage error, setup error). A sub-script that reports its own failures
+# adds exactly those, and the parent decides pass/fail from its aggregated counters
+# after every gate runs.
+#
+# The orchestrators hold the Access service token out of their environment, so
+# no child inherits it. --with-access-token re-exports it for this sub-script
+# alone, in the subshell that becomes the sub-script, so the mktemp and rm around
+# it stay clean and `bash -x` prints the names rather than the values.
 #
 # Usage:
-#   delegate_to_subscript <script> <args...>
+#   delegate_to_subscript [--with-access-token] <script> <args...>
+
+# subscript_runnable <script>: fails the gate when the script cannot run. A caller
+# with its own skips checks this first, so a skip cannot hide a broken script.
+subscript_runnable() {
+  [[ -x "$1" && ! -d "$1" ]] && return 0
+  gate_fail "$1" "missing or not executable, so this gate never ran" "restore it from github-repo-setup's templates/scripts/release/, or chmod +x it"
+  return 1
+}
 
 delegate_to_subscript() {
+  local with_access_token=0
+  if [[ "$1" == --with-access-token ]]; then
+    with_access_token=1
+    shift
+  fi
   local script="$1"
   shift
-  local result_file
+  subscript_runnable "$script" || return 0
+  local result_file result status=0 how fix
   result_file=$(mktemp)
-  "$script" "$@" --result-file "$result_file" || true
-  if [[ -s "$result_file" ]]; then
-    local p f s
-    read -r p f s <"$result_file"
-    PASS_COUNT=$((PASS_COUNT + p))
-    FAIL_COUNT=$((FAIL_COUNT + f))
-    SKIP_COUNT=$((SKIP_COUNT + s))
-  fi
+  (
+    ((with_access_token == 0)) || export CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
+    exec "$script" "$@" --result-file "$result_file"
+  ) || status=$?
+  result=$(<"$result_file")
   rm -f "$result_file"
+  how="exited $status"
+  ((status != 2)) || how="exited 2 (a setup error)"
+  ((status <= 128)) || how="killed by signal $((status - 128))"
+  fix="fix what its stderr above names, then rerun: $script $*"
+  # The match keeps the file's text out of arithmetic, which would run any
+  # command substitution it held.
+  if [[ ! "$result" =~ ^([0-9]+)\ ([0-9]+)\ ([0-9]+)$ ]]; then
+    gate_fail "$script" "$how without a '<pass> <fail> <skip>' result, so this gate never finished" "$fix"
+    return
+  fi
+  local p="$((10#${BASH_REMATCH[1]}))" f="$((10#${BASH_REMATCH[2]}))" s="$((10#${BASH_REMATCH[3]}))"
+  PASS_COUNT=$((PASS_COUNT + p))
+  FAIL_COUNT=$((FAIL_COUNT + f))
+  SKIP_COUNT=$((SKIP_COUNT + s))
+  if ((p + f == 0)); then
+    if ((s == 0)); then
+      gate_fail "$script" "$how and ran no gates, so it examined nothing" "$fix"
+    else
+      gate_fail "$script" "$how and skipped every gate, so it examined nothing" "give it a gate that can pass or fail, or clear the skip reasons above, then rerun: $script $*"
+    fi
+  elif ((status != 0 && f == 0)); then
+    gate_fail "$script" "$how, but its result records no failure" "$fix"
+  fi
+}
+
+# skip_unvendored <script>: under `all`, an optional delegated gate whose script
+# the repo does not ship skips with its reason, and the caller returns. Asked for
+# by name, the gate goes on to fail. A broken symlink is not absent: it fails too.
+skip_unvendored() {
+  [[ "${SUBCMD:-}" == all && ! -e "$1" && ! -L "$1" ]] || return 1
+  gate_skip "${1##*/}" "not vendored (optional; a repo without this surface ships none)"
+}
+
+# skip_or_fail <name> <detail> <fix>: a gate that cannot run here skips under
+# `all`. Asked for by name it was asked for a verdict, so it fails.
+skip_or_fail() {
+  if [[ "${SUBCMD:-}" == all ]]; then
+    gate_skip "$1" "$2"
+  else
+    gate_fail "$1" "$2" "$3"
+  fi
+}
+
+# repo_declares_surface: true when any env names a deployed URL, so the repo has a
+# surface and its smoke script is not optional. The target is a separate question.
+repo_declares_surface() {
+  [[ -n "${STAGING_URL:-}${STAGING_URL_DEFAULT:-}${PROD_URL:-}${PROD_URL_DEFAULT:-}" ]]
+}
+
+# surface_reachable <url>: true when the URL gives any HTTP answer, which is why
+# there is no -f: a gated host answers a token-less request 401 or 403, and a surface
+# with no route at / answers 404. Its 10 seconds match gate_transport's, so a server
+# slow on its first request is not read as down. No DNS, a refused connection, or a
+# timeout (curl 6, 7, 28) is a deploy still coming up or a server not started, so
+# skip_or_fail decides. Any other curl failure, such as a TLS error, means something
+# answered wrongly, and always fails.
+surface_reachable() {
+  local rc=0
+  curl -q -g -sS -o /dev/null --max-time 10 "$1/" 2>/dev/null || rc=$?
+  case "$rc" in
+    0) return 0 ;;
+    6 | 7 | 28)
+      skip_or_fail "surface-smoke" "$1 gave no answer (curl exit $rc): a deploy still in flight, or a server not running" "start the server or wait for the deploy, then rerun"
+      ;;
+    *)
+      gate_fail "surface-smoke" "$1 failed before any HTTP answer (curl exit $rc), so the smoke never ran" "run curl -q -g -sS -o /dev/null $1/ and fix what it reports"
+      ;;
+  esac
+  return 1
 }
 
 # SMOKE_HOME seeding ---------------------------------------------------------

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Canonical version: 2026.06.22 (rust)
+# canonical: repo-owned (a workspace: it names the xurl-rs package's bin target and watches crates/)
 #
 # generate-completions.sh — Generate or verify shell completions for a Rust CLI.
 #

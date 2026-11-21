@@ -222,14 +222,16 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
         }
         SourcesCommands::Get { source_id, common } => {
             let ctx = json!({"command": "broadcasts-sources-get", "source_id": source_id});
-            send_validated(run, ctx, no_checks, &common, |client| {
+            let validate = || shortcuts::validate_source_id(&source_id);
+            send_validated(run, ctx, validate, &common, |client| {
                 client.get_stream_source(&source_id)
             })
             .await
         }
         SourcesCommands::StreamKey { source_id, common } => {
             let ctx = json!({"command": "broadcasts-sources-stream-key", "source_id": source_id});
-            send_validated(run, ctx, no_checks, &common, |client| {
+            let validate = || shortcuts::validate_source_id(&source_id);
+            send_validated(run, ctx, validate, &common, |client| {
                 client.get_stream_source_key(&source_id)
             })
             .await
@@ -259,7 +261,10 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
                 "source_id": source_id,
                 "name": name,
             });
-            let validate = || shortcuts::validate_source_name(&name);
+            let validate = || {
+                shortcuts::validate_source_id(&source_id)?;
+                shortcuts::validate_source_name(&name)
+            };
             send_validated(run, ctx, validate, &common, |client| {
                 client.rename_stream_source(&source_id, &name)
             })
@@ -272,7 +277,8 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
         } => {
             let ctx = json!({"command": "broadcasts-sources-remove", "source_id": source_id});
             let prompt = format!("Delete stream source {source_id}?");
-            send_confirmed(run, ctx, &prompt, force, no_checks, &common, |client| {
+            let validate = || shortcuts::validate_source_id(&source_id);
+            send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.delete_stream_source(&source_id)
             })
             .await

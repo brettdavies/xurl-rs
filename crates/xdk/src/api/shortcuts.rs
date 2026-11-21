@@ -1520,6 +1520,20 @@ pub fn validate_replay_time(input: &str) -> std::result::Result<(), &'static str
     Ok(())
 }
 
+/// Validates a stream source's id: 1 to 19 digits. The spec describes the
+/// `id` path parameter of `/2/sources/{id}` as "19 digits" and declares no
+/// pattern for it, so the bound is the one every numeric id the spec does
+/// constrain carries, `^[0-9]{1,19}$`.
+///
+/// # Errors
+/// Returns `invalid-source-id` for anything else, an empty id included.
+pub fn validate_source_id(id: &str) -> std::result::Result<(), &'static str> {
+    if !is_numeric_id(id) {
+        return Err("invalid-source-id");
+    }
+    Ok(())
+}
+
 /// Validates a stream source's name: at least one character that is not
 /// whitespace, the spec's `minLength`.
 ///

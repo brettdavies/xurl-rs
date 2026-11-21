@@ -77,13 +77,9 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 stdout,
                 ..
             } = run;
-            let dry_run = flags.dry_run.then(|| {
-                let mut ctx = json!({"command": "search", "query": query});
-                if let Some(n) = max_results {
-                    ctx["max_results"] = json!(n);
-                }
-                DryRun::new(ctx)
-            });
+            let dry_run = flags
+                .dry_run
+                .then(|| DryRun::new(json!({"command": "search", "query": query})));
             let n = effective_limit(max_results, flags.global_limit);
             let client = make_client(cfg, auth)?;
             let call = with_flags(

@@ -1,13 +1,14 @@
 args: ["--output", "json", "--dry-run", "bookmark-folders", "posts", "rust"]
 store: empty
 exit_code: 0
-stdout_len: 401
+stdout_len: 422
 stderr_len: 0
 --- stdout ---
 {
   "command": "bookmark-folders-posts",
   "exit_code": 1,
   "folder_id": "rust",
+  "max_results": 10,
   "message": "A bookmark folder id is 1 to 19 digits.",
   "next_step": {
     "action": "show-help",

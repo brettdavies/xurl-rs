@@ -90,7 +90,10 @@ pub struct RequestOptions {
     /// auto-detect against the endpoint's accepted set.
     pub auth_type: String,
     /// OAuth2 username for the active app. Empty selects the active app's
-    /// first stored OAuth2 token.
+    /// first stored OAuth2 token. Under auto-detect, a named login is served
+    /// only by its OAuth2 token, or by a bearer token on an endpoint that
+    /// accepts no OAuth2; any other request that names one fails with
+    /// [`Error::Auth`](crate::Error::Auth).
     pub username: String,
     /// Skip auth-header attachment entirely. Used for unauthenticated probes.
     pub no_auth: bool,

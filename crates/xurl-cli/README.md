@@ -945,8 +945,9 @@ xr --output json --dry-run post "Hello"
   prompt, so the dry run answers either way: `xr --dry-run delete <id>` carries the key, and `xr --dry-run delete <id>
   --force` leaves it out, since nothing would stop.
   The `confirmation-required` refusal of the same invocation carries each key of the command's input that the dry run
-  does, with the same value: `xr --no-interactive lists remove <id>` names `list_id`, as its dry run does. Its `message`
-  does not name the command; `command` does.
+  does, with the same value: `xr --no-interactive lists remove <id>` names `list_id`, as its dry run does. It also
+  names in `app` the app of the dry run's `auth`, and its `confirm` template carries `--app` with that name, so the
+  rerun acts on the same app where `XURL_APP` is not set. Its `message` does not name the command; `command` does.
 - A prompt answered no stops the command before it writes and exits 1. Text prints `Cancelled: nothing was changed.` on
   stderr. A structured format prints one document on stderr, `status` `cancelled`, with `exit_code` 1, `message`
   `cancelled at the prompt`, and the command's context keys beside them: `xr auth clear --all` names `app` and `all`, as
