@@ -2488,6 +2488,29 @@ fn verdicts() -> Vec<Verdict> {
     rows.push(Verdict {
         before: vec!["--app", "ghost"],
         ..verdict(
+            "app the store does not hold, no client id, no saved flow, step 2",
+            "PendingStateNotFound",
+            false,
+            seed_store,
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, flow saved for another app, step 2",
+            "AppMismatch",
+            false,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
             "flow saved for another app, ahead of an app the store does not hold, step 2",
             "AppMismatch",
             true,
