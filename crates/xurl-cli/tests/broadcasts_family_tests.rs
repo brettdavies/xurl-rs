@@ -274,6 +274,34 @@ async fn chat_history_reads_the_broadcasts_chat() {
 }
 
 #[tokio::test]
+async fn a_refused_broadcast_id_carries_the_value_given() {
+    let server = MockServer::start().await;
+
+    for args in [
+        vec!["broadcasts", "get", "not-an-id!"],
+        vec!["broadcasts", "remove", "not-an-id!"],
+        vec!["broadcasts", "chat", "history", "not-an-id!"],
+    ] {
+        let mut dry = vec!["--dry-run"];
+        dry.extend(&args);
+        let (code, stdout, stderr) = run_json(&server, &dry).await;
+        assert_eq!(code, 0, "{args:?}: {stderr}");
+        let body = json_out(&stdout);
+        assert_eq!(body["rule"], "invalid-broadcast-id", "{args:?}");
+        assert_eq!(body["value"], "not-an-id!", "{args:?}");
+
+        let mut real = vec!["--no-interactive"];
+        real.extend(&args);
+        let (code, _stdout, stderr) = run_json(&server, &real).await;
+        assert_eq!(code, 1, "{args:?}: {stderr}");
+        let envelope = error_envelope(&stderr);
+        assert_eq!(envelope["rule"], "invalid-broadcast-id", "{args:?}");
+        assert_eq!(envelope["value"], "not-an-id!", "{args:?}");
+    }
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
+
+#[tokio::test]
 async fn inputs_outside_the_spec_bounds_are_refused_before_any_request() {
     let server = MockServer::start().await;
 
