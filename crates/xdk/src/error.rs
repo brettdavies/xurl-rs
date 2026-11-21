@@ -77,6 +77,12 @@ const ISSUE_TRACKER: &str = "https://github.com/brettdavies/xurl-rs/issues";
 /// What makes a token store unwritable, and the two ways out.
 const STORE_WRITE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-written";
 
+/// X's `reason` for an app its package does not cover.
+const CLIENT_NOT_ENROLLED: &str = "client-not-enrolled";
+/// The marker X's other app refusals carry, and the `type` of a
+/// `client-not-enrolled` body.
+const CLIENT_FORBIDDEN: &str = "client-forbidden";
+
 /// Whether an API refusal is X declining the app itself rather than the
 /// request: a 403 whose body carries either enrollment marker.
 #[must_use]
@@ -85,7 +91,19 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
         return false;
     }
     let haystack = body.to_ascii_lowercase();
-    haystack.contains("client-not-enrolled") || haystack.contains("client-forbidden")
+    haystack.contains(CLIENT_NOT_ENROLLED) || haystack.contains(CLIENT_FORBIDDEN)
+}
+
+/// Whether the body of an enrollment refusal carries X's `client-not-enrolled`
+/// reason. X sends it for an app its package does not cover and for an
+/// endpoint that needs a higher access level than the app's package, such as
+/// Enterprise, so the body alone does not say which.
+// `xr` words its text after a 403 by this reason
+// (`crates/xurl-cli/src/cli/hints.rs`).
+#[doc(hidden)]
+#[must_use]
+pub fn names_client_not_enrolled(body: &str) -> bool {
+    body.to_ascii_lowercase().contains(CLIENT_NOT_ENROLLED)
 }
 
 /// The status an API answer classifies as: its own, except a 200, which X
@@ -678,11 +696,12 @@ impl Error {
 
     /// The page that documents this error's recovery, when one exists.
     ///
-    /// An enrollment refusal names the recipe that moves the app to the
-    /// right package, a credential failure points at X's authentication
-    /// overview, and a 429 at its rate-limit rules. A store write refused
-    /// because the store's directory takes no new file names the page on
-    /// writing the store. One arm per variant, so
+    /// An enrollment refusal names the page on its two causes, an app that
+    /// is not enrolled in the right package and an endpoint that needs a
+    /// higher access level than the app's package. A credential failure
+    /// points at X's authentication overview, and a 429 at its rate-limit
+    /// rules. A store write refused because the store's directory takes no
+    /// new file names the page on writing the store. One arm per variant, so
     /// a new variant decides its pointer before it ships.
     #[must_use]
     pub fn docs_url(&self) -> Option<&'static str> {
@@ -1117,6 +1136,15 @@ mod tests {
         assert_eq!(refused.next_action(), Some(NextAction::EnrollApp));
         let forbidden = Error::api(403, "CLIENT-FORBIDDEN");
         assert_eq!(forbidden.next_action(), Some(NextAction::EnrollApp));
+    }
+
+    #[test]
+    fn only_the_not_enrolled_reason_is_named() {
+        let body = r#"{"reason":"client-not-enrolled","type":"https://api.x.com/2/problems/client-forbidden"}"#;
+        assert!(names_client_not_enrolled(body));
+        assert!(names_client_not_enrolled("CLIENT-NOT-ENROLLED"));
+        assert!(!names_client_not_enrolled("client-forbidden"));
+        assert!(!names_client_not_enrolled("{}"));
     }
 
     #[test]

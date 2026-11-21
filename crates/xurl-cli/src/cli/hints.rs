@@ -15,6 +15,7 @@ use xdk::error::{
     REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
     REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, TOKEN_EXCHANGE_CLIENT_REFUSED,
     TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN, USER_NOT_FOUND,
+    names_client_not_enrolled,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -649,7 +650,9 @@ pub fn store_name_hint(error: &Error) -> Option<Hint> {
 /// Builds the enrollment hint when `error` is X refusing the app.
 ///
 /// The body's own `detail` line is quoted when present so the reader can
-/// judge whether the match is right rather than trusting the label.
+/// judge whether the match is right rather than trusting the label. A
+/// `client-not-enrolled` body names both causes X sends it for, because the
+/// body does not say which one it is.
 #[must_use]
 pub fn enrollment_hint(error: &Error) -> Option<Hint> {
     let (Error::Api { body, .. }, Some(NextAction::EnrollApp), Some(docs)) =
@@ -658,15 +661,30 @@ pub fn enrollment_hint(error: &Error) -> Option<Hint> {
         return None;
     };
 
-    let mut text_lines = Vec::with_capacity(2);
-    if let Some(detail) = detail_line(body) {
-        text_lines.push(format!("X refused the app: {detail}"));
+    let detail = detail_line(body);
+    let text_lines = if names_client_not_enrolled(body) {
+        let first = match detail {
+            Some(detail) => format!("X answered client-not-enrolled: {detail}"),
+            None => "X answered client-not-enrolled.".to_string(),
+        };
+        vec![
+            first,
+            format!(
+                "Either the app is not enrolled in a package that serves this endpoint, or the endpoint needs a higher X access level than the app's package, such as Enterprise. See X Platform Enrollment: {docs}"
+            ),
+        ]
     } else {
-        text_lines.push("X refused the app.".to_string());
-    }
-    text_lines.push(format!(
-        "Move it to the Pay-per-use package and the Production environment. See Troubleshooting: {docs}"
-    ));
+        let first = match detail {
+            Some(detail) => format!("X refused the app: {detail}"),
+            None => "X refused the app.".to_string(),
+        };
+        vec![
+            first,
+            format!(
+                "Move it to the Pay-per-use package and the Production environment. See Troubleshooting: {docs}"
+            ),
+        ]
+    };
 
     Some(Hint {
         text_lines,
