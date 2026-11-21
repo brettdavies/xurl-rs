@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-11-21
+
+### Added
+
+- Add `shortcuts::validate_source_id`, which checks a stream source id is 1 to 19 digits before a request goes out. by @brettdavies in [#594](https://github.com/brettdavies/xurl-rs/pull/594)
+
+### Fixed
+
+- Fix auto-detect ignoring `RequestOptions::username`: a request that names a login is served by that login's OAuth2 token, or by a bearer token on an endpoint that accepts no OAuth2, and otherwise fails with `Error::Auth` for the missing OAuth2 token. `Client::auth_preflight` reports the same choice. by @brettdavies in [#592](https://github.com/brettdavies/xurl-rs/pull/592)
+
+**Full Changelog**: [xdk-rs-v0.7.0...xdk-rs-v0.8.0](https://github.com/brettdavies/xurl-rs/compare/xdk-rs-v0.7.0...xdk-rs-v0.8.0)
+
 ## [0.7.0] - 2026-11-13
 
 ### Added
