@@ -1,12 +1,14 @@
 args: ["webhooks", "stream-links", "add", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7198
+stdout_len: 7301
 stderr_len: 0
 --- stdout ---
 Deliver the app's filtered stream to a webhook
 
 X bills each post it then delivers to the webhook.
+
+X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
 
 Usage: xr webhooks stream-links add [OPTIONS] <WEBHOOK_ID>
 

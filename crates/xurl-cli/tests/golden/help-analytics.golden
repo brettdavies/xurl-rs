@@ -1,10 +1,12 @@
 args: ["analytics", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7880
+stdout_len: 7963
 stderr_len: 0
 --- stdout ---
 Report impressions and engagement for your posts over a time window
+
+X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/overview
 
 Usage: xr analytics [OPTIONS] --start <TIME> --end <TIME> <POST_ID>...
 

@@ -1,10 +1,12 @@
 args: ["webhooks", "stream-links", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7032
+stdout_len: 7135
 stderr_len: 0
 --- stdout ---
 List the webhooks the app's filtered stream delivers to
+
+X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
 
 Usage: xr webhooks stream-links list [OPTIONS]
 
