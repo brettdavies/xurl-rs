@@ -69,6 +69,12 @@ serve and the endpoint accepts, trying OAuth2, then OAuth1, then the Bearer. A s
 on an endpoint that accepts both, and the Bearer drives the call only when no login serves the endpoint or `--auth app`
 names it. Multi-app is supported in the token store; `xr auth status` enumerates them.
 
+An app named with `--app` (or `XURL_APP`) is one the store holds, or the run is refused: a name the store does not hold
+exits 77 with reason `token-store` before any request goes out, with the name in `value`, and no other app's credential
+(nor `XURL_BEARER_TOKEN`) stands in for it. An empty name is the default app. A `--dry-run` answers the same refusal
+with `would_succeed: false` and no `auth` key. `Error::AppNotFound` carries the name and the apps the store holds, and
+store commands return it too.
+
 On exit 77 the error names what to do next. Read it from the envelope rather than guessing:
 
 ```bash
