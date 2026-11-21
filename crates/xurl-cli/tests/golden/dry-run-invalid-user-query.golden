@@ -1,12 +1,13 @@
 args: ["--output", "json", "--dry-run", "search-users", "rust#lang"]
 store: empty
 exit_code: 0
-stdout_len: 438
+stdout_len: 459
 stderr_len: 0
 --- stdout ---
 {
   "command": "search-users",
   "exit_code": 1,
+  "max_results": 10,
   "message": "A user search is 1 to 50 characters: letters and digits in any language, spaces, and _ ' ’ . - @ & \".",
   "next_step": {
     "action": "show-help",

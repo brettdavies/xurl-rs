@@ -358,16 +358,8 @@ impl OutputConfig {
         exit_code: i32,
         hint: &crate::cli::hints::Hint,
     ) {
-        if self.format.is_structured() {
-            let body = ErrorBody {
-                next_step: Some(hint.next_step.clone()),
-                ..error_body(error, exit_code)
-            };
-            self.emit_error_envelope(err, body);
-            return;
-        }
-        self.print_error(err, error, exit_code);
-        if self.quiet {
+        self.emit_error_envelope(err, error_body_with_step(error, exit_code, &hint.next_step));
+        if self.format.is_structured() || self.quiet {
             return;
         }
         for line in &hint.text_lines {
@@ -455,8 +447,7 @@ impl OutputConfig {
             self.print_error_with_hint(err, error, exit_code, hint);
             return;
         }
-        let mut body = error_body(error, exit_code);
-        body.next_step = Some(hint.next_step.clone());
+        let mut body = error_body_with_step(error, exit_code, &hint.next_step);
         if let Some(reason) = reason {
             // `rule` names the input rule under `reason: validation`; a
             // refusal with a reason of its own carries that reason alone.
@@ -668,9 +659,9 @@ impl OutputConfig {
             Some(hint) if !self.quiet => hint.text_lines.as_slice(),
             _ => &[],
         };
-        let body = ErrorBody {
-            next_step: hint.map(|hint| hint.next_step.clone()),
-            ..error_body(error, exit_code)
+        let body = match hint {
+            Some(hint) => error_body_with_step(error, exit_code, &hint.next_step),
+            None => error_body(error, exit_code),
         };
         self.print_refused_dry_run(out, ctx, body, advice);
     }
@@ -907,6 +898,20 @@ fn invalid_args_body(message: &str, separator: &str, command: &str) -> ErrorBody
         message: Some(format!("{message}{separator}Try '{help}'.")),
         next_step: Some(crate::cli::hints::NextStep::show_help(help)),
         ..ErrorBody::default()
+    }
+}
+
+/// [`error_body`] with `step` as its `next_step`, and a message that names
+/// the step's command wherever the message names one.
+fn error_body_with_step(
+    error: &Error,
+    exit_code: i32,
+    step: &crate::cli::hints::NextStep,
+) -> ErrorBody {
+    ErrorBody {
+        message: Some(message::render_with_step(error, step)),
+        next_step: Some(step.clone()),
+        ..error_body(error, exit_code)
     }
 }
 

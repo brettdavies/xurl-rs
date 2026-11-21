@@ -269,7 +269,7 @@ impl Forwarding {
                     None => break,
                 },
                 () = &mut deadline => break,
-                () = &mut another_signal => break,
+                _ = &mut another_signal => break,
             }
         }
         // Awaiting each aborted worker drops the attempt it was in, which

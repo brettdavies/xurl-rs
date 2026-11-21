@@ -4,9 +4,11 @@
 //! recovery wording here are part of `xr`'s output contract and stay
 //! byte-identical across releases.
 
-use crate::cli::credential_step::setup_invocation;
+use crate::cli::hints::NextStep;
 use xdk::api::auth_matrix::WireScheme;
-use xdk::error::{AuthMismatch, Error, MismatchShape, STORE_DIR_UNCREATABLE, TOKEN_URL_UNUSABLE};
+use xdk::error::{
+    AuthMismatch, Error, MismatchShape, NextAction, STORE_DIR_UNCREATABLE, TOKEN_URL_UNUSABLE,
+};
 
 /// The message `xr` prints for `error`, in text mode and in the envelope.
 pub(crate) fn render(error: &Error) -> String {
@@ -44,10 +46,21 @@ pub(crate) fn render(error: &Error) -> String {
         Error::Json { message, .. } => format!("JSON Error: {message}"),
         Error::Auth { message, .. } => format!("Auth Error: {message}"),
         Error::TokenStore { message, .. } => format!("Token Store Error: {message}"),
-        Error::AuthMethodMismatch(mismatch) => auth_method_mismatch_message(mismatch),
+        Error::AuthMethodMismatch(mismatch) => auth_method_mismatch_message(mismatch, None),
         // `Error` is `#[non_exhaustive]`; a variant this build has not seen
         // prints its own fragment rather than failing to compile downstream.
         _ => error.to_string(),
+    }
+}
+
+/// The message `xr` prints for `error` when `step` rides with it. An
+/// `AuthMethodMismatch` that names a command to add credentials names the
+/// step's own, so the message and the step cannot send the caller to
+/// different commands.
+pub(crate) fn render_with_step(error: &Error, step: &NextStep) -> String {
+    match error {
+        Error::AuthMethodMismatch(mismatch) => auth_method_mismatch_message(mismatch, Some(step)),
+        _ => render(error),
     }
 }
 
@@ -56,7 +69,7 @@ pub(crate) fn render(error: &Error) -> String {
 /// Three shapes per the variant's docstring; each ends with an actionable
 /// recovery instruction. Prefers `rendered_url` over `endpoint` for
 /// user-facing strings so `{id}` placeholders don't leak into messages.
-fn auth_method_mismatch_message(mismatch: &AuthMismatch) -> String {
+fn auth_method_mismatch_message(mismatch: &AuthMismatch, step: Option<&NextStep>) -> String {
     let display_path = mismatch
         .rendered_url
         .as_deref()
@@ -64,16 +77,6 @@ fn auth_method_mismatch_message(mismatch: &AuthMismatch) -> String {
     let method = &mismatch.method;
     let supported = &mismatch.supported;
     let app_name = mismatch.app.as_deref().unwrap_or("the active app");
-    let suggest_first = || {
-        supported
-            .first()
-            .and_then(|scheme| WireScheme::from_wire(scheme))
-            .map(|scheme| {
-                let command = setup_invocation(scheme, mismatch.app.as_deref());
-                format!(" Add credentials with: {command}.")
-            })
-            .unwrap_or_default()
-    };
     let list = |items: &[String]| {
         if items.is_empty() {
             "none".to_string()
@@ -106,7 +109,7 @@ fn auth_method_mismatch_message(mismatch: &AuthMismatch) -> String {
         MismatchShape::EmptyIntersection { available } => {
             let has = list(available);
             let accepts = list(supported);
-            let suggest = suggest_first();
+            let suggest = step.map(credential_tail).unwrap_or_default();
             format!(
                 "No stored auth method on app '{app_name}' is accepted at {method} {display_path}. App has: {has}. Endpoint accepts: {accepts}.{suggest}"
             )
@@ -115,6 +118,23 @@ fn auth_method_mismatch_message(mismatch: &AuthMismatch) -> String {
             format!("Auth method is not accepted at {method} {display_path}.")
         }
     }
+}
+
+/// ` Add credentials with: <command>.`, naming the command or template of a
+/// step that gets the caller a credential: a sign-in, an app to register, or
+/// a template that stores one. A step that sends the request again under
+/// another app or scheme adds no credential, so the message names none.
+fn credential_tail(step: &NextStep) -> String {
+    let runnable = match step.action {
+        NextAction::SignIn | NextAction::RegisterApp => {
+            step.command.as_deref().or(step.template.as_deref())
+        }
+        NextAction::FixInput if step.command.is_none() => step.template.as_deref(),
+        _ => None,
+    };
+    runnable
+        .map(|runnable| format!(" Add credentials with: {runnable}."))
+        .unwrap_or_default()
 }
 
 /// Maps a wire-format auth string to its pretty-printed scheme name.
@@ -215,7 +235,7 @@ mod tests {
         );
         assert_eq!(
             render(&mismatch(None, Some(&["app"]), Some(""), None)),
-            "No stored auth method on app '' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1. Add credentials with: xr auth oauth2."
+            "No stored auth method on app '' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1."
         );
         assert_eq!(
             render(&mismatch(
@@ -230,5 +250,36 @@ mod tests {
             render(&mismatch(None, None, None, None)),
             "Auth method is not accepted at GET /2/users/me."
         );
+    }
+
+    /// The command a mismatch names to add credentials is the step's own,
+    /// and a step that adds none leaves the message naming none.
+    #[test]
+    fn a_mismatch_names_the_command_of_the_step_that_adds_a_credential() {
+        let empty = mismatch(None, Some(&["app"]), Some("default"), None);
+        let base = "No stored auth method on app 'default' is accepted at GET /2/users/me. App has: app. Endpoint accepts: oauth2, oauth1.";
+        let register = NextStep::register_app();
+        let template = register.template.clone().unwrap_or_default();
+        let cases = [
+            (
+                NextStep::sign_in_as(None, None, true),
+                format!("{base} Add credentials with: xr auth oauth2 --no-browser --step 1."),
+            ),
+            (
+                register,
+                format!("{base} Add credentials with: {template}."),
+            ),
+            (
+                NextStep::fix_input_template("xr auth oauth1 --app default <keys>".into()),
+                format!("{base} Add credentials with: xr auth oauth1 --app default <keys>."),
+            ),
+            (
+                NextStep::select_app("xr --app other whoami".into()),
+                base.to_string(),
+            ),
+        ];
+        for (step, expected) in cases {
+            assert_eq!(render_with_step(&empty, &step), expected, "{step:?}");
+        }
     }
 }

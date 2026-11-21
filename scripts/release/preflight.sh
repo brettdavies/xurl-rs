@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical version: 2026.11.03 (generic)
+# Canonical version: 2026.11.04 (generic)
 #
 # Run release preflight gates against the current checkout.
 #
@@ -8,6 +8,8 @@
 #
 # Subcommands:
 #   drift         Branch drift: what main carries that dev never received (delegated to drift.sh)
+#   canon-drift   Vendored copies against agent-skills' templates (its check-canonical-drift.sh, run from
+#                 a tarball of agent-skills main fetched under gh's own login)
 #   surface       Establish surface: commits + diff vs last tag, breaking markers
 #   api-contract  xr help command surface diff, public API semver check vs last tag, stale semver overrides
 #   smoke         Real-world live X API smoke (auto-seeds isolated $SMOKE_HOME from 1Password)
@@ -21,14 +23,15 @@
 #                 of a ## Changelog section (generate-changelog.py --audit-sections)
 #   mechanics     Release mechanics sanity (version, lockfile, advisories, toolchain age, leak check,
 #                 unguarded docs added to main, diff-B vs origin/dev)
-#   all           Run drift, surface, api-contract, smoke, multi-app, oauth2-interactive,
+#   all           Run drift, canon-drift, surface, api-contract, smoke, multi-app, oauth2-interactive,
 #                 changelog-sections, mechanics (and surface-smoke if present)
 #
 # Post-tag verification (release.yml + homebrew dispatch + finalize-release) lives in
 # scripts/release/postflight.sh, that runs AFTER the tag push, not before.
 #
 # Flags:
-#   --smoke-home PATH   Reuse an existing seeded $SMOKE_HOME instead of creating + seeding
+#   --smoke-home PATH   Run smoke and multi-app against the store at PATH/.xurl/auth.yml instead of
+#                       seeding one; exits 2 naming that path when it holds no store
 #   --no-cleanup        Keep $SMOKE_HOME after exit (default: shred on exit)
 #   --tag TAG           Override LAST_TAG resolution (default: the newest `v[0-9]*` tag)
 #   --staging-url URL   Run surface-smoke against this deployed URL (default: STAGING_URL_DEFAULT
@@ -37,6 +40,9 @@
 # Environment:
 #   CHANGELOG_PR_BASE   Branch whose merged PRs changelog-sections reads (default: dev, or main
 #                       when origin/dev does not exist)
+#   CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET
+#                       Access service token for a gated staging host. Set both for the one command;
+#                       only the surface smoke receives them
 #   PREVIOUS_BIN_PATH   The xr oauth2-interactive compares the release binary with (default:
 #                       Homebrew's)
 #
@@ -47,16 +53,24 @@
 #
 # Dependencies:
 #   - `xr` (built via cargo build --release --bin xr)
-#   - `yq`, `jaq`, `gh`, `cargo`, `git` on PATH
+#   - `yq`, `jaq`, `gh`, `cargo`, `git`, `tar` on PATH
+#   - `gh` logged in with read access to brettdavies/agent-skills (canon-drift)
 #   - 1Password CLI service-account env (for smoke + multi-app)
 #   - Linux, `script` from util-linux, and `python3` for oauth2-interactive, which skips without them
 #   - ~/.claude/skills/1password/scripts/ for vault reads (via _lib.sh's read_1p)
 #
 # The shared scaffolding (gate helpers, 1Password reads, shred cleanup, dispatch, drift,
-# surface, changelog-sections, mechanics) is the github-repo-setup skill's skeleton; the api-contract, smoke,
-# multi-app, and oauth2-interactive gates and the seed recipe are this project's.
+# surface, changelog-sections, mechanics) is the github-repo-setup skill's skeleton; the canon-drift,
+# api-contract, smoke, multi-app, and oauth2-interactive gates and the seed recipe are this project's.
 
 set -euo pipefail
+
+# The Access service token is for the surface smoke alone, so it leaves the
+# environment before the first child (the dirname below). A copy into another
+# variable would print under `bash -x` and be re-exported by allexport;
+# un-exporting in place does neither. delegate_to_subscript --with-access-token
+# re-exports it for that one child.
+export -n CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 readonly REPO_ROOT
@@ -65,6 +79,14 @@ readonly REPO_ROOT
 # SMOKE_HOME cleanup. Same _lib.sh as postflight.sh.
 # shellcheck disable=SC1091  # sibling _lib.sh, always vendored alongside
 . "$(dirname "$0")/_lib.sh"
+
+# A hand-merged skeleton can outpace a vendored library: delegate_to_subscript in
+# an older one reads a flag as the script's path and reports nothing, which passes.
+declare -F surface_reachable >/dev/null || {
+  echo "scripts/release/_lib.sh is older than this script" >&2
+  echo "fix: refresh it from github-repo-setup's templates/scripts/release/_lib.sh" >&2
+  exit 2
+}
 
 BIN_PATH="${BIN_PATH:-$REPO_ROOT/target/release/xr}"
 
@@ -75,12 +97,21 @@ require_built_binary() {
   }
 }
 
-# SMOKE_HOME EXIT trap (uses cleanup_smoke from _lib.sh) ---------------------
+# EXIT trap. cleanup_canon runs first: under set -e a failing cleanup_smoke (from
+# _lib.sh) would end the trap before it. ---------------------------------------
 
-trap cleanup_smoke EXIT
+trap 'cleanup_canon; cleanup_smoke' EXIT
+
+# The token store inside a home: the directory layout `xr` keeps at
+# ~/.xurl/auth.yml. Every gate addresses a store through this one function.
+smoke_store() {
+  printf '%s/.xurl/auth.yml' "$1"
+}
 
 seed_smoke_store() {
   SMOKE_HOME="$(mktemp -d -t xr-preflight-XXXXXX)"
+  local store
+  store=$(smoke_store "$SMOKE_HOME")
 
   local dev_cid dev_csec prod_cid prod_csec
   dev_cid=$(read_1p "X App - Bird (dev)" oauth2_client_id)
@@ -90,8 +121,8 @@ seed_smoke_store() {
 
   # Every secret reaches xr through a `-file` flag fed by a process
   # substitution, so no process's arguments carry it; `printf` is a builtin.
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret-file <(printf '%s' "$dev_csec") >/dev/null
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret-file <(printf '%s' "$prod_csec") >/dev/null
+  XURL_TOKEN_STORE="$store" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret-file <(printf '%s' "$dev_csec") >/dev/null
+  XURL_TOKEN_STORE="$store" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret-file <(printf '%s' "$prod_csec") >/dev/null
 
   local dev_bearer prod_bearer dev_ck dev_cs dev_at dev_ts
   dev_bearer=$(read_1p "X App - Bird (dev)" credential)
@@ -101,9 +132,9 @@ seed_smoke_store() {
   dev_at=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN")
   dev_ts=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN_SECRET")
 
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth app --bearer-token-file <(printf '%s' "$dev_bearer") --app bird_dev >/dev/null
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth app --bearer-token-file <(printf '%s' "$prod_bearer") --app bird_prod >/dev/null
-  XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" auth oauth1 \
+  XURL_TOKEN_STORE="$store" "$BIN_PATH" auth app --bearer-token-file <(printf '%s' "$dev_bearer") --app bird_dev >/dev/null
+  XURL_TOKEN_STORE="$store" "$BIN_PATH" auth app --bearer-token-file <(printf '%s' "$prod_bearer") --app bird_prod >/dev/null
+  XURL_TOKEN_STORE="$store" "$BIN_PATH" auth oauth1 \
     --consumer-key "$dev_ck" --consumer-secret-file <(printf '%s' "$dev_cs") \
     --access-token-file <(printf '%s' "$dev_at") --token-secret-file <(printf '%s' "$dev_ts") \
     --app bird_dev >/dev/null
@@ -122,11 +153,31 @@ seed_smoke_store() {
           "expiration_time": (strenv(EXP) | to_number)
         }
       } | .apps.bird_dev.default_user = "brettdavies"
-    ' "$SMOKE_HOME/.xurl"
+    ' "$store"
 }
 
+# The exit trap's guard compares the path as written, and `"$HOME"/*` matches
+# `$HOME/`, so the home goes to the trap without a trailing slash, `.`, or `..`.
+plain_dir() {
+  local dir
+  if [[ -n "$1" ]] && dir=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -L); then
+    printf '%s' "$dir"
+  else
+    printf '%s' "$1"
+  fi
+}
+
+# A home the caller names is read as it is. One that holds no store refuses
+# rather than seeding another, and keeps the exit trap from shredding a
+# directory this run did not create.
 ensure_smoke_home() {
-  [[ -n "$SMOKE_HOME" && -f "$SMOKE_HOME/.xurl" ]] && return 0
+  if [[ -n "$SMOKE_HOME" ]]; then
+    [[ -f "$(smoke_store "$SMOKE_HOME")" ]] && return 0
+    # shellcheck disable=SC2034  # read by _lib.sh's EXIT-trap cleanup
+    NO_CLEANUP=1
+    echo "no token store at $(smoke_store "$SMOKE_HOME"): --smoke-home reads the directory layout, <home>/.xurl/auth.yml" >&2
+    exit 2
+  fi
   echo "  seeding isolated SMOKE_HOME from 1Password..."
   seed_smoke_store
 }
@@ -304,8 +355,9 @@ gate_api_contract() {
 
 # Gate: smoke ----------------------------------------------------------------
 #
-# Project-authored: live X API checks driven against the isolated $SMOKE_HOME
-# so the dev machine's real ~/.xurl is never touched.
+# Project-authored: live X API checks driven against the store in $SMOKE_HOME.
+# The typed-wire step is the exception: live_smoke opens the library's default
+# store, ~/.xurl/auth.yml, and ignores XURL_TOKEN_STORE.
 
 gate_smoke() {
   header "Real-world smoke (live X API)"
@@ -313,10 +365,11 @@ gate_smoke() {
   require_bin yq
   require_bin jaq
   ensure_smoke_home
-  local out
+  local out store
+  store=$(smoke_store "$SMOKE_HOME")
 
   # OAuth1
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" whoami --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" whoami --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
   if [[ -n "$out" ]]; then
     gate_pass "OAuth1 whoami (HMAC-SHA1) → $out"
   else
@@ -332,7 +385,7 @@ gate_smoke() {
   local app_bearer empty
   app_bearer=$(read_1p "X App - Bird (dev)" credential)
   empty=$(mktemp -d)
-  out=$(XURL_TOKEN_STORE="$empty/.xurl" XURL_BEARER_TOKEN="$app_bearer" "$BIN_PATH" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
+  out=$(XURL_TOKEN_STORE="$(smoke_store "$empty")" XURL_BEARER_TOKEN="$app_bearer" "$BIN_PATH" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
   unset app_bearer
   if [[ "$out" == "true" ]]; then
     gate_pass "Bearer env one-shot"
@@ -344,7 +397,7 @@ gate_smoke() {
   shred_tmpdir "$empty"
 
   # Bearer stored
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
   if [[ "$out" == "true" ]]; then
     gate_pass "Bearer stored (per-app)"
   else
@@ -352,7 +405,7 @@ gate_smoke() {
   fi
 
   # Typed wire vocabulary
-  if out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" XURL_LIVE_SMOKE=1 XURL_LIVE_SMOKE_AUTH=app XURL_APP=bird_dev \
+  if out=$(XURL_TOKEN_STORE="$store" XURL_LIVE_SMOKE=1 XURL_LIVE_SMOKE_AUTH=app XURL_APP=bird_dev \
     cargo test --test live_smoke -- --ignored 2>&1); then
     gate_pass "Typed wire vocabulary (one post read + one user read deserialize into the library's typed structs)"
   else
@@ -360,7 +413,7 @@ gate_smoke() {
   fi
 
   # Media upload
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg \
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" media upload crates/xurl-cli/tests/fixtures/media/smoke-test.jpg \
     --media-type image/jpeg --category tweet_image --wait \
     --auth oauth1 --app bird_dev --output json 2>&1 | jaq -r '.data.id // ""')
   if [[ -n "$out" ]]; then
@@ -376,7 +429,7 @@ gate_smoke() {
 
   # Error envelopes: xr exits non-zero by design here; `|| true` keeps `set -e` happy
   local envelope
-  envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" whoami --auth app --app bird_dev --output json 2>&1 || true)
+  envelope=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" whoami --auth app --app bird_dev --output json 2>&1 || true)
   envelope=$(printf '%s' "$envelope" | jaq -r '.reason // ""' 2>/dev/null || true)
   if [[ "$envelope" == "auth-method-mismatch" ]]; then
     gate_pass "auth-method-mismatch envelope (exit 2)"
@@ -384,21 +437,22 @@ gate_smoke() {
     gate_fail "auth-method-mismatch" "got reason='$envelope'"
   fi
 
-  cp "$SMOKE_HOME/.xurl" "$SMOKE_HOME/.xurl.bak"
-  yq -i 'del(.apps.bird_prod.oauth2_tokens)' "$SMOKE_HOME/.xurl"
-  envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" whoami --app bird_prod --output json 2>&1 || true)
+  cp "$store" "$store.bak"
+  yq -i 'del(.apps.bird_prod.oauth2_tokens)' "$store"
+  envelope=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" whoami --app bird_prod --output json 2>&1 || true)
   envelope=$(printf '%s' "$envelope" | jaq -r '.reason // ""' 2>/dev/null || true)
   if [[ "$envelope" == "auth-method-mismatch" ]]; then
     gate_pass "empty-intersection envelope (exit 2)"
   else
     gate_fail "empty-intersection" "got reason='$envelope'"
   fi
-  mv "$SMOKE_HOME/.xurl.bak" "$SMOKE_HOME/.xurl"
+  mv "$store.bak" "$store"
 
-  yq -i '.default_app = "default"' "$SMOKE_HOME/.xurl"
-  envelope=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" search "x" --max-results 1 --output json 2>&1 || true)
+  cp "$store" "$store.bak"
+  yq -i '.default_app = "default"' "$store"
+  envelope=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" search "x" --max-results 1 --output json 2>&1 || true)
   envelope=$(printf '%s' "$envelope" | jaq -r '.other_apps_with_creds // [] | length' 2>/dev/null || echo 0)
-  yq -i '.default_app = "bird_dev"' "$SMOKE_HOME/.xurl"
+  mv "$store.bak" "$store"
   if [[ "$envelope" -gt 0 ]] 2>/dev/null; then
     gate_pass "wrong-app envelope ($envelope other_apps_with_creds)"
   else
@@ -416,17 +470,18 @@ gate_multi_app() {
   require_bin yq
   require_bin jaq
   ensure_smoke_home
-  local out
+  local out store
+  store=$(smoke_store "$SMOKE_HOME")
 
   # OAuth1 isolation
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" whoami --app bird_dev --auth oauth1 --output json 2>&1 | jaq -r '.data.username // ""')
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" whoami --app bird_dev --auth oauth1 --output json 2>&1 | jaq -r '.data.username // ""')
   if [[ -n "$out" ]]; then
     gate_pass "OAuth1 routes to bird_dev → $out"
   else
     gate_fail "OAuth1 bird_dev" "no username"
   fi
 
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
   out=$(printf '%s' "$out" | jaq -r '.reason // ""' 2>/dev/null || true)
   if [[ "$out" == "auth-required" ]]; then
     gate_pass "OAuth1 isolated (bird_prod has none → auth-required)"
@@ -435,13 +490,13 @@ gate_multi_app() {
   fi
 
   # Bearer isolation
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" search "rust" --max-results 1 --auth app --app bird_dev --output json 2>&1 | jaq -c '.data | length > 0')
   if [[ "$out" == "true" ]]; then
     gate_pass "Bearer routes to bird_dev"
   else
     gate_fail "Bearer bird_dev" "no data"
   fi
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" search "rust" --max-results 1 --auth app --app bird_prod --output json 2>&1 | jaq -c '.data | length > 0')
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" search "rust" --max-results 1 --auth app --app bird_prod --output json 2>&1 | jaq -c '.data | length > 0')
   if [[ "$out" == "true" ]]; then
     gate_pass "Bearer routes to bird_prod"
   else
@@ -449,7 +504,7 @@ gate_multi_app() {
   fi
 
   # OAuth2 sideload structural isolation
-  out=$(yq '.apps | with_entries(select(.value.oauth2_tokens != null)) | keys | length' "$SMOKE_HOME/.xurl")
+  out=$(yq '.apps | with_entries(select(.value.oauth2_tokens != null)) | keys | length' "$store")
   if [[ "$out" -ge 1 ]]; then
     gate_pass "OAuth2 per-app oauth2_tokens slot present (sideload-verifiable; the oauth2-interactive gate drives a sign-in)"
   else
@@ -457,10 +512,10 @@ gate_multi_app() {
   fi
 
   # Auto-detect with --app NAME
-  cp "$SMOKE_HOME/.xurl" "$SMOKE_HOME/.xurl.bak"
-  yq -i 'del(.apps.bird_dev.oauth2_tokens) | del(.apps.bird_dev.default_user)' "$SMOKE_HOME/.xurl"
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" whoami --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""')
-  mv "$SMOKE_HOME/.xurl.bak" "$SMOKE_HOME/.xurl"
+  cp "$store" "$store.bak"
+  yq -i 'del(.apps.bird_dev.oauth2_tokens) | del(.apps.bird_dev.default_user)' "$store"
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" whoami --app bird_dev --output json 2>&1 | jaq -r '.data.username // ""' || true)
+  mv "$store.bak" "$store"
   if [[ -n "$out" ]]; then
     gate_pass "Auto-detect falls through OAuth2→OAuth1 when OAuth2 absent → $out"
   else
@@ -474,8 +529,9 @@ gate_multi_app() {
   # materializes a `default` app (crates/xdk/src/store/mod.rs). So a fresh store names
   # its first registration as the default before any sign-in happens, and the
   # sign-in handler's job here is to leave that answer alone.
-  local fresh dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
+  local fresh fresh_store dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
   fresh=$(mktemp -d)
+  fresh_store=$(smoke_store "$fresh")
   dev_cid=$(read_1p "X App - Bird (dev)" oauth2_client_id)
   dev_csec=$(read_1p "X App - Bird (dev)" oauth2_client_secret)
   prod_cid=$(read_1p "X App - Bird (prod)" oauth2_client_id)
@@ -486,12 +542,12 @@ gate_multi_app() {
   dev_ts=$(read_1p "X User Tokens - brettdavies" "OAuth1 (bird_dev app).X_API_USER_ACCESS_TOKEN_SECRET")
 
   local first second after
-  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret-file <(printf '%s' "$dev_csec") >/dev/null
-  first=$(yq '.default_app' "$fresh/.xurl")
-  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret-file <(printf '%s' "$prod_csec") >/dev/null
-  second=$(yq '.default_app' "$fresh/.xurl")
-  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret-file <(printf '%s' "$dev_cs") --access-token-file <(printf '%s' "$dev_at") --token-secret-file <(printf '%s' "$dev_ts") --app bird_dev >/dev/null
-  after=$(yq '.default_app' "$fresh/.xurl")
+  XURL_TOKEN_STORE="$fresh_store" "$BIN_PATH" auth apps add bird_dev --client-id "$dev_cid" --client-secret-file <(printf '%s' "$dev_csec") >/dev/null
+  first=$(yq '.default_app' "$fresh_store")
+  XURL_TOKEN_STORE="$fresh_store" "$BIN_PATH" auth apps add bird_prod --client-id "$prod_cid" --client-secret-file <(printf '%s' "$prod_csec") >/dev/null
+  second=$(yq '.default_app' "$fresh_store")
+  XURL_TOKEN_STORE="$fresh_store" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret-file <(printf '%s' "$dev_cs") --access-token-file <(printf '%s' "$dev_at") --token-secret-file <(printf '%s' "$dev_ts") --app bird_dev >/dev/null
+  after=$(yq '.default_app' "$fresh_store")
   if [[ "$first" == "bird_dev" && "$second" == "bird_dev" && "$after" == "bird_dev" ]]; then
     gate_pass "First-registered app is the default and sign-in leaves it (add→$first, add→$second, sign-in→$after)"
   else
@@ -499,19 +555,19 @@ gate_multi_app() {
   fi
 
   # Promotion idempotence
-  XURL_TOKEN_STORE="$fresh/.xurl" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret-file <(printf '%s' "$dev_cs") --access-token-file <(printf '%s' "$dev_at") --token-secret-file <(printf '%s' "$dev_ts") --app bird_prod >/dev/null
-  after=$(yq '.default_app' "$fresh/.xurl")
+  XURL_TOKEN_STORE="$fresh_store" "$BIN_PATH" auth oauth1 --consumer-key "$dev_ck" --consumer-secret-file <(printf '%s' "$dev_cs") --access-token-file <(printf '%s' "$dev_at") --token-secret-file <(printf '%s' "$dev_ts") --app bird_prod >/dev/null
+  after=$(yq '.default_app' "$fresh_store")
   if [[ "$after" == "bird_dev" ]]; then
     gate_pass "Promotion idempotence (second sign-in did not overwrite default)"
   else
     gate_fail "Idempotence" "default became $after"
   fi
   unset dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
-  # $fresh/.xurl was seeded with bird_dev OAuth1 creds: shred, not trash.
+  # $fresh_store was seeded with bird_dev OAuth1 creds: shred, not trash.
   shred_tmpdir "$fresh"
 
   # Auth-error envelope vs upstream 401
-  out=$(XURL_TOKEN_STORE="$SMOKE_HOME/.xurl" "$BIN_PATH" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
+  out=$(XURL_TOKEN_STORE="$store" "$BIN_PATH" whoami --app bird_prod --auth oauth1 --output json 2>&1 || true)
   out=$(printf '%s' "$out" | jaq -r '.message // ""' 2>/dev/null || true)
   if [[ "$out" == *"TokenNotFound"* ]]; then
     gate_pass "Auth-error envelope surfaces TokenNotFound (not raw upstream 401)"
@@ -616,13 +672,123 @@ gate_oauth2_interactive() {
 gate_drift() {
   local drift_script
   drift_script="$(dirname "$0")/drift.sh"
-  [[ -x "$drift_script" ]] || return 0
   header "Branch drift (delegated to drift.sh)"
   if ! git rev-parse --verify --quiet origin/dev >/dev/null 2>&1; then
+    if [[ -e "$drift_script" || -L "$drift_script" ]]; then
+      subscript_runnable "$drift_script" || return 0
+    fi
     gate_skip "drift" "no origin/dev branch (single-branch repo)"
     return
   fi
   delegate_to_subscript "$drift_script"
+}
+
+# Gate: canon-drift ----------------------------------------------------------
+#
+# `drift` compares main with dev, so a vendored copy both branches hold at the same
+# stale version passes it. This gate compares the copies with agent-skills' own
+# templates, through that repository's check-canonical-drift.sh and the file map
+# it reads. The check runs from a tarball of agent-skills main's current commit,
+# fetched under gh's own login because the repository is private, and extracted
+# into a temporary directory that the exit trap removes. The script runs with
+# PATH, HOME, and TMPDIR only, which keeps every token variable out of its
+# environment. It still runs as the caller: HOME stays because its home-relative
+# sources resolve against it, so it can read what that home holds, gh's stored
+# login included. The gate trusts agent-skills main as it trusts a checkout of it.
+#
+# Every copy must be in sync, absent, a skeleton, or declared repo-owned; any
+# other verdict fails the gate, a source the check could not read included,
+# since canon's own exit code counts only the drift verdicts. A canon the gate
+# could not fetch, or a check that could not run, fails too: a release cannot be
+# checked against canon it never saw.
+
+readonly CANON_REPO="brettdavies/agent-skills"
+readonly CANON_CHECK="github-repo-setup/scripts/check-canonical-drift.sh"
+CANON_TMP=""
+
+cleanup_canon() {
+  [[ -n "$CANON_TMP" && -d "$CANON_TMP" ]] || return 0
+  rm -rf -- "$CANON_TMP"
+  CANON_TMP=""
+}
+
+# canon_failure DETAIL [FIX]: the gate's one failure, then the tree is gone.
+canon_failure() {
+  gate_fail "canon-drift" "$1" "${2:-}"
+  cleanup_canon
+}
+
+gate_canon_drift() {
+  header "Canon drift (vendored copies against $CANON_REPO)"
+  require_bin gh
+  require_bin jaq
+  require_bin tar
+
+  local rerun="scripts/release/preflight.sh canon-drift"
+  local auth_fix="check gh auth status: the gate reads $CANON_REPO, a private repository, with gh's own login; then rerun $rerun"
+  local sha tree status=0 records summary in_sync owned drifted
+
+  CANON_TMP=$(mktemp -d "${TMPDIR:-/tmp}/xr-canon-XXXXXX")
+  tree="$CANON_TMP/tree"
+  mkdir "$tree"
+
+  if ! sha=$(gh api "repos/$CANON_REPO/commits/main" --jq .sha 2>"$CANON_TMP/err") || [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+    canon_failure "could not read the current commit of $CANON_REPO main: $(tr '\n' ' ' <"$CANON_TMP/err" | head -c 300)" "$auth_fix"
+    return
+  fi
+  printf "  canon: %s main at %s\n" "$CANON_REPO" "$sha"
+
+  if ! gh api "repos/$CANON_REPO/tarball/$sha" 2>"$CANON_TMP/err" | tar -xzf - -C "$tree" --strip-components=1 2>>"$CANON_TMP/err"; then
+    canon_failure "could not fetch and extract the tarball of $CANON_REPO at $sha: $(tr '\n' ' ' <"$CANON_TMP/err" | head -c 300)" "$auth_fix"
+    return
+  fi
+  if [[ ! -f "$tree/$CANON_CHECK" ]]; then
+    canon_failure "$CANON_REPO at $sha has no $CANON_CHECK" \
+      "read github-repo-setup/references/canonical-source-pointers.md in that tree for where the check moved, set CANON_CHECK in scripts/release/preflight.sh to it, then rerun $rerun"
+    return
+  fi
+
+  records=$(env -i HOME="$HOME" PATH="$PATH" TMPDIR="${TMPDIR:-/tmp}" bash "$tree/$CANON_CHECK" --json "$REPO_ROOT" 2>"$CANON_TMP/err") || status=$?
+  if [[ "$status" -gt 1 ]]; then
+    canon_failure "the check exited $status before it compared the copies: $(tr '\n' ' ' <"$CANON_TMP/err" | head -c 300)" \
+      "run $CANON_CHECK from a checkout of $CANON_REPO at $sha against this repository to see why, then rerun $rerun"
+    return
+  fi
+
+  # A message is cut where it repeats the stamps, which the line above it already
+  # names, and where it names the cp command that refreshes a copy, which points
+  # into the tree this gate removes.
+  # shellcheck disable=SC2016  # jaq program, not a shell expansion
+  if ! summary=$(printf '%s\n' "$records" | jaq -rs '
+    def stamp(d; v): if d == null then "none" else d + (if v == null then "" else " (" + v + ")" end) end;
+    def failing: .reason != "in-sync" and .reason != "absent" and .reason != "skeleton" and .reason != "repo-owned";
+    "\([.[] | select(.reason == "in-sync")] | length)",
+    "\([.[] | select(.reason == "repo-owned") | .dest] | join(", "))",
+    ([.[] | select(failing)
+      | "\(.dest): \(.reason), copy stamp \(stamp(.copy_stamp; .copy_variant)), canon stamp \(stamp(.source_stamp; .source_variant))\n      \(.message | split(" (copy stamp ")[0] | split("; refresh: cp ")[0])"]
+      | join("\n    "))' 2>"$CANON_TMP/err"); then
+    canon_failure "the check's output is not JSON records: $(tr '\n' ' ' <"$CANON_TMP/err" | head -c 300)"
+    return
+  fi
+  { IFS= read -r in_sync; IFS= read -r owned; IFS= read -r -d '' drifted; } <<<"$summary" || true
+  drifted=${drifted%$'\n'}
+  if [[ -n "$drifted" ]]; then
+    canon_failure "$drifted" \
+      "refresh each file from its source in $CANON_REPO at ${sha:0:12} (references/canonical-source-pointers.md there says how), or keep a difference: canonical:repo-begin and canonical:repo-end around the lines that differ in a normalized or section entry, or canonical: repo-owned in the first 10 lines of a file in a verbatim entry, which stops the check from comparing that file; then rerun $rerun"
+    return
+  fi
+  if [[ "$status" -ne 0 ]]; then
+    canon_failure "the check exited $status and named no drifted copy" \
+      "run $CANON_CHECK from a checkout of $CANON_REPO at $sha against this repository, then rerun $rerun"
+    return
+  fi
+  if [[ "${in_sync:-0}" -eq 0 ]]; then
+    canon_failure "the check reported no copy in sync, so it compared nothing" \
+      "run $CANON_CHECK from a checkout of $CANON_REPO at $sha against this repository, then rerun $rerun"
+    return
+  fi
+  gate_pass "$in_sync copies match $CANON_REPO at ${sha:0:12}${owned:+; declared repo-owned, so not compared: $owned}"
+  cleanup_canon
 }
 
 # Gate: surface-smoke (optional delegation) ----------------------------------
@@ -631,14 +797,17 @@ gate_drift() {
 # smoke suite (transport + tools + auth), put it in scripts/release/surface-
 # smoke.sh and the `all` runner picks it up automatically. The sub-script
 # must accept --result-file PATH per the contract in _lib.sh's
-# delegate_to_subscript helper. xr ships no such surface, so the gate is a
-# no-op until that script exists.
+# delegate_to_subscript helper. xr ships no such surface, so `all` records a skip
+# until that script exists, and the gate asked for by name fails.
 
 gate_surface_smoke() {
-  local surface_script
+  local surface_script url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
   surface_script="$(dirname "$0")/surface-smoke.sh"
-  [[ -x "$surface_script" ]] || return 0
+  if ! repo_declares_surface && skip_unvendored "$surface_script"; then
+    return
+  fi
   header "Surface smoke (delegated to surface-smoke.sh)"
+  subscript_runnable "$surface_script" || return 0
   # Project picks the local URL the surface runs against; common defaults:
   #   bunx wrangler dev   → http://localhost:8787
   #   uvicorn / fastapi   → http://localhost:8000
@@ -646,16 +815,12 @@ gate_surface_smoke() {
   # A deployed staging URL (--staging-url, else STAGING_URL_DEFAULT from
   # release.env, the same default postflight reads) is smoked as given: an
   # unreachable deployment is a failure, not a skip. Without one, the local
-  # server is the target, and a local server that is not running skips.
-  local url="${STAGING_URL:-${STAGING_URL_DEFAULT:-}}"
+  # server is the target, and surface_reachable decides when it is not running.
   if [[ -z "$url" ]]; then
     url="${LOCAL_URL:-http://localhost:8787}"
-    if ! curl -fsS --max-time 2 "$url/" >/dev/null 2>&1; then
-      gate_skip "surface-smoke" "local server not running at $url (start it and re-run)"
-      return
-    fi
+    surface_reachable "$url" || return 0
   fi
-  delegate_to_subscript "$surface_script" "$url"
+  delegate_to_subscript --with-access-token "$surface_script" "$url"
 }
 
 # Gate: changelog-sections ---------------------------------------------------
@@ -957,7 +1122,7 @@ while [[ $# -gt 0 ]]; do
   # shellcheck disable=SC2034
   case "$1" in
     --smoke-home)
-      SMOKE_HOME="$2"
+      SMOKE_HOME=$(plain_dir "$2")
       shift 2
       ;;
     --no-cleanup)
@@ -973,7 +1138,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -h | --help) usage 0 ;;
-    drift | surface | api-contract | smoke | multi-app | oauth2-interactive | changelog-sections | mechanics | surface-smoke | all)
+    drift | canon-drift | surface | api-contract | smoke | multi-app | oauth2-interactive | changelog-sections | mechanics | surface-smoke | all)
       SUBCMD="$1"
       shift
       ;;
@@ -983,6 +1148,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "unknown arg: $1" >&2
+      echo "fix: see this script's --help for the flags and subcommands it takes" >&2
       usage
       ;;
   esac
@@ -992,6 +1158,7 @@ done
 
 case "$SUBCMD" in
   drift) gate_drift ;;
+  canon-drift) gate_canon_drift ;;
   surface) gate_surface ;;
   api-contract) gate_api_contract ;;
   smoke) gate_smoke ;;
@@ -1002,6 +1169,7 @@ case "$SUBCMD" in
   surface-smoke) gate_surface_smoke ;;
   all)
     gate_drift
+    gate_canon_drift
     gate_surface
     gate_api_contract
     gate_smoke

@@ -313,6 +313,12 @@ async fn a_mistyped_nested_verb_steps_to_its_own_family() {
     "remve",
     "remove"
 )]
+#[case::a_longer_verb_scores_higher_but_is_no_slip(
+    &["webhooks", "ada"],
+    "xr webhooks",
+    "ada",
+    "add"
+)]
 #[tokio::test]
 async fn a_mistyped_verb_names_the_closest_of_several_candidates(
     #[case] family: &[&str],
@@ -321,6 +327,42 @@ async fn a_mistyped_verb_names_the_closest_of_several_candidates(
     #[case] nearest: &str,
 ) {
     assert_family_suggestion(family, parent, word, nearest).await;
+}
+
+/// A word clap scores in its 0.7 to 0.8 band names a verb only when it opens
+/// with the letter the verb does. `bearer` sits at 0.7 of `clear`, the verb
+/// that wipes stored tokens, and `edit` at 0.778 of `redirect-uri`: neither is
+/// a typo of the verb, so neither gets a suggestion.
+#[rstest::rstest]
+#[case::wipes_the_stored_tokens(&["auth", "bearer"], "xr auth", "bearer")]
+#[case::unrelated_verb(&["auth", "apps", "edit"], "xr auth apps", "edit")]
+#[tokio::test]
+async fn a_word_in_claps_low_band_that_opens_differently_names_nothing(
+    #[case] family: &[&str],
+    #[case] parent: &str,
+    #[case] word: &str,
+) {
+    for format in ["json", "text"] {
+        let mut args = vec!["xr", "--output", format];
+        args.extend_from_slice(family);
+        let (code, _stdout, stderr) = run_isolated(&args).await;
+        assert_eq!(code, 2, "{format}; stderr: {stderr}");
+        assert_unknown_command_under(&stderr, format, word, None, parent);
+    }
+}
+
+/// `rm` scores 0.778 of `remove`, below the root's 0.8, and is still the
+/// shorthand that names it in every family that has the verb.
+#[rstest::rstest]
+#[case::apps(&["auth", "apps", "rm"], "xr auth apps")]
+#[case::lists(&["lists", "rm"], "xr lists")]
+#[case::sources(&["broadcasts", "sources", "rm"], "xr broadcasts sources")]
+#[tokio::test]
+async fn an_abbreviation_that_opens_like_the_verb_still_names_it(
+    #[case] family: &[&str],
+    #[case] parent: &str,
+) {
+    assert_family_suggestion(family, parent, "rm", "remove").await;
 }
 
 /// Verbs that score exactly alike cannot be told apart by similarity, so the
