@@ -332,7 +332,7 @@ impl TokenStore {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::TokenStore`] when `name` is not empty and names no app.
+    /// Returns [`Error::AppNotFound`] when `name` is not empty and names no app.
     #[doc(hidden)]
     pub fn refuse_if_app_missing(&self, name: &str) -> Result<()> {
         if name.is_empty() {

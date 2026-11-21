@@ -658,7 +658,8 @@ xr --app dev whoami                             # Per-request override
 `--app` and `XURL_APP` name an app the store holds. A name it does not hold exits 77 with reason `token-store`, the name
 in `value`, and the step `xr auth status`, before any request goes out; no other app's credential and no
 `XURL_BEARER_TOKEN` stands in for it. An empty name is the default app. A dry run answers the same refusal with
-`would_succeed: false` and no `auth` key.
+`would_succeed: false` and no `auth` key. A store file that could not be loaded holds no apps to check the name against,
+so it is not refused there: `XURL_BEARER_TOKEN`, when set, serves the run as it does without `--app`.
 
 Register an app with a custom OAuth2 callback URL via `--redirect-uri`:
 

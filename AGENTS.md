@@ -73,7 +73,9 @@ An app named with `--app` (or `XURL_APP`) is one the store holds, or the run is 
 exits 77 with reason `token-store` before any request goes out, with the name in `value`, and no other app's credential
 (nor `XURL_BEARER_TOKEN`) stands in for it. An empty name is the default app. A `--dry-run` answers the same refusal
 with `would_succeed: false` and no `auth` key. `Error::AppNotFound` carries the name and the apps the store holds, and
-store commands return it too.
+store commands return it too. A store file that could not be loaded holds no apps to check the name against: the name is
+not refused there, the stored credentials are out of reach, and `XURL_BEARER_TOKEN`, when set, serves the run as it does
+without `--app`.
 
 On exit 77 the error names what to do next. Read it from the envelope rather than guessing:
 

@@ -144,3 +144,43 @@ async fn the_default_app_and_a_held_app_still_name_their_credential(#[case] app:
     assert_eq!(answer["auth"]["app"], "myapp", "{args:?}: {answer}");
     assert_eq!(answer["auth"]["scheme"], "oauth1", "{args:?}: {answer}");
 }
+
+#[tokio::test]
+async fn a_store_that_could_not_be_loaded_checks_no_app_name_and_leaves_the_bearer_to_serve() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    std::fs::write(&store, "not: [valid yaml").expect("write a store that does not parse");
+    let overrides = xdk::config::EnvOverrides {
+        api_base_url: Some(server.uri()),
+        bearer_token: Some("env-bearer-value".to_string()),
+        ..xdk::config::EnvOverrides::default()
+    };
+    let mut stdout: Vec<u8> = Vec::new();
+    let mut stderr: Vec<u8> = Vec::new();
+
+    let code = xurl::cli::runner::run_with_overrides(
+        [
+            "xr",
+            "--output",
+            "json",
+            "--dry-run",
+            "--app",
+            GHOST,
+            "search",
+            "rust",
+        ],
+        &mut stdout,
+        &mut stderr,
+        &store,
+        &overrides,
+    )
+    .await;
+
+    let stdout = String::from_utf8_lossy(&stdout);
+    assert_eq!(code, 0, "{}", String::from_utf8_lossy(&stderr));
+    let answer = json_of(&stdout);
+    assert_eq!(answer["would_succeed"], true, "{answer}");
+    assert_eq!(answer["auth"]["scheme"], "app", "{answer}");
+    assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
+}
