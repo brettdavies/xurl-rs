@@ -1,7 +1,7 @@
 args: ["schema", "--list"]
 store: empty
 exit_code: 0
-stdout_len: 9085
+stdout_len: 8582
 stderr_len: 0
 --- stdout ---
 analytics                      ApiResponse<Vec<PostAnalytics>>
@@ -89,16 +89,8 @@ lists unfollow                 ApiResponse<FollowingResult>
 lists unpin                    ApiResponse<PinnedResult>
 lists update                   ApiResponse<ListUpdatedResult>
 media alt-text                 ApiResponse<MediaMetadataResult>
-media amplify add              ApiResponse<AmplifyPostAdded>
-media amplify get              ApiResponse<AmplifyProgram>
-media amplify list             ApiResponse<Vec<AmplifyProgram>>
-media amplify posts            ApiResponse<Vec<AmplifyProgramPost>>
 media analytics                ApiResponse<Vec<MediaAnalytics>>
 media get                      ApiResponse<Vec<Media>>
-media library add              ApiResponse<MediaLibraryAdded>
-media library categories       ApiResponse<MediaLibraryCategories>
-media library remove           ApiResponse<DeletedResult>
-media library update           ApiResponse<MediaLibraryUpdated>
 media subtitles add            ApiResponse<MediaSubtitlesResult>
 media subtitles remove         ApiResponse<DeletedResult>
 mentions                       ApiResponse<Vec<Post>>

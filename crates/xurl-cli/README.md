@@ -410,47 +410,6 @@ media id for 24 hours, so the envelope carries the id and the command that resum
 }
 ```
 
-### Media Library
-
-```bash
-xr media library categories --lang pt-BR            # The category ids a monetization names, in Portuguese
-xr media library add 7_1146654567674912770 --title "Launch day" --monetize --video-category 4
-xr media library update 7_1146654567674912770 --name "Launch day, cut 2" --country US --country CA
-xr media library update 7_1146654567674912770 --no-monetize
-xr media library remove 7_1146654567674912770       # Remove from the library (asks first)
-```
-
-`add` puts an upload you already made into your library, named by the `media_key` an upload or `xr media get` prints.
-`--name` and `--label` name the item, `--title` (70 characters at most) and `--description` (200 at most) are what the
-player card shows, and the monetization flags set how ads run against the video: `--monetize` or `--no-monetize`,
-`--video-category` for a category (one on `add`, up to two on `update`) or `--program` for an Amplify program in its
-place, either of which `add` needs with `--monetize`, `--country` to monetize in those countries only, and
-`--block-advertiser` and `--block-advertiser-category` to keep ads out. A repeated flag takes one value each time.
-`update` sends only the flags it is given and refuses one with none as `no-library-changes`; `remove` takes the item out
-of the library and cancels the posts scheduled through the API that still use it, and leaves published posts and the
-upload alone. Geo restrictions, content expiry, the preview image, and the audience policy are set with the media
-metadata endpoint, which raw mode reaches.
-
-The library endpoints take a user login with the `media.library.read` and `media.library.write` scopes, which every
-`xr auth oauth2` sign-in requests. A login made before `xr` requested them lacks them, and X refuses the request until
-you sign in again with `xr auth oauth2`; an OAuth1 login is not affected.
-
-### Media Amplify
-
-```bash
-xr media amplify list                              # The programs you can publish posts into
-xr media amplify get prog_2026-launch              # One program, with its state
-xr media amplify posts prog_2026-launch            # The posts published into it
-xr media amplify add 1346889436626259968 --program prog_2026-launch --ends-at 2026-12-01T00:00:00Z
-```
-
-`add` publishes one of your own posts, by id or URL, into every program named by a repeated `--program`; only a program
-whose `state` is `active` accepts posts. `--ends-at` takes a time with seconds and a zone, and `--block-advertiser`
-keeps an advertiser account's pre-rolls off the post, one id each time. The programs and the posts in them are read in
-one response each, with no `--cursor` to page them. The Amplify endpoints take the same `media.library.read` and
-`media.library.write` scopes as `xr media library`, so a login made before `xr` requested them needs `xr auth oauth2`
-again; an OAuth1 login is not affected.
-
 ### Broadcasts
 
 ```bash

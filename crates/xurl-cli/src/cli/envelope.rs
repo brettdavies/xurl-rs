@@ -530,9 +530,6 @@ pub struct ErrorBody {
     /// Stream source `broadcasts sources remove` targeted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_id: Option<String>,
-    /// Media library item `media library remove` targeted.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub media_key: Option<String>,
     /// Scheduled call `calls scheduled cancel` targeted.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scheduled_call_id: Option<String>,

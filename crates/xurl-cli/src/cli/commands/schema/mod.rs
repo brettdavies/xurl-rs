@@ -20,20 +20,18 @@ use serde_json::Value;
 
 use crate::cli::commands::auth::{AppStatusEntry, RedirectUriGetResponse, RedirectUriSetResponse};
 use xdk::api::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, AmplifyPostAdded,
-    AmplifyProgram, AmplifyProgramPost, ApiResponse, ArticleDraft, ArticlePublished,
-    BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast,
-    BroadcastChatMessage, BroadcastUpdated, ChatModeratorsResult, ChatMute, ChatMutedResult,
-    Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult,
-    IngestRegion, LikedResult, List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics,
-    MediaLibraryAdded, MediaLibraryCategories, MediaLibraryUpdated, MediaMetadataResult,
-    MediaSubtitlesResult, MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation,
-    PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated,
-    ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled,
-    ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource,
-    StreamSourceCreated, StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend,
-    TrendLocation, UsageCreditsData, UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink,
-    WebhookValidation, XCall,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiResponse, ArticleDraft,
+    ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult,
+    Broadcast, BroadcastChatMessage, BroadcastUpdated, ChatModeratorsResult, ChatMute,
+    ChatMutedResult, Community, DeletedResult, DmBlockResult, DmEvent, DmSentResult,
+    FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
+    ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult, MediaSubtitlesResult,
+    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
+    Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated, ProvisionedResult, RepostedResult,
+    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
+    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
+    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
+    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// Command-to-response-type mapping entry.
@@ -301,7 +299,6 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
             "notes remove",
             "drafts remove",
             "media subtitles remove",
-            "media library remove",
             "webhooks remove",
             "webhooks stream-links remove",
         ],
@@ -503,41 +500,6 @@ const SCHEMA_ENTRIES: &[SchemaEntry] = &[
         schema: generate::<ApiResponse<MediaMetadataResult>>,
     },
     SchemaEntry {
-        commands: &["media amplify list"],
-        type_name: "ApiResponse<Vec<AmplifyProgram>>",
-        schema: generate::<ApiResponse<Vec<AmplifyProgram>>>,
-    },
-    SchemaEntry {
-        commands: &["media amplify get"],
-        type_name: "ApiResponse<AmplifyProgram>",
-        schema: generate::<ApiResponse<AmplifyProgram>>,
-    },
-    SchemaEntry {
-        commands: &["media amplify posts"],
-        type_name: "ApiResponse<Vec<AmplifyProgramPost>>",
-        schema: generate::<ApiResponse<Vec<AmplifyProgramPost>>>,
-    },
-    SchemaEntry {
-        commands: &["media amplify add"],
-        type_name: "ApiResponse<AmplifyPostAdded>",
-        schema: generate::<ApiResponse<AmplifyPostAdded>>,
-    },
-    SchemaEntry {
-        commands: &["media library add"],
-        type_name: "ApiResponse<MediaLibraryAdded>",
-        schema: generate::<ApiResponse<MediaLibraryAdded>>,
-    },
-    SchemaEntry {
-        commands: &["media library update"],
-        type_name: "ApiResponse<MediaLibraryUpdated>",
-        schema: generate::<ApiResponse<MediaLibraryUpdated>>,
-    },
-    SchemaEntry {
-        commands: &["media library categories"],
-        type_name: "ApiResponse<MediaLibraryCategories>",
-        schema: generate::<ApiResponse<MediaLibraryCategories>>,
-    },
-    SchemaEntry {
         commands: &["media subtitles add"],
         type_name: "ApiResponse<MediaSubtitlesResult>",
         schema: generate::<ApiResponse<MediaSubtitlesResult>>,
@@ -593,8 +555,6 @@ pub const SCHEMA_LESS_COMMANDS: &[&str] = &[
     "lists",
     "lists members",
     "media",
-    "media amplify",
-    "media library",
     "media status",
     "media subtitles",
     "media upload",

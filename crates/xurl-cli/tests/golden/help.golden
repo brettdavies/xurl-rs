@@ -1,7 +1,7 @@
 args: ["--help"]
 store: empty
 exit_code: 0
-stdout_len: 16483
+stdout_len: 16454
 stderr_len: 0
 --- stdout ---
 A command-line tool for making authenticated requests to the X API.
@@ -107,7 +107,7 @@ Commands:
   calls             X calls, and the calls on your calendar (preview)
   webhooks          Webhook registration, subscriptions, stream links, a local listener, and replay
   auth              Authentication management
-  media             Media upload, lookup by key, video metrics, alt text, subtitles, your media library, and Amplify
+  media             Media upload, lookup by key, video metrics, alt text, and subtitles
   skill             Install or manage the xurl-rs skill bundle
   schema            Show JSON Schema for a command's response type
   completions       Generate shell completion script

@@ -117,7 +117,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand calls 'X calls, and the calls on your calendar (preview)'
             cand webhooks 'Webhook registration, subscriptions, stream links, a local listener, and replay'
             cand auth 'Authentication management'
-            cand media 'Media upload, lookup by key, video metrics, alt text, subtitles, your media library, and Amplify'
+            cand media 'Media upload, lookup by key, video metrics, alt text, and subtitles'
             cand skill 'Install or manage the xurl-rs skill bundle'
             cand schema 'Show JSON Schema for a command''s response type'
             cand completions 'Generate shell completion script'
@@ -6192,8 +6192,6 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand analytics 'Report video metrics for your uploads over a time window'
             cand alt-text 'Set the alt text shown for an uploaded image or video'
             cand subtitles 'Add or remove the subtitle tracks of an uploaded video'
-            cand amplify 'List Amplify programs and the posts in them, and publish a post into programs'
-            cand library 'Add uploaded videos to your media library, and change, remove, and categorize them'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;media;upload'= {
@@ -6454,357 +6452,6 @@ set edit:completion:arg-completer[xr] = {|@words|
         }
         &'xr;media;subtitles;help;help'= {
         }
-        &'xr;media;amplify'= {
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-            cand list 'List the Amplify programs you can publish posts into'
-            cand get 'Read one Amplify program'
-            cand posts 'List the posts published into an Amplify program'
-            cand add 'Publish one of your posts into Amplify programs'
-            cand help 'Print this message or the help of the given subcommand(s)'
-        }
-        &'xr;media;amplify;list'= {
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;media;amplify;get'= {
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;media;amplify;posts'= {
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;media;amplify;add'= {
-            cand --program 'A program to publish the post into; repeat for each'
-            cand --block-advertiser 'An advertiser account whose pre-rolls may not run on the post, by id; repeat for each'
-            cand --ends-at 'When promotion of the post ends, such as 2026-12-01T00:00:00Z'
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;media;amplify;help'= {
-            cand list 'List the Amplify programs you can publish posts into'
-            cand get 'Read one Amplify program'
-            cand posts 'List the posts published into an Amplify program'
-            cand add 'Publish one of your posts into Amplify programs'
-            cand help 'Print this message or the help of the given subcommand(s)'
-        }
-        &'xr;media;amplify;help;list'= {
-        }
-        &'xr;media;amplify;help;get'= {
-        }
-        &'xr;media;amplify;help;posts'= {
-        }
-        &'xr;media;amplify;help;add'= {
-        }
-        &'xr;media;amplify;help;help'= {
-        }
-        &'xr;media;library'= {
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-            cand add 'Add an upload to your media library'
-            cand update 'Change the name, label, player card, or monetization of a library item'
-            cand remove 'Remove an item from your media library'
-            cand categories 'List the video and advertiser categories a library item''s monetization names'
-            cand help 'Print this message or the help of the given subcommand(s)'
-        }
-        &'xr;media;library;add'= {
-            cand --name 'The item''s name in the library'
-            cand --label 'The item''s label in the library'
-            cand --title 'The title shown with the video in the player card (70 characters at most)'
-            cand --description 'The description shown with the video in the player card (200 characters at most)'
-            cand --video-category 'A category describing the video, an id from `xr media library categories`; `add` takes one and `update` up to 2; repeat for each'
-            cand --program 'The Amplify program to monetize the video through, in place of `--video-category`'
-            cand --country 'A country to monetize the video in, and only there, as a two-letter code; repeat for each'
-            cand --block-advertiser 'An advertiser account whose ads may not run against the video, by id; repeat for each'
-            cand --block-advertiser-category 'An advertiser category whose ads may not run against the video, an id from `xr media library categories`; repeat for each'
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand --monetize 'Let ads run against the video; the account must be enrolled in video monetization, and `add` needs `--video-category` or `--program` with it'
-            cand --no-monetize 'Stop ads running against the video'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;media;library;update'= {
-            cand --name 'The item''s name in the library'
-            cand --label 'The item''s label in the library'
-            cand --title 'The title shown with the video in the player card (70 characters at most)'
-            cand --description 'The description shown with the video in the player card (200 characters at most)'
-            cand --video-category 'A category describing the video, an id from `xr media library categories`; `add` takes one and `update` up to 2; repeat for each'
-            cand --program 'The Amplify program to monetize the video through, in place of `--video-category`'
-            cand --country 'A country to monetize the video in, and only there, as a two-letter code; repeat for each'
-            cand --block-advertiser 'An advertiser account whose ads may not run against the video, by id; repeat for each'
-            cand --block-advertiser-category 'An advertiser category whose ads may not run against the video, an id from `xr media library categories`; repeat for each'
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand --monetize 'Let ads run against the video; the account must be enrolled in video monetization, and `add` needs `--video-category` or `--program` with it'
-            cand --no-monetize 'Stop ads running against the video'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;media;library;remove'= {
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand --force 'Skip the confirmation prompt; required under `--no-interactive`'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;media;library;categories'= {
-            cand --lang 'Language of the category names, such as en or pt-BR'
-            cand --auth 'Authentication type (this command accepts: oauth2, oauth1). Unset, xr uses the first of these it holds a credential for'
-            cand -u '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand --username '`OAuth2` login to act as, by the name it is stored under: its username, or the name given to `xr auth oauth2`'
-            cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
-            cand --app 'Use a specific registered app (overrides default)'
-            cand --output 'Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`'
-            cand --raw 'Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are'
-            cand -q 'Suppress all non-essential output (errors still go to stderr)'
-            cand --quiet 'Suppress all non-essential output (errors still go to stderr)'
-            cand --no-interactive 'Disable interactive prompts; fail with error instead'
-            cand --timeout 'Request timeout in seconds'
-            cand --wait-on-rate-limit 'Wait out a rate limit and retry once, instead of failing with `rate-limited`'
-            cand --rate-limit-max-wait 'Longest `--wait-on-rate-limit` waits before its retry, in seconds'
-            cand --color 'Colorize output: auto (TTY-aware), always, or never'
-            cand --dry-run 'Check inputs and credentials offline, and send nothing'
-            cand --limit 'Page size for every command that takes `-n/--max-results`, when `-n` is not given; other commands and raw requests ignore it'
-            cand --cursor 'The `meta.next_token` of the previous page, for every command whose endpoint pages; other commands and raw requests ignore it'
-            cand --page 'Documented alias for `--cursor`'
-            cand --after 'Documented alias for `--cursor` (`--after <token>`)'
-            cand -t 'Add X-B3-Flags trace header'
-            cand --trace 'Add X-B3-Flags trace header'
-            cand --json 'Shorthand for `--output json` (P2 alias)'
-            cand --jsonl 'Shorthand for `--output jsonl` (P2 alias)'
-            cand --no-pager 'Documented no-op. `xr` writes directly to stdout and never invokes `$PAGER`; this flag is advertised so agents can pass `--no-pager` unconditionally without xr rejecting it'
-            cand -h 'Print help (see more with ''--help'')'
-            cand --help 'Print help (see more with ''--help'')'
-        }
-        &'xr;media;library;help'= {
-            cand add 'Add an upload to your media library'
-            cand update 'Change the name, label, player card, or monetization of a library item'
-            cand remove 'Remove an item from your media library'
-            cand categories 'List the video and advertiser categories a library item''s monetization names'
-            cand help 'Print this message or the help of the given subcommand(s)'
-        }
-        &'xr;media;library;help;add'= {
-        }
-        &'xr;media;library;help;update'= {
-        }
-        &'xr;media;library;help;remove'= {
-        }
-        &'xr;media;library;help;categories'= {
-        }
-        &'xr;media;library;help;help'= {
-        }
         &'xr;media;help'= {
             cand upload 'Upload media file'
             cand status 'Check media upload status'
@@ -6812,8 +6459,6 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand analytics 'Report video metrics for your uploads over a time window'
             cand alt-text 'Set the alt text shown for an uploaded image or video'
             cand subtitles 'Add or remove the subtitle tracks of an uploaded video'
-            cand amplify 'List Amplify programs and the posts in them, and publish a post into programs'
-            cand library 'Add uploaded videos to your media library, and change, remove, and categorize them'
             cand help 'Print this message or the help of the given subcommand(s)'
         }
         &'xr;media;help;upload'= {
@@ -6833,34 +6478,6 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;media;help;subtitles;add'= {
         }
         &'xr;media;help;subtitles;remove'= {
-        }
-        &'xr;media;help;amplify'= {
-            cand list 'List the Amplify programs you can publish posts into'
-            cand get 'Read one Amplify program'
-            cand posts 'List the posts published into an Amplify program'
-            cand add 'Publish one of your posts into Amplify programs'
-        }
-        &'xr;media;help;amplify;list'= {
-        }
-        &'xr;media;help;amplify;get'= {
-        }
-        &'xr;media;help;amplify;posts'= {
-        }
-        &'xr;media;help;amplify;add'= {
-        }
-        &'xr;media;help;library'= {
-            cand add 'Add an upload to your media library'
-            cand update 'Change the name, label, player card, or monetization of a library item'
-            cand remove 'Remove an item from your media library'
-            cand categories 'List the video and advertiser categories a library item''s monetization names'
-        }
-        &'xr;media;help;library;add'= {
-        }
-        &'xr;media;help;library;update'= {
-        }
-        &'xr;media;help;library;remove'= {
-        }
-        &'xr;media;help;library;categories'= {
         }
         &'xr;media;help;help'= {
         }
@@ -7055,7 +6672,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand --help 'Print help (see more with ''--help'')'
         }
         &'xr;validate'= {
-            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `drafts`, `draft-created`, `broadcast`, `broadcasts`, `broadcast-updated`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `trend-locations`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `amplify-programs`, `amplify-program`, `amplify-program-posts`, `amplify-post-added`, `library-added`, `library-updated`, `library-categories`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-created`, `stream-source-deleted`, `stream-source-key`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection'
+            cand --schema 'Schema name to validate against (`post`, `posts`, `user`, `users`, `dm`, `dms`, `dm-event`, `dm-block`, `usage`, `credits`, `envelope`, `like`, `hide`, `post-counts`, `analytics`, `media`, `media-analytics`, `spaces`, `stream-rules`, `stream-rules-update`, `stream-rule-counts`, `article-draft`, `article-published`, `note-created`, `note-evaluation`, `notes`, `drafts`, `draft-created`, `broadcast`, `broadcasts`, `broadcast-updated`, `scheduled-broadcast`, `scheduled-broadcasts`, `chat-messages`, `chat-muted`, `chat-mutes`, `list`, `lists`, `list-updated`, `list-member`, `pinned`, `communities`, `community`, `news`, `news-story`, `trends`, `trend-locations`, `personalized-trends`, `follow`, `delete`, `repost`, `bookmark`, `bookmark-folders`, `bookmark-folder`, `bookmark-folder-posts`, `mute`, `block`, `moderators`, `alt-text`, `subtitles`, `webhook`, `webhooks`, `webhook-validation`, `webhook-replay`, `subscription-count`, `subscriptions`, `subscribed`, `stream-links`, `stream-link`, `stream-sources`, `stream-source`, `stream-source-created`, `stream-source-deleted`, `stream-source-key`, `ingest-region`, `call`, `scheduled-calls`, `scheduled-call`, `scheduled-call-updated`, `scheduled-call-cancelled`, `rsvp`). Omit for auto-detection'
             cand -v 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --verbose 'Print request and response lines, and a note for each key X sent in its legacy post vocabulary'
             cand --app 'Use a specific registered app (overrides default)'
@@ -7140,7 +6757,7 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand calls 'X calls, and the calls on your calendar (preview)'
             cand webhooks 'Webhook registration, subscriptions, stream links, a local listener, and replay'
             cand auth 'Authentication management'
-            cand media 'Media upload, lookup by key, video metrics, alt text, subtitles, your media library, and Amplify'
+            cand media 'Media upload, lookup by key, video metrics, alt text, and subtitles'
             cand skill 'Install or manage the xurl-rs skill bundle'
             cand schema 'Show JSON Schema for a command''s response type'
             cand completions 'Generate shell completion script'
@@ -7636,8 +7253,6 @@ set edit:completion:arg-completer[xr] = {|@words|
             cand analytics 'Report video metrics for your uploads over a time window'
             cand alt-text 'Set the alt text shown for an uploaded image or video'
             cand subtitles 'Add or remove the subtitle tracks of an uploaded video'
-            cand amplify 'List Amplify programs and the posts in them, and publish a post into programs'
-            cand library 'Add uploaded videos to your media library, and change, remove, and categorize them'
         }
         &'xr;help;media;upload'= {
         }
@@ -7656,34 +7271,6 @@ set edit:completion:arg-completer[xr] = {|@words|
         &'xr;help;media;subtitles;add'= {
         }
         &'xr;help;media;subtitles;remove'= {
-        }
-        &'xr;help;media;amplify'= {
-            cand list 'List the Amplify programs you can publish posts into'
-            cand get 'Read one Amplify program'
-            cand posts 'List the posts published into an Amplify program'
-            cand add 'Publish one of your posts into Amplify programs'
-        }
-        &'xr;help;media;amplify;list'= {
-        }
-        &'xr;help;media;amplify;get'= {
-        }
-        &'xr;help;media;amplify;posts'= {
-        }
-        &'xr;help;media;amplify;add'= {
-        }
-        &'xr;help;media;library'= {
-            cand add 'Add an upload to your media library'
-            cand update 'Change the name, label, player card, or monetization of a library item'
-            cand remove 'Remove an item from your media library'
-            cand categories 'List the video and advertiser categories a library item''s monetization names'
-        }
-        &'xr;help;media;library;add'= {
-        }
-        &'xr;help;media;library;update'= {
-        }
-        &'xr;help;media;library;remove'= {
-        }
-        &'xr;help;media;library;categories'= {
         }
         &'xr;help;skill'= {
             cand install 'Install the skill bundle into a host''s canonical skills directory'

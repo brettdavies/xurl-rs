@@ -27,8 +27,7 @@ Three Go commands have no `xr` counterpart, and `xr chat`, `xr mcp`, and `xr tok
 
 Every other `xr` command has no Go counterpart, and `xr --help` lists them all. With Go, their endpoints are reached
 through raw requests, and a Go sign-in does not request the `calls.read` and `calls.write` scopes the `xr calls`
-endpoints take, or the `media.library.read` and `media.library.write` scopes the `xr media library` and
-`xr media amplify` endpoints take.
+endpoints take.
 
 ## Webhooks: no built-in tunnel, verified events, and management commands (intentional difference)
 

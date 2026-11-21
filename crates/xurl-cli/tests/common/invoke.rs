@@ -58,12 +58,6 @@ pub const OVERRIDES: &[(&str, &[&str])] = &[
     ("conversations history", &["123-456"]),
     ("lists update", &[SAMPLE, "--name", "Rust"]),
     ("media get", &["3_1234567890"]),
-    ("media library add", &["3_1234567890"]),
-    (
-        "media library update",
-        &["3_1234567890", "--title", "Retro"],
-    ),
-    ("media library remove", &["3_1234567890", "--force"]),
     (
         "media analytics",
         &[

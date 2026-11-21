@@ -526,13 +526,6 @@
             "null"
           ]
         },
-        "media_key": {
-          "description": "Media library item `media library remove` targeted.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "message": {
           "description": "Human-readable message. Omitted entirely (not `null`) when absent.",
           "type": [

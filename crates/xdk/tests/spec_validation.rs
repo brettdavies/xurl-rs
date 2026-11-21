@@ -21,20 +21,19 @@ use serde_json::Value;
 use xdk::api::auth_matrix::{Endpoint, endpoints};
 
 use xdk::api::response::types::{
-    AccountActivitySubscriptionCount, AccountActivitySubscriptions, AmplifyPostAdded,
-    AmplifyProgram, AmplifyProgramPost, ApiError, ApiResponse, ArticleDraft, ArticlePublished,
-    BlockingResult, BookmarkFolder, BookmarkFolderPost, BookmarkedResult, Broadcast,
-    BroadcastChatMessage, BroadcastEnded, BroadcastUpdated, ChatModeratorsResult, ChatMute,
-    ChatMutedResult, ChatSentResult, Community, DeletedResult, DmBlockResult, DmEvent,
-    DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult, List, ListMemberResult,
-    ListUpdatedResult, Media, MediaAnalytics, MediaLibraryAdded, MediaLibraryCategories,
-    MediaLibraryUpdated, MediaMetadataResult, MediaSubtitlesResult, MediaUploadResponse,
-    MutingResult, NewsStory, Note, NoteCreated, NoteEvaluation, PersonalizedTrend, PinnedResult,
-    Post, PostAnalytics, PostCount, PostDraft, PostDraftCreated, ProvisionedResult, RepostedResult,
-    ScheduledBroadcast, ScheduledCall, ScheduledCallCancelled, ScheduledCallRsvp,
-    ScheduledCallUpdated, Space, StreamRule, StreamRuleCounts, StreamSource, StreamSourceCreated,
-    StreamSourceDeleted, StreamSourceKey, SubscribedResult, Trend, TrendLocation, UsageCreditsData,
-    UsageData, User, Webhook, WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
+    AccountActivitySubscriptionCount, AccountActivitySubscriptions, ApiError, ApiResponse,
+    ArticleDraft, ArticlePublished, BlockingResult, BookmarkFolder, BookmarkFolderPost,
+    BookmarkedResult, Broadcast, BroadcastChatMessage, BroadcastEnded, BroadcastUpdated,
+    ChatModeratorsResult, ChatMute, ChatMutedResult, ChatSentResult, Community, DeletedResult,
+    DmBlockResult, DmEvent, DmSentResult, FollowingResult, HiddenResult, IngestRegion, LikedResult,
+    List, ListMemberResult, ListUpdatedResult, Media, MediaAnalytics, MediaMetadataResult,
+    MediaSubtitlesResult, MediaUploadResponse, MutingResult, NewsStory, Note, NoteCreated,
+    NoteEvaluation, PersonalizedTrend, PinnedResult, Post, PostAnalytics, PostCount, PostDraft,
+    PostDraftCreated, ProvisionedResult, RepostedResult, ScheduledBroadcast, ScheduledCall,
+    ScheduledCallCancelled, ScheduledCallRsvp, ScheduledCallUpdated, Space, StreamRule,
+    StreamRuleCounts, StreamSource, StreamSourceCreated, StreamSourceDeleted, StreamSourceKey,
+    SubscribedResult, Trend, TrendLocation, UsageCreditsData, UsageData, User, Webhook,
+    WebhookReplayJob, WebhookStreamLink, WebhookValidation, XCall,
 };
 
 /// The response types, read as source by the alias guards below.
@@ -437,76 +436,6 @@ fn spec_trends() {
     let resp: ApiResponse<Vec<Trend>> = serde_json::from_value(examples["trends"].clone()).unwrap();
     assert_eq!(resp.data[0].tweet_count, Some(18400));
     assert_eq!(resp.data[1].tweet_count, None);
-}
-
-#[test]
-fn spec_amplify_programs() {
-    let examples = load_examples();
-    let resp: ApiResponse<Vec<AmplifyProgram>> =
-        serde_json::from_value(examples["amplify_programs"].clone()).unwrap();
-    assert_eq!(resp.data[0].id, "prog_2026-launch");
-    assert_eq!(resp.data[1].state, "deleted");
-}
-
-#[test]
-fn spec_amplify_program() {
-    let examples = load_examples();
-    let resp: ApiResponse<AmplifyProgram> =
-        serde_json::from_value(examples["amplify_program"].clone()).unwrap();
-    assert_eq!(resp.data.publisher_ids, ["2244994945"]);
-}
-
-#[test]
-fn spec_amplify_program_posts() {
-    let examples = load_examples();
-    let resp: ApiResponse<Vec<AmplifyProgramPost>> =
-        serde_json::from_value(examples["amplify_program_posts"].clone()).unwrap();
-    assert_eq!(
-        resp.data[0].promotion_ends_at.as_deref(),
-        Some("2026-12-01T00:00:00Z")
-    );
-    assert_eq!(resp.data[1].promotion_ends_at, None);
-}
-
-#[test]
-fn spec_amplify_post_added() {
-    let examples = load_examples();
-    let resp: ApiResponse<AmplifyPostAdded> =
-        serde_json::from_value(examples["amplify_post_added"].clone()).unwrap();
-    assert!(resp.data.added);
-}
-
-#[test]
-fn spec_media_library_added() {
-    let examples = load_examples();
-    let resp: ApiResponse<MediaLibraryAdded> =
-        serde_json::from_value(examples["media_library_added"].clone()).unwrap();
-    assert_eq!(resp.data.media_key, "7_1146654567674912770");
-}
-
-#[test]
-fn spec_media_library_updated() {
-    let examples = load_examples();
-    let resp: ApiResponse<MediaLibraryUpdated> =
-        serde_json::from_value(examples["media_library_updated"].clone()).unwrap();
-    assert!(resp.data.updated);
-}
-
-#[test]
-fn spec_media_library_removed() {
-    let examples = load_examples();
-    let resp: ApiResponse<DeletedResult> =
-        serde_json::from_value(examples["media_library_removed"].clone()).unwrap();
-    assert!(resp.data.deleted);
-}
-
-#[test]
-fn spec_media_library_categories() {
-    let examples = load_examples();
-    let resp: ApiResponse<MediaLibraryCategories> =
-        serde_json::from_value(examples["media_library_categories"].clone()).unwrap();
-    assert_eq!(resp.data.video_categories[1].description, "Sports");
-    assert_eq!(resp.data.advertiser_categories[0].id, 10);
 }
 
 #[test]
@@ -1057,46 +986,6 @@ const FIXTURE_ENDPOINTS: &[(&str, Endpoint, ReplyKind)] = &[
     (
         "trend_locations",
         endpoints::GET_TREND_LOCATIONS,
-        ReplyKind::Success,
-    ),
-    (
-        "amplify_programs",
-        endpoints::GET_AMPLIFY_PROGRAMS,
-        ReplyKind::Success,
-    ),
-    (
-        "amplify_program",
-        endpoints::GET_AMPLIFY_PROGRAM,
-        ReplyKind::Success,
-    ),
-    (
-        "amplify_program_posts",
-        endpoints::GET_AMPLIFY_PROGRAM_POSTS,
-        ReplyKind::Success,
-    ),
-    (
-        "amplify_post_added",
-        endpoints::ADD_POST_TO_AMPLIFY_PROGRAMS,
-        ReplyKind::Success,
-    ),
-    (
-        "media_library_added",
-        endpoints::ADD_MEDIA_TO_LIBRARY,
-        ReplyKind::Success,
-    ),
-    (
-        "media_library_updated",
-        endpoints::UPDATE_MEDIA_IN_LIBRARY,
-        ReplyKind::Success,
-    ),
-    (
-        "media_library_removed",
-        endpoints::REMOVE_MEDIA_FROM_LIBRARY,
-        ReplyKind::Success,
-    ),
-    (
-        "media_library_categories",
-        endpoints::GET_MEDIA_LIBRARY_CATEGORIES,
         ReplyKind::Success,
     ),
     ("news_list", endpoints::SEARCH_NEWS, ReplyKind::Success),

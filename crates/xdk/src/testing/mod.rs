@@ -241,46 +241,6 @@ const ROUTES: &[Route] = &[
         status: 200,
     },
     Route {
-        endpoint: endpoints::GET_AMPLIFY_PROGRAMS,
-        fixture: "amplify_programs",
-        status: 200,
-    },
-    Route {
-        endpoint: endpoints::GET_AMPLIFY_PROGRAM,
-        fixture: "amplify_program",
-        status: 200,
-    },
-    Route {
-        endpoint: endpoints::GET_AMPLIFY_PROGRAM_POSTS,
-        fixture: "amplify_program_posts",
-        status: 200,
-    },
-    Route {
-        endpoint: endpoints::ADD_POST_TO_AMPLIFY_PROGRAMS,
-        fixture: "amplify_post_added",
-        status: 200,
-    },
-    Route {
-        endpoint: endpoints::ADD_MEDIA_TO_LIBRARY,
-        fixture: "media_library_added",
-        status: 201,
-    },
-    Route {
-        endpoint: endpoints::GET_MEDIA_LIBRARY_CATEGORIES,
-        fixture: "media_library_categories",
-        status: 200,
-    },
-    Route {
-        endpoint: endpoints::UPDATE_MEDIA_IN_LIBRARY,
-        fixture: "media_library_updated",
-        status: 200,
-    },
-    Route {
-        endpoint: endpoints::REMOVE_MEDIA_FROM_LIBRARY,
-        fixture: "media_library_removed",
-        status: 200,
-    },
-    Route {
         endpoint: endpoints::GET_TREND_LOCATIONS,
         fixture: "trend_locations",
         status: 200,

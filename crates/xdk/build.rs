@@ -78,39 +78,6 @@ const SHORTCUT_TEMPLATES: &[(&str, &str, &str)] = &[
         "GET",
         "/2/users/personalized_trends",
     ),
-    // media library
-    (
-        "ADD_POST_TO_AMPLIFY_PROGRAMS",
-        "POST",
-        "/2/media/amplify/posts",
-    ),
-    ("GET_AMPLIFY_PROGRAMS", "GET", "/2/media/amplify/programs"),
-    (
-        "GET_AMPLIFY_PROGRAM",
-        "GET",
-        "/2/media/amplify/programs/{program_id}",
-    ),
-    (
-        "GET_AMPLIFY_PROGRAM_POSTS",
-        "GET",
-        "/2/media/amplify/programs/{program_id}/posts",
-    ),
-    ("ADD_MEDIA_TO_LIBRARY", "POST", "/2/media/library"),
-    (
-        "GET_MEDIA_LIBRARY_CATEGORIES",
-        "GET",
-        "/2/media/library/categories",
-    ),
-    (
-        "UPDATE_MEDIA_IN_LIBRARY",
-        "PUT",
-        "/2/media/library/{media_key}",
-    ),
-    (
-        "REMOVE_MEDIA_FROM_LIBRARY",
-        "DELETE",
-        "/2/media/library/{media_key}",
-    ),
     // news
     ("SEARCH_NEWS", "GET", "/2/news/search"),
     ("GET_NEWS", "GET", "/2/news/{id}"),

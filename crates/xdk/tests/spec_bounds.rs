@@ -11,8 +11,7 @@ use xdk::api::shortcuts::{
     ALT_TEXT_MAX_CHARS, BOOKMARK_FOLDER_NAME_MAX_CHARS, BROADCAST_CHAT_MAX_CHARS,
     CALL_DESCRIPTION_MAX_CHARS, CALL_DURATION_MAX_MINUTES, CALL_RECURRENCE_MAX_CHARS,
     CALL_TIME_ZONE_MAX_CHARS, CALL_TITLE_MAX_CHARS, CHANGED_CALL_INVITEES_MAX, CHAT_OPTION_MAX,
-    DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIBRARY_DESCRIPTION_MAX_CHARS,
-    LIBRARY_TITLE_MAX_CHARS, LIBRARY_VIDEO_CATEGORIES_MAX, LIST_DESCRIPTION_MAX_CHARS,
+    DM_GROUP_PARTICIPANTS_MAX, DM_GROUP_PARTICIPANTS_MIN, LIST_DESCRIPTION_MAX_CHARS,
     LIST_NAME_MAX_CHARS, LOOKUP_IDS_MAX, NEW_CALL_INVITEES_MAX, POST_MEDIA_MAX,
     USER_SEARCH_QUERY_MAX_CHARS, WEBHOOK_URL_MAX_CHARS, validate_broadcast_id,
     validate_clip_post_id, validate_space_id, validate_user_search_query,
@@ -181,33 +180,6 @@ const BOUNDS: &[Bound] = &[
         value: CHAT_OPTION_MAX as u64,
         keyword: "maximum",
         sites: &[Site::Property("UpdateBroadcastRequest", "chat_option")],
-    },
-    Bound {
-        constant: "LIBRARY_TITLE_MAX_CHARS",
-        value: n(LIBRARY_TITLE_MAX_CHARS),
-        keyword: "maxLength",
-        sites: &[
-            Site::Property("AddMediaToLibraryRequest", "title"),
-            Site::Property("UpdateMediaInLibraryRequest", "title"),
-        ],
-    },
-    Bound {
-        constant: "LIBRARY_DESCRIPTION_MAX_CHARS",
-        value: n(LIBRARY_DESCRIPTION_MAX_CHARS),
-        keyword: "maxLength",
-        sites: &[
-            Site::Property("AddMediaToLibraryRequest", "description"),
-            Site::Property("UpdateMediaInLibraryRequest", "description"),
-        ],
-    },
-    Bound {
-        constant: "LIBRARY_VIDEO_CATEGORIES_MAX",
-        value: n(LIBRARY_VIDEO_CATEGORIES_MAX),
-        keyword: "maxItems",
-        sites: &[
-            Site::Property("AddMediaToLibraryMonetization", "video_category_ids"),
-            Site::Property("UpdateMediaInLibraryMonetization", "video_category_ids"),
-        ],
     },
     Bound {
         constant: "NEW_CALL_INVITEES_MAX",
