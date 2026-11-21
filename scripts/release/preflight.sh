@@ -31,8 +31,9 @@
 #
 # Flags:
 #   --smoke-home PATH   Run smoke and multi-app against the store at PATH/.xurl/auth.yml instead of
-#                       seeding one; exits 2 naming that path when it holds no store
-#   --no-cleanup        Keep $SMOKE_HOME after exit (default: shred on exit)
+#                       seeding one; exits 2 naming that path when it holds no store. PATH is never
+#                       shredded
+#   --no-cleanup        Keep the $SMOKE_HOME a gate seeded after exit (default: shred on exit)
 #   --tag TAG           Override LAST_TAG resolution (default: the newest `v[0-9]*` tag)
 #   --staging-url URL   Run surface-smoke against this deployed URL (default: STAGING_URL_DEFAULT
 #                       from release.env; with neither, the local server at $LOCAL_URL)
@@ -97,10 +98,20 @@ require_built_binary() {
   }
 }
 
-# EXIT trap. cleanup_canon runs first: under set -e a failing cleanup_smoke (from
-# _lib.sh) would end the trap before it. ---------------------------------------
+# EXIT trap. cleanup_canon runs first: under set -e a failing cleanup_seeded_home
+# would end the trap before it. ------------------------------------------------
 
-trap 'cleanup_canon; cleanup_smoke' EXIT
+# The home a gate seeded; empty when the caller named one, by --smoke-home or an
+# exported SMOKE_HOME. Only this home is shredded on exit.
+SEEDED_HOME=""
+
+cleanup_seeded_home() {
+  [[ -n "$SEEDED_HOME" ]] || return 0
+  SMOKE_HOME="$SEEDED_HOME"
+  cleanup_smoke
+}
+
+trap 'cleanup_canon; cleanup_seeded_home' EXIT
 
 # The token store inside a home: the directory layout `xr` keeps at
 # ~/.xurl/auth.yml. Every gate addresses a store through this one function.
@@ -110,6 +121,7 @@ smoke_store() {
 
 seed_smoke_store() {
   SMOKE_HOME="$(mktemp -d -t xr-preflight-XXXXXX)"
+  SEEDED_HOME="$SMOKE_HOME"
   local store
   store=$(smoke_store "$SMOKE_HOME")
 
@@ -156,8 +168,8 @@ seed_smoke_store() {
     ' "$store"
 }
 
-# The exit trap's guard compares the path as written, and `"$HOME"/*` matches
-# `$HOME/`, so the home goes to the trap without a trailing slash, `.`, or `..`.
+# The shred guard compares a path as written, and `"$HOME"/*` matches `$HOME/`,
+# so a home the caller names is held without a trailing slash, `.`, or `..`.
 plain_dir() {
   local dir
   if [[ -n "$1" ]] && dir=$(CDPATH='' cd -- "$1" 2>/dev/null && pwd -L); then
@@ -168,13 +180,10 @@ plain_dir() {
 }
 
 # A home the caller names is read as it is. One that holds no store refuses
-# rather than seeding another, and keeps the exit trap from shredding a
-# directory this run did not create.
+# rather than seeding another.
 ensure_smoke_home() {
   if [[ -n "$SMOKE_HOME" ]]; then
     [[ -f "$(smoke_store "$SMOKE_HOME")" ]] && return 0
-    # shellcheck disable=SC2034  # read by _lib.sh's EXIT-trap cleanup
-    NO_CLEANUP=1
     echo "no token store at $(smoke_store "$SMOKE_HOME"): --smoke-home reads the directory layout, <home>/.xurl/auth.yml" >&2
     exit 2
   fi
@@ -356,8 +365,6 @@ gate_api_contract() {
 # Gate: smoke ----------------------------------------------------------------
 #
 # Project-authored: live X API checks driven against the store in $SMOKE_HOME.
-# The typed-wire step is the exception: live_smoke opens the library's default
-# store, ~/.xurl/auth.yml, and ignores XURL_TOKEN_STORE.
 
 gate_smoke() {
   header "Real-world smoke (live X API)"

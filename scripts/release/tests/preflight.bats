@@ -75,12 +75,13 @@ EOF
 
   cat >"$T/bin/cargo" <<'EOF'
 #!/usr/bin/env bash
-echo "cargo $*" >>"$STUB_XR_LOG"
+echo "cargo store=${XURL_TOKEN_STORE-unset} $*" >>"$STUB_XR_LOG"
 EOF
 
   cat >"$T/op/read_field.sh" <<'EOF'
 #!/usr/bin/env bash
 echo "$1|$2" >>"$STUB_OP_LOG"
+[ -z "${STUB_OP_FAIL:-}" ] || exit 1
 echo "stub-value"
 EOF
   chmod +x "$T"/bin/* "$T/op/read_field.sh"
@@ -180,6 +181,7 @@ named_store() {
   [ "$(yq '.apps | keys | join(",")' "$seeded/.xurl/auth.yml")" = "bird_dev,bird_prod" ]
   [ "$(yq '.default_app' "$seeded/.xurl/auth.yml")" = bird_dev ]
   refute_in "^store=$seeded/.xurl " "$T/xr.log"
+  grep -q "^cargo store=$seeded/.xurl/auth.yml test --test live_smoke -- --ignored$" "$T/xr.log"
 }
 
 @test "a store the gate seeds is shredded on exit unless --no-cleanup is given" {
@@ -188,10 +190,37 @@ named_store() {
   [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')" ]
 }
 
-# The exit trap shreds only under /tmp and $HOME, and matches `"$HOME"/*`, which
-# a trailing slash or a `..` brings the home itself under. The home sits outside
-# /tmp so that only the $HOME arm of the guard can let it through.
-@test "a --smoke-home that names \$HOME by another spelling is not shredded" {
+@test "a store the gate seeds is shredded when the seed fails before it is written" {
+  STUB_OP_FAIL=1 preflight smoke
+  [ "$status" -ne 0 ]
+  [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')" ]
+}
+
+@test "a --smoke-home survives exit without --no-cleanup, and the live test gets its store" {
+  named_store "$T/home"
+  echo keep >"$T/home/notes.txt"
+  cp -p "$T/home/.xurl/auth.yml" "$T/before.yml"
+  preflight --smoke-home "$T/home" smoke
+  [ "$status" -eq 0 ]
+  cmp "$T/before.yml" "$T/home/.xurl/auth.yml"
+  [ "$(cat "$T/home/notes.txt")" = keep ]
+  grep -q "^cargo store=$T/home/.xurl/auth.yml test --test live_smoke -- --ignored$" "$T/xr.log"
+}
+
+@test "a home the caller names survives exit when no gate runs, and when SMOKE_HOME names it" {
+  named_store "$T/home"
+  cp -p "$T/home/.xurl/auth.yml" "$T/before.yml"
+  preflight --smoke-home "$T/home" --help
+  [ "$status" -eq 0 ]
+  cmp "$T/before.yml" "$T/home/.xurl/auth.yml"
+  SMOKE_HOME="$T/home" preflight smoke
+  [ "$status" -eq 0 ]
+  cmp "$T/before.yml" "$T/home/.xurl/auth.yml"
+}
+
+# A named home is read, never shredded, whichever way it spells $HOME. The home
+# sits outside /tmp so that only the $HOME arm of the shred guard could pass it.
+@test "a --smoke-home that names \$HOME by another spelling is read and left alone" {
   OUTSIDE_TMP=$(mktemp -d /var/tmp/xr-preflight-bats-XXXXXX)
   PF_HOME="$OUTSIDE_TMP"
   mkdir -p "$PF_HOME/tmp" "$PF_HOME/sub"
@@ -199,7 +228,8 @@ named_store() {
     named_store "$PF_HOME"
     echo keep >"$PF_HOME/notes.txt"
     preflight --smoke-home "$spelling" smoke
-    [[ "$output" == *"refusing to shred outside /tmp or \$HOME: $PF_HOME"* ]]
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"refusing to shred"* ]]
     [ -f "$PF_HOME/.xurl/auth.yml" ]
     [ "$(cat "$PF_HOME/notes.txt")" = keep ]
   done
