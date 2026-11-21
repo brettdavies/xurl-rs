@@ -548,13 +548,14 @@ fn test_get_first_oauth2_token_for_app() {
 // ── TestResolveAppEdgeCases ────────────────────────────────────────────────
 
 #[test]
-fn test_resolve_app_nonexistent_falls_to_default() {
-    let (store, _tmp) = create_temp_token_store();
+fn test_resolve_app_nonexistent_holds_no_credentials() {
+    let (mut store, _tmp) = create_temp_token_store();
+    store
+        .save_bearer_token_for_app("default", "BEARER")
+        .expect("save the default app's bearer");
 
-    let app = store.resolve_app("nonexistent");
-    // Should be the default app
-    let default_app = store.get_app("default").unwrap();
-    assert_eq!(app.client_id, default_app.client_id);
+    assert!(store.resolve_app("nonexistent").bearer_token.is_none());
+    assert!(store.resolve_app("").bearer_token.is_some());
 }
 
 #[test]
@@ -874,7 +875,7 @@ fn test_save_oauth2_token_to_nonexistent_app_fails() {
     let result = store.save_oauth2_token_for_app("nonexistent", "user", "at", "rt", 1);
 
     assert!(
-        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        matches!(result, Err(xdk::Error::AppNotFound { .. })),
         "a save for an app the store does not hold was not refused: {result:?}"
     );
     assert!(
@@ -1174,7 +1175,7 @@ fn test_save_unnamed_to_missing_app_refuses() {
     let result = store.save_oauth2_token_unnamed_for_app("ghost", "ghost-at", "ghost-rt", 9_999);
 
     assert!(
-        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        matches!(result, Err(xdk::Error::AppNotFound { .. })),
         "a save for an app the store does not hold was not refused: {result:?}"
     );
     let active = store.get_default_app().to_string();
@@ -1401,7 +1402,7 @@ fn a_mutator_naming_an_app_on_an_unparseable_store_names_the_file() {
         let message = err.to_string();
         if err.kind() != "token-store"
             || !message.contains(&shown)
-            || message.contains(xdk::error::APP_NOT_FOUND)
+            || matches!(err, xdk::error::Error::AppNotFound { .. })
             || message.contains(xdk::error::USER_NOT_FOUND)
         {
             wrong.push(format!("{name}: {message}"));
@@ -1707,7 +1708,7 @@ fn a_token_saved_for_an_app_another_view_removed_lands_nowhere() {
     let result = saver.save_oauth1_tokens_for_app("work", "AT2", "TS2", "CK2", "CS2");
 
     assert!(
-        matches!(result, Err(xdk::Error::TokenStore { .. })),
+        matches!(result, Err(xdk::Error::AppNotFound { .. })),
         "a save for a removed app was not refused: {result:?}"
     );
     let on_disk = store_at(&path);
@@ -1737,7 +1738,7 @@ fn a_write_after_a_failed_rehearsal_is_saved() {
         .unwrap();
     let refused = store.rehearse(|copy| copy.remove_app("ghost"));
     assert!(
-        matches!(refused, Err(xdk::Error::TokenStore { .. })),
+        matches!(refused, Err(xdk::Error::AppNotFound { .. })),
         "{refused:?}"
     );
     store.add_app("saved", "S-ID", "S-SECRET").unwrap();

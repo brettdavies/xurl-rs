@@ -261,6 +261,11 @@ impl Auth {
     /// The redirect URI is always re-resolved (env-precedence is enforced
     /// inside the resolver itself, so re-running unconditionally produces
     /// the right value).
+    ///
+    /// A name the store does not hold names no credential: the store-derived
+    /// values come out empty, and a request through a [`Client`](crate::api::Client)
+    /// refuses it with [`Error::AppNotFound`]. [`Self::refuse_if_app_missing`]
+    /// is that check on its own.
     pub fn with_app_name(&mut self, app_name: &str) {
         self.app_name = app_name.to_string();
         let app = self.token_store.resolve_app(app_name);
@@ -350,6 +355,21 @@ impl Auth {
         Ok(format!("Bearer {access_token}"))
     }
 
+    /// Refuses the app this `Auth` names when the store does not hold it. An
+    /// empty name is the default app, and a store that could not be loaded is
+    /// left to the credential refusal that names the file.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::AppNotFound`] naming the app and the apps the store
+    /// holds.
+    pub fn refuse_if_app_missing(&self) -> Result<()> {
+        if self.token_store.load_failed() {
+            return Ok(());
+        }
+        self.token_store.refuse_if_app_missing(&self.app_name)
+    }
+
     /// Whether a stored `OAuth2` token would serve a request for `username`.
     ///
     /// Empty-caller precedence: `default_user` (via the first named token),
@@ -359,6 +379,9 @@ impl Auth {
     /// must not silently receive a salvage-state token under their name.
     #[must_use]
     pub fn has_oauth2_token(&self, username: &str) -> bool {
+        if self.refuse_if_app_missing().is_err() {
+            return false;
+        }
         let app_name = self.app_name.as_str();
         let first = self
             .token_store

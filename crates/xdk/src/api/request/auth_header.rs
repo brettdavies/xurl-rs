@@ -216,6 +216,7 @@ impl Client {
         credentials: &CredentialSource,
         options: &RequestOptions,
     ) -> Result<Selection> {
+        credentials.refuse_unheld_app()?;
         let method_raw = options.method.to_uppercase();
         let method = if method_raw.is_empty() {
             "GET"

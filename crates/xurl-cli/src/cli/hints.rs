@@ -9,13 +9,12 @@ use serde::{Deserialize, Serialize};
 
 pub use xdk::error::NextAction;
 use xdk::error::{
-    APP_NAME_TAKEN, APP_NOT_FOUND, BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE,
-    CALLBACK_INVALID_STATE, CALLBACK_PROVIDER_REFUSED, CALLBACK_TIMED_OUT, Error,
-    PENDING_APP_MISMATCH, PENDING_EXPIRED, PENDING_INVALID, PENDING_NOT_FOUND, PENDING_PERMISSIONS,
-    PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE,
-    REDIRECT_STATE_MISMATCH, REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED,
-    TOKEN_EXCHANGE_CLIENT_REFUSED, TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN,
-    USER_NOT_FOUND,
+    APP_NAME_TAKEN, BROWSER_OPEN_FAILED, CALLBACK_EMPTY_CODE, CALLBACK_INVALID_STATE,
+    CALLBACK_PROVIDER_REFUSED, CALLBACK_TIMED_OUT, Error, PENDING_APP_MISMATCH, PENDING_EXPIRED,
+    PENDING_INVALID, PENDING_NOT_FOUND, PENDING_PERMISSIONS, PENDING_SCOPE_MISMATCH,
+    REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
+    REFRESH_CLIENT_REFUSED, REFRESH_NO_TOKEN, REFRESH_TOKEN_REFUSED, TOKEN_EXCHANGE_CLIENT_REFUSED,
+    TOKEN_EXCHANGE_CODE_REFUSED, TOKEN_EXCHANGE_NO_TOKEN, USER_NOT_FOUND,
 };
 use xdk::store::snapshot::StoreSnapshot;
 use xdk::time::utc_minute;
@@ -622,20 +621,27 @@ pub fn unloadable_store_hint(snapshot: &StoreSnapshot, error: &Error) -> Option<
 /// logins each one holds.
 #[must_use]
 pub fn store_name_hint(error: &Error) -> Option<Hint> {
-    let Error::TokenStore { message, .. } = error else {
-        return None;
-    };
-    let text = if message.starts_with(APP_NOT_FOUND) {
-        "List the apps the store holds. Run: xr auth status"
-    } else if message.ends_with(APP_NAME_TAKEN) {
-        "List the apps the store holds, and pick a name none of them has. Run: xr auth status"
-    } else if message.ends_with(USER_NOT_FOUND) {
-        "List the logins the app holds. Run: xr auth status"
-    } else {
-        return None;
+    let text = match error {
+        Error::AppNotFound { held, .. } if held.is_empty() => {
+            "The store holds no apps. Run: xr auth status".to_string()
+        }
+        Error::AppNotFound { held, .. } => {
+            format!(
+                "The store holds the apps {}. Run: xr auth status",
+                held.join(", ")
+            )
+        }
+        Error::TokenStore { message, .. } if message.ends_with(APP_NAME_TAKEN) => {
+            "List the apps the store holds, and pick a name none of them has. Run: xr auth status"
+                .to_string()
+        }
+        Error::TokenStore { message, .. } if message.ends_with(USER_NOT_FOUND) => {
+            "List the logins the app holds. Run: xr auth status".to_string()
+        }
+        _ => return None,
     };
     Some(Hint {
-        text_lines: vec![text.to_string()],
+        text_lines: vec![text],
         next_step: NextStep::fix_input_with("xr auth status".to_string()),
     })
 }

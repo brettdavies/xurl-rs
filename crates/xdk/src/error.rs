@@ -117,12 +117,9 @@ fn classified_status(status: u16, body: &str) -> u16 {
 }
 
 /// Whether a [`Error::TokenStore`] message refuses a name the store does not
-/// take: an app it does not hold, one it already holds, or a login the app
-/// does not hold.
+/// take: an app it already holds, or a login the app does not hold.
 fn names_a_store_entry(message: &str) -> bool {
-    message.starts_with(APP_NOT_FOUND)
-        || message.ends_with(APP_NAME_TAKEN)
-        || message.ends_with(USER_NOT_FOUND)
+    message.ends_with(APP_NAME_TAKEN) || message.ends_with(USER_NOT_FOUND)
 }
 
 /// Whether an [`Error::Io`] message refuses a store write: the store's
@@ -303,6 +300,17 @@ pub enum Error {
         /// The failure underneath, when a lower-level error caused it.
         #[source]
         source: Option<Source>,
+    },
+
+    /// A request or a store operation named an app the store does not hold.
+    /// Nothing is sent and nothing is written under another app in its
+    /// place. An empty name is the default app and never meets this.
+    #[error("{} {name:?}", APP_NOT_FOUND)]
+    AppNotFound {
+        /// The app name as it was given.
+        name: String,
+        /// The apps the store holds, in name order.
+        held: Vec<String>,
     },
 
     /// A wait on media processing reached its deadline with the job still
@@ -658,7 +666,8 @@ impl Error {
             | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::MediaProcessingFailed { .. }
-            | Self::AccountNotFound { .. } => Some(NextAction::FixInput),
+            | Self::AccountNotFound { .. }
+            | Self::AppNotFound { .. } => Some(NextAction::FixInput),
             Self::TokenStore { message, .. } if names_a_store_entry(message) => {
                 Some(NextAction::FixInput)
             }
@@ -701,6 +710,7 @@ impl Error {
             | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::TokenStore { .. }
+            | Self::AppNotFound { .. }
             | Self::ProcessingTimeout { .. }
             | Self::AddressInUse { .. }
             | Self::MediaProcessingFailed { .. }
@@ -737,6 +747,7 @@ impl Error {
     /// | ---------------------- | ---------------- |
     /// | `Auth`                 | `auth-required`  |
     /// | `TokenStore`           | `token-store`    |
+    /// | `AppNotFound`          | `token-store`    |
     /// | `Api { 401, .. }`      | `auth-required`  |
     /// | `Api { 403, .. }`      | `forbidden`      |
     /// | `Api { 404, .. }`      | `not-found`      |
@@ -763,7 +774,7 @@ impl Error {
     pub fn kind(&self) -> &'static str {
         match self {
             Self::Auth { .. } => "auth-required",
-            Self::TokenStore { .. } => "token-store",
+            Self::TokenStore { .. } | Self::AppNotFound { .. } => "token-store",
             Self::Api { status, body, .. } => match classified_status(*status, body) {
                 401 => "auth-required",
                 403 => "forbidden",
@@ -800,7 +811,9 @@ impl Error {
     #[must_use]
     pub fn exit_code(&self) -> i32 {
         match self {
-            Self::Auth { .. } | Self::TokenStore { .. } => EXIT_AUTH_REQUIRED,
+            Self::Auth { .. } | Self::TokenStore { .. } | Self::AppNotFound { .. } => {
+                EXIT_AUTH_REQUIRED
+            }
             Self::Api { status, body, .. } => match classified_status(*status, body) {
                 401 => EXIT_AUTH_REQUIRED,
                 429 => EXIT_RATE_LIMITED,
@@ -980,14 +993,9 @@ pub const REDIRECT_MISSING_CODE: &str = "MissingCode: no 'code' parameter found 
 
 // ── Store failure messages ─────────────────────────────────────────
 
-/// The start of the message of an [`Error::TokenStore`] for a store operation,
-/// a token save included, that names an app the store does not hold. The name
-/// follows, quoted.
-// `xr` names the apps the store holds when a message starts with this, in
-// `crates/xurl-cli/src/cli/hints.rs`; an embedder classifies the error through
-// `next_action()`.
-#[doc(hidden)]
-pub const APP_NOT_FOUND: &str = "the store holds no app named";
+/// The start of the `Display` of [`Error::AppNotFound`]. The name follows,
+/// quoted.
+const APP_NOT_FOUND: &str = "the store holds no app named";
 
 /// The start of the message of an [`Error::Io`] for a token store whose
 /// directory cannot be created. The directory and the cause follow.
