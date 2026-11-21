@@ -226,6 +226,22 @@ impl Client {
 }
 
 impl<T> Call<T> {
+    /// The value the request sends for the query parameter `name`, when it
+    /// sends one. A raw URL's query is the caller's own and is not read.
+    // `xr`'s dry run reports the page size a request sends with it, in
+    // `DryRun::sending` in `crates/xurl-cli/src/cli/commands/mod.rs`.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn query_value(&self, name: &str) -> Option<&str> {
+        let RequestTarget::Template { query, .. } = &self.request.target else {
+            return None;
+        };
+        query
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.as_str())
+    }
+
     pub(crate) fn new(client: &Client, request: RequestOptions) -> Self {
         Self {
             client: client.clone(),

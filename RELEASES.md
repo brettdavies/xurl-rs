@@ -1,4 +1,4 @@
-<!-- Canonical version: 2026.11.03 (generic) -->
+<!-- Canonical version: 2026.11.07 (generic) -->
 <!-- canonical: version-scheme semver -->
 # Releasing `xurl-rs`
 
@@ -504,6 +504,12 @@ Two of them follow from how this release runs. `release-tag-moved` means `main` 
 run checked it out; the annotation gives the dispatch onto the tag's own ref, which releases the tagged commit and saves
 no cache a later release restores. `library-wait-timeout` means `xdk-rs` did not reach crates.io within the wait; once
 `release-lib.yml` is green, `gh run rerun <id> --failed` continues the release with its builds and attestations kept.
+Push the tags on `main`'s head, as `scripts/release/tag-release.sh` does, and merge nothing to `main` until the release
+run has started.
+
+The release links the caches `main`'s runs saved into the binaries it attests, so every workflow that runs on `main`
+runs reviewed code only. Add no `pull_request_target`, `workflow_run`, or `issue_comment` workflow that checks out a pull
+request's code or writes a cache under the release build's keys.
 
 The tap's formula installs this release's archives. Its `update-formula` workflow downloads the four it names (the two
 `apple-darwin` and the two `linux-musl` archives), verifies each against the attestation `attest` made, and pins its
@@ -666,6 +672,7 @@ gh release edit "$PREV" --latest
 # vX.Y.Z`) so `brew install` resolves the previous version, whose assets are still
 # attached to the previous GitHub Release. A release the tap published with a bottle
 # (4.3.0 and earlier) has a second commit, `xurl-rs: add X.Y.Z bottle.`; revert it first.
+# The tap's RELEASES.md § Rollback lands the revert on its main through a pull request.
 git -C ~/dev/homebrew-tap revert <bump-sha>
 ```
 

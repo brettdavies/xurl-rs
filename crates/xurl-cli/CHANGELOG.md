@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.8.0] - 2026-11-21
+
+### Breaking changes
+
+- Change the `reason` of a stream's `cancelled` document to `sigint` when Ctrl+C (SIGINT) ends the stream, where it reported `sigterm`; SIGTERM still reports `sigterm`. A script that matched `sigterm` for Ctrl+C needs to match both. It ships in a minor under the small-break exception, and [`docs/migrating/v4.8.0.md`](https://github.com/brettdavies/xurl-rs/blob/main/docs/migrating/v4.8.0.md) maps each 4.7 filter to its 4.8 form. by @brettdavies in [#594](https://github.com/brettdavies/xurl-rs/pull/594)
+
+### Added
+
+- Add the `invalid-source-id` validation rule: `broadcasts sources get`, `stream-key`, `update`, and `remove` refuse a source id that is not 1 to 19 digits before any request, and `remove` refuses it before it asks for confirmation. by @brettdavies in [#594](https://github.com/brettdavies/xurl-rs/pull/594)
+
+### Fixed
+
+- Fix a destructive command's `confirmation-required` refusal leaving out the app it acts on: the refusal now carries `app`, the app whose credential the request would go out under, and its `confirm` template carries `--app` with it, so running the template acts on the same app even where `XURL_APP` is unset or names another app. by @brettdavies in [#589](https://github.com/brettdavies/xurl-rs/pull/589)
+- Fix the `auth-method-mismatch` message naming a different command than its `next_step`: the `Add credentials with:` tail now names the step's command or template, and is left off when the step reruns the invocation under another `--auth` or `--app`. by @brettdavies in [#592](https://github.com/brettdavies/xurl-rs/pull/592)
+- Fix `-u <login>` going out under a bearer token or OAuth1 keys on an endpoint that accepts OAuth2. A request that names a login now goes out under that login's OAuth2 token, or under a bearer token only where the endpoint accepts no OAuth2, and is refused otherwise, with the step that adds that login. A command that first looks up the login's account id now stops at that lookup with `auth-required` (exit 77), where it sent the lookup under the bearer token and stopped at the endpoint with `auth-method-mismatch` (exit 2).
+- Fix a dry run's `max_results` reporting the page size as typed: it now reports the size the request sends once `--limit`, the default, and the endpoint's range apply, and appears whenever the request carries one.
+- Fix the suggestion for a mistyped verb under a command family: `xr auth bearer` no longer suggests `clear`, which wipes stored tokens, nor `xr auth apps edit` `redirect-uri`; `rm` still suggests `remove`. by @brettdavies in [#594](https://github.com/brettdavies/xurl-rs/pull/594)
+- Fix the text dry run printing an object input as raw JSON: `post --clip` and `webhooks listen --forward` print one `key.member: value` line per member.
+
+**Full Changelog**: [v4.7.1...v4.8.0](https://github.com/brettdavies/xurl-rs/compare/v4.7.1...v4.8.0)
+
 ## [4.7.1] - 2026-11-20
 
 ### Fixed

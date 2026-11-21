@@ -1,0 +1,24 @@
+args: ["--output", "json", "--dry-run", "broadcasts", "sources", "stream-key", "not-an-id!"]
+store: empty
+exit_code: 0
+stdout_len: 419
+stderr_len: 0
+--- stdout ---
+{
+  "command": "broadcasts-sources-stream-key",
+  "exit_code": 1,
+  "message": "A source id is 1 to 19 digits.",
+  "next_step": {
+    "action": "show-help",
+    "command": "xr broadcasts sources stream-key --help"
+  },
+  "reason": "validation",
+  "response_schema": "xr schema broadcasts sources stream-key",
+  "rule": "invalid-source-id",
+  "source_id": "not-an-id!",
+  "status": "dry_run",
+  "would_succeed": false
+}
+
+--- stderr ---
+

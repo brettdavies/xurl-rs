@@ -2176,6 +2176,105 @@ fn a_structured_format_moves_the_store_without_a_line_on_stderr() {
     assert!(in_directory.is_file());
 }
 
+/// A dry run sends nothing, and it still opens the store the way a real run
+/// does: the first one moves a single-file store into the directory layout and
+/// says so, and the next finds it there.
+#[test]
+fn a_dry_run_moves_a_single_file_store_once_and_says_so() {
+    let tmp = TempDir::new().unwrap();
+    let (file, in_directory) = single_file_store(&tmp);
+    let before = fs::read(&file).unwrap();
+
+    let assert = common::xr_with_store(&in_directory)
+        .args(["--dry-run", "whoami"])
+        .assert()
+        .success();
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
+    assert!(
+        stderr.contains("Migrated")
+            && stderr.contains(&*file.to_string_lossy())
+            && stderr.contains(&*in_directory.to_string_lossy()),
+        "the move is reported with both paths: {stderr}"
+    );
+    assert!(file.is_dir());
+    assert_eq!(fs::read(&in_directory).unwrap(), before);
+
+    let assert = common::xr_with_store(&in_directory)
+        .args(["--dry-run", "whoami"])
+        .assert()
+        .success();
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
+    assert!(
+        !stderr.contains("Migrated"),
+        "the move happens once: {stderr}"
+    );
+    assert_eq!(fs::read(&in_directory).unwrap(), before);
+}
+
+/// Under a structured format a dry run moves the store and writes nothing to
+/// stderr.
+#[test]
+fn a_structured_dry_run_moves_a_single_file_store_without_a_line_on_stderr() {
+    let tmp = TempDir::new().unwrap();
+    let (file, in_directory) = single_file_store(&tmp);
+
+    common::xr_with_store(&in_directory)
+        .args(["--output", "json", "--dry-run", "whoami"])
+        .assert()
+        .success()
+        .stderr(predicates::str::is_empty());
+    assert!(file.is_dir());
+    assert!(in_directory.is_file());
+}
+
+/// A store in the legacy JSON format is rewritten as YAML by the first dry run
+/// that opens it, with its logins intact, and left as it is by the next.
+#[test]
+fn a_dry_run_rewrites_a_legacy_format_store_once() {
+    let tmp = TempDir::new().unwrap();
+    let dir = tmp.path().join(".xurl");
+    fs::create_dir(&dir).unwrap();
+    let store = dir.join(xdk::store::AUTH_FILE_NAME);
+    let legacy = serde_json::json!({
+        "oauth2_tokens": {
+            "legacyuser": {
+                "type": "oauth2",
+                "oauth2": {
+                    "access_token": "leg-at",
+                    "refresh_token": "leg-rt",
+                    "expiration_time": 9999
+                }
+            }
+        },
+        "bearer_token": { "type": "bearer", "bearer": "leg-bearer" }
+    });
+    fs::write(&store, serde_json::to_string(&legacy).unwrap()).unwrap();
+
+    let assert = common::xr_with_store(&store)
+        .args(["--dry-run", "whoami"])
+        .assert()
+        .success();
+    let stdout = String::from_utf8_lossy(&assert.get_output().stdout).into_owned();
+    assert!(
+        stdout.contains("login legacyuser"),
+        "the dry run reads the login from the upgraded store: {stdout}"
+    );
+    let upgraded = fs::read_to_string(&store).unwrap();
+    assert!(
+        upgraded.contains("apps:")
+            && upgraded.contains("default_app:")
+            && !upgraded.starts_with('{'),
+        "the file is YAML now: {upgraded}"
+    );
+    assert!(upgraded.contains("leg-at") && upgraded.contains("leg-bearer"));
+
+    common::xr_with_store(&store)
+        .args(["--dry-run", "whoami"])
+        .assert()
+        .success();
+    assert_eq!(fs::read_to_string(&store).unwrap(), upgraded);
+}
+
 /// A store that does not exist yet is created inside its own directory,
 /// which only its owner can read.
 #[test]
