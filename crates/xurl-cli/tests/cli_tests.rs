@@ -5801,6 +5801,7 @@ async fn test_not_enrolled_403_names_both_causes() {
         "X answered client-not-enrolled: When authenticating requests",
         "the app is not enrolled in a package that serves this endpoint",
         "the endpoint needs a higher X access level than the app's package, such as Enterprise",
+        "If `xr whoami` works under the same app and login, the access level is the likelier cause",
         "X Platform Enrollment: https://github.com/brettdavies/xurl-rs#x-platform-enrollment",
     ] {
         assert!(stderr.contains(part), "missing {part:?}; got: {stderr}");

@@ -87,16 +87,17 @@ The X API is pay-per-use: every request draws credits at the rates on X's
 
 ### X Platform Enrollment
 
-If sign-in succeeds but reads such as `xr whoami` or `get_me` fail with an error body containing `client-forbidden` or
-`client-not-enrolled`, X is refusing the app, not a problem in the local callback listener or the credential. A
-`client-not-enrolled` body fits two causes and does not say which:
+If sign-in succeeds but a request fails with an error body containing `client-forbidden` or `client-not-enrolled`, X
+is refusing the app. The cause is not the local callback listener or the credential. A `client-not-enrolled` body fits
+two causes and does not say which:
 
-- The app is not enrolled in a package that serves the endpoint. The recipe below fixes it.
+- The app is not enrolled in a package that serves the endpoint. Reads such as `xr whoami` or `get_me` fail too, and the
+  recipe below fixes it.
 - The endpoint needs a higher X access level than the app's package, such as Enterprise. Moving the app to another
   package does not fix it. X's docs list which endpoints that applies to, and `xr <command> --help` says so for the
-  commands whose endpoint X lists as Enterprise only.
+  commands whose endpoint X's docs plainly list as Enterprise only. A command with no such line may still need it.
 
-When other endpoints answer under the same app and login, the endpoint's access level is the cause.
+When `xr whoami` works under the same app and login, the endpoint's access level is the likelier cause.
 
 The working recipe in the X developer console, for the first cause:
 

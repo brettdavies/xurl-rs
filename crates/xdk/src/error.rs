@@ -22,7 +22,9 @@ pub enum NextAction {
     SelectApp,
     /// The store could not be read or parsed; look at the file.
     InspectStore,
-    /// X refused the app; enroll it in the developer portal.
+    /// X refused the app: it is not enrolled in a package that serves the
+    /// endpoint, or the endpoint needs a higher X access level than its
+    /// package, such as Enterprise; read the page the step names.
     EnrollApp,
     /// The invocation was not one the tool takes, a word that names no
     /// command or a usage error; read the help it names.

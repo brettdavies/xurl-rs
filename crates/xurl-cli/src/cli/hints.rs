@@ -650,9 +650,9 @@ pub fn store_name_hint(error: &Error) -> Option<Hint> {
 /// Builds the enrollment hint when `error` is X refusing the app.
 ///
 /// The body's own `detail` line is quoted when present so the reader can
-/// judge whether the match is right rather than trusting the label. A
-/// `client-not-enrolled` body names both causes X sends it for, because the
-/// body does not say which one it is.
+/// judge whether the match is right rather than trusting the label. For a
+/// `client-not-enrolled` body the hint names both causes X sends it for,
+/// because the body does not say which one it is.
 #[must_use]
 pub fn enrollment_hint(error: &Error) -> Option<Hint> {
     let (Error::Api { body, .. }, Some(NextAction::EnrollApp), Some(docs)) =
@@ -670,7 +670,7 @@ pub fn enrollment_hint(error: &Error) -> Option<Hint> {
         vec![
             first,
             format!(
-                "Either the app is not enrolled in a package that serves this endpoint, or the endpoint needs a higher X access level than the app's package, such as Enterprise. See X Platform Enrollment: {docs}"
+                "Either the app is not enrolled in a package that serves this endpoint, or the endpoint needs a higher X access level than the app's package, such as Enterprise. If `xr whoami` works under the same app and login, the access level is the likelier cause. See X Platform Enrollment: {docs}"
             ),
         ]
     } else {
