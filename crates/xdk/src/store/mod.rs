@@ -573,7 +573,7 @@ impl TokenStore {
         Self::require_user(self.resolve_app(app_name), username)?;
         self.update(|store| {
             store.refuse_if_app_missing(app_name)?;
-            let app = store.resolve_app_mut(app_name);
+            let app = store.resolve_app_mut(app_name)?;
             Self::require_user(app, username)?;
             app.default_user = username.to_string();
             Ok(())
@@ -608,7 +608,7 @@ impl TokenStore {
             if !name.is_empty() {
                 store.require_app(name)?;
             }
-            let app = store.resolve_app_mut(name);
+            let app = store.resolve_app_mut(name)?;
             app.redirect_uri = uri.to_string();
             Ok(())
         })
@@ -676,20 +676,22 @@ impl TokenStore {
         self.apps.get(name).unwrap_or(&EMPTY)
     }
 
-    /// Returns the app for the given name (mutable), or the default app.
-    /// A name the store does not hold also reaches the default app here, and
-    /// creates it when the store holds none: refuse that name first with
-    /// [`Self::refuse_if_app_missing`].
+    /// Returns the app for the given name (mutable). An empty name is the
+    /// default app, which the store creates when it holds none; any other name
+    /// is an app the store holds, and no other name creates one.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if the internal app map is in an inconsistent state (should never
-    /// happen as `active_app_or_create` always inserts a default).
-    pub fn resolve_app_mut(&mut self, name: &str) -> &mut App {
-        if !name.is_empty() && self.apps.contains_key(name) {
-            return self.apps.get_mut(name).expect("just checked");
+    /// Returns [`Error::AppNotFound`] naming the app and the apps the store
+    /// holds, and changes nothing, when `name` is not empty and names no app.
+    pub fn resolve_app_mut(&mut self, name: &str) -> Result<&mut App> {
+        self.refuse_if_app_missing(name)?;
+        if name.is_empty() {
+            return Ok(self.active_app_or_create());
         }
-        self.active_app_or_create()
+        self.apps.get_mut(name).ok_or_else(|| {
+            Error::Internal(format!("app {name:?} left the store while it was held"))
+        })
     }
 
     // ── Persistence ──────────────────────────────────────────────────
