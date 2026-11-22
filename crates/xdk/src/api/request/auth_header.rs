@@ -102,7 +102,8 @@ impl Client {
     /// [`Self::auth_preflight`] returns them.
     // `xr whoami --cached` answers from the stored account with it, in
     // `crates/xurl-cli/src/cli/commands/reads.rs`: it sends nothing, so no
-    // refresh runs.
+    // refresh runs. A raw request reads its credential with it before it
+    // goes out, in `crates/xurl-cli/src/cli/commands/sent.rs`.
     #[doc(hidden)]
     pub async fn stored_credential(
         &self,

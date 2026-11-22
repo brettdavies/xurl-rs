@@ -30,7 +30,7 @@ use clap::ValueEnum;
 use serde_json::Value;
 
 use crate::cli::ColorChoice;
-use crate::cli::envelope::{Envelope, ErrorBody, Reason};
+use crate::cli::envelope::{DryRunAuth, Envelope, ErrorBody, Reason};
 use delimited::write_flattened;
 use xdk::error::Error;
 
@@ -358,7 +358,34 @@ impl OutputConfig {
         exit_code: i32,
         hint: &crate::cli::hints::Hint,
     ) {
-        self.emit_error_envelope(err, error_body_with_step(error, exit_code, &hint.next_step));
+        let body = error_body_with_step(error, exit_code, &hint.next_step);
+        self.emit_body_with_hint(err, body, hint);
+    }
+
+    /// [`Self::print_error_with_hint`] for a request X refused over its
+    /// credential: the envelope also names the credential it went out under.
+    pub(crate) fn print_rejected(
+        &self,
+        err: &mut dyn Write,
+        error: &Error,
+        exit_code: i32,
+        hint: &crate::cli::hints::Hint,
+        credential: DryRunAuth,
+    ) {
+        let body = ErrorBody {
+            auth: Some(credential),
+            ..error_body_with_step(error, exit_code, &hint.next_step)
+        };
+        self.emit_body_with_hint(err, body, hint);
+    }
+
+    fn emit_body_with_hint(
+        &self,
+        err: &mut dyn Write,
+        body: ErrorBody,
+        hint: &crate::cli::hints::Hint,
+    ) {
+        self.emit_error_envelope(err, body);
         if self.format.is_structured() || self.quiet {
             return;
         }

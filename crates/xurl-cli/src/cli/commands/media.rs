@@ -118,6 +118,17 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
                 .await;
         return DryRun::new(ctx).answer(out, stdout, [credential]);
     }
+    let credential = api::media_upload_preflight(
+        &file,
+        &auth_type,
+        &username,
+        &headers,
+        wait.0.is_some(),
+        &client,
+    )
+    .await
+    .ok()
+    .flatten();
     let outcome = api::execute_media_upload(
         &file,
         &media_type,
@@ -129,7 +140,8 @@ async fn upload(args: UploadArgs, run: Run<'_>) -> CommandResult<()> {
         &headers,
         &client,
     )
-    .await?;
+    .await
+    .map_err(|error| Failure::of_request(error, credential))?;
     let response = outcome.response();
     if let Some(Err(error)) = outcome.processing {
         return Err(Failure::AfterUpload {
@@ -186,10 +198,15 @@ async fn status(
             api::media_status_auth_preflight(&auth_type, &username, headers, &client).await;
         return DryRun::new(ctx).answer(out, stdout, [credential]);
     }
+    let credential = api::media_status_auth_preflight(&auth_type, &username, headers, &client)
+        .await
+        .ok()
+        .flatten();
     let response = api::execute_media_status(
         media_id, &auth_type, &username, wait.0, trace, headers, &client,
     )
-    .await?;
+    .await
+    .map_err(|error| Failure::of_request(error, credential))?;
     out.print_response(
         stdout,
         &serde_json::to_value(&response).map_err(Error::from)?,

@@ -7,7 +7,7 @@ use serde_json::json;
 use super::webhooks_listen::{Listener, listen};
 use super::{
     Confirm, DryRun, Run, checked, dry_run_or_validate, make_client, send_confirmed,
-    send_confirmed_to_account, send_or_report, validate_account, with_flags,
+    send_confirmed_to_account, send_or_report, sent, validate_account, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::{
@@ -366,7 +366,7 @@ async fn replay_from_checkpoint(
         send_or_report(out, stdout, dry_run, call).await?;
         return Ok(());
     }
-    let mut answer = serde_json::to_value(call.send().await?).map_err(Error::from)?;
+    let mut answer = serde_json::to_value(sent::send(call).await?).map_err(Error::from)?;
     answer["clamped"] = json!(window.clamped);
     if let Some(lost_from) = window.lost_from {
         answer["lost_from"] = json!(lost_from);
