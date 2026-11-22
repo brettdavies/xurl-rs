@@ -247,17 +247,17 @@ fn another_token_store_failure_carries_no_list_of_apps() {
 }
 
 #[rstest::rstest]
-#[case::request(&["--output", "json", "whoami"])]
-#[case::dry_run(&["--output", "json", "--dry-run", "whoami"])]
-fn a_name_that_came_from_xurl_app_says_so(#[case] args: &[&str]) {
+#[case::request(&["--output", "json", "whoami"], 77, false)]
+#[case::dry_run(&["--output", "json", "--dry-run", "whoami"], 0, true)]
+fn a_name_that_came_from_xurl_app_says_so(
+    #[case] args: &[&str],
+    #[case] exit_code: i32,
+    #[case] on_stdout: bool,
+) {
     let (code, stdout, stderr) = child(args, &[("XURL_APP", GHOST)]);
 
-    let envelope = json_of(if stdout.trim().is_empty() {
-        &stderr
-    } else {
-        &stdout
-    });
-    assert!(code == 77 || code == 0, "{args:?}: {stderr}");
+    assert_eq!(code, exit_code, "{args:?}: {stderr}");
+    let envelope = json_of(if on_stdout { &stdout } else { &stderr });
     assert_eq!(
         envelope["message"],
         "Token Store Error: the store holds no app named \"ghost\" (from XURL_APP)",

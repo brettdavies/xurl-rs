@@ -506,10 +506,10 @@ pub(crate) async fn run(
         .wait_on_rate_limit
         .then(|| std::time::Duration::from_secs(cli.rate_limit_max_wait));
 
-    // `--app default` and no `--app` resolve to the same app, so once `cli.app`
-    // is applied below nothing tells them apart. The boolean captured here
-    // threads through to the auth commands so the credential-less-default
-    // warning fires only when the user named no app.
+    // `--app ""` names the default app just as no `--app` does, so the empty
+    // `auth.app_name()` below cannot tell them apart. The boolean captured
+    // here threads through to the auth commands so the credential-less-default
+    // warning fires only when the user passed no `--app`.
     let app_explicit = cli.app.is_some();
 
     // Apply --app override

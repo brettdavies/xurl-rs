@@ -152,8 +152,8 @@ pub struct DryRunBody {
     /// The offending input, as it was given, when the broken `rule` names one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
-    /// The apps the store holds, on a refusal whose `value` is an app name
-    /// the store does not hold.
+    /// The apps the store holds, in name order, when `value` is an app name it
+    /// does not hold; empty when the store holds none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub held: Option<Vec<String>>,
     /// The message the real run's error would carry.
