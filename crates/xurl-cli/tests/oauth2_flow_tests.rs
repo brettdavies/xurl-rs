@@ -1377,12 +1377,100 @@ async fn step2_for_another_apps_flow_finishes_under_that_app() {
     assert!(pending.exists(), "a refused step 2 keeps the pending state");
 }
 
+/// Step 1 with no `--app` signs in under the store's active app, so a step 2
+/// under another app is told to finish under that one, as it is when step 1
+/// named the app.
+#[tokio::test]
+async fn step2_for_a_flow_step1_started_on_the_active_app_finishes_under_it() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    std::fs::write(
+        &store,
+        "apps:\n  default:\n    client_id: 'default-client-id'\n    client_secret: 'default-client-secret'\n    oauth2_tokens: {}\n  work:\n    client_id: 'work-client-id'\n    client_secret: 'work-client-secret'\n    oauth2_tokens: {}\ndefault_app: default\n",
+    )
+    .expect("write tempdir store");
+    let overrides = xdk::config::EnvOverrides {
+        token_url: Some(format!("{CLOSED}/2/oauth2/token")),
+        info_url: Some(format!("{CLOSED}/2/users/me")),
+        ..xdk::config::EnvOverrides::default()
+    };
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let url: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    let state = query_param(
+        &Url::parse(url["auth_url"].as_str().expect("auth_url")).expect("a URL"),
+        "state",
+    );
+    let pending = xdk::auth::pending::pending_path_for_store(&store);
+
+    let redirect = format!(
+        "http://localhost:8080/callback?code=AUTHCODE&state={}",
+        urlencode(&state)
+    );
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--app",
+            "work",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("AppMismatch"),
+        "{envelope}"
+    );
+    assert_step(
+        &envelope,
+        "fix-input",
+        "template",
+        "xr --app default --output json auth oauth2 --no-browser --step 2 --auth-url <redirect-url>",
+    );
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+}
+
 /// `--app <saved>` cannot help when the saved app is this one, whose client id
 /// has moved on, or one the store no longer holds: the same refusal, or an
 /// unknown app. Both need a new flow.
 #[tokio::test]
 async fn step2_for_a_flow_no_stored_app_can_finish_starts_over_at_step_one() {
-    for (saved_app, why) in [("default", "this app"), ("gone", "an app no longer stored")] {
+    for (saved_app, why) in [
+        ("default", "this app"),
+        ("gone", "an app no longer stored"),
+        ("", "a flow that names no app"),
+    ] {
         let tmp = TempDir::new().unwrap();
         let store = tmp.path().join(".xurl");
         seed_store_two_apps(&store);
