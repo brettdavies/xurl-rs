@@ -1,20 +1,22 @@
 //! The answer the `OAuth2` token endpoint gives a grant, read the same way for
 //! the code a sign-in exchanges and for the refresh token a refresh spends.
 //!
-//! A refusal is an answer RFC 6749 section 5.2 shapes: a 400 or a 401, or a JSON
-//! body with a string `error` on any other status but a 5xx or a 429. It is
-//! [`Error::Auth`], of the client or of the grant, since the credential in hand
-//! is what was refused.
+//! A refusal is a failure status other than a 5xx or a 429 whose JSON body
+//! holds one of the error codes of RFC 6749 section 5.2, the one list in
+//! [`REFUSAL_CODES`]. It is [`Error::Auth`], of the client or of the grant,
+//! since the credential in hand is what was refused. A status alone is not a
+//! refusal: X's handler names its error, so a bare 400 or 401, or a JSON body
+//! with any other `error`, came from something in front of it.
 //!
-//! Any other failure is one the endpoint did not process, and it is the one
-//! any request to X reports: [`Error::Http`] with no answer, and [`Error::Api`]
-//! for a failure status, such as a 5xx, a 429, a 404, a 408, or a redirect,
-//! which no request to the token endpoint follows. A 403 is
-//! [`Error::TokenEndpointForbidden`], since the token URL or a proxy in front
-//! of it is what to look at. Both grants report every such answer as an
-//! `xdk::auth` warning that names the token endpoint and the status, since the
-//! error alone does not name the status. A token URL no request can go to is
-//! [`Error::InvalidUrl`].
+//! Any other failure is one the endpoint did not process. [`Error::Http`] is
+//! no answer. A 404, a 408, a 429, and a 5xx are the [`Error::Api`] any
+//! request to X reports. A 403 is [`Error::TokenEndpointForbidden`], and every
+//! other status, a redirect included since no request to the token endpoint
+//! follows one, is [`Error::TokenEndpointUnexpected`], since the token URL or
+//! a proxy in front of it is what to look at. Both grants report every such
+//! answer as an `xdk::auth` warning that names the token endpoint and the
+//! status, since the error alone does not name the status. A token URL no
+//! request can go to is [`Error::InvalidUrl`].
 
 use serde_json::Value;
 
@@ -73,6 +75,55 @@ impl Grant {
     }
 }
 
+/// Who an RFC 6749 section 5.2 error code says was refused.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Refused {
+    /// The client's own credentials, which another grant would not mend.
+    Client,
+    /// The authorization code or the refresh token.
+    Grant,
+}
+
+/// An error code that makes an answer a refusal, and who it refuses.
+struct Code {
+    name: &'static str,
+    refused: Refused,
+}
+
+/// The error codes that make an answer a refusal. RFC 6749 section 5.2 lists
+/// these six, and X's documentation of the token endpoint's errors
+/// (docs.x.com, `fundamentals/authentication/oauth-2-0/oauth-1-0a-token-exchange`)
+/// names five of them on a 400: `invalid_request`, `invalid_grant`,
+/// `invalid_scope`, `unauthorized_client`, and `invalid_client`. It names two
+/// more, `rate_limited` and `temporarily_unavailable`, only on a 429 and a
+/// 503, which are never refusals.
+const REFUSAL_CODES: [Code; 6] = [
+    Code {
+        name: "invalid_request",
+        refused: Refused::Grant,
+    },
+    Code {
+        name: "invalid_client",
+        refused: Refused::Client,
+    },
+    Code {
+        name: "invalid_grant",
+        refused: Refused::Grant,
+    },
+    Code {
+        name: "unauthorized_client",
+        refused: Refused::Client,
+    },
+    Code {
+        name: "unsupported_grant_type",
+        refused: Refused::Grant,
+    },
+    Code {
+        name: "invalid_scope",
+        refused: Refused::Grant,
+    },
+];
+
 /// A successful answer: the access token, and the body it came in.
 pub(crate) struct Answer {
     pub(crate) access_token: String,
@@ -99,11 +150,11 @@ pub(crate) fn post(token_url: &str) -> Result<reqwest::RequestBuilder> {
 /// Sends `request`, which [`post`] built, to the token endpoint at `token_url`
 /// and reads its answer.
 ///
-/// A 400 or a 401 is a refusal by its status alone. Any other failure status
-/// is one only when its body is JSON with a string `error`, so a proxy's error
-/// page reads as the status it came with. The text of a failure answer is
-/// masked of what `sent` names and cut short, since a page can repeat the
-/// request.
+/// A failure status is a refusal only when its body is JSON whose `error` is
+/// one of [`REFUSAL_CODES`] and it is no 5xx or 429, so a proxy's error page,
+/// or a bare 400 or 401, reads as the status it came with. The text of a
+/// failure answer is masked of what `sent` names and cut short, since a page
+/// can repeat the request.
 ///
 /// # Errors
 ///
@@ -120,13 +171,6 @@ pub(crate) async fn answer(
         .map_err(|e| unsent(e, token_url, grant))?;
 
     let status = response.status();
-    if matches!(
-        status,
-        reqwest::StatusCode::BAD_REQUEST | reqwest::StatusCode::UNAUTHORIZED
-    ) {
-        let body = response.json::<Value>().await.unwrap_or_default();
-        return Err(refused(status, &body, grant, sent));
-    }
     if !status.is_success() {
         let error = match api_error(response).await {
             Ok(error) => error,
@@ -135,27 +179,11 @@ pub(crate) async fn answer(
                 return Err(broke_off(read, grant));
             }
         };
-        if let Some(object) = refusal_body(status, &error) {
-            return Err(refused(status, &object, grant, sent));
+        if let Some((code, body)) = refusal_body(status, &error) {
+            return Err(refused(status, code, &body, grant, sent));
         }
         warn_of_answer(grant, status);
-        return Err(match error {
-            Error::Api {
-                status: 403, body, ..
-            } => Error::TokenEndpointForbidden {
-                body: sent.fit_to_print(&body),
-            },
-            Error::Api {
-                status,
-                body,
-                reset_at,
-            } => Error::Api {
-                status,
-                body: sent.fit_to_print(&body),
-                reset_at,
-            },
-            other => other,
-        });
+        return Err(unprocessed(error, sent));
     }
 
     // A success whose body breaks off is no answer, which the same request can
@@ -202,9 +230,10 @@ fn warn_of_answer(grant: Grant, status: reqwest::StatusCode) {
     );
 }
 
-/// The JSON body of a failure status other than a 5xx or a 429 when it holds
-/// a string `error`, which makes the answer a refusal whatever its status.
-fn refusal_body(status: reqwest::StatusCode, error: &Error) -> Option<Value> {
+/// What the answer's body names, when it refuses: a failure status other than
+/// a 5xx or a 429 whose JSON body holds a string `error` that is one of
+/// [`REFUSAL_CODES`].
+fn refusal_body(status: reqwest::StatusCode, error: &Error) -> Option<(&'static Code, Value)> {
     if status.is_server_error() || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
         return None;
     }
@@ -212,7 +241,36 @@ fn refusal_body(status: reqwest::StatusCode, error: &Error) -> Option<Value> {
         return None;
     };
     let object: Value = serde_json::from_str(body).ok()?;
-    object["error"].is_string().then_some(object)
+    let named = object["error"].as_str()?;
+    let code = REFUSAL_CODES.iter().find(|code| code.name == named)?;
+    Some((code, object))
+}
+
+/// The failure an answer that is no refusal is. A 404, a 408, a 429, and a 5xx
+/// read as they do on any request to X, a 403 is the token endpoint's own, and
+/// every other status is one the module reports with its status.
+fn unprocessed(error: Error, sent: &Sent) -> Error {
+    match error {
+        Error::Api {
+            status: 403, body, ..
+        } => Error::TokenEndpointForbidden {
+            body: sent.fit_to_print(&body),
+        },
+        Error::Api {
+            status,
+            body,
+            reset_at,
+        } if matches!(status, 404 | 408 | 429 | 500..=599) => Error::Api {
+            status,
+            body: sent.fit_to_print(&body),
+            reset_at,
+        },
+        Error::Api { status, body, .. } => Error::TokenEndpointUnexpected {
+            status,
+            body: sent.fit_to_print(&body),
+        },
+        other => other,
+    }
 }
 
 /// An answer whose body broke off before it ended: no answer to read, so the
@@ -240,30 +298,29 @@ fn cause_chain(error: &dyn std::error::Error) -> String {
 }
 
 /// The refusal an error answer states: the status, and the endpoint's own
-/// `error` and `error_description` when it sent them.
-fn refused(status: reqwest::StatusCode, body: &Value, grant: Grant, sent: &Sent) -> Error {
-    let error_code = body["error"].as_str();
-    let description = body["error_description"].as_str();
+/// `error` and `error_description`.
+fn refused(
+    status: reqwest::StatusCode,
+    code: &Code,
+    body: &Value,
+    grant: Grant,
+    sent: &Sent,
+) -> Error {
     let mut message = format!(
-        "{}: HTTP {status}",
-        refusal(status, error_code.unwrap_or_default(), grant)
+        "{}: HTTP {status} — {}",
+        refusal(status, code, grant),
+        code.name
     );
-    match (error_code, description) {
-        (Some(code), Some(description)) => {
-            message.push_str(&format!(" — {code}: {description}"));
-        }
-        (Some(said), None) | (None, Some(said)) => message.push_str(&format!(" — {said}")),
-        (None, None) => {}
+    if let Some(description) = body["error_description"].as_str() {
+        message.push_str(&format!(": {description}"));
     }
     Error::auth(sent.fit_to_print(&message))
 }
 
-/// Which refusal an error answer is: of the client (RFC 6749 section 5.2 lets
-/// that arrive as a 400), or of the grant.
-fn refusal(status: reqwest::StatusCode, error_code: &str, grant: Grant) -> &'static str {
-    if status == reqwest::StatusCode::UNAUTHORIZED
-        || matches!(error_code, "invalid_client" | "unauthorized_client")
-    {
+/// Which refusal an error answer is: of the client (a 401, or a code RFC 6749
+/// section 5.2 lets arrive as a 400), or of the grant.
+fn refusal(status: reqwest::StatusCode, code: &Code, grant: Grant) -> &'static str {
+    if status == reqwest::StatusCode::UNAUTHORIZED || code.refused == Refused::Client {
         grant.client_refused()
     } else {
         grant.grant_refused()

@@ -419,12 +419,14 @@ impl Auth {
     ///
     /// Returns an error if the authorization flow or the opener fails, or if
     /// the token exchange does: [`Error::Http`] when the token endpoint does
-    /// not answer, [`Error::Api`] when it answers a failure status that is no
-    /// OAuth refusal, such as a 5xx, a 429 (with `reset_at` when it names its
-    /// reset), or a proxy's 404, [`Error::TokenEndpointForbidden`] when that
-    /// status is a 403, [`Error::InvalidUrl`] when the token URL is not one a
-    /// request can go to, and [`Error::Auth`] when it refuses the code or the
-    /// client. A store file that exists but cannot be loaded, or that holds no
+    /// not answer, [`Error::Api`] when it answers a 404, a 408, a 429 (with
+    /// `reset_at` when it names its reset), or a 5xx that is no OAuth refusal,
+    /// [`Error::TokenEndpointForbidden`] when that status is a 403,
+    /// [`Error::TokenEndpointUnexpected`] when it is any other status, a 400
+    /// or a 401 with no RFC 6749 section 5.2 error code and a redirect among
+    /// them, [`Error::InvalidUrl`] when the token URL is not one a request can
+    /// go to, and [`Error::Auth`] when it refuses the code or the client with
+    /// such a code. A store file that exists but cannot be loaded, or that holds no
     /// app by the name set with [`Self::with_app_name`], is
     /// [`Error::TokenStore`], and a store the save cannot write is
     /// [`Error::Io`] as the save would return it, each met before the listener

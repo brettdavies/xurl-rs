@@ -3111,10 +3111,6 @@ fn oauth_error(status: u16, error: &str) -> ResponseTemplate {
 async fn step2_whose_code_x_would_not_exchange_starts_over_at_step_one() {
     for (why, response) in [
         ("invalid_grant", oauth_error(400, "invalid_grant")),
-        (
-            "a 400 with no JSON",
-            ResponseTemplate::new(400).set_body_string("no"),
-        ),
         ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
         ("invalid_grant on a 404", oauth_error(404, "invalid_grant")),
         (
@@ -3173,12 +3169,13 @@ async fn step2_x_answered_with_a_server_error_is_a_server_error_and_is_sent_agai
     }
 }
 
-/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with a JSON body that
-/// holds a string `error`. Any other answer came from something that did not
-/// process the exchange, such as a proxy or a token URL with the wrong path, so
-/// the code is still good and the saved flow stays for the same step 2. A 403
-/// points at the token URL and the proxy in front of it, and every such answer
-/// is warned of by name, with its status.
+/// RFC 6749 section 5.2 refuses with a JSON body whose `error` is one of its
+/// codes, whatever the status. Any other answer, a bare 400 or 401 among them,
+/// came from something that did not process the exchange, such as a proxy or a
+/// token URL with the wrong path, so the code is still good and the saved flow
+/// stays for the same step 2. A 403 or any other status the token endpoint's
+/// own step covers points at the token URL and the proxy in front of it, and
+/// every such answer is warned of by name, with its status.
 #[tokio::test]
 async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
     for NoRefusal {
@@ -3266,15 +3263,18 @@ async fn step2_failure_answer_of_a_large_page_is_cut_short() {
     }
 }
 
-/// An empty 403 is said to be empty, not printed as `{}`.
+/// An answer with an empty body is said to be empty, not printed as `{}`.
 #[tokio::test]
-async fn step2_with_an_empty_token_endpoint_403_says_so() {
-    let (_code, envelope) = step2_answered_with(ResponseTemplate::new(403)).await;
+async fn step2_with_an_empty_token_endpoint_answer_says_so() {
+    for status in [400, 401, 403, 418] {
+        let (_code, envelope) = step2_answered_with(ResponseTemplate::new(status)).await;
 
-    assert_eq!(
-        envelope["message"], "the token endpoint answered 403 with an empty body",
-        "{envelope}"
-    );
+        assert_eq!(
+            envelope["message"],
+            format!("the token endpoint answered {status} with an empty body"),
+            "{envelope}"
+        );
+    }
 }
 
 /// A warning names the token endpoint and the HTTP status of its answer, since

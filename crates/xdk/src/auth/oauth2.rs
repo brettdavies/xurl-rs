@@ -689,12 +689,14 @@ pub(crate) async fn refresh_grant(
 /// before the grant so the refresh token is not spent on a pair the store
 /// could not keep. When the refresh itself fails:
 /// [`Error::Auth`] when the token endpoint refuses the refresh token or the
-/// client, or answers with no access token; [`Error::Http`] when it does not
-/// answer; [`Error::Api`] when it answers a failure status that is no OAuth
-/// refusal, such as a 5xx, a 429 (with `reset_at` when it names its reset), or
-/// a proxy's 404; [`Error::TokenEndpointForbidden`] when that status is a 403;
-/// and [`Error::InvalidUrl`] when the token URL is not one a request can go
-/// to. A failed refresh writes nothing to the store.
+/// client with an RFC 6749 section 5.2 error code, or answers with no access
+/// token; [`Error::Http`] when it does not answer; [`Error::Api`] when it
+/// answers a 404, a 408, a 429 (with `reset_at` when it names its reset), or a
+/// 5xx that is no OAuth refusal; [`Error::TokenEndpointForbidden`] when that
+/// status is a 403; [`Error::TokenEndpointUnexpected`] when it is any other
+/// status, a 400 or a 401 with no such code and a redirect among them; and
+/// [`Error::InvalidUrl`] when the token URL is not one a request can go to. A
+/// failed refresh writes nothing to the store.
 /// A failed `/2/users/me` lookup is not an error.
 pub async fn refresh_oauth2_token(
     auth: &mut Auth,

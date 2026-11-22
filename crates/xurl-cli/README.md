@@ -1070,7 +1070,7 @@ that carries an id taking those of the template it fits, and to every scheme whe
 | `server-error`               | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
 | `git-clone-failed`           | `retry`                                                                                                                                          |
 | `not-found`                  | `fix-input`                                                                                                                                      |
-| `invalid-request`            | `fix-input`                                                                                                                                      |
+| `invalid-request`            | `fix-input`; `docs` names the token endpoint section for a 400 from it with no OAuth error code                                                  |
 | `validation-failed`          | `fix-input`                                                                                                                                      |
 | `io`                         | `fix-input`, with `docs` when the token store's directory cannot be created or the store file cannot be written                                  |
 | `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                                                        |
@@ -1082,7 +1082,7 @@ that carries an id taking those of the template it fits, and to every scheme whe
 | `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                         |
 | `internal`                   | `report-issue`                                                                                                                                   |
 | `serialization`              | `report-issue`                                                                                                                                   |
-| `api-error`                  | `retry` on a 408, or `resume-wait` when that 408 answered a status read after `xr media upload` finished; `report-issue` otherwise               |
+| `api-error`                  | `retry` on a 408, `resume-wait` after an upload's status read; `fix-input` for a token endpoint answer with no OAuth code; else `report-issue`   |
 
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 
@@ -1096,13 +1096,14 @@ Every reason has a row. The five actions that are not about credentials or help 
   step is a `template` with the redirect URL to fill in. For a 401 on the status read after `xr media upload` finished,
   the step is the command that resumes the wait, as a `template` to run once the credential works, and `docs` names X's
   authentication page; for a 403 from the token endpoint on that read, it is the same template, to run once `TOKEN_URL`
-  and the proxy are fixed. `docs` names X's page on response codes for a 400, a 404, or a 422. For a 403 from the token
-  endpoint that is no OAuth refusal, `docs` names the repository README's section on the token endpoint, `TOKEN_URL`,
-  and proxies. - `report-issue`: the fault is in `xr` or its library. `docs` is the issue tracker. - `confirm`: a
-  destructive command ran without its confirmation. The step is a `template`, never a `command`: it is the invocation
-  that destroys once it runs, so an agent that runs every `command` it is handed does not confirm by accident. -
-  `run-command`: one other command repairs this, and `command` is that invocation. A `forward-failed` record from
-  `xr webhooks listen` carries it as a `template`: the replay of the event's minute, with `<WEBHOOK_ID>` to fill in.
+  and the proxy are fixed. `docs` names X's page on response codes for a 400, a 404, or a 422. For an answer from the
+  token endpoint that carries no OAuth error code, other than a 404, a 408, a 429, or a 5xx, `docs` names the repository
+  README's section on the token endpoint, `TOKEN_URL`, and proxies. - `report-issue`: the fault is in `xr` or its
+  library. `docs` is the issue tracker. - `confirm`: a destructive command ran without its confirmation. The step is a
+  `template`, never a `command`: it is the invocation that destroys once it runs, so an agent that runs every `command`
+  it is handed does not confirm by accident. - `run-command`: one other command repairs this, and `command` is that
+  invocation. A `forward-failed` record from `xr webhooks listen` carries it as a `template`: the replay of the event's
+  minute, with `<WEBHOOK_ID>` to fill in.
 
 Under `auth-required`, a failed `xr auth oauth2` names the step that moves the sign-in forward:
 
@@ -1116,14 +1117,17 @@ Under `auth-required`, a failed `xr auth oauth2` names the step that moves the s
 
 A failed `xr auth oauth2` that says nothing about credentials takes its own reason. A refused argument (`--auth-url`
 missing or empty, given at step 1, or empty or unreadable on stdin) is `invalid-args`. The token endpoint refuses a code
-with a 400 or a 401, or with a JSON body that holds a string `error` on any other status but a 5xx or a 429. Any other
-failure is an exchange the endpoint did not process, and it reports what any other request would: `network-error` with
-no answer, `server-error` on a 5xx, `rate-limited` on a 429, and the reason for its status on anything else, such as
-`forbidden` with `fix-input` for a 403, which points at `TOKEN_URL` and the proxy in front of it, `not-found` for a
-token URL with the wrong path, or `api-error` with `retry` for a 408. Each such answer also carries a warning that names
-the token endpoint and its HTTP status. The same invocation finishes once the endpoint answers, or, for a token URL with
-the wrong path, once `TOKEN_URL` names the right one, and if X had already spent the code, it answers with the `sign-in`
-step above. A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
+with a JSON body whose `error` is one of the six codes of RFC 6749 section 5.2 (`invalid_request`, `invalid_client`,
+`invalid_grant`, `unauthorized_client`, `unsupported_grant_type`, `invalid_scope`) on any status but a 5xx or a 429. Any
+other failure is an exchange the endpoint did not process, and it reports what any other request would: `network-error`
+with no answer, `server-error` on a 5xx, `rate-limited` on a 429, and the reason for its status on anything else, such
+as `not-found` for a token URL with the wrong path or `api-error` with `retry` for a 408. A 400, a 401, a 403, a 3xx, or
+any status with no reading of its own that carries no OAuth error code points at `TOKEN_URL` and the proxy in front of
+it: `invalid-request` for a 400, `forbidden` for a 403, and `api-error` for the rest, each at exit 1 with `fix-input`
+and `docs` on the README's section on the token endpoint. Each such answer also carries a warning that names the token
+endpoint and its HTTP status. The same invocation finishes once the endpoint answers, or, for a token URL with the wrong
+path, once `TOKEN_URL` names the right one, and if X had already spent the code, it answers with the `sign-in` step
+above. A `TOKEN_URL` that is not a URL is `invalid-url`, which another try cannot get past.
 
 Any command whose OAuth2 login has expired refreshes it first, and a failed refresh writes nothing to the store. A
 refresh X refused is `auth-required`: a refused refresh token, or an answer with no token, carries the `sign-in` that

@@ -533,10 +533,6 @@ async fn a_command_whose_refresh_x_could_not_answer_refreshes_when_run_again() {
 async fn a_refused_refresh_token_signs_the_login_in_again() {
     for (why, response) in [
         ("invalid_grant", oauth_error(400, "invalid_grant")),
-        (
-            "a 400 with no JSON",
-            ResponseTemplate::new(400).set_body_string("<html>Bad Request</html>"),
-        ),
         ("invalid_grant on a 403", oauth_error(403, "invalid_grant")),
         ("invalid_grant on a 404", oauth_error(404, "invalid_grant")),
         (
@@ -571,10 +567,11 @@ async fn a_refused_refresh_token_signs_the_login_in_again() {
     }
 }
 
-/// RFC 6749 section 5.2 refuses with a 400 or a 401, or with a JSON body that
-/// holds a string `error`. Any other answer came from something that did not
-/// process the refresh, such as a proxy or a token URL with the wrong path, so
-/// it reports what any request to X would, and the refresh token stays good.
+/// RFC 6749 section 5.2 refuses with a JSON body whose `error` is one of its
+/// codes, whatever the status. Any other answer, a bare 400 or 401 among them,
+/// came from something that did not process the refresh, such as a proxy or a
+/// token URL with the wrong path, so it reports its status and the refresh
+/// token stays good.
 #[tokio::test]
 async fn a_refresh_answered_with_no_oauth_refusal_reports_its_status() {
     for NoRefusal {
@@ -666,41 +663,50 @@ async fn a_failure_answer_of_a_large_page_is_cut_short() {
     }
 }
 
-/// An empty 403 is said to be empty, not printed as `{}`.
+/// An answer with an empty body is said to be empty, not printed as `{}`.
 #[tokio::test]
-async fn an_empty_token_endpoint_403_says_so() {
-    let (_code, envelope) = whoami_answered_with(ResponseTemplate::new(403)).await;
+async fn an_empty_token_endpoint_answer_says_so() {
+    for status in [400, 401, 403, 418] {
+        let (_code, envelope) = whoami_answered_with(ResponseTemplate::new(status)).await;
 
-    assert_eq!(
-        envelope["message"], "the token endpoint answered 403 with an empty body",
-        "{envelope}"
-    );
+        assert_eq!(
+            envelope["message"],
+            format!("the token endpoint answered {status} with an empty body"),
+            "{envelope}"
+        );
+    }
 }
 
 /// Text output tells a person where to look: the token URL and any proxy in
 /// front of it, with the page that covers both.
 #[tokio::test]
-async fn text_output_points_a_token_endpoint_403_at_the_token_url_and_the_proxy() {
-    let server = MockServer::start().await;
-    Mock::given(method("POST"))
-        .and(path("/2/oauth2/token"))
-        .respond_with(ResponseTemplate::new(403).set_body_string("<html>Forbidden</html>"))
-        .mount(&server)
+async fn text_output_points_an_unexpected_token_endpoint_answer_at_the_token_url_and_the_proxy() {
+    for status in [401, 403, 418] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(status).set_body_string("<html>Blocked</html>"))
+            .mount(&server)
+            .await;
+        let tmp = TempDir::new().unwrap();
+        let store = expired_login(tmp.path());
+
+        let (code, _stdout, stderr) = run(
+            &store,
+            &format!("{}/2/oauth2/token", server.uri()),
+            &["whoami", "-u", LOGIN],
+        )
         .await;
-    let tmp = TempDir::new().unwrap();
-    let store = expired_login(tmp.path());
 
-    let (code, _stdout, stderr) = run(
-        &store,
-        &format!("{}/2/oauth2/token", server.uri()),
-        &["whoami", "-u", LOGIN],
-    )
-    .await;
-
-    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{stderr}");
-    assert!(stderr.contains("TOKEN_URL"), "{stderr}");
-    assert!(stderr.contains("proxy"), "{stderr}");
-    assert!(stderr.contains(TOKEN_ENDPOINT_DOCS), "{stderr}");
+        assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{status}: {stderr}");
+        assert!(
+            stderr.contains(&format!("The token endpoint answered {status} ")),
+            "{status}: {stderr}"
+        );
+        assert!(stderr.contains("TOKEN_URL"), "{status}: {stderr}");
+        assert!(stderr.contains("proxy"), "{status}: {stderr}");
+        assert!(stderr.contains(TOKEN_ENDPOINT_DOCS), "{status}: {stderr}");
+    }
 }
 
 /// Another sign-in would end at the same refusal, so the step sends nobody to
@@ -721,7 +727,6 @@ async fn a_refused_client_asks_for_the_apps_credentials_to_be_fixed() {
             "unauthorized_client",
             oauth_error(400, "unauthorized_client"),
         ),
-        ("a 401 with no body", ResponseTemplate::new(401)),
     ] {
         let (code, envelope) = whoami_answered_with(response).await;
         assert_reason(
