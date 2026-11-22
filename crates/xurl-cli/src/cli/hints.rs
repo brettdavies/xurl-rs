@@ -861,7 +861,7 @@ fn resume_invocation(
 
 /// The hint's line, then the docs on a line of their own, so the invocation
 /// the first line ends with copies without them.
-fn with_docs_line(line: String, docs: Option<&str>) -> Vec<String> {
+pub(crate) fn with_docs_line(line: String, docs: Option<&str>) -> Vec<String> {
     std::iter::once(line)
         .chain(docs.map(|docs| format!("See: {docs}")))
         .collect()
