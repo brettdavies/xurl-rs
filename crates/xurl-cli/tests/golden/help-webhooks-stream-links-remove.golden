@@ -1,10 +1,12 @@
 args: ["webhooks", "stream-links", "remove", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7328
+stdout_len: 7431
 stderr_len: 0
 --- stdout ---
 Stop delivering the app's filtered stream to a webhook
+
+X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
 
 Usage: xr webhooks stream-links remove [OPTIONS] <WEBHOOK_ID>
 

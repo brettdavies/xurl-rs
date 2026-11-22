@@ -31,7 +31,9 @@ use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::{Config, EnvOverrides};
 
 use common::CLOSED;
-use common::token_endpoint::{Echo, NoRefusal, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers};
+use common::token_endpoint::{
+    Echo, NoRefusal, Redirecting, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers,
+};
 
 mod common;
 
@@ -987,7 +989,7 @@ async fn an_interactive_sign_in_for_an_app_removed_during_consent_sends_no_code(
     let sent = server.received_requests().await.unwrap_or_default().len();
     assert_eq!(sent, 0, "the code was sent: {returned:?}");
     assert!(
-        matches!(&returned, Err(xdk::Error::TokenStore { message, .. }) if message.contains("work")),
+        matches!(&returned, Err(xdk::Error::AppNotFound { name, .. }) if name == "work"),
         "{returned:?}"
     );
     let on_disk = xdk::store::TokenStore::new_with_path(store.to_str().unwrap());
@@ -1375,12 +1377,100 @@ async fn step2_for_another_apps_flow_finishes_under_that_app() {
     assert!(pending.exists(), "a refused step 2 keeps the pending state");
 }
 
+/// Step 1 with no `--app` signs in under the store's active app, so a step 2
+/// under another app is told to finish under that one, as it is when step 1
+/// named the app.
+#[tokio::test]
+async fn step2_for_a_flow_step1_started_on_the_active_app_finishes_under_it() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    std::fs::write(
+        &store,
+        "apps:\n  default:\n    client_id: 'default-client-id'\n    client_secret: 'default-client-secret'\n    oauth2_tokens: {}\n  work:\n    client_id: 'work-client-id'\n    client_secret: 'work-client-secret'\n    oauth2_tokens: {}\ndefault_app: default\n",
+    )
+    .expect("write tempdir store");
+    let overrides = xdk::config::EnvOverrides {
+        token_url: Some(format!("{CLOSED}/2/oauth2/token")),
+        info_url: Some(format!("{CLOSED}/2/users/me")),
+        ..xdk::config::EnvOverrides::default()
+    };
+
+    let (code, stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "1",
+        ],
+    )
+    .await;
+    assert_eq!(code, 0, "stderr: {stderr}");
+    let url: serde_json::Value = serde_json::from_str(stdout.trim()).expect("a JSON object");
+    let state = query_param(
+        &Url::parse(url["auth_url"].as_str().expect("auth_url")).expect("a URL"),
+        "state",
+    );
+    let pending = xdk::auth::pending::pending_path_for_store(&store);
+
+    let redirect = format!(
+        "http://localhost:8080/callback?code=AUTHCODE&state={}",
+        urlencode(&state)
+    );
+    let (code, _stdout, stderr) = run_cli(
+        &store,
+        &overrides,
+        &[
+            "xr",
+            "--app",
+            "work",
+            "--output",
+            "json",
+            "auth",
+            "oauth2",
+            "--no-browser",
+            "--step",
+            "2",
+            "--auth-url",
+            &redirect,
+        ],
+    )
+    .await;
+
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let envelope: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("one JSON envelope");
+    assert!(
+        envelope["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("AppMismatch"),
+        "{envelope}"
+    );
+    assert_step(
+        &envelope,
+        "fix-input",
+        "template",
+        "xr --app default --output json auth oauth2 --no-browser --step 2 --auth-url <redirect-url>",
+    );
+    assert!(pending.exists(), "a refused step 2 keeps the pending state");
+}
+
 /// `--app <saved>` cannot help when the saved app is this one, whose client id
 /// has moved on, or one the store no longer holds: the same refusal, or an
 /// unknown app. Both need a new flow.
 #[tokio::test]
 async fn step2_for_a_flow_no_stored_app_can_finish_starts_over_at_step_one() {
-    for (saved_app, why) in [("default", "this app"), ("gone", "an app no longer stored")] {
+    for (saved_app, why) in [
+        ("default", "this app"),
+        ("gone", "an app no longer stored"),
+        ("", "a flow that names no app"),
+    ] {
         let tmp = TempDir::new().unwrap();
         let store = tmp.path().join(".xurl");
         seed_store_two_apps(&store);
@@ -2150,6 +2240,9 @@ fn closed_overrides(client_id: bool) -> xdk::config::EnvOverrides {
     }
 }
 
+/// What a refusal of an app the store does not hold says of `--app ghost`.
+const NO_SUCH_APP: &str = "the store holds no app named \"ghost\"";
+
 /// A state to run `xr auth oauth2` in, and a word of what its real run says.
 struct Verdict {
     name: &'static str,
@@ -2443,7 +2536,7 @@ fn verdicts() -> Vec<Verdict> {
         before: vec!["--app", "ghost"],
         ..verdict(
             "app the store does not hold, step 1",
-            "\"ghost\"",
+            NO_SUCH_APP,
             true,
             seed_store,
             &step1,
@@ -2452,9 +2545,52 @@ fn verdicts() -> Vec<Verdict> {
     rows.push(Verdict {
         before: vec!["--app", "ghost"],
         ..verdict(
+            "app the store does not hold, no client id, step 1",
+            NO_SUCH_APP,
+            false,
+            seed_store,
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, no app in the store, step 1",
+            NO_SUCH_APP,
+            false,
+            |_| {},
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
             "app the store does not hold, step 2",
-            "\"ghost\"",
+            NO_SUCH_APP,
             true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, no saved flow, step 2",
+            "PendingStateNotFound",
+            false,
+            seed_store,
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, flow saved for another app, step 2",
+            "AppMismatch",
+            false,
             |store| {
                 seed_store(store);
                 seed_pending(store);
@@ -3155,6 +3291,24 @@ async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
         );
         assert_warns_of_the_exchange(&envelope, status);
     }
+}
+
+/// The exchange sends the code and its verifier, and a 307 or a 308 would send
+/// them again to the `Location` host. An answer that redirects is no answer the
+/// exchange follows: it reports its status, like any other the endpoint did not
+/// process, the saved flow stays, and the other server is never asked.
+#[rstest::rstest]
+#[case::found(302)]
+#[case::temporary_redirect(307)]
+#[tokio::test]
+async fn step2_the_token_endpoint_redirects_is_not_followed(#[case] status: u16) {
+    let endpoint = Redirecting::start(status).await;
+
+    let (code, envelope) = step2_at(&endpoint.base).await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "api-error", "{envelope}");
+    assert_warns_of_the_exchange(&envelope, &status.to_string());
 }
 
 /// A proxy's block page can repeat the request it refused. What the exchange

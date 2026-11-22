@@ -165,8 +165,7 @@ pub(crate) async fn exchange_code_for_token(
     auth.token_store.reload();
     refuse_unless_store_keeps(auth)?;
     let token_url = auth.token_url().to_string();
-    let request = http
-        .post(&token_url)
+    let request = token_endpoint::post(&token_url)?
         .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .form(&[
             ("grant_type", "authorization_code"),
@@ -374,7 +373,8 @@ where
 /// that a subsequent call to [`run_remote_step2`] can complete the exchange.
 ///
 /// Returns the authorization URL that the user should open in a browser
-/// on another machine.
+/// on another machine. The saved flow names the app the sign-in is for: the
+/// one `auth` names, else the store's active app.
 ///
 /// # Errors
 ///
@@ -402,7 +402,10 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
         code_verifier: verifier,
         state,
         client_id: auth.client_id().to_string(),
-        app_name: auth.app_name().to_string(),
+        app_name: auth
+            .token_store
+            .get_active_app_name(auth.app_name())
+            .to_string(),
         created_at: now,
         scopes: auth
             .oauth2_scopes()
@@ -612,15 +615,13 @@ impl RefreshedToken {
 /// [`Error::Auth`], and one the endpoint did not process is the failure any
 /// request to X reports.
 pub(crate) async fn refresh_grant(
-    http: &reqwest::Client,
     token_url: &str,
     timeout: Duration,
     client_id: &str,
     client_secret: &str,
     refresh_token: &str,
 ) -> Result<RefreshedToken> {
-    let request = http
-        .post(token_url)
+    let request = token_endpoint::post(token_url)?
         .timeout(timeout)
         .form(&[
             ("grant_type", "refresh_token"),
@@ -726,7 +727,6 @@ pub async fn refresh_oauth2_token(
     }
 
     let refreshed = refresh_grant(
-        http,
         auth.token_url(),
         Duration::from_secs(auth.http_timeout_secs()),
         auth.client_id(),

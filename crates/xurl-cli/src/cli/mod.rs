@@ -1370,6 +1370,9 @@ pub enum Commands {
         common: CommonFlags,
     },
     /// Report impressions and engagement for your posts over a time window
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/overview
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = ANALYTICS_HELP)]
     Analytics {
         /// Post IDs or URLs, 1 to 100
@@ -1740,6 +1743,9 @@ pub enum Commands {
         common: CommonFlags,
     },
     /// Block a user
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/users/blocks/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = BLOCK_HELP)]
     Block {
         #[arg(value_name = "ACCOUNT", help = format!("The account to block. {}", output::account_rule()))]
@@ -1749,6 +1755,9 @@ pub enum Commands {
         common: CommonFlags,
     },
     /// Unblock a user
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/users/blocks/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = UNBLOCK_HELP)]
     Unblock {
         #[arg(value_name = "ACCOUNT", help = format!("The account to unblock. {}", output::account_rule()))]
@@ -3644,6 +3653,9 @@ pub enum WebhookSubscriptionsCommands {
 #[derive(Subcommand, Debug)]
 pub enum WebhookStreamLinksCommands {
     /// List the webhooks the app's filtered stream delivers to
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::LIST))]
     List {
         /// Shortcut flags shared with every other shortcut command.
@@ -3653,6 +3665,9 @@ pub enum WebhookStreamLinksCommands {
     /// Deliver the app's filtered stream to a webhook
     ///
     /// X bills each post it then delivers to the webhook.
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::ADD))]
     Add {
         /// Webhook ID, as `xr webhooks list` prints it
@@ -3663,6 +3678,9 @@ pub enum WebhookStreamLinksCommands {
         common: CommonFlags,
     },
     /// Stop delivering the app's filtered stream to a webhook
+    ///
+    /// X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/webhooks/stream/introduction
+    #[allow(rustdoc::bare_urls)]
     #[command(after_help = family_help::webhook_stream_links::FAMILY.verb_page(&family_help::webhook_stream_links::REMOVE))]
     Remove {
         /// Webhook ID, as `xr webhooks list` prints it

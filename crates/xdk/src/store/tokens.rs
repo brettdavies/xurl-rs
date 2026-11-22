@@ -311,6 +311,7 @@ impl TokenStore {
             return Ok(false);
         }
         self.update(|store| {
+            store.refuse_if_app_missing(app_name)?;
             let mut changed = false;
             if let Some(token) = slot(store, app_name, username, sent_under)
                 && let Some(next) = recorded(token)
@@ -402,6 +403,7 @@ impl TokenStore {
             return Ok(false);
         }
         self.update(|store| {
+            store.refuse_if_app_missing(app_name)?;
             if !movable(store) {
                 return Ok(false);
             }
@@ -546,6 +548,7 @@ impl TokenStore {
             return Ok(false);
         }
         self.update(|store| {
+            store.refuse_if_app_missing(app_name)?;
             let mut changed = false;
             if let Some(token) = store
                 .resolve_app_mut(app_name)
