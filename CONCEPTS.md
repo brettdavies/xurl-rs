@@ -125,11 +125,15 @@ before it counts.
 
 ### Live smoke gate
 
-The release-preflight check that reads one post and one user from the live API with the operator's real login and fails
-when a typed metric reads back zero, a post metric lands in the unknown-field bucket, or the library reports having read
-a key the API sent in its legacy post vocabulary under its current name. It is the only check that can see the vendored
-spec naming a field the API does not send. It never runs under the default suite, refuses without an explicit opt-in
-because each run spends paid reads, and is the named exception the store isolation guard permits.
+The release-preflight check that reads one post and one user from the live API, under the token store the caller names,
+and fails when a typed metric reads back zero, a post metric lands in the unknown-field bucket, or the library reports
+having read a key the API sent in its legacy post vocabulary under its current name. It is the only check that can see
+the vendored spec naming a field the API does not send. It never runs under the default suite, and
+`crates/xdk/tests/live_smoke.rs` refuses without an explicit opt-in because each run spends paid reads: it runs only
+when `XURL_LIVE_SMOKE=1` and `XURL_TOKEN_STORE` names the store file, and it never opens `~/.xurl/auth.yml` on its own.
+`preflight.sh smoke` hands it the store inside the home the gate seeded from 1Password, or inside the one `--smoke-home`
+names. Exit shreds only a home the gate seeded. The test is the named exception on the process-read allowlist of
+`env_mutation_guard.rs`, because it reads the operator's configuration.
 
 ## Sign-in
 
