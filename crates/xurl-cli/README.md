@@ -1048,14 +1048,16 @@ carries, without `token_expired`, so the `app` it is stored under, its `scheme`,
 A bearer token from `XURL_BEARER_TOKEN` belongs to no stored app and carries no `app`. A 401 is one (exit 77,
 `auth-required`, X's body as `message`), and so is a 403 whose problem `type` is
 `https://api.twitter.com/2/problems/unsupported-authentication`, which X gives a scheme the endpoint does not take (exit
-1, `forbidden`). After a 401 the step gets the same credential again: `sign-in` for an OAuth2 login, under the login's
-name and its app (`--app` unless it is the default); `fix-input` with a `template` that stores an OAuth1 pair or a
-bearer token in its app; and `fix-input` with `docs` alone for `XURL_BEARER_TOKEN`, since no command replaces a
+1, `forbidden`), when `xr` lists the schemes the command accepts. A request that carries its own `Authorization` header
+(`-H`) went out under no stored credential, so its 401 and 403 keep the envelope they had. After a 401 the step gets the
+same credential again: `sign-in` for an OAuth2 login, under the login's name and its app, always with `--app`, since an
+`XURL_APP` in the caller's shell would otherwise pick another; `fix-input` with a `template` that stores an OAuth1 pair
+or a bearer token in its app; and `fix-input` with `docs` alone for `XURL_BEARER_TOKEN`, since no command replaces a
 variable. After the 403 the step is the one for a request no stored credential serves, over the schemes the command
 accepts but the refused one. X's other 403s name no credential: the generic `about:blank` one it gives a login that
 lacks a scope says only `Forbidden`, and an enrollment refusal is about the app. Those carry no `auth` key and keep
-their step. A 401 on the status read after `xr media upload` finished keeps the `resume-wait` template above and
-carries no `auth` key.
+their step. A 401 on the status read after `xr media upload` finished keeps the `resume-wait` template above and carries
+no `auth` key.
 
 ### Which Errors Carry a Step
 

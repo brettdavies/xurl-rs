@@ -4,7 +4,7 @@
       "description": "The `auth` object of a dry-run envelope, the credential a request would go\nout under, and of the error envelope of a request X refused over its\ncredential, the credential it went out under.",
       "properties": {
         "app": {
-          "description": "The app whose stored credential would be sent. Absent for a bearer\ntoken the environment supplies, which belongs to no stored app.",
+          "description": "The app whose stored credential is sent, or would be. Absent for a\nbearer token the environment supplies, which belongs to no stored app.",
           "type": [
             "string",
             "null"
@@ -384,7 +384,7 @@
               "type": "null"
             }
           ],
-          "description": "The credential X refused: the scheme, the app that stores it, and for\n`oauth2` the login's name, as a dry run reports the credential a\nrequest would go out under. Present on a request's 401, and on a 403\nwhose problem `type` is `unsupported-authentication`. Absent from a\n401 on the status read after `xr media upload` finished, and from\nevery other error."
+          "description": "The credential X refused: the scheme, the app that stores it, and for\n`oauth2` the login's name, as a dry run reports the credential a\nrequest would go out under. Present on a 401 to a request sent under\na stored credential or `XURL_BEARER_TOKEN`, and on a 403 whose problem\n`type` is `unsupported-authentication` and whose command's accepted\nschemes `xr` lists. Absent from a request that carries its own\n`Authorization` header, from a 401 on the status read after\n`xr media upload` finished, and from every other error."
         },
         "available_in_app": {
           "description": "Auth schemes available for the active app.",

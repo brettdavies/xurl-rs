@@ -105,7 +105,7 @@ async fn a_401_under_a_login_names_it_and_signs_in_again() {
         envelope["next_step"],
         json!({
             "action": "sign-in",
-            "command": format!("xr auth oauth2 {SAMPLE} --no-browser --step 1"),
+            "command": format!("xr auth oauth2 {SAMPLE} --no-browser --step 1 --app {SAMPLE}"),
         }),
         "{envelope}"
     );
@@ -350,4 +350,32 @@ async fn an_enrollment_403_keeps_its_step() {
     assert_eq!(code, 1, "{envelope}");
     assert_eq!(envelope["next_step"]["action"], "enroll-app", "{envelope}");
     assert!(envelope.get("auth").is_none(), "{envelope}");
+}
+
+/// The text names what X refused before it names the step.
+#[tokio::test]
+async fn text_output_after_a_403_names_the_refused_credential() {
+    let mock = mock_answering(
+        "GET",
+        "^/2/unlisted/thing$",
+        403,
+        body(UNSUPPORTED_AUTHENTICATION),
+    )
+    .await;
+
+    let (code, _stdout, stderr) = run(
+        &mock,
+        oauth1_and_bearer,
+        None,
+        &["xr", "--auth", "app", "/2/unlisted/thing"],
+    )
+    .await;
+
+    assert_eq!(code, 1, "stderr: {stderr}");
+    assert!(
+        stderr.contains(&format!(
+            "X refused the Bearer (app) credentials of app \"{SAMPLE}\": this endpoint does not take it."
+        )),
+        "{stderr}"
+    );
 }

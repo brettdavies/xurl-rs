@@ -198,8 +198,8 @@ pub struct DryRunBody {
 pub struct DryRunAuth {
     /// The auth scheme: `oauth1`, `oauth2`, or `app`.
     pub scheme: String,
-    /// The app whose stored credential would be sent. Absent for a bearer
-    /// token the environment supplies, which belongs to no stored app.
+    /// The app whose stored credential is sent, or would be. Absent for a
+    /// bearer token the environment supplies, which belongs to no stored app.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app: Option<String>,
     /// The `OAuth2` login, the one credential with a user name.
@@ -489,10 +489,12 @@ pub struct ErrorBody {
     pub other_apps_with_creds: Option<Vec<String>>,
     /// The credential X refused: the scheme, the app that stores it, and for
     /// `oauth2` the login's name, as a dry run reports the credential a
-    /// request would go out under. Present on a request's 401, and on a 403
-    /// whose problem `type` is `unsupported-authentication`. Absent from a
-    /// 401 on the status read after `xr media upload` finished, and from
-    /// every other error.
+    /// request would go out under. Present on a 401 to a request sent under
+    /// a stored credential or `XURL_BEARER_TOKEN`, and on a 403 whose problem
+    /// `type` is `unsupported-authentication` and whose command's accepted
+    /// schemes `xr` lists. Absent from a request that carries its own
+    /// `Authorization` header, from a 401 on the status read after
+    /// `xr media upload` finished, and from every other error.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth: Option<DryRunAuth>,
 

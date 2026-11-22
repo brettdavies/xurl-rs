@@ -180,6 +180,21 @@ fn serving_the_command(
     }
 }
 
+/// What X refused, in words: the credential a request went out under.
+fn refused_subject(credential: &AuthPreflight) -> String {
+    let scheme = credential.scheme;
+    let Some(app) = credential.app.as_deref() else {
+        return "the bearer token in XURL_BEARER_TOKEN".to_string();
+    };
+    match (scheme, credential.username.as_deref()) {
+        (WireScheme::OAuth2, Some(login)) => format!(
+            "the {} credentials of app {app:?}, the login {login:?}",
+            scheme.pretty()
+        ),
+        _ => format!("the {} credentials of app {app:?}", scheme.pretty()),
+    }
+}
+
 /// The hint for a request X answered 401: the step that gets the credential X
 /// refused, from `credential`, the one the request went out under.
 ///
@@ -192,36 +207,26 @@ fn serving_the_command(
 /// X refused this credential, so no step moves the request to another scheme
 /// or app: that choice is the caller's.
 #[must_use]
-pub(crate) fn refused_credential_hint(
-    snapshot: &StoreSnapshot,
-    credential: &AuthPreflight,
-    docs: Option<&str>,
-    headless: bool,
-) -> Hint {
+fn refused_credential_hint(credential: &AuthPreflight, docs: Option<&str>, headless: bool) -> Hint {
+    let subject = refused_subject(credential);
     let scheme = credential.scheme;
     let Some(app) = credential.app.as_deref() else {
         return Hint {
             text_lines: with_docs_line(
-                "X refused the bearer token in XURL_BEARER_TOKEN. Replace its value, or unset it to use a stored credential.".to_string(),
+                format!(
+                    "X refused {subject}. Replace its value, or unset it to use a stored credential."
+                ),
                 docs,
             ),
             next_step: NextStep::fix_input(docs.map(str::to_string)),
         };
     };
-    let held = match (scheme, credential.username.as_deref()) {
-        (WireScheme::OAuth2, Some(login)) => format!(
-            "{} credentials of app {app:?}, the login {login:?}",
-            scheme.pretty()
-        ),
-        _ => format!("{} credentials of app {app:?}", scheme.pretty()),
-    };
     if scheme == WireScheme::OAuth2 {
-        let named = Some(app).filter(|name| *name != snapshot.default_app);
-        let next_step = NextStep::sign_in_as(credential.username.as_deref(), named, headless);
+        let next_step = NextStep::sign_in_as(credential.username.as_deref(), Some(app), headless);
         let command = next_step.command.clone().unwrap_or_default();
         return Hint {
             text_lines: vec![format!(
-                "X refused the {held}. Sign in again. Run: {command}"
+                "X refused {subject}. Sign in again. Run: {command}"
             )],
             next_step,
         };
@@ -229,7 +234,7 @@ pub(crate) fn refused_credential_hint(
     let template = setup_invocation(scheme, Some(app));
     Hint {
         text_lines: vec![format!(
-            "X refused the {held}. Store a working credential. Run: {template}"
+            "X refused {subject}. Store a working credential. Run: {template}"
         )],
         next_step: NextStep::fix_input_template(template),
     }
@@ -267,16 +272,14 @@ pub(crate) fn rejected_hint(
 ) -> Option<Hint> {
     let docs = error.docs_url();
     match error {
-        Error::Api { status: 401, .. } => Some(refused_credential_hint(
-            snapshot, credential, docs, headless,
-        )),
+        Error::Api { status: 401, .. } => Some(refused_credential_hint(credential, docs, headless)),
         Error::Api {
             status: 403, body, ..
         } if refuses_the_credential(body) && !refuses_enrollment(403, body) => {
             let invoked = invoked_credential(invocation)?;
             let mut accepted = accepted_by_invoked(&invoked)?;
             accepted.retain(|scheme| *scheme != credential.scheme);
-            Some(credential_hint(
+            let mut hint = credential_hint(
                 snapshot,
                 &Need {
                     accepted: &accepted,
@@ -284,7 +287,15 @@ pub(crate) fn rejected_hint(
                 },
                 invocation,
                 headless,
-            ))
+            );
+            hint.text_lines.insert(
+                0,
+                format!(
+                    "X refused {}: this endpoint does not take it.",
+                    refused_subject(credential)
+                ),
+            );
+            Some(hint)
         }
         _ => None,
     }
