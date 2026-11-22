@@ -218,8 +218,8 @@ and any help stating the rule also call. When the rule names the offending input
 string: a validator's closure answers `Result<(), Invalid>`, and `checked` and `checked_each` in
 `crates/xurl-cli/src/cli/commands/mod.rs` build the refusal with the input, the first one a batch refused. A rule no
 single input broke (`too-many-ids`, `mixed-ids-and-handles`, `no-list-changes`) carries none, and so does a blank input
-to those two builders, which has nothing to name. A URL with an `@` in it (`--forward`, `webhooks add`) is never
-repeated, since it may hold a credential. It also carries a `next_step` object `{action, command | template, docs}`
+to those two builders, which has nothing to name. For `--forward` and `webhooks add`, `value` never repeats a URL with
+an `@` in it, since it may hold a credential. It also carries a `next_step` object `{action, command | template, docs}`
 wherever a step exists; the table under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a
 row, and `crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each
 golden fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is

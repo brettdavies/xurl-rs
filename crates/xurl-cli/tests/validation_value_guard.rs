@@ -270,7 +270,7 @@ async fn an_invitee_in_the_form_of_an_id_is_named() {
 }
 
 #[tokio::test]
-async fn a_url_that_may_carry_a_credential_is_not_repeated() {
+async fn a_url_that_may_carry_a_credential_is_not_named() {
     assert_refusal(
         "webhooks add",
         &["https://example.com:8443/x"],
