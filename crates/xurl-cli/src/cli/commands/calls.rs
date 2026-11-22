@@ -200,6 +200,7 @@ struct Bounds<'a> {
     recurrence: Option<&'a str>,
     time_zone: Option<&'a str>,
     duration: Option<u32>,
+    invitees: &'a [String],
 }
 
 impl<'a> Bounds<'a> {
@@ -212,6 +213,7 @@ impl<'a> Bounds<'a> {
             recurrence: call.recurrence.as_deref(),
             time_zone: call.time_zone.as_deref(),
             duration: call.duration_minutes,
+            invitees: &call.invitee_ids,
         }
     }
 
@@ -224,6 +226,7 @@ impl<'a> Bounds<'a> {
             recurrence: changes.recurrence.as_deref(),
             time_zone: changes.time_zone.as_deref(),
             duration: changes.duration_minutes,
+            invitees: changes.invitee_ids.as_deref().unwrap_or_default(),
         }
     }
 
@@ -241,6 +244,11 @@ impl<'a> Bounds<'a> {
             "call-recurrence-too-long" => self.recurrence.map(str::to_string),
             "call-time-zone-too-long" => self.time_zone.map(str::to_string),
             "invalid-call-duration" => self.duration.map(|minutes| minutes.to_string()),
+            "invalid-user-id" => self
+                .invitees
+                .iter()
+                .find(|id| shortcuts::validate_user_id(id).is_err())
+                .cloned(),
             _ => None,
         };
         input.map_or_else(

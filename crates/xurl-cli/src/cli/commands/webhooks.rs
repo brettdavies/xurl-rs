@@ -6,7 +6,7 @@ use serde_json::json;
 
 use super::webhooks_listen::{Listener, listen};
 use super::{
-    Confirm, DryRun, Run, checked, dry_run_or_validate, make_client, send_confirmed,
+    Confirm, DryRun, Run, checked, checked_url, dry_run_or_validate, make_client, send_confirmed,
     send_confirmed_to_account, send_or_report, sent, validate_account, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
@@ -235,7 +235,7 @@ async fn add(run: Run<'_>, url: &str, common: &CommonFlags) -> CommandResult<()>
     } = run;
     let ctx = json!({"command": "webhooks-add", "url": url});
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        checked(shortcuts::validate_webhook_url, url)
+        checked_url(shortcuts::validate_webhook_url, url)
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(client.create_webhook(url), common, None);

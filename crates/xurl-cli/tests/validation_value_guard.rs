@@ -1,10 +1,10 @@
 //! A validation refusal for one malformed input carries that input as `value`.
 //!
 //! Every runnable command runs in process, under `--dry-run` and for real,
-//! once per argument it takes, with that one argument replaced by a
-//! malformed value and every other argument as `arguments_for` gives it.
-//! A refusal that answers `validation` was caused by the one argument that
-//! changed, so it must carry that argument as `value`. The commands and
+//! once per argument it takes and per malformed value, with that one argument
+//! replaced and every other argument as `arguments_for` gives it. A refusal
+//! that answers `validation` was caused by the one argument that changed, so
+//! it must carry that argument as `value`. The commands and
 //! their arguments are read from clap, so a command or an argument added
 //! later is checked without an edit here.
 
@@ -20,11 +20,12 @@ use common::invoke::{
     nothing, run_xr, runnable_paths, walk,
 };
 
-/// A value past every length limit a validator states, and in no form it
-/// states for an id, a key, a handle, a URL, a time, or a language code: it
-/// holds `!`.
-fn malformed() -> String {
-    "x!".repeat(1_000)
+/// Values past every length limit a validator states: one in no form it
+/// states for an id, a key, a handle, a URL, a time, or a language code (it
+/// holds `!`), and one in the form of a number, which a validator of ids
+/// refuses for its length and one of handles takes for an id.
+fn malformed() -> [String; 2] {
+    ["x!".repeat(1_000), "9".repeat(1_000)]
 }
 
 /// One run: `path` with `args`, in which `label` names the argument that
@@ -53,29 +54,30 @@ fn probes_for(path: &str) -> Vec<Probe> {
         .collect();
 
     let mut probes = Vec::new();
-    let token = malformed();
-    let probe = |label: String, args: Vec<String>| Probe {
-        path: path.to_string(),
-        label,
-        args,
-        token: token.clone(),
-    };
-    for (index, arg) in base.iter().enumerate() {
-        if arg.starts_with("--") || arg == "{file}" {
-            continue;
-        }
-        let label = match index.checked_sub(1).map(|before| &base[before]) {
-            Some(flag) if flag.starts_with("--") => flag.clone(),
-            _ => format!("the argument {arg}"),
+    for token in malformed() {
+        let probe = |label: String, args: Vec<String>| Probe {
+            path: path.to_string(),
+            label,
+            args,
+            token: token.clone(),
         };
-        let mut args = base.clone();
-        args[index] = token.clone();
-        probes.push(probe(label, args));
-    }
-    for flag in &options {
-        let mut args = base.clone();
-        args.extend([flag.clone(), token.clone()]);
-        probes.push(probe(flag.clone(), args));
+        for (index, arg) in base.iter().enumerate() {
+            if arg.starts_with("--") || arg == "{file}" {
+                continue;
+            }
+            let label = match index.checked_sub(1).map(|before| &base[before]) {
+                Some(flag) if flag.starts_with("--") => flag.clone(),
+                _ => format!("the argument {arg}"),
+            };
+            let mut args = base.clone();
+            args[index] = token.clone();
+            probes.push(probe(label, args));
+        }
+        for flag in &options {
+            let mut args = base.clone();
+            args.extend([flag.clone(), token.clone()]);
+            probes.push(probe(flag.clone(), args));
+        }
     }
     probes
 }
@@ -256,4 +258,31 @@ async fn a_time_window_names_the_bound_outside_the_form() {
 async fn a_blank_input_has_nothing_to_name() {
     assert_refusal("lists get", &[""], "invalid-list-id", None).await;
     assert_refusal("follow", &[""], "empty-username", None).await;
+}
+
+#[tokio::test]
+async fn an_invitee_in_the_form_of_an_id_is_named() {
+    let id = "1".repeat(20);
+    let mut args = arguments_for("calls scheduled add");
+    args.extend(["--invite".to_string(), id.clone()]);
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
+    assert_refusal("calls scheduled add", &args, "invalid-user-id", Some(&id)).await;
+}
+
+#[tokio::test]
+async fn a_url_that_may_carry_a_credential_is_not_repeated() {
+    assert_refusal(
+        "webhooks add",
+        &["https://example.com:8443/x"],
+        "webhook-url-has-port",
+        Some("https://example.com:8443/x"),
+    )
+    .await;
+    assert_refusal(
+        "webhooks add",
+        &["https://user:secret@example.com:8443/x"],
+        "webhook-url-has-port",
+        None,
+    )
+    .await;
 }

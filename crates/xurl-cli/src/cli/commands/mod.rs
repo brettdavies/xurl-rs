@@ -242,6 +242,17 @@ impl Invalid {
             Self::naming(rule, input)
         }
     }
+
+    /// A refusal of `url`, which names it unless it is blank or holds an `@`:
+    /// a username or password in a URL is never repeated, and `@` is where
+    /// one starts.
+    fn of_url(rule: &'static str, url: &str) -> Self {
+        if url.contains('@') {
+            Self::unnamed(rule)
+        } else {
+            Self::of_input(rule, url)
+        }
+    }
 }
 
 /// Checks `input` with `validator`; a refusal names `input`.
@@ -250,6 +261,15 @@ fn checked(
     input: &str,
 ) -> Checked {
     validator(input).map_err(|rule| Invalid::of_input(rule, input))
+}
+
+/// Checks `url` with `validator`; a refusal names `url` unless it may carry a
+/// credential.
+fn checked_url(
+    validator: impl FnOnce(&str) -> std::result::Result<(), &'static str>,
+    url: &str,
+) -> Checked {
+    validator(url).map_err(|rule| Invalid::of_url(rule, url))
 }
 
 /// Checks `inputs` with `validator`, which takes them all at once. A refusal

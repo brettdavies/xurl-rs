@@ -234,15 +234,7 @@ fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
 
 /// `--forward` with its `-H` headers.
 fn url_target(url: &str, headers: &[String]) -> Result<UrlTarget, Error> {
-    validate_forward_url(url).map_err(|rule| {
-        // A username or password in the URL is never repeated, and `@` is
-        // where one starts.
-        if url.contains('@') {
-            Error::validation(rule)
-        } else {
-            Error::from(Invalid::of_input(rule, url))
-        }
-    })?;
+    validate_forward_url(url).map_err(|rule| Invalid::of_url(rule, url))?;
     UrlTarget::new(url, headers)
 }
 
