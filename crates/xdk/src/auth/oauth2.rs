@@ -165,8 +165,7 @@ pub(crate) async fn exchange_code_for_token(
     auth.token_store.reload();
     refuse_unless_store_keeps(auth)?;
     let token_url = auth.token_url().to_string();
-    let request = http
-        .post(&token_url)
+    let request = token_endpoint::post(&token_url)?
         .timeout(Duration::from_secs(auth.http_timeout_secs()))
         .form(&[
             ("grant_type", "authorization_code"),
@@ -612,15 +611,13 @@ impl RefreshedToken {
 /// [`Error::Auth`], and one the endpoint did not process is the failure any
 /// request to X reports.
 pub(crate) async fn refresh_grant(
-    http: &reqwest::Client,
     token_url: &str,
     timeout: Duration,
     client_id: &str,
     client_secret: &str,
     refresh_token: &str,
 ) -> Result<RefreshedToken> {
-    let request = http
-        .post(token_url)
+    let request = token_endpoint::post(token_url)?
         .timeout(timeout)
         .form(&[
             ("grant_type", "refresh_token"),
@@ -726,7 +723,6 @@ pub async fn refresh_oauth2_token(
     }
 
     let refreshed = refresh_grant(
-        http,
         auth.token_url(),
         Duration::from_secs(auth.http_timeout_secs()),
         auth.client_id(),

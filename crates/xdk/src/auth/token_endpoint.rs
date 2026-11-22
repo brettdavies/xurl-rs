@@ -8,7 +8,8 @@
 //!
 //! Any other failure is one the endpoint did not process, and it is the one
 //! any request to X reports: [`Error::Http`] with no answer, and [`Error::Api`]
-//! for a failure status, such as a 5xx, a 429, a 404, or a 408. A 403 is
+//! for a failure status, such as a 5xx, a 429, a 404, a 408, or a redirect,
+//! which no request to the token endpoint follows. A 403 is
 //! [`Error::TokenEndpointForbidden`], since the token URL or a proxy in front
 //! of it is what to look at. Both grants report every such answer as an
 //! `xdk::auth` warning that names the token endpoint and the status, since the
@@ -78,7 +79,25 @@ pub(crate) struct Answer {
     pub(crate) body: Value,
 }
 
-/// Sends `request` to the token endpoint at `token_url` and reads its answer.
+/// A `POST` to the token endpoint at `token_url`, on a client that follows no
+/// redirect. The grant's form holds the code and its verifier, or the refresh
+/// token, and a 307 or a 308 would send it again to the host the `Location`
+/// names. A redirect is an answer the endpoint did not process, read as its
+/// status.
+///
+/// # Errors
+///
+/// Returns [`Error::Http`] when the HTTP client cannot be built.
+pub(crate) fn post(token_url: &str) -> Result<reqwest::RequestBuilder> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|e| Error::http(format!("cannot build the HTTP client: {e}")).with_source(e))?;
+    Ok(client.post(token_url))
+}
+
+/// Sends `request`, which [`post`] built, to the token endpoint at `token_url`
+/// and reads its answer.
 ///
 /// A 400 or a 401 is a refusal by its status alone. Any other failure status
 /// is one only when its body is JSON with a string `error`, so a proxy's error

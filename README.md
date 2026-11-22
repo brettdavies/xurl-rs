@@ -120,7 +120,9 @@ X's OAuth2 handler refuses a code, a refresh token, or a client with a `400` or 
 5xx or a `429`, with a JSON body that holds a string `error`. For those, sign in again or check the client credentials.
 `xr` reports any other failure status as any request's: a `404` is a token URL with the wrong path, a `408` is a request
 to send again, and a `403` with no string `error` comes from something in the way, such as a proxy or firewall in front
-of the endpoint, or a `TOKEN_URL` that names another service. For a `403`:
+of the endpoint, or a `TOKEN_URL` that names another service. A redirect is not followed, since the request's form holds
+a credential that would go to the host the `Location` names, so a `3xx` reports as its status and `TOKEN_URL` should name
+the address that answers. For a `403`:
 
 1. Unset `TOKEN_URL`, or set it to `https://api.x.com/2/oauth2/token`, and run the command again.
 2. If the `403` stays, check that the proxy or firewall between the machine and X lets a `POST` to that address through.
