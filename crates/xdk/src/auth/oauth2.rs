@@ -374,7 +374,8 @@ where
 /// that a subsequent call to [`run_remote_step2`] can complete the exchange.
 ///
 /// Returns the authorization URL that the user should open in a browser
-/// on another machine.
+/// on another machine. The saved flow names the app the sign-in is for: the
+/// one `auth` names, else the store's active app.
 ///
 /// # Errors
 ///
@@ -402,7 +403,10 @@ pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<S
         code_verifier: verifier,
         state,
         client_id: auth.client_id().to_string(),
-        app_name: auth.app_name().to_string(),
+        app_name: auth
+            .token_store
+            .get_active_app_name(auth.app_name())
+            .to_string(),
         created_at: now,
         scopes: auth
             .oauth2_scopes()
