@@ -473,6 +473,22 @@ impl Auth {
         oauth2::run_remote_step1(self, pending_path)
     }
 
+    /// Every refusal [`Self::remote_oauth2_step1`] meets before it saves the
+    /// flow, in the order that step meets them, and the warning it gives when
+    /// the flow it saves replaces one.
+    ///
+    /// Sends nothing and writes nothing.
+    ///
+    /// # Errors
+    ///
+    /// The errors [`Self::remote_oauth2_step1`] names, up to the save.
+    // `xr --dry-run auth oauth2 --step 1` is the only caller; an embedder runs
+    // the step itself.
+    #[doc(hidden)]
+    pub fn check_remote_oauth2_step1(&self, pending_path: &std::path::Path) -> Result<()> {
+        oauth2::check_remote_step1(self, pending_path)
+    }
+
     /// Runs step 2 of the remote `OAuth2` PKCE flow.
     ///
     /// Takes the redirect URL from the browser, extracts the authorization

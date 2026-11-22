@@ -353,6 +353,11 @@ fn dry_run_answer(
         if let Err(error) = auth.check_remote_oauth2_step2(redirect_url.as_deref(), &pending_path) {
             return Err(Failure::DryRunRefusal { ctx, error });
         }
+    } else if headless {
+        let pending_path = xdk::auth::pending::pending_path_for_store(&auth.token_store.file_path);
+        if let Err(error) = auth.check_remote_oauth2_step1(&pending_path) {
+            return Err(Failure::DryRunRefusal { ctx, error });
+        }
     }
     out.print_dry_run(stdout, true, 0, &ctx);
     Ok(())

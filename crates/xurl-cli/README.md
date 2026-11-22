@@ -875,13 +875,14 @@ xr --output json --dry-run post "Hello"
 ```
 
 - `would_succeed` is `false` when an input is invalid, when no stored credential serves a request the command would
-  send, when the arguments, client id, saved flow, or redirect URL of a sign-in are refused, or when the token store
-  would refuse the write the command makes or the refresh its expired OAuth2 login needs. `reason` says which, and
-  `exit_code` is the code the real run would end on. Each refusal also carries the keys of the real run's error
-  envelope: `message` and the `next_step` the real run would name, plus, for a credential, `endpoint`, `supported`, and
-  `available_in_app`. An invalid input's `reason` is `validation`, as in the real run, its `rule` the validator's code,
-  such as `webhook-url-has-port`, its `message` the sentence for that rule, and its `value` the offending input when the
-  rule names one. A step that reruns the invocation keeps `--dry-run`, so following it sends nothing either.
+  send, when the arguments, client id, authorize URL, saved flow, or redirect URL of a sign-in are refused, or when the
+  token store would refuse the write the command makes or the refresh its expired OAuth2 login needs. `reason` says
+  which, and `exit_code` is the code the real run would end on. Each refusal also carries the keys of the real run's
+  error envelope: `message` and the `next_step` the real run would name, plus, for a credential, `endpoint`,
+  `supported`, and `available_in_app`. An invalid input's `reason` is `validation`, as in the real run, its `rule` the
+  validator's code, such as `webhook-url-has-port`, its `message` the sentence for that rule, and its `value` the
+  offending input when the rule names one. A step that reruns the invocation keeps `--dry-run`, so following it sends
+  nothing either.
 - `auth` names the credential the request would go out under: the `app` it is stored under, its `scheme`, and for an
   OAuth2 login `username` and `token_expired`. A bearer token from `XURL_BEARER_TOKEN` outranks every stored one and
   belongs to no stored app, so it carries no `app`. An expired token is reported, not refreshed, once the store passes
@@ -891,14 +892,16 @@ xr --output json --dry-run post "Hello"
 - A sign-in's dry run makes the real run's checks of its arguments, the client id, the store, and for `--step 2` the
   saved flow and the redirect URL, in the real run's order, and a refusal answers as the real run's error does: `xr
   --dry-run auth oauth2` checks `--scopes`, the `--step` and `--auth-url` arguments, the client id of the app it would
-  sign in, and that the store loads, takes a new file in its directory, and holds the app `--app` names. For `--step 2`
-  it also checks the flow step 1 saved beside the store, the app and scopes that flow belongs to, and the redirect URL
-  against it. A well-formed redirect URL answers `would_succeed: true`, which does not vouch for its code, since nothing
-  is sent to X. A dry run saves no flow, so rehearsing step 2 needs a real step 1 first. It does not check that
-  `AUTH_URL` or `TOKEN_URL` is one a request can go to, or, in the browser flow, that the redirect URI parses and the
-  callback port binds. An expired flow stays on disk, where the real run deletes it. `--auth-url -` reads one line of
-  piped stdin as the real run does and waits for it; on a terminal nothing is read, so the URL's contents go unchecked.
-  These answers carry no `auth` key.
+  sign in, and that the store loads, takes a new file in its directory, and holds the app `--app` names. For `--step 1`
+  it also checks that `AUTH_URL` is one an authorize URL can be built from and that the saved flow's path is no symlink
+  or directory, and it warns, as the real run does, when the flow it would save replaces one. For `--step 2` it also
+  checks the flow step 1 saved beside the store, the app and scopes that flow belongs to, and the redirect URL against
+  it. A well-formed redirect URL answers `would_succeed: true`, which does not vouch for its code, since nothing is sent
+  to X. A dry run saves no flow, so rehearsing step 2 needs a real step 1 first. It does not check that `TOKEN_URL` is
+  one a request can go to, or, in the browser flow, that `AUTH_URL` is one an authorize URL can be built from, that the
+  redirect URI parses, or that the callback port binds. An expired flow stays on disk, where the real run deletes it.
+  `--auth-url -` reads one line of piped stdin as the real run does and waits for it; on a terminal nothing is read, so
+  the URL's contents go unchecked. These answers carry no `auth` key.
 - A command that writes the token store, `auth app`, `auth oauth1`, `auth apps add`, `update`, `remove`, and
   `redirect-uri set`, `auth clear`, and `auth default` given an app, makes the checks its write makes, against the store
   as the dry run read it: that the file loads, holds the app or user the command names and no app by the name `auth apps

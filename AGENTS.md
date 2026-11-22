@@ -226,11 +226,11 @@ without a step. Prefer additive envelope changes: add keys rather than renaming 
 
 `--dry-run` sends nothing and changes no stored credential on any command, raw mode included, and answers at exit 0 with
 `{"status":"dry_run","would_succeed","exit_code", ...}` plus the command's context. `would_succeed` is `false` for an
-invalid input, for a request no stored credential serves, for a sign-in whose arguments, client id, saved flow, or
-redirect URL the real run refuses, or for a store write or an expired OAuth2 login's refresh the token store would
-refuse; `reason` says which, `exit_code` is the code the real run would end on, and each refusal carries the keys of the
-real run's error envelope, `message` and `next_step` among them. An invalid input answers with its real run's `reason`,
-`validation`, its `rule`, and the sentence for that rule as `message`; a step that reruns the invocation keeps
+invalid input, for a request no stored credential serves, for a sign-in whose arguments, client id, authorize URL, saved
+flow, or redirect URL the real run refuses, or for a store write or an expired OAuth2 login's refresh the token store
+would refuse; `reason` says which, `exit_code` is the code the real run would end on, and each refusal carries the keys
+of the real run's error envelope, `message` and `next_step` among them. An invalid input answers with its real run's
+`reason`, `validation`, its `rule`, and the sentence for that rule as `message`; a step that reruns the invocation keeps
 `--dry-run`. `auth` names the credential the request would go out under (the `app` it is stored under, its `scheme`, and
 for OAuth2 `username` and `token_expired`), read offline: an expired token is reported and not refreshed once the store
 passes the check the refresh makes before it asks X, and whether X still accepts the credential is not checked. The flag

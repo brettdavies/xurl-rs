@@ -7,7 +7,8 @@
 use crate::cli::hints::NextStep;
 use xdk::api::auth_matrix::WireScheme;
 use xdk::error::{
-    AuthMismatch, Error, MismatchShape, NextAction, STORE_DIR_UNCREATABLE, TOKEN_URL_UNUSABLE,
+    AUTH_URL_UNUSABLE, AuthMismatch, Error, MismatchShape, NextAction, STORE_DIR_UNCREATABLE,
+    TOKEN_URL_UNUSABLE,
 };
 
 /// The message `xr` prints for `error`, in text mode and in the envelope.
@@ -44,6 +45,9 @@ pub(crate) fn render(error: &Error) -> String {
         }
         Error::Internal(msg) => format!("Internal error: {msg}"),
         Error::Json { message, .. } => format!("JSON Error: {message}"),
+        Error::Auth { message, .. } if message.starts_with(AUTH_URL_UNUSABLE) => {
+            format!("Auth Error: {message}; AUTH_URL sets it")
+        }
         Error::Auth { message, .. } => format!("Auth Error: {message}"),
         Error::TokenStore { message, .. } => format!("Token Store Error: {message}"),
         Error::AppNotFound { .. } => format!("Token Store Error: {error}"),

@@ -16,8 +16,9 @@ use super::callback;
 use super::pending;
 use super::token_endpoint::{self, Grant};
 use crate::error::{
-    BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH, REDIRECT_INVALID_URL,
-    REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH, Result,
+    AUTH_URL_UNUSABLE, BROWSER_OPEN_FAILED, Error, PENDING_APP_MISMATCH, PENDING_SCOPE_MISMATCH,
+    REDIRECT_INVALID_URL, REDIRECT_MISSING_CODE, REDIRECT_MISSING_STATE, REDIRECT_STATE_MISMATCH,
+    Result,
 };
 use crate::store::{MintedFrom, OAuth2Token, RefreshLock};
 use tokio_util::sync::CancellationToken;
@@ -109,6 +110,16 @@ fn new_state() -> String {
     URL_SAFE_NO_PAD.encode(bytes)
 }
 
+/// The base of the authorization URL, as `auth` names it.
+///
+/// # Errors
+///
+/// Returns an error if it cannot be parsed.
+fn authorize_url(auth: &Auth) -> Result<Url> {
+    Url::parse(auth.auth_url())
+        .map_err(|e| Error::auth_with_cause(AUTH_URL_UNUSABLE, &e).with_source(e))
+}
+
 /// Builds the `OAuth2` authorization URL with all required query parameters.
 ///
 /// # Errors
@@ -116,8 +127,7 @@ fn new_state() -> String {
 /// Returns an error if the base authorization URL cannot be parsed.
 pub(crate) fn build_auth_url(auth: &Auth, state: &str, challenge: &str) -> Result<String> {
     let scopes = auth.oauth2_scopes().join(" ");
-    let mut auth_url = Url::parse(auth.auth_url())
-        .map_err(|e| Error::auth_with_cause("InvalidURL", &e).with_source(e))?;
+    let mut auth_url = authorize_url(auth)?;
     auth_url
         .query_pairs_mut()
         .append_pair("response_type", "code")
@@ -383,10 +393,7 @@ where
 /// for, and an error if the authorization URL is invalid or the pending state
 /// file cannot be written.
 pub fn run_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<String> {
-    refuse_unless_store_keeps(auth)?;
-    if pending_path.exists() {
-        tracing::warn!(target: "xdk::auth", "overwriting previous pending auth flow");
-    }
+    check_remote_step1(auth, pending_path)?;
 
     let state = new_state();
     let (verifier, challenge) = generate_code_verifier_and_challenge();
@@ -457,6 +464,22 @@ pub async fn run_remote_step2(
     pending::delete(pending_path)?;
 
     Ok(access_token)
+}
+
+/// [`Auth::check_remote_oauth2_step1`]: the refusals [`run_remote_step1`]
+/// meets before it saves the flow, in the order it meets them, and the
+/// warning it gives when the flow it saves replaces one.
+///
+/// # Errors
+///
+/// As [`run_remote_step1`], up to the save.
+pub(crate) fn check_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<()> {
+    refuse_unless_store_keeps(auth)?;
+    if std::fs::symlink_metadata(pending_path).is_ok_and(|meta| meta.is_file()) {
+        tracing::warn!(target: "xdk::auth", "overwriting previous pending auth flow");
+    }
+    authorize_url(auth)?;
+    pending::check_save_target(pending_path)
 }
 
 /// [`Auth::check_remote_oauth2_step2`]: the refusals [`run_remote_step2`]
