@@ -1,7 +1,7 @@
 {
   "$defs": {
     "DryRunAuth": {
-      "description": "The `auth` object of a dry-run envelope: the credential a request would go\nout under.",
+      "description": "The `auth` object of a dry-run envelope, the credential a request would go\nout under, and of the error envelope of a request X refused over its\ncredential, the credential it went out under.",
       "properties": {
         "app": {
           "description": "The app whose stored credential would be sent. Absent for a bearer\ntoken the environment supplies, which belongs to no stored app.",
@@ -15,7 +15,7 @@
           "type": "string"
         },
         "token_expired": {
-          "description": "Whether the `OAuth2` login's token has expired. An expired token is\nreported, not refreshed.",
+          "description": "Whether the `OAuth2` login's token has expired. An expired token is\nreported, not refreshed. Absent from an error envelope.",
           "type": [
             "boolean",
             "null"
@@ -374,6 +374,17 @@
             "string",
             "null"
           ]
+        },
+        "auth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DryRunAuth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The credential X refused: the scheme, the app that stores it, and for\n`oauth2` the login's name, as a dry run reports the credential a\nrequest would go out under. Present on a request's 401, and on a 403\nwhose problem `type` is `unsupported-authentication`. Absent from a\n401 on the status read after `xr media upload` finished, and from\nevery other error."
         },
         "available_in_app": {
           "description": "Auth schemes available for the active app.",

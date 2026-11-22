@@ -104,6 +104,18 @@ or the bearer token with `--auth` has not asked for a login. A raw request is he
 for its method and path, a path that carries an id taking those of the template it fits, and to every scheme when the
 matrix lists none.
 
+A request X refused over its credential carries `auth`, the object its dry run carries without `token_expired`, and the
+step `rejected_hint` in `crates/xurl-cli/src/cli/credential_step.rs` chooses. `crates/xurl-cli/src/cli/commands/sent.rs`
+reads the credential with `Call::stored_credential` before each send and hands it to `Failure::Rejected`, so no library
+error changes. A 401 (exit 77, `auth-required`) takes the step that gets the same credential again: the sign-in for an
+OAuth2 login, under its name and its app; `fix-input` with the `template` that stores an OAuth1 pair or a bearer token
+in its app; and `fix-input` with `docs` alone for `XURL_BEARER_TOKEN`, which belongs to no app. A 403 (exit 1,
+`forbidden`) is a credential refusal only when its problem `type` ends in `/problems/unsupported-authentication`, which
+X gives a scheme the endpoint does not take; its step is the one a request no stored credential serves takes, over the
+schemes the command accepts but the refused one. Every other 403 keeps its envelope, with no `auth` key: X's generic
+`about:blank` 403 for a login that lacks a scope names no credential, and an enrollment refusal is about the app. A 401
+on the status read after `xr media upload` finished keeps the `resume-wait` template and carries no `auth` key.
+
 Eight actions answer failures that are not about credentials. `show-help` rides on an argument `xr` refused, reasons
 `invalid-args`, `unknown-command`, and `missing-host` (exit 2) and the refusals that exit 1 (`validation`,
 `invalid-url`, `invalid-method`, `invalid-path-param`, `unsupported-pagination`, `invalid-json`, `unknown-schema`):

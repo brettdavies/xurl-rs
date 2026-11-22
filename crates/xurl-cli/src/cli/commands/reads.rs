@@ -8,7 +8,7 @@ use serde_json::json;
 
 use super::{
     DryRun, Invalid, Run, dry_run_or_validate, effective_limit, list_for_post, list_for_user,
-    list_paged, make_client, print_typed, send_or_report, send_validated, valid_post_id,
+    list_paged, make_client, print_typed, send_or_report, send_validated, sent, valid_post_id,
     with_flags,
 };
 use crate::cli::Commands;
@@ -201,7 +201,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             }
             // The one command a person runs to ask who a login is, so its
             // answer is where a login stored without a name gets one.
-            let response = call.send_saving_identity().await?;
+            let response = sent::send_saving_identity(call).await?;
             if cached {
                 let mut answered =
                     serde_json::to_value(&response).map_err(xdk::error::Error::from)?;

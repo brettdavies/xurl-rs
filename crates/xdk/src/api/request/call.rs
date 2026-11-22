@@ -362,7 +362,9 @@ impl<T: DeserializeOwned> Call<T> {
     /// Everything [`Client::stored_credential`] returns, plus the error of a
     /// request that could not be built.
     // `xr whoami --cached` reads the stored account with it, in
-    // `crates/xurl-cli/src/cli/commands/reads.rs`.
+    // `crates/xurl-cli/src/cli/commands/reads.rs`, and every command's send
+    // reads the credential before it goes out, in
+    // `crates/xurl-cli/src/cli/commands/sent.rs`.
     #[doc(hidden)]
     pub async fn stored_credential(&self) -> Result<Option<AuthPreflight>> {
         self.client

@@ -24,6 +24,7 @@ mod process_tree;
 mod program_output;
 mod reads;
 pub mod schema;
+mod sent;
 pub mod skill;
 mod spaces;
 mod stream_rules;
@@ -389,7 +390,7 @@ where
         let credential = call.auth_preflight().await;
         return dry_run.sending(&call).answer(out, stdout, [credential]);
     }
-    Ok(print_typed(out, stdout, &call.send().await?)?)
+    Ok(print_typed(out, stdout, &sent::send(call).await?)?)
 }
 
 /// Sends the one request `build` makes once `validator` passes its inputs,
@@ -650,9 +651,14 @@ async fn run_raw_mode(
         return DryRun::new(ctx).answer(out, stdout, [client.auth_preflight(&options).await]);
     }
 
+    let credential = sent::raw_credential(&client, &options).await;
+    let refused = |error| Failure::of_request(error, credential.clone());
+
     // Check for media append request
     if api::is_media_append_request(&absolute_url, &media_file) {
-        let response = api::handle_media_append_request(&options, &media_file, &client).await?;
+        let response = api::handle_media_append_request(&options, &media_file, &client)
+            .await
+            .map_err(&refused)?;
         out.print_response(stdout, &response);
         return Ok(());
     }
@@ -660,10 +666,12 @@ async fn run_raw_mode(
     let should_stream = cli.stream || api::is_streaming_endpoint(&absolute_url);
 
     if should_stream {
-        streaming::stream_request_with_output(&client, &options, out, stdout, stderr).await?;
+        streaming::stream_request_with_output(&client, &options, out, stdout, stderr)
+            .await
+            .map_err(&refused)?;
         Ok(())
     } else {
-        let response = client.send_request(&options).await?;
+        let response = client.send_request(&options).await.map_err(&refused)?;
         // A body that is not JSON arrives as a string holding it. Text mode
         // prints those bytes as they are; a structured mode still prints
         // JSON, so it keeps the string form.
@@ -795,16 +803,16 @@ fn my_id_call(client: &Client, common: &CommonFlags) -> Call<api::ApiResponse<ap
 /// under that login, and an account's id never changes, so a stored id is
 /// used as it is and no request is sent. Without one the lookup is sent, and
 /// its answer is stored for the next command.
-async fn resolve_my_user_id(client: &Client, common: &CommonFlags) -> Result<String> {
+async fn resolve_my_user_id(client: &Client, common: &CommonFlags) -> CommandResult<String> {
     let call = my_id_call(client, common);
     if let Ok(Some(found)) = call.auth_preflight().await
         && let Some(id) = found.user_id
     {
         return Ok(id);
     }
-    let id = call.send_saving_identity().await?.data.id;
+    let id = sent::send_saving_identity(call).await?.data.id;
     if id.is_empty() {
-        return Err(Error::auth("user ID was empty -- check your auth tokens"));
+        return Err(Error::auth("user ID was empty -- check your auth tokens").into());
     }
     Ok(id)
 }
@@ -953,9 +961,7 @@ where
         None => resolve_my_user_id(&client, common).await?,
     };
     let call = shortcut(&client, &user_id, n);
-    let response = with_flags(call, common, flags.cursor.as_deref())
-        .send()
-        .await?;
+    let response = sent::send(with_flags(call, common, flags.cursor.as_deref())).await?;
     print_typed(out, stdout, &response)?;
     Ok(())
 }
@@ -993,9 +999,12 @@ where
     }
     let my_id = resolve_my_user_id(&client, common).await?;
     let target_id = resolve_account_id(&client, target_username, common).await?;
-    let response = with_flags(shortcut(&client, &my_id, &target_id), common, None)
-        .send()
-        .await?;
+    let response = sent::send(with_flags(
+        shortcut(&client, &my_id, &target_id),
+        common,
+        None,
+    ))
+    .await?;
     print_typed(out, stdout, &response)?;
     Ok(())
 }
@@ -1092,9 +1101,7 @@ where
         return dry_run.answer(out, stdout, credentials);
     }
     let my_id = resolve_my_user_id(&client, common).await?;
-    let response = with_flags(shortcut(&client, &my_id), common, None)
-        .send()
-        .await?;
+    let response = sent::send(with_flags(shortcut(&client, &my_id), common, None)).await?;
     print_typed(out, stdout, &response)?;
     Ok(())
 }
@@ -1127,12 +1134,12 @@ async fn resolve_account_ids(
     client: &Client,
     accounts: &[String],
     common: &CommonFlags,
-) -> Result<Vec<String>> {
+) -> CommandResult<Vec<String>> {
     let found = match handles_lookup_call(client, accounts, common) {
-        Some(call) => call.send().await?.data,
+        Some(call) => sent::send(call).await?.data,
         None => Vec::new(),
     };
-    shortcuts::user_ids_for_accounts(accounts, &found)
+    Ok(shortcuts::user_ids_for_accounts(accounts, &found)?)
 }
 
 /// The request that looks `account` up when it is a handle, or `None` when
@@ -1150,7 +1157,7 @@ async fn resolve_account_id(
     client: &Client,
     account: &str,
     common: &CommonFlags,
-) -> Result<String> {
+) -> CommandResult<String> {
     let ids = resolve_account_ids(client, &[account.to_string()], common).await?;
     // One account, so the lookup answers with one id.
     Ok(ids.concat())
@@ -1222,9 +1229,7 @@ where
         return dry_run.answer(out, stdout, credentials);
     }
     let ids = resolve_account_ids(&client, accounts, common).await?;
-    let response = with_flags(build(&client, &ids), common, None)
-        .send()
-        .await?;
+    let response = sent::send(with_flags(build(&client, &ids), common, None)).await?;
     print_typed(out, stdout, &response)?;
     Ok(())
 }
@@ -1272,7 +1277,7 @@ where
         })?;
     confirm.gate(&flags, &ctx, found.last().and_then(Option::as_ref))?;
     let id = resolve_account_id(&client, account, common).await?;
-    let response = with_flags(build(&client, &id), common, None).send().await?;
+    let response = sent::send(with_flags(build(&client, &id), common, None)).await?;
     print_typed(out, stdout, &response)?;
     Ok(())
 }

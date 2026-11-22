@@ -6,16 +6,20 @@
 //! a step never names a scheme the endpoint refuses or a setup command
 //! without the flags it needs.
 
+use xdk::api::AuthPreflight;
 use xdk::api::auth_matrix::WireScheme;
 use xdk::error::{
     Error, MismatchShape, NO_AUTH_METHOD, NO_BEARER_TOKEN, NO_OAUTH1_TOKEN, NO_OAUTH2_TOKEN,
+    refuses_enrollment,
 };
 use xdk::store::snapshot::StoreSnapshot;
 
 use crate::cli::accepted_auth::{accepted_by_command, accepted_by_request};
-use crate::cli::classify::{invoked_credential, requested_login};
+use crate::cli::classify::{InvokedCredential, invoked_credential, requested_login};
 
-use crate::cli::hints::{Hint, NextStep, choose_hint, quote_app_name, rerun_command};
+use crate::cli::hints::{
+    Hint, NextStep, choose_hint, quote_app_name, rerun_command, with_docs_line,
+};
 
 /// The invocation that stores a credential of `scheme` in `app`, or the
 /// default app when none is named, with each value only the caller has left
@@ -78,16 +82,8 @@ pub(crate) fn no_credential_hint(
     let Some(invoked) = invoked_credential(invocation) else {
         return choose_hint(snapshot, invocation, headless);
     };
-    let accepted = if invoked.command.is_empty() {
-        match &invoked.request {
-            Some(request) => accepted_by_request(&request.method, &request.path),
-            None => WireScheme::ALL_BY_PREFERENCE.to_vec(),
-        }
-    } else {
-        match accepted_by_command(&invoked.command, invoked.of) {
-            Some(accepted) => accepted,
-            None => return choose_hint(snapshot, invocation, headless),
-        }
+    let Some(accepted) = accepted_by_invoked(&invoked) else {
+        return choose_hint(snapshot, invocation, headless);
     };
     let requested = match missing {
         Missing::Scheme(scheme) => Some(scheme),
@@ -102,6 +98,20 @@ pub(crate) fn no_credential_hint(
         invocation,
         headless,
     )
+}
+
+/// The schemes an invocation's requests accept: its command's row, or for a
+/// raw request the auth matrix's entry for its method and path, and every
+/// scheme when the matrix lists none or the invocation names no URL. `None`
+/// for a command with no row.
+fn accepted_by_invoked(invoked: &InvokedCredential) -> Option<Vec<WireScheme>> {
+    if !invoked.command.is_empty() {
+        return accepted_by_command(&invoked.command, invoked.of);
+    }
+    Some(match &invoked.request {
+        Some(request) => accepted_by_request(&request.method, &request.path),
+        None => WireScheme::ALL_BY_PREFERENCE.to_vec(),
+    })
 }
 
 /// The hint for a scheme mismatch the store can answer, from the schemes
@@ -167,6 +177,116 @@ fn serving_the_command(
         at_the_failing_endpoint
     } else {
         shared
+    }
+}
+
+/// The hint for a request X answered 401: the step that gets the credential X
+/// refused, from `credential`, the one the request went out under.
+///
+/// ```text
+/// an OAuth2 login                      -> sign-in, under the login's name and its app
+/// a stored OAuth1 pair or bearer token -> fix-input, the template that stores it in its app
+/// a bearer token from the environment  -> fix-input, with no invocation: no command replaces a variable
+/// ```
+///
+/// X refused this credential, so no step moves the request to another scheme
+/// or app: that choice is the caller's.
+#[must_use]
+pub(crate) fn refused_credential_hint(
+    snapshot: &StoreSnapshot,
+    credential: &AuthPreflight,
+    docs: Option<&str>,
+    headless: bool,
+) -> Hint {
+    let scheme = credential.scheme;
+    let Some(app) = credential.app.as_deref() else {
+        return Hint {
+            text_lines: with_docs_line(
+                "X refused the bearer token in XURL_BEARER_TOKEN. Replace its value, or unset it to use a stored credential.".to_string(),
+                docs,
+            ),
+            next_step: NextStep::fix_input(docs.map(str::to_string)),
+        };
+    };
+    let held = match (scheme, credential.username.as_deref()) {
+        (WireScheme::OAuth2, Some(login)) => format!(
+            "{} credentials of app {app:?}, the login {login:?}",
+            scheme.pretty()
+        ),
+        _ => format!("{} credentials of app {app:?}", scheme.pretty()),
+    };
+    if scheme == WireScheme::OAuth2 {
+        let named = Some(app).filter(|name| *name != snapshot.default_app);
+        let next_step = NextStep::sign_in_as(credential.username.as_deref(), named, headless);
+        let command = next_step.command.clone().unwrap_or_default();
+        return Hint {
+            text_lines: vec![format!(
+                "X refused the {held}. Sign in again. Run: {command}"
+            )],
+            next_step,
+        };
+    }
+    let template = setup_invocation(scheme, Some(app));
+    Hint {
+        text_lines: vec![format!(
+            "X refused the {held}. Store a working credential. Run: {template}"
+        )],
+        next_step: NextStep::fix_input_template(template),
+    }
+}
+
+/// The problem `type` X gives a 403 for a credential the endpoint does not
+/// take at all, such as an app-only bearer token on a user-context endpoint.
+const UNSUPPORTED_AUTHENTICATION: &str = "/problems/unsupported-authentication";
+
+/// Whether an API body names [`UNSUPPORTED_AUTHENTICATION`] as its problem
+/// `type`. X's other 403s, among them the generic one it gives a scope the
+/// login lacks, name no credential, so no other field is read.
+fn refuses_the_credential(body: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(body)
+        .ok()
+        .and_then(|value| value.get("type")?.as_str().map(str::to_string))
+        .is_some_and(|problem| problem.ends_with(UNSUPPORTED_AUTHENTICATION))
+}
+
+/// The hint for a request X answered 401 or 403 under `credential`, when the
+/// refusal is about that credential; `None` for a 403 about the request.
+///
+/// ```text
+/// 401                              -> refused_credential_hint
+/// 403, unsupported-authentication  -> the credential_hint answer for the schemes the command accepts but this one
+/// any other 403, enrollment too    -> None
+/// ```
+#[must_use]
+pub(crate) fn rejected_hint(
+    snapshot: &StoreSnapshot,
+    error: &Error,
+    credential: &AuthPreflight,
+    invocation: &[String],
+    headless: bool,
+) -> Option<Hint> {
+    let docs = error.docs_url();
+    match error {
+        Error::Api { status: 401, .. } => Some(refused_credential_hint(
+            snapshot, credential, docs, headless,
+        )),
+        Error::Api {
+            status: 403, body, ..
+        } if refuses_the_credential(body) && !refuses_enrollment(403, body) => {
+            let invoked = invoked_credential(invocation)?;
+            let mut accepted = accepted_by_invoked(&invoked)?;
+            accepted.retain(|scheme| *scheme != credential.scheme);
+            Some(credential_hint(
+                snapshot,
+                &Need {
+                    accepted: &accepted,
+                    requested: None,
+                },
+                invocation,
+                headless,
+            ))
+        }
+        _ => None,
     }
 }
 
