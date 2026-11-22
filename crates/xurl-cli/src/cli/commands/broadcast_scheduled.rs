@@ -3,7 +3,7 @@
 
 use serde_json::json;
 
-use super::{Run, list_paged, no_checks, send_confirmed, send_validated};
+use super::{Run, checked, list_paged, no_checks, send_confirmed, send_validated, valid_window};
 use crate::cli::ScheduledBroadcastsCommands;
 use crate::cli::failure::CommandResult;
 use xdk::api::Client;
@@ -24,7 +24,7 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
             common,
         } => {
             let ctx = json!({"command": "broadcasts-scheduled-get", "scheduled_id": scheduled_id});
-            let validate = || shortcuts::validate_scheduled_broadcast_id(&scheduled_id);
+            let validate = || checked(shortcuts::validate_scheduled_broadcast_id, &scheduled_id);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_scheduled_broadcast(&scheduled_id)
             })
@@ -55,12 +55,8 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
                 "end": broadcast.end_time,
                 "title": broadcast.title,
             });
-            let validate = || {
-                shortcuts::validate_time_window(
-                    Some(&broadcast.start_time),
-                    broadcast.end_time.as_deref(),
-                )
-            };
+            let validate =
+                || valid_window(Some(&broadcast.start_time), broadcast.end_time.as_deref());
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.create_scheduled_broadcast(&broadcast)
             })
@@ -92,8 +88,8 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
                 "end": changes.end_time,
             });
             let validate = || {
-                shortcuts::validate_scheduled_broadcast_id(&scheduled_id)?;
-                shortcuts::validate_time_window(Some(&changes.start_time), Some(&changes.end_time))
+                checked(shortcuts::validate_scheduled_broadcast_id, &scheduled_id)?;
+                valid_window(Some(&changes.start_time), Some(&changes.end_time))
             };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.update_scheduled_broadcast(&scheduled_id, &changes)
@@ -108,7 +104,7 @@ pub(super) async fn run(action: ScheduledBroadcastsCommands, run: Run<'_>) -> Co
             let ctx =
                 json!({"command": "broadcasts-scheduled-cancel", "scheduled_id": scheduled_id});
             let prompt = format!("Cancel scheduled broadcast {scheduled_id}?");
-            let validate = || shortcuts::validate_scheduled_broadcast_id(&scheduled_id);
+            let validate = || checked(shortcuts::validate_scheduled_broadcast_id, &scheduled_id);
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.delete_scheduled_broadcast(&scheduled_id)
             })

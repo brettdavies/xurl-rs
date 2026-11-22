@@ -207,27 +207,67 @@ struct DryRun {
     forced: Option<bool>,
 }
 
-/// An input a validator refused: the rule's kebab-case code and, when the
-/// rule's sentence names the input, the input as it was given.
+/// An input a validator refused: the rule's kebab-case code and the input as
+/// it was given. A refusal no single input caused carries no input.
 #[derive(Debug)]
 struct Invalid {
     rule: &'static str,
     value: Option<String>,
 }
 
+/// What a command's validator answers: the inputs pass, or one is refused.
+type Checked = std::result::Result<(), Invalid>;
+
 impl Invalid {
+    /// A refusal of `value`, the input `rule` is about, as it was given.
     fn naming(rule: &'static str, value: &str) -> Self {
         Self {
             rule,
             value: Some(value.to_string()),
         }
     }
-}
 
-impl From<&'static str> for Invalid {
-    fn from(rule: &'static str) -> Self {
+    /// A refusal no single input caused: a count, a mix, or nothing given.
+    fn unnamed(rule: &'static str) -> Self {
         Self { rule, value: None }
     }
+
+    /// A refusal of `input`, which names it unless it is blank: a blank
+    /// input has nothing to name.
+    fn of_input(rule: &'static str, input: &str) -> Self {
+        if input.trim().is_empty() {
+            Self::unnamed(rule)
+        } else {
+            Self::naming(rule, input)
+        }
+    }
+}
+
+/// Checks `input` with `validator`; a refusal names `input`.
+fn checked(
+    validator: impl FnOnce(&str) -> std::result::Result<(), &'static str>,
+    input: &str,
+) -> Checked {
+    validator(input).map_err(|rule| Invalid::of_input(rule, input))
+}
+
+/// Checks `inputs` with `validator`, which takes them all at once. A refusal
+/// names the first input the validator refuses on its own, and one that
+/// refuses the batch as a whole, such as too many ids or a mix of forms,
+/// names none.
+fn checked_each<S: AsRef<str>>(
+    validator: impl Fn(&[S]) -> std::result::Result<(), &'static str>,
+    inputs: &[S],
+) -> Checked {
+    validator(inputs).map_err(|rule| {
+        inputs
+            .iter()
+            .find(|input| validator(std::slice::from_ref(*input)) == Err(rule))
+            .map_or_else(
+                || Invalid::unnamed(rule),
+                |input| Invalid::of_input(rule, input.as_ref()),
+            )
+    })
 }
 
 impl From<Invalid> for Error {
@@ -249,19 +289,34 @@ fn without_unset(mut ctx: serde_json::Value) -> serde_json::Value {
 }
 
 /// The validator of a request whose inputs need no offline check.
-fn no_checks() -> std::result::Result<(), &'static str> {
+fn no_checks() -> Checked {
     Ok(())
 }
 
-/// Checks a post id or a post URL. A refused input is named, unless it is
-/// empty, which has nothing to name.
-fn valid_post_id(input: &str) -> std::result::Result<(), Invalid> {
-    shortcuts::validate_post_id(input).map_err(|rule| {
-        if input.trim().is_empty() {
-            Invalid::from(rule)
-        } else {
-            Invalid::naming(rule, input)
-        }
+/// Checks a post id or a post URL.
+fn valid_post_id(input: &str) -> Checked {
+    checked(shortcuts::validate_post_id, input)
+}
+
+/// Checks a post's body and the media ids it attaches.
+fn valid_post(text: &str, media_ids: &[String]) -> Checked {
+    checked(shortcuts::validate_post_body, text)?;
+    shortcuts::validate_media_attachments(media_ids).map_err(Invalid::unnamed)
+}
+
+/// Checks a time window: each bound given is RFC 3339, and the start comes
+/// before the end. A refusal names the first bound outside the form; a
+/// window whose start is not before its end names neither bound.
+fn valid_window(start: Option<&str>, end: Option<&str>) -> Checked {
+    shortcuts::validate_time_window(start, end).map_err(|rule| {
+        [start, end]
+            .into_iter()
+            .flatten()
+            .find(|bound| shortcuts::validate_time_window(Some(bound), None) == Err(rule))
+            .map_or_else(
+                || Invalid::unnamed(rule),
+                |bound| Invalid::of_input(rule, bound),
+            )
     })
 }
 
@@ -349,18 +404,18 @@ fn credential_value(found: &AuthPreflight) -> serde_json::Value {
     serde_json::to_value(auth).unwrap_or_default()
 }
 
-/// Checks a write's inputs: `validator` answers `Ok(())` or a kebab-case
-/// reason.
+/// Checks a write's inputs: `validator` answers `Ok(())` or the refusal,
+/// which names the input it refused.
 ///
 /// A real run with invalid inputs is refused here and one with valid inputs
 /// gets `None`. A dry run gets its [`DryRun`] either way, and carries a
 /// refusal to its answer as `would_succeed: false` with the reason.
-fn dry_run_or_validate<V: Into<Invalid>>(
+fn dry_run_or_validate(
     dry_run: bool,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
 ) -> CommandResult<Option<DryRun>> {
-    let invalid = validator().err().map(Into::into);
+    let invalid = validator().err();
     if dry_run {
         return Ok(Some(DryRun {
             ctx,
@@ -395,10 +450,10 @@ where
 /// Sends the one request `build` makes once `validator` passes its inputs,
 /// and prints the typed response; under `--dry-run` it answers with `ctx`
 /// and sends nothing.
-async fn send_validated<T, V: Into<Invalid>>(
+async fn send_validated<T>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     common: &CommonFlags,
     build: impl FnOnce(&Client) -> Call<T>,
 ) -> CommandResult<()>
@@ -424,12 +479,12 @@ where
 /// and the credential check out, it asks `prompt` unless `force`, and refuses
 /// under `--no-interactive` without it. A dry run says whether the real run
 /// would ask, when the real run would get as far as asking.
-async fn send_confirmed<T, V: Into<Invalid>>(
+async fn send_confirmed<T>(
     run: Run<'_>,
     ctx: serde_json::Value,
     prompt: &str,
     force: bool,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     common: &CommonFlags,
     build: impl FnOnce(&Client) -> Call<T>,
 ) -> CommandResult<()>
@@ -868,10 +923,10 @@ where
 /// A paged list one request reads, with no user id to resolve first: check
 /// the inputs with `validator`, call one shortcut with the page size, and
 /// print the typed response. `ctx` names the inputs in a dry run's answer.
-async fn list_paged<T, V: Into<Invalid>>(
+async fn list_paged<T>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     max_results: Option<i32>,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, i32) -> Call<api::ApiResponse<T>>,
@@ -897,10 +952,10 @@ where
 /// [`list_for_user`] for a list the command's own inputs pick out, such as
 /// one folder: `ctx` names them in a dry run's answer, and `validator`
 /// checks them before any request.
-async fn list_owned_by<T, V: Into<Invalid>>(
+async fn list_owned_by<T>(
     run: Run<'_>,
     mut ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     max_results: Option<i32>,
     of: Option<&str>,
     common: &CommonFlags,
@@ -920,14 +975,10 @@ where
     if let Some(target) = of {
         ctx["of"] = json!(target);
     }
-    let dry_run = dry_run_or_validate(
-        flags.dry_run,
-        ctx,
-        || -> std::result::Result<(), Invalid> {
-            of.map_or(Ok(()), validate_account)?;
-            validator().map_err(Into::into)
-        },
-    )?;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+        of.map_or(Ok(()), validate_account)?;
+        validator()
+    })?;
     let n = effective_limit(max_results, flags.global_limit);
     let client = make_client(cfg, auth)?;
     if let Some(dry_run) = dry_run {
@@ -1020,10 +1071,10 @@ where
 /// [`act_on_user`] for a verb whose other inputs ride along, such as the
 /// list a member joins: `ctx` names them in a dry run's answer, and
 /// `validator` checks them, after the account, before any request.
-async fn act_on_user_with<T, V: Into<Invalid>>(
+async fn act_on_user_with<T>(
     run: Run<'_>,
     mut ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     target_username: &str,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
@@ -1032,9 +1083,9 @@ where
     T: Serialize + DeserializeOwned + Default,
 {
     ctx["target_username"] = json!(target_username);
-    let validate = || -> std::result::Result<(), Invalid> {
+    let validate = || {
         validate_account(target_username)?;
-        validator().map_err(Into::into)
+        validator()
     };
     send_to_account(run, ctx, validate, target_username, common, shortcut).await
 }
@@ -1063,10 +1114,10 @@ where
 /// A verb that acts from the caller's account: check its inputs with
 /// `validator`, resolve the caller's id, call one shortcut with it, and
 /// print the typed response. `ctx` names the inputs in a dry run's answer.
-async fn act_from_me<T, V: Into<Invalid>>(
+async fn act_from_me<T>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     common: &CommonFlags,
     shortcut: impl FnOnce(&Client, &str) -> Call<api::ApiResponse<T>>,
 ) -> CommandResult<()>
@@ -1101,9 +1152,9 @@ where
 
 /// Validates the one account a command names, a numeric user id or a
 /// handle, each in its spec form; an empty handle is `empty-username`.
-fn validate_account(account: &str) -> std::result::Result<(), &'static str> {
-    shortcuts::validate_target_username(account)?;
-    shortcuts::validate_accounts(&[account])
+fn validate_account(account: &str) -> Checked {
+    checked(shortcuts::validate_target_username, account)?;
+    checked(|account| shortcuts::validate_accounts(&[account]), account)
 }
 
 /// The request that resolves every handle among `accounts` at once, or
@@ -1195,10 +1246,10 @@ where
 /// resolved first, all in one lookup, and an id goes out as it is. Under
 /// `--dry-run` nothing is sent, and the answer names the credentials the
 /// lookup and the request would go out with.
-async fn send_to_accounts<T, V: Into<Invalid>>(
+async fn send_to_accounts<T>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     accounts: &[String],
     common: &CommonFlags,
     build: impl FnOnce(&Client, &[String]) -> Call<T>,
@@ -1232,11 +1283,11 @@ where
 /// [`send_to_account`] for a request that destroys something: once the
 /// inputs and the credentials of the lookup and the request check out, and
 /// before the lookup goes out, it asks as [`send_confirmed`] does.
-async fn send_confirmed_to_account<T, V: Into<Invalid>>(
+async fn send_confirmed_to_account<T>(
     run: Run<'_>,
     ctx: serde_json::Value,
     confirm: Confirm<'_>,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     account: &str,
     common: &CommonFlags,
     build: impl Fn(&Client, &str) -> Call<T>,
@@ -1278,10 +1329,10 @@ where
 }
 
 /// [`send_to_accounts`] for a request that names one account.
-async fn send_to_account<T, V: Into<Invalid>>(
+async fn send_to_account<T>(
     run: Run<'_>,
     ctx: serde_json::Value,
-    validator: impl FnOnce() -> std::result::Result<(), V>,
+    validator: impl FnOnce() -> Checked,
     account: &str,
     common: &CommonFlags,
     build: impl FnOnce(&Client, &str) -> Call<T>,

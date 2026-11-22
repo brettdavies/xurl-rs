@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "webhooks", "listen", "--forward", "ftp://example.com/hook"]
 store: empty
 exit_code: 0
-stdout_len: 475
+stdout_len: 512
 stderr_len: 0
 --- stdout ---
 {
@@ -23,6 +23,7 @@ stderr_len: 0
   "rule": "forward-url-not-http",
   "secret": null,
   "status": "dry_run",
+  "value": "ftp://example.com/hook",
   "would_succeed": false
 }
 

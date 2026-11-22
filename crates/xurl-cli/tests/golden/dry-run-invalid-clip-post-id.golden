@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "post", "hi", "--clip", "not-an-id", "--clip-start", "0", "--clip-end", "10"]
 store: empty
 exit_code: 0
-stdout_len: 489
+stdout_len: 513
 stderr_len: 0
 --- stdout ---
 {
@@ -23,6 +23,7 @@ stderr_len: 0
   "response_schema": "xr schema post",
   "rule": "invalid-clip-post-id",
   "status": "dry_run",
+  "value": "not-an-id",
   "would_succeed": false
 }
 

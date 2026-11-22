@@ -6,7 +6,7 @@ use serde_json::json;
 
 use super::webhooks_listen::{Listener, listen};
 use super::{
-    Confirm, DryRun, Run, dry_run_or_validate, make_client, send_confirmed,
+    Confirm, DryRun, Run, checked, dry_run_or_validate, make_client, send_confirmed,
     send_confirmed_to_account, send_or_report, validate_account, with_flags,
 };
 use crate::cli::failure::{CommandResult, Failure};
@@ -115,7 +115,7 @@ async fn subscriptions(action: WebhookSubscriptionsCommands, run: Run<'_>) -> Co
             } = run;
             let ctx = json!({"command": "webhooks-subscriptions-list", "webhook_id": webhook_id});
             let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-                shortcuts::validate_webhook_id(&webhook_id)
+                checked(shortcuts::validate_webhook_id, &webhook_id)
             })?;
             let client = make_client(cfg, auth)?;
             let call = with_flags(
@@ -137,7 +137,7 @@ async fn subscriptions(action: WebhookSubscriptionsCommands, run: Run<'_>) -> Co
             } = run;
             let ctx = json!({"command": "webhooks-subscriptions-add", "webhook_id": webhook_id});
             let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-                shortcuts::validate_webhook_id(&webhook_id)
+                checked(shortcuts::validate_webhook_id, &webhook_id)
             })?;
             let client = make_client(cfg, auth)?;
             let call = with_flags(
@@ -159,7 +159,7 @@ async fn subscriptions(action: WebhookSubscriptionsCommands, run: Run<'_>) -> Co
             } = run;
             let ctx = json!({"command": "webhooks-subscriptions-check", "webhook_id": webhook_id});
             let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-                shortcuts::validate_webhook_id(&webhook_id)
+                checked(shortcuts::validate_webhook_id, &webhook_id)
             })?;
             let client = make_client(cfg, auth)?;
             let call = with_flags(
@@ -192,7 +192,7 @@ async fn unsubscribe(
         "user_id": account,
     });
     let valid = || {
-        shortcuts::validate_webhook_id(webhook_id)?;
+        checked(shortcuts::validate_webhook_id, webhook_id)?;
         validate_account(account)
     };
     let prompt = format!("End user {account}'s subscription to webhook {webhook_id}?");
@@ -234,7 +234,9 @@ async fn add(run: Run<'_>, url: &str, common: &CommonFlags) -> CommandResult<()>
         ..
     } = run;
     let ctx = json!({"command": "webhooks-add", "url": url});
-    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || shortcuts::validate_webhook_url(url))?;
+    let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
+        checked(shortcuts::validate_webhook_url, url)
+    })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(client.create_webhook(url), common, None);
     send_or_report(out, stdout, dry_run, call).await?;
@@ -252,7 +254,7 @@ async fn validate(run: Run<'_>, webhook_id: &str, common: &CommonFlags) -> Comma
     } = run;
     let ctx = json!({"command": "webhooks-validate", "webhook_id": webhook_id});
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_webhook_id(webhook_id)
+        checked(shortcuts::validate_webhook_id, webhook_id)
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(client.validate_webhook(webhook_id), common, None);
@@ -268,7 +270,7 @@ async fn remove(
 ) -> CommandResult<()> {
     let ctx = json!({"command": "webhooks-remove", "webhook_id": webhook_id});
     let prompt = format!("Delete webhook {webhook_id}?");
-    let validate = || shortcuts::validate_webhook_id(webhook_id);
+    let validate = || checked(shortcuts::validate_webhook_id, webhook_id);
     send_confirmed(run, ctx, &prompt, force, validate, common, |client| {
         client.delete_webhook(webhook_id)
     })
@@ -297,9 +299,9 @@ async fn replay(
         "to": to,
     });
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_webhook_id(webhook_id)?;
-        shortcuts::validate_replay_time(from)?;
-        shortcuts::validate_replay_time(to)
+        checked(shortcuts::validate_webhook_id, webhook_id)?;
+        checked(shortcuts::validate_replay_time, from)?;
+        checked(shortcuts::validate_replay_time, to)
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(
@@ -352,7 +354,7 @@ async fn replay_from_checkpoint(
         ctx["lost_from"] = json!(lost_from);
     }
     let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-        shortcuts::validate_webhook_id(webhook_id)
+        checked(shortcuts::validate_webhook_id, webhook_id)
     })?;
     let client = make_client(cfg, auth)?;
     let call = with_flags(
@@ -417,7 +419,7 @@ async fn stream_links(action: WebhookStreamLinksCommands, run: Run<'_>) -> Comma
             } = run;
             let ctx = json!({"command": "webhooks-stream-links-add", "webhook_id": webhook_id});
             let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-                shortcuts::validate_webhook_id(&webhook_id)
+                checked(shortcuts::validate_webhook_id, &webhook_id)
             })?;
             let client = make_client(cfg, auth)?;
             let call = with_flags(
@@ -444,7 +446,7 @@ async fn unlink_stream(
 ) -> CommandResult<()> {
     let ctx = json!({"command": "webhooks-stream-links-remove", "webhook_id": webhook_id});
     let prompt = format!("Stop delivering the filtered stream to webhook {webhook_id}?");
-    let validate = || shortcuts::validate_webhook_id(webhook_id);
+    let validate = || checked(shortcuts::validate_webhook_id, webhook_id);
     send_confirmed(run, ctx, &prompt, force, validate, common, |client| {
         client.delete_webhook_stream_link(webhook_id)
     })

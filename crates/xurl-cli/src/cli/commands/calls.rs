@@ -3,7 +3,10 @@
 use serde::Serialize;
 use serde_json::{Value, json};
 
-use super::{Run, no_checks, send_confirmed, send_to_accounts, send_validated, stand_in_ids};
+use super::{
+    Checked, Invalid, Run, checked, checked_each, no_checks, send_confirmed, send_to_accounts,
+    send_validated, stand_in_ids,
+};
 use crate::cli::failure::CommandResult;
 use crate::cli::{
     CallAnswer, CallDetailsArgs, CallScope, CallsCommands, OccurrenceArgs,
@@ -46,7 +49,7 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
                 [&start, &end]
                     .into_iter()
                     .flatten()
-                    .try_for_each(|time| shortcuts::validate_call_time(time))
+                    .try_for_each(|time| checked(shortcuts::validate_call_time, time))
             };
             send_validated(run, ctx, validate, &common, |client| {
                 client.get_scheduled_calls(start.as_deref(), end.as_deref(), max_results)
@@ -79,7 +82,9 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
                 ..call.clone()
             };
             let validate = || {
-                shortcuts::validate_new_scheduled_call(&inviting(&stand_in_ids(&invitees)))?;
+                let call = inviting(&stand_in_ids(&invitees));
+                shortcuts::validate_new_scheduled_call(&call)
+                    .map_err(|rule| Bounds::of_new(&call).refusal(rule))?;
                 validate_invitees(&invitees)
             };
             send_to_accounts(run, ctx, validate, &invitees, &common, |client, ids| {
@@ -102,7 +107,9 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
                 ..changes.clone()
             };
             let validate = || {
-                shortcuts::validate_scheduled_call_changes(&inviting(&stand_in_ids(&invitees)))?;
+                let changed = inviting(&stand_in_ids(&invitees));
+                shortcuts::validate_scheduled_call_changes(&changed)
+                    .map_err(|rule| Bounds::of_changes(&changed).refusal(rule))?;
                 validate_invitees(&invitees)
             };
             send_to_accounts(run, ctx, validate, &invitees, &common, |client, ids| {
@@ -133,7 +140,7 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
                 ctx,
                 &prompt,
                 force,
-                || shortcuts::validate_occurrences(&occurrences),
+                || valid_occurrences(&occurrences),
                 &common,
                 |client| client.cancel_scheduled_call(&scheduled_call_id, &occurrences, notify),
             )
@@ -156,7 +163,7 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
             send_validated(
                 run,
                 ctx,
-                || shortcuts::validate_occurrences(&occurrences),
+                || valid_occurrences(&occurrences),
                 &common,
                 |client| client.respond_to_scheduled_call(&scheduled_call_id, answer, &occurrences),
             )
@@ -168,11 +175,79 @@ async fn scheduled(action: ScheduledCallsCommands, run: Run<'_>) -> CommandResul
 /// Checks the form of each invitee, a handle or a numeric user id; the
 /// call's own validator checks how many there are and each id, with every
 /// handle standing in for the id its lookup returns.
-fn validate_invitees(invitees: &[String]) -> Result<(), &'static str> {
+fn validate_invitees(invitees: &[String]) -> Checked {
     if invitees.is_empty() {
         return Ok(());
     }
-    shortcuts::validate_accounts(invitees)
+    checked_each(shortcuts::validate_accounts, invitees)
+}
+
+/// Checks the occurrence a request names.
+fn valid_occurrences(occurrences: &Occurrences) -> Checked {
+    occurrences
+        .occurrence_start_time
+        .as_deref()
+        .map_or(Ok(()), |time| checked(shortcuts::validate_call_time, time))
+}
+
+/// The inputs a call's bounds are about, so a refusal can name the one its
+/// rule refused.
+struct Bounds<'a> {
+    start: Option<&'a str>,
+    occurrence: Option<&'a str>,
+    title: Option<&'a str>,
+    description: Option<&'a str>,
+    recurrence: Option<&'a str>,
+    time_zone: Option<&'a str>,
+    duration: Option<u32>,
+}
+
+impl<'a> Bounds<'a> {
+    fn of_new(call: &'a NewScheduledCall) -> Self {
+        Self {
+            start: Some(&call.start_time),
+            occurrence: None,
+            title: call.title.as_deref(),
+            description: call.description.as_deref(),
+            recurrence: call.recurrence.as_deref(),
+            time_zone: call.time_zone.as_deref(),
+            duration: call.duration_minutes,
+        }
+    }
+
+    fn of_changes(changes: &'a ScheduledCallChanges) -> Self {
+        Self {
+            start: changes.start_time.as_deref(),
+            occurrence: changes.occurrences.occurrence_start_time.as_deref(),
+            title: changes.title.as_deref(),
+            description: changes.description.as_deref(),
+            recurrence: changes.recurrence.as_deref(),
+            time_zone: changes.time_zone.as_deref(),
+            duration: changes.duration_minutes,
+        }
+    }
+
+    /// The refusal of the input `rule` is about. A rule about a count, or
+    /// about nothing given, names none.
+    fn refusal(&self, rule: &'static str) -> Invalid {
+        let input = match rule {
+            "invalid-call-time" => [self.start, self.occurrence]
+                .into_iter()
+                .flatten()
+                .find(|time| shortcuts::validate_call_time(time).is_err())
+                .map(str::to_string),
+            "call-title-too-long" => self.title.map(str::to_string),
+            "call-description-too-long" => self.description.map(str::to_string),
+            "call-recurrence-too-long" => self.recurrence.map(str::to_string),
+            "call-time-zone-too-long" => self.time_zone.map(str::to_string),
+            "invalid-call-duration" => self.duration.map(|minutes| minutes.to_string()),
+            _ => None,
+        };
+        input.map_or_else(
+            || Invalid::unnamed(rule),
+            |input| Invalid::of_input(rule, &input),
+        )
+    }
 }
 
 /// A dry run's context: the command, the scheduled call it names, and each

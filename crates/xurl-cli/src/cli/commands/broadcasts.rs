@@ -7,8 +7,8 @@ use serde_json::json;
 
 use super::{
     DryRun, Invalid, Run, act_on_user, act_on_user_with, broadcast_chat, broadcast_scheduled,
-    list_paged, make_client, no_checks, send_confirmed, send_or_report, send_validated, with_flags,
-    without_unset,
+    checked, list_paged, make_client, no_checks, send_confirmed, send_or_report, send_validated,
+    valid_window, with_flags, without_unset,
 };
 use crate::cli::failure::CommandResult;
 use crate::cli::{BroadcastsCommands, ModeratorsCommands, MutesCommands, SourcesCommands};
@@ -117,7 +117,7 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
                         ("invalid-chat-option", Some(option)) => {
                             Invalid::naming(rule, &option.to_string())
                         }
-                        _ => Invalid::from(rule),
+                        _ => Invalid::unnamed(rule),
                     }
                 })
             };
@@ -177,7 +177,7 @@ async fn mutes(action: MutesCommands, run: Run<'_>) -> CommandResult<()> {
                 "until": until,
             });
             let validate = || {
-                shortcuts::validate_time_window(until.as_deref(), None)?;
+                valid_window(until.as_deref(), None)?;
                 broadcast.as_deref().map_or(Ok(()), |id| {
                     shortcuts::validate_broadcast_id(id).map_err(|rule| Invalid::naming(rule, id))
                 })
@@ -255,8 +255,8 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
         } => {
             let ctx = json!({"command": "broadcasts-sources-add", "name": name, "region": region});
             let validate = || {
-                shortcuts::validate_source_name(&name)?;
-                shortcuts::validate_source_region(&region)
+                checked(shortcuts::validate_source_name, &name)?;
+                checked(shortcuts::validate_source_region, &region)
             };
             send_validated(run, ctx, validate, &common, |client| {
                 client.create_stream_source(&name, &region)
@@ -276,7 +276,7 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
             let validate = || {
                 shortcuts::validate_source_id(&source_id)
                     .map_err(|rule| Invalid::naming(rule, &source_id))?;
-                shortcuts::validate_source_name(&name).map_err(Invalid::from)
+                checked(shortcuts::validate_source_name, &name)
             };
             send_validated(run, ctx, validate, &common, |client| {
                 client.rename_stream_source(&source_id, &name)

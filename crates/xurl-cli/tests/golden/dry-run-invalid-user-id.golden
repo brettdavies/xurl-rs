@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "webhooks", "subscriptions", "remove", "1146654567674912769", "12345678901234567890"]
 store: empty
 exit_code: 0
-stdout_len: 483
+stdout_len: 518
 stderr_len: 0
 --- stdout ---
 {
@@ -17,6 +17,7 @@ stderr_len: 0
   "rule": "invalid-user-id",
   "status": "dry_run",
   "user_id": "12345678901234567890",
+  "value": "12345678901234567890",
   "webhook_id": "1146654567674912769",
   "would_succeed": false
 }

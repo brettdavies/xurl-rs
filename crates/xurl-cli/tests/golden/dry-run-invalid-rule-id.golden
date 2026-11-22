@@ -1,7 +1,7 @@
 args: ["--output", "json", "--dry-run", "stream", "rules", "remove", "rule-1"]
 store: empty
 exit_code: 0
-stdout_len: 432
+stdout_len: 453
 stderr_len: 0
 --- stdout ---
 {
@@ -20,6 +20,7 @@ stderr_len: 0
   ],
   "status": "dry_run",
   "validate_only": false,
+  "value": "rule-1",
   "would_succeed": false
 }
 

@@ -14,10 +14,10 @@ use xdk::webhooks::{
     validate_forward_url,
 };
 
-use super::Run;
 use super::webhooks_checkpoint::Progress;
 use super::webhooks_forward::{Finished, Forwarding, Target};
 use super::webhooks_program::ProgramTarget;
+use super::{Invalid, Run};
 use crate::cli::SigningSecret;
 use crate::cli::failure::{CommandResult, Failure};
 use crate::cli::hints::{NO_SIGNING_SECRET, shell_word};
@@ -234,7 +234,15 @@ fn forward_targets(listener: &Listener) -> Result<Vec<Target>, Error> {
 
 /// `--forward` with its `-H` headers.
 fn url_target(url: &str, headers: &[String]) -> Result<UrlTarget, Error> {
-    validate_forward_url(url).map_err(Error::validation)?;
+    validate_forward_url(url).map_err(|rule| {
+        // A username or password in the URL is never repeated, and `@` is
+        // where one starts.
+        if url.contains('@') {
+            Error::validation(rule)
+        } else {
+            Error::from(Invalid::of_input(rule, url))
+        }
+    })?;
     UrlTarget::new(url, headers)
 }
 

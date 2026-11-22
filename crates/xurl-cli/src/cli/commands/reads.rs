@@ -7,9 +7,9 @@
 use serde_json::json;
 
 use super::{
-    DryRun, Invalid, Run, dry_run_or_validate, effective_limit, list_for_post, list_for_user,
-    list_paged, make_client, print_typed, send_or_report, send_validated, valid_post_id,
-    with_flags,
+    DryRun, Run, checked, checked_each, dry_run_or_validate, effective_limit, list_for_post,
+    list_for_user, list_paged, make_client, print_typed, send_or_report, send_validated,
+    valid_post_id, valid_window, with_flags,
 };
 use crate::cli::Commands;
 use crate::cli::failure::CommandResult;
@@ -34,9 +34,9 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         }
         Commands::Posts { post_ids, common } => {
             let ctx = json!({"command": "posts", "post_ids": post_ids});
-            let validator = || -> Result<(), Invalid> {
+            let validator = || {
                 post_ids.iter().try_for_each(|id| valid_post_id(id))?;
-                Ok(shortcuts::validate_lookup_ids(&post_ids)?)
+                checked_each(shortcuts::validate_lookup_ids, &post_ids)
             };
             send_validated(run, ctx, validator, &common, |client: &Client| {
                 client.read_posts(&post_ids)
@@ -45,7 +45,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
         }
         Commands::Users { accounts, common } => {
             let ctx = json!({"command": "users", "accounts": accounts});
-            let validate = || shortcuts::validate_user_lookup(&accounts);
+            let validate = || checked_each(shortcuts::validate_user_lookup, &accounts);
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 if accounts.iter().all(|a| shortcuts::is_user_id_form(a)) {
                     client.lookup_users_by_id(&accounts)
@@ -95,7 +95,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
             common,
         } => {
             let ctx = json!({"command": "search-users", "query": query});
-            let validator = || shortcuts::validate_user_search_query(&query);
+            let validator = || checked(shortcuts::validate_user_search_query, &query);
             list_paged(run, ctx, validator, max_results, &common, |client, n| {
                 client.search_users(&query, n)
             })
@@ -124,7 +124,7 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 "end": end,
             });
             let dry_run = dry_run_or_validate(flags.dry_run, ctx, || {
-                shortcuts::validate_time_window(start.as_deref(), end.as_deref())
+                valid_window(start.as_deref(), end.as_deref())
             })?;
             let client = make_client(cfg, auth)?;
             let call = client.count_recent_posts(
@@ -150,11 +150,10 @@ pub(super) async fn run(cmd: Commands, run: Run<'_>) -> CommandResult<()> {
                 "end": end,
                 "granularity": granularity,
             });
-            let validator = || -> Result<(), Invalid> {
+            let validator = || {
                 post_ids.iter().try_for_each(|id| valid_post_id(id))?;
-                shortcuts::validate_lookup_ids(&post_ids)?;
-                shortcuts::validate_time_window(Some(&start), Some(&end))?;
-                Ok(())
+                checked_each(shortcuts::validate_lookup_ids, &post_ids)?;
+                valid_window(Some(&start), Some(&end))
             };
             send_validated(run, ctx, validator, &common, |client: &Client| {
                 client.post_analytics(&post_ids, &start, &end, granularity.as_deref())
