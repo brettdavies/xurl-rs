@@ -39,11 +39,6 @@ use common::{
 /// Every sanctioned real-home resolution in the suite.
 const ALLOWLIST: &[Allowed] = &[
     Allowed {
-        file: "crates/xdk/tests/live_smoke.rs",
-        test: "live_client",
-        reason: "the release gate must read the operator's real login",
-    },
-    Allowed {
         file: "crates/xdk/tests/api_tests.rs",
         test: "test_from_env_without_client_id_builds_a_store_backed_client",
         reason: "from_env takes no path, so it builds over the default store, which a constructor only reads",
