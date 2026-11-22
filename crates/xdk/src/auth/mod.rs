@@ -394,7 +394,10 @@ impl Auth {
                     .get_oauth2_token_unnamed_for_app(app_name)
                     .is_some()
         } else {
-            self.token_store.get_oauth2_token(username).is_some() || first
+            self.token_store
+                .get_oauth2_token_for_app(app_name, username)
+                .is_some()
+                || first
         }
     }
 
