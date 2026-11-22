@@ -244,6 +244,16 @@
           "format": "int32",
           "type": "integer"
         },
+        "held": {
+          "description": "The apps the store holds, on a refusal whose `value` is an app name\nthe store does not hold.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "message": {
           "description": "The message the real run's error would carry.",
           "type": [
@@ -452,6 +462,16 @@
           "description": "Structured exit code per the sysexits-inspired matrix in\n`xurl::error`.",
           "format": "int32",
           "type": "integer"
+        },
+        "held": {
+          "description": "The apps the store holds, in name order, when `value` is an app name it\ndoes not hold; empty when the store holds none. Its text hint lists the\nsame apps.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "host": {
           "description": "Agent host a skill verb targeted.",

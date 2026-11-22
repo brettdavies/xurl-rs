@@ -258,7 +258,8 @@ async fn run_inner(
     .with_no_interactive(cli.no_interactive)
     .with_response_schema(crate::cli::commands::schema::pointer_for(&matched_path(
         &matches,
-    )));
+    )))
+    .with_app_from_env(app_from_env(&cli, &matches));
     crate::cli::panic_hook::publish(&out);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
@@ -900,6 +901,13 @@ fn render_schema_refusal(
         },
     );
     EXIT_USAGE_ERROR
+}
+
+/// The app name `XURL_APP` gave, when `--app` did not override it.
+fn app_from_env(cli: &Cli, matches: &clap::ArgMatches) -> Option<String> {
+    (matches.value_source("app") == Some(clap::parser::ValueSource::EnvVariable))
+        .then(|| cli.app.clone())
+        .flatten()
 }
 
 /// The words of the subcommand clap matched, empty for a raw request.

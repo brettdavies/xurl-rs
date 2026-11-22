@@ -184,3 +184,113 @@ async fn a_store_that_could_not_be_loaded_checks_no_app_name_and_leaves_the_bear
     assert_eq!(answer["auth"]["scheme"], "app", "{answer}");
     assert_eq!(server.received_requests().await.expect("recorded").len(), 0);
 }
+
+/// `xr <args>` as a child process against the store `oauth1_store` builds,
+/// with `environment` set on the child and every X endpoint at a closed port:
+/// the exit code, stdout, and stderr.
+fn child(args: &[&str], environment: &[(&str, &str)]) -> (i32, String, String) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = oauth1_store(tmp.path());
+    let mut command = common::xr_with_store(&store);
+    command.env("API_BASE_URL", common::CLOSED);
+    for (key, value) in environment {
+        command.env(key, value);
+    }
+    let output = command.args(args).output().expect("xr runs");
+    (
+        output.status.code().expect("exit code"),
+        String::from_utf8_lossy(&output.stdout).into_owned(),
+        String::from_utf8_lossy(&output.stderr).into_owned(),
+    )
+}
+
+#[rstest::rstest]
+#[case::request(&["--output", "json", "--app", GHOST, "whoami"], false)]
+#[case::store_command(&["--output", "json", "auth", "default", GHOST], false)]
+#[case::dry_run(&["--output", "json", "--dry-run", "--app", GHOST, "whoami"], true)]
+#[tokio::test]
+async fn the_envelope_names_the_apps_the_store_holds(#[case] args: &[&str], #[case] dry_run: bool) {
+    let (code, stdout, stderr) = invoke(args).await;
+
+    let envelope = json_of(if dry_run { &stdout } else { &stderr });
+    assert_eq!(code, if dry_run { 0 } else { 77 }, "{args:?}: {stderr}");
+    assert_eq!(envelope["reason"], "token-store", "{args:?}: {envelope}");
+    assert_eq!(envelope["value"], GHOST, "{args:?}: {envelope}");
+    assert_eq!(envelope["held"], json!(["myapp"]), "{args:?}: {envelope}");
+}
+
+#[tokio::test]
+async fn a_store_that_holds_no_app_carries_an_empty_list() {
+    let server = MockServer::start().await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+
+    let (code, _stdout, stderr) = run_in_process(
+        &store,
+        &server.uri(),
+        &["--output", "json", "--app", GHOST, "whoami"],
+    )
+    .await;
+
+    assert_eq!(code, 77, "{stderr}");
+    let envelope = json_of(&stderr);
+    assert_eq!(envelope["reason"], "token-store", "{envelope}");
+    assert_eq!(envelope["held"], json!([]), "{envelope}");
+}
+
+#[test]
+fn another_token_store_failure_carries_no_list_of_apps() {
+    let (code, _stdout, stderr) = child(&["--output", "json", "auth", "apps", "add", "myapp"], &[]);
+    let envelope = json_of(&stderr);
+    assert_ne!(code, 0, "{envelope}");
+    assert!(envelope.get("held").is_none(), "{envelope}");
+}
+
+#[rstest::rstest]
+#[case::request(&["--output", "json", "whoami"])]
+#[case::dry_run(&["--output", "json", "--dry-run", "whoami"])]
+fn a_name_that_came_from_xurl_app_says_so(#[case] args: &[&str]) {
+    let (code, stdout, stderr) = child(args, &[("XURL_APP", GHOST)]);
+
+    let envelope = json_of(if stdout.trim().is_empty() {
+        &stderr
+    } else {
+        &stdout
+    });
+    assert!(code == 77 || code == 0, "{args:?}: {stderr}");
+    assert_eq!(
+        envelope["message"],
+        "Token Store Error: the store holds no app named \"ghost\" (from XURL_APP)",
+        "{args:?}: {envelope}"
+    );
+}
+
+#[test]
+fn the_text_refusal_says_when_the_name_came_from_xurl_app() {
+    let (code, _stdout, stderr) = child(&["whoami"], &[("XURL_APP", GHOST)]);
+
+    assert_eq!(code, 77, "{stderr}");
+    assert!(
+        stderr.contains("the store holds no app named \"ghost\" (from XURL_APP)"),
+        "{stderr}"
+    );
+}
+
+#[rstest::rstest]
+#[case::flag_over_the_variable(&["--output", "json", "--app", GHOST, "whoami"], &[("XURL_APP", "other")])]
+#[case::flag_matching_the_variable(&["--output", "json", "--app", GHOST, "whoami"], &[("XURL_APP", GHOST)])]
+#[case::name_given_to_a_store_command(&["--output", "json", "auth", "default", GHOST], &[("XURL_APP", "myapp")])]
+#[case::no_variable(&["--output", "json", "--app", GHOST, "whoami"], &[])]
+fn a_name_that_did_not_come_from_xurl_app_does_not_say_so(
+    #[case] args: &[&str],
+    #[case] environment: &[(&str, &str)],
+) {
+    let (code, _stdout, stderr) = child(args, environment);
+
+    assert_eq!(code, 77, "{args:?}: {stderr}");
+    let envelope = json_of(&stderr);
+    assert_eq!(
+        envelope["message"], "Token Store Error: the store holds no app named \"ghost\"",
+        "{args:?}: {envelope}"
+    );
+}

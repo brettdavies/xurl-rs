@@ -141,6 +141,10 @@ pub struct OutputConfig {
     /// `response_schema`. The runner sets it via
     /// [`Self::with_response_schema`] once the command is parsed.
     pub response_schema: Option<String>,
+    /// The app name `XURL_APP` gave when it is the name the run uses, so a
+    /// refusal of that name says where it came from. The runner sets it via
+    /// [`Self::with_app_from_env`].
+    pub app_from_env: Option<String>,
     /// The warnings a structured run has kept for its one document on
     /// stderr, shared by every clone of this config.
     pub warnings: WarningLog,
@@ -200,6 +204,7 @@ impl OutputConfig {
             raw,
             no_interactive: false,
             response_schema: None,
+            app_from_env: None,
             warnings: WarningLog::default(),
         }
     }
@@ -220,6 +225,27 @@ impl OutputConfig {
     pub fn with_response_schema(mut self, response_schema: Option<String>) -> Self {
         self.response_schema = response_schema;
         self
+    }
+
+    /// Sets [`Self::app_from_env`].
+    #[must_use]
+    pub fn with_app_from_env(mut self, app: Option<String>) -> Self {
+        self.app_from_env = app;
+        self
+    }
+
+    /// `body` with its message saying `XURL_APP` gave the app it refuses, when
+    /// it did. Only the refusal of an app the store does not hold carries
+    /// `held`, so no other error's message changes.
+    fn naming_app_source(&self, mut body: ErrorBody) -> ErrorBody {
+        if body.held.is_some()
+            && self.app_from_env.is_some()
+            && body.value == self.app_from_env
+            && let Some(message) = body.message.as_mut()
+        {
+            message.push_str(" (from XURL_APP)");
+        }
+        body
     }
 
     /// `ctx` with `response_schema` added when the running command has a
@@ -323,6 +349,7 @@ impl OutputConfig {
         body: ErrorBody,
         advice: &[String],
     ) {
+        let body = self.naming_app_source(body);
         let exit_code = body.exit_code;
         if !self.format.is_structured() {
             let refusal = dry_run::Refusal {
@@ -469,6 +496,7 @@ impl OutputConfig {
     /// Building the typed [`ErrorBody`] here is what keeps the generated
     /// schema honest: a key no field declares cannot be emitted.
     pub(crate) fn emit_error_envelope(&self, err: &mut dyn Write, body: ErrorBody) {
+        let body = self.naming_app_source(body);
         let display = body.message.clone().unwrap_or_default();
         self.emit_error_envelope_as(err, body, &display);
     }
@@ -963,8 +991,9 @@ fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
         Error::AccountNotFound { account } => {
             body.account = Some(account.clone());
         }
-        Error::AppNotFound { name, .. } => {
+        Error::AppNotFound { name, held } => {
             body.value = Some(name.clone());
+            body.held = Some(held.clone());
         }
         Error::Api {
             status: 429,
@@ -1032,6 +1061,7 @@ impl Default for OutputConfig {
             raw: false,
             no_interactive: false,
             response_schema: None,
+            app_from_env: None,
             warnings: WarningLog::default(),
         }
     }
@@ -1098,6 +1128,7 @@ mod tests {
             raw: false,
             no_interactive: false,
             response_schema: None,
+            app_from_env: None,
             warnings: WarningLog::default(),
         };
         assert!(!cfg.quiet);
