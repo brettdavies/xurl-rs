@@ -1030,8 +1030,9 @@ store refuses, the step is `xr auth status`, which lists what it holds. A `valid
 broke in `rule`, the validator's kebab-case code (`invalid-username`, `no-list-changes`, ...), with the sentence for it
 in `message`, and `value` carries the offending input when the rule names one: an id, a handle, a time, a URL, an app
 name, a redirect URI, or a header's position among the `-H` headers. A rule no single input broke (`too-many-ids`,
-`no-list-changes`) and a blank input carry none. Branch on `rule`, not on the sentence. Text mode prints the same advice
-as prose instead; the two need not match word for word.
+`no-list-changes`) carries none, and a `--forward` URL with an `@` in it is never repeated, since it may hold a
+credential. Branch on `rule`, not on the sentence. Text mode prints the same advice as prose instead; the two need not
+match word for word.
 
 A request that no stored credential serves takes its step from the schemes its command accepts, the schemes each app
 stores, and the scheme `--auth` named. When the active app stores a scheme the command accepts, the step is `fix-input`

@@ -203,9 +203,10 @@ is the sentence for that rule, from the one function in `crates/xurl-cli/src/cli
 and any help stating the rule also call. When the rule names the offending input, `value` carries it as given, always a
 string: a validator's closure answers `Result<(), Invalid>`, and `checked` and `checked_each` in
 `crates/xurl-cli/src/cli/commands/mod.rs` build the refusal with the input, the first one a batch refused. A rule no
-single input broke (`too-many-ids`, `mixed-ids-and-handles`, `no-list-changes`) and a blank input carry none. It also
-carries a `next_step` object `{action, command | template, docs}` wherever a step exists; the table
-under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
+single input broke (`too-many-ids`, `mixed-ids-and-handles`, `no-list-changes`) carries none, and so does a blank input
+to those two builders, which has nothing to name. A `--forward` URL with an `@` in it is never repeated, since it may
+hold a credential. It also carries a `next_step` object `{action, command | template, docs}` wherever a step exists;
+the table under "Which Errors Carry a Step" in `crates/xurl-cli/README.md` gives every reason a row, and
 `crates/xurl-cli/tests/next_step_tests.rs` holds the table to the closed set of reasons and to the step each golden
 fixture shows. `action` is a closed set; `command` is runnable verbatim by a non-TTY caller, while `template` is one the
 caller finishes or decides on first: angle-bracket placeholders to fill; under `confirm`, the invocation that destroys
