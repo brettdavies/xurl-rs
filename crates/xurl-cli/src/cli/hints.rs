@@ -211,10 +211,11 @@ impl NextStep {
     /// word is left as it is.
     #[must_use]
     pub fn under_dry_run(self) -> Self {
-        let named = self
-            .command
-            .as_deref()
-            .is_some_and(|command| command.split(' ').any(|word| word == "--dry-run"));
+        let named = self.command.as_deref().is_some_and(|command| {
+            command
+                .split(' ')
+                .any(|word| word == "--dry-run" || word.starts_with("--dry-run="))
+        });
         if named {
             self
         } else {
@@ -1373,7 +1374,10 @@ fn restart_sign_in(invocation: &[String], no_browser: bool, app: Option<&str>) -
             args.next();
             continue;
         }
-        if arg.starts_with("--auth-url=") || (app.is_some() && arg.starts_with("--app=")) {
+        if arg.starts_with("--auth-url=")
+            || (app.is_some() && arg.starts_with("--app="))
+            || (no_browser && arg.starts_with("--no-browser="))
+        {
             continue;
         }
         if arg == "--step" {
@@ -1709,8 +1713,13 @@ mod tests {
 
     #[test]
     fn under_dry_run_names_the_flag_once() {
-        let step = NextStep::select_app("xr --dry-run auth oauth2 --app work".into());
-        assert_eq!(step.clone().under_dry_run(), step);
+        for command in [
+            "xr --dry-run auth oauth2 --app work",
+            "xr --dry-run=true auth oauth2 --app work",
+        ] {
+            let step = NextStep::select_app(command.into());
+            assert_eq!(step.clone().under_dry_run(), step, "{command}");
+        }
     }
 
     /// The failed command's `--output` and `--json` words ride on the step, so
@@ -1780,6 +1789,24 @@ mod tests {
                 false,
                 "myapp",
                 "xr auth oauth2 --app myapp",
+            ),
+            (
+                "xr --output json auth oauth2 --no-browser=true --step 1",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 --step 1 --no-browser --app myapp",
+            ),
+            (
+                "xr --output json auth oauth2 --no-browser=false --step 1",
+                true,
+                "myapp",
+                "xr --output json auth oauth2 --step 1 --no-browser --app myapp",
+            ),
+            (
+                "xr auth oauth2 --no-browser=true --step 1",
+                false,
+                "myapp",
+                "xr auth oauth2 --no-browser=true --step 1 --app myapp",
             ),
         ] {
             let step = NextStep::select_app_sign_in(&argv(invocation), no_browser, app);
