@@ -521,6 +521,7 @@ async fn a_source_id_that_is_not_one_is_refused_before_any_request() {
                 serde_json::from_str(stderr.trim()).expect("a JSON envelope on stderr");
             assert_eq!(envelope["reason"], "validation", "{verb:?}");
             assert_eq!(envelope["rule"], "invalid-source-id", "{verb:?}");
+            assert_eq!(envelope["value"], id, "{verb:?}");
             assert_eq!(
                 envelope["message"], "A source id is 1 to 19 digits.",
                 "{verb:?}"

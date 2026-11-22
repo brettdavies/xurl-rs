@@ -83,7 +83,10 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
             common,
         } => {
             let ctx = json!({"command": "broadcasts-get", "broadcast_id": broadcast_id});
-            let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
+            let validate = || {
+                shortcuts::validate_broadcast_id(&broadcast_id)
+                    .map_err(|rule| Invalid::naming(rule, &broadcast_id))
+            };
             send_validated(run, ctx, validate, &common, |client: &Client| {
                 client.get_broadcast(&broadcast_id)
             })
@@ -130,7 +133,10 @@ pub(super) async fn run(target: BroadcastsCommands, run: Run<'_>) -> CommandResu
         } => {
             let ctx = json!({"command": "broadcasts-remove", "broadcast_id": broadcast_id});
             let prompt = format!("Delete broadcast {broadcast_id} and its replay?");
-            let validate = || shortcuts::validate_broadcast_id(&broadcast_id);
+            let validate = || {
+                shortcuts::validate_broadcast_id(&broadcast_id)
+                    .map_err(|rule| Invalid::naming(rule, &broadcast_id))
+            };
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.delete_broadcast(&broadcast_id)
             })
@@ -172,9 +178,9 @@ async fn mutes(action: MutesCommands, run: Run<'_>) -> CommandResult<()> {
             });
             let validate = || {
                 shortcuts::validate_time_window(until.as_deref(), None)?;
-                broadcast
-                    .as_deref()
-                    .map_or(Ok(()), shortcuts::validate_broadcast_id)
+                broadcast.as_deref().map_or(Ok(()), |id| {
+                    shortcuts::validate_broadcast_id(id).map_err(|rule| Invalid::naming(rule, id))
+                })
             };
             act_on_user_with(
                 run,
@@ -193,9 +199,9 @@ async fn mutes(action: MutesCommands, run: Run<'_>) -> CommandResult<()> {
         } => {
             let ctx = json!({"command": "broadcasts-mutes-remove", "broadcast_id": broadcast});
             let validate = || {
-                broadcast
-                    .as_deref()
-                    .map_or(Ok(()), shortcuts::validate_broadcast_id)
+                broadcast.as_deref().map_or(Ok(()), |id| {
+                    shortcuts::validate_broadcast_id(id).map_err(|rule| Invalid::naming(rule, id))
+                })
             };
             act_on_user_with(
                 run,
@@ -222,7 +228,10 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
         }
         SourcesCommands::Get { source_id, common } => {
             let ctx = json!({"command": "broadcasts-sources-get", "source_id": source_id});
-            let validate = || shortcuts::validate_source_id(&source_id);
+            let validate = || {
+                shortcuts::validate_source_id(&source_id)
+                    .map_err(|rule| Invalid::naming(rule, &source_id))
+            };
             send_validated(run, ctx, validate, &common, |client| {
                 client.get_stream_source(&source_id)
             })
@@ -230,7 +239,10 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
         }
         SourcesCommands::StreamKey { source_id, common } => {
             let ctx = json!({"command": "broadcasts-sources-stream-key", "source_id": source_id});
-            let validate = || shortcuts::validate_source_id(&source_id);
+            let validate = || {
+                shortcuts::validate_source_id(&source_id)
+                    .map_err(|rule| Invalid::naming(rule, &source_id))
+            };
             send_validated(run, ctx, validate, &common, |client| {
                 client.get_stream_source_key(&source_id)
             })
@@ -262,8 +274,9 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
                 "name": name,
             });
             let validate = || {
-                shortcuts::validate_source_id(&source_id)?;
-                shortcuts::validate_source_name(&name)
+                shortcuts::validate_source_id(&source_id)
+                    .map_err(|rule| Invalid::naming(rule, &source_id))?;
+                shortcuts::validate_source_name(&name).map_err(Invalid::from)
             };
             send_validated(run, ctx, validate, &common, |client| {
                 client.rename_stream_source(&source_id, &name)
@@ -277,7 +290,10 @@ async fn sources(action: SourcesCommands, run: Run<'_>) -> CommandResult<()> {
         } => {
             let ctx = json!({"command": "broadcasts-sources-remove", "source_id": source_id});
             let prompt = format!("Delete stream source {source_id}?");
-            let validate = || shortcuts::validate_source_id(&source_id);
+            let validate = || {
+                shortcuts::validate_source_id(&source_id)
+                    .map_err(|rule| Invalid::naming(rule, &source_id))
+            };
             send_confirmed(run, ctx, &prompt, force, validate, &common, |client| {
                 client.delete_stream_source(&source_id)
             })
