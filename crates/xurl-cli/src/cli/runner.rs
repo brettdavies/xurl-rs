@@ -468,13 +468,33 @@ async fn run_inner(
             out.print_error_after_upload(stderr, &error, code, hint.as_ref(), &media_id);
             code
         }
-        Err(Failure::Error(e)) => {
-            let code = e.exit_code();
-            match recovery_hint(&e, &snapshot, &args_vec, structured, &media) {
-                Some(hint) => out.print_error_with_hint(stderr, &e, code, &hint),
-                None => out.print_error(stderr, &e, code),
+        Err(Failure::Rejected { error, credential }) => {
+            let code = error.exit_code();
+            let hint = crate::cli::credential_step::rejected_hint(
+                &snapshot,
+                &error,
+                &credential,
+                &invocation_words(&args_vec),
+                structured,
+            );
+            match hint {
+                Some(hint) => {
+                    let auth = crate::cli::envelope::DryRunAuth::sent_under(
+                        credential.scheme.as_wire(),
+                        credential.app.clone(),
+                        credential.username.clone(),
+                    );
+                    out.print_rejected(stderr, &error, code, &hint, auth);
+                }
+                None => print_recovered(
+                    &out, stderr, &error, &snapshot, &args_vec, structured, &media,
+                ),
             }
             code
+        }
+        Err(Failure::Error(e)) => {
+            print_recovered(&out, stderr, &e, &snapshot, &args_vec, structured, &media);
+            e.exit_code()
         }
     };
     // Every failure above wrote its envelope, which took the warnings with it.
@@ -498,6 +518,30 @@ fn naming_dry_run(args: &[OsString]) -> Vec<OsString> {
     named_args
 }
 
+/// The words of an invocation, lossily as text.
+fn invocation_words(args: &[OsString]) -> Vec<String> {
+    args.iter()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect()
+}
+
+/// Prints `error`, with the step [`recovery_hint`] chooses when it chooses one.
+fn print_recovered(
+    out: &OutputConfig,
+    stderr: &mut dyn Write,
+    error: &xdk::error::Error,
+    snapshot: &xdk::store::snapshot::StoreSnapshot,
+    args: &[OsString],
+    structured: bool,
+    media: &crate::cli::hints::MediaCredential,
+) {
+    let code = error.exit_code();
+    match recovery_hint(error, snapshot, args, structured, media) {
+        Some(hint) => out.print_error_with_hint(stderr, error, code, &hint),
+        None => out.print_error(stderr, error, code),
+    }
+}
+
 /// The recovery hint for a library error, chosen from the store as this
 /// run loaded it and the invocation as given. A dry run's refusal takes the
 /// same hint its real run would.
@@ -508,10 +552,7 @@ fn recovery_hint(
     structured: bool,
     media: &crate::cli::hints::MediaCredential,
 ) -> Option<crate::cli::hints::Hint> {
-    let invocation: Vec<String> = args
-        .iter()
-        .map(|a| a.to_string_lossy().into_owned())
-        .collect();
+    let invocation = invocation_words(args);
     if let Some(missing) = crate::cli::credential_step::missing_credential(error) {
         return Some(crate::cli::credential_step::no_credential_hint(
             missing,

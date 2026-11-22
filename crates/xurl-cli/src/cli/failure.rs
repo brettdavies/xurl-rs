@@ -1,5 +1,6 @@
 //! How a command handler reports that it stopped.
 
+use xdk::api::AuthPreflight;
 use xdk::error::Error;
 
 use crate::cli::envelope::Reason;
@@ -12,6 +13,16 @@ use crate::cli::envelope::Reason;
 pub(crate) enum Failure {
     /// A library error the runner still has to render.
     Error(Error),
+    /// A request X answered 401 or 403, sent under a credential. The runner
+    /// renders `error` as it does a [`Failure::Error`], and adds the
+    /// credential and the step that gets it again when the refusal says the
+    /// credential is what X refused.
+    Rejected {
+        /// What X answered.
+        error: Error,
+        /// The credential the request was sent with.
+        credential: Box<AuthPreflight>,
+    },
     /// An argument the handler refused. The runner renders `error` with the
     /// help of the command the invocation names as its step; `reason` is
     /// the refusal's own name when it has one apart from the error's kind.
@@ -73,6 +84,23 @@ impl Failure {
         Self::Refused {
             error,
             reason: None,
+        }
+    }
+
+    /// The failure of a request that went out under `credential`, when one
+    /// was attached: a 401 or a 403 keeps it, and any other error is as it was.
+    pub(crate) fn of_request(error: Error, credential: Option<AuthPreflight>) -> Self {
+        match (error, credential) {
+            (
+                error @ Error::Api {
+                    status: 401 | 403, ..
+                },
+                Some(credential),
+            ) => Self::Rejected {
+                error,
+                credential: Box::new(credential),
+            },
+            (error, _) => Self::Error(error),
         }
     }
 }

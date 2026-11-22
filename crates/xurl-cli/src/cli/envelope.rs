@@ -194,22 +194,23 @@ pub struct DryRunBody {
     pub payload: Value,
 }
 
-/// The `auth` object of a dry-run envelope: the credential a request would go
-/// out under.
-#[derive(Debug, Serialize, JsonSchema)]
+/// The `auth` object of a dry-run envelope, the credential a request would go
+/// out under, and of the error envelope of a request X refused over its
+/// credential, the credential it went out under.
+#[derive(Debug, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[non_exhaustive]
 pub struct DryRunAuth {
     /// The auth scheme: `oauth1`, `oauth2`, or `app`.
     pub scheme: String,
-    /// The app whose stored credential would be sent. Absent for a bearer
-    /// token the environment supplies, which belongs to no stored app.
+    /// The app whose stored credential is sent, or would be. Absent for a
+    /// bearer token the environment supplies, which belongs to no stored app.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub app: Option<String>,
     /// The `OAuth2` login, the one credential with a user name.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     /// Whether the `OAuth2` login's token has expired. An expired token is
-    /// reported, not refreshed.
+    /// reported, not refreshed. Absent from an error envelope.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub token_expired: Option<bool>,
 }
@@ -231,6 +232,18 @@ impl DryRunAuth {
             app,
             username,
             token_expired,
+        }
+    }
+
+    /// The credential a request went out under, as an error envelope reports
+    /// it: no expiry, which the request's own answer has superseded.
+    #[must_use]
+    pub fn sent_under(scheme: &str, app: Option<String>, username: Option<String>) -> Self {
+        Self {
+            scheme: scheme.to_string(),
+            app,
+            username,
+            token_expired: None,
         }
     }
 }
@@ -483,6 +496,16 @@ pub struct ErrorBody {
     /// Other apps holding credentials, when the active one holds none.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub other_apps_with_creds: Option<Vec<String>>,
+    /// The credential X refused: the scheme, the app that stores it, and for
+    /// `oauth2` the login's name, as a dry run reports the credential a
+    /// request would go out under. Present on a 401 to a request sent under
+    /// a stored credential or `XURL_BEARER_TOKEN`, and on a 403 whose problem
+    /// `type` is `unsupported-authentication` and whose command's accepted
+    /// schemes `xr` lists. Absent from a request that carries its own
+    /// `Authorization` header, from a 401 on the status read after
+    /// `xr media upload` finished, and from every other error.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth: Option<DryRunAuth>,
 
     /// Media id whose processing a wait gave up on, under
     /// `processing-timeout`, where the upload is intact; or the one X

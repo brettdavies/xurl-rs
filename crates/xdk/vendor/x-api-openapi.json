@@ -1319,7 +1319,8 @@
             "profile.update.url": "#/components/schemas/ProfileUpdateActivityResponsePayload",
             "profile.update.verified_badge": "#/components/schemas/ProfileUpdateActivityResponsePayload",
             "subscriptions.subscribe": "#/components/schemas/FollowActivityResponsePayload",
-            "subscriptions.unsubscribe": "#/components/schemas/FollowActivityResponsePayload"
+            "subscriptions.unsubscribe": "#/components/schemas/FollowActivityResponsePayload",
+            "trends.new": "#/components/schemas/TrendActivityResponsePayload"
           },
           "propertyName": "../event_type"
         },
@@ -1329,6 +1330,9 @@
           },
           {
             "$ref": "#/components/schemas/NewsActivityResponsePayload"
+          },
+          {
+            "$ref": "#/components/schemas/TrendActivityResponsePayload"
           },
           {
             "$ref": "#/components/schemas/FollowActivityResponsePayload"
@@ -1358,6 +1362,13 @@
           },
           "keyword": {
             "$ref": "#/components/schemas/Keyword"
+          },
+          "qualifiers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Event-specific string predicates applied to the subscription.",
+            "type": "object"
           },
           "user_id": {
             "$ref": "#/components/schemas/UserId"
@@ -4108,6 +4119,7 @@
               "profile.update.verified_badge",
               "profile.update.affiliate_badge",
               "profile.update.handle",
+              "trends.new",
               "news.new",
               "follow.follow",
               "follow.unfollow",
@@ -20575,6 +20587,60 @@
         },
         "type": "object"
       },
+      "TrendActivityLocation": {
+        "additionalProperties": false,
+        "description": "The location where the trend surfaced.",
+        "properties": {
+          "country": {
+            "type": "string"
+          },
+          "country_code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "integer"
+          },
+          "place_type": {
+            "enum": [
+              "town",
+              "country",
+              "supername"
+            ],
+            "type": "string"
+          },
+          "woeid": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "woeid",
+          "name"
+        ],
+        "type": "object"
+      },
+      "TrendActivityResponsePayload": {
+        "additionalProperties": false,
+        "description": "A newly surfaced trend in a WOEID location.",
+        "properties": {
+          "location": {
+            "$ref": "#/components/schemas/TrendActivityLocation"
+          },
+          "trend_name": {
+            "type": "string"
+          },
+          "tweet_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "trend_name",
+          "location"
+        ],
+        "type": "object"
+      },
       "TrendLocation": {
         "properties": {
           "country": {
@@ -25092,7 +25158,7 @@
         ]
       },
       "post": {
-        "description": "Creates a subscription for an X activity event. OAuth2 user-context tokens must hold the scope matching the requested event_type: dm.read for chat.* and dm.* events, like.read for like.* events, mute.read for mute.* events, block.read for block.* events, follows.read for subscriptions.* events, and tweet.read for all other event types. Mute and block subscriptions are actor-only: filter.user_id must identify the authenticated user and direction is not supported. subscriptions.* events require a user-context token and filter.user_id must identify the authenticated user. Optional filter.qualifiers further narrow supported chat, follow, unfollow, like, and subscriptions events.",
+        "description": "Creates a subscription for an X activity event. OAuth2 user-context tokens must hold the scope matching the requested event_type: dm.read for chat.* and dm.* events, like.read for like.* events, mute.read for mute.* events, block.read for block.* events, follows.read for subscriptions.* events, and tweet.read for all other event types. Mute and block subscriptions are actor-only: filter.user_id must identify the authenticated user and direction is not supported. subscriptions.* events require a user-context token and filter.user_id must identify the authenticated user. Optional filter.qualifiers further narrow supported chat, follow, unfollow, like, subscriptions, and trends events.",
         "externalDocs": {
           "url": "https://docs.x.com/x-api/activity/create-x-activity-subscription"
         },
