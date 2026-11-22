@@ -1,7 +1,7 @@
 args: ["broadcasts", "mutes", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7136
+stdout_len: 7179
 stderr_len: 0
 --- stdout ---
 List who is muted in your broadcast chats, and until when
@@ -33,7 +33,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

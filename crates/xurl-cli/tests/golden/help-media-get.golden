@@ -1,7 +1,7 @@
 args: ["media", "get", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7239
+stdout_len: 7282
 stderr_len: 0
 --- stdout ---
 Read 1 to 100 uploads by media key in one request
@@ -34,7 +34,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

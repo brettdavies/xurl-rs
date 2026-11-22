@@ -294,3 +294,21 @@ fn a_name_that_did_not_come_from_xurl_app_does_not_say_so(
         "{args:?}: {envelope}"
     );
 }
+
+#[test]
+fn the_app_flag_help_says_a_name_the_store_does_not_hold_is_refused() {
+    let (code, stdout, stderr) = child(&["--help"], &[]);
+
+    assert_eq!(code, 0, "{stderr}");
+    let line = stdout
+        .lines()
+        .skip_while(|line| !line.trim_start().starts_with("--app"))
+        .take(3)
+        .flat_map(str::split_whitespace)
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(
+        line.contains("name the store does not hold is refused"),
+        "{line}"
+    );
+}

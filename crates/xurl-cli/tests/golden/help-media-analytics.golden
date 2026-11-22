@@ -1,7 +1,7 @@
 args: ["media", "analytics", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7640
+stdout_len: 7683
 stderr_len: 0
 --- stdout ---
 Report video metrics for your uploads over a time window
@@ -45,7 +45,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 

@@ -1,7 +1,7 @@
 args: ["bookmark-folders", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 6917
+stdout_len: 6960
 stderr_len: 0
 --- stdout ---
 Your bookmark folders, and the posts in each
@@ -27,7 +27,7 @@ Global Options:
           [possible values: true, false]
 
       --app <APP>
-          Use a specific registered app (overrides default)
+          Use a specific registered app (overrides default). A name the store does not hold is refused
           
           [env: XURL_APP=]
 
