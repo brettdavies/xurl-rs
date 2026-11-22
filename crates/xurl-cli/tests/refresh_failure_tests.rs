@@ -401,7 +401,8 @@ async fn a_refused_refresh_on_another_app_signs_in_on_that_app() {
         xdk::error::EXIT_AUTH_REQUIRED,
     );
     assert_eq!(
-        envelope["next_step"]["command"], "xr auth oauth2 alice --no-browser --step 1 --app work",
+        envelope["next_step"]["command"],
+        "xr --output json auth oauth2 alice --no-browser --step 1 --app work",
         "{envelope}"
     );
     let ts = TokenStore::new_with_path(store.to_str().expect("utf-8 path"));
@@ -561,7 +562,8 @@ async fn a_refused_refresh_token_signs_the_login_in_again() {
             "{why}: {envelope}"
         );
         assert_eq!(
-            envelope["next_step"]["command"], "xr auth oauth2 alice --no-browser --step 1",
+            envelope["next_step"]["command"],
+            "xr --output json auth oauth2 alice --no-browser --step 1",
             "{why}: {envelope}"
         );
         assert!(
@@ -781,7 +783,7 @@ async fn a_refused_refresh_with_no_login_named_signs_in_the_login_it_ran_for() {
         xdk::error::EXIT_AUTH_REQUIRED,
     );
     assert_eq!(
-        envelope["next_step"]["command"], "xr auth oauth2 bob --no-browser --step 1",
+        envelope["next_step"]["command"], "xr --output json auth oauth2 bob --no-browser --step 1",
         "{envelope}"
     );
 }
