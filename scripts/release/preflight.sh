@@ -105,9 +105,9 @@ require_built_binary() {
 # exported SMOKE_HOME. A named home is never shredded.
 SEEDED_HOME=""
 
-# Every directory shreddable_dir made that no gate has shredded, one per line.
-# A gate shreds its own at its end; the trap shreds the rest, whatever ended
-# the script, so a failing command or a signal leaves none behind.
+# Every directory shreddable_dir made, one per line. A gate shreds its own at its
+# end; the trap shreds each one still on disk, so a failing command, SIGINT, or
+# SIGTERM leaves none behind. SIGKILL runs no trap.
 SHREDDABLE_DIRS=""
 
 # Tries every directory, since under set -e one that fails to shred would end the
