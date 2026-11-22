@@ -175,8 +175,7 @@ fn a_signal_ends_a_stream_with_a_document_that_names_it(
     let server = hold_a_stream_open(listener);
     let streaming = stream_from(&origin);
 
-    // The handlers register once the stream is being read; a signal sent
-    // earlier takes the default disposition and ends the process silently.
+    // Waiting for the first record puts the signal after the response headers.
     let first = streaming
         .records
         .recv_timeout(Duration::from_secs(10))
