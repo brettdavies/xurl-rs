@@ -1044,46 +1044,62 @@ or by a bearer token on an endpoint that accepts no OAuth2; a caller who named O
 has not asked for a login. A raw request is held to the schemes the auth matrix lists for its method and path, a path
 that carries an id taking those of the template it fits, and to every scheme when it lists none.
 
+A request X refused over its credential names that credential in the error envelope's `auth` key: the object a dry run
+carries, without `token_expired`, so the `app` it is stored under, its `scheme`, and for an OAuth2 login its `username`.
+A bearer token from `XURL_BEARER_TOKEN` belongs to no stored app and carries no `app`. A 401 is one (exit 77,
+`auth-required`, X's body as `message`), and so is a 403 whose problem `type` is
+`https://api.twitter.com/2/problems/unsupported-authentication`, which X gives a scheme the endpoint does not take (exit
+1, `forbidden`), when `xr` lists the schemes the command accepts. A request that carries its own `Authorization` header
+(`-H`) went out under no stored credential, so its 401 and 403 keep the envelope they had. After a 401 the step gets the
+same credential again: `sign-in` for an OAuth2 login, under the login's name and its app, always with `--app`, since an
+`XURL_APP` in the caller's shell would otherwise pick another; `fix-input` with a `template` that stores an OAuth1 pair
+or a bearer token in its app; and `fix-input` with `docs` alone for `XURL_BEARER_TOKEN`, since no command replaces a
+variable. After the 403 the step is the one for a request no stored credential serves, over the schemes the command
+accepts but the refused one. X's other 403s name no credential: the generic `about:blank` one it gives a login that
+lacks a scope says only `Forbidden`, and an enrollment refusal is about the app. Those carry no `auth` key and keep
+their step. A 401 on the status read after `xr media upload` finished keeps the `resume-wait` template above and carries
+no `auth` key.
+
 ### Which Errors Carry a Step
 
-| `reason`                     | `next_step.action`                                                                                                                               |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as listed below; none on a request's 401 except after an upload        |
-| `client-credentials-missing` | `register-app` or `select-app`                                                                                                                   |
-| `token-store`                | `inspect-store` when the store file could not be loaded; `fix-input` with `xr auth status` for an app or login name it refuses; none otherwise   |
-| `auth-method-mismatch`       | `select-app`, `sign-in`, `register-app`, or `fix-input`, as listed above; none when the error names no app                                       |
-| `forbidden`                  | `enroll-app` when X names enrollment; `fix-input` for a 403 from the token endpoint that is no OAuth refusal; none otherwise                     |
-| `rate-limited`               | `wait-and-retry` when the 429 names its reset, or after `xr media upload` finished (a `template` with no reset or under `-H`); none otherwise    |
-| `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                  |
-| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss  |
-| `unknown-command`            | `show-help`                                                                                                                                      |
-| `invalid-method`             | `show-help`                                                                                                                                      |
-| `invalid-url`                | `show-help`                                                                                                                                      |
-| `invalid-path-param`         | `show-help`                                                                                                                                      |
-| `unsupported-pagination`     | `show-help`                                                                                                                                      |
-| `invalid-json`               | `show-help`                                                                                                                                      |
-| `unknown-schema`             | `show-help`                                                                                                                                      |
-| `missing-host`               | `show-help`                                                                                                                                      |
-| `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                  |
-| `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                            |
-| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`, under the `--app` the refusal names                                                |
-| `network-error`              | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
-| `server-error`               | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                |
-| `git-clone-failed`           | `retry`                                                                                                                                          |
-| `not-found`                  | `fix-input`                                                                                                                                      |
-| `invalid-request`            | `fix-input`; `docs` names the token endpoint section for a 400 or a 422 from it with no OAuth error code                                         |
-| `validation-failed`          | `fix-input`                                                                                                                                      |
-| `io`                         | `fix-input`, with `docs` when the token store's directory cannot be created or the store file cannot be written                                  |
-| `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                                                        |
-| `home-not-set`               | `fix-input`                                                                                                                                      |
-| `destination-is-file`        | `fix-input`                                                                                                                                      |
-| `remove-failed`              | `fix-input`                                                                                                                                      |
-| `git-not-found`              | `fix-input`                                                                                                                                      |
-| `destination-not-empty`      | `run-command`: `xr skill update <host>`, from `skill install`; `fix-input`, from `skill update`, for what is not a bundle                        |
-| `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                         |
-| `internal`                   | `report-issue`                                                                                                                                   |
-| `serialization`              | `report-issue`                                                                                                                                   |
-| `api-error`                  | `retry` on a 408 (`resume-wait` after an upload's status read); `fix-input` for a token endpoint answer with no OAuth code; else `report-issue`  |
+| `reason`                     | `next_step.action`                                                                                                                                                           |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth-required`              | `register-app`, `sign-in`, `select-app`, `inspect-store`, or `fix-input`, as listed below; a request's 401 takes `sign-in` or `fix-input`                                    |
+| `client-credentials-missing` | `register-app` or `select-app`                                                                                                                                               |
+| `token-store`                | `inspect-store` when the store file could not be loaded; `fix-input` with `xr auth status` for an app or login name it refuses; none otherwise                               |
+| `auth-method-mismatch`       | `select-app`, `sign-in`, `register-app`, or `fix-input`, as listed above; none when the error names no app                                                                   |
+| `forbidden`                  | `enroll-app` for enrollment; `fix-input` for a token endpoint's 403 that is no OAuth refusal; an `unsupported-authentication` 403, as `auth-method-mismatch`; none otherwise |
+| `rate-limited`               | `wait-and-retry` when the 429 names its reset, or after `xr media upload` finished (a `template` with no reset or under `-H`); none otherwise                                |
+| `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                                              |
+| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss                              |
+| `unknown-command`            | `show-help`                                                                                                                                                                  |
+| `invalid-method`             | `show-help`                                                                                                                                                                  |
+| `invalid-url`                | `show-help`                                                                                                                                                                  |
+| `invalid-path-param`         | `show-help`                                                                                                                                                                  |
+| `unsupported-pagination`     | `show-help`                                                                                                                                                                  |
+| `invalid-json`               | `show-help`                                                                                                                                                                  |
+| `unknown-schema`             | `show-help`                                                                                                                                                                  |
+| `missing-host`               | `show-help`                                                                                                                                                                  |
+| `validation`                 | `show-help` for an argument `xr` refused; `fix-input` otherwise                                                                                                              |
+| `no-tty`                     | `select-app`, as a template that takes the app's name                                                                                                                        |
+| `confirmation-required`      | `confirm`, as a template: the same invocation with `--force`, under the `--app` the refusal names                                                                            |
+| `network-error`              | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                                            |
+| `server-error`               | `retry`; `resume-wait` when a status read failed after `xr media upload` finished                                                                                            |
+| `git-clone-failed`           | `retry`                                                                                                                                                                      |
+| `not-found`                  | `fix-input`                                                                                                                                                                  |
+| `invalid-request`            | `fix-input`; `docs` names the token endpoint section for a 400 or a 422 from it with no OAuth error code                                                                     |
+| `validation-failed`          | `fix-input`                                                                                                                                                                  |
+| `io`                         | `fix-input`, with `docs` when the token store's directory cannot be created or the store file cannot be written                                                              |
+| `address-in-use`             | `fix-input`, carrying `listen` again on `--port 0`: a template when it hides a `-H` value                                                                                    |
+| `home-not-set`               | `fix-input`                                                                                                                                                                  |
+| `destination-is-file`        | `fix-input`                                                                                                                                                                  |
+| `remove-failed`              | `fix-input`                                                                                                                                                                  |
+| `git-not-found`              | `fix-input`                                                                                                                                                                  |
+| `destination-not-empty`      | `run-command`: `xr skill update <host>`, from `skill install`; `fix-input`, from `skill update`, for what is not a bundle                                                    |
+| `not-installed`              | `run-command`: `xr skill install <host>`                                                                                                                                     |
+| `internal`                   | `report-issue`                                                                                                                                                               |
+| `serialization`              | `report-issue`                                                                                                                                                               |
+| `api-error`                  | `retry` on a 408 (`resume-wait` after an upload's status read); `fix-input` for a token endpoint answer with no OAuth code; else `report-issue`                              |
 
 Every reason has a row. The five actions that are not about credentials or help read as follows.
 
