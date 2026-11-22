@@ -98,20 +98,36 @@ require_built_binary() {
   }
 }
 
-# EXIT trap. cleanup_canon runs first: under set -e a failing cleanup_seeded_home
+# EXIT trap. cleanup_canon runs first: under set -e a failing cleanup_gate_dirs
 # would end the trap before it. ------------------------------------------------
 
 # The home a gate seeded; empty when the caller named one, by --smoke-home or an
-# exported SMOKE_HOME. Only this home is shredded on exit.
+# exported SMOKE_HOME. A named home is never shredded.
 SEEDED_HOME=""
 
-cleanup_seeded_home() {
-  [[ -n "$SEEDED_HOME" ]] || return 0
-  SMOKE_HOME="$SEEDED_HOME"
-  cleanup_smoke
+# Every directory shreddable_dir made that no gate has shredded, one per line.
+# A gate shreds its own at its end; the trap shreds the rest, whatever ended
+# the script, so a failing command or a signal leaves none behind.
+SHREDDABLE_DIRS=""
+
+# Tries every directory, since under set -e one that fails to shred would end the
+# trap before the rest. The seeded home goes through cleanup_smoke, which keeps
+# it under --no-cleanup; a gate's own directory is shredded under either.
+cleanup_gate_dirs() {
+  local dir failed=0
+  while IFS= read -r dir; do
+    [[ -n "$dir" ]] || continue
+    if [[ "$dir" == "$SEEDED_HOME" ]]; then
+      SMOKE_HOME="$SEEDED_HOME"
+      cleanup_smoke || failed=1
+    else
+      shred_tmpdir "$dir" || failed=1
+    fi
+  done <<<"$SHREDDABLE_DIRS"
+  return "$failed"
 }
 
-trap 'cleanup_canon; cleanup_seeded_home' EXIT
+trap 'cleanup_canon; cleanup_gate_dirs' EXIT
 
 # The token store inside a home: the directory layout `xr` keeps at
 # ~/.xurl/auth.yml. Every gate addresses a store through this one function.
@@ -119,20 +135,25 @@ smoke_store() {
   printf '%s/.xurl/auth.yml' "$1"
 }
 
-# A new directory named NAME-XXXXXX that shred_tmpdir removes. It sits under TMPDIR
-# where shred_tmpdir accepts that root and under /tmp elsewhere, as on macOS, where
-# TMPDIR is under /var/folders. The case repeats shred_tmpdir's list of roots.
+# shreddable_dir VAR NAME: a new directory NAME-XXXXXX that shred_tmpdir removes,
+# named in VAR and recorded for the EXIT trap. The caller's shell makes it, since
+# a command substitution would take the record to a subshell that ends. It sits
+# under TMPDIR where shred_tmpdir accepts that root and under /tmp elsewhere, as
+# on macOS, where TMPDIR is under /var/folders. The case repeats shred_tmpdir's
+# list of roots. Its locals carry a prefix that no VAR a caller passes can shadow.
 shreddable_dir() {
-  local root="${TMPDIR:-/tmp}"
-  case "$root" in
+  local _sd_root="${TMPDIR:-/tmp}" _sd_dir
+  case "$_sd_root" in
     /tmp/* | "$HOME"/*) ;;
-    *) root=/tmp ;;
+    *) _sd_root=/tmp ;;
   esac
-  mktemp -d "${root%/}/$1-XXXXXX"
+  _sd_dir=$(mktemp -d "${_sd_root%/}/$2-XXXXXX")
+  SHREDDABLE_DIRS+="$_sd_dir"$'\n'
+  printf -v "$1" '%s' "$_sd_dir"
 }
 
 seed_smoke_store() {
-  SMOKE_HOME="$(shreddable_dir xr-preflight)"
+  shreddable_dir SMOKE_HOME xr-preflight
   SEEDED_HOME="$SMOKE_HOME"
   local store
   store=$(smoke_store "$SMOKE_HOME")
@@ -315,7 +336,7 @@ gate_api_contract() {
   if git worktree add --detach "$tmpdir/prev" "$last_tag" >/dev/null 2>&1; then
     if (cd "$tmpdir/prev" && cargo build --release --bin xr >/dev/null 2>&1); then
       local empty
-      empty=$(shreddable_dir xr-api-empty)
+      shreddable_dir empty xr-api-empty
       XURL_TOKEN_STORE="$empty/.xurl" "$tmpdir/prev/target/release/xr" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u >"$tmpdir/prev-cmds.txt"
       XURL_TOKEN_STORE="$empty/.xurl" "$BIN_PATH" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u >"$tmpdir/head-cmds.txt"
       local removed added
@@ -404,7 +425,7 @@ gate_smoke() {
   # Bearer env one-shot
   local app_bearer empty
   app_bearer=$(read_1p "X App - Bird (dev)" credential)
-  empty=$(shreddable_dir xr-smoke-empty)
+  shreddable_dir empty xr-smoke-empty
   out=$(XURL_TOKEN_STORE="$(smoke_store "$empty")" XURL_BEARER_TOKEN="$app_bearer" "$BIN_PATH" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
   unset app_bearer
   if [[ "$out" == "true" ]]; then
@@ -550,7 +571,7 @@ gate_multi_app() {
   # its first registration as the default before any sign-in happens, and the
   # sign-in handler's job here is to leave that answer alone.
   local fresh fresh_store dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
-  fresh=$(shreddable_dir xr-multi-fresh)
+  shreddable_dir fresh xr-multi-fresh
   fresh_store=$(smoke_store "$fresh")
   dev_cid=$(read_1p "X App - Bird (dev)" oauth2_client_id)
   dev_csec=$(read_1p "X App - Bird (dev)" oauth2_client_secret)
