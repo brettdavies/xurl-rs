@@ -31,7 +31,9 @@ use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::{Config, EnvOverrides};
 
 use common::CLOSED;
-use common::token_endpoint::{Echo, NoRefusal, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers};
+use common::token_endpoint::{
+    Echo, NoRefusal, Redirecting, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers,
+};
 
 mod common;
 
@@ -3289,6 +3291,24 @@ async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
         );
         assert_warns_of_the_exchange(&envelope, status);
     }
+}
+
+/// The exchange sends the code and its verifier, and a 307 or a 308 would send
+/// them again to the `Location` host. An answer that redirects is no answer the
+/// exchange follows: it reports its status, like any other the endpoint did not
+/// process, the saved flow stays, and the other server is never asked.
+#[rstest::rstest]
+#[case::found(302)]
+#[case::temporary_redirect(307)]
+#[tokio::test]
+async fn step2_the_token_endpoint_redirects_is_not_followed(#[case] status: u16) {
+    let endpoint = Redirecting::start(status).await;
+
+    let (code, envelope) = step2_at(&endpoint.base).await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "api-error", "{envelope}");
+    assert_warns_of_the_exchange(&envelope, &status.to_string());
 }
 
 /// A proxy's block page can repeat the request it refused. What the exchange

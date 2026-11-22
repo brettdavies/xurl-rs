@@ -284,9 +284,9 @@ impl Client {
     /// Creates a client over a token store with an explicit request timeout.
     ///
     /// The timeout bounds every non-streaming HTTP call dispatched by this
-    /// client, and the token exchange, refresh, and `/2/users/me` lookups
-    /// that share its connection pool. Streaming requests carry no total
-    /// timeout: the long-running shape is the point.
+    /// client, and the token exchange, refresh, and `/2/users/me` lookups it
+    /// makes. Streaming requests carry no total timeout: the long-running
+    /// shape is the point.
     ///
     /// # Errors
     ///
@@ -303,8 +303,9 @@ impl Client {
         )
     }
 
-    /// The one construction site: builds the HTTP client every request,
-    /// token exchange, refresh, and `/2/users/me` lookup goes through.
+    /// The one construction site: builds the HTTP client every request to
+    /// the X API and `/2/users/me` lookup goes through. The token endpoint's
+    /// requests go out on a client of their own that follows no redirect.
     pub(crate) fn from_source(
         base_url: String,
         credentials: CredentialSource,
@@ -365,8 +366,8 @@ impl Client {
         self.inner.timeout
     }
 
-    /// The one HTTP client every request, token exchange, refresh, and
-    /// `/2/users/me` lookup goes through.
+    /// The one HTTP client every request to the X API and `/2/users/me`
+    /// lookup goes through.
     pub(crate) fn http(&self) -> &reqwest::Client {
         &self.inner.http
     }

@@ -1205,8 +1205,10 @@ The X API client behind `xr` is its own crate, `xdk-rs`: credentials in code, on
 ### X Platform Enrollment
 
 If OAuth succeeds but reads like `xr whoami` fail with an error body containing `client-forbidden` or
-`client-not-enrolled`, the app needs X's enrollment step, which is a developer-console setting rather than anything in
-`xr`. The recipe is in the repository README under
+`client-not-enrolled`, either the app is not enrolled in a package that serves the endpoint, or the endpoint needs a
+higher X access level than the app's package, such as Enterprise. Both are X account settings rather than anything in
+`xr`, and the body does not say which one it is. The recipe for the first, and how to tell the two apart, are in the
+repository README under
 [X Platform Enrollment](https://github.com/brettdavies/xurl-rs#x-platform-enrollment).
 
 ### Token Store Could Not Be Read
