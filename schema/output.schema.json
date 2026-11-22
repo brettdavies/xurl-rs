@@ -59,7 +59,7 @@
         },
         {
           "const": "enroll-app",
-          "description": "X refused the app; enroll it in the developer portal.",
+          "description": "X refused the app: it is not enrolled in a package that serves the\nendpoint, or the endpoint needs a higher X access level than its\npackage, such as Enterprise; read the page the step names.",
           "type": "string"
         },
         {

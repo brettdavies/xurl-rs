@@ -210,3 +210,36 @@ async fn a_write_naming_an_app_the_store_does_not_hold_changes_nothing() {
         "a write for a missing app reached the store"
     );
 }
+
+fn auth_under(path: &Path, app: &str) -> Auth {
+    let overrides = EnvOverrides::default();
+    let cfg = Config::from_overrides(&overrides);
+    let mut auth = Auth::new_with_store_path_and_overrides(&cfg, path, &overrides);
+    auth.with_app_name(app);
+    auth
+}
+
+#[test]
+fn a_named_login_is_looked_up_in_the_app_the_auth_names() {
+    let tmp = TempDir::new().expect("tempdir");
+    let path = tmp.path().join("auth.yml");
+    seed(&path);
+
+    assert!(
+        !auth_under(&path, OTHER).has_oauth2_token(USER),
+        "the default app's login served an app that holds none"
+    );
+
+    let mut store = TokenStore::new_with_path(&path.to_string_lossy());
+    store
+        .save_oauth2_token_for_app(OTHER, "other-user", "ACCESS", "REFRESH", 9_999_999_999)
+        .expect("save the other app's login");
+    let other = auth_under(&path, OTHER);
+    assert!(other.has_oauth2_token("other-user"));
+    assert!(
+        other.has_oauth2_token(USER),
+        "a named caller falls back to the app's first login"
+    );
+    assert!(auth_under(&path, APP).has_oauth2_token(USER));
+    assert!(auth_under(&path, "").has_oauth2_token(USER));
+}

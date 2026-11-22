@@ -26,7 +26,7 @@ impl TokenStore {
     pub fn save_bearer_token_for_app(&mut self, app_name: &str, token: &str) -> Result<()> {
         self.update(|store| {
             store.refuse_if_app_missing(app_name)?;
-            let app = store.resolve_app_mut(app_name);
+            let app = store.resolve_app_mut(app_name)?;
             app.bearer_token = Some(Token {
                 token_type: TokenType::Bearer,
                 bearer: Some(token.to_string()),
@@ -155,7 +155,7 @@ impl TokenStore {
                     token.display_name.as_deref(),
                 );
             }
-            let app = store.resolve_app_mut(app_name);
+            let app = store.resolve_app_mut(app_name)?;
             let held = match name {
                 Some(name) => app.oauth2_tokens.get(name),
                 None => app.unnamed_oauth2_token.as_ref(),
@@ -279,16 +279,16 @@ impl TokenStore {
             app_name: &str,
             username: &str,
             sent_under: Option<&str>,
-        ) -> Option<&'a mut OAuth2Token> {
-            let app = store.resolve_app_mut(app_name);
+        ) -> Result<Option<&'a mut OAuth2Token>> {
+            let app = store.resolve_app_mut(app_name)?;
             let token = if username.is_empty() {
                 app.unnamed_oauth2_token.as_mut()
             } else {
                 app.oauth2_tokens.get_mut(username)
             };
-            token
+            Ok(token
                 .and_then(|token| token.oauth2.as_mut())
-                .filter(|token| sent_under.is_none_or(|sent| token.access_token == sent))
+                .filter(|token| sent_under.is_none_or(|sent| token.access_token == sent)))
         }
         if user_id.is_empty() {
             return Ok(false);
@@ -313,7 +313,7 @@ impl TokenStore {
         self.update(|store| {
             store.refuse_if_app_missing(app_name)?;
             let mut changed = false;
-            if let Some(token) = slot(store, app_name, username, sent_under)
+            if let Some(token) = slot(store, app_name, username, sent_under)?
                 && let Some(next) = recorded(token)
             {
                 next.write_oauth2(token);
@@ -407,7 +407,7 @@ impl TokenStore {
             if !movable(store) {
                 return Ok(false);
             }
-            let app = store.resolve_app_mut(app_name);
+            let app = store.resolve_app_mut(app_name)?;
             if let Some(token) = app.unnamed_oauth2_token.take() {
                 app.oauth2_tokens.insert(username.to_string(), token);
             }
@@ -452,7 +452,7 @@ impl TokenStore {
     ) -> Result<()> {
         self.update(|store| {
             store.refuse_if_app_missing(app_name)?;
-            let app = store.resolve_app_mut(app_name);
+            let app = store.resolve_app_mut(app_name)?;
             app.oauth1_token = Some(Token {
                 token_type: TokenType::Oauth1,
                 bearer: None,
@@ -551,7 +551,7 @@ impl TokenStore {
             store.refuse_if_app_missing(app_name)?;
             let mut changed = false;
             if let Some(token) = store
-                .resolve_app_mut(app_name)
+                .resolve_app_mut(app_name)?
                 .oauth1_token
                 .as_mut()
                 .and_then(|token| token.oauth1.as_mut())
