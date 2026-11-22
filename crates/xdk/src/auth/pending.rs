@@ -35,8 +35,9 @@ pub struct PendingOAuth2State {
     /// exchange if the runtime client ID has changed.
     pub client_id: String,
     /// The app step 1 signed in under; surfaced in error messages when
-    /// step 2 mismatches the runtime context. Empty in a file that names no
-    /// app, which no stored app can finish.
+    /// step 2 mismatches the runtime context. Empty when the store names no
+    /// default app and the sign-in named none; a step 2 under another client
+    /// id then starts a new flow.
     pub app_name: String,
     /// Unix epoch seconds when the authorization was initiated. Used by
     /// [`load`] to enforce the 15-minute freshness window.
