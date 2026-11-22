@@ -142,6 +142,10 @@ fn one_of_each_variant() -> Vec<Error> {
         Error::json("expected value"),
         Error::auth("token expired"),
         Error::token_store("corrupt yaml"),
+        Error::AppNotFound {
+            name: "ghost".into(),
+            held: vec!["work".into()],
+        },
         mismatch(Some("oauth1"), None, None),
         mismatch(None, Some(&["oauth1"]), None),
         mismatch(None, Some(&[]), Some(&["prod"])),
@@ -287,6 +291,10 @@ fn errors_without_a_documented_recovery_carry_no_pointer() {
         Error::io("permission denied"),
         Error::validation("missing field"),
         Error::token_store("corrupt yaml"),
+        Error::AppNotFound {
+            name: "ghost".into(),
+            held: Vec::new(),
+        },
         Error::InvalidMethod("bad method".into()),
         Error::invalid_url("ftp://example"),
         Error::InvalidPathParam {
@@ -367,7 +375,10 @@ fn a_refused_input_is_fixed_before_another_try() {
             name: "id".into(),
             value: "1/2".into(),
         },
-        Error::token_store(format!("{} \"ghost\"", xdk::error::APP_NOT_FOUND)),
+        Error::AppNotFound {
+            name: "ghost".into(),
+            held: vec!["work".into()],
+        },
     ];
     for err in refused {
         assert_eq!(err.next_action(), Some(NextAction::FixInput), "{err:?}");

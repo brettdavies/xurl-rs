@@ -5770,8 +5770,56 @@ async fn test_enrollment_403_text_quotes_the_detail() {
         "the detail line is quoted; got: {stderr}"
     );
     assert!(
-        stderr.contains("Troubleshooting"),
+        stderr.contains("X Platform Enrollment"),
         "and the recipe is named; got: {stderr}"
+    );
+}
+
+/// The body X sends for `client-not-enrolled` does not say whether the app
+/// lacks a package or the endpoint needs a higher access level, so the text
+/// names both; the envelope keeps X's body as `message` and the same step.
+#[tokio::test]
+async fn test_not_enrolled_403_names_both_causes() {
+    let body = r#"{"client_id":"1","detail":"When authenticating requests to the X API v2 endpoints, you must use keys and tokens from a developer App that is attached to a Project.","reason":"client-not-enrolled","required_enrollment":"Appropriate Level of API Access","title":"Client Forbidden","type":"https://api.x.com/2/problems/client-forbidden"}"#;
+    let ts = CliMockServer::new().await;
+    ts.mount(
+        Mock::given(method("GET"))
+            .and(path("/2/tweets/search/recent"))
+            .respond_with(ResponseTemplate::new(403).set_body_string(body)),
+    )
+    .await;
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    let (code, _stdout, stderr) = run_at_with(
+        &store,
+        &api_env_with_bearer(ts.uri(), "env-bearer-value"),
+        &["xr", "search", "hello"],
+    )
+    .await;
+    assert_ne!(code, 0, "stderr: {stderr}");
+    for part in [
+        "X answered client-not-enrolled: When authenticating requests",
+        "the app is not enrolled in a package that serves this endpoint",
+        "the endpoint needs a higher X access level than the app's package, such as Enterprise",
+        "If `xr whoami` works under the same app and login, the access level is the likelier cause",
+        "X Platform Enrollment: https://github.com/brettdavies/xurl-rs#x-platform-enrollment",
+    ] {
+        assert!(stderr.contains(part), "missing {part:?}; got: {stderr}");
+    }
+    assert!(
+        !stderr.contains("Pay-per-use package and the Production environment"),
+        "the old single-cause advice is gone; got: {stderr}"
+    );
+
+    let (code, _stdout, stderr) = run_against_canned_response(403, body).await;
+    assert_ne!(code, 0, "stderr: {stderr}");
+    let v: serde_json::Value =
+        serde_json::from_str(stderr.trim()).expect("stderr is a JSON envelope");
+    assert_eq!(v["message"], body, "X's body stays the message; got: {v}");
+    assert_eq!(v["next_step"]["action"], "enroll-app", "got: {v}");
+    assert_eq!(
+        v["next_step"]["docs"], "https://github.com/brettdavies/xurl-rs#x-platform-enrollment",
+        "got: {v}"
     );
 }
 
@@ -5798,6 +5846,14 @@ async fn test_enrollment_403_without_detail_omits_the_quote() {
     .await;
     assert_ne!(code, 0, "stderr: {stderr}");
     assert!(stderr.contains("Troubleshooting"), "got: {stderr}");
+    assert!(
+        stderr.contains("Pay-per-use package and the Production environment"),
+        "a refusal that is not client-not-enrolled keeps its advice; got: {stderr}"
+    );
+    assert!(
+        !stderr.contains("higher X access level"),
+        "and does not name the access-level cause; got: {stderr}"
+    );
 }
 
 /// A 403 that is not an enrollment refusal carries no hint.
@@ -5836,7 +5892,7 @@ async fn test_enrollment_403_hint_is_suppressed_under_quiet() {
     .await;
     assert_ne!(code, 0, "stderr: {stderr}");
     assert!(
-        !stderr.contains("Troubleshooting"),
+        !stderr.contains("X Platform Enrollment"),
         "quiet drops the advice; got: {stderr}"
     );
 }

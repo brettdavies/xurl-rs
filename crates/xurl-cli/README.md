@@ -655,6 +655,12 @@ xr auth default prod                           # Set default
 xr --app dev whoami                             # Per-request override
 ```
 
+`--app` and `XURL_APP` name an app the store holds. A name it does not hold exits 77 with reason `token-store`, the name
+in `value`, and the step `xr auth status`, before any request goes out; no other app's credential and no
+`XURL_BEARER_TOKEN` stands in for it. An empty name is the default app. A dry run answers the same refusal with
+`would_succeed: false` and no `auth` key. A store file that could not be loaded holds no apps to check the name against,
+so it is not refused there: `XURL_BEARER_TOKEN`, when set, serves the run as it does without `--app`.
+
 Register an app with a custom OAuth2 callback URL via `--redirect-uri`:
 
 ```bash
@@ -1199,8 +1205,10 @@ The X API client behind `xr` is its own crate, `xdk-rs`: credentials in code, on
 ### X Platform Enrollment
 
 If OAuth succeeds but reads like `xr whoami` fail with an error body containing `client-forbidden` or
-`client-not-enrolled`, the app needs X's enrollment step, which is a developer-console setting rather than anything in
-`xr`. The recipe is in the repository README under
+`client-not-enrolled`, either the app is not enrolled in a package that serves the endpoint, or the endpoint needs a
+higher X access level than the app's package, such as Enterprise. Both are X account settings rather than anything in
+`xr`, and the body does not say which one it is. The recipe for the first, and how to tell the two apart, are in the
+repository README under
 [X Platform Enrollment](https://github.com/brettdavies/xurl-rs#x-platform-enrollment).
 
 ### Token Store Could Not Be Read

@@ -31,7 +31,9 @@ use xdk::auth::oauth2::{run_oauth2_flow, run_oauth2_flow_on};
 use xdk::config::{Config, EnvOverrides};
 
 use common::CLOSED;
-use common::token_endpoint::{Echo, NoRefusal, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers};
+use common::token_endpoint::{
+    Echo, NoRefusal, Redirecting, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers,
+};
 
 mod common;
 
@@ -987,7 +989,7 @@ async fn an_interactive_sign_in_for_an_app_removed_during_consent_sends_no_code(
     let sent = server.received_requests().await.unwrap_or_default().len();
     assert_eq!(sent, 0, "the code was sent: {returned:?}");
     assert!(
-        matches!(&returned, Err(xdk::Error::TokenStore { message, .. }) if message.contains("work")),
+        matches!(&returned, Err(xdk::Error::AppNotFound { name, .. }) if name == "work"),
         "{returned:?}"
     );
     let on_disk = xdk::store::TokenStore::new_with_path(store.to_str().unwrap());
@@ -2150,6 +2152,9 @@ fn closed_overrides(client_id: bool) -> xdk::config::EnvOverrides {
     }
 }
 
+/// What a refusal of an app the store does not hold says of `--app ghost`.
+const NO_SUCH_APP: &str = "the store holds no app named \"ghost\"";
+
 /// A state to run `xr auth oauth2` in, and a word of what its real run says.
 struct Verdict {
     name: &'static str,
@@ -2443,7 +2448,7 @@ fn verdicts() -> Vec<Verdict> {
         before: vec!["--app", "ghost"],
         ..verdict(
             "app the store does not hold, step 1",
-            "\"ghost\"",
+            NO_SUCH_APP,
             true,
             seed_store,
             &step1,
@@ -2452,9 +2457,52 @@ fn verdicts() -> Vec<Verdict> {
     rows.push(Verdict {
         before: vec!["--app", "ghost"],
         ..verdict(
+            "app the store does not hold, no client id, step 1",
+            NO_SUCH_APP,
+            false,
+            seed_store,
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, no app in the store, step 1",
+            NO_SUCH_APP,
+            false,
+            |_| {},
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
             "app the store does not hold, step 2",
-            "\"ghost\"",
+            NO_SUCH_APP,
             true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, no saved flow, step 2",
+            "PendingStateNotFound",
+            false,
+            seed_store,
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, flow saved for another app, step 2",
+            "AppMismatch",
+            false,
             |store| {
                 seed_store(store);
                 seed_pending(store);
@@ -3155,6 +3203,24 @@ async fn step2_answered_with_no_oauth_refusal_reports_its_status() {
         );
         assert_warns_of_the_exchange(&envelope, status);
     }
+}
+
+/// The exchange sends the code and its verifier, and a 307 or a 308 would send
+/// them again to the `Location` host. An answer that redirects is no answer the
+/// exchange follows: it reports its status, like any other the endpoint did not
+/// process, the saved flow stays, and the other server is never asked.
+#[rstest::rstest]
+#[case::found(302)]
+#[case::temporary_redirect(307)]
+#[tokio::test]
+async fn step2_the_token_endpoint_redirects_is_not_followed(#[case] status: u16) {
+    let endpoint = Redirecting::start(status).await;
+
+    let (code, envelope) = step2_at(&endpoint.base).await;
+
+    assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{envelope}");
+    assert_eq!(envelope["reason"], "api-error", "{envelope}");
+    assert_warns_of_the_exchange(&envelope, &status.to_string());
 }
 
 /// A proxy's block page can repeat the request it refused. What the exchange

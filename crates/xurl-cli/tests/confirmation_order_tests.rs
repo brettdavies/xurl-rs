@@ -80,6 +80,7 @@ async fn invoke(held: Held, args: &[&str], dry_run: bool) -> (i32, serde_json::V
 #[rstest::rstest]
 #[case::empty_post_id(Held::OAuth1, &["delete", ""], "validation", 1)]
 #[case::no_credential(Held::NoCredential, &["delete", "12345"], "auth-required", 77)]
+#[case::app_the_store_does_not_hold(Held::OAuth1, &["--app", "ghost", "delete", "12345"], "token-store", 77)]
 #[case::scheme_the_endpoint_refuses(Held::BearerOnly, &["delete", "12345", "--auth", "app"], "auth-method-mismatch", 2)]
 #[case::invalid_webhook_id(Held::OAuth1, &["webhooks", "remove", "not-an-id"], "validation", 1)]
 #[case::invalid_webhook_id_for_a_subscription(Held::BearerOnly, &["webhooks", "subscriptions", "remove", "not-an-id", "@jack"], "validation", 1)]

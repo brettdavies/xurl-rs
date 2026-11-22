@@ -22,7 +22,9 @@ pub enum NextAction {
     SelectApp,
     /// The store could not be read or parsed; look at the file.
     InspectStore,
-    /// X refused the app; enroll it in the developer portal.
+    /// X refused the app: it is not enrolled in a package that serves the
+    /// endpoint, or the endpoint needs a higher X access level than its
+    /// package, such as Enterprise; read the page the step names.
     EnrollApp,
     /// The invocation was not one the tool takes, a word that names no
     /// command or a usage error; read the help it names.
@@ -77,6 +79,12 @@ const ISSUE_TRACKER: &str = "https://github.com/brettdavies/xurl-rs/issues";
 /// What makes a token store unwritable, and the two ways out.
 const STORE_WRITE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-written";
 
+/// X's `reason` for an app its package does not cover.
+const CLIENT_NOT_ENROLLED: &str = "client-not-enrolled";
+/// The marker X's other app refusals carry, and the `type` of a
+/// `client-not-enrolled` body.
+const CLIENT_FORBIDDEN: &str = "client-forbidden";
+
 /// Whether an API refusal is X declining the app itself rather than the
 /// request: a 403 whose body carries either enrollment marker.
 #[must_use]
@@ -85,7 +93,19 @@ pub fn refuses_enrollment(status: u16, body: &str) -> bool {
         return false;
     }
     let haystack = body.to_ascii_lowercase();
-    haystack.contains("client-not-enrolled") || haystack.contains("client-forbidden")
+    haystack.contains(CLIENT_NOT_ENROLLED) || haystack.contains(CLIENT_FORBIDDEN)
+}
+
+/// Whether the body of an enrollment refusal carries X's `client-not-enrolled`
+/// reason. X sends it for an app its package does not cover and for an
+/// endpoint that needs a higher access level than the app's package, such as
+/// Enterprise, so the body alone does not say which.
+// `xr` words its text after a 403 by this reason
+// (`crates/xurl-cli/src/cli/hints.rs`).
+#[doc(hidden)]
+#[must_use]
+pub fn names_client_not_enrolled(body: &str) -> bool {
+    body.to_ascii_lowercase().contains(CLIENT_NOT_ENROLLED)
 }
 
 /// The status an API answer classifies as: its own, except a 200, which X
@@ -117,12 +137,9 @@ fn classified_status(status: u16, body: &str) -> u16 {
 }
 
 /// Whether a [`Error::TokenStore`] message refuses a name the store does not
-/// take: an app it does not hold, one it already holds, or a login the app
-/// does not hold.
+/// take: an app it already holds, or a login the app does not hold.
 fn names_a_store_entry(message: &str) -> bool {
-    message.starts_with(APP_NOT_FOUND)
-        || message.ends_with(APP_NAME_TAKEN)
-        || message.ends_with(USER_NOT_FOUND)
+    message.ends_with(APP_NAME_TAKEN) || message.ends_with(USER_NOT_FOUND)
 }
 
 /// Whether an [`Error::Io`] message refuses a store write: the store's
@@ -303,6 +320,17 @@ pub enum Error {
         /// The failure underneath, when a lower-level error caused it.
         #[source]
         source: Option<Source>,
+    },
+
+    /// A request or a store operation named an app the store does not hold.
+    /// Nothing is sent and nothing is written under another app in its
+    /// place. An empty name is the default app and never meets this.
+    #[error("{} {name:?}", APP_NOT_FOUND)]
+    AppNotFound {
+        /// The app name as it was given.
+        name: String,
+        /// The apps the store holds, in name order.
+        held: Vec<String>,
     },
 
     /// A wait on media processing reached its deadline with the job still
@@ -658,7 +686,8 @@ impl Error {
             | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::MediaProcessingFailed { .. }
-            | Self::AccountNotFound { .. } => Some(NextAction::FixInput),
+            | Self::AccountNotFound { .. }
+            | Self::AppNotFound { .. } => Some(NextAction::FixInput),
             Self::TokenStore { message, .. } if names_a_store_entry(message) => {
                 Some(NextAction::FixInput)
             }
@@ -669,11 +698,12 @@ impl Error {
 
     /// The page that documents this error's recovery, when one exists.
     ///
-    /// An enrollment refusal names the recipe that moves the app to the
-    /// right package, a credential failure points at X's authentication
-    /// overview, and a 429 at its rate-limit rules. A store write refused
-    /// because the store's directory takes no new file names the page on
-    /// writing the store. One arm per variant, so
+    /// An enrollment refusal names the page on its two causes, an app that
+    /// is not enrolled in the right package and an endpoint that needs a
+    /// higher access level than the app's package. A credential failure
+    /// points at X's authentication overview, and a 429 at its rate-limit
+    /// rules. A store write refused because the store's directory takes no
+    /// new file names the page on writing the store. One arm per variant, so
     /// a new variant decides its pointer before it ships.
     #[must_use]
     pub fn docs_url(&self) -> Option<&'static str> {
@@ -701,6 +731,7 @@ impl Error {
             | Self::InvalidUrl { .. }
             | Self::InvalidPathParam { .. }
             | Self::TokenStore { .. }
+            | Self::AppNotFound { .. }
             | Self::ProcessingTimeout { .. }
             | Self::AddressInUse { .. }
             | Self::MediaProcessingFailed { .. }
@@ -737,6 +768,7 @@ impl Error {
     /// | ---------------------- | ---------------- |
     /// | `Auth`                 | `auth-required`  |
     /// | `TokenStore`           | `token-store`    |
+    /// | `AppNotFound`          | `token-store`    |
     /// | `Api { 401, .. }`      | `auth-required`  |
     /// | `Api { 403, .. }`      | `forbidden`      |
     /// | `Api { 404, .. }`      | `not-found`      |
@@ -763,7 +795,7 @@ impl Error {
     pub fn kind(&self) -> &'static str {
         match self {
             Self::Auth { .. } => "auth-required",
-            Self::TokenStore { .. } => "token-store",
+            Self::TokenStore { .. } | Self::AppNotFound { .. } => "token-store",
             Self::Api { status, body, .. } => match classified_status(*status, body) {
                 401 => "auth-required",
                 403 => "forbidden",
@@ -800,7 +832,9 @@ impl Error {
     #[must_use]
     pub fn exit_code(&self) -> i32 {
         match self {
-            Self::Auth { .. } | Self::TokenStore { .. } => EXIT_AUTH_REQUIRED,
+            Self::Auth { .. } | Self::TokenStore { .. } | Self::AppNotFound { .. } => {
+                EXIT_AUTH_REQUIRED
+            }
             Self::Api { status, body, .. } => match classified_status(*status, body) {
                 401 => EXIT_AUTH_REQUIRED,
                 429 => EXIT_RATE_LIMITED,
@@ -980,14 +1014,9 @@ pub const REDIRECT_MISSING_CODE: &str = "MissingCode: no 'code' parameter found 
 
 // ── Store failure messages ─────────────────────────────────────────
 
-/// The start of the message of an [`Error::TokenStore`] for a store operation,
-/// a token save included, that names an app the store does not hold. The name
-/// follows, quoted.
-// `xr` names the apps the store holds when a message starts with this, in
-// `crates/xurl-cli/src/cli/hints.rs`; an embedder classifies the error through
-// `next_action()`.
-#[doc(hidden)]
-pub const APP_NOT_FOUND: &str = "the store holds no app named";
+/// The start of the `Display` of [`Error::AppNotFound`]. The name follows,
+/// quoted.
+const APP_NOT_FOUND: &str = "the store holds no app named";
 
 /// The start of the message of an [`Error::Io`] for a token store whose
 /// directory cannot be created. The directory and the cause follow.
@@ -1109,6 +1138,15 @@ mod tests {
         assert_eq!(refused.next_action(), Some(NextAction::EnrollApp));
         let forbidden = Error::api(403, "CLIENT-FORBIDDEN");
         assert_eq!(forbidden.next_action(), Some(NextAction::EnrollApp));
+    }
+
+    #[test]
+    fn only_the_not_enrolled_reason_is_named() {
+        let body = r#"{"reason":"client-not-enrolled","type":"https://api.x.com/2/problems/client-forbidden"}"#;
+        assert!(names_client_not_enrolled(body));
+        assert!(names_client_not_enrolled("CLIENT-NOT-ENROLLED"));
+        assert!(!names_client_not_enrolled("client-forbidden"));
+        assert!(!names_client_not_enrolled("{}"));
     }
 
     #[test]

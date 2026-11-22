@@ -2,7 +2,7 @@ args: ["--output", "json", "auth", "apps", "remove", "nosuchapp", "--force"]
 store: empty
 exit_code: 77
 stdout_len: 0
-stderr_len: 229
+stderr_len: 253
 --- stdout ---
 
 --- stderr ---
@@ -14,6 +14,7 @@ stderr_len: 229
     "command": "xr auth status"
   },
   "reason": "token-store",
-  "status": "error"
+  "status": "error",
+  "value": "nosuchapp"
 }
 

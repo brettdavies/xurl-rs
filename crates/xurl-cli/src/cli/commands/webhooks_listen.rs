@@ -94,6 +94,13 @@ pub(super) async fn listen(run: Run<'_>, listener: Listener) -> CommandResult<()
         ctx["program"] = json!(listener.program);
         ctx["timeout_secs"] = json!(budget.attempt_timeout().as_secs());
     }
+    if let Err(error) = auth.refuse_if_app_missing() {
+        return Err(if flags.dry_run {
+            Failure::DryRunRefusal { ctx, error }
+        } else {
+            Failure::from(error)
+        });
+    }
     if flags.dry_run {
         if let Err(error) = targets {
             return Err(if error.is_validation() {

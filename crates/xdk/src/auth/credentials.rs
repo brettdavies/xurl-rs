@@ -178,7 +178,7 @@ impl DirectCredentials {
 
     /// The access token to send, refreshing an expired one through the
     /// token endpoint and handing the rotated pair to the hook.
-    pub(crate) async fn refresh_oauth2(&mut self, http: &reqwest::Client) -> Result<String> {
+    pub(crate) async fn refresh_oauth2(&mut self) -> Result<String> {
         let token_url = self.token_url.clone();
         let timeout = self.timeout;
         let hook = self.hook.clone();
@@ -193,7 +193,6 @@ impl DirectCredentials {
             Error::auth("TokenExpired: oauth2 access token expired and no refresh token was given")
         })?;
         let refreshed = oauth2::refresh_grant(
-            http,
             &token_url,
             timeout,
             &credential.client_id,

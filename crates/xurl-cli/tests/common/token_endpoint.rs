@@ -2,7 +2,8 @@
 //! envelope each answer earns, for the tests of the code exchange and of the
 //! refresh to share.
 
-use wiremock::{Request, Respond, ResponseTemplate};
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate};
 
 /// X's page on response codes, which a 404 or a 408 points at.
 pub const RESPONSE_CODES_DOCS: &str =
@@ -97,4 +98,44 @@ impl Respond for Echo {
 /// An HTML error page of about 69 KB.
 pub fn big_page() -> String {
     format!("<html>{}</html>", "blocked ".repeat(8_600))
+}
+
+/// A token endpoint that answers `status` with a `Location` on another server,
+/// and that server, which would answer a valid grant on any method. Dropping it
+/// checks that the endpoint was asked once and the other server never was.
+pub struct Redirecting {
+    pub base: String,
+    _redirecting: MockServer,
+    _target: MockServer,
+}
+
+impl Redirecting {
+    pub async fn start(status: u16) -> Self {
+        let target = MockServer::start().await;
+        Mock::given(path("/2/oauth2/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "REDIRECTED-AT",
+                "refresh_token": "REDIRECTED-RT",
+                "expires_in": 7200,
+                "token_type": "bearer",
+            })))
+            .expect(0)
+            .mount(&target)
+            .await;
+        let redirecting = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/2/oauth2/token"))
+            .respond_with(
+                ResponseTemplate::new(status)
+                    .insert_header("Location", format!("{}/2/oauth2/token", target.uri())),
+            )
+            .expect(1)
+            .mount(&redirecting)
+            .await;
+        Self {
+            base: redirecting.uri(),
+            _redirecting: redirecting,
+            _target: target,
+        }
+    }
 }

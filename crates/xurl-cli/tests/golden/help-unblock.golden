@@ -1,10 +1,12 @@
 args: ["unblock", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7236
+stdout_len: 7336
 stderr_len: 0
 --- stdout ---
 Unblock a user
+
+X's docs list this endpoint as Enterprise only: https://docs.x.com/x-api/users/blocks/introduction
 
 Usage: xr unblock [OPTIONS] <ACCOUNT>
 
