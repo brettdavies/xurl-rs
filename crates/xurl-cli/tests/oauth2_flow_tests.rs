@@ -987,7 +987,7 @@ async fn an_interactive_sign_in_for_an_app_removed_during_consent_sends_no_code(
     let sent = server.received_requests().await.unwrap_or_default().len();
     assert_eq!(sent, 0, "the code was sent: {returned:?}");
     assert!(
-        matches!(&returned, Err(xdk::Error::TokenStore { message, .. }) if message.contains("work")),
+        matches!(&returned, Err(xdk::Error::AppNotFound { name, .. }) if name == "work"),
         "{returned:?}"
     );
     let on_disk = xdk::store::TokenStore::new_with_path(store.to_str().unwrap());
@@ -2150,6 +2150,9 @@ fn closed_overrides(client_id: bool) -> xdk::config::EnvOverrides {
     }
 }
 
+/// What a refusal of an app the store does not hold says of `--app ghost`.
+const NO_SUCH_APP: &str = "the store holds no app named \"ghost\"";
+
 /// A state to run `xr auth oauth2` in, and a word of what its real run says.
 struct Verdict {
     name: &'static str,
@@ -2443,7 +2446,7 @@ fn verdicts() -> Vec<Verdict> {
         before: vec!["--app", "ghost"],
         ..verdict(
             "app the store does not hold, step 1",
-            "\"ghost\"",
+            NO_SUCH_APP,
             true,
             seed_store,
             &step1,
@@ -2452,9 +2455,52 @@ fn verdicts() -> Vec<Verdict> {
     rows.push(Verdict {
         before: vec!["--app", "ghost"],
         ..verdict(
+            "app the store does not hold, no client id, step 1",
+            NO_SUCH_APP,
+            false,
+            seed_store,
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, no app in the store, step 1",
+            NO_SUCH_APP,
+            false,
+            |_| {},
+            &step1,
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
             "app the store does not hold, step 2",
-            "\"ghost\"",
+            NO_SUCH_APP,
             true,
+            |store| {
+                seed_store(store);
+                seed_pending(store);
+            },
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, no saved flow, step 2",
+            "PendingStateNotFound",
+            false,
+            seed_store,
+            &flow_at(&redirect),
+        )
+    });
+    rows.push(Verdict {
+        before: vec!["--app", "ghost"],
+        ..verdict(
+            "app the store does not hold, no client id, flow saved for another app, step 2",
+            "AppMismatch",
+            false,
             |store| {
                 seed_store(store);
                 seed_pending(store);

@@ -386,8 +386,9 @@ pub struct ErrorBody {
     pub rule: Option<String>,
     /// The offending input, as it was given, when the broken `rule` names
     /// one: an app name, a redirect URI, a header's position among the `-H`
-    /// headers (counted from 1), the seconds a checkpoint runs ahead. Always
-    /// a string; a number goes in as its decimal digits.
+    /// headers (counted from 1), the seconds a checkpoint runs ahead. Under
+    /// `token-store`, the app name the store does not hold. Always a string;
+    /// a number goes in as its decimal digits.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
 

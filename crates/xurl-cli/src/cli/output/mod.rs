@@ -963,6 +963,9 @@ fn error_body(error: &Error, exit_code: i32) -> ErrorBody {
         Error::AccountNotFound { account } => {
             body.account = Some(account.clone());
         }
+        Error::AppNotFound { name, .. } => {
+            body.value = Some(name.clone());
+        }
         Error::Api {
             status: 429,
             reset_at: Some(reset_at),
