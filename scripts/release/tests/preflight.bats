@@ -96,7 +96,7 @@ teardown() {
 }
 
 preflight() {
-  cd "$REPO_ROOT" && HOME="${PF_HOME:-$T/home}" TMPDIR="${PF_HOME:-$T/home}/tmp" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" \
+  cd "$REPO_ROOT" && HOME="${PF_HOME:-$T/home}" TMPDIR="${PF_TMPDIR:-${PF_HOME:-$T/home}/tmp}" BIN_PATH="$T/bin/xr" OP_SKILL="$T/op" \
     PATH="$T/bin:$PATH" STUB_XR_LOG="$T/xr.log" STUB_OP_LOG="$T/op.log" \
     run bash scripts/release/preflight.sh "$@"
 }
@@ -194,6 +194,32 @@ named_store() {
   STUB_OP_FAIL=1 preflight smoke
   [ "$status" -ne 0 ]
   [ -z "$(find "$T/home/tmp" -maxdepth 1 -name 'xr-preflight-*')" ]
+}
+
+# TMPDIR outside /tmp and $HOME is where macOS keeps it. Each home a gate made
+# is read from the stub's log: a count under TMPDIR proves nothing once the
+# homes sit elsewhere.
+@test "every directory a gate makes is removed on exit when TMPDIR sits outside /tmp and \$HOME, and a --smoke-home survives" {
+  OUTSIDE_TMP=$(mktemp -d /var/tmp/xr-preflight-bats-XXXXXX)
+  PF_TMPDIR="$OUTSIDE_TMP"
+  for gate in smoke multi-app; do
+    rm -f "$T/xr.log"
+    preflight "$gate"
+    [[ "$output" != *"refusing to shred"* ]]
+    [ "$status" -eq 0 ]
+    homes=$(grep -oE 'store=[^ ]+/\.xurl/auth\.yml' "$T/xr.log" | sed -e 's/^store=//' -e 's|/\.xurl/auth\.yml$||' | sort -u)
+    [ "$(printf '%s\n' "$homes" | wc -l)" -eq 2 ]
+    while IFS= read -r home; do
+      [ ! -e "$home" ]
+    done <<<"$homes"
+  done
+  named_store "$T/home/named"
+  echo keep >"$T/home/named/notes.txt"
+  cp -p "$T/home/named/.xurl/auth.yml" "$T/before.yml"
+  preflight --smoke-home "$T/home/named" smoke
+  [ "$status" -eq 0 ]
+  cmp "$T/before.yml" "$T/home/named/.xurl/auth.yml"
+  [ "$(cat "$T/home/named/notes.txt")" = keep ]
 }
 
 @test "a --smoke-home survives exit without --no-cleanup, and the live test gets its store" {

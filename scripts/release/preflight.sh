@@ -119,8 +119,20 @@ smoke_store() {
   printf '%s/.xurl/auth.yml' "$1"
 }
 
+# A new directory named NAME-XXXXXX that shred_tmpdir removes. It sits under TMPDIR
+# where shred_tmpdir accepts that root and under /tmp elsewhere, as on macOS, where
+# TMPDIR is under /var/folders. The case repeats shred_tmpdir's list of roots.
+shreddable_dir() {
+  local root="${TMPDIR:-/tmp}"
+  case "$root" in
+    /tmp/* | "$HOME"/*) ;;
+    *) root=/tmp ;;
+  esac
+  mktemp -d "${root%/}/$1-XXXXXX"
+}
+
 seed_smoke_store() {
-  SMOKE_HOME="$(mktemp -d -t xr-preflight-XXXXXX)"
+  SMOKE_HOME="$(shreddable_dir xr-preflight)"
   SEEDED_HOME="$SMOKE_HOME"
   local store
   store=$(smoke_store "$SMOKE_HOME")
@@ -303,7 +315,7 @@ gate_api_contract() {
   if git worktree add --detach "$tmpdir/prev" "$last_tag" >/dev/null 2>&1; then
     if (cd "$tmpdir/prev" && cargo build --release --bin xr >/dev/null 2>&1); then
       local empty
-      empty=$(mktemp -d)
+      empty=$(shreddable_dir xr-api-empty)
       XURL_TOKEN_STORE="$empty/.xurl" "$tmpdir/prev/target/release/xr" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u >"$tmpdir/prev-cmds.txt"
       XURL_TOKEN_STORE="$empty/.xurl" "$BIN_PATH" --help 2>&1 | grep -E '^  [a-z]' | awk '{print $1}' | sort -u >"$tmpdir/head-cmds.txt"
       local removed added
@@ -392,7 +404,7 @@ gate_smoke() {
   # Bearer env one-shot
   local app_bearer empty
   app_bearer=$(read_1p "X App - Bird (dev)" credential)
-  empty=$(mktemp -d)
+  empty=$(shreddable_dir xr-smoke-empty)
   out=$(XURL_TOKEN_STORE="$(smoke_store "$empty")" XURL_BEARER_TOKEN="$app_bearer" "$BIN_PATH" search "rust" --max-results 1 --auth app --output json 2>&1 | jaq -c '.data | length > 0')
   unset app_bearer
   if [[ "$out" == "true" ]]; then
@@ -538,7 +550,7 @@ gate_multi_app() {
   # its first registration as the default before any sign-in happens, and the
   # sign-in handler's job here is to leave that answer alone.
   local fresh fresh_store dev_ck dev_cs dev_at dev_ts dev_cid dev_csec prod_cid prod_csec
-  fresh=$(mktemp -d)
+  fresh=$(shreddable_dir xr-multi-fresh)
   fresh_store=$(smoke_store "$fresh")
   dev_cid=$(read_1p "X App - Bird (dev)" oauth2_client_id)
   dev_csec=$(read_1p "X App - Bird (dev)" oauth2_client_secret)
