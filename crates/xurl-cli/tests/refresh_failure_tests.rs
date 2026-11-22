@@ -19,7 +19,9 @@ use xdk::config::EnvOverrides;
 use xdk::store::TokenStore;
 
 use common::CLOSED;
-use common::token_endpoint::{Echo, NoRefusal, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers};
+use common::token_endpoint::{
+    Echo, NoRefusal, Redirecting, TOKEN_ENDPOINT_DOCS, big_page, no_refusal_answers,
+};
 
 const APP: &str = "myapp";
 const LOGIN: &str = "alice";
@@ -595,6 +597,29 @@ async fn a_refresh_answered_with_no_oauth_refusal_reports_its_status() {
         );
         assert_warns_of_the_refresh(&envelope);
     }
+}
+
+/// The refresh sends the refresh token in its form, and a 307 or a 308 would
+/// send it again to the `Location` host. An answer that redirects is no answer
+/// the refresh follows: it reports its status, like any other the endpoint did
+/// not process, and the other server is never asked.
+#[rstest::rstest]
+#[case::found(302)]
+#[case::temporary_redirect(307)]
+#[tokio::test]
+async fn a_refresh_the_token_endpoint_redirects_is_not_followed(#[case] status: u16) {
+    let endpoint = Redirecting::start(status).await;
+
+    let (code, envelope) = whoami_refreshing_at(&format!("{}/2/oauth2/token", endpoint.base)).await;
+
+    assert_reason(code, &envelope, "api-error", xdk::error::EXIT_GENERAL_ERROR);
+    assert_warns_of_the_refresh(&envelope);
+    assert!(
+        envelope["warnings"]
+            .to_string()
+            .contains(&format!("HTTP {status}")),
+        "a warning names the status: {envelope}"
+    );
 }
 
 /// A proxy's block page can repeat the request it refused. What the refresh

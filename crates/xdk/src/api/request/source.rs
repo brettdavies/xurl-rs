@@ -218,7 +218,7 @@ impl CredentialSource {
     ) -> Result<String> {
         match self {
             Self::Store(auth) => auth.refresh_oauth2_token(http, username).await,
-            Self::Direct(direct) => direct.refresh_oauth2(http).await,
+            Self::Direct(direct) => direct.refresh_oauth2().await,
         }
     }
 }
