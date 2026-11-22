@@ -281,6 +281,22 @@ async fn a_refused_broadcast_id_carries_the_value_given() {
         vec!["broadcasts", "get", "not-an-id!"],
         vec!["broadcasts", "remove", "not-an-id!"],
         vec!["broadcasts", "chat", "history", "not-an-id!"],
+        vec![
+            "broadcasts",
+            "mutes",
+            "add",
+            "@troll",
+            "--broadcast",
+            "not-an-id!",
+        ],
+        vec![
+            "broadcasts",
+            "mutes",
+            "remove",
+            "@troll",
+            "--broadcast",
+            "not-an-id!",
+        ],
     ] {
         let mut dry = vec!["--dry-run"];
         dry.extend(&args);

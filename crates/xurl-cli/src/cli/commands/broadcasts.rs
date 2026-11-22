@@ -178,9 +178,9 @@ async fn mutes(action: MutesCommands, run: Run<'_>) -> CommandResult<()> {
             });
             let validate = || {
                 shortcuts::validate_time_window(until.as_deref(), None)?;
-                broadcast
-                    .as_deref()
-                    .map_or(Ok(()), shortcuts::validate_broadcast_id)
+                broadcast.as_deref().map_or(Ok(()), |id| {
+                    shortcuts::validate_broadcast_id(id).map_err(|rule| Invalid::naming(rule, id))
+                })
             };
             act_on_user_with(
                 run,
@@ -199,9 +199,9 @@ async fn mutes(action: MutesCommands, run: Run<'_>) -> CommandResult<()> {
         } => {
             let ctx = json!({"command": "broadcasts-mutes-remove", "broadcast_id": broadcast});
             let validate = || {
-                broadcast
-                    .as_deref()
-                    .map_or(Ok(()), shortcuts::validate_broadcast_id)
+                broadcast.as_deref().map_or(Ok(()), |id| {
+                    shortcuts::validate_broadcast_id(id).map_err(|rule| Invalid::naming(rule, id))
+                })
             };
             act_on_user_with(
                 run,
