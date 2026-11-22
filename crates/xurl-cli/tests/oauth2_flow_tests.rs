@@ -4095,6 +4095,32 @@ async fn an_authorize_url_no_url_can_be_built_from_refuses_step_one_in_its_dry_r
     assert_eq!(on_disk(&store), kept, "nothing is written");
 }
 
+/// A step 1 that refuses leaves the saved flow where it is, so neither run
+/// warns that it replaces one.
+#[tokio::test]
+async fn a_refused_step_one_gives_no_warning_about_replacing_the_saved_flow() {
+    let tmp = TempDir::new().unwrap();
+    let store = tmp.path().join(".xurl");
+    seed_store(&store);
+    seed_pending(&store);
+    let overrides = xdk::config::EnvOverrides {
+        auth_url: Some("::not a url".to_string()),
+        ..step1_overrides()
+    };
+
+    let (dry_code, _dry_stdout, dry_stderr) = run_cli(&store, &overrides, &step1_argv(true)).await;
+    let (code, _stdout, stderr) = run_cli(&store, &overrides, &step1_argv(false)).await;
+
+    assert_eq!(dry_code, 0);
+    assert!(
+        dry_stderr.is_empty(),
+        "the dry run warns of nothing: {dry_stderr}"
+    );
+    assert_eq!(code, 77, "stderr: {stderr}");
+    let real = json_document("real run", &stderr);
+    assert!(real["warnings"].is_null(), "{real}");
+}
+
 /// A saved flow is replaced by step 1, which says so; the dry run says so too,
 /// in the text and in the document a structured caller reads, and a run with
 /// no flow to replace says nothing. The text `warning:` line goes to the

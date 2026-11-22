@@ -475,11 +475,12 @@ pub async fn run_remote_step2(
 /// As [`run_remote_step1`], up to the save.
 pub(crate) fn check_remote_step1(auth: &Auth, pending_path: &std::path::Path) -> Result<()> {
     refuse_unless_store_keeps(auth)?;
+    authorize_url(auth)?;
+    pending::check_save_target(pending_path)?;
     if std::fs::symlink_metadata(pending_path).is_ok_and(|meta| meta.is_file()) {
         tracing::warn!(target: "xdk::auth", "overwriting previous pending auth flow");
     }
-    authorize_url(auth)?;
-    pending::check_save_target(pending_path)
+    Ok(())
 }
 
 /// [`Auth::check_remote_oauth2_step2`]: the refusals [`run_remote_step2`]
