@@ -757,8 +757,9 @@ impl Error {
         }
     }
 
-    /// Returns true if this is an API error (HTTP status >= 400), which the
-    /// token endpoint's 403 and its other unexpected statuses are too.
+    /// Returns true if this is a failure answer from X's API (an HTTP status
+    /// of 400 or more), or from the token endpoint: its 403, and any other
+    /// status it answered with no reading of its own, a redirect included.
     #[must_use]
     pub fn is_api(&self) -> bool {
         matches!(
@@ -813,7 +814,7 @@ impl Error {
     /// | `MediaProcessingFailed` | `invalid-request` |
     /// | `AccountNotFound`      | `not-found`      |
     /// | `TokenEndpointForbidden` | `forbidden`    |
-    /// | `TokenEndpointUnexpected { 400, .. }` | `invalid-request` |
+    /// | `TokenEndpointUnexpected { 400 \| 422, .. }` | `invalid-request` |
     /// | `TokenEndpointUnexpected { other, .. }` | `api-error` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
@@ -843,7 +844,9 @@ impl Error {
             Self::MediaProcessingFailed { .. } => "invalid-request",
             Self::AccountNotFound { .. } => "not-found",
             Self::TokenEndpointForbidden { .. } => "forbidden",
-            Self::TokenEndpointUnexpected { status: 400, .. } => "invalid-request",
+            Self::TokenEndpointUnexpected {
+                status: 400 | 422, ..
+            } => "invalid-request",
             Self::TokenEndpointUnexpected { .. } => "api-error",
         }
     }

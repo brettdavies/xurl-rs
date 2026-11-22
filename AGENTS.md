@@ -140,12 +140,12 @@ secret `--secret` names: the OAuth1 credentials under `--secret oauth1`, the app
 oauth2 --step 2` whose redirect URL did not parse, or whose saved flow belongs to another stored app, it carries a
 `template` that runs step 2 again with the URL, which holds an authorization code, left as `<redirect-url>`. For a 401
 on the status read after `xr media upload` finished, it carries the command that resumes the wait as a `template`, to
-run once the credential works, since reading again under the same credential fails the same way. A 403 from the token
-endpoint on that read, which a refresh during the wait meets, carries the same template, to run once `TOKEN_URL` and the
-proxy are fixed. For an answer from the token endpoint whose JSON `error` is none of the six codes of RFC 6749 section
-5.2 (`REFUSAL_CODES` in `crates/xdk/src/auth/token_endpoint.rs`), other than a 404, a 408, a 429, or a 5xx, `docs` names
-the README section on the token endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and
-`api-error` on any other status) names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and
+run once the credential works, since reading again under the same credential fails the same way. So does an answer from
+the token endpoint on that read, which a refresh during the wait meets, whose JSON `error` is none of the six codes of
+RFC 6749 section 5.2 (`REFUSAL_CODES` in `crates/xdk/src/auth/token_endpoint.rs`), other than a 404, a 408, a 429, or a
+5xx: the template runs once `TOKEN_URL` and the proxy are fixed, and `docs` names the README section on the token
+endpoint, `TOKEN_URL`, and proxies. `report-issue` (`internal`, `serialization`, and `api-error` on any other status)
+names the issue tracker in `docs`. `confirm` rides on `confirmation-required` and
 carries a `template`, the invocation with `--force`, under the `--app` the refusal's `app` key names: it is never a
 `command`, so an agent that runs every command it is handed cannot confirm a deletion by accident. `run-command` names
 the sibling skill verb that

@@ -3305,6 +3305,11 @@ async fn step2_the_token_endpoint_redirects_is_not_followed(#[case] status: u16)
 
     assert_eq!(code, xdk::error::EXIT_GENERAL_ERROR, "{envelope}");
     assert_eq!(envelope["reason"], "api-error", "{envelope}");
+    assert_eq!(envelope["next_step"]["action"], "fix-input", "{envelope}");
+    assert_eq!(
+        envelope["next_step"]["docs"], TOKEN_ENDPOINT_DOCS,
+        "{envelope}"
+    );
     assert_warns_of_the_exchange(&envelope, &status.to_string());
 }
 
@@ -3312,7 +3317,7 @@ async fn step2_the_token_endpoint_redirects_is_not_followed(#[case] status: u16)
 /// sent is a credential, so none of it reaches the error.
 #[tokio::test]
 async fn step2_failure_answer_that_echoes_the_exchange_leaks_none_of_it() {
-    for status in [403, 404, 502] {
+    for status in [400, 401, 403, 404, 418, 502] {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/2/oauth2/token"))

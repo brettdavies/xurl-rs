@@ -750,7 +750,8 @@ pub fn resume_after_upload_hint(
             waited,
             credential,
             &format!(
-                "The token endpoint answered {status} and sent no OAuth error code. The upload is intact and X keeps the media id for 24 hours; once TOKEN_URL and any proxy in front of the endpoint are fixed, resume the wait:"
+                "{} The upload is intact and X keeps the media id for 24 hours; once TOKEN_URL and any proxy in front of the endpoint are fixed, resume the wait:",
+                unread_answer(status)
             ),
             docs,
         ));
@@ -1178,6 +1179,20 @@ fn token_endpoint_in_the_way(error: &Error) -> Option<u16> {
     }
 }
 
+/// The first sentence of a hint for a token endpoint answer that names none of
+/// the error codes of RFC 6749 section 5.2. A redirect is said not to be
+/// followed, since the address `TOKEN_URL` should name is where it pointed.
+fn unread_answer(status: u16) -> String {
+    let redirect = if (300..400).contains(&status) {
+        " xr does not follow a redirect."
+    } else {
+        ""
+    };
+    format!(
+        "The token endpoint answered {status} and sent none of the error codes of RFC 6749 section 5.2.{redirect}"
+    )
+}
+
 /// Builds the hint for an error whose step the library names and no stored
 /// credential decides.
 ///
@@ -1199,7 +1214,8 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
         return Some(Hint {
             text_lines: with_docs_line(
                 format!(
-                    "The token endpoint answered {status} and sent no OAuth error code. A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both."
+                    "{} A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both.",
+                    unread_answer(status)
                 ),
                 docs,
             ),
@@ -1405,6 +1421,12 @@ pub fn quote_app_name(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_a_redirect_is_said_not_to_be_followed() {
+        assert!(unread_answer(302).contains("does not follow a redirect"));
+        assert!(!unread_answer(401).contains("redirect"));
+    }
 
     #[test]
     fn a_resumed_wait_quotes_each_word_a_shell_would_split() {

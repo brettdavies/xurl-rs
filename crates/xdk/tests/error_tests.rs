@@ -357,6 +357,7 @@ fn a_token_endpoint_403_is_a_forbidden_the_token_url_or_the_proxy_causes() {
 fn a_token_endpoint_status_with_no_reading_of_its_own_is_for_the_token_url_or_the_proxy() {
     for (status, kind) in [
         (400, "invalid-request"),
+        (422, "invalid-request"),
         (401, "api-error"),
         (418, "api-error"),
         (302, "api-error"),

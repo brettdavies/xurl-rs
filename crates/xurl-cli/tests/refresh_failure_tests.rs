@@ -610,6 +610,11 @@ async fn a_refresh_the_token_endpoint_redirects_is_not_followed(#[case] status: 
     let (code, envelope) = whoami_refreshing_at(&format!("{}/2/oauth2/token", endpoint.base)).await;
 
     assert_reason(code, &envelope, "api-error", xdk::error::EXIT_GENERAL_ERROR);
+    assert_eq!(envelope["next_step"]["action"], "fix-input", "{envelope}");
+    assert_eq!(
+        envelope["next_step"]["docs"], TOKEN_ENDPOINT_DOCS,
+        "{envelope}"
+    );
     assert_warns_of_the_refresh(&envelope);
     assert!(
         envelope["warnings"]
@@ -623,7 +628,7 @@ async fn a_refresh_the_token_endpoint_redirects_is_not_followed(#[case] status: 
 /// sent is a credential, so none of it reaches the error.
 #[tokio::test]
 async fn a_failure_answer_that_echoes_the_refresh_leaks_none_of_it() {
-    for status in [403, 404, 502] {
+    for status in [400, 401, 403, 404, 418, 502] {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
             .and(path("/2/oauth2/token"))
