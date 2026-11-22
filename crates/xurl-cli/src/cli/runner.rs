@@ -903,11 +903,33 @@ fn render_schema_refusal(
     EXIT_USAGE_ERROR
 }
 
-/// The app name `XURL_APP` gave, when `--app` did not override it.
+/// The app name `XURL_APP` gave, when `--app` did not override it and the
+/// command was not also given the name as an argument of its own: a store
+/// command that takes an app's name reads that name, not `XURL_APP`.
 fn app_from_env(cli: &Cli, matches: &clap::ArgMatches) -> Option<String> {
-    (matches.value_source("app") == Some(clap::parser::ValueSource::EnvVariable))
-        .then(|| cli.app.clone())
-        .flatten()
+    let name = cli.app.as_deref()?;
+    let from_env = matches.value_source("app") == Some(clap::parser::ValueSource::EnvVariable);
+    (from_env && !given_as_argument(matches, name)).then(|| name.to_string())
+}
+
+/// Whether any argument of the matched command other than `--app` carries `name`.
+fn given_as_argument(matches: &clap::ArgMatches, name: &str) -> bool {
+    let mut current = matches;
+    loop {
+        let carried = current.ids().any(|id| {
+            id.as_str() != "app"
+                && current
+                    .get_raw(id.as_str())
+                    .is_some_and(|mut raw| raw.any(|value| value == name))
+        });
+        if carried {
+            return true;
+        }
+        match current.subcommand() {
+            Some((_, sub)) => current = sub,
+            None => return false,
+        }
+    }
 }
 
 /// The words of the subcommand clap matched, empty for a raw request.

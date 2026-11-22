@@ -280,6 +280,8 @@ fn the_text_refusal_says_when_the_name_came_from_xurl_app() {
 #[case::flag_over_the_variable(&["--output", "json", "--app", GHOST, "whoami"], &[("XURL_APP", "other")])]
 #[case::flag_matching_the_variable(&["--output", "json", "--app", GHOST, "whoami"], &[("XURL_APP", GHOST)])]
 #[case::name_given_to_a_store_command(&["--output", "json", "auth", "default", GHOST], &[("XURL_APP", "myapp")])]
+#[case::name_given_to_a_store_command_and_the_variable(&["--output", "json", "auth", "default", GHOST], &[("XURL_APP", GHOST)])]
+#[case::name_removed_by_a_store_command_and_given_by_the_variable(&["--output", "json", "auth", "apps", "remove", GHOST, "--force"], &[("XURL_APP", GHOST)])]
 #[case::no_variable(&["--output", "json", "--app", GHOST, "whoami"], &[])]
 fn a_name_that_did_not_come_from_xurl_app_does_not_say_so(
     #[case] args: &[&str],

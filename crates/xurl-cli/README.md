@@ -657,8 +657,9 @@ xr --app dev whoami                             # Per-request override
 
 `--app` and `XURL_APP` name an app the store holds. A name it does not hold exits 77 with reason `token-store`, the name
 in `value`, the apps the store holds in `held` (empty when it holds none), and the step `xr auth status`, before any
-request goes out; no other app's credential and no `XURL_BEARER_TOKEN` stands in for it. When `XURL_APP` gave the name
-and no `--app` overrode it, the `message` ends with `(from XURL_APP)`. An empty name is the default app. A dry run
+request goes out; no other app's credential and no `XURL_BEARER_TOKEN` stands in for it. When `XURL_APP` gave the name,
+no `--app` overrode it, and the command was not given the name as an argument of its own, the `message` ends with
+`(from XURL_APP)`. An empty name is the default app. A dry run
 answers the same refusal with `would_succeed: false` and no `auth` key. A store file that could not be loaded holds no
 apps to check the name against, so it is not refused there: `XURL_BEARER_TOKEN`, when set, serves the run as it does
 without `--app`.
