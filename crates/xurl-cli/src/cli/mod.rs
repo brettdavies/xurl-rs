@@ -26,6 +26,7 @@ pub mod envelope;
 pub mod family_help;
 pub mod output;
 pub mod panic_hook;
+pub mod parse;
 #[cfg(test)]
 mod parse_tests;
 mod reparse;

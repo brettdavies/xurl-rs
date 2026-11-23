@@ -23,6 +23,13 @@ pub fn from_process() -> EnvOverrides {
     overrides
 }
 
+/// The value of the variable named `name`, as clap reads it for an `env`
+/// binding. A value that is not UTF-8 is held by no one.
+#[must_use]
+pub fn variable(name: &str) -> Option<String> {
+    std::env::var(name).ok()
+}
+
 /// Where the OS looks for a program by name: the directories of `PATH`, and
 /// on Windows the extensions of `PATHEXT`. They are search paths, not `xr`
 /// settings.

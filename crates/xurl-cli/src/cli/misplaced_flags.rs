@@ -12,9 +12,9 @@ use std::ffi::OsString;
 use clap::parser::ValueSource;
 use clap::{Arg, ArgMatches, Command, CommandFactory};
 
-use crate::cli::Cli;
 use crate::cli::classify::{ROOT_COMMAND, raw_only_flag_given};
 use crate::cli::hints::shell_word;
+use crate::cli::{Cli, parse};
 
 /// The root flags only a raw request reads, by clap id.
 const RAW_ONLY: [&str; 8] = [
@@ -49,7 +49,7 @@ pub(crate) fn misplaced(cli: &Cli, args: &[OsString]) -> Option<Misplaced> {
         return None;
     }
     let root = Cli::command();
-    let matches = root.clone().try_get_matches_from(args).ok()?;
+    let matches = parse::try_matches(args, std::convert::identity).ok()?;
     let given: Vec<&Arg> = root
         .get_arguments()
         .filter(|arg| RAW_ONLY.contains(&arg.get_id().as_str()))
@@ -152,7 +152,7 @@ fn root_flag<'a>(root: &'a Command, word: &str) -> Option<(&'a Arg, bool)> {
 /// Whether `rebuilt` parses with no raw-only flag at the root and every one
 /// it moved read by the command.
 fn reaches_command(root: &Command, rebuilt: &[String]) -> bool {
-    let Ok(matches) = root.clone().try_get_matches_from(rebuilt) else {
+    let Ok(matches) = parse::try_matches(rebuilt, std::convert::identity) else {
         return false;
     };
     let from_command_line =

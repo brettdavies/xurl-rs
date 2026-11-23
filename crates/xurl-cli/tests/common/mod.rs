@@ -181,6 +181,31 @@ pub fn rust_files(dir: &Path) -> Vec<PathBuf> {
     files
 }
 
+/// The file `#[cfg(test)] mod name;` in `declaring` names: beside it for a
+/// `mod.rs`, `lib.rs`, or `main.rs`, and in a directory named for the file
+/// otherwise.
+pub fn declared_test_module(declaring: &Path, name: &str) -> PathBuf {
+    let dir = declaring.parent().expect("a file has a directory");
+    let stem = declaring.file_stem().and_then(|s| s.to_str());
+    let base = match stem {
+        Some("mod" | "lib" | "main") => dir.to_path_buf(),
+        _ => dir.join(stem.expect("a file name")),
+    };
+    [
+        base.join(format!("{name}.rs")),
+        base.join(name).join("mod.rs"),
+    ]
+    .into_iter()
+    .find(|candidate| candidate.is_file())
+    .unwrap_or_else(|| {
+        panic!(
+            "{}: `#[cfg(test)] mod {name};` names no file under {}",
+            declaring.display(),
+            base.display()
+        )
+    })
+}
+
 /// Every `.rs` file under each member's `src/`: the whole production tree
 /// a source-scanning guard must cover, so neither crate escapes it.
 pub fn workspace_sources() -> Vec<PathBuf> {

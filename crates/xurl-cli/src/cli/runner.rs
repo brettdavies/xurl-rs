@@ -25,7 +25,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::error::{ContextKind, ContextValue, ErrorKind};
-use clap::{CommandFactory, FromArgMatches, Parser};
+use clap::{CommandFactory, FromArgMatches};
 use tracing::instrument::WithSubscriber;
 
 use crate::cli::classify::{
@@ -236,8 +236,7 @@ async fn run_inner(
 ) -> i32 {
     // Parsed in two steps, formatting a failure as `Cli::try_parse_from`
     // does, so the matches stay to name the command that ran.
-    let parsed = Cli::command()
-        .try_get_matches_from(args_vec.iter())
+    let parsed = crate::cli::parse::try_matches(args_vec.iter(), std::convert::identity)
         .and_then(|matches| Cli::from_arg_matches(&matches).map(|cli| (cli, matches)))
         .map_err(|e| e.format(&mut Cli::command()));
     let (cli, matches) = match parsed {
@@ -772,7 +771,7 @@ fn help_command_page(args: &[OsString]) -> String {
         .first()
         .cloned()
         .unwrap_or_else(|| OsString::from(ROOT_COMMAND));
-    Cli::try_parse_from([bin, "help".into(), "help".into()])
+    crate::cli::parse::try_cli([bin, "help".into(), "help".into()])
         .err()
         .map(|e| e.to_string())
         .unwrap_or_default()
@@ -901,7 +900,7 @@ fn render_schema_refusal(
         }
         Refusal::ScopeWord(word) => {
             let flag = format!("--{word}");
-            let alone = Cli::try_parse_from(["xr", "schema", flag.as_str()]).is_ok();
+            let alone = crate::cli::parse::try_cli(["xr", "schema", flag.as_str()]).is_ok();
             let problem = format!(
                 "'{word}' names a scope of `xr schema`, not a command; it is the flag {flag}."
             );

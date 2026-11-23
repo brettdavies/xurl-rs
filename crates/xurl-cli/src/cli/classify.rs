@@ -12,7 +12,7 @@ use clap::error::{ContextKind, ContextValue, ErrorKind};
 use clap::{CommandFactory, ValueEnum};
 
 use crate::cli::output::OutputFormat;
-use crate::cli::{Cli, ColorChoice};
+use crate::cli::{Cli, ColorChoice, parse};
 
 /// Jaro score a candidate must beat to be offered as the nearest command.
 /// Above clap's 0.7: at 0.7 a short command word such as `calls` matches
@@ -27,7 +27,8 @@ pub(crate) const ROOT_COMMAND: &str = "xr";
 /// request, `xr media alt-text --help` for a subcommand.
 pub(crate) fn invoked_help<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> String {
     let mut path = vec![ROOT_COMMAND.to_string()];
-    if let Ok(matches) = Cli::command().try_get_matches_from(args.iter().map(AsRef::as_ref)) {
+    if let Ok(matches) = parse::try_matches(args.iter().map(AsRef::as_ref), std::convert::identity)
+    {
         let mut current = &matches;
         while let Some((name, sub)) = current.subcommand() {
             path.push(name.to_string());
@@ -96,9 +97,8 @@ pub(crate) fn raw_only_flag_given(cli: &Cli) -> bool {
 /// The login `-u` names, on the command the invocation runs or on a raw
 /// request; `None` when the invocation does not parse or names none.
 pub(crate) fn requested_login<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<String> {
-    let matches = Cli::command()
-        .try_get_matches_from(args.iter().map(AsRef::as_ref))
-        .ok()?;
+    let matches =
+        parse::try_matches(args.iter().map(AsRef::as_ref), std::convert::identity).ok()?;
     let mut current = &matches;
     while let Some((_, sub)) = current.subcommand() {
         current = sub;
@@ -113,9 +113,8 @@ pub(crate) fn requested_login<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<S
 
 /// The deepest parsed command of `args`, or `None` when they do not parse.
 fn parsed_leaf<S: AsRef<std::ffi::OsStr>>(args: &[S]) -> Option<(Vec<String>, clap::ArgMatches)> {
-    let matches = Cli::command()
-        .try_get_matches_from(args.iter().map(AsRef::as_ref))
-        .ok()?;
+    let matches =
+        parse::try_matches(args.iter().map(AsRef::as_ref), std::convert::identity).ok()?;
     let mut words = Vec::new();
     let mut current = &matches;
     while let Some((name, sub)) = current.subcommand() {

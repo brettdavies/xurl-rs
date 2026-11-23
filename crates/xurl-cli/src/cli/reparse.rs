@@ -17,7 +17,7 @@ use crate::cli::classify::{
     usage_command,
 };
 use crate::cli::output::OutputFormat;
-use crate::cli::{Cli, ColorChoice};
+use crate::cli::{Cli, ColorChoice, parse};
 
 /// `Cli::command()` with the root help and version flags inert.
 ///
@@ -26,8 +26,8 @@ use crate::cli::{Cli, ColorChoice};
 /// inert counting flag with the same spellings stands in at the root. The
 /// `help` subcommand stays, because without it the word `help` binds to the
 /// positional and reads as an unknown command.
-fn command_with_inert_display_flags() -> clap::Command {
-    Cli::command()
+fn with_inert_display_flags(command: clap::Command) -> clap::Command {
+    command
         .disable_help_flag(true)
         .disable_version_flag(true)
         .arg(
@@ -48,7 +48,7 @@ fn command_with_inert_display_flags() -> clap::Command {
 /// invocation one of them interrupted can be classified like any other. The
 /// error is the one that invocation raises without the flag.
 pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Result<Cli, clap::Error> {
-    let matches = command_with_inert_display_flags().try_get_matches_from(args)?;
+    let matches = parse::try_matches(args, with_inert_display_flags)?;
     Cli::from_arg_matches(&matches)
 }
 
@@ -57,14 +57,14 @@ pub(crate) fn parse_without_display_flags(args: &[OsString]) -> Result<Cli, clap
 /// other: `xr suth status` reads as `xr suth`, while a raw-only flag anywhere
 /// in argv still marks a request. `None` when it fails for any other reason.
 pub(crate) fn parse_past_stray_words(args: &[OsString]) -> Option<Cli> {
-    let matches = command_with_inert_display_flags()
-        .arg(
+    let matches = parse::try_matches(args, |command| {
+        with_inert_display_flags(command).arg(
             Arg::new("stray_words")
                 .num_args(1..)
                 .action(ArgAction::Append),
         )
-        .try_get_matches_from(args)
-        .ok()?;
+    })
+    .ok()?;
     Cli::from_arg_matches(&matches).ok()
 }
 
@@ -78,10 +78,10 @@ pub(crate) fn lenient_cli(args: &[OsString]) -> Option<Cli> {
 /// What clap resolved from `args` before an error stopped it: the flags ahead
 /// of the rejected token, their environment bindings, and the defaults.
 fn lenient_matches(args: &[OsString]) -> Option<ArgMatches> {
-    command_with_inert_display_flags()
-        .ignore_errors(true)
-        .try_get_matches_from(args)
-        .ok()
+    parse::try_matches(args, |command| {
+        with_inert_display_flags(command).ignore_errors(true)
+    })
+    .ok()
 }
 
 /// The color choice for a parse-error rendering: a `--color` named anywhere in
