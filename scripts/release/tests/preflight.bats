@@ -89,6 +89,9 @@ if [[ -n "${STUB_CARGO_HANG:-}" && "$*" == $STUB_CARGO_HANG ]]; then
   : >"$STUB_XR_LOG.hung"
   exec sleep 30
 fi
+if [[ -n "${STUB_CARGO_RM_GIT_LINK:-}" && "$(basename "$PWD")" == prev ]]; then
+  rm -f "$PWD/.git"
+fi
 EOF
 
   cat >"$T/op/read_field.sh" <<'EOF'
@@ -270,6 +273,17 @@ worktrees_left() {
   preflight --tag v0.0.0 api-contract
   [ "$status" -ne 0 ]
   grep -q '^cargo .* build --release --bin xr$' "$T/xr.log"
+  [ -z "$(gate_dirs_left)" ]
+  [ "$(worktrees_left)" -eq 0 ]
+  [ -z "$(find "$PF_REPO/.git/worktrees" -mindepth 1 -maxdepth 1 2>/dev/null)" ]
+}
+
+# Without its .git link the worktree fails git's validation, so `git worktree
+# remove` refuses it and only the prune after the directory goes drops the entry.
+@test "an api-contract gate that fails once its worktree has lost its .git link leaves no registration" {
+  api_repo
+  STUB_CARGO_RM_GIT_LINK=1 preflight --tag v0.0.0 api-contract
+  [ "$status" -ne 0 ]
   [ -z "$(gate_dirs_left)" ]
   [ "$(worktrees_left)" -eq 0 ]
   [ -z "$(find "$PF_REPO/.git/worktrees" -mindepth 1 -maxdepth 1 2>/dev/null)" ]
