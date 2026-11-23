@@ -273,23 +273,15 @@ fn checked_url(
 }
 
 /// `url` without the username and password before its host, which is how a
-/// dry run's context shows a URL the caller typed. The authority runs to the
-/// first `/` or `\` after `://`; a string with no `://` before its query is
-/// taken as authority throughout, since a URL parser reads `http:/user:pw@host`
-/// and `http:\\user:pw@host` as carrying a credential too.
+/// dry run's context shows a URL the caller typed. The authority is the one
+/// the validator reads, from `split_special_url`, so the two cannot disagree.
 fn without_userinfo(url: &str) -> String {
-    let (head, query) = url.split_at(url.find(['?', '#']).unwrap_or(url.len()));
-    let (scheme, rest) = head.split_at(head.find("://").map_or(0, |at| at + 3));
-    let split = if scheme.is_empty() {
-        rest.len()
-    } else {
-        rest.find(['/', '\\']).unwrap_or(rest.len())
-    };
-    let (authority, path) = rest.split_at(split);
-    let host = authority
+    let parts = xdk::api::split_special_url(url);
+    let host = parts
+        .authority
         .rsplit_once('@')
-        .map_or(authority, |(_, host)| host);
-    format!("{scheme}{host}{path}{query}")
+        .map_or(parts.authority.as_str(), |(_, host)| host);
+    format!("{}{host}{}", parts.head, parts.tail)
 }
 
 /// Checks `inputs` with `validator`, which takes them all at once. A refusal
@@ -1395,3 +1387,6 @@ where
     })
     .await
 }
+
+#[cfg(test)]
+mod url_authority_tests;
