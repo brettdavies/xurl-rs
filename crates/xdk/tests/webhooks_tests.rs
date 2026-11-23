@@ -422,6 +422,8 @@ fn validate_webhook_url_refuses_a_username_or_password() {
         "https://user:pw@[2001:db8::1]/hook",
         "https:///user:pw@example.com/hook",
         "https://user%40mail:pw@example.com/hook",
+        "https://example.com\\hook@x",
+        "https://\t/user:pw@example.com/hook",
     ] {
         assert_eq!(
             validate_webhook_url(url),

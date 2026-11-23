@@ -278,8 +278,11 @@ fn checked_url(
 /// `/` or `\`, since a URL parser skips further slashes there and reads
 /// `https:///user:pw@host` as carrying a credential; a string with no `://`
 /// before its query is taken as authority throughout, since a URL parser reads
-/// `http:/user:pw@host` and `http:\\user:pw@host` as carrying one too.
+/// `http:/user:pw@host` and `http:\\user:pw@host` as carrying one too. A URL
+/// parser deletes every tab and newline before it reads the URL, so they are
+/// dropped first.
 fn without_userinfo(url: &str) -> String {
+    let url = url.replace(['\t', '\n', '\r'], "");
     let (head, query) = url.split_at(url.find(['?', '#']).unwrap_or(url.len()));
     let (scheme, rest) = head.split_at(head.find("://").map_or(0, |at| at + 3));
     let (slashes, rest) = if scheme.is_empty() {

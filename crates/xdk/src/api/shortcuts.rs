@@ -1221,7 +1221,8 @@ pub fn validate_webhook_url(url: &str) -> std::result::Result<(), &'static str> 
     };
     // The authority as written, past the slashes a URL parser skips after the
     // scheme: `Url` drops a port that is the scheme's default, and X refuses
-    // one that is spelled out.
+    // one that is spelled out. A `\` stays inside it, as RFC 3986 reads it,
+    // so `https://host\hook@x` carries userinfo.
     let authority = rest
         .trim_start_matches(['/', '\\'])
         .split(['/', '?', '#'])
