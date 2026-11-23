@@ -333,6 +333,30 @@ impl OutputConfig {
         self.emit_error_envelope(err, invalid_args_body(message, separator, command));
     }
 
+    /// [`Self::print_invalid_args`] for a refusal that an environment variable
+    /// causes. No help page shows which variable is set and no `xr` command
+    /// clears it, so the step is `fix-input` with the README section on
+    /// precedence, and the message still ends in the help pointer.
+    pub(crate) fn print_invalid_args_from_variable(
+        &self,
+        err: &mut dyn Write,
+        message: &str,
+        separator: &str,
+        command: &str,
+    ) {
+        let body = ErrorBody {
+            next_step: Some(crate::cli::rerun::carry(
+                crate::cli::hints::NextStep::fix_input(Some(
+                    crate::cli::hints::PRECEDENCE_DOCS.to_string(),
+                )),
+                &OutputFormat::Text,
+                FormatSpelling::default(),
+            )),
+            ..invalid_args_body(message, separator, command)
+        };
+        self.emit_error_envelope(err, body);
+    }
+
     /// The dry-run answer to an argument [`Self::print_invalid_args`] would
     /// refuse in the real run: the same keys, at exit 0.
     pub(crate) fn print_dry_run_invalid_args(

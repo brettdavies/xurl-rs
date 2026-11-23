@@ -19,6 +19,8 @@ use xurl::cli;
 
 /// The page the `inspect-store` step names.
 const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
+
+const PRECEDENCE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#flag-and-variable-precedence";
 #[cfg(unix)]
 const STORE_WRITE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-written";
 
@@ -661,6 +663,22 @@ async fn a_store_write_s_dry_run_answers_success_where_its_real_run_succeeds(
 #[test]
 fn the_page_inspect_store_names_is_in_the_readme() {
     let (file, anchor) = STORE_DOCS
+        .strip_prefix("https://github.com/brettdavies/xurl-rs/blob/main/")
+        .and_then(|rest| rest.split_once('#'))
+        .expect("a README path and an anchor");
+    let readme = std::fs::read_to_string(common::workspace_root().join(file)).expect("the README");
+    let found = readme
+        .lines()
+        .filter_map(|line| line.strip_prefix("### "))
+        .any(|heading| heading.to_lowercase().replace(' ', "-") == anchor);
+    assert!(found, "{file} has no heading that anchors to #{anchor}");
+}
+
+/// The step of a refusal that a variable causes names a section of the CLI
+/// README, so the heading it anchors to has to be there.
+#[test]
+fn the_page_a_variable_refusal_names_is_in_the_readme() {
+    let (file, anchor) = PRECEDENCE_DOCS
         .strip_prefix("https://github.com/brettdavies/xurl-rs/blob/main/")
         .and_then(|rest| rest.split_once('#'))
         .expect("a README path and an anchor");

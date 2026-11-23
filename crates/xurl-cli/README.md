@@ -788,11 +788,6 @@ export XURL_OUTPUT=json                          # Default to JSON
 xr whoami --jsonl                                # A typed format flag wins: JSONL
 ```
 
-A typed `--output`, `--json`, or `--jsonl` wins over `XURL_OUTPUT`, `XURL_JSON`, and `XURL_JSONL`, and of several typed
-the last wins; `--cursor` and `--after` and their variables follow the same rule. Two variables for one setting, and a
-variable beside a typed flag it conflicts with (`XURL_CURSOR` with `--page`), are refused at exit 2 with the variable
-named, and `XURL_JSON=0` is unset.
-
 Shortcut commands print X's response under the names the vendored spec gives its keys. Where X still sends a key in its
 legacy post vocabulary, the key is renamed to the spec's spelling and its value is left as X sent it:
 `edit_history_tweet_ids` prints as `edit_history_post_ids`, `tweet_count` as `post_count`, `retweet_count` as
@@ -840,6 +835,20 @@ zero-app special case. Per-app fields:
 ```bash
 xr --output json auth status | jq '.apps[] | select(.default) | .name'
 ```
+
+### Flag and variable precedence
+
+A typed flag beats the variables of its own setting, and of several typed flags the last wins, before or after the
+command word. The output format has three spellings, `--output`, `--json`, and `--jsonl`, with the variables
+`XURL_OUTPUT`, `XURL_JSON`, and `XURL_JSONL`. The page token has two, `--cursor` and `--after`, with `XURL_CURSOR` and
+`XURL_AFTER`. A false boolean variable (`XURL_JSON=0`) and an empty variable are unset.
+
+With no spelling typed, one variable decides its setting. Two variables of one setting are refused, and so is a variable
+beside a flag it conflicts with, such as `XURL_CURSOR` beside `--page`. The refusal exits 2 with reason `invalid-args`,
+names the variable as `the environment variable 'XURL_CURSOR'`, and carries a `tip:` line that says which edit clears
+it. Its `next_step` is `fix-input` with `docs` pointing here and no `command`, since no `xr` command changes a caller's
+environment. `--page` is refused on every command that pages, so a tip for a conflict with it names the edit that
+removes `--page` or `XURL_PAGE`. Two typed flags that conflict keep clap's sentence and the `show-help` step.
 
 ### Quiet Mode
 
@@ -1091,7 +1100,7 @@ no `auth` key.
 | `forbidden`                  | `enroll-app` for enrollment; `fix-input` for a token endpoint's 403 that is no OAuth refusal; an `unsupported-authentication` 403, as `auth-method-mismatch`; none otherwise |
 | `rate-limited`               | `wait-and-retry` when the 429 names its reset, or after `xr media upload` finished (a `template` with no reset or under `-H`); none otherwise                                |
 | `processing-timeout`         | `resume-wait`; a `template` when `-H` was given                                                                                                                              |
-| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, or a `--path` miss                              |
+| `invalid-args`               | `show-help`; `fix-input` when `-u`, `--auth`, or `-t` came before a command word that takes it, for an old `xr schema` name, a `--path` miss, or a variable on a side        |
 | `unknown-command`            | `show-help`                                                                                                                                                                  |
 | `invalid-method`             | `show-help`                                                                                                                                                                  |
 | `invalid-url`                | `show-help`                                                                                                                                                                  |

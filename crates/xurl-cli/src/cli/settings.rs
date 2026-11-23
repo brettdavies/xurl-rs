@@ -214,7 +214,12 @@ pub(crate) struct Answer<T> {
 
 /// A refusal, as the body of its `invalid-args` message.
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) struct Refused(pub(crate) String);
+pub(crate) struct Refused {
+    pub(crate) body: String,
+    /// Whether an environment variable is a side of the refusal, so no help
+    /// page can show the cause.
+    pub(crate) from_variable: bool,
+}
 
 /// The format the run prints in.
 pub(crate) fn resolve_output(
@@ -312,10 +317,7 @@ fn decide(
     }
     match variables.naming_a_value(setting).as_slice() {
         [] => Ok(Decision::Default),
-        [(spelling, _)] => {
-            refuse_a_conflict(spelling, matches)?;
-            Ok(Decision::Variable(spelling))
-        }
+        [(spelling, _)] => Ok(Decision::Variable(spelling)),
         [(first, _), rest @ ..] => Err(two_variables(
             first,
             rest.iter().map(|(spelling, _)| *spelling),
@@ -347,39 +349,81 @@ fn variable_side(spelling: &Spelling) -> Side {
 
 fn two_variables<'a>(first: &Spelling, rest: impl Iterator<Item = &'a Spelling>) -> Refused {
     let priors: Vec<Side> = rest.map(variable_side).collect();
-    Refused(Refusal::between(&variable_side(first), &priors).body(None))
+    Refused {
+        body: Refusal::between(&variable_side(first), &priors).body(None),
+        from_variable: true,
+    }
 }
 
-/// Refuses `spelling`'s variable when an argument that holds a value is one
-/// clap declares in conflict with the flag.
-fn refuse_a_conflict(spelling: &Spelling, matches: &ArgMatches) -> Result<(), Refused> {
-    let mut root = parse::command();
-    root.build();
-    let Some((leaf, resolved)) = conflict_source::leaf_of(&root, matches) else {
-        return Ok(());
-    };
-    let priors: Vec<Side> = conflicting(leaf, spelling.id)
-        .into_iter()
-        .filter_map(|arg| {
-            let source = match resolved.value_source(arg.get_id().as_str())? {
-                ValueSource::CommandLine => Source::Typed,
-                ValueSource::EnvVariable => Source::Variable(arg.get_env()?.to_str()?.to_string()),
-                _ => return None,
-            };
-            Some(Side {
-                name: arg.to_string(),
-                source,
-            })
-        })
-        .collect();
-    if priors.is_empty() {
+/// Refuses the run when a variable that decided a setting stands beside an
+/// argument that holds a value and that clap declares in conflict with the
+/// spelling the variable stands for.
+///
+/// A spelling in the settings table holds the value its variable gave when
+/// `decisions` say that variable decided its setting; clap has no source for
+/// it, since no variable is bound.
+///
+/// The tree is built once, and only when a variable decided.
+pub(crate) fn refuse_conflicts(
+    matches: &ArgMatches,
+    decisions: &[Decision],
+) -> Result<(), Refused> {
+    if !decisions
+        .iter()
+        .any(|decision| matches!(decision, Decision::Variable(_)))
+    {
         return Ok(());
     }
-    let usage = leaf.clone().render_usage().to_string();
-    let usage = usage.strip_prefix("Usage:").unwrap_or(&usage);
-    Err(Refused(
-        Refusal::between(&variable_side(spelling), &priors).body(Some(usage)),
-    ))
+    let mut root = parse::command();
+    root.build();
+    conflicts_between(&root, matches, decisions)
+}
+
+fn conflicts_between(
+    root: &Command,
+    matches: &ArgMatches,
+    decisions: &[Decision],
+) -> Result<(), Refused> {
+    let Some((leaf, resolved)) = conflict_source::leaf_of(root, matches) else {
+        return Ok(());
+    };
+    for decision in decisions {
+        let Decision::Variable(spelling) = decision else {
+            continue;
+        };
+        let priors: Vec<Side> = conflicting(leaf, spelling.id)
+            .into_iter()
+            .filter_map(|arg| {
+                let id = arg.get_id().as_str();
+                let source = match resolved.value_source(id) {
+                    Some(ValueSource::CommandLine) => Source::Typed,
+                    Some(ValueSource::EnvVariable) => {
+                        Source::Variable(arg.get_env()?.to_str()?.to_string())
+                    }
+                    _ => decisions.iter().find_map(|decided| match decided {
+                        Decision::Variable(other) if other.id == id => {
+                            Some(Source::Variable(other.variable.to_string()))
+                        }
+                        _ => None,
+                    })?,
+                };
+                Some(Side {
+                    name: arg.to_string(),
+                    source,
+                })
+            })
+            .collect();
+        if priors.is_empty() {
+            continue;
+        }
+        let usage = leaf.clone().render_usage().to_string();
+        let usage = usage.strip_prefix("Usage:").unwrap_or(&usage);
+        return Err(Refused {
+            body: Refusal::between(&variable_side(spelling), &priors).body(Some(usage)),
+            from_variable: true,
+        });
+    }
+    Ok(())
 }
 
 /// The arguments of `command`, which is built, that clap declares in conflict
@@ -442,7 +486,10 @@ fn read_output_variable(spelling: &Spelling, value: &str) -> Result<OutputFormat
         if let Some(ContextValue::Strings(valid)) = error.get(ContextKind::ValidValue) {
             message.push_str(&format!("\n  [possible values: {}]", valid.join(", ")));
         }
-        Refused(message)
+        Refused {
+            body: message,
+            from_variable: false,
+        }
     })
 }
 
@@ -461,8 +508,8 @@ mod tests {
     use clap::ArgMatches;
 
     use super::{
-        Answer, Decision, OUTPUT, PAGE_TOKEN, Refused, Variables, resolve_output,
-        resolve_page_token, typed_in,
+        Answer, Decision, OUTPUT, PAGE_TOKEN, Refused, Variables, conflicts_between,
+        refuse_conflicts, resolve_output, resolve_page_token, typed_in,
     };
     use crate::cli::env::FlagEnv;
     use crate::cli::output::OutputFormat;
@@ -562,7 +609,7 @@ mod tests {
 
     #[test]
     fn two_variables_are_refused_naming_both() {
-        let Refused(body) =
+        let Refused { body, .. } =
             output_of(&["version"], Some("json"), &[("XURL_JSON", "1")]).expect_err("refused");
         assert_eq!(
             body,
@@ -573,12 +620,23 @@ mod tests {
 
     #[test]
     fn a_page_token_variable_beside_a_typed_page_is_refused() {
-        let Refused(body) =
-            token_of(&["--page", "2", "version"], &[("XURL_CURSOR", "a")]).expect_err("refused");
+        let args = argv(&["--page", "2", "version"]);
+        let matches = matches_of(&args);
+        let flags = flags(&[("XURL_CURSOR", "a")]);
+        let variables = Variables::new(None, &flags);
+        let decisions = [
+            resolve_output(&matches, &args, variables)
+                .expect("resolves")
+                .decision,
+            resolve_page_token(&matches, &args, variables)
+                .expect("resolves")
+                .decision,
+        ];
+        let Refused { body, .. } = refuse_conflicts(&matches, &decisions).expect_err("refused");
         assert!(
             body.starts_with(
                 "the environment variable 'XURL_CURSOR' cannot be used with '--page <N>'\n\n  \
-                 tip: unset 'XURL_CURSOR', or leave out '--page <N>'\n\nUsage:"
+                 tip: leave out '--page <N>'\n\nUsage:"
             ),
             "{body}"
         );
@@ -586,7 +644,7 @@ mod tests {
 
     #[test]
     fn a_variable_that_names_no_format_is_refused_only_when_it_decides() {
-        let Refused(body) = output_of(&["version"], Some("toml"), &[]).expect_err("refused");
+        let Refused { body, .. } = output_of(&["version"], Some("toml"), &[]).expect_err("refused");
         assert_eq!(
             body,
             "invalid value 'toml' for the environment variable 'XURL_OUTPUT'\n  \
@@ -655,5 +713,61 @@ mod tests {
             ]
         );
         assert_eq!(spellings(&words), []);
+    }
+
+    /// A built command that declares `--json` in conflict with `--cursor`, a
+    /// spelling of the other setting.
+    fn across_the_settings() -> clap::Command {
+        let mut root = clap::Command::new("xr")
+            .arg(
+                clap::Arg::new("json")
+                    .long("json")
+                    .action(clap::ArgAction::SetTrue)
+                    .conflicts_with("cursor"),
+            )
+            .arg(clap::Arg::new("cursor").long("cursor").num_args(1));
+        root.build();
+        root
+    }
+
+    #[test]
+    fn two_variables_of_different_settings_that_conflict_are_refused_naming_both() {
+        let root = across_the_settings();
+        let matches = root.clone().try_get_matches_from(["xr"]).expect("parses");
+        let decisions = [
+            Decision::Variable(&OUTPUT.spellings[1]),
+            Decision::Variable(&PAGE_TOKEN.spellings[0]),
+        ];
+        let Err(Refused { body: message, .. }) = conflicts_between(&root, &matches, &decisions)
+        else {
+            panic!("two conflicting variables were accepted");
+        };
+        assert!(
+            message.contains("the environment variable 'XURL_JSON'"),
+            "{message}"
+        );
+        assert!(
+            message.contains("the environment variable 'XURL_CURSOR'"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn a_variable_beside_a_typed_flag_of_the_other_setting_that_conflicts_is_refused() {
+        let root = across_the_settings();
+        let matches = root
+            .clone()
+            .try_get_matches_from(["xr", "--cursor", "a"])
+            .expect("parses");
+        let decisions = [Decision::Variable(&OUTPUT.spellings[1]), Decision::Default];
+        let Err(Refused { body: message, .. }) = conflicts_between(&root, &matches, &decisions)
+        else {
+            panic!("a variable beside a conflicting typed flag was accepted");
+        };
+        assert!(
+            message.contains("the environment variable 'XURL_JSON'"),
+            "{message}"
+        );
+        assert!(message.contains("--cursor"), "{message}");
     }
 }

@@ -68,6 +68,10 @@ pub(crate) const REGISTER_APP_TEMPLATE: &str =
 pub(crate) const NO_SIGNING_SECRET: &str = "No signing secret: X signs webhook requests with the \
      app's OAuth2 client secret or OAuth1 consumer secret, and the app has neither stored";
 
+/// The README section on how a typed flag and the variables of its setting
+/// resolve.
+pub(crate) const PRECEDENCE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#flag-and-variable-precedence";
+
 /// The README section on a token store that could not be loaded.
 pub(crate) const STORE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#token-store-could-not-be-read";
 

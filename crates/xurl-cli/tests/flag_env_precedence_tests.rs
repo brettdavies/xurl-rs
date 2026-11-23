@@ -48,6 +48,28 @@ fn envelope(output: &Output) -> serde_json::Value {
     serde_json::from_slice(&output.stderr).unwrap_or_else(|e| panic!("{e}: {}", stderr_of(output)))
 }
 
+const PRECEDENCE_DOCS: &str = "https://github.com/brettdavies/xurl-rs/blob/main/crates/xurl-cli/README.md#flag-and-variable-precedence";
+
+/// A refusal that a variable causes names no command that repairs it: the step
+/// is `fix-input` with the page on precedence, and nothing else.
+fn assert_fix_input(document: &serde_json::Value) {
+    assert_eq!(
+        document["next_step"],
+        serde_json::json!({"action": "fix-input", "docs": PRECEDENCE_DOCS}),
+        "{document}"
+    );
+}
+
+/// The refusal of `args` under `env`, asked for as JSON by a typed
+/// `--output`, carries the `fix-input` step.
+fn assert_refused_with_fix_input(env: &[(&str, &str)], args: &[&str]) {
+    let mut asked = vec!["--output", "json"];
+    asked.extend_from_slice(args);
+    let output = xr(env, &asked);
+    assert_eq!(output.status.code(), Some(2), "{}", stderr_of(&output));
+    assert_fix_input(&envelope(&output));
+}
+
 // ── A conflict clap raises names a side that came from a variable ─────────
 
 #[test]
@@ -61,13 +83,14 @@ fn a_typed_after_beside_xurl_page_names_the_variable() {
     );
     assert_eq!(
         between_first_line_and_usage(&output),
-        ["  tip: unset 'XURL_PAGE', or leave out '--after <TOKEN>'"]
+        ["  tip: unset 'XURL_PAGE'"]
     );
     assert!(
         !stderr_of(&output).contains("--page"),
         "the flag the caller did not type is not named: {}",
         stderr_of(&output)
     );
+    assert_refused_with_fix_input(&[("XURL_PAGE", "2")], &["--after", "5", "schema", "--list"]);
 }
 
 #[test]
@@ -84,7 +107,17 @@ fn a_typed_cursor_beside_xurl_page_names_the_variable() {
     );
     assert_eq!(
         between_first_line_and_usage(&output),
-        ["  tip: unset 'XURL_PAGE', or leave out '--cursor <TOKEN>'"]
+        ["  tip: unset 'XURL_PAGE'"]
+    );
+    let stderr = stderr_of(&output);
+    assert!(
+        stderr.contains("\nUsage: xr schema ")
+            && stderr.trim_end().ends_with("Try 'xr schema --help'."),
+        "a flag before the command word names the command it reaches: {stderr}"
+    );
+    assert_refused_with_fix_input(
+        &[("XURL_PAGE", "2")],
+        &["--cursor", "abc", "schema", "--list"],
     );
 }
 
@@ -107,6 +140,10 @@ fn a_flag_after_the_command_word_is_refused_the_same_way() {
         "the pointer names the command: {}",
         stderr_of(&output)
     );
+    assert_refused_with_fix_input(
+        &[("XURL_PAGE", "2")],
+        &["schema", "--list", "--cursor", "abc"],
+    );
 }
 
 #[test]
@@ -121,6 +158,19 @@ fn two_typed_flags_keep_clap_sentence_and_get_no_tip() {
     );
     assert!(!first.contains("environment variable"), "{first}");
     assert!(between_first_line_and_usage(&output).is_empty());
+
+    let output = xr(
+        &[],
+        &[
+            "--output", "json", "--cursor", "a", "--page", "2", "schema", "--list",
+        ],
+    );
+    assert_eq!(output.status.code(), Some(2), "{}", stderr_of(&output));
+    assert_eq!(
+        envelope(&output)["next_step"]["action"],
+        "show-help",
+        "two typed flags keep the help step"
+    );
 }
 
 #[test]
@@ -145,7 +195,7 @@ fn the_refusal_envelope_carries_the_keys_it_carries_today() {
     let document = envelope(&output);
     assert_eq!(document["reason"], "invalid-args", "{document}");
     assert_eq!(document["exit_code"], 2, "{document}");
-    assert_eq!(document["next_step"]["action"], "show-help", "{document}");
+    assert_fix_input(&document);
     let mut keys: Vec<&str> = document
         .as_object()
         .expect("an object")
@@ -399,6 +449,7 @@ fn ae11_two_variables_of_one_setting_are_refused_in_a_json_envelope() {
         "the environment variable 'XURL_OUTPUT' cannot be used with the environment variable 'XURL_JSON'\n\n  \
          tip: unset one of 'XURL_OUTPUT' and 'XURL_JSON'\n\nTry 'xr schema --help'."
     );
+    assert_fix_input(&document);
 }
 
 #[test]
@@ -436,6 +487,7 @@ fn three_variables_get_the_all_but_one_tip() {
          the environment variable 'XURL_JSON'\n  the environment variable 'XURL_JSONL'\n\n  \
          tip: unset all but one of 'XURL_OUTPUT', 'XURL_JSON', and 'XURL_JSONL'\n\nTry 'xr schema --help'."
     );
+    assert_fix_input(&envelope(&output));
 }
 
 #[test]
@@ -449,6 +501,10 @@ fn a_variable_naming_no_format_is_refused_naming_the_variable() {
         message_of(&output),
         "invalid value 'toml' for the environment variable 'XURL_OUTPUT'\n  \
          [possible values: text, json, jsonl, ndjson, yaml, csv, tsv]\n\nTry 'xr schema --help'."
+    );
+    assert_eq!(
+        document["next_step"]["action"], "show-help",
+        "the help lists the possible values: {document}"
     );
 }
 
@@ -468,12 +524,16 @@ fn ae5_a_cursor_variable_beside_a_typed_page_names_the_variable() {
     );
     assert_eq!(
         between_first_line_and_usage(&output),
-        ["  tip: unset 'XURL_CURSOR', or leave out '--page <N>'"]
+        ["  tip: leave out '--page <N>'"]
     );
     assert!(
         !stderr_of(&output).contains("--cursor"),
         "the flag the caller did not type is not named: {}",
         stderr_of(&output)
+    );
+    assert_refused_with_fix_input(
+        &[("XURL_CURSOR", "abc")],
+        &["--page", "2", "schema", "--list"],
     );
 }
 
@@ -488,13 +548,14 @@ fn ae18_an_after_variable_beside_a_typed_page_names_the_variable() {
     );
     assert_eq!(
         between_first_line_and_usage(&output),
-        ["  tip: unset 'XURL_AFTER', or leave out '--page <N>'"]
+        ["  tip: leave out '--page <N>'"]
     );
     assert!(
         !stderr_of(&output).contains("--after"),
         "the flag the caller did not type is not named: {}",
         stderr_of(&output)
     );
+    assert_refused_with_fix_input(&[("XURL_AFTER", "x")], &["--page", "2", "schema", "--list"]);
 }
 
 #[test]
@@ -513,6 +574,10 @@ fn ae15_two_page_token_variables_are_refused_both_named() {
         between_first_line_and_usage(&output),
         ["  tip: unset one of 'XURL_CURSOR' and 'XURL_AFTER'"]
     );
+    assert_refused_with_fix_input(
+        &[("XURL_CURSOR", "a"), ("XURL_AFTER", "b")],
+        &["schema", "--list"],
+    );
 }
 
 #[test]
@@ -529,9 +594,13 @@ fn a_cursor_variable_beside_the_page_variable_is_refused_before_pagination() {
     );
     assert_eq!(
         between_first_line_and_usage(&output),
-        ["  tip: unset one of 'XURL_CURSOR' and 'XURL_PAGE'"]
+        ["  tip: unset 'XURL_PAGE'"]
     );
     assert!(!stderr_of(&output).contains("unsupported-pagination"));
+    assert_refused_with_fix_input(
+        &[("XURL_CURSOR", "a"), ("XURL_PAGE", "2")],
+        &["schema", "--list"],
+    );
 }
 
 #[tokio::test]

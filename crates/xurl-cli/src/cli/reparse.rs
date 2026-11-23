@@ -181,15 +181,19 @@ fn takes_value_after_equals(command: &str, flag: &str) -> bool {
 /// line names, or, when clap attached no usage, the subcommands it resolved
 /// before it stopped.
 pub(crate) fn failing_command(error: &clap::Error, args: &[OsString]) -> String {
-    usage_command(error).unwrap_or_else(|| {
-        let mut words = vec![ROOT_COMMAND.to_string()];
-        if let Some(matches) = lenient_matches(args) {
-            let mut current = &matches;
-            while let Some((name, sub)) = current.subcommand() {
-                words.push(name.to_string());
-                current = sub;
-            }
+    usage_command(error).unwrap_or_else(|| resolved_command(args))
+}
+
+/// The command `args` reach, found from the subcommands clap resolved before
+/// it stopped, wherever the flags sit.
+pub(crate) fn resolved_command(args: &[OsString]) -> String {
+    let mut words = vec![ROOT_COMMAND.to_string()];
+    if let Some(matches) = lenient_matches(args) {
+        let mut current = &matches;
+        while let Some((name, sub)) = current.subcommand() {
+            words.push(name.to_string());
+            current = sub;
         }
-        words.join(" ")
-    })
+    }
+    words.join(" ")
 }

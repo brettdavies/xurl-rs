@@ -39,7 +39,7 @@ use crate::cli::hints::NextStep;
 use crate::cli::output::{Diagnostics, OutputConfig, OutputFormat};
 use crate::cli::reparse::{
     color_choice, equals_form_hint, failing_command, lenient_cli, output_intent,
-    parse_past_stray_words, parse_without_display_flags, raw_choice,
+    parse_past_stray_words, parse_without_display_flags, raw_choice, resolved_command,
 };
 use crate::cli::retired_verbs;
 use crate::cli::settings::{self, Variables};
@@ -310,11 +310,17 @@ async fn run_inner(
     .with_format_spelling(crate::cli::rerun::FormatSpelling::of(output.decision));
     crate::cli::panic_hook::publish(&out);
     let page_token = match settings::resolve_page_token(&matches, &args_vec, variables) {
-        Ok(answer) => answer.value,
+        Ok(answer) => answer,
         Err(refused) => {
             return render_refused(&refused, &args_vec, overrides, variables, stderr);
         }
     };
+    if let Err(refused) =
+        settings::refuse_conflicts(&matches, &[output.decision, page_token.decision])
+    {
+        return render_refused(&refused, &args_vec, overrides, variables, stderr);
+    }
+    let page_token = page_token.value;
     let invocation = crate::cli::rerun::explicit_invocation(&args_vec, &cli);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
@@ -799,7 +805,11 @@ fn render_refused(
     let out = provisional_output(args, overrides, variables);
     let command = invoked_help(args);
     let command = command.strip_suffix(" --help").unwrap_or(&command);
-    out.print_invalid_args(stderr, &refused.0, "\n\n", command);
+    if refused.from_variable {
+        out.print_invalid_args_from_variable(stderr, &refused.body, "\n\n", command);
+    } else {
+        out.print_invalid_args(stderr, &refused.body, "\n\n", command);
+    }
     EXIT_USAGE_ERROR
 }
 
@@ -824,9 +834,14 @@ fn render_invalid_args(
         .strip_suffix(CLAP_HELP_FOOTER)
         .unwrap_or(body)
         .trim_end();
-    let command = failing_command(error, args);
+    let from_variable = crate::cli::conflict_source::refusal_for(error, args);
+    let command = if from_variable.is_some() {
+        resolved_command(args)
+    } else {
+        failing_command(error, args)
+    };
     // clap puts its own tips between the error line and the usage line.
-    let body = if let Some(refusal) = crate::cli::conflict_source::refusal_for(error, args) {
+    let body = if let Some(refusal) = &from_variable {
         refusal.replacing(body)
     } else {
         match equals_form_hint(error, args, &command) {
@@ -839,7 +854,11 @@ fn render_invalid_args(
             None => body.to_string(),
         }
     };
-    out.print_invalid_args(stderr, &body, "\n\n", &command);
+    if from_variable.is_some() {
+        out.print_invalid_args_from_variable(stderr, &body, "\n\n", &command);
+    } else {
+        out.print_invalid_args(stderr, &body, "\n\n", &command);
+    }
     EXIT_USAGE_ERROR
 }
 

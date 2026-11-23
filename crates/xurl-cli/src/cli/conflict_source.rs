@@ -67,6 +67,7 @@ pub(crate) struct Refusal {
     sentence: String,
     tip: Option<String>,
     every_side_is_a_variable: bool,
+    usage: Option<String>,
 }
 
 impl Refusal {
@@ -93,6 +94,7 @@ impl Refusal {
             sentence,
             tip: tip_for(&sides),
             every_side_is_a_variable: sides.iter().all(|side| side.is_variable()),
+            usage: None,
         }
     }
 
@@ -120,10 +122,11 @@ impl Refusal {
     }
 
     /// `clap_body`, a conflict clap worded, with this sentence in place of
-    /// clap's. The usage line stays unless every side is a variable.
+    /// clap's. The usage line is the command's own when this refusal holds
+    /// one and clap's otherwise, and goes unless every side is a variable.
     pub(crate) fn replacing(&self, clap_body: &str) -> String {
-        let usage = clap_body.split_once("\n\nUsage:").map(|(_, usage)| usage);
-        self.body(usage)
+        let clap_usage = clap_body.split_once("\n\nUsage:").map(|(_, usage)| usage);
+        self.body(self.usage.as_deref().or(clap_usage))
     }
 }
 
@@ -145,6 +148,12 @@ fn tip_for(sides: &[&Side]) -> Option<String> {
     if variables.is_empty() {
         return None;
     }
+    if let Some(page) = sides.iter().find(|side| is_offset_page(side)) {
+        return Some(match &page.source {
+            Source::Variable(variable) => format!("unset '{variable}'"),
+            Source::Typed => format!("leave out '{}'", page.name),
+        });
+    }
     let tip = match (variables.as_slice(), flags.as_slice()) {
         ([only], []) => format!("unset {only}"),
         ([_, _], []) => format!("unset one of {} and {}", variables[0], variables[1]),
@@ -156,6 +165,13 @@ fn tip_for(sides: &[&Side]) -> Option<String> {
         ),
     };
     Some(tip)
+}
+
+/// Whether the side is `--page`, which every command that pages refuses, so
+/// the other side of its conflict cannot clear the refusal by itself.
+fn is_offset_page(side: &Side) -> bool {
+    side.name.starts_with("--page ")
+        || matches!(&side.source, Source::Variable(variable) if variable == "XURL_PAGE")
 }
 
 /// `'A', 'B', and 'C'`.
@@ -247,7 +263,9 @@ pub(crate) fn refusal_for(error: &clap::Error, args: &[OsString]) -> Option<Refu
     root.build();
     let (command, resolved) = leaf_of(&root, &matches)?;
     let (subject, priors) = sides(error, command, &|arg| source_in(resolved, arg))?;
-    let refusal = Refusal::between(&subject, &priors);
+    let mut refusal = Refusal::between(&subject, &priors);
+    let usage = command.clone().render_usage().to_string();
+    refusal.usage = Some(usage.strip_prefix("Usage:").unwrap_or(&usage).to_string());
     refusal.names_a_variable().then_some(refusal)
 }
 
@@ -313,10 +331,7 @@ mod tests {
             refusal.sentence,
             "the argument '--cursor <TOKEN>' cannot be used with the environment variable 'XURL_PAGE'"
         );
-        assert_eq!(
-            refusal.tip.as_deref(),
-            Some("unset 'XURL_PAGE', or leave out '--cursor <TOKEN>'")
-        );
+        assert_eq!(refusal.tip.as_deref(), Some("unset 'XURL_PAGE'"));
     }
 
     #[test]
@@ -335,10 +350,7 @@ mod tests {
             "the argument '--cursor <TOKEN>' cannot be used with:\n  \
              the environment variable 'XURL_PAGE'\n  --after <TOKEN>"
         );
-        assert_eq!(
-            refusal.tip.as_deref(),
-            Some("unset 'XURL_PAGE', or leave out '--cursor <TOKEN>' and '--after <TOKEN>'")
-        );
+        assert_eq!(refusal.tip.as_deref(), Some("unset 'XURL_PAGE'"));
     }
 
     #[test]
@@ -384,7 +396,7 @@ mod tests {
         assert_eq!(
             refusal.body(Some(" xr schema [OPTIONS]")),
             "the environment variable 'XURL_CURSOR' cannot be used with the environment variable 'XURL_PAGE'\n\n  \
-             tip: unset one of 'XURL_CURSOR' and 'XURL_PAGE'"
+             tip: unset 'XURL_PAGE'"
         );
     }
 
@@ -394,7 +406,7 @@ mod tests {
         assert_eq!(
             refusal.replacing("the argument '--cursor <TOKEN>' cannot be used with '--page <N>'\n\nUsage: xr --cursor <TOKEN>"),
             "the argument '--cursor <TOKEN>' cannot be used with the environment variable 'XURL_PAGE'\n\n  \
-             tip: unset 'XURL_PAGE', or leave out '--cursor <TOKEN>'\n\nUsage: xr --cursor <TOKEN>"
+             tip: unset 'XURL_PAGE'\n\nUsage: xr --cursor <TOKEN>"
         );
     }
 
