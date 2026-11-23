@@ -134,6 +134,10 @@ its error as JSON.
 - A typed conflict split across the command word, `xr --cursor a whoami --page 2`, is not refused by clap today and
   stays that way. `--page` is refused at dispatch as `unsupported-pagination` on either side of the word.
 - Flags outside the two settings keep clap's rule for a repeat: `xr --app a --app b` is still refused.
+- An empty variable clap still binds counts as given. `XURL_PAGE= xr --cursor a schema --list` exits 2 on `dev` and
+  stays refused, now naming `XURL_PAGE` as a variable. KTD20 covers the five variables the resolver reads, and taking
+  empty values off every binding would change `XURL_APP=`, `XURL_TIMEOUT=`, and the rest beyond R1 to R12. Evidence that
+  would change the call: a report of an `ARG`-style empty `XURL_PAGE` refusing a typed page token.
 - `xr --help` run with a boolean variable set false omits that flag's `[env: ...]` line, because the binding is gone
   before the parse (KTD10). The root help's `ENVIRONMENT VARIABLES` block still names the variable. Considered and not
   built: a second parse to render help from the untouched command.
@@ -210,22 +214,31 @@ the decision rules out.
   typed layer (KTD15). A per-level probe that rebuilds the tree with local copies of the globals was rejected: it
   re-implements clap's propagation to answer one question argv already answers.
 - KTD10. **One step removes the binding of any boolean flag whose variable reads as the flag's absent value.** It walks
-  every command, takes each argument with an `env` binding and a `SetTrue` or `SetFalse` action, and parses the
-  variable's value with the argument's own value parser. `ValueParser::parse_ref` is crate-private, so the step runs the
-  parser through a one-argument probe command and reads the boolean back. When the result equals what the flag holds
-  when absent (false for `SetTrue`, which is every boolean `xr` binds today), the step removes the binding with
-  `Arg::env` reset. A value the parser rejects keeps its binding, so clap reports it. The step names no flag and no
-  variable. It analyses a built clone and rewrites the unbuilt command, because `Command::build()` expands the help tree
-  where a parse does not. When no bound variable is set it returns the command untouched and builds nothing. The rule is
-  the one clap-rs/clap#6211 proposes for clap itself, that a value from the environment equal to the default is not
-  explicit, kept to boolean flags, where the proposal of 2026-01-21 in clap#5591 also draws the line. uv does not need
-  the step, since no boolean it reconciles stays bound in clap, and pays for that with a copy of clap's boolish literals
-  (see "What this plan takes from uv, and what it leaves").
+  every command, takes each argument with an `env` binding whose variable the lookup holds and whose built value parser
+  yields a `bool` (`ValueParser::type_id() == AnyValueId::of::<bool>()`), and parses the variable's value with that
+  parser. The test is the parser's type, not the action: seven of the eight booleans that stay bound (`--verbose`,
+  `--raw`, `--quiet`, `--no-interactive`, `--wait-on-rate-limit`, `--dry-run`, and `auth oauth2 --no-browser`) are `Set`
+  with `num_args = 0..=1` and `default_value_t = false`, which is why `xr --quiet=false` parses, and only `--no-pager`
+  is `SetTrue`. `ValueParser::parse_ref` is crate-private, so the step runs the parser through a one-argument probe
+  command and reads the boolean back. The absent value is the argument's default parsed by the same parser when it
+  declares one, else false for `SetTrue` and true for `SetFalse`. When the variable's value equals it, the step removes
+  the binding with `Arg::env` reset. A value the parser rejects keeps its binding, so clap reports it. The step names no
+  flag and no variable. It analyses a built clone and rewrites the unbuilt command, because `Command::build()` expands
+  the help tree where a parse does not. When no variable the lookup holds is bound in the tree it returns the command
+  untouched and builds nothing. The analysis runs at most once per run, and each parse site applies its result: a
+  parse-error run reaches several of the sites U1 lists (on the debug binary `xr --bogus` takes 0.06 s against 0.01 s
+  for `xr schema --list`), and `xr --help`, which builds the whole tree, takes 0.02 s, so a build per site would add a
+  tree build to each of those parses. The rule is the one clap-rs/clap#6211 proposes for clap itself, that a value from
+  the environment equal to the default is not explicit, kept to boolean flags, where the proposal of 2026-01-21 in
+  clap#5591 also draws the line. uv does not need the step, since no boolean it reconciles stays bound in clap, and pays
+  for that with a copy of clap's boolish literals (see "What this plan takes from uv, and what it leaves").
 - KTD11. **Every argv parse goes through one function.** `crates/xurl-cli/src/cli/parse.rs` owns the only calls that
   hand argv to clap. Each site passes the customization it needs: inert display flags, room for stray words,
-  `ignore_errors`. A source guard fails for a parse call anywhere else in production code. Today's tree has no boolean
-  variable in a conflict once KTD8 lands, so the funnel changes no behavior now. It is what makes KTD10 hold for a flag
-  added later.
+  `ignore_errors`. A source guard fails for a parse call anywhere else in production code. Once KTD8 lands, today's tree
+  has no boolean variable in a conflict, and one in a requirement: `auth oauth2 --step` `requires` `no_browser`, and on
+  `dev` `XURL_NO_BROWSER=0 xr --dry-run auth oauth2 --step 1` is accepted with `no_browser: false`, because the false
+  variable counts as given. After the step it is refused at exit 2 for the missing `--no-browser`, which R8 asks for.
+  That is the one behavior the funnel changes now. It is what makes KTD10 hold for a flag added later.
 - KTD12. **One function writes the conflict sentence, for clap's conflicts and for the resolver's.** It takes each side
   as an argument and its source (KTD18): a flag, or a variable. For a clap `ArgumentConflict` it reads the `InvalidArg`
   and `PriorArg` context, finds each argument in the failing command by comparing `Arg::to_string()`, and asks the
@@ -320,22 +333,36 @@ the decision rules out.
   `NO_COLOR` read does the same. And an empty boolean already reads false under `FalseyValueParser`. Where uv refuses an
   empty boolean variable, `xr` keeps the flag's own parser (R8). This plan's reading of uv adds a case: uv#19499 reports
   a container build that fails on a variable an `ARG` default leaves set and empty, and uv#19503 lets such a list
-  variable be empty. Governs R4.
+  variable be empty. A variable clap still binds keeps clap's reading of an empty value, and the single check in KTD13
+  takes its `value_source` as clap gives it (Scope Boundaries). Governs R4.
 
 ### Assumptions
 
 Bets the planner made without a person's confirmation. The eng and devex reviews confirm or correct each one. A1 and A2
-are decided by xurl-rs-prime and are KTD19 and KTD20, and the four below keep their numbers.
+are decided by xurl-rs-prime and are KTD19 and KTD20, and the four below keep their numbers. Each carries the eng
+review's call and its evidence.
 
 - A3. R5 applies where R4 reads the variables. A typed spelling skips its setting's variables altogether (R2), so
-  `XURL_OUTPUT=json XURL_JSON=1 xr --output yaml` and `XURL_OUTPUT=toml xr --output json` both succeed.
+  `XURL_OUTPUT=json XURL_JSON=1 xr --output yaml` and `XURL_OUTPUT=toml xr --output json` both succeed. Eng review:
+  confirmed. R2 says a typed spelling beats every variable of its setting, Problem Frame counts the refusal of
+  `XURL_OUTPUT=toml xr --output json` as the defect, and uv#19313's `resolve_flag_pair` ignores both variables once
+  either flag is typed.
 - A4. The refusal keeps clap's sentence and writes a variable side as `the environment variable 'XURL_PAGE'`:
   `the argument '--cursor <TOKEN>' cannot be used with the environment variable 'XURL_PAGE'`. A refusal with a variable
-  on every side carries no usage line, since no typed flag is at fault.
+  on every side carries no usage line, since no typed flag is at fault. Eng review: confirmed as the mechanism, with the
+  subject of a resolver refusal fixed: the variable that decided the setting is the subject
+  (`the environment variable 'XURL_CURSOR' cannot be used with '--page <N>'`), and the other sides follow in clap's
+  order. The quoting matches clap's own sentence, and uv names the same side by kind. The wording itself is a
+  developer-experience call and `/plan-devex-review` may change it.
 - A5. A variable that names an invalid value is refused only when it decides the setting, and the message names the
-  variable with the possible values: `XURL_OUTPUT=toml xr schema --list` exits 2 naming `XURL_OUTPUT`.
+  variable with the possible values: `XURL_OUTPUT=toml xr schema --list` exits 2 naming `XURL_OUTPUT`. Eng review:
+  confirmed, on A3's evidence. The message keeps the shape of clap's invalid-value sentence with the variable as its
+  subject, `invalid value 'toml' for the environment variable 'XURL_OUTPUT'`, then clap's `[possible values: ...]`
+  line, and the envelope stays `invalid-args` with no new key (R12).
 - A6. The per-flag `[env: ...]` line is a fair trade for KTD8. The prose that replaces it also states when the variable
-  applies, which the line never did.
+  applies, which the line never did. Eng review: no engineering objection. The 198 fixture moves are mechanical and U3
+  checks them by script, and the `[env: X=value]` echo of a set variable's value is what the trade gives up. Whether the
+  prose serves a reader is `/plan-devex-review`'s call.
 
 ### Clap facts
 
@@ -467,13 +494,15 @@ Left, each with its reason:
 
 ### Risks & Dependencies
 
-| Risk                                                                | Mitigation                                                                                                                          |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 198 fixtures move at once, and an unrelated change could ride along | U3 checks by script that each fixture's diff sits inside the five flags' blocks. No other golden may move (stop condition)          |
-| The argv read in KTD9 misreads a value as a flag                    | U5 fails for an argument that accepts hyphen-led values, and for a setting spelling with a short form or an alias                   |
-| A later parse site calls clap directly                              | U1's source guard                                                                                                                   |
-| A clap upgrade changes a crate-private fact above                   | the guards probe through public API, so they fail where behavior moves                                                              |
-| An in-process caller relied on the process's `XURL_JSON`            | none found: tests never set process variables, and `tests/common/invoke.rs` is the only caller of `run_with_env` outside the runner |
+| Risk                                                                                                       | Mitigation                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 198 fixtures move at once, and an unrelated change could ride along                                        | U3 checks by script that each fixture's diff sits inside the five flags' blocks. No other golden may move (stop condition)          |
+| The argv read in KTD9 misreads a value as a flag                                                           | U5 fails for an argument that accepts hyphen-led values, and for a setting spelling with a short form or an alias                   |
+| A later parse site calls clap directly                                                                     | U1's source guard                                                                                                                   |
+| The false-variable step rebuilds the tree at every parse site                                              | KTD10 runs the analysis once per run, and the startup gate in the Verification Contract measures it                                 |
+| A later reader of `cli.cursor`, `cli.after`, `cli.json`, `cli.jsonl`, or `cli.output` misses the variables | U3's verification finds no reader of the five fields outside `settings.rs`                                                          |
+| A clap upgrade changes a crate-private fact above                                                          | the guards probe through public API, so they fail where behavior moves                                                              |
+| An in-process caller relied on the process's `XURL_JSON`                                                   | none found: tests never set process variables, and `tests/common/invoke.rs` is the only caller of `run_with_env` outside the runner |
 
 ### System-Wide Impact
 
@@ -481,6 +510,8 @@ Left, each with its reason:
   completions may move with the flag descriptions.
 - Invocations that exit 2 today start to succeed. Scripts that relied on the refusal to detect a conflicting environment
   lose that signal.
+- One invocation accepted today is refused: `XURL_NO_BROWSER=0 xr auth oauth2 --step 1` exits 2 for the missing
+  `--no-browser`, since a false variable no longer satisfies `--step`'s requirement (KTD11, R8).
 - In-process runs through `run_with_overrides` and `run_with_hooks` stop reading the five variables from the process.
 - `AGENTS.md` and `crates/xurl-cli/README.md` both state that clap refuses `--output` beside an alias. Both sentences
   change (U6).
@@ -502,7 +533,9 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
 - **Requirements:** R8, R11. KTD10, KTD11.
 - **Dependencies:** none.
 - **Files:**
-  - create `crates/xurl-cli/src/cli/parse.rs`
+  - create `crates/xurl-cli/src/cli/parse.rs`, a `pub mod` under the doc-hidden `cli` module so the guards in
+    `crates/xurl-cli/tests/` can call the step, with a doc comment on each public item (`#![deny(missing_docs)]` in
+    `crates/xurl-cli/src/lib.rs`)
   - modify `crates/xurl-cli/src/cli/mod.rs` (module line), `crates/xurl-cli/src/cli/env.rs` (a lookup of a variable by
     the name a declaration gives), `crates/xurl-cli/src/cli/runner.rs`, `crates/xurl-cli/src/cli/reparse.rs`,
     `crates/xurl-cli/src/cli/classify.rs`, `crates/xurl-cli/src/cli/misplaced_flags.rs`
@@ -511,7 +544,7 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   1. `parse.rs` exposes the parse call. It takes argv and the caller's customization of the command, applies the step
      from KTD10, and returns clap's matches or error.
   2. The step takes its variable lookup as a parameter. Production passes the one in `env.rs`, and a test passes its
-     own.
+     own. Its analysis runs once per run and each site applies the result (KTD10).
   3. Move each parse site onto it: the runner's main parse and `help_command_page`, the schema scope probe in
      `render_schema_refusal`, the three builders and `lenient_matches` in `reparse.rs`, `invoked_help`,
      `requested_login`, and `parsed_leaf` in `classify.rs`, and both parses in `misplaced_flags.rs`.
@@ -519,23 +552,29 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
      word list) keep calling `Cli::command()`.
 - **Patterns to follow:** `command_with_inert_display_flags` in `reparse.rs` for a command customized before a parse.
   `crates/xurl-cli/tests/store_isolation_guard.rs` and `common::production_source::up_to_inline_tests` for a source
-  guard that skips inline tests.
+  guard that skips inline tests. `up_to_inline_tests` leaves a whole file that `#[cfg(test)] mod name;` declares in
+  view, and `crates/xurl-cli/src/cli/parse_tests.rs` is one, with six `Cli::try_parse_from` calls. The guard skips such
+  files the way `crates/xurl-cli/tests/port_race_guard.rs` does (its `#[cfg(test)] mod name;` resolver).
 - **Test scenarios:**
   - A `SetTrue` flag with a falsey parser, bound to a variable the lookup gives as `0`: the binding is gone, and a parse
     that types a flag it conflicts with succeeds.
+  - A `Set` flag with a falsey parser, `num_args = 0..=1`, and `default_value_t = false`, the shape of `--quiet`, with
+    the lookup giving `0`: the binding is gone. With `1`: it stays.
   - The same flag with the lookup giving `1`: the binding stays.
   - The lookup giving an empty string under a falsey parser: the binding is gone.
   - A boolish parser with the lookup giving `maybe`: the binding stays, so clap reports the value.
   - A `SetFalse` flag: `true` removes the binding and `false` keeps it.
-  - An option that takes a value, with its variable equal to its default: the binding stays.
+  - A non-boolean option that takes a value, with its variable equal to its default: the binding stays.
   - A boolean flag declared on a subcommand: handled like a root one.
   - No bound variable set: the command comes back with every binding intact.
-  - Integration, through the binary: `XURL_QUIET=0 xr schema --list` exits 0 and prints the list.
+  - Integration, through the binary: `XURL_NO_BROWSER=0 xr --dry-run auth oauth2 --step 1` exits 2 with `invalid-args`
+    for the missing `--no-browser`. On `dev` it exits 0 with a dry-run envelope, which is its observed failure.
+    `XURL_QUIET=0 xr schema --list` is no evidence: it exits 0 on `dev` too.
   - Source guard: a production file other than `parse.rs` that calls `try_get_matches_from`, `get_matches_from`,
     `try_parse_from`, or `parse_from` fails it. The guard fails when it scans no file, and when `parse.rs` holds no such
-    call.
+    call. `parse_tests.rs` and `commands/url_authority_tests.rs` are not scanned.
 - **Verification:** the suite passes with no fixture moved, and the source guard reports `parse.rs` as the only file
-  that parses argv.
+  that parses argv. The startup gate in the Verification Contract holds.
 
 ### U2. Conflict refusals name the real source
 
@@ -580,7 +619,8 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   KTD19, KTD20. A3, A5.
 - **Dependencies:** U1, U2.
 - **Files:**
-  - create `crates/xurl-cli/src/cli/settings.rs`
+  - create `crates/xurl-cli/src/cli/settings.rs`, a `pub mod` with documented public items, since U5's guards call its
+    table and its conflict reader from `crates/xurl-cli/tests/`
   - modify `crates/xurl-cli/src/cli/mod.rs` (the five declarations, `ROOT_HELP`, `effective_output`),
     `crates/xurl-cli/src/cli/env.rs`, `crates/xurl-cli/src/cli/runner.rs`, `crates/xurl-cli/src/cli/commands/mod.rs`
     (the token `GlobalFlags.cursor` holds), `crates/xurl-cli/tests/common/invoke.rs` (the `run_with_env` caller)
@@ -645,7 +685,10 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   - Every diff in `help.golden` and the `help-*.golden` fixtures sits inside the five flags' blocks or the root
     environment block, checked by script. `xr --help` names `XURL_AFTER`.
 - **Verification:** the acceptance examples above pass against the built binary run with `XURL_TOKEN_STORE` on a scratch
-  path. `git diff --stat -- crates/xdk` is empty. No golden outside the 198 help fixtures moved.
+  path. `git diff --stat -- crates/xdk` is empty. No golden outside the 198 help fixtures moved. Outside `settings.rs`,
+  no production code reads `cli.cursor`, `cli.after`, `cli.json`, `cli.jsonl`, or `cli.output`: on `dev` the readers are
+  `commands/mod.rs` (the `GlobalFlags.cursor` assembly), `rerun.rs` (`FormatSpelling::of`), and `mod.rs`
+  (`effective_output`), and each moves to the resolver's answer.
 
 ### U4. The parse-error path and recovery steps read the same answer
 
@@ -659,11 +702,17 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
   - modify `crates/xurl-cli/tests/rerun_env_tests.rs`, `crates/xurl-cli/tests/unknown_command_tests.rs`
 - **Approach:**
   1. The argv reader reports a typed `text` as typed and stops at a `--`.
-  2. `output_intent` takes the variables as data and applies KTD15.
+  2. `output_intent` takes the variables as data and applies KTD15. It reads `XURL_JSON` and `XURL_JSONL` through the
+     function `settings.rs` reads them with, the flag's own parser through U1's probe, and not through `FALSE_LITERALS`
+     in `classify.rs`, which `raw_intent` keeps for `--raw=`.
   3. `FormatSpelling` is read from the resolved output format (KTD18): `Alias` when `--json`, `--jsonl`, or one of their
      variables decided, `Output` otherwise. `FormatSpelling::of(&Cli)`, which works the spelling out from the parsed
      flags after the fact, goes.
-  4. The doc comments in `rerun.rs` that explain the spelling by clap's refusal describe the present rule.
+  4. The doc comments in `rerun.rs` that explain the spelling by clap's refusal describe the present rule: the step
+     repeats the spelling that decided the format. Once a typed spelling beats every variable, `--output <format>`
+     reruns in any environment, so the refusal no longer forces the spelling. `FormatSpelling` stays because R9 and the
+     #621 contract in `AGENTS.md` keep the caller's spelling, and dropping it would widen this change; no golden fixture
+     pins an alias-spelled step, and `crates/xurl-cli/tests/rerun_env_tests.rs` is where that contract is tested.
 - **Patterns to follow:** the existing `output_intent` chain, and the `carry` tests in `rerun.rs`.
 - **Test scenarios:**
   - Covers AE13, AE14, AE17.
@@ -689,27 +738,35 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
 - **Files:**
   - create `crates/xurl-cli/tests/flag_env_guard.rs`
 - **Approach:**
-  1. Override walk. For every command, probe each ordered pair of flags: type the first and then the second, and see
-     whether the first lost its command-line value. A participant that holds a clap `env` binding fails the walk, with a
-     message that names the argument and points at the settings table in `settings.rs`. Every override pair must sit
-     inside one setting of that table, and every setting's spellings must override one another.
+  1. Override walk. Probe each ordered pair of flags: type the first and then the second, and see whether the first
+     lost its command-line value. Clap copies a global argument with its relationships into every command, so pairs of
+     two globals are probed once, at the root, and each command probes only the pairs that hold one of its own
+     arguments. Per command, the 18 globals alone give 306 ordered pairs, about 61,000 parses over the tree. Each probe
+     starts from `arguments_for(path)` in `crates/xurl-cli/tests/common/invoke.rs`, so a required positional or group
+     does not fail it, and a probe that fails for any reason but the pair itself fails the walk, naming the command and
+     clap's error, rather than counting as no override. A participant that holds a clap `env` binding fails the walk,
+     with a message that names the argument and points at the settings table in `settings.rs`. Every override pair must
+     sit inside one setting of that table, and every setting's spellings must override one another.
   2. Conflict walk. With the reader from U3, pair every flag with every variable-backed argument it conflicts with,
      where variable-backed means a clap binding or a spelling in the settings table, so the variables the resolver owns
-     are in the set (KTD13). Each pair runs through the binary with the flag typed and the variable set, and must exit 2
-     with a message that names the variable as a variable and not its flag. Where the variable-backed argument is
-     boolean, a second run with the variable false must not be refused.
+     are in the set (KTD13). A pair of two globals runs once, under `schema --list`, and a pair that holds a command's
+     own argument runs at that command with `arguments_for(path)`. Each pair runs through the binary with the flag
+     typed and the variable set, and must exit 2 with a message that names the variable as a variable and not its flag.
+     Where the variable-backed argument is boolean, a second run with the variable false must not be refused.
   3. Fixture. A `clap::Command` built in the test holds a non-multiple group of three flags that each bind a variable,
      an `exclusive` flag, and an override pair in which one side binds a variable. The reader must report the group's
      six ordered pairs and the exclusive flag against every other argument. The override probe must find the pair, and
      the first walk's check must flag it. The false-variable step, given an injected lookup, must remove a false
      member's binding.
   4. Argv-read conditions. No argument in `xr`'s tree accepts hyphen-led values or is a trailing variable argument, and
-     no setting spelling has a short form or an alias.
+     no setting spelling has a short form or an alias. A `last = true` positional, such as `webhooks listen`'s
+     `PROGRAM`, passes: it takes only words after a `--`, where the argv read stops.
   5. Each walk counts its cases and fails at zero.
   6. Probe values. A flag that takes a value is typed with its first `get_possible_values` entry, or with the `SAMPLE`
      value the walks in `crates/xurl-cli/tests/common/invoke.rs` use when it declares none. A variable takes the same
      value its flag would, and a boolean variable takes `1` for true and `0` for false.
-- **Patterns to follow:** `TREE` and `command_at` in `crates/xurl-cli/tests/common/invoke.rs` for a tree built once.
+- **Patterns to follow:** `TREE`, `command_at`, and `arguments_for` in `crates/xurl-cli/tests/common/invoke.rs` for a
+  tree built once and an invocation that parses at each command.
   `crates/xurl-cli/tests/help_claims_guard.rs` for a walk that reads clap's declarations. `common::xr()` for a spawn
   with variables set on the child.
 - **Test scenarios:**
@@ -743,16 +800,17 @@ U4, so the suite is green only with both. U5 depends on U1 to U3. U6 is last.
 
 ## Verification Contract
 
-| Gate              | Command                                                                                       | Applies to       |
-| ----------------- | --------------------------------------------------------------------------------------------- | ---------------- |
-| Tests             | `cargo nextest run --workspace`, read from its summary line                                   | every unit       |
-| Doc tests         | `cargo test --doc --workspace`                                                                | U1 to U4         |
-| Lint and format   | `cargo clippy -- -D warnings`, `cargo fmt --check`                                            | every unit       |
-| Help fixtures     | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests`, then the scripted diff check | U3               |
-| Completions       | `scripts/generate-completions.sh`, committed when it changes                                  | U3               |
-| Local CI mirror   | `scripts/hooks/pre-push`                                                                      | before the push  |
-| Built binary      | each acceptance example run against the built `xr` with `XURL_TOKEN_STORE` on a scratch path  | U2 to U4         |
-| Library untouched | `git diff --stat origin/dev -- crates/xdk` prints nothing                                     | the pull request |
+| Gate              | Command                                                                                                                                                                   | Applies to       |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| Tests             | `cargo nextest run --workspace`, read from its summary line                                                                                                               | every unit       |
+| Doc tests         | `cargo test --doc --workspace`                                                                                                                                            | U1 to U4         |
+| Lint and format   | `cargo clippy -- -D warnings`, `cargo fmt --check`                                                                                                                        | every unit       |
+| Help fixtures     | `XURL_GOLDEN_BLESS=1 cargo test -p xurl-rs --test golden_tests`, then the scripted diff check                                                                             | U3               |
+| Completions       | `scripts/generate-completions.sh`, committed when it changes                                                                                                              | U3               |
+| Local CI mirror   | `scripts/hooks/pre-push`                                                                                                                                                  | before the push  |
+| Built binary      | each acceptance example run against the built `xr` with `XURL_TOKEN_STORE` on a scratch path                                                                              | U2 to U4         |
+| Library untouched | `git diff --stat origin/dev -- crates/xdk` prints nothing                                                                                                                 | the pull request |
+| Startup           | `gtime -f '%e s %M KB'` on the built `xr` for `schema --list` and `--bogus`, with `XURL_QUIET=1` set and unset, before and after; the set run adds at most one tree build | U1               |
 
 A new test counts once it has been seen failing against `dev`, and every acceptance example fails there today. The four
 CI gates with no hook (completions freshness, the package check, the semver gate, the agent-native audit) run on the
@@ -782,3 +840,11 @@ pull request. No run sends a request to X.
 - 2026-11-22: plan written. Pending: `/plan-eng-review`, `/plan-devex-review`, `/compound-engineering:ce-doc-review`.
 - 2026-11-22: uv #17321 prior art folded in at `f43ef76`, with A1 and A2 recorded as KTD19 and KTD20 by xurl-rs-prime.
 - 2026-11-23: `/plan-eng-review` started, one round, as its own Opus process.
+- 2026-11-23: `/plan-eng-review` ended, one round. The skill was not installed in the session, so the round ran by hand
+  over architecture, gates, and tests against the code on `dev` and the 4.8.0 binary. Changed: KTD10 finds a boolean by
+  its parser's type, since seven of eight bound booleans are `Set`, and analyses once per run; KTD11 and System-Wide
+  Impact name the `XURL_NO_BROWSER=0` requirement the step changes, and U1 tests it in place of `XURL_QUIET=0`, which
+  passes on `dev`; the U1 guard skips whole-file test modules; U5 probes global pairs once and starts each probe from
+  `arguments_for`; KTD20 and Scope Boundaries leave an empty clap-bound variable to clap; U3 and U4 name the module
+  visibility, the readers of the five fields, the alias-variable read, and why `FormatSpelling` stays; a startup gate
+  joins the Verification Contract. A3 to A6 confirmed, A4 and A6 left to the devex review for wording.
