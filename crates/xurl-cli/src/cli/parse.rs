@@ -146,7 +146,7 @@ fn collect(
 
 /// Whether `arg` is a boolean flag whose parser reads `value` as the flag's
 /// absent value.
-fn reads_absent(arg: &Arg, value: &str) -> bool {
+pub(crate) fn reads_absent(arg: &Arg, value: &str) -> bool {
     let parser = arg.get_value_parser();
     parser.type_id() == TypeId::of::<bool>()
         && absent_value(arg, parser).is_some_and(|absent| read_bool(parser, value) == Some(absent))
@@ -163,9 +163,13 @@ fn absent_value(arg: &Arg, parser: &ValueParser) -> Option<bool> {
     }
 }
 
-/// What `parser` reads `value` as. The parser's entry point is private to
-/// clap, so a one-argument command runs it.
-fn read_bool(parser: &ValueParser, value: &str) -> Option<bool> {
+/// What `parser` reads `value` as, under the id `value`. The parser's entry
+/// point is private to clap, so a one-argument command runs it.
+///
+/// # Errors
+///
+/// Returns clap's error when the parser rejects `value`.
+pub fn read_value(parser: &ValueParser, value: &str) -> Result<ArgMatches, clap::Error> {
     Command::new("probe")
         .no_binary_name(true)
         .arg(
@@ -176,6 +180,10 @@ fn read_bool(parser: &ValueParser, value: &str) -> Option<bool> {
                 .required(true),
         )
         .try_get_matches_from([value])
+}
+
+fn read_bool(parser: &ValueParser, value: &str) -> Option<bool> {
+    read_value(parser, value)
         .ok()?
         .get_one::<bool>("value")
         .copied()

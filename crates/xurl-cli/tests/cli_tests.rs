@@ -246,18 +246,21 @@ async fn test_raw_flag_accepted() {
 }
 
 #[tokio::test]
-async fn test_json_and_output_conflict() {
-    // clap should reject `--output json --json` together (validated after
-    // parsing — --help would short-circuit, so use `version` subcommand).
-    let (code, _stdout, stderr) =
-        run_isolated(&["xr", "--output", "json", "--json", "version"]).await;
-    assert_ne!(code, 0, "--json + --output must conflict: {stderr}");
+async fn test_json_after_output_wins() {
+    let (code, stdout, stderr) =
+        run_isolated(&["xr", "--output", "yaml", "--json", "version"]).await;
+    assert_eq!(code, 0, "the last typed spelling wins: {stderr}");
+    assert!(stdout.starts_with("{\n"), "JSON, not YAML: {stdout}");
 }
 
 #[tokio::test]
-async fn test_json_and_jsonl_conflict() {
-    let (code, _stdout, stderr) = run_isolated(&["xr", "--json", "--jsonl", "version"]).await;
-    assert_ne!(code, 0, "--json + --jsonl must conflict: {stderr}");
+async fn test_jsonl_after_json_wins() {
+    let (code, stdout, stderr) = run_isolated(&["xr", "--json", "--jsonl", "version"]).await;
+    assert_eq!(code, 0, "the last typed spelling wins: {stderr}");
+    assert!(
+        stdout.starts_with("{\"name\""),
+        "JSONL, one line, not JSON: {stdout}"
+    );
 }
 
 #[tokio::test]

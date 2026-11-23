@@ -32,6 +32,7 @@ use crate::cli::classify::{
     Classified, ROOT_COMMAND, classify, context_string, help_command_precedes, invoked_help,
     nearest_command, rejected_word, suggestion_for_rejected,
 };
+use crate::cli::env::FlagEnv;
 use crate::cli::envelope::{ErrorBody, Reason};
 use crate::cli::failure::Failure;
 use crate::cli::hints::NextStep;
@@ -41,6 +42,7 @@ use crate::cli::reparse::{
     parse_past_stray_words, parse_without_display_flags, raw_choice,
 };
 use crate::cli::retired_verbs;
+use crate::cli::settings::{self, Variables};
 use crate::cli::skill_install::SkillEnv;
 use crate::cli::{Cli, Commands};
 use xdk::auth::Auth;
@@ -89,7 +91,17 @@ where
         .filter(|p| !p.is_empty())
         .map_or_else(Config::default_store_path, PathBuf::from);
     let skill_env = crate::cli::env::skill_from_process(&overrides);
-    run_with_env(args, stdout, stderr, &store_path, &overrides, &skill_env).await
+    let flag_env = crate::cli::env::flags_from_process();
+    run_with_env(
+        args,
+        stdout,
+        stderr,
+        &store_path,
+        &overrides,
+        &skill_env,
+        &flag_env,
+    )
+    .await
 }
 
 /// Canonical CLI entrypoint — runs the `xr` dispatcher with explicit writers
@@ -123,7 +135,11 @@ where
 {
     let overrides = crate::cli::env::from_process();
     let skill_env = crate::cli::env::skill_from_process(&overrides);
-    run_with_env(args, stdout, stderr, store_path, &overrides, &skill_env).await
+    let flag_env = crate::cli::env::flags_from_process();
+    run_with_env(
+        args, stdout, stderr, store_path, &overrides, &skill_env, &flag_env,
+    )
+    .await
 }
 
 /// The worker entrypoint — everything [`run_with_store_path`] does, with the
@@ -192,14 +208,24 @@ where
     };
     let args_vec: Vec<OsString> = args.into_iter().map(Into::into).collect();
     run_inner(
-        args_vec, stdout, stderr, store_path, overrides, &skill_env, hooks,
+        args_vec,
+        stdout,
+        stderr,
+        store_path,
+        Environment {
+            overrides,
+            skill: &skill_env,
+            flags: &FlagEnv::default(),
+        },
+        hooks,
     )
     .await
 }
 
-/// [`run_with_overrides`] with the skill-destination environment supplied as
-/// data too: `XURL_SKILL_HOME` and each host's config- and base-directory
-/// variable, which `overrides` does not carry.
+/// [`run_with_overrides`] with the rest of the environment supplied as data
+/// too: `XURL_SKILL_HOME` and each host's config- and base-directory variable
+/// in `skill_env`, and `XURL_JSON`, `XURL_JSONL`, `XURL_CURSOR`, and
+/// `XURL_AFTER` in `flag_env`, none of which `overrides` carries.
 pub async fn run_with_env<I, S>(
     args: I,
     stdout: &mut dyn Write,
@@ -207,6 +233,7 @@ pub async fn run_with_env<I, S>(
     store_path: &Path,
     overrides: &xdk::config::EnvOverrides,
     skill_env: &SkillEnv,
+    flag_env: &FlagEnv,
 ) -> i32
 where
     I: IntoIterator<Item = S>,
@@ -218,11 +245,21 @@ where
         stdout,
         stderr,
         store_path,
-        overrides,
-        skill_env,
+        Environment {
+            overrides,
+            skill: skill_env,
+            flags: flag_env,
+        },
         &RunHooks::default(),
     )
     .await
+}
+
+/// The environment a run reads, as data.
+struct Environment<'a> {
+    overrides: &'a xdk::config::EnvOverrides,
+    skill: &'a SkillEnv,
+    flags: &'a FlagEnv,
 }
 
 async fn run_inner(
@@ -230,10 +267,15 @@ async fn run_inner(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
     store_path: &Path,
-    overrides: &xdk::config::EnvOverrides,
-    skill_env: &SkillEnv,
+    environment: Environment<'_>,
     hooks: &RunHooks,
 ) -> i32 {
+    let Environment {
+        overrides,
+        skill: skill_env,
+        flags: flag_env,
+    } = environment;
+    let variables = Variables::new(overrides.output.as_deref(), flag_env);
     // Parsed in two steps, formatting a failure as `Cli::try_parse_from`
     // does, so the matches stay to name the command that ran.
     let parsed = crate::cli::parse::try_matches(args_vec.iter(), std::convert::identity)
@@ -242,12 +284,18 @@ async fn run_inner(
     let (cli, matches) = match parsed {
         Ok(parsed) => parsed,
         Err(e) => {
-            return render_parse_error(&e, &args_vec, overrides, stdout, stderr);
+            return render_parse_error(&e, &args_vec, overrides, variables, stdout, stderr);
         }
     };
 
+    let output = match settings::resolve_output(&matches, &args_vec, variables) {
+        Ok(answer) => answer,
+        Err(refused) => {
+            return render_refused(&refused, &args_vec, overrides, variables, stderr);
+        }
+    };
     let out = OutputConfig::new_with_no_color(
-        cli.effective_output(),
+        output.value.clone(),
         cli.quiet,
         cli.verbose,
         cli.color,
@@ -259,8 +307,14 @@ async fn run_inner(
         &matches,
     )))
     .with_app_from_env(app_from_env(&cli, &matches))
-    .with_format_spelling(crate::cli::rerun::FormatSpelling::of(&cli));
+    .with_format_spelling(crate::cli::rerun::FormatSpelling::of(output.decision));
     crate::cli::panic_hook::publish(&out);
+    let page_token = match settings::resolve_page_token(&matches, &args_vec, variables) {
+        Ok(answer) => answer.value,
+        Err(refused) => {
+            return render_refused(&refused, &args_vec, overrides, variables, stderr);
+        }
+    };
     let invocation = crate::cli::rerun::explicit_invocation(&args_vec, &cli);
 
     // ── Tier 1: Meta-commands (need only parsed args) ──────────────────
@@ -432,6 +486,7 @@ async fn run_inner(
         hooks,
         &invocation,
         no_browser_typed(&matches),
+        page_token,
     )
     .with_subscriber(diagnostics)
     .await;
@@ -625,6 +680,7 @@ fn render_parse_error(
     error: &clap::Error,
     args: &[OsString],
     overrides: &xdk::config::EnvOverrides,
+    variables: Variables<'_>,
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
 ) -> i32 {
@@ -643,7 +699,14 @@ fn render_parse_error(
                         .and_then(|cli| unknown_word(&cli))
                         .is_some()
                 {
-                    return render_parse_error(&without_flag, args, overrides, stdout, stderr);
+                    return render_parse_error(
+                        &without_flag,
+                        args,
+                        overrides,
+                        variables,
+                        stdout,
+                        stderr,
+                    );
                 }
                 None
             }
@@ -656,17 +719,7 @@ fn render_parse_error(
         return EXIT_SUCCESS;
     }
 
-    let intent = output_intent(args, overrides.output.as_deref());
-    // Quiet and verbose are unparsed here, and neither changes an error
-    // envelope, so the provisional config leaves both off.
-    let out = OutputConfig::new_with_no_color(
-        intent.unwrap_or(OutputFormat::Text),
-        false,
-        false,
-        color_choice(args),
-        raw_choice(args),
-        overrides.no_color,
-    );
+    let out = provisional_output(args, overrides, variables);
 
     let rejected = rejected_word(error);
     let past_stray_words = rejected.as_ref().and_then(|_| parse_past_stray_words(args));
@@ -711,6 +764,43 @@ fn render_parse_error(
     }
 
     render_invalid_args(error, args, &out, stderr)
+}
+
+/// The config an error is rendered under before the run has one: the format
+/// the caller named in argv or a variable, and the color and raw choices
+/// argv and its variables make.
+///
+/// Quiet and verbose are unparsed here, and neither changes an error
+/// envelope, so the provisional config leaves both off.
+fn provisional_output(
+    args: &[OsString],
+    overrides: &xdk::config::EnvOverrides,
+    variables: Variables<'_>,
+) -> OutputConfig {
+    OutputConfig::new_with_no_color(
+        output_intent(args, variables).unwrap_or(OutputFormat::Text),
+        false,
+        false,
+        color_choice(args),
+        raw_choice(args),
+        overrides.no_color,
+    )
+}
+
+/// A refusal of the output format or the page token as the `Error:` line or
+/// the `invalid-args` envelope, in the format the caller named.
+fn render_refused(
+    refused: &settings::Refused,
+    args: &[OsString],
+    overrides: &xdk::config::EnvOverrides,
+    variables: Variables<'_>,
+    stderr: &mut dyn Write,
+) -> i32 {
+    let out = provisional_output(args, overrides, variables);
+    let command = invoked_help(args);
+    let command = command.strip_suffix(" --help").unwrap_or(&command);
+    out.print_invalid_args(stderr, &refused.0, "\n\n", command);
+    EXIT_USAGE_ERROR
 }
 
 /// A clap failure in `xr`'s dialect, as the `Error:` line or the

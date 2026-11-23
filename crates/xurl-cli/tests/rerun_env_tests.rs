@@ -223,3 +223,66 @@ fn the_sign_in_after_a_registration_names_the_app_it_registered() {
         "`{text}` leaves the app to the shell, where XURL_APP says other: {document}"
     );
 }
+
+/// The `command` of the step a run wrote, from its JSON envelope or, for a
+/// YAML one, from its `command:` line.
+fn step_command(output: &Output) -> String {
+    match serde_json::from_slice::<Value>(&output.stderr) {
+        Ok(document) => step_text(&document),
+        Err(_) => String::from_utf8_lossy(&output.stderr)
+            .lines()
+            .find_map(|line| line.trim().strip_prefix("command: ").map(str::to_string))
+            .unwrap_or_else(|| panic!("the run wrote no step: {output:?}")),
+    }
+}
+
+/// The step a `whoami` on an unreadable store carries, run under `env` with
+/// `args` ahead of the command word.
+fn step_over_an_unreadable_store(env: &[(&str, &str)], args: &[&str]) -> (Vec<String>, String) {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    std::fs::write(&store, "apps: [not, a, map\n").expect("write the store");
+    let mut argv: Vec<&str> = args.to_vec();
+    argv.push("whoami");
+    let text = step_command(&run(&store, env, &argv));
+    let words: Vec<String> = text.split(' ').skip(1).map(str::to_string).collect();
+    let again = run(
+        &store,
+        env,
+        &words.iter().map(String::as_str).collect::<Vec<_>>(),
+    );
+    assert_ne!(
+        again.status.code(),
+        Some(2),
+        "`{text}` is refused where it was made: {again:?}"
+    );
+    (words, text)
+}
+
+#[test]
+fn a_step_spells_the_format_the_typed_flag_chose() {
+    let (_, text) = step_over_an_unreadable_store(&[], &["--json", "--output", "yaml"]);
+    assert!(text.starts_with("xr --output yaml "), "{text}");
+
+    let (_, text) = step_over_an_unreadable_store(&[], &["--output", "yaml", "--json"]);
+    assert!(text.starts_with("xr --json "), "{text}");
+}
+
+#[test]
+fn a_step_spells_the_format_of_a_flag_typed_after_the_command_word() {
+    let tmp = TempDir::new().expect("tempdir");
+    let store = tmp.path().join(".xurl");
+    std::fs::write(&store, "apps: [not, a, map\n").expect("write the store");
+    let text = step_text(&document_of(&run(
+        &store,
+        &[],
+        &["--json", "whoami", "--output", "json"],
+    )));
+    assert!(text.starts_with("xr --output json "), "{text}");
+}
+
+#[test]
+fn a_typed_flag_beats_a_variable_and_the_step_runs_again_in_the_same_environment() {
+    let (_, text) = step_over_an_unreadable_store(&[("XURL_OUTPUT", "yaml")], &["--json"]);
+    assert!(text.starts_with("xr --json "), "{text}");
+}

@@ -1,7 +1,7 @@
 args: ["lists", "members", "list", "--help"]
 store: empty
 exit_code: 0
-stdout_len: 7234
+stdout_len: 7728
 stderr_len: 0
 --- stdout ---
 List the accounts on a list
@@ -43,6 +43,10 @@ Global Options:
 
       --output <OUTPUT>
           Output format. text (default), json, jsonl, ndjson (alias of jsonl), yaml (alias `yml`), csv, tsv. Any other value (toml, xml) is refused at exit 2 with a JSON envelope whose reason is `invalid-args`
+          
+          Read from XURL_OUTPUT only when no --output, --json, or --jsonl is typed.
+          
+          [env: XURL_OUTPUT]
 
           Possible values:
           - text:   Default: colored, human-readable
@@ -53,18 +57,21 @@ Global Options:
           - csv:    Comma-separated values (best-effort flattening of the top-level shape)
           - tsv:    Tab-separated values (best-effort flattening of the top-level shape)
           
-          [env: XURL_OUTPUT=]
           [default: text]
 
       --json
-          Shorthand for `--output json` (P2 alias)
+          Shorthand for `--output json`
           
-          [env: XURL_JSON=]
+          Read from XURL_JSON only when no --output, --json, or --jsonl is typed; XURL_JSON=0 is unset.
+          
+          [env: XURL_JSON]
 
       --jsonl
-          Shorthand for `--output jsonl` (P2 alias)
+          Shorthand for `--output jsonl`
           
-          [env: XURL_JSONL=]
+          Read from XURL_JSONL only when no --output, --json, or --jsonl is typed; XURL_JSONL=0 is unset.
+          
+          [env: XURL_JSONL]
 
       --raw[=<RAW>]
           Emit unstyled, compact output. Strips ANSI in text mode; prints `json` output on one line, as `jsonl` and `ndjson` always are
@@ -145,7 +152,9 @@ Global Options:
           
           A command whose endpoint pages answers with `meta.next_token` while more results remain; run the same command again with `--cursor <token>` (or `XURL_CURSOR=<token>`) for the next page. The token is sent as the endpoint's page token, `pagination_token` or `next_token`. A raw request carries its page token in its own URL.
           
-          [env: XURL_CURSOR=]
+          Read from XURL_CURSOR only when neither --cursor nor --after is typed.
+          
+          [env: XURL_CURSOR]
 
       --page <N>
           Documented alias for `--cursor`.
@@ -159,7 +168,9 @@ Global Options:
           
           Threads through to the same `pagination_token` query parameter as `--cursor`. Exposed so agents that picked up "after-style" pagination from other CLIs (`gh`, `kubectl`) get a working flag.
           
-          [env: XURL_AFTER=]
+          Read from XURL_AFTER only when neither --cursor nor --after is typed.
+          
+          [env: XURL_AFTER]
 
 Examples:
   The accounts on a list (text):

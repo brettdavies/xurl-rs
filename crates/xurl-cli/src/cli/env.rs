@@ -23,6 +23,47 @@ pub fn from_process() -> EnvOverrides {
     overrides
 }
 
+/// The variables of the two settings `xr` resolves by layer, other than
+/// `XURL_OUTPUT`, which [`EnvOverrides::output`] carries. Each is the string
+/// as the process held it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FlagEnv {
+    /// `XURL_JSON`.
+    pub json: Option<String>,
+    /// `XURL_JSONL`.
+    pub jsonl: Option<String>,
+    /// `XURL_CURSOR`.
+    pub cursor: Option<String>,
+    /// `XURL_AFTER`.
+    pub after: Option<String>,
+}
+
+impl FlagEnv {
+    /// The value held for the variable named `name`, `None` for a name this
+    /// value does not carry.
+    #[must_use]
+    pub fn get(&self, name: &str) -> Option<&str> {
+        match name {
+            "XURL_JSON" => self.json.as_deref(),
+            "XURL_JSONL" => self.jsonl.as_deref(),
+            "XURL_CURSOR" => self.cursor.as_deref(),
+            "XURL_AFTER" => self.after.as_deref(),
+            _ => None,
+        }
+    }
+}
+
+/// The four variables of [`FlagEnv`], as the process holds them.
+#[must_use]
+pub fn flags_from_process() -> FlagEnv {
+    FlagEnv {
+        json: std::env::var("XURL_JSON").ok(),
+        jsonl: std::env::var("XURL_JSONL").ok(),
+        cursor: std::env::var("XURL_CURSOR").ok(),
+        after: std::env::var("XURL_AFTER").ok(),
+    }
+}
+
 /// The value of the variable named `name`, as clap reads it for an `env`
 /// binding. A value that is not UTF-8 is held by no one.
 #[must_use]

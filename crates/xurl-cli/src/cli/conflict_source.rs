@@ -208,6 +208,20 @@ pub(crate) fn sides(
     Some((subject, priors))
 }
 
+/// The command `matches` names, found in the built `root`, and the matches
+/// at its level.
+pub(crate) fn leaf_of<'a>(
+    root: &'a Command,
+    matches: &'a ArgMatches,
+) -> Option<(&'a Command, &'a ArgMatches)> {
+    let (mut command, mut resolved) = (root, matches);
+    while let Some((name, below)) = resolved.subcommand() {
+        command = command.find_subcommand(name)?;
+        resolved = below;
+    }
+    Some((command, resolved))
+}
+
 /// The source of the value `arg` holds in `matches`.
 pub(crate) fn source_in(matches: &ArgMatches, arg: &Arg) -> Source {
     match (
@@ -231,11 +245,7 @@ pub(crate) fn refusal_for(error: &clap::Error, args: &[OsString]) -> Option<Refu
     let matches = reparse::lenient_matches(args)?;
     let mut root = parse::command();
     root.build();
-    let (mut command, mut resolved) = (&root, &matches);
-    while let Some((name, below)) = resolved.subcommand() {
-        command = command.find_subcommand(name)?;
-        resolved = below;
-    }
+    let (command, resolved) = leaf_of(&root, &matches)?;
     let (subject, priors) = sides(error, command, &|arg| source_in(resolved, arg))?;
     let refusal = Refusal::between(&subject, &priors);
     refusal.names_a_variable().then_some(refusal)

@@ -359,10 +359,9 @@ pub(crate) fn context_string(error: &clap::Error, kind: ContextKind) -> Option<S
 
 /// The color choice the caller named before clap parsed anything.
 ///
-/// Read from the unparsed argv for the reason [`structured_intent`] is: on
-/// the clap error path no `Cli` exists, and clap stops at the token it
-/// rejected, so a `--color` after that token reaches no parse. The last valid
-/// choice named wins.
+/// Read from the unparsed argv, because on the clap error path no `Cli`
+/// exists, and clap stops at the token it rejected, so a `--color` after that
+/// token reaches no parse. The last valid choice named wins.
 pub(crate) fn color_intent(args: &[OsString]) -> Option<ColorChoice> {
     let mut found = None;
     let mut iter = args.iter().peekable();
@@ -404,32 +403,6 @@ pub(crate) fn raw_intent(args: &[OsString]) -> Option<bool> {
 /// The spellings clap's `FalseyValueParser` reads as false, compared after
 /// lowercasing.
 const FALSE_LITERALS: [&str; 6] = ["n", "no", "f", "false", "off", "0"];
-
-/// The output format the caller named before clap parsed anything.
-///
-/// Read from the unparsed argv, because the clap error path runs before `Cli`
-/// exists. `text` returns `None`, which keeps clap's own rendering, and a
-/// spelling that names no format returns JSON (see [`rendering_format`]). The
-/// last format named wins, matching how clap resolves a repeated flag.
-pub(crate) fn structured_intent(args: &[OsString]) -> Option<OutputFormat> {
-    let mut found = None;
-    let mut iter = args.iter().peekable();
-    while let Some(a) = iter.next() {
-        let s = a.to_string_lossy();
-        if s == "--json" {
-            found = Some(OutputFormat::Json);
-        } else if s == "--jsonl" {
-            found = Some(OutputFormat::Jsonl);
-        } else if s == "--output"
-            && let Some(next) = iter.peek()
-        {
-            found = rendering_format(&next.to_string_lossy()).or(found);
-        } else if let Some(rest) = s.strip_prefix("--output=") {
-            found = rendering_format(rest).or(found);
-        }
-    }
-    found
-}
 
 /// The format a usage error takes for the spelling the caller gave
 /// `--output` or `XURL_OUTPUT`.

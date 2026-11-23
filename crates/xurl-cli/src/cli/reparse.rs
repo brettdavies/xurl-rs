@@ -12,11 +12,9 @@ use std::ffi::OsString;
 use clap::error::{ContextKind, ErrorKind};
 use clap::{Arg, ArgAction, ArgMatches, CommandFactory, FromArgMatches};
 
-use crate::cli::classify::{
-    ROOT_COMMAND, color_intent, context_string, raw_intent, rendering_format, structured_intent,
-    usage_command,
-};
+use crate::cli::classify::{ROOT_COMMAND, color_intent, context_string, raw_intent, usage_command};
 use crate::cli::output::OutputFormat;
+use crate::cli::settings::{self, Variables};
 use crate::cli::{Cli, ColorChoice, parse};
 
 /// `Cli::command()` with the root help and version flags inert.
@@ -114,26 +112,16 @@ pub(crate) fn raw_choice(args: &[OsString]) -> bool {
         .unwrap_or(false)
 }
 
-/// The output format for a parse-error rendering: a format named anywhere in
-/// argv, then the `--jsonl` and `--json` aliases as clap resolved them (their
-/// `XURL_JSONL` and `XURL_JSON` bindings included), then `output`, the
-/// caller's `XURL_OUTPUT`. A successful parse never holds an alias beside
-/// `--output`, because clap rejects the pair; ranking the alias first renders
-/// that rejection in the format the alias names.
-pub(crate) fn output_intent(args: &[OsString], output: Option<&str>) -> Option<OutputFormat> {
-    structured_intent(args)
-        .or_else(|| {
-            let matches = lenient_matches(args)?;
-            let set = |id: &str| matches!(matches.try_get_one::<bool>(id), Ok(Some(true)));
-            if set("jsonl") {
-                Some(OutputFormat::Jsonl)
-            } else if set("json") {
-                Some(OutputFormat::Json)
-            } else {
-                None
-            }
-        })
-        .or_else(|| output.and_then(rendering_format))
+/// The output format for a parse-error rendering, from the same layers the
+/// resolver reads and never refusing: the last format argv names before a
+/// `--`, a typed `text` included, and only when argv names none, the variables
+/// in the order `XURL_JSONL`, `XURL_JSON`, `XURL_OUTPUT`.
+///
+/// Read from the unparsed argv, because a clap error leaves no `Cli`, and
+/// clap stops at the token it rejected, so a flag after that token reaches no
+/// parse.
+pub(crate) fn output_intent(args: &[OsString], variables: Variables<'_>) -> Option<OutputFormat> {
+    settings::typed_format(args).unwrap_or_else(|| settings::variable_format(variables))
 }
 
 /// The correction for a value given after a space to a flag that takes it
