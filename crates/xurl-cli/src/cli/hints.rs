@@ -727,9 +727,10 @@ pub fn resume_wait_hint(error: &Error, credential: &MediaCredential) -> Option<H
 /// - A 401 fails the same way until the credential changes, which no `xr`
 ///   command does: `fix-input`, with the resumed wait as a template to run
 ///   once the credential works.
-/// - A refresh the wait ran meets the token endpoint's 403 the same way, until
-///   `TOKEN_URL` or the proxy in front of the endpoint is fixed: `fix-input`
-///   with the page on both, and the resumed wait as a template.
+/// - A refresh the wait ran meets a token endpoint answer that is no OAuth
+///   refusal, a 403 or any status but a 404, a 408, a 429, or a 5xx, the same
+///   way, until `TOKEN_URL` or the proxy in front of the endpoint is fixed:
+///   `fix-input` with the page on both, and the resumed wait as a template.
 #[must_use]
 pub fn resume_after_upload_hint(
     error: &Error,
@@ -743,12 +744,15 @@ pub fn resume_after_upload_hint(
         hint.next_step.docs = docs;
         return Some(hint);
     }
-    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+    if let Some(status) = token_endpoint_in_the_way(error) {
         return Some(resume_once_fixed(
             media_id,
             waited,
             credential,
-            "The token endpoint answered 403 and sent no OAuth error. The upload is intact and X keeps the media id for 24 hours; once TOKEN_URL and any proxy in front of the endpoint are fixed, resume the wait:",
+            &format!(
+                "{} The upload is intact and X keeps the media id for 24 hours; once TOKEN_URL and any proxy in front of the endpoint are fixed, resume the wait:",
+                unread_answer(status)
+            ),
             docs,
         ));
     }
@@ -1165,12 +1169,38 @@ pub fn show_help_hint(help: &str) -> Hint {
     }
 }
 
+/// The status of a token endpoint answer that is no OAuth refusal and that the
+/// library reports as one the token URL or a proxy in front of it caused: a
+/// 403, or any status but a 404, a 408, a 429, or a 5xx.
+fn token_endpoint_in_the_way(error: &Error) -> Option<u16> {
+    match error {
+        Error::TokenEndpointForbidden { .. } => Some(403),
+        Error::TokenEndpointUnexpected { status, .. } => Some(*status),
+        _ => None,
+    }
+}
+
+/// The first sentence of a hint for a token endpoint answer that names none of
+/// the error codes of RFC 6749 section 5.2. A redirect is said not to be
+/// followed, since the address `TOKEN_URL` should name is where it pointed.
+fn unread_answer(status: u16) -> String {
+    let redirect = if (300..400).contains(&status) {
+        " xr does not follow a redirect."
+    } else {
+        ""
+    };
+    format!(
+        "The token endpoint answered {status} and sent none of the error codes of RFC 6749 section 5.2.{redirect}"
+    )
+}
+
 /// Builds the hint for an error whose step the library names and no stored
 /// credential decides.
 ///
 /// A method, a URL, or a path value `xr` refused is an argument, so it
 /// takes the help of the command it was given to, as `help` names it. The
-/// token endpoint's 403 names where to look: `TOKEN_URL` and the proxy in
+/// token endpoint's 403, and any answer of it that is no OAuth refusal and no
+/// 404, 408, 429, or 5xx, names where to look: `TOKEN_URL` and the proxy in
 /// front of the endpoint.
 #[must_use]
 pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
@@ -1180,11 +1210,14 @@ pub fn general_hint(error: &Error, help: &str) -> Option<Hint> {
     ) {
         return Some(show_help_hint(help));
     }
-    if matches!(error, Error::TokenEndpointForbidden { .. }) {
+    if let Some(status) = token_endpoint_in_the_way(error) {
         let docs = error.docs_url();
         return Some(Hint {
             text_lines: with_docs_line(
-                "The token endpoint answered 403 and sent no OAuth error. A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both.".to_string(),
+                format!(
+                    "{} A proxy or firewall in front of it, or a TOKEN_URL that names another service, can cause that. Check both.",
+                    unread_answer(status)
+                ),
                 docs,
             ),
             next_step: NextStep::fix_input(docs.map(str::to_string)),
@@ -1458,6 +1491,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn only_a_redirect_is_said_not_to_be_followed() {
+        assert!(unread_answer(302).contains("does not follow a redirect"));
+        assert!(!unread_answer(401).contains("redirect"));
+    }
+
+    #[test]
     fn a_resumed_wait_quotes_each_word_a_shell_would_split() {
         let credential = MediaCredential {
             app: Some("work".to_string()),
@@ -1543,6 +1582,26 @@ mod tests {
             refresh.text_lines[0].contains("TOKEN_URL")
                 && refresh.text_lines[0].contains("proxy")
                 && refresh.text_lines[0].contains("xr media status 777 --wait=90"),
+            "{:?}",
+            refresh.text_lines
+        );
+        let unexpected = Error::TokenEndpointUnexpected {
+            status: 401,
+            body: "<html>Unauthorized</html>".into(),
+        };
+        let refresh = resume_after_upload_hint(&unexpected, "777", waited, &none)
+            .expect("a step for a token endpoint 401 that is no OAuth refusal");
+        assert_eq!(refresh.next_step.action, NextAction::FixInput);
+        assert_eq!(refresh.next_step.command, None, "never a command");
+        assert_eq!(
+            refresh.next_step.template.as_deref(),
+            Some("xr media status 777 --wait=90"),
+            "the upload is not sent again"
+        );
+        assert_eq!(refresh.next_step.docs.as_deref(), unexpected.docs_url());
+        assert!(
+            refresh.text_lines[0].contains("answered 401")
+                && refresh.text_lines[0].contains("TOKEN_URL"),
             "{:?}",
             refresh.text_lines
         );

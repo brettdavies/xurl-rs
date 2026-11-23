@@ -236,14 +236,27 @@ pub enum Error {
 
     /// The `OAuth2` token endpoint answered 403 with a body that is no OAuth
     /// refusal. X's handler refuses a code, a refresh token, or a client with
-    /// a 400, a 401, or, on any other status but a 5xx or a 429, a JSON body
-    /// with a string `error`, so this answer came from something in the way:
-    /// a proxy or firewall in front of the endpoint, or a token URL that names
-    /// another service. The token URL and the proxy are what to look at, which
-    /// the 403 of an API request never calls for, so it is not [`Self::Api`].
-    /// Every other failure status that is no refusal is an [`Self::Api`].
+    /// an RFC 6749 section 5.2 `error` code in a JSON body, so this answer
+    /// came from something in the way: a proxy or firewall in front of the
+    /// endpoint, or a token URL that names another service. The token URL and
+    /// the proxy are what to look at, which the 403 of an API request never
+    /// calls for, so it is not [`Self::Api`].
     #[error("{body}")]
     TokenEndpointForbidden {
+        /// Raw response body.
+        body: String,
+    },
+
+    /// The `OAuth2` token endpoint answered a failure status that is no OAuth
+    /// refusal and that no request to X reads as its own: a 400 or a 401 with
+    /// no RFC 6749 section 5.2 `error` code, a redirect, or any status but a
+    /// 403 ([`Self::TokenEndpointForbidden`]), a 404, a 408, a 429, or a 5xx
+    /// (each [`Self::Api`]). Like the 403, it came from something in the way,
+    /// so the token URL and the proxy are what to look at.
+    #[error("{body}")]
+    TokenEndpointUnexpected {
+        /// The HTTP status the token endpoint answered.
+        status: u16,
         /// Raw response body.
         body: String,
     },
@@ -641,8 +654,9 @@ impl Error {
     /// its own, a body that could not be read, and a broken invariant are
     /// `ReportIssue`. A credential failure is `None` here: the steps that
     /// depend on a credential store are the binary's to choose. The token
-    /// endpoint's 403 that is no OAuth refusal is `FixInput`: the token URL
-    /// or the proxy in front of it is what to change. So is a store operation
+    /// endpoint's answers that are no OAuth refusal, a 403 or a status of
+    /// [`Self::TokenEndpointUnexpected`], are `FixInput`: the token URL or the
+    /// proxy in front of it is what to change. So is a store operation
     /// that names an app the store does not hold, registers a name it already
     /// holds, or names a login the app does not hold: the name is what to
     /// change.
@@ -680,6 +694,7 @@ impl Error {
             Self::Http { .. } => Some(NextAction::Retry),
             Self::Io { .. }
             | Self::TokenEndpointForbidden { .. }
+            | Self::TokenEndpointUnexpected { .. }
             | Self::AddressInUse { .. }
             | Self::InvalidMethod(_)
             | Self::Validation { .. }
@@ -721,7 +736,9 @@ impl Error {
                     _ => Some(ISSUE_TRACKER),
                 }
             }
-            Self::TokenEndpointForbidden { .. } => Some(TOKEN_ENDPOINT_DOCS),
+            Self::TokenEndpointForbidden { .. } | Self::TokenEndpointUnexpected { .. } => {
+                Some(TOKEN_ENDPOINT_DOCS)
+            }
             Self::Io { message, .. } if refuses_a_store_write(message) => Some(STORE_WRITE_DOCS),
             Self::Auth { .. } | Self::AuthMethodMismatch(_) => Some(AUTHENTICATION_DOCS),
             Self::Http { .. }
@@ -740,11 +757,17 @@ impl Error {
         }
     }
 
-    /// Returns true if this is an API error (HTTP status >= 400), which the
-    /// token endpoint's 403 is too.
+    /// Returns true if this is a failure answer from X's API (an HTTP status
+    /// of 400 or more), or from the token endpoint: its 403, and any other
+    /// status it answered with no reading of its own, a redirect included.
     #[must_use]
     pub fn is_api(&self) -> bool {
-        matches!(self, Self::Api { .. } | Self::TokenEndpointForbidden { .. })
+        matches!(
+            self,
+            Self::Api { .. }
+                | Self::TokenEndpointForbidden { .. }
+                | Self::TokenEndpointUnexpected { .. }
+        )
     }
 
     /// Whether X answered with `errors`, no `data`, and a problem type that
@@ -791,6 +814,8 @@ impl Error {
     /// | `MediaProcessingFailed` | `invalid-request` |
     /// | `AccountNotFound`      | `not-found`      |
     /// | `TokenEndpointForbidden` | `forbidden`    |
+    /// | `TokenEndpointUnexpected { 400 \| 422, .. }` | `invalid-request` |
+    /// | `TokenEndpointUnexpected { other, .. }` | `api-error` |
     #[must_use]
     pub fn kind(&self) -> &'static str {
         match self {
@@ -819,6 +844,10 @@ impl Error {
             Self::MediaProcessingFailed { .. } => "invalid-request",
             Self::AccountNotFound { .. } => "not-found",
             Self::TokenEndpointForbidden { .. } => "forbidden",
+            Self::TokenEndpointUnexpected {
+                status: 400 | 422, ..
+            } => "invalid-request",
+            Self::TokenEndpointUnexpected { .. } => "api-error",
         }
     }
 
@@ -851,6 +880,7 @@ impl Error {
             | Self::Internal(_)
             | Self::ProcessingTimeout { .. }
             | Self::TokenEndpointForbidden { .. }
+            | Self::TokenEndpointUnexpected { .. }
             | Self::MediaProcessingFailed { .. } => EXIT_GENERAL_ERROR,
             Self::AuthMethodMismatch(_) => EXIT_AUTH_MISMATCH,
         }

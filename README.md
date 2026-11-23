@@ -116,16 +116,20 @@ Signing in and refreshing a login send a `POST` to X's token endpoint, `https://
 for a sign-in or a store-backed client, and `ClientBuilder::token_url` sets it for the refresh of a client built with
 `Client::builder()`.
 
-X's OAuth2 handler refuses a code, a refresh token, or a client with a `400` or a `401`, or, on any other status but a
-5xx or a `429`, with a JSON body that holds a string `error`. For those, sign in again or check the client credentials.
-`xr` reports any other failure status as any request's: a `404` is a token URL with the wrong path, a `408` is a request
-to send again, and a `403` with no string `error` comes from something in the way, such as a proxy or firewall in front
-of the endpoint, or a `TOKEN_URL` that names another service. A redirect is not followed, since the request's form holds
-a credential that would go to the host the `Location` names, so a `3xx` reports as its status and `TOKEN_URL` should name
-the address that answers. For a `403`:
+X's OAuth2 handler refuses a code, a refresh token, or a client with a JSON body whose `error` is one of the six codes
+of RFC 6749 section 5.2 (`invalid_request`, `invalid_client`, `invalid_grant`, `unauthorized_client`,
+`unsupported_grant_type`, `invalid_scope`), on a status that is no 5xx and no `429`. For those, sign in again or check
+the client credentials. An answer with no such code did not come from the handler processing the grant, so `xr` reports
+its status, with the step that names this section: a `400` or a `401` with no body, a body that is not JSON, or an
+`error` outside the six, a `403`, a `3xx`, and every other status with no reading of its own come from something in the
+way, such as a proxy or firewall in front of the endpoint, or a `TOKEN_URL` that names another service. A `404` is a
+token URL with the wrong path, a `408` is a request to send again, and a `429` or a 5xx reads as it does on any request.
+A redirect is not followed, since the request's form holds a credential that would go to the host the `Location` names,
+so a `3xx` reports as its status and `TOKEN_URL` should name the address that answers. For an answer with no OAuth error
+code:
 
 1. Unset `TOKEN_URL`, or set it to `https://api.x.com/2/oauth2/token`, and run the command again.
-2. If the `403` stays, check that the proxy or firewall between the machine and X lets a `POST` to that address through.
+2. If it stays, check that the proxy or firewall between the machine and X lets a `POST` to that address through.
 
 `xr` leaves the saved sign-in and the stored login as they were, so the same command works once the endpoint answers,
 or, for a wrong `TOKEN_URL`, once it names the right endpoint. A saved sign-in lasts 15 minutes, and X spends a code
